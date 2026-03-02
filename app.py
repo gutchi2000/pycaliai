@@ -24,14 +24,15 @@ import streamlit as st
 try:
     import japanize_matplotlib  # noqa: F401
 except ImportError:
-    import matplotlib.font_manager as fm
-    # Cloud環境用：IPAフォントを使用
-    font_candidates = ["IPAGothic", "IPAPGothic", "Noto Sans CJK JP", "DejaVu Sans"]
-    available = [f.name for f in fm.fontManager.ttflist]
-    for font in font_candidates:
-        if font in available:
-            plt.rcParams["font.family"] = font
-            break
+    pass
+
+import matplotlib.font_manager as fm
+fm._load_fontmanager(try_read_cache=False)  # キャッシュ無視で再スキャン
+ipa_fonts = [f.fname for f in fm.fontManager.ttflist if "IPA" in f.name]
+if ipa_fonts:
+    fm.fontManager.addfont(ipa_fonts[0])
+    prop = fm.FontProperties(fname=ipa_fonts[0])
+    plt.rcParams["font.family"] = prop.get_name()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
