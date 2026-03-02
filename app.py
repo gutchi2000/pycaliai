@@ -29,7 +29,7 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-BASE_DIR      = Path(r"E:\PyCaLiAI")
+BASE_DIR = Path(__file__).parent
 DATA_DIR      = BASE_DIR / "data"
 MODEL_DIR     = BASE_DIR / "models"
 STRATEGY_JSON = DATA_DIR / "strategy_weights.json"
