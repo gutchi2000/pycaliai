@@ -115,26 +115,15 @@ HORSE_COLS_46 = [
 # =========================================================
 # CSV パース
 # =========================================================
-def parse_target_csv(source) -> pd.DataFrame:
-    """ターゲット形式CSV（2段構造）をマスター相当のDataFrameに変換する。
-
-    Args:
-        source: ファイルパス(str/Path) または Streamlit UploadedFile
-    """
-    if isinstance(source, (str, Path)):
-        with open(source, "rb") as f:
-            raw = f.read()
-    else:
-        raw = source.read()
-    text = ""
+def parse_target_csv(uploaded_file) -> pd.DataFrame:
+    """ターゲット形式CSV（2段構造）をマスター相当のDataFrameに変換する。"""
+    content = uploaded_file.read()
     for enc in ["cp932", "shift_jis", "utf-8"]:
         try:
-            text = raw.decode(enc)
+            text = content.decode(enc)
             break
         except Exception:
             continue
-    if not text:
-        return pd.DataFrame()
 
     lines = text.splitlines()
     races: list[dict] = []
@@ -279,7 +268,7 @@ def assign_marks(df: pd.DataFrame) -> pd.DataFrame:
 # 全レース一括予想
 # =========================================================
 @st.cache_data(show_spinner="全レース予想計算中...")
-def predict_all_races(cache_key: str, df_json: str, _lgbm_obj: dict, _cat_obj: dict) -> str:
+def predict_all_races(df_json: str, _lgbm_obj: dict, _cat_obj: dict) -> str:
     """全レース一括でスコア・印を付与してJSON返却。"""
     df = pd.read_json(df_json)
     result_frames = []
@@ -487,7 +476,7 @@ CSS = """
 
 
 # =========================================================
-# レース一覧ページ（会場別縦列）
+# レース一覧ページ
 # =========================================================
 def page_race_list(
     all_df: pd.DataFrame,
@@ -497,9 +486,7 @@ def page_race_list(
     st.markdown("### 📅 レース一覧")
 
     race_id_col = "レースID(新/馬番無)"
-
-    # 会場別にレースリストを作成
-    by_place: dict[str, list] = {}
+    race_list   = []
     for race_id, grp in all_df.groupby(race_id_col):
         meta     = grp.iloc[0]
         place    = str(meta.get("場所",""))
@@ -509,68 +496,48 @@ def page_race_list(
             place in strategy and
             (cls_norm in strategy[place] or cls_raw in strategy[place])
         )
-        hon_row  = grp[grp["mark"] == "◎"]
+        hon_row = grp[grp["mark"] == "◎"]
         hon_name = str(hon_row.iloc[0]["馬名"]) if not hon_row.empty else "-"
-        entry = {
-            "race_id": race_id,
-            "場所":    place,
-            "R":       int(meta.get("R", 0)),
-            "クラス":  cls_raw,
-            "距離":    f'{meta.get("芝・ダ","")}{meta.get("距離","")}m',
-            "発走":    str(meta.get("発走時刻","")),
-            "天気":    str(meta.get("天気","")),
-            "馬場":    str(meta.get("馬場状態","")),
-            "◎":       hon_name,
-            "戦略":    in_strat,
-            "頭数":    len(grp),
-        }
-        by_place.setdefault(place, []).append(entry)
+        race_list.append({
+            "race_id":  race_id,
+            "場所":     place,
+            "R":        str(meta.get("R","")),
+            "クラス":   cls_raw,
+            "距離":     f'{meta.get("芝・ダ","")}{meta.get("距離","")}m',
+            "発走":     str(meta.get("発走時刻","")),
+            "◎":        hon_name,
+            "戦略":     in_strat,
+            "頭数":     str(len(grp)),
+        })
 
-    # 会場ごとにRでソート
-    for place in by_place:
-        by_place[place].sort(key=lambda x: x["R"])
+    # ヘッダー
+    st.markdown(
+        '<div class="race-list-header">'
+        '<span>場所</span><span>R</span><span>クラス</span><span>◎本命</span>'
+        '<span>頭数</span><span>距離</span><span>発走</span><span>戦略対象</span><span></span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
-    places = list(by_place.keys())
-    cols   = st.columns(len(places))
-
-    for col, place in zip(cols, places):
-        with col:
-            races_in_place = by_place[place]
-            meta0  = races_in_place[0]
-            # 会場ヘッダー
-            st.markdown(
-                f'<div style="background:#1e1e2e;border-radius:8px 8px 0 0;'
-                f'padding:10px 14px;margin-bottom:0">' 
-                f'<span style="font-size:16px;font-weight:bold;color:#cdd6f4">{place}</span>'
-                f'<span style="font-size:11px;color:#888;margin-left:8px">'
-                f'天気:{meta0["天気"]} 馬場:{meta0["馬場"]}</span>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-
-            for r in races_in_place:
-                badge_html = (
-                    '<span style="background:#2d4a2d;color:#4ade80;'
-                    'border-radius:3px;padding:1px 5px;font-size:10px">✅</span>'
-                    if r["戦略"] else ""
-                )
-                st.markdown(
-                    f'<div style="border-bottom:1px solid #313244;padding:7px 4px;'
-                    f'display:flex;align-items:center;gap:6px">' 
-                    f'<span style="background:#e74c3c;color:#fff;border-radius:4px;'
-                    f'padding:2px 7px;font-size:12px;font-weight:bold;min-width:28px;text-align:center">'
-                    f'{r["R"]}R</span>'
-                    f'<div style="flex:1;min-width:0">'
-                    f'<div style="font-size:12px;color:#cdd6f4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
-                    f'{r["クラス"]} {badge_html}</div>'
-                    f'<div style="font-size:11px;color:#888">{r["発走"]} {r["距離"]} {r["頭数"]}頭</div>'
-                    f'<div style="font-size:11px;color:#a6e3a1">◎ {r["◎"]}</div>'
-                    f'</div></div>',
-                    unsafe_allow_html=True,
-                )
-                if st.button("詳細→", key=f'btn_{r["race_id"]}'):
-                    st.session_state.selected_race_id = r["race_id"]
-                    st.rerun()
+    for r in race_list:
+        badge = '<span class="strategy-badge">✅ 対象</span>' if r["戦略"] else '<span style="color:#555">-</span>'
+        st.markdown(
+            f'<div class="race-list-row">'
+            f'<span>{r["場所"]}</span>'
+            f'<span>{r["R"]}</span>'
+            f'<span>{r["クラス"]}</span>'
+            f'<span>◎ {r["◎"]}</span>'
+            f'<span>{r["頭数"]}頭</span>'
+            f'<span>{r["距離"]}</span>'
+            f'<span>{r["発走"]}</span>'
+            f'<span>{badge}</span>'
+            f'<span></span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button(f'詳細 →', key=f'btn_{r["race_id"]}'):
+            st.session_state.selected_race_id = r["race_id"]
+            st.rerun()
 
 
 # =========================================================
@@ -747,63 +714,27 @@ def main() -> None:
     lgbm_obj, cat_obj = load_models()
     strategy          = load_strategy()
 
-    # weekly ディレクトリ
-    weekly_dir = BASE_DIR / "data" / "weekly"
-    weekly_dir.mkdir(parents=True, exist_ok=True)
-
-    # 利用可能なCSVファイル一覧（20260301.csv 形式）
-    csv_files = sorted(weekly_dir.glob("????????.csv"), reverse=True)
-    date_options = [f.stem for f in csv_files]  # yyyymmdd 文字列
-
     # サイドバー
     with st.sidebar:
-        st.header("📅 出走表CSV")
-        if date_options:
-            selected_date = st.selectbox(
-                "開催日を選択",
-                date_options,
-                format_func=lambda x: f"{x[:4]}/{x[4:6]}/{x[6:]} ({x})",
-            )
-        else:
-            selected_date = None
-            st.info("CSVがありません。E:\\PyCaLiAI\\data\\weekly\\ に 20260301.csv 形式で保存してください。")
-
-        st.divider()
-        st.markdown("**CSVを追加する場合**")
-        uploaded = st.file_uploader("CSVをアップロードして保存", type=["csv"],
-                                    help="ファイル名は自動で日付から付けます")
-        if uploaded is not None:
-            # ファイル名から日付取得（なければ today）
-            stem = Path(uploaded.name).stem
-            if stem.isdigit() and len(stem) == 8:
-                save_name = f"{stem}.csv"
-            else:
-                import datetime
-                save_name = datetime.date.today().strftime("%Y%m%d") + ".csv"
-            save_path = weekly_dir / save_name
-            save_path.write_bytes(uploaded.getvalue())
-            st.success(f"保存: {save_name}")
-            st.rerun()
-
+        st.header("📂 出走表CSV")
+        uploaded = st.file_uploader("ターゲット形式CSVをアップロード", type=["csv"])
         st.divider()
         budget = st.number_input("1レース予算（円）", min_value=1_000,
                                  max_value=1_000_000, value=10_000, step=1_000)
 
-    if selected_date is None:
-        st.info("サイドバーの指示に従ってCSVを追加してください。")
+    if uploaded is None:
+        st.info("サイドバーから週末の出走表CSVをアップロードしてください。")
         return
-
-    csv_path = weekly_dir / f"{selected_date}.csv"
 
     # CSV パース
     with st.spinner("CSV読み込み中..."):
-        raw_df = parse_target_csv(csv_path)
+        raw_df = parse_target_csv(uploaded)
         if raw_df.empty:
             st.error("CSVの読み込みに失敗しました。")
             return
 
     # 全レース一括予想（キャッシュ済みなら再計算しない）
-    predicted_json = predict_all_races(selected_date, raw_df.to_json(), lgbm_obj, cat_obj)
+    predicted_json = predict_all_races(raw_df.to_json(), lgbm_obj, cat_obj)
     all_df         = pd.read_json(predicted_json)
 
     # session_state でレース選択管理
