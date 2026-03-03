@@ -118,6 +118,15 @@ HORSE_COLS_46 = [
     "マイニング順位","前走通過1","前走通過2","前走通過3","前走通過4","前走Ave3F",
     "前走上り3F","前走上り3F順位","前走1_2着馬",
 ]
+HORSE_COLS_49 = [
+    "枠番","B","馬番","馬名S","性別","年齢","馬体重","馬体重増減_raw","馬体重増減",
+    "人気_今走","単勝","ZI印","ZI","ZI順","斤量","減M","替","騎手","所属","調教師",
+    "父","母父","父タイプ","母父タイプ",
+    "前走月","前走日","前走開催","前走間隔","前走レース名","前走TD","前走距離","前走馬場状態",
+    "前走B","前走騎手","前走斤量","前走減","前走人気","前走単勝オッズ","前走着順","前走着差",
+    "マイニング順位","前走通過1","前走通過2","前走通過3","前走通過4","前走Ave3F",
+    "前走上り3F","前走上り3F順位","前走1_2着馬",
+]
 
 
 # =========================================================
@@ -148,17 +157,23 @@ def parse_target_csv(source) -> pd.DataFrame:
     races: list[dict] = []
     current_race: dict | None = None
 
-    # 列数から自動判定（33列=旧形式 / 46列=新形式）
+    # 列数から自動判定（33列=旧形式 / 46列=新形式 / 49列=馬体重付き新形式）
     for line in lines:
         cols = line.split(",")
-        if len(cols) == 19 and cols[0] not in ("レースID(新)", ""):
+        if cols[0] in ("レースID(新)", "枠番", "番", ""):
+            continue
+        if len(cols) == 19:
             current_race = dict(zip(RACE_COLS, cols))
-        elif len(cols) == 33 and cols[0] not in ("枠番", "") and current_race:
+        elif len(cols) == 33 and current_race:
             horse = dict(zip(HORSE_COLS_33, cols))
             horse.update(current_race)
             races.append(horse)
-        elif len(cols) == 46 and cols[0] not in ("枠番", "") and current_race:
+        elif len(cols) == 46 and current_race:
             horse = dict(zip(HORSE_COLS_46, cols))
+            horse.update(current_race)
+            races.append(horse)
+        elif len(cols) == 49 and current_race:
+            horse = dict(zip(HORSE_COLS_49, cols))
             horse.update(current_race)
             races.append(horse)
 
