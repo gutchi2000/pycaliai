@@ -24,20 +24,12 @@ import streamlit as st
 try:
     import japanize_matplotlib  # noqa: F401
 except ImportError:
-    pass
-
-import matplotlib.font_manager as fm
-fm._load_fontmanager(try_read_cache=False)
-ipa_fonts = [f.fname for f in fm.fontManager.ttflist if "IPA" in f.name]
-if ipa_fonts:
-    fm.fontManager.addfont(ipa_fonts[0])
-    prop = fm.FontProperties(fname=ipa_fonts[0])
-    plt.rcParams["font.family"] = prop.get_name()
+    plt.rcParams["font.family"] = "MS Gothic"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-BASE_DIR = Path(__file__).parent
+BASE_DIR      = Path(r"E:\PyCaLiAI")
 DATA_DIR      = BASE_DIR / "data"
 MODEL_DIR     = BASE_DIR / "models"
 STRATEGY_JSON = DATA_DIR / "strategy_weights.json"
@@ -118,15 +110,6 @@ HORSE_COLS_46 = [
     "マイニング順位","前走通過1","前走通過2","前走通過3","前走通過4","前走Ave3F",
     "前走上り3F","前走上り3F順位","前走1_2着馬",
 ]
-HORSE_COLS_49 = [
-    "枠番","B","馬番","馬名S","性別","年齢","馬体重","馬体重増減_raw","馬体重増減",
-    "人気_今走","単勝","ZI印","ZI","ZI順","斤量","減M","替","騎手","所属","調教師",
-    "父","母父","父タイプ","母父タイプ",
-    "前走月","前走日","前走開催","前走間隔","前走レース名","前走TD","前走距離","前走馬場状態",
-    "前走B","前走騎手","前走斤量","前走減","前走人気","前走単勝オッズ","前走着順","前走着差",
-    "マイニング順位","前走通過1","前走通過2","前走通過3","前走通過4","前走Ave3F",
-    "前走上り3F","前走上り3F順位","前走1_2着馬",
-]
 
 
 # =========================================================
@@ -157,23 +140,17 @@ def parse_target_csv(source) -> pd.DataFrame:
     races: list[dict] = []
     current_race: dict | None = None
 
-    # 列数から自動判定（33列=旧形式 / 46列=新形式 / 49列=馬体重付き新形式）
+    # 列数から自動判定（33列=旧形式 / 46列=新形式）
     for line in lines:
         cols = line.split(",")
-        if cols[0] in ("レースID(新)", "枠番", "番", ""):
-            continue
-        if len(cols) == 19:
+        if len(cols) == 19 and cols[0] not in ("レースID(新)", ""):
             current_race = dict(zip(RACE_COLS, cols))
-        elif len(cols) == 33 and current_race:
+        elif len(cols) == 33 and cols[0] not in ("枠番", "") and current_race:
             horse = dict(zip(HORSE_COLS_33, cols))
             horse.update(current_race)
             races.append(horse)
-        elif len(cols) == 46 and current_race:
+        elif len(cols) == 46 and cols[0] not in ("枠番", "") and current_race:
             horse = dict(zip(HORSE_COLS_46, cols))
-            horse.update(current_race)
-            races.append(horse)
-        elif len(cols) == 49 and current_race:
-            horse = dict(zip(HORSE_COLS_49, cols))
             horse.update(current_race)
             races.append(horse)
 
@@ -564,8 +541,8 @@ def page_race_list(
             st.markdown(
                 f'<div style="background:#1e1e2e;border-radius:8px 8px 0 0;'
                 f'padding:10px 14px;margin-bottom:0">' 
-                f'<span style="font-size:20px;font-weight:bold;color:#cdd6f4">{place}</span>'
-                f'<span style="font-size:16px;color:#888;margin-left:8px">'
+                f'<span style="font-size:16px;font-weight:bold;color:#cdd6f4">{place}</span>'
+                f'<span style="font-size:11px;color:#888;margin-left:8px">'
                 f'天気:{meta0["天気"]} 馬場:{meta0["馬場"]}</span>'
                 f'</div>',
                 unsafe_allow_html=True,
@@ -574,19 +551,19 @@ def page_race_list(
             for r in races_in_place:
                 badge_html = (
                     '<span style="background:#2d4a2d;color:#4ade80;'
-                    'border-radius:2px;padding:1px 5px;font-size:10px">✅</span>'
+                    'border-radius:3px;padding:1px 5px;font-size:10px">✅</span>'
                     if r["戦略"] else ""
                 )
                 st.markdown(
                     f'<div style="border-bottom:1px solid #313244;padding:7px 4px;'
                     f'display:flex;align-items:center;gap:6px">' 
                     f'<span style="background:#e74c3c;color:#fff;border-radius:4px;'
-                    f'padding:2px 7px;font-size:24px;font-weight:bold;min-width:28px;text-align:center">'
+                    f'padding:2px 7px;font-size:12px;font-weight:bold;min-width:28px;text-align:center">'
                     f'{r["R"]}R</span>'
                     f'<div style="flex:1;min-width:0">'
-                    f'<div style="font-size:20px;color:#cdd6f4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+                    f'<div style="font-size:12px;color:#cdd6f4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
                     f'{r["クラス"]} {badge_html}</div>'
-                    f'<div style="font-size:16px;color:#888">{r["発走"]} {r["距離"]} {r["頭数"]}頭</div>'
+                    f'<div style="font-size:11px;color:#888">{r["発走"]} {r["距離"]} {r["頭数"]}頭</div>'
                     f'<div style="font-size:11px;color:#a6e3a1">◎ {r["◎"]}</div>'
                     f'</div></div>',
                     unsafe_allow_html=True,
