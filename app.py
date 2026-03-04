@@ -2508,6 +2508,11 @@ def main() -> None:
         page_results(results)
 
     with main_tab1:
+        # 選択中のrace_idが現在のCSVに存在しない場合リセット
+        if st.session_state.selected_race_id is not None:
+            if st.session_state.selected_race_id not in all_df[race_id_col].values:
+                st.session_state.selected_race_id = None
+
         if st.session_state.selected_race_id is None:
             n_races    = all_df[race_id_col].nunique()
             n_strategy = sum(1 for _, grp in all_df.groupby(race_id_col)
