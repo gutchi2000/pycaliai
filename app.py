@@ -1573,7 +1573,7 @@ def render_trend_panel(places: list[str]) -> None:
         # 好調騎手TOP3
         jockeys = data.get("好調騎手", [])
         if jockeys:
-            j_html = "　".join([f'{j["騎手"]}<span style="color:#888;font-size:15px">({j["勝率"]}%)</span>' for j in jockeys])
+            j_html = "<br>".join([f'{j["騎手"]}<span style="color:#888;font-size:15px">({j["勝率"]}%)</span>' for j in jockeys])
             st.markdown(
                 f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:20px">'
                 f'<span style="color:#888">好調騎手</span>'
@@ -1584,7 +1584,7 @@ def render_trend_panel(places: list[str]) -> None:
         # 好調調教師TOP3
         trainers = data.get("好調調教師", [])
         if trainers:
-            t_html = "　".join([f'{t["調教師"]}<span style="color:#888;font-size:15px">({t["勝率"]}%)</span>' for t in trainers])
+            t_html = "<br>".join([f'{t["調教師"]}<span style="color:#888;font-size:15px">({t["勝率"]}%)</span>' for t in trainers])
             st.markdown(
                 f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:20px">'
                 f'<span style="color:#888">好調調教師</span>'
@@ -1595,7 +1595,7 @@ def render_trend_panel(places: list[str]) -> None:
         # 好調血統（父）TOP3
         sires = data.get("好調血統_父", [])
         if sires:
-            s_html = "　".join([f'{s["種牡馬"]}<span style="color:#888;font-size:15px">({s["勝率"]}%)</span>' for s in sires])
+            s_html = "<br>".join([f'{s["種牡馬"]}<span style="color:#888;font-size:15px">({s["勝率"]}%)</span>' for s in sires])
             st.markdown(
                 f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:20px">'
                 f'<span style="color:#888">好調血統(父)</span>'
@@ -1606,7 +1606,7 @@ def render_trend_panel(places: list[str]) -> None:
         # 好調血統（母父）TOP3
         bms = data.get("好調血統_母父", [])
         if bms:
-            b_html = "　".join([f'{b["母父馬"]}<span style="color:#888;font-size:15px">({b["勝率"]}%)</span>' for b in bms])
+            b_html = "<br>".join([f'{b["母父馬"]}<span style="color:#888;font-size:15px">({b["勝率"]}%)</span>' for b in bms])
             st.markdown(
                 f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:20px">'
                 f'<span style="color:#888">好調血統(母父)</span>'
