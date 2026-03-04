@@ -1905,11 +1905,11 @@ def page_results(results: dict) -> None:
             st.markdown(
                 f'<div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;'
                 f'padding:12px 16px;margin-bottom:12px;display:flex;gap:24px;align-items:center">'
-                f'<span style="color:#888;font-size:13px">{sel_date}　{len(disp)}R</span>'
-                f'<span style="color:#888;font-size:13px">投資 <b style="color:#cdd6f4">¥{d_bet:,}</b></span>'
-                f'<span style="color:#888;font-size:13px">払戻 <b style="color:#cdd6f4">¥{d_ret:,}</b></span>'
-                f'<span style="color:#888;font-size:13px">収支 <b style="color:{pc}">{"+"if d_pnl>=0 else ""}¥{d_pnl:,}</b></span>'
-                f'<span style="color:#888;font-size:13px">ROI <b style="color:{rc};font-size:16px">{d_roi}%</b></span>'
+                f'<span style="color:#888;font-size:20px">{sel_date}　{len(disp)}R</span>'
+                f'<span style="color:#888;font-size:20px">投資 <b style="color:#cdd6f4">¥{d_bet:,}</b></span>'
+                f'<span style="color:#888;font-size:20px">払戻 <b style="color:#cdd6f4">¥{d_ret:,}</b></span>'
+                f'<span style="color:#888;font-size:20px">収支 <b style="color:{pc}">{"+"if d_pnl>=0 else ""}¥{d_pnl:,}</b></span>'
+                f'<span style="color:#888;font-size:20px">ROI <b style="color:{rc};font-size:24px">{d_roi}%</b></span>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -1924,7 +1924,7 @@ def page_results(results: dict) -> None:
             rc      = "#4ade80" if pnl_v >= 0 else "#e74c3c"
             st.markdown(
                 f'<div style="display:flex;justify-content:space-between;align-items:center;'
-                f'padding:6px 0;border-bottom:1px solid #2a2a3e;font-size:14px">'
+                f'padding:8px 0;border-bottom:1px solid #2a2a3e;font-size:21px">'
                 f'<span style="color:#888;min-width:80px">{row["日付"]}</span>'
                 f'<span style="color:#cdd6f4;font-weight:bold;min-width:90px">{row["場所"]} {row["R"]}R</span>'
                 f'<span style="color:#888;min-width:100px">{row["クラス"]}</span>'
