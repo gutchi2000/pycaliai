@@ -1573,7 +1573,7 @@ def _render_course_stat(data: dict) -> None:
     """1つのコース傾向ブロックをレンダリング。"""
     if data.get("insufficient"):
         st.markdown(
-            f'<div style="color:#555;font-size:13px;padding:8px;border:1px solid #313244;border-radius:6px">'
+            f'<div style="color:#555;font-size:15px;padding:8px;border:1px solid #313244;border-radius:6px">'
             f'⚠️ データ不足（{data.get("n",0)}件）　絞り込み条件を緩めてください。</div>',
             unsafe_allow_html=True,
         )
@@ -1581,7 +1581,7 @@ def _render_course_stat(data: dict) -> None:
 
     n = data.get("n", 0)
     st.markdown(
-        f'<div style="color:#666;font-size:11px;margin-bottom:8px">サンプル数: {n:,}件</div>',
+        f'<div style="color:#666;font-size:13px;margin-bottom:8px">サンプル数: {n:,}件</div>',
         unsafe_allow_html=True,
     )
 
@@ -1591,13 +1591,13 @@ def _render_course_stat(data: dict) -> None:
         waku_html = "".join([
             f'<span style="background:{WAKU_COLORS.get(w,"#555")};'
             f'color:{WAKU_TEXT_COLORS.get(w,"#fff")};'
-            f'border-radius:4px;padding:2px 10px;font-size:13px;margin:2px;font-weight:bold">{w}</span>'
+            f'border-radius:4px;padding:2px 10px;font-size:15px;margin:2px;font-weight:bold">{w}</span>'
             for w in wakus
         ])
         st.markdown(
             f'<div style="display:flex;justify-content:space-between;align-items:center;'
             f'padding:6px 0;border-bottom:1px solid #2a2a3e">'
-            f'<span style="color:#888;font-size:13px;min-width:90px">好調枠番</span>'
+            f'<span style="color:#888;font-size:15px;min-width:90px">好調枠番</span>'
             f'<span>{waku_html}</span></div>',
             unsafe_allow_html=True,
         )
@@ -1607,13 +1607,13 @@ def _render_course_stat(data: dict) -> None:
     if sas:
         sas_html = " ＞ ".join([
             f'<span style="color:#f1c40f;font-weight:bold">{s["脚質"]}</span>'
-            f'<span style="color:#888;font-size:11px">({s["勝率"]}%)</span>'
+            f'<span style="color:#888;font-size:13px">({s["勝率"]}%)</span>'
             for s in sas
         ])
         st.markdown(
             f'<div style="padding:6px 0;border-bottom:1px solid #2a2a3e">'
-            f'<span style="color:#888;font-size:13px">有利脚質</span>'
-            f'<div style="margin-top:4px;font-size:13px">{sas_html}</div></div>',
+            f'<span style="color:#888;font-size:15px">有利脚質</span>'
+            f'<div style="margin-top:4px;font-size:15px">{sas_html}</div></div>',
             unsafe_allow_html=True,
         )
 
@@ -1622,14 +1622,14 @@ def _render_course_stat(data: dict) -> None:
     if jockeys:
         j_rows = "".join([
             f'<span style="color:#4ade80;font-weight:bold;margin-right:4px">{j["騎手"]}</span>'
-            f'<span style="color:#888;font-size:11px">{j["勝率"]}% ({j["出走"]}戦)</span>'
+            f'<span style="color:#888;font-size:13px">{j["勝率"]}% ({j["出走"]}戦)</span>'
             f'{"　" if i < len(jockeys)-1 else ""}'
             for i, j in enumerate(jockeys)
         ])
         st.markdown(
             f'<div style="padding:6px 0;border-bottom:1px solid #2a2a3e">'
-            f'<span style="color:#888;font-size:13px">好調騎手</span>'
-            f'<div style="margin-top:4px;font-size:13px">{j_rows}</div></div>',
+            f'<span style="color:#888;font-size:15px">好調騎手</span>'
+            f'<div style="margin-top:4px;font-size:15px">{j_rows}</div></div>',
             unsafe_allow_html=True,
         )
 
@@ -1638,14 +1638,14 @@ def _render_course_stat(data: dict) -> None:
     if trainers:
         t_rows = "".join([
             f'<span style="color:#cdd6f4;font-weight:bold;margin-right:4px">{t["調教師"]}</span>'
-            f'<span style="color:#888;font-size:11px">{t["勝率"]}% ({t["出走"]}戦)</span>'
+            f'<span style="color:#888;font-size:13px">{t["勝率"]}% ({t["出走"]}戦)</span>'
             f'{"　" if i < len(trainers)-1 else ""}'
             for i, t in enumerate(trainers)
         ])
         st.markdown(
             f'<div style="padding:6px 0;border-bottom:1px solid #2a2a3e">'
-            f'<span style="color:#888;font-size:13px">好調調教師</span>'
-            f'<div style="margin-top:4px;font-size:13px">{t_rows}</div></div>',
+            f'<span style="color:#888;font-size:15px">好調調教師</span>'
+            f'<div style="margin-top:4px;font-size:15px">{t_rows}</div></div>',
             unsafe_allow_html=True,
         )
 
@@ -1654,14 +1654,14 @@ def _render_course_stat(data: dict) -> None:
     if sires:
         s_rows = "".join([
             f'<span style="color:#89b4fa;font-weight:bold;margin-right:4px">{s["種牡馬"]}</span>'
-            f'<span style="color:#888;font-size:11px">{s["勝率"]}% ({s["出走"]}戦)</span>'
+            f'<span style="color:#888;font-size:13px">{s["勝率"]}% ({s["出走"]}戦)</span>'
             f'{"　" if i < len(sires)-1 else ""}'
             for i, s in enumerate(sires)
         ])
         st.markdown(
             f'<div style="padding:6px 0;border-bottom:1px solid #2a2a3e">'
-            f'<span style="color:#888;font-size:13px">好調血統(父)</span>'
-            f'<div style="margin-top:4px;font-size:13px">{s_rows}</div></div>',
+            f'<span style="color:#888;font-size:15px">好調血統(父)</span>'
+            f'<div style="margin-top:4px;font-size:15px">{s_rows}</div></div>',
             unsafe_allow_html=True,
         )
 
@@ -1670,14 +1670,14 @@ def _render_course_stat(data: dict) -> None:
     if bms:
         b_rows = "".join([
             f'<span style="color:#89dceb;font-weight:bold;margin-right:4px">{b["母父馬"]}</span>'
-            f'<span style="color:#888;font-size:11px">{b["勝率"]}% ({b["出走"]}戦)</span>'
+            f'<span style="color:#888;font-size:13px">{b["勝率"]}% ({b["出走"]}戦)</span>'
             f'{"　" if i < len(bms)-1 else ""}'
             for i, b in enumerate(bms)
         ])
         st.markdown(
             f'<div style="padding:6px 0;border-bottom:1px solid #2a2a3e">'
-            f'<span style="color:#888;font-size:13px">好調血統(母父)</span>'
-            f'<div style="margin-top:4px;font-size:13px">{b_rows}</div></div>',
+            f'<span style="color:#888;font-size:15px">好調血統(母父)</span>'
+            f'<div style="margin-top:4px;font-size:15px">{b_rows}</div></div>',
             unsafe_allow_html=True,
         )
 
@@ -1688,61 +1688,64 @@ def _render_course_stat(data: dict) -> None:
         are_color = "#e74c3c" if are >= 8 else "#f39c12" if are >= 6 else "#4ade80"
         st.markdown(
             f'<div style="padding:6px 0">'
-            f'<span style="color:#888;font-size:13px">配当傾向</span>'
-            f'<div style="margin-top:4px;font-size:13px">'
+            f'<span style="color:#888;font-size:15px">配当傾向</span>'
+            f'<div style="margin-top:4px;font-size:15px">'
             f'単勝中央値 <span style="color:#cdd6f4;font-weight:bold">{haitou.get("単勝中央値",0):,}円</span>　'
             f'馬連 <span style="color:#cdd6f4;font-weight:bold">{haitou.get("馬連中央値",0):,}円</span>　'
             f'三連複 <span style="color:#cdd6f4;font-weight:bold">{haitou.get("三連複中央値",0):,}円</span>'
-            f'</div><div style="margin-top:2px;font-size:13px">'
+            f'</div><div style="margin-top:2px;font-size:15px">'
             f'荒れ率 <span style="color:{are_color};font-weight:bold">{are}%</span>'
-            f'　<span style="color:#666;font-size:11px">(単勝3000円超レースの割合)</span>'
+            f'　<span style="color:#666;font-size:13px">(単勝3000円超レースの割合)</span>'
             f'</div></div>',
             unsafe_allow_html=True,
         )
 
 
 def _render_course_analysis(course_trend: dict, place: str, meta: pd.Series) -> None:
-    """コース分析タブ全体をレンダリング。"""
+    """コース分析タブ全体をレンダリング。季節のみ選択可、他は自動設定。"""
     dist    = meta.get("距離", 0)
     shida   = str(meta.get("芝・ダ", "芝"))
     cls_raw = str(meta.get("クラス名", ""))
     cls_g   = CLASS_NORMALIZE_TREND.get(cls_raw, "OP/重賞")
     sm_auto = _smile_from_dist(dist)
 
-    st.markdown(f"### 🏇 コース傾向分析　{place} / {shida} / {SMILE_LABEL.get(sm_auto, sm_auto)}")
+    # ヘッダー
     st.markdown(
-        f'<div style="color:#888;font-size:12px;margin-bottom:12px">'
+        f'<div style="font-size:22px;font-weight:bold;margin-bottom:4px">'
+        f'🏇 コース傾向分析</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<div style="display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap">'
+        f'<span style="background:#1e1e2e;border:1px solid #5865f2;border-radius:6px;'
+        f'padding:4px 14px;font-size:15px;color:#cdd6f4;font-weight:bold">{place}</span>'
+        f'<span style="background:#1e1e2e;border:1px solid #313244;border-radius:6px;'
+        f'padding:4px 14px;font-size:15px;color:#89b4fa">{shida}</span>'
+        f'<span style="background:#1e1e2e;border:1px solid #313244;border-radius:6px;'
+        f'padding:4px 14px;font-size:15px;color:#a6e3a1">{sm_auto} : {SMILE_LABEL.get(sm_auto,"")}</span>'
+        f'<span style="background:#1e1e2e;border:1px solid #313244;border-radius:6px;'
+        f'padding:4px 14px;font-size:15px;color:#f9e2af">{cls_g}</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<div style="color:#666;font-size:13px;margin-bottom:16px">'
         f'過去10年（2016〜2025）の実績データに基づく集計</div>',
         unsafe_allow_html=True,
     )
 
-    # フィルター行
-    fc1, fc2, fc3, fc4 = st.columns([1, 1, 2, 1])
-    with fc1:
-        sel_shida = st.selectbox("芝/ダート", ["芝", "ダ"],
-                                  index=0 if shida == "芝" else 1,
-                                  key="ca_shida")
-    with fc2:
-        smile_idx = SMILE_ORDER.index(sm_auto) if sm_auto in SMILE_ORDER else 1
-        sel_smile = st.selectbox("距離帯(SMILE)", SMILE_ORDER,
-                                  index=smile_idx,
-                                  format_func=lambda x: f"{x}  {SMILE_LABEL[x]}",
-                                  key="ca_smile")
-    with fc3:
-        cls_idx = CLASS_OPTIONS.index(cls_g) if cls_g in CLASS_OPTIONS else 0
-        sel_cls = st.selectbox("クラス", CLASS_OPTIONS,
-                                index=cls_idx, key="ca_cls")
-    with fc4:
-        sel_season = st.selectbox("季節", SEASON_OPTIONS, key="ca_season")
+    # 季節のみ選択
+    sel_season = st.selectbox("季節", SEASON_OPTIONS, key="ca_season")
+
+    st.markdown("---")
 
     # データ取得
     try:
-        data = course_trend[place][sel_shida][sel_smile][sel_cls][sel_season]
+        data = course_trend[place][shida][sm_auto][cls_g][sel_season]
     except KeyError:
-        st.warning(f"{place}×{sel_shida}×{sel_smile}×{sel_cls}×{sel_season} のデータがありません。")
+        st.warning(f"{place}×{shida}×{sm_auto}×{cls_g}×{sel_season} のデータがありません。")
         return
 
-    st.markdown("---")
     _render_course_stat(data)
 
 WAKU_COLORS = {
