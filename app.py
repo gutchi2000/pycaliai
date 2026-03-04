@@ -1773,7 +1773,7 @@ def page_results(results: dict) -> None:
 
     st.markdown("## 📊 的中実績")
     st.markdown(
-        f'<div style="color:#666;font-size:13px;margin-bottom:16px">'
+        f'<div style="color:#666;font-size:20px;margin-bottom:16px">'
         f'集計期間: {results.get("generated_at","")[:10]} 時点</div>',
         unsafe_allow_html=True,
     )
@@ -1793,8 +1793,8 @@ def page_results(results: dict) -> None:
         col.markdown(
             f'<div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;'
             f'padding:12px;text-align:center">'
-            f'<div style="color:#888;font-size:12px">{label}</div>'
-            f'<div style="color:{color};font-size:20px;font-weight:bold;margin-top:4px">{val}</div>'
+            f'<div style="color:#888;font-size:18px">{label}</div>'
+            f'<div style="color:{color};font-size:30px;font-weight:bold;margin-top:4px">{val}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -1813,10 +1813,10 @@ def page_results(results: dict) -> None:
         rc = "#4ade80" if r >= 100 else "#f39c12" if r >= 70 else "#e74c3c"
         col.markdown(
             f'<div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;padding:14px">'
-            f'<div style="font-size:16px;font-weight:bold;color:#cdd6f4;margin-bottom:8px">{k}</div>'
-            f'<div style="font-size:13px;color:#888">ROI　<span style="color:{rc};font-size:18px;font-weight:bold">{r}%</span></div>'
-            f'<div style="font-size:13px;color:#888;margin-top:4px">的中　<span style="color:#cdd6f4">{d.get("hit",0)}/{d.get("races",0)}R ({d.get("hit_rate",0)}%)</span></div>'
-            f'<div style="font-size:13px;color:#888;margin-top:4px">払戻　<span style="color:#cdd6f4">¥{d.get("ret",0):,}</span></div>'
+            f'<div style="font-size:24px;font-weight:bold;color:#cdd6f4;margin-bottom:8px">{k}</div>'
+            f'<div style="font-size:20px;color:#888">ROI　<span style="color:{rc};font-size:27px;font-weight:bold">{r}%</span></div>'
+            f'<div style="font-size:20px;color:#888;margin-top:4px">的中　<span style="color:#cdd6f4">{d.get("hit",0)}/{d.get("races",0)}R ({d.get("hit_rate",0)}%)</span></div>'
+            f'<div style="font-size:20px;color:#888;margin-top:4px">払戻　<span style="color:#cdd6f4">¥{d.get("ret",0):,}</span></div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -1836,7 +1836,7 @@ def page_results(results: dict) -> None:
         ax.bar(wdf["週"], wdf["ROI"], color=colors, alpha=0.85)
         ax.axhline(100, color="#888", linestyle="--", linewidth=0.8)
         ax.set_ylabel("ROI (%)", color="#888")
-        ax.tick_params(colors="#888", labelsize=9)
+        ax.tick_params(colors="#888", labelsize=14)
         ax.spines[:].set_color("#313244")
         for label in ax.get_xticklabels():
             label.set_rotation(45)
@@ -1856,7 +1856,7 @@ def page_results(results: dict) -> None:
             pc = "#4ade80" if 収支 >= 0 else "#e74c3c"
             st.markdown(
                 f'<div style="display:flex;justify-content:space-between;align-items:center;'
-                f'padding:6px 0;border-bottom:1px solid #2a2a3e;font-size:14px">'
+                f'padding:6px 0;border-bottom:1px solid #2a2a3e;font-size:21px">'
                 f'<span style="color:#cdd6f4;font-weight:bold;min-width:60px">{row["場所"]}</span>'
                 f'<span style="color:#888">{int(row["レース数"])}R</span>'
                 f'<span style="color:#888">投資 ¥{int(row["総投資"]):,}</span>'
@@ -1896,7 +1896,7 @@ def page_results(results: dict) -> None:
             pc      = "#4ade80" if pnl_v >= 0 else "#e74c3c"
             st.markdown(
                 f'<div style="display:flex;justify-content:space-between;align-items:center;'
-                f'padding:5px 0;border-bottom:1px solid #2a2a3e;font-size:13px">'
+                f'padding:5px 0;border-bottom:1px solid #2a2a3e;font-size:20px">'
                 f'<span style="color:#888;min-width:80px">{row["日付"]}</span>'
                 f'<span style="color:#cdd6f4;min-width:100px">{row["場所"]} {row["R"]}R</span>'
                 f'<span style="color:#888;min-width:120px">{row["クラス"]}</span>'
