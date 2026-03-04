@@ -197,13 +197,16 @@ def parse_target_csv(source) -> pd.DataFrame:
         return df
     df = df.rename(columns=COLUMN_MAP)
 
-    # 障害レース除外（距離列に"障害"を含む）
+    # 障害レース除外（距離列またはクラス名列に"障害"を含む）
+    mask_shogai = pd.Series([False] * len(df), index=df.index)
     if "距離" in df.columns:
+        mask_shogai |= df["距離"].astype(str).str.contains("障害", na=False)
+    if "クラス名" in df.columns:
+        mask_shogai |= df["クラス名"].astype(str).str.contains("障害", na=False)
+    if mask_shogai.any():
         before = len(df)
-        df = df[~df["距離"].astype(str).str.contains("障害", na=False)].copy()
-        removed = before - len(df)
-        if removed:
-            logger.info(f"障害レース除外: {removed}頭")
+        df = df[~mask_shogai].copy()
+        logger.info(f"障害レース除外: {before - len(df)}頭")
 
     df["レースID(新/馬番無)"] = df["レースID(新)"].astype(str).str[:16]
     for col in ["枠番","馬番","斤量","ZI","ZI順位","距離","人気","単勝",
