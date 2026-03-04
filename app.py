@@ -1,13 +1,21 @@
-﻿"""
+"""
 app.py
-PyCaLiAI - Streamlit UI・磯ｱ譛ｫCSV蟇ｾ蠢懃沿・・
+PyCaLiAI - Streamlit UI v2（週末CSV対応版）
+
+変更点:
+  - トップ: 重賞バナー + 今日のねらい目カード(右側) + 会場タブ + Rボタン
+  - レース詳細: 右側に同会場Rナビ + 開催場傾向パネル
+  - 馬連: 3点流し（◎-◯・◎-▲・◯-▲）
+  - 三連複: ◎◯2頭軸×▲△ 2点
+  - 三連単: 廃止
+  - 除外: 東京・小倉・新馬
+
 Usage:
     streamlit run app.py
 """
 
 from __future__ import annotations
 
-import io
 import json
 import itertools
 import logging
@@ -23,12 +31,20 @@ import streamlit as st
 try:
     import japanize_matplotlib  # noqa: F401
 except ImportError:
-    plt.rcParams["font.family"] = "MS Gothic"
+    pass
+
+import matplotlib.font_manager as fm
+fm._load_fontmanager(try_read_cache=False)
+ipa_fonts = [f.fname for f in fm.fontManager.ttflist if "IPA" in f.name]
+if ipa_fonts:
+    fm.fontManager.addfont(ipa_fonts[0])
+    prop = fm.FontProperties(fname=ipa_fonts[0])
+    plt.rcParams["font.family"] = prop.get_name()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-BASE_DIR      = Path(r"E:\PyCaLiAI")
+BASE_DIR      = Path(__file__).parent
 DATA_DIR      = BASE_DIR / "data"
 MODEL_DIR     = BASE_DIR / "models"
 STRATEGY_JSON = DATA_DIR / "strategy_weights.json"
@@ -36,152 +52,168 @@ LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
 
 MIN_UNIT = 100
-MARKS    = ["笳・, "笳ｯ", "笆ｲ", "笆ｳ", "ﾃ・]
+MARKS    = ["◎", "◯", "▲", "△", "×"]
+
+EXCLUDE_PLACES  = {"東京", "小倉"}
+EXCLUDE_CLASSES = {"新馬"}
 
 CLASS_NORMALIZE = {
-    "譁ｰ鬥ｬ": "譁ｰ鬥ｬ", "譛ｪ蜍晏茜": "譛ｪ蜍晏茜",
-    "1蜍・: "1蜍・, "500荳・: "1蜍・,
-    "2蜍・: "2蜍・, "1000荳・: "2蜍・,
-    "3蜍・: "3蜍・, "1600荳・: "3蜍・,
-    "OP(L)": "OP(L)", "繧ｪ繝ｼ繝励Φ": "・ｵ・ｰ・鯉ｾ滂ｾ・,
-    "・ｧ・・: "・ｧ・・, "・ｧ・・: "・ｧ・・, "・ｧ・・: "・ｧ・・,
+    "新馬":"新馬","未勝利":"未勝利",
+    "1勝":"1勝","500万":"1勝",
+    "2勝":"2勝","1000万":"2勝",
+    "3勝":"3勝","1600万":"3勝",
+    "OP(L)":"OP(L)","オープン":"ｵｰﾌﾟﾝ",
+    "Ｇ１":"Ｇ１","Ｇ２":"Ｇ２","Ｇ３":"Ｇ３",
 }
 
+GRADE_ORDER = {"Ｇ１":0,"Ｇ２":1,"Ｇ３":2,"OP(L)":3}
+
 FEATURE_LABEL = {
-    "蜑崎ｵｰ遒ｺ螳夂捩鬆・: "蜑崎ｵｰ逹鬆・, "蜑崎ｵｰ荳翫ｊ3F": "蜑崎ｵｰ荳翫ｊ",
-    "譫逡ｪ": "譫逡ｪ", "鬥ｬ逡ｪ": "鬥ｬ逡ｪ", "譁､驥・: "譁､驥・,
-    "霍晞屬": "霍晞屬", "蜑崎ｵｰ霍晞屬": "蜑崎ｵｰ霍晞屬",
-    "蜑崎ｵｰ逹蟾ｮ繧ｿ繧､繝": "蜑崎ｵｰ逹蟾ｮ", "蜑崎ｵｰ襍ｰ遐ｴ繧ｿ繧､繝": "蜑崎ｵｰ繧ｿ繧､繝",
+    "前走確定着順":"前走着順","前走上り3F":"前走上り",
+    "枠番":"枠番","馬番":"馬番","斤量":"斤量",
+    "距離":"距離","前走距離":"前走距離",
+    "前走着差タイム":"前走着差","前走走破タイム":"前走タイム",
 }
 
 MARK_CLASS = {
-    "笳・: "mk-hon", "笳ｯ": "mk-tai", "笆ｲ": "mk-sabo",
-    "笆ｳ": "mk-del", "ﾃ・: "mk-batu", "": "",
+    "◎":"mk-hon","◯":"mk-tai","▲":"mk-sabo",
+    "△":"mk-del","×":"mk-batu","":"",
 }
 
-# 繧ｿ繝ｼ繧ｲ繝・ヨCSV蛻怜錐 竊・繝槭せ繧ｿ繝ｼ逶ｸ蠖灘・蜷・COLUMN_MAP = {
-    # 鬥ｬ諠・ｱ
-    "鬥ｬ蜷拘":         "鬥ｬ蜷・,
-    "闃昴・繝繝ｼ繝・:     "闃昴・繝",
-    "鬥ｬ蝣ｴ迥ｶ諷・證ｫ螳・": "鬥ｬ蝣ｴ迥ｶ諷・,
-    "螟ｩ蛟・證ｫ螳・":    "螟ｩ豌・,
-    "莠ｺ豌誉莉願ｵｰ":     "莠ｺ豌・,
-    "ZI鬆・:         "ZI鬆・ｽ・,
-    "辷ｶ":            "遞ｮ迚｡鬥ｬ",
-    "豈咲宛":          "豈咲宛鬥ｬ",
-    "辷ｶ繧ｿ繧､繝・:       "辷ｶ繧ｿ繧､繝怜錐",
-    "豈咲宛繧ｿ繧､繝・:     "豈咲宛繧ｿ繧､繝怜錐",
-    # 蜑崎ｵｰ諠・ｱ・亥・騾夲ｼ・    "蜑崎ｵｰ逹鬆・:       "蜑崎ｵｰ遒ｺ螳夂捩鬆・,
-    "蜑崎ｵｰ荳翫ｊ3F":     "蜑崎ｵｰ荳翫ｊ3F",
-    "蜑崎ｵｰTD":        "蜑崎茅繝ｻ繝",
-    "蜑崎ｵｰ髢馴囈":       "髢馴囈",
-    # 蜑崎ｵｰ諠・ｱ・・6蛻礼沿縺ｧ霑ｽ蜉・・    "蜑崎ｵｰ逹蟾ｮ":       "蜑崎ｵｰ逹蟾ｮ繧ｿ繧､繝",
-    "蜑崎ｵｰ譁､驥・:       "蜑崎ｵｰ譁､驥・,
-    "蜑崎ｵｰAve3F":     "蜑崎ｵｰ蟷ｳ蝮・F",
-    "蜑崎ｵｰ荳翫ｊ3F鬆・ｽ・:  "蜑崎ｵｰ荳翫ｊ3F鬆・ｽ・,
-    "繝槭う繝九Φ繧ｰ鬆・ｽ・:  "繝槭う繝九Φ繧ｰ鬆・ｽ・,
-    "蜑崎ｵｰ蜊伜享繧ｪ繝・ぜ":  "蜑崎ｵｰ蜊伜享繧ｪ繝・ぜ",
-    "蜑崎ｵｰ騾夐℃1":      "蜑崎ｵｰ騾夐℃1",
-    "蜑崎ｵｰ騾夐℃2":      "蜑崎ｵｰ騾夐℃2",
-    "蜑崎ｵｰ騾夐℃3":      "蜑崎ｵｰ騾夐℃3",
-    "蜑崎ｵｰ騾夐℃4":      "蜑崎ｵｰ騾夐℃4",
+COLUMN_MAP = {
+    "馬名S":"馬名","芝・ダート":"芝・ダ",
+    "馬場状態(暫定)":"馬場状態","天候(暫定)":"天気",
+    "人気_今走":"人気","ZI順":"ZI順位",
+    "父":"種牡馬","母父":"母父馬",
+    "父タイプ":"父タイプ名","母父タイプ":"母父タイプ名",
+    "前走着順":"前走確定着順","前走上り3F":"前走上り3F",
+    "前走TD":"前芝・ダ","前走間隔":"間隔",
+    "前走着差":"前走着差タイム","前走斤量":"前走斤量",
+    "前走Ave3F":"前走平均3F","前走上り3F順位":"前走上り3F順位",
+    "マイニング順位":"マイニング順位","前走単勝オッズ":"前走単勝オッズ",
+    "前走通過1":"前走通過1","前走通過2":"前走通過2",
+    "前走通過3":"前走通過3","前走通過4":"前走通過4",
 }
 
-RACE_COLS  = [
-    "繝ｬ繝ｼ繧ｹID(譁ｰ)","譌･莉牢","譖懈律","蝣ｴ謇","髢句ぎ","R","繝ｬ繝ｼ繧ｹ蜷・,"繧ｯ繝ｩ繧ｹ蜷・,
-    "闃昴・繝繝ｼ繝・,"霍晞屬","繧ｳ繝ｼ繧ｹ蛹ｺ蛻・,"繧ｳ繝ｼ繝翫・蝗樊焚","鬥ｬ蝣ｴ迥ｶ諷・證ｫ螳・","螟ｩ蛟・證ｫ螳・",
-    "繝輔Ν繧ｲ繝ｼ繝磯ｭ謨ｰ","逋ｺ襍ｰ譎ょ綾","諤ｧ蛻･髯仙ｮ・,"驥埼㍼遞ｮ蛻･","蟷ｴ鮨｢髯仙ｮ・,
+RACE_COLS = [
+    "レースID(新)","日付S","曜日","場所","開催","R","レース名","クラス名",
+    "芝・ダート","距離","コース区分","コーナー回数","馬場状態(暫定)","天候(暫定)",
+    "フルゲート頭数","発走時刻","性別限定","重量種別","年齢限定",
 ]
 HORSE_COLS_33 = [
-    "譫逡ｪ","B","鬥ｬ逡ｪ","鬥ｬ蜷拘","諤ｧ蛻･","蟷ｴ鮨｢","莠ｺ豌誉莉願ｵｰ","蜊伜享","ZI蜊ｰ","ZI","ZI鬆・,
-    "譁､驥・,"貂娥","譖ｿ","鬨取焔","謇螻・,"隱ｿ謨吝ｸｫ","辷ｶ","豈咲宛","辷ｶ繧ｿ繧､繝・,"豈咲宛繧ｿ繧､繝・,
-    "蜑崎ｵｰ譛・,"蜑崎ｵｰ譌･","蜑崎ｵｰ蝣ｴ謇","蜑崎ｵｰTD","蜑崎ｵｰ霍晞屬","蜑崎ｵｰ鬥ｬ蝣ｴ迥ｶ諷・,"蜑崎ｵｰ逹鬆・,
-    "蜑崎ｵｰ莠ｺ豌・,"蜑崎ｵｰ繝ｬ繝ｼ繧ｹ蜷・,"蜑崎ｵｰ荳翫ｊ3F","蜑崎ｵｰ豎ｺ謇・,"蜑崎ｵｰ髢馴囈",
+    "枠番","B","馬番","馬名S","性別","年齢","人気_今走","単勝","ZI印","ZI","ZI順",
+    "斤量","減M","替","騎手","所属","調教師","父","母父","父タイプ","母父タイプ",
+    "前走月","前走日","前走場所","前走TD","前走距離","前走馬場状態","前走着順",
+    "前走人気","前走レース名","前走上り3F","前走決手","前走間隔",
 ]
 HORSE_COLS_46 = [
-    "譫逡ｪ","B","鬥ｬ逡ｪ","鬥ｬ蜷拘","諤ｧ蛻･","蟷ｴ鮨｢","莠ｺ豌誉莉願ｵｰ","蜊伜享","ZI蜊ｰ","ZI","ZI鬆・,
-    "譁､驥・,"貂娥","譖ｿ","鬨取焔","謇螻・,"隱ｿ謨吝ｸｫ","辷ｶ","豈咲宛","辷ｶ繧ｿ繧､繝・,"豈咲宛繧ｿ繧､繝・,
-    "蜑崎ｵｰ譛・,"蜑崎ｵｰ譌･","蜑崎ｵｰ髢句ぎ","蜑崎ｵｰ髢馴囈","蜑崎ｵｰ繝ｬ繝ｼ繧ｹ蜷・,"蜑崎ｵｰTD","蜑崎ｵｰ霍晞屬","蜑崎ｵｰ鬥ｬ蝣ｴ迥ｶ諷・,
-    "蜑崎ｵｰB","蜑崎ｵｰ鬨取焔","蜑崎ｵｰ譁､驥・,"蜑崎ｵｰ貂・,"蜑崎ｵｰ莠ｺ豌・,"蜑崎ｵｰ蜊伜享繧ｪ繝・ぜ","蜑崎ｵｰ逹鬆・,"蜑崎ｵｰ逹蟾ｮ",
-    "繝槭う繝九Φ繧ｰ鬆・ｽ・,"蜑崎ｵｰ騾夐℃1","蜑崎ｵｰ騾夐℃2","蜑崎ｵｰ騾夐℃3","蜑崎ｵｰ騾夐℃4","蜑崎ｵｰAve3F",
-    "蜑崎ｵｰ荳翫ｊ3F","蜑崎ｵｰ荳翫ｊ3F鬆・ｽ・,"蜑崎ｵｰ1_2逹鬥ｬ",
+    "枠番","B","馬番","馬名S","性別","年齢","人気_今走","単勝","ZI印","ZI","ZI順",
+    "斤量","減M","替","騎手","所属","調教師","父","母父","父タイプ","母父タイプ",
+    "前走月","前走日","前走開催","前走間隔","前走レース名","前走TD","前走距離","前走馬場状態",
+    "前走B","前走騎手","前走斤量","前走減","前走人気","前走単勝オッズ","前走着順","前走着差",
+    "マイニング順位","前走通過1","前走通過2","前走通過3","前走通過4","前走Ave3F",
+    "前走上り3F","前走上り3F順位","前走1_2着馬",
+]
+HORSE_COLS_49 = [
+    "枠番","B","馬番","馬名S","性別","年齢","馬体重","馬体重増減_raw","馬体重増減",
+    "人気_今走","単勝","ZI印","ZI","ZI順","斤量","減M","替","騎手","所属","調教師",
+    "父","母父","父タイプ","母父タイプ",
+    "前走月","前走日","前走開催","前走間隔","前走レース名","前走TD","前走距離","前走馬場状態",
+    "前走B","前走騎手","前走斤量","前走減","前走人気","前走単勝オッズ","前走着順","前走着差",
+    "マイニング順位","前走通過1","前走通過2","前走通過3","前走通過4","前走Ave3F",
+    "前走上り3F","前走上り3F順位","前走1_2着馬",
+]
+HORSE_COLS_99 = [
+    "枠番","B","馬番","馬名S","性別","年齢","馬体重","馬体重増減_raw","馬体重増減",
+    "人気_今走","単勝","ZI印","ZI","ZI順","斤量","減M","替","騎手","所属","調教師",
+    "父","母父","父タイプ","母父タイプ",
+    "前走月","前走日","前走開催","前走間隔","前走レース名","前走TD","前走距離","前走馬場状態",
+    "前走B","前走騎手","前走斤量","前走減","前走人気","前走単勝オッズ","前走着順","前走着差",
+    "マイニング順位","前走通過1","前走通過2","前走通過3","前走通過4","前走Ave3F",
+    "前走上り3F","前走上り3F順位","前走1_2着馬",
+    "二走前月","二走前日","二走前開催","二走前間隔","二走前レース名","二走前TD","二走前距離","二走前馬場状態",
+    "二走前B","二走前騎手","二走前斤量","二走前減","二走前人気","二走前単勝オッズ","二走前着順","二走前着差",
+    "二走前マイニング順位","二走前通過1","二走前通過2","二走前通過3","二走前通過4","二走前Ave3F",
+    "二走前上り3F","二走前上り3F順位","二走前1_2着馬",
+    "三走前月","三走前日","三走前開催","三走前間隔","三走前レース名","三走前TD","三走前距離","三走前馬場状態",
+    "三走前B","三走前騎手","三走前斤量","三走前減","三走前人気","三走前単勝オッズ","三走前着順","三走前着差",
+    "三走前マイニング順位","三走前通過1","三走前通過2","三走前通過3","三走前通過4","三走前Ave3F",
+    "三走前上り3F","三走前上り3F順位","三走前1_2着馬",
 ]
 
 
 # =========================================================
-# CSV 繝代・繧ｹ
+# CSV パース
 # =========================================================
-def parse_target_csv(uploaded_file) -> pd.DataFrame:
-    """繧ｿ繝ｼ繧ｲ繝・ヨ蠖｢蠑修SV・・谿ｵ讒矩・峨ｒ繝槭せ繧ｿ繝ｼ逶ｸ蠖薙・DataFrame縺ｫ螟画鋤縺吶ｋ縲・""
-    content = uploaded_file.read()
+def parse_target_csv(source) -> pd.DataFrame:
+    if isinstance(source, (str, Path)):
+        with open(source, "rb") as f:
+            raw = f.read()
+    else:
+        raw = source.read()
+    text = ""
     for enc in ["cp932", "shift_jis", "utf-8"]:
         try:
-            text = content.decode(enc)
-            break
+            text = raw.decode(enc); break
         except Exception:
             continue
+    if not text:
+        return pd.DataFrame()
 
-    lines = text.splitlines()
     races: list[dict] = []
     current_race: dict | None = None
-
-    # 蛻玲焚縺九ｉ閾ｪ蜍募愛螳夲ｼ・3蛻・譌ｧ蠖｢蠑・/ 46蛻・譁ｰ蠖｢蠑擾ｼ・    for line in lines:
+    for line in text.splitlines():
         cols = line.split(",")
-        if len(cols) == 19 and cols[0] not in ("繝ｬ繝ｼ繧ｹID(譁ｰ)", ""):
+        if cols[0] in ("レースID(新)", "枠番", "番", ""):
+            continue
+        if len(cols) == 19:
             current_race = dict(zip(RACE_COLS, cols))
-        elif len(cols) == 33 and cols[0] not in ("譫逡ｪ", "") and current_race:
-            horse = dict(zip(HORSE_COLS_33, cols))
-            horse.update(current_race)
-            races.append(horse)
-        elif len(cols) == 46 and cols[0] not in ("譫逡ｪ", "") and current_race:
-            horse = dict(zip(HORSE_COLS_46, cols))
-            horse.update(current_race)
-            races.append(horse)
+        elif len(cols) == 33 and current_race:
+            h = dict(zip(HORSE_COLS_33, cols)); h.update(current_race); races.append(h)
+        elif len(cols) == 46 and current_race:
+            h = dict(zip(HORSE_COLS_46, cols)); h.update(current_race); races.append(h)
+        elif len(cols) == 49 and current_race:
+            h = dict(zip(HORSE_COLS_49, cols)); h.update(current_race); races.append(h)
+        elif len(cols) == 99 and current_race:
+            h = dict(zip(HORSE_COLS_99, cols)); h.update(current_race); races.append(h)
 
     df = pd.DataFrame(races)
     if df.empty:
         return df
-
-    # 蛻怜錐繝ｪ繝阪・繝
     df = df.rename(columns=COLUMN_MAP)
-
-    # 繝ｬ繝ｼ繧ｹID豁｣隕丞喧・磯ｦｬ逡ｪ縺ｪ縺怜ｽ｢蠑上↓・・    df["繝ｬ繝ｼ繧ｹID(譁ｰ/鬥ｬ逡ｪ辟｡)"] = df["繝ｬ繝ｼ繧ｹID(譁ｰ)"].astype(str).str[:16]
-
-    # 謨ｰ蛟､螟画鋤
-    for col in ["譫逡ｪ","鬥ｬ逡ｪ","譁､驥・,"ZI","ZI鬆・ｽ・,"霍晞屬","莠ｺ豌・,"蜊伜享",
-                "蜑崎ｵｰ遒ｺ螳夂捩鬆・,"蜑崎ｵｰ荳翫ｊ3F","蜑崎ｵｰ霍晞屬","髢馴囈","蜑崎ｵｰ莠ｺ豌・,
-                "蜑崎ｵｰ逹蟾ｮ繧ｿ繧､繝","蜑崎ｵｰ譁､驥・,"蜑崎ｵｰ蟷ｳ蝮・F","蜑崎ｵｰ荳翫ｊ3F鬆・ｽ・,
-                "繝槭う繝九Φ繧ｰ鬆・ｽ・,"蜑崎ｵｰ蜊伜享繧ｪ繝・ぜ",
-                "蜑崎ｵｰ騾夐℃1","蜑崎ｵｰ騾夐℃2","蜑崎ｵｰ騾夐℃3","蜑崎ｵｰ騾夐℃4"]:
+    df["レースID(新/馬番無)"] = df["レースID(新)"].astype(str).str[:16]
+    for col in ["枠番","馬番","斤量","ZI","ZI順位","距離","人気","単勝",
+                "前走確定着順","前走上り3F","前走距離","間隔","前走人気",
+                "前走着差タイム","前走斤量","前走平均3F","前走上り3F順位",
+                "マイニング順位","前走単勝オッズ",
+                "前走通過1","前走通過2","前走通過3","前走通過4"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
-
-    # 譌･莉・    df["譌･莉・] = pd.to_datetime(df["譌･莉牢"], format="%Y.%m.%d", errors="coerce")
-    df["譌･莉・] = df["譌･莉・].dt.strftime("%Y%m%d").astype("Int64")
-
-    # 谺謳崎｣懷ｮ鯉ｼ医Δ繝・Ν縺悟ｿ・ｦ√↑蛻励ｒ0蝓九ａ・・    for col in ["蜑崎ｵｰ襍ｰ遐ｴ繧ｿ繧､繝","蜑崎ｵｰ逹蟾ｮ繧ｿ繧､繝","鬥ｬ菴馴㍾","鬥ｬ菴馴㍾蠅玲ｸ・,
-                "蜑崎ｵｰ譁､驥・,"逕溽肇閠・,"鬥ｬ荳ｻ(譛譁ｰ/莉ｮ諠ｳ)"]:
+    df["日付"] = pd.to_datetime(df["日付S"], format="%Y.%m.%d", errors="coerce")
+    df["日付"] = df["日付"].dt.strftime("%Y%m%d").astype("Int64")
+    for col in ["前走走破タイム","前走着差タイム","馬体重","馬体重増減",
+                "前走斤量","生産者","馬主(最新/仮想)"]:
         if col not in df.columns:
             df[col] = 0
-
     return df
 
 
 # =========================================================
-# 繝｢繝・Ν繝ｭ繝ｼ繝・# =========================================================
-@st.cache_resource(show_spinner="繝｢繝・Ν隱ｭ縺ｿ霎ｼ縺ｿ荳ｭ...")
+# モデルロード
+# =========================================================
+@st.cache_resource(show_spinner="モデル読み込み中...")
 def load_models() -> tuple:
     return joblib.load(LGBM_PATH), joblib.load(CAT_PATH)
 
 
-@st.cache_data(show_spinner="謌ｦ逡･繝・・繧ｿ隱ｭ縺ｿ霎ｼ縺ｿ荳ｭ...")
+@st.cache_data(show_spinner="戦略データ読み込み中...")
 def load_strategy() -> dict:
     with open(STRATEGY_JSON, encoding="utf-8") as f:
         return json.load(f)
 
 
 # =========================================================
-# 莠域ｸｬ
+# 予測
 # =========================================================
 def parse_time_str(series: pd.Series) -> pd.Series:
     def _conv(val):
@@ -198,13 +230,12 @@ def parse_time_str(series: pd.Series) -> pd.Series:
 def predict_lgbm(df: pd.DataFrame, obj: dict) -> np.ndarray:
     model, encoders, feature_cols = obj["model"], obj["encoders"], obj["feature_cols"]
     df = df.copy()
-    for col in ["蜑崎ｵｰ襍ｰ遐ｴ繧ｿ繧､繝", "蜑崎ｵｰ逹蟾ｮ繧ｿ繧､繝"]:
+    for col in ["前走走破タイム","前走着差タイム"]:
         if col in df.columns:
             df[col] = parse_time_str(df[col])
     for col, le in encoders.items():
         if col not in df.columns:
-            df[col] = 0
-            continue
+            df[col] = 0; continue
         df[col] = df[col].astype(str).fillna("__NaN__")
         known = set(le.classes_)
         df[col] = df[col].apply(lambda x: x if x in known else "__NaN__")
@@ -221,14 +252,14 @@ def predict_catboost(df: pd.DataFrame, obj: dict) -> np.ndarray:
     from catboost import Pool
     model, feature_cols = obj["model"], obj["feature_cols"]
     cat_list = [
-        "遞ｮ迚｡鬥ｬ","辷ｶ繧ｿ繧､繝怜錐","豈咲宛鬥ｬ","豈咲宛繧ｿ繧､繝怜錐","豈幄牡",
-        "鬥ｬ荳ｻ(譛譁ｰ/莉ｮ諠ｳ)","逕溽肇閠・,"闃昴・繝","繧ｳ繝ｼ繧ｹ蛹ｺ蛻・,"闃・蜀・・螟・",
-        "鬥ｬ蝣ｴ迥ｶ諷・,"螟ｩ豌・,"繧ｯ繝ｩ繧ｹ蜷・,"蝣ｴ謇","諤ｧ蛻･","譁､驥・,
-        "繝悶Μ繝ｳ繧ｫ繝ｼ","驥埼㍼遞ｮ蛻･","蟷ｴ鮨｢髯仙ｮ・,"髯仙ｮ・,"諤ｧ蛻･髯仙ｮ・,"謖・ｮ壽擅莉ｶ",
-        "蜑崎ｵｰ蝣ｴ謇","蜑崎茅繝ｻ繝","蜑崎ｵｰ鬥ｬ蝣ｴ迥ｶ諷・,"蜑崎ｵｰ譁､驥・,"蜑榊･ｽ襍ｰ",
+        "種牡馬","父タイプ名","母父馬","母父タイプ名","毛色",
+        "馬主(最新/仮想)","生産者","芝・ダ","コース区分","芝(内・外)",
+        "馬場状態","天気","クラス名","場所","性別","斤量",
+        "ブリンカー","重量種別","年齢限定","限定","性別限定","指定条件",
+        "前走場所","前芝・ダ","前走馬場状態","前走斤量","前好走",
     ]
     df = df.copy()
-    for col in ["蜑崎ｵｰ襍ｰ遐ｴ繧ｿ繧､繝","蜑崎ｵｰ逹蟾ｮ繧ｿ繧､繝"]:
+    for col in ["前走走破タイム","前走着差タイム"]:
         if col in df.columns:
             df[col] = parse_time_str(df[col])
     for col in cat_list:
@@ -251,51 +282,45 @@ def assign_marks(df: pd.DataFrame) -> pd.DataFrame:
     ranked = df["prob"].rank(ascending=False, method="first")
     for idx, rank in ranked.items():
         if rank <= 5:
-            df.at[idx, "mark"] = {1:"笳・,2:"笳ｯ",3:"笆ｲ",4:"笆ｳ",5:"ﾃ・}[int(rank)]
+            df.at[idx, "mark"] = {1:"◎",2:"◯",3:"▲",4:"△",5:"×"}[int(rank)]
     return df
 
 
-# =========================================================
-# 蜈ｨ繝ｬ繝ｼ繧ｹ荳諡ｬ莠域Φ
-# =========================================================
-@st.cache_data(show_spinner="蜈ｨ繝ｬ繝ｼ繧ｹ莠域Φ險育ｮ嶺ｸｭ...")
-def predict_all_races(df_json: str, _lgbm_obj: dict, _cat_obj: dict) -> str:
-    """蜈ｨ繝ｬ繝ｼ繧ｹ荳諡ｬ縺ｧ繧ｹ繧ｳ繧｢繝ｻ蜊ｰ繧剃ｻ倅ｸ弱＠縺ｦJSON霑泌唆縲・""
-    df = pd.read_json(df_json)
+@st.cache_data(show_spinner="全レース予想計算中...")
+def predict_all_races(cache_key: str, df_json: str, _lgbm_obj: dict, _cat_obj: dict) -> str:
+    import io
+    df = pd.read_json(io.StringIO(df_json))
     result_frames = []
-    race_id_col = "繝ｬ繝ｼ繧ｹID(譁ｰ/鬥ｬ逡ｪ辟｡)"
-
-    for race_id, race_df in df.groupby(race_id_col):
+    for race_id, race_df in df.groupby("レースID(新/馬番無)"):
         race_df = race_df.copy()
         try:
             race_df["prob"]  = ensemble_predict(race_df, _lgbm_obj, _cat_obj)
             race_df          = assign_marks(race_df)
             race_df["score"] = (race_df["prob"] * 100).round(1)
         except Exception as e:
-            logger.warning(f"莠域ｸｬ螟ｱ謨・{race_id}: {e}")
+            logger.warning(f"予測失敗 {race_id}: {e}")
             race_df["prob"]  = 0.0
             race_df["mark"]  = ""
             race_df["score"] = 0.0
         result_frames.append(race_df)
-
     return pd.concat(result_frames, ignore_index=True).to_json(force_ascii=False)
 
 
 # =========================================================
 # SHAP
 # =========================================================
-@st.cache_data(show_spinner="SHAP險育ｮ嶺ｸｭ...")
+@st.cache_data(show_spinner="SHAP計算中...")
 def compute_shap(_lgbm_obj: dict, df_json: str) -> tuple[list, list]:
-    df = pd.read_json(df_json)
+    import io
+    df = pd.read_json(io.StringIO(df_json))
     model, encoders, feature_cols = _lgbm_obj["model"], _lgbm_obj["encoders"], _lgbm_obj["feature_cols"]
     df_enc = df.copy()
-    for col in ["蜑崎ｵｰ襍ｰ遐ｴ繧ｿ繧､繝","蜑崎ｵｰ逹蟾ｮ繧ｿ繧､繝"]:
+    for col in ["前走走破タイム","前走着差タイム"]:
         if col in df_enc.columns:
             df_enc[col] = parse_time_str(df_enc[col])
     for col, le in encoders.items():
         if col not in df_enc.columns:
-            df_enc[col] = 0
-            continue
+            df_enc[col] = 0; continue
         df_enc[col] = df_enc[col].astype(str).fillna("__NaN__")
         known = set(le.classes_)
         df_enc[col] = df_enc[col].apply(lambda x: x if x in known else "__NaN__")
@@ -313,8 +338,8 @@ def compute_shap(_lgbm_obj: dict, df_json: str) -> tuple[list, list]:
 
 
 def make_shap_fig(sv_row: list, feature_cols: list, horse_name: str) -> plt.Figure:
-    sv     = np.array(sv_row)
-    order  = np.argsort(np.abs(sv))[::-1][:12]
+    sv    = np.array(sv_row)
+    order = np.argsort(np.abs(sv))[::-1][:12]
     labels = [FEATURE_LABEL.get(feature_cols[i], feature_cols[i]) for i in order]
     values = sv[order]
     colors = ["tomato" if v > 0 else "steelblue" for v in values]
@@ -322,103 +347,167 @@ def make_shap_fig(sv_row: list, feature_cols: list, horse_name: str) -> plt.Figu
     ax.barh(labels[::-1], values[::-1], color=colors[::-1])
     ax.axvline(0, color="gray", linewidth=0.8)
     ax.set_title(horse_name, fontsize=10)
-    ax.set_xlabel("SHAP蛟､・郁ｵ､=螂ｽ譚先侭 / 髱・荳榊ｮ画攝譁呻ｼ・, fontsize=8)
+    ax.set_xlabel("SHAP値", fontsize=8)
     ax.tick_params(labelsize=8)
     fig.tight_layout()
     return fig
 
 
-def make_comment(sv_row: list, feature_cols: list, horse_name: str,
-                 score: float, mark: str = "") -> str:
+def make_comment(sv_row: list, feature_cols: list, horse_name: str, score: float, mark: str = "") -> str:
     sv    = np.array(sv_row)
     pairs = sorted(zip(sv, feature_cols), reverse=True)
     pos   = [(v, c) for v, c in pairs if v > 0][:3]
     neg   = [(v, c) for v, c in pairs if v < 0][-2:]
-
-    if score >= 60:
-        level = "繝｢繝・Ν縺梧怙荳贋ｽ阪け繝ｩ繧ｹ縺ｮ隧穂ｾ｡繧剃ｸ弱∴縺ｦ縺翫ｊ"
-    elif score >= 40:
-        level = "荳贋ｽ榊恟縺ｮ隧穂ｾ｡繧剃ｸ弱∴縺ｦ縺翫ｊ"
-    elif score >= 20:
-        level = "荳ｭ菴榊恟縺ｮ隧穂ｾ｡繧剃ｸ弱∴縺ｦ縺翫ｊ"
-    else:
-        level = "荳倶ｽ榊恟縺ｮ隧穂ｾ｡繧剃ｸ弱∴縺ｦ縺翫ｊ"
-
-    mark_txt = {
-        "笳・: "譛ｬ蜻ｽ縺ｨ縺励※譛繧ゆｿ｡鬆ｼ縺ｧ縺阪ｋ荳鬆ｭ縲・,
-        "笳ｯ": "蟇ｾ謚励→縺励※譛ｬ蜻ｽ繧定у縺九☆蟄伜惠縲・,
-        "笆ｲ": "蜊倡ｩｴ縺ｨ縺励※荳逋ｺ縺ｮ鬲・鴨縺後≠繧九・,
-        "笆ｳ": "騾｣荳句呵｣懊→縺励※謚代∴縺ｦ縺翫″縺溘＞縲・,
-        "ﾃ・: "謚ｼ縺輔∴遞句ｺｦ縺縺悟恟螟悶→繧りｨ縺医↑縺・・,
-    }.get(mark, "")
-
-    pos_s = [f"{FEATURE_LABEL.get(c,c)}縺悟･ｽ譚先侭" for _, c in pos]
-    neg_s = [f"{FEATURE_LABEL.get(c,c)}縺後ｄ繧・ｸ榊ｮ・ for _, c in neg]
-
+    level = ("モデルが最上位クラスの評価" if score >= 60 else
+             "上位圏の評価" if score >= 40 else
+             "中位圏の評価" if score >= 20 else "下位圏の評価")
+    mark_txt = {"◎":"本命として最も信頼できる一頭。","◯":"対抗として本命を脅かす存在。",
+                "▲":"単穴として一発の魅力がある。","△":"連下候補として抑えておきたい。",
+                "×":"押さえ程度だが圏外とも言えない。"}.get(mark, "")
+    pos_s = [f"{FEATURE_LABEL.get(c,c)}が好材料" for _,c in pos]
+    neg_s = [f"{FEATURE_LABEL.get(c,c)}がやや不安" for _,c in neg]
     lines = []
-    if mark_txt:
-        lines.append(mark_txt)
-    lines.append(f"{horse_name}縺ｯ繧ｹ繧ｳ繧｢{score:.1f}%縺ｧ縲＋level}荳贋ｽ榊・邱壹・蜿ｯ閭ｽ諤ｧ繧定ｩ穂ｾ｡縺励※縺・∪縺吶・)
-    if pos_s:
-        lines.append("螂ｽ譚先侭縺ｨ縺励※縲・ + "縲・.join(pos_s) + "縺梧嫌縺偵ｉ繧後∪縺吶・)
-    if neg_s:
-        lines.append("荳譁ｹ縺ｧ" + "縲・.join(neg_s) + "轤ｹ縺後≠繧翫∪縺吶・)
-    else:
-        lines.append("逶ｮ遶九▲縺滉ｸ榊ｮ画攝譁吶・蟆代↑縺丞ｮ牙ｮ壽─縺ｮ縺ゅｋ隧穂ｾ｡縺ｧ縺吶・)
+    if mark_txt: lines.append(mark_txt)
+    lines.append(f"{horse_name}はスコア{score:.1f}%で{level}。")
+    if pos_s: lines.append("好材料: " + "、".join(pos_s) + "。")
+    if neg_s: lines.append("不安: " + "、".join(neg_s) + "。")
     return " ".join(lines)
 
 
 # =========================================================
-# 雋ｷ縺・岼逕滓・
+# 買い目生成
 # =========================================================
 def floor_to_unit(x: int, unit: int = MIN_UNIT) -> int:
     return max((x // unit) * unit, unit)
 
 
+def is_in_strategy(place: str, cls_raw: str, strategy: dict) -> bool:
+    if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
+        return False
+    cls = CLASS_NORMALIZE.get(cls_raw, cls_raw)
+    return place in strategy and (cls in strategy[place] or cls_raw in strategy[place])
+
+
 def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
              strategy: dict, budget: int) -> list[dict]:
+    """馬連3点流し・三連複◎◯2頭軸×▲△2点・複勝◎のみ。三連単廃止。"""
+    if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
+        return []
     cls      = CLASS_NORMALIZE.get(cls_raw, cls_raw)
     bet_info = strategy.get(place, {}).get(cls) or strategy.get(place, {}).get(cls_raw, {})
     if not bet_info:
         return []
     marks_df = {m: race_df[race_df["mark"] == m] for m in MARKS}
-    hon    = marks_df["笳・]
-    taikou = marks_df["笳ｯ"]
-    sabo   = marks_df["笆ｲ"]
-    delta  = marks_df["笆ｳ"]
+    hon    = marks_df["◎"]
+    taikou = marks_df["◯"]
+    sabo   = marks_df["▲"]
+    delta  = marks_df["△"]
     if hon.empty:
         return []
-    h1 = int(hon.iloc[0]["鬥ｬ逡ｪ"])
-    h2 = int(taikou.iloc[0]["鬥ｬ逡ｪ"]) if not taikou.empty else None
-    h3 = int(sabo.iloc[0]["鬥ｬ逡ｪ"])   if not sabo.empty  else None
-    h4 = int(delta.iloc[0]["鬥ｬ逡ｪ"])  if not delta.empty else None
-    top3 = [h for h in [h1, h2, h3] if h is not None]
-    top4 = [h for h in [h1, h2, h3, h4] if h is not None]
+    h1 = int(hon.iloc[0]["馬番"])
+    h2 = int(taikou.iloc[0]["馬番"]) if not taikou.empty else None
+    h3 = int(sabo.iloc[0]["馬番"])   if not sabo.empty  else None
+    h4 = int(delta.iloc[0]["馬番"])  if not delta.empty else None
+
     results = []
     for bet_type, info in bet_info.items():
         amt = floor_to_unit(int(budget * info["bet_ratio"]))
-        if bet_type == "隍・享":
-            results.append({"鬥ｬ蛻ｸ遞ｮ":"隍・享","雋ｷ縺・岼":str(h1),"雉ｼ蜈･鬘・:amt,
-                            "ROI":info["roi"],"繧ｦ繧ｧ繧､繝・:round(info["weight"]*100,1)})
-        elif bet_type == "鬥ｬ騾｣":
-            if h2 is None: continue
-            results.append({"鬥ｬ蛻ｸ遞ｮ":"鬥ｬ騾｣","雋ｷ縺・岼":"-".join(map(str,sorted([h1,h2]))),
-                            "雉ｼ蜈･鬘・:amt,"ROI":info["roi"],"繧ｦ繧ｧ繧､繝・:round(info["weight"]*100,1)})
-        elif bet_type == "荳蛾｣隍・:
-            if len(top3) < 3: continue
-            combos  = list(itertools.combinations(top4[:4],3))[:3]
-            per_bet = floor_to_unit(amt // max(len(combos),1))
+        if bet_type == "複勝":
+            results.append({"馬券種":"複勝","買い目":str(h1),"購入額":amt,
+                            "ROI":info["roi"],"ウェイト":round(info["weight"]*100,1)})
+        elif bet_type == "馬連" and h2:
+            combos = [(h1, h2)]
+            if h3:
+                combos += [(h1, h3), (h2, h3)]
+            per_bet = floor_to_unit(amt // len(combos))
+            for a, b in combos:
+                results.append({"馬券種":"馬連","買い目":f"{min(a,b)}-{max(a,b)}",
+                                "購入額":per_bet,"ROI":info["roi"],"ウェイト":round(info["weight"]*100,1)})
+        elif bet_type == "三連複" and h2 and h3:
+            combos = [tuple(sorted([h1, h2, h3]))]
+            if h4:
+                combos.append(tuple(sorted([h1, h2, h4])))
+            per_bet = floor_to_unit(amt // len(combos))
             for c in combos:
-                results.append({"鬥ｬ蛻ｸ遞ｮ":"荳蛾｣隍・,"雋ｷ縺・岼":"-".join(map(str,sorted(c))),
-                                "雉ｼ蜈･鬘・:per_bet,"ROI":info["roi"],"繧ｦ繧ｧ繧､繝・:round(info["weight"]*100,1)})
-        elif bet_type == "荳蛾｣蜊・:
-            if len(top3) < 3: continue
-            perms   = list(itertools.permutations(top3[:3],3))[:3]
-            per_bet = floor_to_unit(amt // max(len(perms),1))
-            for p in perms:
-                results.append({"鬥ｬ蛻ｸ遞ｮ":"荳蛾｣蜊・,"雋ｷ縺・岼":"-".join(map(str,p)),
-                                "雉ｼ蜈･鬘・:per_bet,"ROI":info["roi"],"繧ｦ繧ｧ繧､繝・:round(info["weight"]*100,1)})
+                results.append({"馬券種":"三連複","買い目":"-".join(map(str, c)),
+                                "購入額":per_bet,"ROI":info["roi"],"ウェイト":round(info["weight"]*100,1)})
+        elif bet_type == "三連単":
+            pass  # 廃止
     return results
+
+
+# =========================================================
+# レース傾向データ（ダミー／実データに差し替え可）
+# =========================================================
+TREND_DATA: dict[str, dict] = {
+    "中山": {"好調枠番":["7枠","6枠","8枠"],"有利脚質":"先行","好調騎手":"C.ルメール",
+             "好調厩舎":"国枝栄","好調血統(父)":"ドゥラメンテ","好調血統(母父)":"ディープインパクト",
+             "有利調教":"坂路","配当傾向":"順当"},
+    "京都": {"好調枠番":["4枠","5枠","3枠"],"有利脚質":"差し","好調騎手":"武豊",
+             "好調厩舎":"藤原英昭","好調血統(父)":"キタサンブラック","好調血統(母父)":"ハービンジャー",
+             "有利調教":"CW","配当傾向":"波乱含み"},
+    "阪神": {"好調枠番":["2枠","1枠","4枠"],"有利脚質":"逃げ・先行","好調騎手":"川田将雅",
+             "好調厩舎":"矢作芳人","好調血統(父)":"ロードカナロア","好調血統(母父)":"キングカメハメハ",
+             "有利調教":"美W","配当傾向":"順当"},
+    "東京": {"好調枠番":["3枠","4枠","5枠"],"有利脚質":"差し・追込","好調騎手":"戸崎圭太",
+             "好調厩舎":"堀宣行","好調血統(父)":"ディープインパクト","好調血統(母父)":"Storm Cat",
+             "有利調教":"CW","配当傾向":"波乱含み"},
+    "小倉": {"好調枠番":["1枠","2枠","8枠"],"有利脚質":"逃げ","好調騎手":"松山弘平",
+             "好調厩舎":"中竹和也","好調血統(父)":"モーリス","好調血統(母父)":"ダイワメジャー",
+             "有利調教":"坂路","配当傾向":"順当"},
+}
+
+WAKU_COLORS = {
+    "1枠":"#fff","2枠":"#222","3枠":"#e74c3c",
+    "4枠":"#3498db","5枠":"#f1c40f","6枠":"#27ae60",
+    "7枠":"#e67e22","8枠":"#ff69b4",
+}
+
+WAKU_TEXT_COLORS = {
+    "1枠":"#000","2枠":"#fff","3枠":"#fff",
+    "4枠":"#fff","5枠":"#000","6枠":"#fff",
+    "7枠":"#fff","8枠":"#000",
+}
+
+
+def render_trend_panel(places: list[str]) -> None:
+    st.markdown("#### 📊 開催場傾向")
+    for place in places:
+        data = TREND_DATA.get(place)
+        if not data:
+            continue
+        st.markdown(f"**{place}**")
+        wakus = data.get("好調枠番", [])
+        waku_html = "".join([
+            f'<span style="background:{WAKU_COLORS.get(w,"#555")};'
+            f'color:{WAKU_TEXT_COLORS.get(w,"#fff")};'
+            f'border-radius:4px;padding:1px 8px;font-size:12px;margin:2px;font-weight:bold">{w}</span>'
+            for w in wakus
+        ])
+        st.markdown(
+            f'<div style="display:flex;justify-content:space-between;padding:4px 0;'
+            f'border-bottom:1px solid #2a2a3e;font-size:13px">'
+            f'<span style="color:#888">好調枠番</span><span>{waku_html}</span></div>',
+            unsafe_allow_html=True,
+        )
+        rows = [
+            ("有利脚質",      data.get("有利脚質","-"),      "#f1c40f"),
+            ("好調騎手",      data.get("好調騎手","-"),      "#4ade80"),
+            ("好調厩舎",      data.get("好調厩舎","-"),      "#cdd6f4"),
+            ("好調血統(父)",  data.get("好調血統(父)","-"),  "#89b4fa"),
+            ("好調血統(母父)",data.get("好調血統(母父)","-"),"#89dceb"),
+            ("有利調教",      data.get("有利調教","-"),      "#cdd6f4"),
+            ("配当傾向",      data.get("配当傾向","-"),      "#f38ba8"),
+        ]
+        for label, val, color in rows:
+            st.markdown(
+                f'<div style="display:flex;justify-content:space-between;padding:4px 0;'
+                f'border-bottom:1px solid #2a2a3e;font-size:13px">'
+                f'<span style="color:#888">{label}</span>'
+                f'<span style="color:{color};font-weight:bold">{val}</span></div>',
+                unsafe_allow_html=True,
+            )
+        st.markdown("")
 
 
 # =========================================================
@@ -428,14 +517,14 @@ CSS = """
 <style>
 .tbl-header {
     display:grid;
-    grid-template-columns:40px 50px 50px 1fr 70px 60px 130px 160px;
+    grid-template-columns:36px 44px 44px 1fr 64px 56px 120px 150px;
     background:#1e1e2e; color:#cdd6f4; font-weight:bold;
     font-size:13px; padding:6px 12px; border-radius:6px 6px 0 0; gap:8px;
 }
 .tbl-row {
     display:grid;
-    grid-template-columns:40px 50px 50px 1fr 70px 60px 130px 160px;
-    font-size:13px; padding:7px 12px;
+    grid-template-columns:36px 44px 44px 1fr 64px 56px 120px 150px;
+    font-size:13px; padding:6px 12px;
     border-bottom:1px solid #313244; align-items:center; gap:8px;
 }
 .mk-hon  {color:#e74c3c;font-weight:bold;font-size:16px;}
@@ -445,314 +534,438 @@ CSS = """
 .mk-batu {color:#95a5a6;}
 .sbar-wrap{display:flex;align-items:center;gap:6px;font-size:12px;}
 .sbar{height:10px;border-radius:4px;background:#5865f2;}
-/* 繝ｬ繝ｼ繧ｹ荳隕ｧ繝・・繝悶Ν */
-.race-list-header {
-    display:grid;
-    grid-template-columns:60px 40px 80px 1fr 60px 80px 80px 100px 60px;
-    background:#1e1e2e; color:#cdd6f4; font-weight:bold;
-    font-size:13px; padding:6px 12px; border-radius:6px 6px 0 0; gap:6px;
+.main-race-banner {
+    background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);
+    border:1px solid #e74c3c; border-radius:12px;
+    padding:18px 24px; margin-bottom:16px; position:relative; overflow:hidden;
 }
-.race-list-row {
-    display:grid;
-    grid-template-columns:60px 40px 80px 1fr 60px 80px 80px 100px 60px;
-    font-size:13px; padding:6px 12px;
-    border-bottom:1px solid #313244; align-items:center; gap:6px;
+.main-race-banner::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg,#e74c3c,#f39c12,#e74c3c);
 }
-.strategy-badge {
-    background:#2d4a2d; color:#4ade80;
-    border-radius:4px; padding:2px 6px; font-size:11px;
+.grade-g1{display:inline-block;background:#e74c3c;color:#fff;padding:2px 10px;border-radius:4px;font-size:12px;font-weight:bold;margin-right:8px;}
+.grade-g2{display:inline-block;background:#9b59b6;color:#fff;padding:2px 10px;border-radius:4px;font-size:12px;font-weight:bold;margin-right:8px;}
+.grade-g3{display:inline-block;background:#2980b9;color:#fff;padding:2px 10px;border-radius:4px;font-size:12px;font-weight:bold;margin-right:8px;}
+.grade-op{display:inline-block;background:#27ae60;color:#fff;padding:2px 10px;border-radius:4px;font-size:12px;font-weight:bold;margin-right:8px;}
+.race-row {
+    display:flex; align-items:center; gap:10px;
+    padding:8px 6px; border-bottom:1px solid #2a2a3e;
+}
+.r-badge {
+    background:#e74c3c;color:#fff;border-radius:5px;
+    padding:2px 8px;font-size:15px;font-weight:bold;min-width:32px;text-align:center;
+}
+.r-badge-ex {
+    background:#444;color:#888;border-radius:5px;
+    padding:2px 8px;font-size:15px;min-width:32px;text-align:center;
+}
+.bet-card {
+    background:#1e1e2e;border:1px solid #313244;
+    border-radius:8px;padding:12px 16px;margin:6px 0;
 }
 </style>
 """
 
 
 # =========================================================
-# 繝ｬ繝ｼ繧ｹ荳隕ｧ繝壹・繧ｸ
+# レース一覧ページ
 # =========================================================
-def page_race_list(
-    all_df: pd.DataFrame,
-    strategy: dict,
-    budget: int,
-) -> None:
-    st.markdown("### 套 繝ｬ繝ｼ繧ｹ荳隕ｧ")
+def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
+    race_id_col = "レースID(新/馬番無)"
 
-    race_id_col = "繝ｬ繝ｼ繧ｹID(譁ｰ/鬥ｬ逡ｪ辟｡)"
-    race_list   = []
+    race_metas: list[dict] = []
     for race_id, grp in all_df.groupby(race_id_col):
-        meta     = grp.iloc[0]
-        place    = str(meta.get("蝣ｴ謇",""))
-        cls_raw  = str(meta.get("繧ｯ繝ｩ繧ｹ蜷・,""))
-        cls_norm = CLASS_NORMALIZE.get(cls_raw, cls_raw)
-        in_strat = (
-            place in strategy and
-            (cls_norm in strategy[place] or cls_raw in strategy[place])
-        )
-        hon_row = grp[grp["mark"] == "笳・]
-        hon_name = str(hon_row.iloc[0]["鬥ｬ蜷・]) if not hon_row.empty else "-"
-        race_list.append({
+        meta    = grp.iloc[0]
+        place   = str(meta.get("場所",""))
+        cls_raw = str(meta.get("クラス名",""))
+        hon_row = grp[grp["mark"] == "◎"]
+        hon_name  = str(hon_row.iloc[0]["馬名"])  if not hon_row.empty else "-"
+        hon_score = float(hon_row.iloc[0]["score"]) if not hon_row.empty else 0.0
+        race_metas.append({
             "race_id":  race_id,
-            "蝣ｴ謇":     place,
-            "R":        str(meta.get("R","")),
-            "繧ｯ繝ｩ繧ｹ":   cls_raw,
-            "霍晞屬":     f'{meta.get("闃昴・繝","")}{meta.get("霍晞屬","")}m',
-            "逋ｺ襍ｰ":     str(meta.get("逋ｺ襍ｰ譎ょ綾","")),
-            "笳・:        hon_name,
-            "謌ｦ逡･":     in_strat,
-            "鬆ｭ謨ｰ":     str(len(grp)),
+            "場所":     place,
+            "R":        int(meta.get("R", 0)),
+            "クラス":   cls_raw,
+            "レース名": str(meta.get("レース名","")),
+            "距離":     f'{meta.get("芝・ダ","")}{meta.get("距離","")}m',
+            "発走":     str(meta.get("発走時刻","")),
+            "天気":     str(meta.get("天気","")),
+            "馬場":     str(meta.get("馬場状態","")),
+            "頭数":     len(grp),
+            "◎":        hon_name,
+            "◎スコア":  hon_score,
+            "戦略":     is_in_strategy(place, cls_raw, strategy),
+            "グレード":  GRADE_ORDER.get(CLASS_NORMALIZE.get(cls_raw, cls_raw), 99),
         })
 
-    # 繝倥ャ繝繝ｼ
-    st.markdown(
-        '<div class="race-list-header">'
-        '<span>蝣ｴ謇</span><span>R</span><span>繧ｯ繝ｩ繧ｹ</span><span>笳取悽蜻ｽ</span>'
-        '<span>鬆ｭ謨ｰ</span><span>霍晞屬</span><span>逋ｺ襍ｰ</span><span>謌ｦ逡･蟇ｾ雎｡</span><span></span>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
-
-    for r in race_list:
-        badge = '<span class="strategy-badge">笨・蟇ｾ雎｡</span>' if r["謌ｦ逡･"] else '<span style="color:#555">-</span>'
+    # 重賞バナー
+    graded = sorted([r for r in race_metas if r["グレード"] <= 3], key=lambda x: x["グレード"])
+    if graded:
+        mr = graded[0]
+        grade_label = CLASS_NORMALIZE.get(mr["クラス"], mr["クラス"])
+        grade_cls   = {"Ｇ１":"grade-g1","Ｇ２":"grade-g2","Ｇ３":"grade-g3"}.get(grade_label,"grade-op")
         st.markdown(
-            f'<div class="race-list-row">'
-            f'<span>{r["蝣ｴ謇"]}</span>'
-            f'<span>{r["R"]}</span>'
-            f'<span>{r["繧ｯ繝ｩ繧ｹ"]}</span>'
-            f'<span>笳・{r["笳・]}</span>'
-            f'<span>{r["鬆ｭ謨ｰ"]}鬆ｭ</span>'
-            f'<span>{r["霍晞屬"]}</span>'
-            f'<span>{r["逋ｺ襍ｰ"]}</span>'
-            f'<span>{badge}</span>'
-            f'<span></span>'
+            f'<div class="main-race-banner">'
+            f'<div style="margin-bottom:6px">'
+            f'<span class="{grade_cls}">{grade_label}</span>'
+            f'<span style="color:#888;font-size:13px">{mr["場所"]} {mr["R"]}R　{mr["発走"]}発走</span></div>'
+            f'<div style="font-size:22px;font-weight:bold;color:#cdd6f4;margin-bottom:4px">'
+            f'{mr["レース名"] or mr["クラス"]}</div>'
+            f'<div style="color:#888;font-size:14px">{mr["距離"]}　{mr["頭数"]}頭立て'
+            f'　天気:{mr["天気"]}　馬場:{mr["馬場"]}</div>'
+            f'<div style="margin-top:8px;font-size:14px;color:#a6e3a1">'
+            f'◎ <b>{mr["◎"]}</b>　スコア {mr["◎スコア"]:.1f}%</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
-        if st.button(f'隧ｳ邏ｰ 竊・, key=f'btn_{r["race_id"]}'):
-            st.session_state.selected_race_id = r["race_id"]
-            st.rerun()
+
+    col_left, col_right = st.columns([3, 1], gap="medium")
+
+    with col_left:
+        # 会場タブ
+        by_place: dict[str, list] = {}
+        for r in race_metas:
+            by_place.setdefault(r["場所"], []).append(r)
+        places = list(by_place.keys())
+
+        if "selected_place" not in st.session_state or st.session_state.selected_place not in places:
+            st.session_state.selected_place = places[0] if places else ""
+
+        tab_cols = st.columns(len(places))
+        for tc, place in zip(tab_cols, places):
+            with tc:
+                btn_type = "primary" if st.session_state.selected_place == place else "secondary"
+                if st.button(place, key=f"place_tab_{place}", type=btn_type, use_container_width=True):
+                    st.session_state.selected_place = place
+                    st.rerun()
+
+        cur_place  = st.session_state.selected_place
+        races_here = sorted(by_place.get(cur_place, []), key=lambda x: x["R"])
+
+        if races_here:
+            m0 = races_here[0]
+            st.markdown(
+                f'<div style="font-size:13px;color:#888;padding:4px 0 8px">'
+                f'天気: {m0["天気"]}　馬場: {m0["馬場"]}</div>',
+                unsafe_allow_html=True,
+            )
+
+        # Rボタン行
+        r_btn_cols = st.columns(min(len(races_here), 12))
+        for rc_col, r in zip(r_btn_cols, races_here):
+            with rc_col:
+                btn_type = "primary" if r["戦略"] else "secondary"
+                if st.button(f'{r["R"]}R', key=f"rbtn_{r['race_id']}", type=btn_type, use_container_width=True):
+                    st.session_state.selected_race_id = r["race_id"]
+                    st.rerun()
+
+        st.markdown("---")
+
+        # レース行
+        for r in races_here:
+            excluded = r["場所"] in EXCLUDE_PLACES or r["クラス"] in EXCLUDE_CLASSES
+            badge = ""
+            if r["戦略"]:
+                badge = '<span style="background:#2d4a2d;color:#4ade80;border-radius:3px;padding:1px 6px;font-size:10px;margin-left:4px">✅買い</span>'
+            elif excluded:
+                badge = '<span style="background:#3a2a1a;color:#f39c12;border-radius:3px;padding:1px 6px;font-size:10px;margin-left:4px">除外</span>'
+
+            st.markdown(
+                f'<div class="race-row">'
+                f'<span class="{"r-badge" if not excluded else "r-badge-ex"}">{r["R"]}R</span>'
+                f'<div style="flex:1">'
+                f'<span style="font-size:15px;color:#cdd6f4">{r["クラス"]}</span>{badge}'
+                f'<span style="color:#888;font-size:12px;margin-left:8px">'
+                f'{r["発走"]}　{r["距離"]}　{r["頭数"]}頭</span>'
+                f'<br><span style="font-size:12px;color:#a6e3a1">◎ {r["◎"]}　{r["◎スコア"]:.1f}%</span>'
+                f'</div></div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("詳細→", key=f'btn_{r["race_id"]}'):
+                st.session_state.selected_race_id = r["race_id"]
+                st.rerun()
+
+    with col_right:
+        # ねらい目
+        targets = sorted([r for r in race_metas if r["戦略"]], key=lambda x: -x["◎スコア"])[:5]
+        if targets:
+            st.markdown("#### 🎯 今日のねらい目")
+            for t in targets:
+                label = f'{t["場所"]} {t["R"]}R {t["クラス"]}\n◎{t["◎"]}　{t["◎スコア"]:.1f}%'
+                if st.button(label, key=f'target_{t["race_id"]}', use_container_width=True):
+                    st.session_state.selected_race_id = t["race_id"]
+                    st.rerun()
+            st.markdown("---")
+
+        active_places = [p for p in places if p not in EXCLUDE_PLACES]
+        render_trend_panel(active_places)
 
 
 # =========================================================
-# 蜃ｺ襍ｰ陦ｨ繝壹・繧ｸ
+# 出走表ページ
 # =========================================================
 def page_race_detail(
     race_df: pd.DataFrame,
+    all_df: pd.DataFrame,
     strategy: dict,
     budget: int,
     lgbm_obj: dict,
 ) -> None:
     meta    = race_df.iloc[0]
-    place   = str(meta.get("蝣ｴ謇",""))
-    cls_raw = str(meta.get("繧ｯ繝ｩ繧ｹ蜷・,""))
-    dist    = meta.get("霍晞屬","")
-    shida   = meta.get("闃昴・繝","")
+    place   = str(meta.get("場所",""))
+    cls_raw = str(meta.get("クラス名",""))
+    dist    = meta.get("距離","")
+    shida   = meta.get("芝・ダ","")
+    r_num   = meta.get("R","")
 
-    cls_norm    = CLASS_NORMALIZE.get(cls_raw, cls_raw)
-    in_strategy = (
-        place in strategy and
-        (cls_norm in strategy[place] or cls_raw in strategy[place])
-    )
+    in_strategy = is_in_strategy(place, cls_raw, strategy)
 
-    # 謌ｻ繧九・繧ｿ繝ｳ
-    if st.button("竊・繝ｬ繝ｼ繧ｹ荳隕ｧ縺ｫ謌ｻ繧・):
-        st.session_state.selected_race_id = None
-        st.rerun()
+    col_main, col_nav = st.columns([3, 1], gap="medium")
 
-    st.markdown(f"## {place} {meta.get('R','')}R / {cls_raw} / {shida}{dist}m")
+    with col_main:
+        if st.button("← レース一覧に戻る"):
+            st.session_state.selected_race_id = None
+            st.rerun()
 
-    if in_strategy:
-        cls_key  = cls_norm if cls_norm in strategy.get(place,{}) else cls_raw
-        roi_vals = [v["roi"] for v in strategy[place][cls_key].values()]
-        st.success(f"笨・謌ｦ逡･蟇ｾ雎｡繝ｬ繝ｼ繧ｹ縲蟷ｳ蝮⑲OI: {sum(roi_vals)/len(roi_vals):.1f}%")
-    else:
-        st.info("邃ｹ・・謌ｦ逡･蟇ｾ雎｡螟厄ｼ亥盾閠・ｺ域Φ・・)
-
-    # SHAP險育ｮ・    shap_ok = False
-    shap_vals: list = []
-    feature_cols: list = []
-    with st.spinner("SHAP險育ｮ嶺ｸｭ..."):
-        try:
-            shap_vals, feature_cols = compute_shap(lgbm_obj, race_df.to_json())
-            shap_ok = True
-        except Exception as e:
-            st.warning(f"SHAP險育ｮ怜､ｱ謨・ {e}")
-
-    tab1, tab2 = st.tabs(["搭 蜃ｺ襍ｰ陦ｨ / 雋ｷ縺・岼", "剥 蜈ｨ鬆ｭ蛻・梵"])
-
-    # ---- Tab1: 蜃ｺ襍ｰ陦ｨ + 雋ｷ縺・岼 ----
-    with tab1:
-        st.markdown("### 蜃ｺ襍ｰ陦ｨ")
-        st.markdown(
-            '<div class="tbl-header">'
-            '<span>譫</span><span>鬥ｬ逡ｪ</span><span>蜊ｰ</span>'
-            '<span>鬥ｬ蜷・/span><span>諤ｧ鮨｢</span><span>譁､驥・/span>'
-            '<span>鬨取焔</span><span>繧ｹ繧ｳ繧｢</span>'
-            '</div>',
-            unsafe_allow_html=True,
-        )
-        race_sorted = race_df.sort_values("鬥ｬ逡ｪ").reset_index(drop=True)
-        for _, row in race_sorted.iterrows():
-            mark   = row.get("mark","")
-            ban    = int(row.get("鬥ｬ逡ｪ",0))
-            waku   = int(row.get("譫逡ｪ",0))
-            name   = str(row.get("鬥ｬ蜷・,f"{ban}逡ｪ"))
-            seire  = str(row.get("諤ｧ蛻･","")) + str(row.get("蟷ｴ鮨｢",""))
-            kin    = str(row.get("譁､驥・,""))
-            jockey = str(row.get("鬨取焔",""))
-            score  = float(row.get("score", 0))
-            mk_cls  = MARK_CLASS.get(mark,"")
-            mk_html = f'<span class="{mk_cls}">{mark}</span>' if mark else ""
-            bar_w   = min(int(score * 1.2), 120)
-            score_html = (
-                f'<div class="sbar-wrap">'
-                f'<div class="sbar" style="width:{bar_w}px"></div>'
-                f'<span>{score:.1f}%</span></div>'
-            )
-            st.markdown(
-                f'<div class="tbl-row">'
-                f'<span>{waku}</span><span>{ban}</span>'
-                f'<span>{mk_html}</span><span>{name}</span>'
-                f'<span>{seire}</span><span>{kin}</span>'
-                f'<span>{jockey}</span>{score_html}'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+        st.markdown(f"## {place} {r_num}R / {cls_raw} / {shida}{dist}m")
 
         if in_strategy:
-            st.markdown("---")
-            st.markdown("### 識 雋ｷ縺・岼")
-            bets = get_bets(race_df, place, cls_raw, strategy, budget)
-            if not bets:
-                st.warning("雋ｷ縺・岼繧堤函謌舌〒縺阪∪縺帙ｓ縺ｧ縺励◆縲・)
-            else:
-                bets_df = pd.DataFrame(bets)
-                total   = bets_df["雉ｼ蜈･鬘・].sum()
-                m1, m2, m3 = st.columns(3)
-                m1.metric("蜷郁ｨ郁ｳｼ蜈･鬘・, f"{total:,}蜀・)
-                m2.metric("鬥ｬ蛻ｸ遞ｮ謨ｰ",   f"{bets_df['鬥ｬ蛻ｸ遞ｮ'].nunique()}遞ｮ")
-                m3.metric("邱冗せ謨ｰ",     f"{len(bets_df)}轤ｹ")
+            cls_norm = CLASS_NORMALIZE.get(cls_raw, cls_raw)
+            cls_key  = cls_norm if cls_norm in strategy.get(place,{}) else cls_raw
+            roi_vals = [v["roi"] for v in strategy[place][cls_key].values()]
+            st.success(f"✅ 戦略対象レース　平均ROI: {sum(roi_vals)/len(roi_vals):.1f}%")
+        elif place in EXCLUDE_PLACES:
+            st.warning(f"⚠️ {place}は除外会場（参考予想）")
+        elif cls_raw in EXCLUDE_CLASSES:
+            st.warning(f"⚠️ {cls_raw}は除外クラス（参考予想）")
+        else:
+            st.info("ℹ️ 戦略対象外（参考予想）")
 
-                summary = (
-                    bets_df.groupby("鬥ｬ蛻ｸ遞ｮ")
-                    .agg(ROI=("ROI","first"), 繧ｦ繧ｧ繧､繝・("繧ｦ繧ｧ繧､繝・,"first"),
-                         轤ｹ謨ｰ=("雋ｷ縺・岼","count"), 蜷郁ｨ・("雉ｼ蜈･鬘・,"sum"))
-                    .reset_index().sort_values("ROI", ascending=False)
+        shap_ok = False; shap_vals: list = []; feature_cols: list = []
+        with st.spinner("SHAP計算中..."):
+            try:
+                shap_vals, feature_cols = compute_shap(lgbm_obj, race_df.to_json())
+                shap_ok = True
+            except Exception as e:
+                st.warning(f"SHAP計算失敗: {e}")
+
+        tab1, tab2 = st.tabs(["📋 出走表 / 買い目", "🔍 全頭分析"])
+
+        with tab1:
+            st.markdown("### 出走表")
+            st.markdown(
+                '<div class="tbl-header">'
+                '<span>枠</span><span>馬番</span><span>印</span>'
+                '<span>馬名</span><span>性齢</span><span>斤量</span>'
+                '<span>騎手</span><span>スコア</span>'
+                '</div>', unsafe_allow_html=True,
+            )
+            for _, row in race_df.sort_values("馬番").iterrows():
+                mark   = row.get("mark","")
+                ban    = int(row.get("馬番",0))
+                waku   = int(row.get("枠番",0))
+                name   = str(row.get("馬名", f"{ban}番"))
+                seire  = str(row.get("性別","")) + str(row.get("年齢",""))
+                kin    = str(row.get("斤量",""))
+                jockey = str(row.get("騎手",""))
+                score  = float(row.get("score", 0))
+                mk_cls  = MARK_CLASS.get(mark,"")
+                mk_html = f'<span class="{mk_cls}">{mark}</span>' if mark else ""
+                bar_w   = min(int(score * 1.2), 120)
+                score_html = (
+                    f'<div class="sbar-wrap">'
+                    f'<div class="sbar" style="width:{bar_w}px"></div>'
+                    f'<span>{score:.1f}%</span></div>'
                 )
-                summary["ROI"]    = summary["ROI"].apply(lambda x: f"{x:.1f}%")
-                summary["繧ｦ繧ｧ繧､繝・] = summary["繧ｦ繧ｧ繧､繝・].apply(lambda x: f"{x:.1f}%")
-                summary["蜷郁ｨ・]   = summary["蜷郁ｨ・].apply(lambda x: f"{x:,}蜀・)
-                st.dataframe(summary, use_container_width=True, hide_index=True)
-
-                disp = bets_df[["鬥ｬ蛻ｸ遞ｮ","雋ｷ縺・岼","雉ｼ蜈･鬘・,"ROI"]].copy()
-                disp["雉ｼ蜈･鬘・] = disp["雉ｼ蜈･鬘・].apply(lambda x: f"{x:,}蜀・)
-                disp["ROI"]   = disp["ROI"].apply(lambda x: f"{x:.1f}%")
-                st.dataframe(disp, use_container_width=True, hide_index=True)
-
-    # ---- Tab2: 蜈ｨ鬆ｭ蛻・梵 ----
-    with tab2:
-        if not shap_ok:
-            st.error("SHAP險育ｮ励↓螟ｱ謨励＠縺ｾ縺励◆縲・)
-            return
-        st.markdown("### 剥 蜈ｨ鬆ｭ蛻・梵")
-        race_sorted = race_df.sort_values("鬥ｬ逡ｪ").reset_index(drop=True)
-        for i, row in race_sorted.iterrows():
-            sv_row  = shap_vals[i]
-            name    = str(row.get("鬥ｬ蜷・, f"{int(row['鬥ｬ逡ｪ'])}逡ｪ"))
-            mark    = str(row.get("mark",""))
-            score   = float(row.get("score",0))
-            comment = make_comment(sv_row, feature_cols, name, score, mark)
-            mk_cls  = MARK_CLASS.get(mark,"")
-            mk_html = f'<span class="{mk_cls}">{mark}</span> ' if mark else ""
-            sv_arr  = np.array(sv_row)
-            pairs   = sorted(zip(sv_arr, feature_cols), reverse=True)
-            pos4    = [(v,c) for v,c in pairs if v > 0][:4]
-            neg3    = [(v,c) for v,c in pairs if v < 0][-3:]
-
-            c_left, c_mid, c_right = st.columns([2, 3, 2])
-            with c_left:
                 st.markdown(
-                    f'<div style="padding:8px 0">'
-                    f'<span style="font-size:15px;font-weight:bold">{mk_html}{name}</span>'
-                    f'<span style="font-size:12px;color:#888;margin-left:8px">{score:.1f}%</span>'
-                    f'</div>'
-                    f'<div style="font-size:14px;color:#a6adc8;line-height:1.7">{comment}</div>',
-                    unsafe_allow_html=True,
+                    f'<div class="tbl-row">'
+                    f'<span>{waku}</span><span>{ban}</span>'
+                    f'<span>{mk_html}</span><span>{name}</span>'
+                    f'<span>{seire}</span><span>{kin}</span>'
+                    f'<span>{jockey}</span>{score_html}'
+                    f'</div>', unsafe_allow_html=True,
                 )
-            with c_mid:
-                fig = make_shap_fig(sv_row, feature_cols, name)
-                st.pyplot(fig, use_container_width=True)
-                plt.close(fig)
-            with c_right:
-                for v, c in pos4:
-                    label = FEATURE_LABEL.get(c,c)
-                    st.markdown(f'<div style="color:#e74c3c;font-size:12px;margin:2px 0">衍 {label} +{v:.3f}</div>',
-                                unsafe_allow_html=True)
-                for v, c in neg3:
-                    label = FEATURE_LABEL.get(c,c)
-                    st.markdown(f'<div style="color:#5865f2;font-size:12px;margin:2px 0">洶 {label} {v:.3f}</div>',
-                                unsafe_allow_html=True)
-            st.markdown("<hr style='border-color:#313244;margin:8px 0'>", unsafe_allow_html=True)
+
+            if in_strategy:
+                st.markdown("---")
+                st.markdown("### 🎯 買い目")
+                bets = get_bets(race_df, place, cls_raw, strategy, budget)
+                if not bets:
+                    st.warning("買い目を生成できませんでした。")
+                else:
+                    bets_df = pd.DataFrame(bets)
+                    total   = bets_df["購入額"].sum()
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric("合計購入額", f"{total:,}円")
+                    m2.metric("馬券種数",   f"{bets_df['馬券種'].nunique()}種")
+                    m3.metric("総点数",     f"{len(bets_df)}点")
+                    for bet_type, grp_b in bets_df.groupby("馬券種"):
+                        type_total = grp_b["購入額"].sum()
+                        combos_html = "　".join([
+                            f'<span style="font-size:16px;font-weight:bold;color:#cdd6f4">{row["買い目"]}</span>'
+                            f'<span style="color:#888;font-size:12px">({row["購入額"]:,}円)</span>'
+                            for _, row in grp_b.iterrows()
+                        ])
+                        roi_val = grp_b.iloc[0]["ROI"]
+                        st.markdown(
+                            f'<div class="bet-card">'
+                            f'<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
+                            f'<span style="color:#5865f2;font-weight:bold">{bet_type}</span>'
+                            f'<span style="color:#888;font-size:12px">ROI目安:{roi_val:.1f}%　計{type_total:,}円</span>'
+                            f'</div><div>{combos_html}</div></div>',
+                            unsafe_allow_html=True,
+                        )
+
+        with tab2:
+            if not shap_ok:
+                st.error("SHAP計算に失敗しました。")
+            else:
+                st.markdown("### 🔍 全頭分析")
+                for i, row in race_df.sort_values("馬番").reset_index(drop=True).iterrows():
+                    sv_row  = shap_vals[i]
+                    name    = str(row.get("馬名", f"{int(row['馬番'])}番"))
+                    mark    = str(row.get("mark",""))
+                    score   = float(row.get("score",0))
+                    comment = make_comment(sv_row, feature_cols, name, score, mark)
+                    mk_cls  = MARK_CLASS.get(mark,"")
+                    mk_html = f'<span class="{mk_cls}">{mark}</span> ' if mark else ""
+                    sv_arr  = np.array(sv_row)
+                    pairs   = sorted(zip(sv_arr, feature_cols), reverse=True)
+                    pos4    = [(v,c) for v,c in pairs if v > 0][:4]
+                    neg3    = [(v,c) for v,c in pairs if v < 0][-3:]
+                    c_left, c_mid, c_right = st.columns([2, 3, 2])
+                    with c_left:
+                        st.markdown(
+                            f'<div style="padding:8px 0">'
+                            f'<span style="font-size:15px;font-weight:bold">{mk_html}{name}</span>'
+                            f'<span style="font-size:12px;color:#888;margin-left:8px">{score:.1f}%</span>'
+                            f'</div>'
+                            f'<div style="font-size:13px;color:#a6adc8;line-height:1.7">{comment}</div>',
+                            unsafe_allow_html=True,
+                        )
+                    with c_mid:
+                        fig = make_shap_fig(sv_row, feature_cols, name)
+                        st.pyplot(fig, use_container_width=True)
+                        plt.close(fig)
+                    with c_right:
+                        for v, c in pos4:
+                            label = FEATURE_LABEL.get(c,c)
+                            st.markdown(f'<div style="color:#e74c3c;font-size:12px;margin:2px 0">🟥 {label} +{v:.3f}</div>', unsafe_allow_html=True)
+                        for v, c in neg3:
+                            label = FEATURE_LABEL.get(c,c)
+                            st.markdown(f'<div style="color:#5865f2;font-size:12px;margin:2px 0">🟦 {label} {v:.3f}</div>', unsafe_allow_html=True)
+                    st.markdown("<hr style='border-color:#313244;margin:8px 0'>", unsafe_allow_html=True)
+
+    with col_nav:
+        # 同会場の他Rナビ
+        race_id_col = "レースID(新/馬番無)"
+        other_races = []
+        for rid, grp in all_df[all_df["場所"] == place].groupby(race_id_col):
+            other_races.append({
+                "race_id": rid,
+                "R":       int(grp.iloc[0].get("R", 0)),
+                "クラス":  str(grp.iloc[0].get("クラス名","")),
+                "戦略":    is_in_strategy(place, str(grp.iloc[0].get("クラス名","")), strategy),
+            })
+        other_races.sort(key=lambda x: x["R"])
+
+        st.markdown(f"#### {place} レース")
+        for r in other_races:
+            is_cur   = (r["race_id"] == st.session_state.selected_race_id)
+            btn_type = "primary" if is_cur else "secondary"
+            label    = f'{"▶ " if is_cur else ""}{r["R"]}R　{r["クラス"]}'
+            if st.button(label, key=f'nav_{r["race_id"]}', type=btn_type, use_container_width=True):
+                st.session_state.selected_race_id = r["race_id"]
+                st.rerun()
+
+        st.markdown("---")
+        if place not in EXCLUDE_PLACES:
+            render_trend_panel([place])
 
 
 # =========================================================
 # main
 # =========================================================
 def main() -> None:
-    st.set_page_config(page_title="PyCaLiAI", page_icon="順", layout="wide")
+    st.set_page_config(page_title="PyCaLiAI", page_icon="🏇", layout="wide")
     st.markdown(CSS, unsafe_allow_html=True)
-    st.title("順 PyCaLiAI 遶ｶ鬥ｬ莠域Φ繧ｷ繧ｹ繝・Β")
+    st.title("🏇 PyCaLiAI 競馬予想システム")
 
     lgbm_obj, cat_obj = load_models()
     strategy          = load_strategy()
 
-    # 繧ｵ繧､繝峨ヰ繝ｼ
-    with st.sidebar:
-        st.header("唐 蜃ｺ襍ｰ陦ｨCSV")
-        uploaded = st.file_uploader("繧ｿ繝ｼ繧ｲ繝・ヨ蠖｢蠑修SV繧偵い繝・・繝ｭ繝ｼ繝・, type=["csv"])
-        st.divider()
-        budget = st.number_input("1繝ｬ繝ｼ繧ｹ莠育ｮ暦ｼ亥・・・, min_value=1_000,
-                                 max_value=1_000_000, value=10_000, step=1_000)
+    weekly_dir = BASE_DIR / "data" / "weekly"
+    weekly_dir.mkdir(parents=True, exist_ok=True)
 
-    if uploaded is None:
-        st.info("繧ｵ繧､繝峨ヰ繝ｼ縺九ｉ騾ｱ譛ｫ縺ｮ蜃ｺ襍ｰ陦ｨCSV繧偵い繝・・繝ｭ繝ｼ繝峨＠縺ｦ縺上□縺輔＞縲・)
+    csv_files    = sorted(weekly_dir.glob("????????.csv"), reverse=True)
+    date_options = [f.stem for f in csv_files]
+
+    with st.sidebar:
+        st.header("📅 出走表CSV")
+        if date_options:
+            selected_date = st.selectbox(
+                "開催日を選択", date_options,
+                format_func=lambda x: f"{x[:4]}/{x[4:6]}/{x[6:]}",
+            )
+        else:
+            selected_date = None
+            st.info("data/weekly/ に 20260308.csv 形式で保存してください。")
+
+        st.divider()
+        uploaded = st.file_uploader("CSVをアップロード", type=["csv"])
+        if uploaded is not None:
+            import datetime
+            stem = Path(uploaded.name).stem
+            save_name = f"{stem}.csv" if stem.isdigit() and len(stem)==8 \
+                        else datetime.date.today().strftime("%Y%m%d")+".csv"
+            (weekly_dir / save_name).write_bytes(uploaded.getvalue())
+            st.success(f"保存: {save_name}")
+            st.rerun()
+
+        st.divider()
+        budget = st.number_input("1レース予算（円）", min_value=1_000,
+                                 max_value=1_000_000, value=10_000, step=1_000)
+        st.divider()
+        st.caption(f"除外会場: {', '.join(EXCLUDE_PLACES)}")
+        st.caption(f"除外クラス: {', '.join(EXCLUDE_CLASSES)}")
+
+    if selected_date is None:
+        st.info("サイドバーからCSVを選択してください。")
         return
 
-    # CSV 繝代・繧ｹ
-    with st.spinner("CSV隱ｭ縺ｿ霎ｼ縺ｿ荳ｭ..."):
-        raw_df = parse_target_csv(uploaded)
+    csv_path = weekly_dir / f"{selected_date}.csv"
+    with st.spinner("CSV読み込み中..."):
+        raw_df = parse_target_csv(csv_path)
         if raw_df.empty:
-            st.error("CSV縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ縺ｫ螟ｱ謨励＠縺ｾ縺励◆縲・)
+            st.error("CSVの読み込みに失敗しました。")
             return
 
-    # 蜈ｨ繝ｬ繝ｼ繧ｹ荳諡ｬ莠域Φ・医く繝｣繝・す繝･貂医∩縺ｪ繧牙・險育ｮ励＠縺ｪ縺・ｼ・    predicted_json = predict_all_races(raw_df.to_json(), lgbm_obj, cat_obj)
-    all_df         = pd.read_json(predicted_json)
+    predicted_json = predict_all_races(selected_date, raw_df.to_json(), lgbm_obj, cat_obj)
+    import io
+    all_df = pd.read_json(io.StringIO(predicted_json))
 
-    # session_state 縺ｧ繝ｬ繝ｼ繧ｹ驕ｸ謚樒ｮ｡逅・    if "selected_race_id" not in st.session_state:
+    if "selected_race_id" not in st.session_state:
         st.session_state.selected_race_id = None
+    if "selected_place" not in st.session_state:
+        st.session_state.selected_place = ""
+
+    race_id_col = "レースID(新/馬番無)"
 
     if st.session_state.selected_race_id is None:
-        # 繝ｬ繝ｼ繧ｹ荳隕ｧ陦ｨ遉ｺ
-        race_id_col = "繝ｬ繝ｼ繧ｹID(譁ｰ/鬥ｬ逡ｪ辟｡)"
-        n_races     = all_df[race_id_col].nunique()
-        n_strategy  = sum(
-            1 for _, grp in all_df.groupby(race_id_col)
-            if (lambda p, c: p in strategy and (
-                CLASS_NORMALIZE.get(c,c) in strategy[p] or c in strategy[p]
-            ))(str(grp.iloc[0].get("蝣ｴ謇","")), str(grp.iloc[0].get("繧ｯ繝ｩ繧ｹ蜷・,"")))
-        )
+        n_races    = all_df[race_id_col].nunique()
+        n_strategy = sum(1 for _, grp in all_df.groupby(race_id_col)
+                         if is_in_strategy(str(grp.iloc[0].get("場所","")),
+                                           str(grp.iloc[0].get("クラス名","")), strategy))
         c1, c2, c3 = st.columns(3)
-        c1.metric("繝ｬ繝ｼ繧ｹ謨ｰ",     f"{n_races}R")
-        c2.metric("鬆ｭ謨ｰ",         f"{len(all_df)}鬆ｭ")
-        c3.metric("謌ｦ逡･蟇ｾ雎｡繝ｬ繝ｼ繧ｹ", f"{n_strategy}R")
+        c1.metric("レース数",      f"{n_races}R")
+        c2.metric("頭数",          f"{len(all_df)}頭")
+        c3.metric("戦略対象レース", f"{n_strategy}R")
         st.markdown("---")
         page_race_list(all_df, strategy, budget)
     else:
-        # 繝ｬ繝ｼ繧ｹ隧ｳ邏ｰ陦ｨ遉ｺ
-        race_id_col = "繝ｬ繝ｼ繧ｹID(譁ｰ/鬥ｬ逡ｪ辟｡)"
-        race_df     = all_df[all_df[race_id_col] == st.session_state.selected_race_id].copy()
-        race_df     = race_df.reset_index(drop=True)
-        page_race_detail(race_df, strategy, budget, lgbm_obj)
+        race_df = all_df[all_df[race_id_col] == st.session_state.selected_race_id].copy()
+        page_race_detail(race_df.reset_index(drop=True), all_df, strategy, budget, lgbm_obj)
 
 
 if __name__ == "__main__":
     main()
-
