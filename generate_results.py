@@ -119,10 +119,13 @@ def build_race_haitou(kekka: pd.DataFrame) -> dict:
         ban = row["馬番_k"]
         jun = row["確定着順"]
         if rk not in race_haitou:
-            race_haitou[rk] = {"複勝": {}, "馬連": None, "三連複": None, "top3": set()}
+            race_haitou[rk] = {"複勝": {}, "馬連": None, "三連複": None, "top3": set(), "1着": None, "2着": None}
         if jun == 1:
             race_haitou[rk]["馬連"]   = row["馬連_n"]
             race_haitou[rk]["三連複"] = row["三連複_n"]
+            race_haitou[rk]["1着"]    = ban
+        if jun == 2:
+            race_haitou[rk]["2着"]    = ban
         if jun in [1, 2, 3]:
             race_haitou[rk]["複勝"][ban] = row["複勝配当_n"]
             race_haitou[rk]["top3"].add(ban)
@@ -158,7 +161,7 @@ def calc_records(pred: pd.DataFrame, race_haitou: dict) -> list[dict]:
         # 馬連
         rengo_amt = rengo_ret = 0.0
         rengo_hit = False
-        top2 = frozenset(list(h["top3"])[:2]) if len(h["top3"]) >= 2 else frozenset()
+        top2 = frozenset([h["1着"], h["2着"]]) if h["1着"] and h["2着"] else frozenset()
         for _, brow in rdf[rdf["馬連_買い目"].notna() & (rdf["馬連_購入額"] > 0)].iterrows():
             combos = parse_combos(brow["馬連_買い目"])
             per = brow["馬連_購入額"] / max(len(combos), 1)
