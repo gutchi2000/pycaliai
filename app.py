@@ -35,21 +35,11 @@ except ImportError:
 
 import matplotlib.font_manager as fm
 fm._load_fontmanager(try_read_cache=False)
-_jp_font = None
-for _keyword in ["Noto Sans CJK", "NotoSansCJK", "IPA", "Hiragino", "Yu Gothic", "Meiryo"]:
-    _found = [f.fname for f in fm.fontManager.ttflist if _keyword in f.name]
-    if _found:
-        _jp_font = _found[0]
-        break
-if _jp_font is None:
-    import glob
-    _candidates = glob.glob("/usr/share/fonts/**/*.otf", recursive=True) + \
-                  glob.glob("/usr/share/fonts/**/*.ttf", recursive=True)
-    _jp_font = next((p for p in _candidates if "CJK" in p or "Noto" in p or "noto" in p), None)
-if _jp_font:
-    fm.fontManager.addfont(_jp_font)
-    _prop = fm.FontProperties(fname=_jp_font)
-    plt.rcParams["font.family"] = _prop.get_name()
+ipa_fonts = [f.fname for f in fm.fontManager.ttflist if "IPA" in f.name]
+if ipa_fonts:
+    fm.fontManager.addfont(ipa_fonts[0])
+    prop = fm.FontProperties(fname=ipa_fonts[0])
+    plt.rcParams["font.family"] = prop.get_name()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -59,6 +49,7 @@ DATA_DIR      = BASE_DIR / "data"
 MODEL_DIR     = BASE_DIR / "models"
 STRATEGY_JSON    = DATA_DIR / "strategy_weights.json"
 COURSE_TREND_JSON = DATA_DIR / "course_trend.json"
+RESULTS_JSON      = DATA_DIR / "results.json"
 LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
 
@@ -220,6 +211,15 @@ def load_models() -> tuple:
 @st.cache_data(show_spinner="戦略データ読み込み中...")
 def load_strategy() -> dict:
     with open(STRATEGY_JSON, encoding="utf-8") as f:
+        return json.load(f)
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def load_results() -> dict:
+    """的中実績データ読み込み（results.json）。"""
+    if not RESULTS_JSON.exists():
+        return {}
+    with open(RESULTS_JSON, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -1754,6 +1754,164 @@ def _render_course_analysis(course_trend: dict, place: str, meta: pd.Series) -> 
 
     _render_course_stat(data)
 
+
+# =========================================================
+# 的中実績ページ
+# =========================================================
+def page_results(results: dict) -> None:
+    """的中実績ページ。"""
+    if not results:
+        st.warning("results.json が見つかりません。data/results.json を配置してください。")
+        return
+
+    total = results.get("total", {})
+    bet   = total.get("bet", 0)
+    ret   = total.get("ret", 0)
+    pnl   = total.get("pnl", 0)
+    roi   = total.get("roi", 0)
+    races = total.get("races", 0)
+
+    st.markdown("## 📊 的中実績")
+    st.markdown(
+        f'<div style="color:#666;font-size:13px;margin-bottom:16px">'
+        f'集計期間: {results.get("generated_at","")[:10]} 時点</div>',
+        unsafe_allow_html=True,
+    )
+
+    # --- サマリーカード ---
+    c1, c2, c3, c4, c5 = st.columns(5)
+    roi_color = "#4ade80" if roi >= 100 else "#f39c12" if roi >= 70 else "#e74c3c"
+    pnl_color = "#4ade80" if pnl >= 0 else "#e74c3c"
+    for col, label, val in [
+        (c1, "分析レース数",   f"{races}R"),
+        (c2, "総投資額",      f"¥{bet:,}"),
+        (c3, "総払戻額",      f"¥{ret:,}"),
+        (c4, "収支",          f"{'+'if pnl>=0 else ''}¥{pnl:,}"),
+        (c5, "ROI",           f"{roi}%"),
+    ]:
+        color = roi_color if label=="ROI" else pnl_color if label=="収支" else "#cdd6f4"
+        col.markdown(
+            f'<div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;'
+            f'padding:12px;text-align:center">'
+            f'<div style="color:#888;font-size:12px">{label}</div>'
+            f'<div style="color:{color};font-size:20px;font-weight:bold;margin-top:4px">{val}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("---")
+
+    # --- 馬券種別 ---
+    st.markdown("#### 馬券種別成績")
+    by_type = results.get("by_type", {})
+    tc1, tc2, tc3 = st.columns(3)
+    for col, k in zip([tc1, tc2, tc3], ["複勝", "馬連", "三連複"]):
+        d = by_type.get(k, {})
+        if not d:
+            continue
+        r = d.get("roi", 0)
+        rc = "#4ade80" if r >= 100 else "#f39c12" if r >= 70 else "#e74c3c"
+        col.markdown(
+            f'<div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;padding:14px">'
+            f'<div style="font-size:16px;font-weight:bold;color:#cdd6f4;margin-bottom:8px">{k}</div>'
+            f'<div style="font-size:13px;color:#888">ROI　<span style="color:{rc};font-size:18px;font-weight:bold">{r}%</span></div>'
+            f'<div style="font-size:13px;color:#888;margin-top:4px">的中　<span style="color:#cdd6f4">{d.get("hit",0)}/{d.get("races",0)}R ({d.get("hit_rate",0)}%)</span></div>'
+            f'<div style="font-size:13px;color:#888;margin-top:4px">払戻　<span style="color:#cdd6f4">¥{d.get("ret",0):,}</span></div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("---")
+
+    # --- 週次ROI推移グラフ ---
+    st.markdown("#### 週次ROI推移")
+    weekly = results.get("weekly", [])
+    if weekly:
+        wdf = pd.DataFrame(weekly)
+        fig, ax = plt.subplots(figsize=(10, 3))
+        fig.patch.set_facecolor("#1e1e2e")
+        ax.set_facecolor("#1e1e2e")
+        colors = ["#4ade80" if r >= 100 else "#f39c12" if r >= 70 else "#e74c3c"
+                  for r in wdf["ROI"]]
+        ax.bar(wdf["週"], wdf["ROI"], color=colors, alpha=0.85)
+        ax.axhline(100, color="#888", linestyle="--", linewidth=0.8)
+        ax.set_ylabel("ROI (%)", color="#888")
+        ax.tick_params(colors="#888", labelsize=9)
+        ax.spines[:].set_color("#313244")
+        for label in ax.get_xticklabels():
+            label.set_rotation(45)
+        st.pyplot(fig)
+        plt.close(fig)
+
+    st.markdown("---")
+
+    # --- 会場別成績 ---
+    st.markdown("#### 会場別成績")
+    by_place = results.get("by_place", [])
+    if by_place:
+        pdf = pd.DataFrame(by_place)
+        pdf["収支"] = pdf["総払戻"] - pdf["総投資"]
+        pdf["ROI"]  = pdf["ROI"].astype(float)
+        for _, row in pdf.iterrows():
+            r = row["ROI"]
+            rc = "#4ade80" if r >= 100 else "#f39c12" if r >= 70 else "#e74c3c"
+            pc = "#4ade80" if row["収支"] >= 0 else "#e74c3c"
+            st.markdown(
+                f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                f'padding:6px 0;border-bottom:1px solid #2a2a3e;font-size:14px">'
+                f'<span style="color:#cdd6f4;font-weight:bold;min-width:60px">{row["場所"]}</span>'
+                f'<span style="color:#888">{int(row["レース数"])}R</span>'
+                f'<span style="color:#888">投資 ¥{int(row["総投資"]):,}</span>'
+                f'<span style="color:{pc}">収支 {"+" if row["収支"]>=0 else ""}¥{int(row["収支"]):,}</span>'
+                f'<span style="color:{rc};font-weight:bold">ROI {r}%</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("---")
+
+    # --- 個別レース一覧 ---
+    st.markdown("#### 個別レース結果")
+    race_list = results.get("races", [])
+    if race_list:
+        rdf = pd.DataFrame(race_list)
+        rdf["収支"] = rdf["総払戻"] - rdf["総投資"]
+        # フィルター
+        fl1, fl2 = st.columns(2)
+        places = ["全会場"] + sorted(rdf["場所"].unique().tolist())
+        sel_place = fl1.selectbox("会場", places, key="res_place")
+        types = ["全馬券", "複勝的中", "馬連的中", "三連複的中"]
+        sel_type = fl2.selectbox("絞り込み", types, key="res_type")
+        disp = rdf.copy()
+        if sel_place != "全会場":
+            disp = disp[disp["場所"] == sel_place]
+        if sel_type == "複勝的中":
+            disp = disp[disp["複勝_的中"] == 1]
+        elif sel_type == "馬連的中":
+            disp = disp[disp["馬連_的中"] == 1]
+        elif sel_type == "三連複的中":
+            disp = disp[disp["三連複_的中"] == 1]
+        for _, row in disp.head(100).iterrows():
+            hits = []
+            if row["複勝_的中"]:  hits.append("複勝✅")
+            if row["馬連_的中"]:  hits.append("馬連✅")
+            if row["三連複_的中"]:hits.append("三連複✅")
+            hit_str = "　".join(hits) if hits else "❌"
+            pnl_v = int(row["収支"])
+            pc = "#4ade80" if pnl_v >= 0 else "#e74c3c"
+            st.markdown(
+                f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                f'padding:5px 0;border-bottom:1px solid #2a2a3e;font-size:13px">'
+                f'<span style="color:#888;min-width:80px">{row["日付"]}</span>'
+                f'<span style="color:#cdd6f4;min-width:100px">{row["場所"]} {row["R"]}R</span>'
+                f'<span style="color:#888;min-width:120px">{row["クラス"]}</span>'
+                f'<span style="min-width:160px">{hit_str}</span>'
+                f'<span style="color:#888">¥{int(row["総投資"]):,}</span>'
+                f'<span style="color:{pc};font-weight:bold">{"+" if pnl_v>=0 else ""}¥{pnl_v:,}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
 WAKU_COLORS = {
     "1枠":"#fff","2枠":"#222","3枠":"#e74c3c",
     "4枠":"#3498db","5枠":"#f1c40f","6枠":"#27ae60",
@@ -2259,6 +2417,7 @@ def main() -> None:
     lgbm_obj, cat_obj = load_models()
     strategy          = load_strategy()
     course_trend      = load_course_trend()
+    results           = load_results()
 
     weekly_dir = BASE_DIR / "data" / "weekly"
     weekly_dir.mkdir(parents=True, exist_ok=True)
