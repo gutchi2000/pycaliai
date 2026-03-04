@@ -1894,6 +1894,26 @@ def page_results(results: dict) -> None:
         elif sel_type == "三連複的中":
             disp = disp[disp["三連複_的中"] == 1]
 
+        # 日次サマリー（通年以外の場合）
+        if sel_date != "通年" and len(disp) > 0:
+            d_bet = int(disp["総投資"].sum())
+            d_ret = int(disp["総払戻"].sum())
+            d_pnl = d_ret - d_bet
+            d_roi = round(d_ret / d_bet * 100, 1) if d_bet > 0 else 0
+            rc = "#4ade80" if d_roi >= 100 else "#f39c12" if d_roi >= 70 else "#e74c3c"
+            pc = "#4ade80" if d_pnl >= 0 else "#e74c3c"
+            st.markdown(
+                f'<div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;'
+                f'padding:12px 16px;margin-bottom:12px;display:flex;gap:24px;align-items:center">'
+                f'<span style="color:#888;font-size:13px">{sel_date}　{len(disp)}R</span>'
+                f'<span style="color:#888;font-size:13px">投資 <b style="color:#cdd6f4">¥{d_bet:,}</b></span>'
+                f'<span style="color:#888;font-size:13px">払戻 <b style="color:#cdd6f4">¥{d_ret:,}</b></span>'
+                f'<span style="color:#888;font-size:13px">収支 <b style="color:{pc}">{"+"if d_pnl>=0 else ""}¥{d_pnl:,}</b></span>'
+                f'<span style="color:#888;font-size:13px">ROI <b style="color:{rc};font-size:16px">{d_roi}%</b></span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
         for _, row in disp.sort_values(["日付","R"], ascending=[False,True]).iterrows():
             hits = []
             if row["複勝_的中"]:   hits.append("複勝✅")
