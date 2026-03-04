@@ -1548,12 +1548,12 @@ def render_trend_panel(places: list[str]) -> None:
         waku_html = "".join([
             f'<span style="background:{WAKU_COLORS.get(w,"#555")};'
             f'color:{WAKU_TEXT_COLORS.get(w,"#fff")};'
-            f'border-radius:4px;padding:1px 8px;font-size:12px;margin:2px;font-weight:bold">{w}</span>'
+            f'border-radius:4px;padding:1px 8px;font-size:24px;margin:2px;font-weight:bold">{w}</span>'
             for w in wakus
         ])
         st.markdown(
             f'<div style="display:flex;justify-content:space-between;padding:4px 0;'
-            f'border-bottom:1px solid #2a2a3e;font-size:13px">'
+            f'border-bottom:1px solid #2a2a3e;font-size:26px">'
             f'<span style="color:#888">好調枠番</span><span>{waku_html}</span></div>',
             unsafe_allow_html=True,
         )
@@ -1564,53 +1564,53 @@ def render_trend_panel(places: list[str]) -> None:
             top = sas[0]
             sas_html = " > ".join([f'{s["脚質"]}({s["勝率"]}%)' for s in sas])
             st.markdown(
-                f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:13px">'
+                f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:26px">'
                 f'<span style="color:#888">有利脚質</span>'
-                f'<div style="color:#f1c40f;font-size:11px;margin-top:2px">{sas_html}</div></div>',
+                f'<div style="color:#f1c40f;font-size:22px;margin-top:2px">{sas_html}</div></div>',
                 unsafe_allow_html=True,
             )
 
         # 好調騎手TOP3
         jockeys = data.get("好調騎手", [])
         if jockeys:
-            j_html = "　".join([f'{j["騎手"]}<span style="color:#888;font-size:10px">({j["勝率"]}%)</span>' for j in jockeys])
+            j_html = "　".join([f'{j["騎手"]}<span style="color:#888;font-size:20px">({j["勝率"]}%)</span>' for j in jockeys])
             st.markdown(
-                f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:13px">'
+                f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:26px">'
                 f'<span style="color:#888">好調騎手</span>'
-                f'<div style="color:#4ade80;font-size:12px;margin-top:2px">{j_html}</div></div>',
+                f'<div style="color:#4ade80;font-size:24px;margin-top:2px">{j_html}</div></div>',
                 unsafe_allow_html=True,
             )
 
         # 好調調教師TOP3
         trainers = data.get("好調調教師", [])
         if trainers:
-            t_html = "　".join([f'{t["調教師"]}<span style="color:#888;font-size:10px">({t["勝率"]}%)</span>' for t in trainers])
+            t_html = "　".join([f'{t["調教師"]}<span style="color:#888;font-size:20px">({t["勝率"]}%)</span>' for t in trainers])
             st.markdown(
-                f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:13px">'
+                f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:26px">'
                 f'<span style="color:#888">好調調教師</span>'
-                f'<div style="color:#cdd6f4;font-size:12px;margin-top:2px">{t_html}</div></div>',
+                f'<div style="color:#cdd6f4;font-size:24px;margin-top:2px">{t_html}</div></div>',
                 unsafe_allow_html=True,
             )
 
         # 好調血統（父）TOP3
         sires = data.get("好調血統_父", [])
         if sires:
-            s_html = "　".join([f'{s["種牡馬"]}<span style="color:#888;font-size:10px">({s["勝率"]}%)</span>' for s in sires])
+            s_html = "　".join([f'{s["種牡馬"]}<span style="color:#888;font-size:20px">({s["勝率"]}%)</span>' for s in sires])
             st.markdown(
-                f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:13px">'
+                f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:26px">'
                 f'<span style="color:#888">好調血統(父)</span>'
-                f'<div style="color:#89b4fa;font-size:12px;margin-top:2px">{s_html}</div></div>',
+                f'<div style="color:#89b4fa;font-size:24px;margin-top:2px">{s_html}</div></div>',
                 unsafe_allow_html=True,
             )
 
         # 好調血統（母父）TOP3
         bms = data.get("好調血統_母父", [])
         if bms:
-            b_html = "　".join([f'{b["母父馬"]}<span style="color:#888;font-size:10px">({b["勝率"]}%)</span>' for b in bms])
+            b_html = "　".join([f'{b["母父馬"]}<span style="color:#888;font-size:20px">({b["勝率"]}%)</span>' for b in bms])
             st.markdown(
-                f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:13px">'
+                f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:26px">'
                 f'<span style="color:#888">好調血統(母父)</span>'
-                f'<div style="color:#89dceb;font-size:12px;margin-top:2px">{b_html}</div></div>',
+                f'<div style="color:#89dceb;font-size:24px;margin-top:2px">{b_html}</div></div>',
                 unsafe_allow_html=True,
             )
 
@@ -1620,7 +1620,7 @@ def render_trend_panel(places: list[str]) -> None:
             are = haitou.get("荒れ率", 0)
             are_color = "#e74c3c" if are >= 8 else "#f39c12" if are >= 6 else "#4ade80"
             st.markdown(
-                f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:12px">'
+                f'<div style="padding:4px 0;border-bottom:1px solid #2a2a3e;font-size:24px">'
                 f'<span style="color:#888">配当傾向</span>'
                 f'<div style="margin-top:2px">'
                 f'単勝中央値 <span style="color:#cdd6f4">{haitou.get("単勝中央値",0):,}円</span>　'
