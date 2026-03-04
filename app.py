@@ -196,6 +196,15 @@ def parse_target_csv(source) -> pd.DataFrame:
     if df.empty:
         return df
     df = df.rename(columns=COLUMN_MAP)
+
+    # 障害レース除外（距離列に"障害"を含む）
+    if "距離" in df.columns:
+        before = len(df)
+        df = df[~df["距離"].astype(str).str.contains("障害", na=False)].copy()
+        removed = before - len(df)
+        if removed:
+            logger.info(f"障害レース除外: {removed}頭")
+
     df["レースID(新/馬番無)"] = df["レースID(新)"].astype(str).str[:16]
     for col in ["枠番","馬番","斤量","ZI","ZI順位","距離","人気","単勝",
                 "前走確定着順","前走上り3F","前走距離","間隔","前走人気",
