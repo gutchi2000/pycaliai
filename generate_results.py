@@ -151,7 +151,7 @@ def calc_records(pred: pd.DataFrame, race_haitou: dict) -> list[dict]:
         fuku_amt = float(hon_rows.iloc[0]["複勝_購入額"])
         fuku_ret = 0.0
         fuku_hit = False
-        if h1 in h["複勝"] and h["複勝"][h1]:
+        if fuku_amt > 0 and h1 in h["複勝"] and h["複勝"][h1]:
             fuku_ret = fuku_amt * h["複勝"][h1] / 100
             fuku_hit = True
 
@@ -163,7 +163,7 @@ def calc_records(pred: pd.DataFrame, race_haitou: dict) -> list[dict]:
             combos = parse_combos(brow["馬連_買い目"])
             per = brow["馬連_購入額"] / max(len(combos), 1)
             rengo_amt += brow["馬連_購入額"]
-            if h["馬連"]:
+            if h["馬連"] and per > 0:
                 for c in combos:
                     if c == top2:
                         rengo_ret += per * h["馬連"] / 100
@@ -178,7 +178,7 @@ def calc_records(pred: pd.DataFrame, race_haitou: dict) -> list[dict]:
                 combos = parse_combos(brow["三連複_買い目"])
                 per = brow["三連複_購入額"] / max(len(combos), 1)
                 sanfuku_amt += brow["三連複_購入額"]
-                if h["三連複"]:
+                if h["三連複"] and per > 0:
                     for c in combos:
                         if c == top3_fs:
                             sanfuku_ret += per * h["三連複"] / 100
