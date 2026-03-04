@@ -49,6 +49,7 @@ DATA_DIR      = BASE_DIR / "data"
 MODEL_DIR     = BASE_DIR / "models"
 STRATEGY_JSON    = DATA_DIR / "strategy_weights.json"
 COURSE_TREND_JSON = DATA_DIR / "course_trend.json"
+RESULTS_JSON      = DATA_DIR / "results.json"
 LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
 
@@ -210,6 +211,15 @@ def load_models() -> tuple:
 @st.cache_data(show_spinner="戦略データ読み込み中...")
 def load_strategy() -> dict:
     with open(STRATEGY_JSON, encoding="utf-8") as f:
+        return json.load(f)
+
+
+@st.cache_data(show_spinner=False)
+def load_results() -> dict:
+    """的中実績データ読み込み（results.json）。"""
+    if not RESULTS_JSON.exists():
+        return {}
+    with open(RESULTS_JSON, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -2462,6 +2472,8 @@ def main() -> None:
 
     # メインタブ
     main_tab1, main_tab2 = st.tabs(["🏇 レース予想", "📊 的中実績"])
+
+    results = load_results()
 
     with main_tab2:
         page_results(results)
