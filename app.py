@@ -1868,11 +1868,12 @@ def page_results(results: dict) -> None:
 
     st.markdown("---")
 
-    # 個別レース結果
+    # 個別レース結果（日付別）
     st.markdown("#### 個別レース結果")
     race_list = results.get("races", [])
     if race_list:
         rdf = pd.DataFrame(race_list)
+        rdf["収支"] = rdf["総払戻"] - rdf["総投資"]
         fl1, fl2 = st.columns(2)
         places    = ["全会場"] + sorted(rdf["場所"].unique().tolist())
         sel_place = fl1.selectbox("会場", places, key="res_place")
@@ -1886,26 +1887,35 @@ def page_results(results: dict) -> None:
             disp = disp[disp["馬連_的中"] == 1]
         elif sel_type == "三連複的中":
             disp = disp[disp["三連複_的中"] == 1]
-        for _, row in disp.head(100).iterrows():
-            hits = []
-            if row["複勝_的中"]:   hits.append("複勝✅")
-            if row["馬連_的中"]:   hits.append("馬連✅")
-            if row["三連複_的中"]: hits.append("三連複✅")
-            hit_str = "　".join(hits) if hits else "❌"
-            pnl_v   = int(row["収支"])
-            pc      = "#4ade80" if pnl_v >= 0 else "#e74c3c"
-            st.markdown(
-                f'<div style="display:flex;justify-content:space-between;align-items:center;'
-                f'padding:5px 0;border-bottom:1px solid #2a2a3e;font-size:20px">'
-                f'<span style="color:#888;min-width:80px">{row["日付"]}</span>'
-                f'<span style="color:#cdd6f4;min-width:100px">{row["場所"]} {row["R"]}R</span>'
-                f'<span style="color:#888;min-width:120px">{row["クラス"]}</span>'
-                f'<span style="min-width:160px">{hit_str}</span>'
-                f'<span style="color:#888">¥{int(row["総投資"]):,}</span>'
-                f'<span style="color:{pc};font-weight:bold">{"+" if pnl_v>=0 else ""}¥{pnl_v:,}</span>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+
+        for date, day_df in disp.groupby("日付", sort=False):
+            day_bet = int(day_df["総投資"].sum())
+            day_ret = int(day_df["総払戻"].sum())
+            day_pnl = day_ret - day_bet
+            day_roi = round(day_ret / day_bet * 100, 1) if day_bet > 0 else 0
+            sign    = "+" if day_pnl >= 0 else ""
+            label   = f"{date}　{len(day_df)}R　投資¥{day_bet:,}　収支{sign}¥{day_pnl:,}　ROI {day_roi}%"
+            with st.expander(label, expanded=False):
+                for _, row in day_df.sort_values("R").iterrows():
+                    hits = []
+                    if row["複勝_的中"]:   hits.append("複勝✅")
+                    if row["馬連_的中"]:   hits.append("馬連✅")
+                    if row["三連複_的中"]: hits.append("三連複✅")
+                    hit_str = "　".join(hits) if hits else "❌"
+                    pnl_v   = int(row["収支"])
+                    rc      = "#4ade80" if pnl_v >= 0 else "#e74c3c"
+                    st.markdown(
+                        f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                        f'padding:5px 0;border-bottom:1px solid #2a2a3e;font-size:14px">'
+                        f'<span style="color:#cdd6f4;min-width:90px;font-weight:bold">{row["場所"]} {row["R"]}R</span>'
+                        f'<span style="color:#888;min-width:100px">{row["クラス"]}</span>'
+                        f'<span style="min-width:150px">{hit_str}</span>'
+                        f'<span style="color:#888">¥{int(row["総投資"]):,}</span>'
+                        f'<span style="color:{rc};font-weight:bold;margin-left:12px">{"+"if pnl_v>=0 else ""}¥{pnl_v:,}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
 
 WAKU_COLORS = {
     "1枠":"#fff","2枠":"#222","3枠":"#e74c3c",
@@ -2183,10 +2193,10 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
                 f'<div class="race-row">'
                 f'<span class="{"r-badge" if not excluded else "r-badge-ex"}">{r["R"]}R</span>'
                 f'<div style="flex:1">'
-                f'<span style="font-size:15px;color:#cdd6f4">{r["クラス"]}</span>{badge}'
-                f'<span style="color:#888;font-size:12px;margin-left:8px">'
+                f'<span style="font-size:18px;color:#cdd6f4">{r["クラス"]}</span>{badge}'
+                f'<span style="color:#888;font-size:14px;margin-left:8px">'
                 f'{r["発走"]}　{r["距離"]}　{r["頭数"]}頭</span>'
-                f'<br><span style="font-size:12px;color:#a6e3a1">◎ {r["◎"]}　{r["◎スコア"]:.1f}%</span>'
+                f'<br><span style="font-size:14px;color:#a6e3a1">◎ {r["◎"]}　{r["◎スコア"]:.1f}%</span>'
                 f'</div></div>',
                 unsafe_allow_html=True,
             )
