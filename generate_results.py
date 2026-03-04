@@ -29,6 +29,9 @@ KEKKA_DIR = BASE_DIR / "data" / "kekka"
 PRED_DIR  = BASE_DIR / "data" / "weekly"
 OUT_PATH  = BASE_DIR / "data" / "results.json"
 
+EXCLUDE_PLACES  = {"東京", "小倉"}
+EXCLUDE_CLASSES = {"新馬"}
+
 
 # =========================================================
 # ユーティリティ
@@ -134,6 +137,10 @@ def calc_records(pred: pd.DataFrame, race_haitou: dict) -> list[dict]:
     for rk, rdf in pred.groupby("レースキー"):
         h = race_haitou.get(rk)
         if not h:
+            continue
+        place   = str(rdf.iloc[0].get("場所", ""))
+        cls_raw = str(rdf.iloc[0].get("クラス", ""))
+        if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
             continue
         hon_rows = rdf[rdf["印"] == "◎"]
         if hon_rows.empty:
