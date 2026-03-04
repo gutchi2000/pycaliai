@@ -34,11 +34,24 @@ except ImportError:
     pass
 
 import matplotlib.font_manager as fm
+import glob as _glob
 fm._load_fontmanager(try_read_cache=False)
-ipa_fonts = [f.fname for f in fm.fontManager.ttflist if "IPA" in f.name]
-if ipa_fonts:
-    fm.fontManager.addfont(ipa_fonts[0])
-    prop = fm.FontProperties(fname=ipa_fonts[0])
+
+_jp_font = None
+for _kw in ["Noto Sans CJK", "NotoSansCJK", "IPA", "Hiragino", "Yu Gothic", "Meiryo"]:
+    _found = [f.fname for f in fm.fontManager.ttflist if _kw in f.name]
+    if _found:
+        _jp_font = _found[0]
+        break
+if _jp_font is None:
+    _candidates = (
+        _glob.glob("/usr/share/fonts/**/*.otf", recursive=True) +
+        _glob.glob("/usr/share/fonts/**/*.ttf", recursive=True)
+    )
+    _jp_font = next((p for p in _candidates if "CJK" in p or "Noto" in p), None)
+if _jp_font:
+    fm.fontManager.addfont(_jp_font)
+    prop = fm.FontProperties(fname=_jp_font)
     plt.rcParams["font.family"] = prop.get_name()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
