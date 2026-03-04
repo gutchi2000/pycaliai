@@ -1868,19 +1868,25 @@ def page_results(results: dict) -> None:
 
     st.markdown("---")
 
-    # 個別レース結果（日付別）
+    # 個別レース結果（日付フィルタ）
     st.markdown("#### 個別レース結果")
     race_list = results.get("races", [])
     if race_list:
         rdf = pd.DataFrame(race_list)
         rdf["収支"] = rdf["総払戻"] - rdf["総投資"]
-        fl1, fl2 = st.columns(2)
-        places    = ["全会場"] + sorted(rdf["場所"].unique().tolist())
+
+        fl1, fl2, fl3 = st.columns(3)
+        places   = ["全会場"] + sorted(rdf["場所"].unique().tolist())
+        dates    = ["通年"] + sorted(rdf["日付"].unique().tolist())
         sel_place = fl1.selectbox("会場", places, key="res_place")
-        sel_type  = fl2.selectbox("絞り込み", ["全馬券","複勝的中","馬連的中","三連複的中"], key="res_type")
+        sel_date  = fl2.selectbox("日付", dates, key="res_date")
+        sel_type  = fl3.selectbox("絞り込み", ["全馬券","複勝的中","馬連的中","三連複的中"], key="res_type")
+
         disp = rdf.copy()
         if sel_place != "全会場":
             disp = disp[disp["場所"] == sel_place]
+        if sel_date != "通年":
+            disp = disp[disp["日付"] == sel_date]
         if sel_type == "複勝的中":
             disp = disp[disp["複勝_的中"] == 1]
         elif sel_type == "馬連的中":
@@ -1888,33 +1894,26 @@ def page_results(results: dict) -> None:
         elif sel_type == "三連複的中":
             disp = disp[disp["三連複_的中"] == 1]
 
-        for date, day_df in disp.groupby("日付", sort=False):
-            day_bet = int(day_df["総投資"].sum())
-            day_ret = int(day_df["総払戻"].sum())
-            day_pnl = day_ret - day_bet
-            day_roi = round(day_ret / day_bet * 100, 1) if day_bet > 0 else 0
-            sign    = "+" if day_pnl >= 0 else ""
-            label   = f"{date}　{len(day_df)}R　投資¥{day_bet:,}　収支{sign}¥{day_pnl:,}　ROI {day_roi}%"
-            with st.expander(label, expanded=False):
-                for _, row in day_df.sort_values("R").iterrows():
-                    hits = []
-                    if row["複勝_的中"]:   hits.append("複勝✅")
-                    if row["馬連_的中"]:   hits.append("馬連✅")
-                    if row["三連複_的中"]: hits.append("三連複✅")
-                    hit_str = "　".join(hits) if hits else "❌"
-                    pnl_v   = int(row["収支"])
-                    rc      = "#4ade80" if pnl_v >= 0 else "#e74c3c"
-                    st.markdown(
-                        f'<div style="display:flex;justify-content:space-between;align-items:center;'
-                        f'padding:5px 0;border-bottom:1px solid #2a2a3e;font-size:14px">'
-                        f'<span style="color:#cdd6f4;min-width:90px;font-weight:bold">{row["場所"]} {row["R"]}R</span>'
-                        f'<span style="color:#888;min-width:100px">{row["クラス"]}</span>'
-                        f'<span style="min-width:150px">{hit_str}</span>'
-                        f'<span style="color:#888">¥{int(row["総投資"]):,}</span>'
-                        f'<span style="color:{rc};font-weight:bold;margin-left:12px">{"+"if pnl_v>=0 else ""}¥{pnl_v:,}</span>'
-                        f'</div>',
-                        unsafe_allow_html=True,
-                    )
+        for _, row in disp.sort_values(["日付","R"], ascending=[False,True]).iterrows():
+            hits = []
+            if row["複勝_的中"]:   hits.append("複勝✅")
+            if row["馬連_的中"]:   hits.append("馬連✅")
+            if row["三連複_的中"]: hits.append("三連複✅")
+            hit_str = "　".join(hits) if hits else "❌"
+            pnl_v   = int(row["収支"])
+            rc      = "#4ade80" if pnl_v >= 0 else "#e74c3c"
+            st.markdown(
+                f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                f'padding:6px 0;border-bottom:1px solid #2a2a3e;font-size:14px">'
+                f'<span style="color:#888;min-width:80px">{row["日付"]}</span>'
+                f'<span style="color:#cdd6f4;font-weight:bold;min-width:90px">{row["場所"]} {row["R"]}R</span>'
+                f'<span style="color:#888;min-width:100px">{row["クラス"]}</span>'
+                f'<span style="min-width:150px">{hit_str}</span>'
+                f'<span style="color:#888">¥{int(row["総投資"]):,}</span>'
+                f'<span style="color:{rc};font-weight:bold;margin-left:12px">{"+"if pnl_v>=0 else ""}¥{pnl_v:,}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
 
 WAKU_COLORS = {
