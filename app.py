@@ -70,7 +70,7 @@ MIN_UNIT = 100
 MARKS    = ["◎", "◯", "▲", "△", "×"]
 
 EXCLUDE_PLACES  = {"東京", "小倉"}
-EXCLUDE_CLASSES = {"新馬"}
+EXCLUDE_CLASSES = {"新馬", "障害"}
 
 CLASS_NORMALIZE = {
     "新馬":"新馬","未勝利":"未勝利",

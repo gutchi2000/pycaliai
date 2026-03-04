@@ -30,7 +30,7 @@ PRED_DIR  = BASE_DIR / "data" / "weekly"
 OUT_PATH  = BASE_DIR / "data" / "results.json"
 
 EXCLUDE_PLACES  = {"東京", "小倉"}
-EXCLUDE_CLASSES = {"新馬"}
+EXCLUDE_CLASSES = {"新馬", "障害"}
 
 
 # =========================================================
