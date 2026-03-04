@@ -197,12 +197,14 @@ def parse_target_csv(source) -> pd.DataFrame:
         return df
     df = df.rename(columns=COLUMN_MAP)
 
-    # 障害レース除外（距離列またはクラス名列に"障害"を含む）
+    # 障害レース除外（距離列・クラス名列・芝ダ列のいずれかに"障害"を含む）
     mask_shogai = pd.Series([False] * len(df), index=df.index)
     if "距離" in df.columns:
         mask_shogai |= df["距離"].astype(str).str.contains("障害", na=False)
     if "クラス名" in df.columns:
         mask_shogai |= df["クラス名"].astype(str).str.contains("障害", na=False)
+    if "芝・ダ" in df.columns:
+        mask_shogai |= df["芝・ダ"].astype(str).str.contains("障害", na=False)
     if mask_shogai.any():
         before = len(df)
         df = df[~mask_shogai].copy()
