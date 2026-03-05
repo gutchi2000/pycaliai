@@ -2229,6 +2229,8 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         hon_row = grp[grp["mark"] == "◎"]
         hon_name  = str(hon_row.iloc[0]["馬名"])  if not hon_row.empty else "-"
         hon_score = float(hon_row.iloc[0]["score"]) if not hon_row.empty else 0.0
+        bets      = get_bets(grp, place, cls_raw, strategy, budget)
+        total_bet = sum(b["購入額"] for b in bets)
         race_metas.append({
             "race_id":  race_id,
             "場所":     place,
@@ -2244,6 +2246,8 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             "◎スコア":  hon_score,
             "戦略":     is_in_strategy(place, cls_raw, strategy),
             "グレード":  GRADE_ORDER.get(CLASS_NORMALIZE.get(cls_raw, cls_raw), 99),
+            "買い目":   bets,
+            "総投資":   total_bet,
         })
 
     # 重賞バナー
@@ -2343,6 +2347,49 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
                 if st.button(label, key=f'target_{t["race_id"]}', use_container_width=True):
                     st.session_state.selected_race_id = t["race_id"]
                     st.rerun()
+            st.markdown("---")
+
+        # 今日の買い目一覧
+        buy_races = [r for r in race_metas if r.get("買い目")]
+        if buy_races:
+            st.markdown("#### 📋 今日の買い目一覧")
+            total_all = sum(r["総投資"] for r in buy_races)
+            st.markdown(
+                f'<div style="color:#888;font-size:13px;margin-bottom:8px">'
+                f'{len(buy_races)}レース　合計投資予定: '
+                f'<b style="color:#cdd6f4">¥{total_all:,}</b></div>',
+                unsafe_allow_html=True,
+            )
+            for r in sorted(buy_races, key=lambda x: (x["場所"], x["R"])):
+                fuku  = [b for b in r["買い目"] if b["馬券種"] == "複勝"]
+                rengo = [b for b in r["買い目"] if b["馬券種"] == "馬連"]
+                sanf  = [b for b in r["買い目"] if b["馬券種"] == "三連複"]
+                lines_html = []
+                if fuku:
+                    roi_s = f'<span style="color:#f39c12;font-size:11px"> ROI目安{fuku[0]["ROI"]:.0f}%</span>'
+                    lines_html.append(f'複勝 {fuku[0]["買い目"]} <span style="color:#888">¥{fuku[0]["購入額"]:,}</span>{roi_s}')
+                if rengo:
+                    combos = "　".join(b["買い目"] for b in rengo)
+                    amt    = sum(b["購入額"] for b in rengo)
+                    roi_s  = f'<span style="color:#f39c12;font-size:11px"> ROI目安{rengo[0]["ROI"]:.0f}%</span>'
+                    lines_html.append(f'馬連 {combos} <span style="color:#888">¥{amt:,}</span>{roi_s}')
+                if sanf:
+                    combos = "　".join(b["買い目"] for b in sanf)
+                    amt    = sum(b["購入額"] for b in sanf)
+                    roi_s  = f'<span style="color:#f39c12;font-size:11px"> ROI目安{sanf[0]["ROI"]:.0f}%</span>'
+                    lines_html.append(f'三連複 {combos} <span style="color:#888">¥{amt:,}</span>{roi_s}')
+                body = "<br>".join(lines_html)
+                if st.button(
+                    f'{r["場所"]} {r["R"]}R {r["クラス"]}　◎{r["◎"]}　¥{r["総投資"]:,}',
+                    key=f'buylist_{r["race_id"]}',
+                    use_container_width=True,
+                ):
+                    st.session_state.selected_race_id = r["race_id"]
+                    st.rerun()
+                st.markdown(
+                    f'<div style="font-size:13px;color:#aaa;padding:2px 8px 8px;line-height:1.8">{body}</div>',
+                    unsafe_allow_html=True,
+                )
             st.markdown("---")
 
         active_places = [p for p in places if p not in EXCLUDE_PLACES]
