@@ -197,14 +197,12 @@ def parse_target_csv(source) -> pd.DataFrame:
         return df
     df = df.rename(columns=COLUMN_MAP)
 
-    # 障害レース除外（距離列・クラス名列・芝ダ列のいずれかに"障害"を含む）
+    # 障害レース除外（距離列またはクラス名列に"障害"を含む）
     mask_shogai = pd.Series([False] * len(df), index=df.index)
     if "距離" in df.columns:
         mask_shogai |= df["距離"].astype(str).str.contains("障害", na=False)
     if "クラス名" in df.columns:
         mask_shogai |= df["クラス名"].astype(str).str.contains("障害", na=False)
-    if "芝・ダ" in df.columns:
-        mask_shogai |= df["芝・ダ"].astype(str).str.contains("障害", na=False)
     if mask_shogai.any():
         before = len(df)
         df = df[~mask_shogai].copy()
@@ -1963,6 +1961,91 @@ def page_results(results: dict) -> None:
             )
 
 
+# =========================================================
+# 展開予想図
+# =========================================================
+def classify_pace_style(row: pd.Series, n_horses: int) -> str:
+    """前走通過1位から脚質を推定。"""
+    try:
+        p1 = float(row.get("前走通過1", None))
+        if pd.isna(p1) or n_horses <= 0:
+            return "不明"
+        ratio = p1 / n_horses
+        if ratio <= 0.2:
+            return "逃げ"
+        elif ratio <= 0.45:
+            return "先行"
+        elif ratio <= 0.7:
+            return "中団"
+        else:
+            return "後方"
+    except Exception:
+        return "不明"
+
+
+def render_pace_scenario(race_df: pd.DataFrame) -> None:
+    """展開予想図をHTMLテーブルで表示。"""
+    n = len(race_df)
+    if n == 0:
+        return
+
+    styles: dict[str, list[str]] = {"逃げ": [], "先行": [], "中団": [], "後方": [], "不明": []}
+    for _, row in race_df.iterrows():
+        style = classify_pace_style(row, n)
+        name  = str(row.get("馬名", ""))
+        mark  = str(row.get("mark", ""))
+        label = f"{mark}{name}" if mark else name
+        styles[style].append(label)
+
+    # 不明は表示しない
+    cols = ["逃げ", "先行", "中団", "後方"]
+    max_rows = max(len(styles[c]) for c in cols) if any(styles[c] for c in cols) else 0
+    if max_rows == 0:
+        st.caption("展開予想データなし（前走通過順位が取得できませんでした）")
+        return
+
+    col_colors = {
+        "逃げ": "#e74c3c", "先行": "#e67e22", "中団": "#3498db", "後方": "#8e44ad"
+    }
+
+    # ヘッダー
+    header_html = "".join(
+        f'<th style="color:{col_colors[c]};font-size:16px;padding:8px 16px;text-align:center;'
+        f'border-bottom:2px solid {col_colors[c]}">{c}</th>'
+        for c in cols
+    )
+
+    # 行
+    rows_html = ""
+    for i in range(max_rows):
+        row_html = ""
+        for c in cols:
+            horses = styles[c]
+            if i < len(horses):
+                name = horses[i]
+                mark = name[0] if name and name[0] in "◎◯▲△×" else ""
+                rest = name[1:] if mark else name
+                mc   = {"◎":"#f1c40f","◯":"#3498db","▲":"#e74c3c","△":"#2ecc71","×":"#888"}.get(mark,"#cdd6f4")
+                cell = (f'<span style="color:{mc};font-weight:bold">{mark}</span>'
+                        f'<span style="color:#cdd6f4">{rest}</span>') if mark else f'<span style="color:#cdd6f4">{rest}</span>'
+            else:
+                cell = ""
+            row_html += f'<td style="padding:4px 16px;text-align:center;font-size:14px">{cell}</td>'
+        rows_html += f"<tr>{row_html}</tr>"
+
+    html = (
+        '<div style="margin:8px 0 16px">' 
+        '<div style="font-size:13px;color:#888;margin-bottom:6px">※前走通過順位から自動推定</div>'
+        '<table style="border-collapse:collapse;width:100%">'
+        f"<thead><tr>{header_html}</tr></thead>"
+        f"<tbody>{rows_html}</tbody>"
+        "</table></div>"
+    )
+    st.markdown("#### 展開予想図")
+    st.markdown(html, unsafe_allow_html=True)
+
+
+
 WAKU_COLORS = {
     "1枠":"#fff","2枠":"#222","3枠":"#e74c3c",
     "4枠":"#3498db","5枠":"#f1c40f","6枠":"#27ae60",
@@ -2082,14 +2165,14 @@ CSS = """
 <style>
 .tbl-header {
     display:grid;
-    grid-template-columns:36px 44px 44px 1fr 64px 56px 144px 150px;
+    grid-template-columns:36px 44px 44px 1fr 64px 56px 120px 150px;
     background:#1e1e2e; color:#cdd6f4; font-weight:bold;
-    font-size:15.6px; padding:6px 12px; border-radius:6px 6px 0 0; gap:8px;
+    font-size:13px; padding:6px 12px; border-radius:6px 6px 0 0; gap:8px;
 }
 .tbl-row {
     display:grid;
-    grid-template-columns:36px 44px 44px 1fr 64px 56px 144px 150px;
-    font-size:15.6px; padding:6px 12px;
+    grid-template-columns:36px 44px 44px 1fr 64px 56px 120px 150px;
+    font-size:13px; padding:6px 12px;
     border-bottom:1px solid #313244; align-items:center; gap:8px;
 }
 .mk-hon  {color:#e74c3c;font-weight:bold;font-size:16px;}
@@ -2424,6 +2507,8 @@ def page_race_detail(
 
 
         with tab3:
+            render_pace_scenario(race_df)
+            st.markdown("---")
             course_trend = load_course_trend()
             if not course_trend:
                 st.warning("course_trend.json が見つかりません。data/course_trend.json を配置してください。")
