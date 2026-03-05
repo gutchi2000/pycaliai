@@ -1902,7 +1902,7 @@ def page_results(results: dict) -> None:
 
         fl1, fl2, fl3 = st.columns(3)
         places   = ["全会場"] + sorted(rdf["場所"].unique().tolist())
-        dates    = ["通年"] + sorted(rdf["日付"].unique().tolist())
+        dates    = ["通年"] + sorted(rdf["日付"].unique().tolist(), key=lambda d: pd.to_datetime(d.replace(".", "/"), errors="coerce"))
         sel_place = fl1.selectbox("会場", places, key="res_place")
         sel_date  = fl2.selectbox("日付", dates, key="res_date")
         sel_type  = fl3.selectbox("絞り込み", ["全馬券","複勝的中","馬連的中","三連複的中"], key="res_type")
