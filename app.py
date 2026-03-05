@@ -2082,14 +2082,14 @@ CSS = """
 <style>
 .tbl-header {
     display:grid;
-    grid-template-columns:36px 44px 44px 1fr 64px 56px 120px 150px;
+    grid-template-columns:36px 44px 44px 1fr 64px 56px 144px 150px;
     background:#1e1e2e; color:#cdd6f4; font-weight:bold;
-    font-size:13px; padding:6px 12px; border-radius:6px 6px 0 0; gap:8px;
+    font-size:15.6px; padding:6px 12px; border-radius:6px 6px 0 0; gap:8px;
 }
 .tbl-row {
     display:grid;
-    grid-template-columns:36px 44px 44px 1fr 64px 56px 120px 150px;
-    font-size:13px; padding:6px 12px;
+    grid-template-columns:36px 44px 44px 1fr 64px 56px 144px 150px;
+    font-size:15.6px; padding:6px 12px;
     border-bottom:1px solid #313244; align-items:center; gap:8px;
 }
 .mk-hon  {color:#e74c3c;font-weight:bold;font-size:16px;}
