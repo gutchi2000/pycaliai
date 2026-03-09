@@ -607,13 +607,13 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
             per  = floor_to_unit(amt // len(cbs))
             for a, b in cbs:
                 haho_bets.append({"馬券種":"馬連","買い目":f"{min(a,b)}-{max(a,b)}",
-                                  "購入額":per,"ROI":info["roi_oos"]})
+                                  "購入額":per,"ROI":info.get("roi_oos", info.get("roi", 0))})
         if "三連複" in haho_types:
             info = haho_types["三連複"]
             amt  = floor_to_unit(int(budget * info["bet_ratio"] / total_ratio))
             c_sf = tuple(sorted([h1, h2, h3]))
             haho_bets.append({"馬券種":"三連複","買い目":"-".join(map(str, c_sf)),
-                              "購入額":amt,"ROI":info["roi_oos"]})
+                              "購入額":amt,"ROI":info.get("roi_oos", info.get("roi", 0))})
         if haho_bets:
             result["HAHO"] = haho_bets
 
@@ -622,7 +622,7 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
         info = bet_info["三連複"]
         c_sf = tuple(sorted([h1, h2, h3]))
         result["HALO"] = [{"馬券種":"三連複","買い目":"-".join(map(str, c_sf)),
-                           "購入額":floor_to_unit(budget),"ROI":info["roi_oos"]}]
+                           "購入額":floor_to_unit(budget),"ROI":info.get("roi_oos", info.get("roi", 0))}]
 
     return result
 
@@ -2689,7 +2689,7 @@ def page_race_detail(
         if in_strategy:
             cls_norm = CLASS_NORMALIZE.get(cls_raw, cls_raw)
             cls_key  = cls_norm if cls_norm in strategy.get(place,{}) else cls_raw
-            roi_vals = [v["roi_oos"] for v in strategy[place][cls_key].values()]
+            roi_vals = [v.get("roi_oos", v.get("roi", 0)) for v in strategy[place][cls_key].values()]
             st.success(f"✅ 戦略対象レース　平均ROI: {sum(roi_vals)/len(roi_vals):.1f}%")
         elif place in EXCLUDE_PLACES:
             st.warning(f"⚠️ {place}は除外会場（参考予想）")
