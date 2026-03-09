@@ -118,7 +118,9 @@ def load_pred(pred_dir: Path) -> pd.DataFrame:
     # ──────────────────────────────────────────────────────────
     # 後方互換: 旧フォーマットCSV（HAHO/HALO列なし）を自動マッピング
     #   旧列: 馬連_買い目, 馬連_購入額, 三連複_買い目, 三連複_購入額
-    #   → HAHO: 馬連 + 三連複  /  HALO: 三連複のみ
+    #   → HAHO: 馬連 + 三連複（按分額そのまま）
+    #   → HALO: 旧全額合計（馬連+三連複+複勝+三連単）を三連複へ充当
+    #            ※旧システムは全額を按分していたので、合計≒1万円 = HALO想定
     # ──────────────────────────────────────────────────────────
     if "HAHO_馬連_購入額" not in pred.columns and "馬連_購入額" in pred.columns:
         log.info("旧フォーマットCSV検出: 馬連/三連複 → HAHO/HALO にマッピング")
@@ -126,7 +128,12 @@ def load_pred(pred_dir: Path) -> pd.DataFrame:
         pred["HAHO_三連複_購入額"] = pd.to_numeric(pred["三連複_購入額"], errors="coerce").fillna(0)
         pred["HAHO_馬連_買い目"]   = pred["馬連_買い目"].fillna("")
         pred["HAHO_三連複_買い目"] = pred["三連複_買い目"].fillna("")
-        pred["HALO_三連複_購入額"] = pd.to_numeric(pred["三連複_購入額"], errors="coerce").fillna(0)
+        # HALO = 全予算を三連複に：旧システムの全馬券合計 ≒ 1万円
+        _old_amt_cols = [c for c in ["複勝_購入額", "馬連_購入額", "三連複_購入額", "三連単_購入額"]
+                         if c in pred.columns]
+        pred["HALO_三連複_購入額"] = sum(
+            pd.to_numeric(pred[c], errors="coerce").fillna(0) for c in _old_amt_cols
+        )
         pred["HALO_三連複_買い目"] = pred["三連複_買い目"].fillna("")
 
     # HAHO/HALO 購入額（新フォーマット or マッピング後の数値化）
