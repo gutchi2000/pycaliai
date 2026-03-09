@@ -32,6 +32,7 @@ STRATEGY_JSON = BASE_DIR / "data" / "strategy_weights.json"
 
 EXCLUDE_PLACES  = {"東京", "小倉"}
 EXCLUDE_CLASSES = {"新馬", "障害"}
+BUDGET          = 10_000   # 1レースあたりの投資予算（円）
 
 CLASS_NORMALIZE = {
     "新馬":"新馬","未勝利":"未勝利","1勝":"1勝","500万":"1勝",
@@ -128,12 +129,9 @@ def load_pred(pred_dir: Path) -> pd.DataFrame:
         pred["HAHO_三連複_購入額"] = pd.to_numeric(pred["三連複_購入額"], errors="coerce").fillna(0)
         pred["HAHO_馬連_買い目"]   = pred["馬連_買い目"].fillna("")
         pred["HAHO_三連複_買い目"] = pred["三連複_買い目"].fillna("")
-        # HALO = 全予算を三連複に：旧システムの全馬券合計 ≒ 1万円
-        _old_amt_cols = [c for c in ["複勝_購入額", "馬連_購入額", "三連複_購入額", "三連単_購入額"]
-                         if c in pred.columns]
-        pred["HALO_三連複_購入額"] = sum(
-            pd.to_numeric(pred[c], errors="coerce").fillna(0) for c in _old_amt_cols
-        )
+        # HALO = 全予算をまるごと三連複に：三連複対象レースは一律 BUDGET 円
+        sf_amt = pd.to_numeric(pred["三連複_購入額"], errors="coerce").fillna(0)
+        pred["HALO_三連複_購入額"] = sf_amt.apply(lambda x: BUDGET if x > 0 else 0)
         pred["HALO_三連複_買い目"] = pred["三連複_買い目"].fillna("")
 
     # HAHO/HALO 購入額（新フォーマット or マッピング後の数値化）
