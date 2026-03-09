@@ -65,6 +65,18 @@ COURSE_TREND_JSON = DATA_DIR / "course_trend.json"
 RESULTS_JSON      = DATA_DIR / "results.json"
 LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
+CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v1.pkl"
+TORCH_PATH     = MODEL_DIR / "transformer_optuna_v1.pkl"
+META_PATH      = MODEL_DIR / "stacking_meta_v1.pkl"
+STACK_CAL_PATH = MODEL_DIR / "stacking_calibrator_v1.pkl"
+
+# モデルキャッシュ（プロセス内で1回だけロード）
+_model_cache: dict = {}
+
+def _get_cached(path: Path, key: str):
+    if key not in _model_cache and path.exists():
+        _model_cache[key] = joblib.load(path)
+    return _model_cache.get(key)
 
 MIN_UNIT = 100
 MARKS    = ["◎", "◯", "▲", "△", "×"]
@@ -230,11 +242,19 @@ def parse_target_csv(source) -> pd.DataFrame:
 # =========================================================
 @st.cache_resource(show_spinner="モデル読み込み中...")
 def load_models() -> tuple:
+    missing = [p for p in (LGBM_PATH, CAT_PATH) if not p.exists()]
+    if missing:
+        names = ", ".join(p.name for p in missing)
+        st.error(f"モデルファイルが見つかりません: {names}\n`optuna_lgbm.py` / `optuna_catboost.py` を先に実行してください。")
+        st.stop()
     return joblib.load(LGBM_PATH), joblib.load(CAT_PATH)
 
 
 @st.cache_data(show_spinner="戦略データ読み込み中...")
 def load_strategy() -> dict:
+    if not STRATEGY_JSON.exists():
+        st.error(f"戦略ファイルが見つかりません: {STRATEGY_JSON}")
+        st.stop()
     with open(STRATEGY_JSON, encoding="utf-8") as f:
         return json.load(f)
 
@@ -260,16 +280,7 @@ def load_course_trend() -> dict:
 # =========================================================
 # 予測
 # =========================================================
-def parse_time_str(series: pd.Series) -> pd.Series:
-    def _conv(val):
-        try:
-            parts = str(val).strip().split(".")
-            if len(parts) == 3:
-                return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 10
-            return float(val)
-        except Exception:
-            return None
-    return series.apply(_conv)
+from utils import parse_time_str
 
 
 def predict_lgbm(df: pd.DataFrame, obj: dict) -> np.ndarray:
@@ -317,8 +328,137 @@ def predict_catboost(df: pd.DataFrame, obj: dict) -> np.ndarray:
     return model.predict_proba(pool)[:, 1]
 
 
+_META_EXTRA = ["芝・ダ", "距離", "クラス名", "場所", "馬場状態", "出走頭数", "枠番", "馬番"]
+
+
+def predict_transformer_local(df: pd.DataFrame) -> np.ndarray:
+    """Transformer予測。モデル未存在 or 失敗時はゼロ配列を返す。"""
+    torch_obj = _get_cached(TORCH_PATH, "torch")
+    if torch_obj is None:
+        return np.zeros(len(df))
+    try:
+        import torch
+        from train_transformer import RaceTransformer, RaceDataset, MAX_HORSES
+        from train_transformer import preprocess as torch_preprocess
+        from torch.utils.data import DataLoader
+
+        DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model_config = torch_obj["model_config"]
+        encoders     = torch_obj["encoders"]
+        num_stats    = torch_obj["num_stats"]
+        num_cols     = torch_obj["num_cols"]
+        cat_cols     = torch_obj["cat_cols"]
+
+        df2 = df.copy()
+        if "fukusho_flag" not in df2.columns:
+            df2["fukusho_flag"] = 0  # 予測時はターゲット列不要だが RaceDataset が参照するため
+        df2, _, _ = torch_preprocess(df2, encoders=encoders, fit=False, num_stats=num_stats)
+
+        if "torch_model" not in _model_cache:
+            m = RaceTransformer(
+                cat_vocab_sizes=model_config["cat_vocab_sizes"],
+                cat_cols=model_config["cat_cols"],
+                n_num=model_config["n_num"],
+                d_model=model_config.get("d_model", 128),
+                n_heads=model_config.get("n_heads", 4),
+                n_layers=model_config.get("n_layers", 2),
+                d_ff=model_config.get("d_ff", 256),
+                dropout=model_config.get("dropout", 0.1),
+            ).to(DEVICE)
+            m.load_state_dict(torch_obj["model_state"])
+            m.eval()
+            _model_cache["torch_model"] = (m, DEVICE)
+        model, DEVICE = _model_cache["torch_model"]
+
+        ds     = RaceDataset(df2, cat_cols, num_cols, model_config["cat_vocab_sizes"])
+        loader = DataLoader(ds, batch_size=512, shuffle=False, num_workers=0)
+
+        all_proba: list[float] = []
+        with torch.no_grad():
+            for batch in loader:
+                logits = model(batch["cat"].to(DEVICE), batch["num"].to(DEVICE), batch["mask"].to(DEVICE))
+                proba  = torch.sigmoid(logits).cpu().numpy()
+                valid  = ~batch["mask"].numpy()
+                for b in range(len(proba)):
+                    for h in range(MAX_HORSES):
+                        if valid[b, h]:
+                            all_proba.append(float(proba[b, h]))
+
+        result  = np.zeros(len(df))
+        df_sort = df.sort_values("レースID(新/馬番無)").reset_index(drop=True)
+        idx = 0
+        for _, group in df_sort.groupby("レースID(新/馬番無)", sort=True):
+            for orig_idx in list(group.index)[:MAX_HORSES]:
+                if idx < len(all_proba):
+                    result[orig_idx] = all_proba[idx]
+                    idx += 1
+        return result
+    except Exception as e:
+        logger.warning(f"Transformer予測失敗（0で埋め）: {e}")
+        return np.zeros(len(df))
+
+
+def predict_stacking(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray | None:
+    """スタッキングモデルで予測。未存在 or 失敗時は None を返す。"""
+    if not META_PATH.exists() or not TORCH_PATH.exists():
+        return None
+    try:
+        p_lgbm  = predict_lgbm(df, lgbm_obj)
+        p_cat   = predict_catboost(df, cat_obj)
+        p_torch = predict_transformer_local(df)
+
+        meta_obj      = _get_cached(META_PATH, "meta")
+        meta_model    = meta_obj["meta_model"]
+        meta_encoders = meta_obj["meta_encoders"]
+        meta_cols     = meta_obj["meta_cols"]
+
+        meta_df = df.copy()
+        if "出走頭数" not in meta_df.columns or meta_df["出走頭数"].isna().all():
+            meta_df["出走頭数"] = meta_df.groupby("レースID(新/馬番無)")["馬番"].transform("count")
+        meta_df["クラス名"] = meta_df["クラス名"].map(CLASS_NORMALIZE).fillna(meta_df["クラス名"])
+        meta_df = meta_df.reindex(columns=_META_EXTRA).copy()
+
+        for col in meta_df.select_dtypes(include="object").columns:
+            if col in meta_encoders:
+                le    = meta_encoders[col]
+                meta_df[col] = meta_df[col].fillna("__NaN__").astype(str)
+                known = set(le.classes_)
+                meta_df[col] = meta_df[col].apply(lambda x: x if x in known else "__NaN__")
+                meta_df[col] = le.transform(meta_df[col])
+            else:
+                meta_df[col] = 0
+
+        meta_df = meta_df.fillna(0)
+        meta_df["lgbm"]        = p_lgbm
+        meta_df["catboost"]    = p_cat
+        meta_df["transformer"] = p_torch
+
+        return meta_model.predict_proba(meta_df[meta_cols])[:, 1]
+    except Exception as e:
+        logger.warning(f"スタッキング予測失敗（フォールバック）: {e}")
+        return None
+
+
+@st.cache_resource
+def _load_calibrator():
+    if CAL_PATH.exists():
+        return joblib.load(CAL_PATH)["calibrator"]
+    logger.warning("キャリブレーター未生成。calibrate.py を先に実行してください。")
+    return None
+
+
 def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray:
-    return 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
+    # スタッキング優先
+    stacking = predict_stacking(df, lgbm_obj, cat_obj)
+    if stacking is not None:
+        cal_obj = _get_cached(STACK_CAL_PATH, "stack_cal")
+        if cal_obj is not None:
+            return cal_obj["calibrator"].transform(stacking)
+        return stacking
+    # フォールバック: 2モデル平均 + キャリブレーション
+    raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
+    cal = _load_calibrator()
+    return cal.transform(raw) if cal is not None else raw
 
 
 def assign_marks(df: pd.DataFrame) -> pd.DataFrame:
@@ -434,51 +574,57 @@ def is_in_strategy(place: str, cls_raw: str, strategy: dict) -> bool:
 
 
 def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
-             strategy: dict, budget: int) -> list[dict]:
-    """馬連3点流し・三連複◎◯2頭軸×▲△2点・複勝◎のみ。三連単廃止。"""
+             strategy: dict, budget: int) -> dict:
+    """HAHO（馬連◎軸2点+三連複ボックス1点）/ HALO（三連複ボックス1点のみ）を返す。
+    戻り値: {"HAHO": [bets...], "HALO": [bets...]}  ※空の場合はキーなし"""
     if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
-        return []
+        return {}
     cls      = CLASS_NORMALIZE.get(cls_raw, cls_raw)
     bet_info = strategy.get(place, {}).get(cls) or strategy.get(place, {}).get(cls_raw, {})
     if not bet_info:
-        return []
-    marks_df = {m: race_df[race_df["mark"] == m] for m in MARKS}
+        return {}
+    marks_df = {m: race_df[race_df["mark"] == m] for m in ["◎","◯","▲"]}
     hon    = marks_df["◎"]
     taikou = marks_df["◯"]
     sabo   = marks_df["▲"]
-    delta  = marks_df["△"]
     if hon.empty:
-        return []
+        return {}
     h1 = int(hon.iloc[0]["馬番"])
     h2 = int(taikou.iloc[0]["馬番"]) if not taikou.empty else None
     h3 = int(sabo.iloc[0]["馬番"])   if not sabo.empty  else None
-    h4 = int(delta.iloc[0]["馬番"])  if not delta.empty else None
 
-    results = []
-    for bet_type, info in bet_info.items():
-        amt = floor_to_unit(int(budget * info["bet_ratio"]))
-        if bet_type == "複勝":
-            results.append({"馬券種":"複勝","買い目":str(h1),"購入額":amt,
-                            "ROI":info["roi"],"ウェイト":round(info["weight"]*100,1)})
-        elif bet_type == "馬連" and h2:
-            combos = [(h1, h2)]
-            if h3:
-                combos += [(h1, h3), (h2, h3)]
-            per_bet = floor_to_unit(amt // len(combos))
-            for a, b in combos:
-                results.append({"馬券種":"馬連","買い目":f"{min(a,b)}-{max(a,b)}",
-                                "購入額":per_bet,"ROI":info["roi"],"ウェイト":round(info["weight"]*100,1)})
-        elif bet_type == "三連複" and h2 and h3:
-            combos = [tuple(sorted([h1, h2, h3]))]
-            if h4:
-                combos.append(tuple(sorted([h1, h2, h4])))
-            per_bet = floor_to_unit(amt // len(combos))
-            for c in combos:
-                results.append({"馬券種":"三連複","買い目":"-".join(map(str, c)),
-                                "購入額":per_bet,"ROI":info["roi"],"ウェイト":round(info["weight"]*100,1)})
-        elif bet_type == "三連単":
-            pass  # 廃止
-    return results
+    result = {}
+
+    # ── HAHO: 馬連◎軸2点 + 三連複ボックス1点 ──────────────────────────
+    haho_types = {k: v for k, v in bet_info.items() if k in ("馬連", "三連複")}
+    if haho_types and h2 and h3:
+        haho_bets = []
+        total_ratio = sum(v["bet_ratio"] for v in haho_types.values()) or 1.0
+        if "馬連" in haho_types:
+            info = haho_types["馬連"]
+            amt  = floor_to_unit(int(budget * info["bet_ratio"] / total_ratio))
+            cbs  = [(h1, h2), (h1, h3)]
+            per  = floor_to_unit(amt // len(cbs))
+            for a, b in cbs:
+                haho_bets.append({"馬券種":"馬連","買い目":f"{min(a,b)}-{max(a,b)}",
+                                  "購入額":per,"ROI":info["roi_oos"]})
+        if "三連複" in haho_types:
+            info = haho_types["三連複"]
+            amt  = floor_to_unit(int(budget * info["bet_ratio"] / total_ratio))
+            c_sf = tuple(sorted([h1, h2, h3]))
+            haho_bets.append({"馬券種":"三連複","買い目":"-".join(map(str, c_sf)),
+                              "購入額":amt,"ROI":info["roi_oos"]})
+        if haho_bets:
+            result["HAHO"] = haho_bets
+
+    # ── HALO: 三連複ボックス1点のみ（全予算）──────────────────────────
+    if "三連複" in bet_info and h2 and h3:
+        info = bet_info["三連複"]
+        c_sf = tuple(sorted([h1, h2, h3]))
+        result["HALO"] = [{"馬券種":"三連複","買い目":"-".join(map(str, c_sf)),
+                           "購入額":floor_to_unit(budget),"ROI":info["roi_oos"]}]
+
+    return result
 
 
 # =========================================================
@@ -1783,36 +1929,25 @@ def _render_course_analysis(course_trend: dict, place: str, meta: pd.Series) -> 
 # =========================================================
 # 的中実績ページ
 # =========================================================
-def page_results(results: dict) -> None:
-    """的中実績ページ。"""
-    if not results:
-        st.warning("results.json が見つかりません。data/results.json を配置してください。")
-        return
-
-    total = results.get("total", {})
+def _render_plan_results(plan_data: dict, plan_key: str) -> None:
+    """HAHO / HALO 共通の実績描画ロジック。"""
+    total = plan_data.get("total", {})
     bet   = total.get("bet", 0)
     ret   = total.get("ret", 0)
     pnl   = total.get("pnl", 0)
     roi   = total.get("roi", 0)
     races = total.get("races", 0)
 
-    st.markdown("## 📊 的中実績")
-    st.markdown(
-        f'<div style="color:#666;font-size:20px;margin-bottom:16px">'
-        f'集計期間: {results.get("generated_at","")[:10]} 時点</div>',
-        unsafe_allow_html=True,
-    )
-
     # サマリーカード
     c1, c2, c3, c4, c5 = st.columns(5)
     roi_color = "#4ade80" if roi >= 100 else "#f39c12" if roi >= 70 else "#e74c3c"
     pnl_color = "#4ade80" if pnl >= 0 else "#e74c3c"
     for col, label, val in [
-        (c1, "分析レース数",  f"{races}R"),
-        (c2, "総投資額",     f"¥{bet:,}"),
-        (c3, "総払戻額",     f"¥{ret:,}"),
-        (c4, "収支",         f"{'+'if pnl>=0 else ''}¥{pnl:,}"),
-        (c5, "ROI",          f"{roi}%"),
+        (c1, "分析レース数", f"{races}R"),
+        (c2, "総投資額",    f"¥{bet:,}"),
+        (c3, "総払戻額",    f"¥{ret:,}"),
+        (c4, "収支",        f"{'+'if pnl>=0 else ''}¥{pnl:,}"),
+        (c5, "ROI",         f"{roi}%"),
     ]:
         color = roi_color if label == "ROI" else pnl_color if label == "収支" else "#cdd6f4"
         col.markdown(
@@ -1828,9 +1963,10 @@ def page_results(results: dict) -> None:
 
     # 馬券種別
     st.markdown("#### 馬券種別成績")
-    by_type = results.get("by_type", {})
-    tc1, tc2, tc3 = st.columns(3)
-    for col, k in zip([tc1, tc2, tc3], ["複勝", "馬連", "三連複"]):
+    by_type = plan_data.get("by_type", {})
+    type_keys = ["馬連", "三連複"] if plan_key == "HAHO" else ["三連複"]
+    cols_bt = st.columns(len(type_keys))
+    for col, k in zip(cols_bt, type_keys):
         d = by_type.get(k, {})
         if not d:
             continue
@@ -1850,7 +1986,7 @@ def page_results(results: dict) -> None:
 
     # 週次ROI推移グラフ
     st.markdown("#### 週次ROI推移")
-    weekly = results.get("weekly", [])
+    weekly = plan_data.get("weekly", [])
     if weekly:
         wdf = pd.DataFrame(weekly)
         fig, ax = plt.subplots(figsize=(10, 3))
@@ -1863,8 +1999,8 @@ def page_results(results: dict) -> None:
         ax.set_ylabel("ROI (%)", color="#888")
         ax.tick_params(colors="#888", labelsize=14)
         ax.spines[:].set_color("#313244")
-        for label in ax.get_xticklabels():
-            label.set_rotation(45)
+        for lbl in ax.get_xticklabels():
+            lbl.set_rotation(45)
         st.pyplot(fig)
         plt.close(fig)
 
@@ -1872,7 +2008,7 @@ def page_results(results: dict) -> None:
 
     # 会場別成績
     st.markdown("#### 会場別成績")
-    by_place = results.get("by_place", [])
+    by_place = plan_data.get("by_place", [])
     if by_place:
         for row in by_place:
             r  = float(row.get("ROI", 0))
@@ -1895,28 +2031,33 @@ def page_results(results: dict) -> None:
 
     # 個別レース結果（日付フィルタ）
     st.markdown("#### 個別レース結果")
-    race_list = results.get("races", [])
+    race_list = plan_data.get("races", [])
     if race_list:
         rdf = pd.DataFrame(race_list)
-        rdf["収支"] = rdf["総払戻"] - rdf["総投資"]
+        for _c in ["総投資", "総払戻", "馬連_投資", "馬連_払戻", "三連複_投資", "三連複_払戻"]:
+            if _c in rdf.columns:
+                rdf[_c] = pd.to_numeric(rdf[_c], errors="coerce").fillna(0)
+        if "収支" not in rdf.columns:
+            rdf["収支"] = rdf["総払戻"] - rdf["総投資"]
+        rdf["収支"] = pd.to_numeric(rdf["収支"], errors="coerce").fillna(0)
 
         fl1, fl2, fl3 = st.columns(3)
-        places   = ["全会場"] + sorted(rdf["場所"].unique().tolist())
-        dates    = ["通年"] + sorted(rdf["日付"].unique().tolist(), key=lambda d: pd.to_datetime(d.replace(".", "/"), errors="coerce"))
-        sel_place = fl1.selectbox("会場", places, key="res_place")
-        sel_date  = fl2.selectbox("日付", dates, key="res_date")
-        sel_type  = fl3.selectbox("絞り込み", ["全馬券","複勝的中","馬連的中","三連複的中"], key="res_type")
+        places    = ["全会場"] + sorted(rdf["場所"].unique().tolist())
+        dates     = ["通年"] + sorted(rdf["日付"].unique().tolist(),
+                                     key=lambda d: pd.to_datetime(d.replace(".", "/"), errors="coerce"))
+        filter_opts = ["全馬券", "馬連的中", "三連複的中"] if plan_key == "HAHO" else ["全馬券", "三連複的中"]
+        sel_place = fl1.selectbox("会場", places, key=f"res_place_{plan_key}")
+        sel_date  = fl2.selectbox("日付", dates,  key=f"res_date_{plan_key}")
+        sel_type  = fl3.selectbox("絞り込み", filter_opts, key=f"res_type_{plan_key}")
 
         disp = rdf.copy()
         if sel_place != "全会場":
             disp = disp[disp["場所"] == sel_place]
         if sel_date != "通年":
             disp = disp[disp["日付"] == sel_date]
-        if sel_type == "複勝的中":
-            disp = disp[disp["複勝_的中"] == 1]
-        elif sel_type == "馬連的中":
+        if sel_type == "馬連的中" and "馬連_的中" in disp.columns:
             disp = disp[disp["馬連_的中"] == 1]
-        elif sel_type == "三連複的中":
+        elif sel_type == "三連複的中" and "三連複_的中" in disp.columns:
             disp = disp[disp["三連複_的中"] == 1]
 
         # 日次サマリー（通年以外の場合）
@@ -1941,9 +2082,8 @@ def page_results(results: dict) -> None:
 
         for _, row in disp.sort_values(["日付","R"], ascending=[False,True]).iterrows():
             hits = []
-            if row["複勝_的中"]:   hits.append("複勝✅")
-            if row["馬連_的中"]:   hits.append("馬連✅")
-            if row["三連複_的中"]: hits.append("三連複✅")
+            if "馬連_的中"   in row and row["馬連_的中"]:   hits.append("馬連✅")
+            if "三連複_的中" in row and row["三連複_的中"]: hits.append("三連複✅")
             hit_str = "　".join(hits) if hits else "❌"
             pnl_v   = int(row["収支"])
             rc      = "#4ade80" if pnl_v >= 0 else "#e74c3c"
@@ -1956,6 +2096,67 @@ def page_results(results: dict) -> None:
                 f'<span style="min-width:150px">{hit_str}</span>'
                 f'<span style="color:#888">¥{int(row["総投資"]):,}</span>'
                 f'<span style="color:{rc};font-weight:bold;margin-left:12px">{"+"if pnl_v>=0 else ""}¥{pnl_v:,}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+
+def page_results(results: dict) -> None:
+    """的中実績ページ（HAHO / HALO タブ）。"""
+    if not results:
+        st.warning("results.json が見つかりません。data/results.json を配置してください。")
+        return
+
+    st.markdown("## 📊 的中実績")
+    st.markdown(
+        f'<div style="color:#666;font-size:20px;margin-bottom:16px">'
+        f'集計期間: {results.get("generated_at","")[:10]} 時点</div>',
+        unsafe_allow_html=True,
+    )
+
+    # 新フォーマット（HAHO/HALO キーあり）
+    if "HAHO" in results or "HALO" in results:
+        tab_haho, tab_halo = st.tabs([
+            "🛡️ HAHO  安定積み上げ",
+            "🎯 HALO  高配当特化",
+        ])
+        with tab_haho:
+            haho_data = results.get("HAHO", {})
+            if not haho_data or not haho_data.get("total", {}).get("races"):
+                st.info("HAHOのデータがありません。generate_results.py を実行してください。")
+            else:
+                _render_plan_results(haho_data, "HAHO")
+        with tab_halo:
+            halo_data = results.get("HALO", {})
+            if not halo_data or not halo_data.get("total", {}).get("races"):
+                st.info("HALOのデータがありません。generate_results.py を実行してください。")
+            else:
+                _render_plan_results(halo_data, "HALO")
+    else:
+        # 旧フォーマット（後方互換）
+        st.info("旧フォーマットのresults.jsonです。generate_results.py を再実行するとHAHO/HALOタブが表示されます。")
+        total = results.get("total", {})
+        bet   = total.get("bet", 0)
+        ret   = total.get("ret", 0)
+        pnl   = total.get("pnl", 0)
+        roi   = total.get("roi", 0)
+        races = total.get("races", 0)
+        c1, c2, c3, c4, c5 = st.columns(5)
+        roi_color = "#4ade80" if roi >= 100 else "#f39c12" if roi >= 70 else "#e74c3c"
+        pnl_color = "#4ade80" if pnl >= 0 else "#e74c3c"
+        for col, label, val in [
+            (c1, "分析レース数", f"{races}R"),
+            (c2, "総投資額",    f"¥{bet:,}"),
+            (c3, "総払戻額",    f"¥{ret:,}"),
+            (c4, "収支",        f"{'+'if pnl>=0 else ''}¥{pnl:,}"),
+            (c5, "ROI",         f"{roi}%"),
+        ]:
+            color = roi_color if label == "ROI" else pnl_color if label == "収支" else "#cdd6f4"
+            col.markdown(
+                f'<div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;'
+                f'padding:12px;text-align:center">'
+                f'<div style="color:#888;font-size:18px">{label}</div>'
+                f'<div style="color:{color};font-size:30px;font-weight:bold;margin-top:4px">{val}</div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -2050,7 +2251,7 @@ def render_pace_scenario(race_df: pd.DataFrame) -> None:
 # 今日の買い目専用ページ
 # =========================================================
 def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
-    """今日の買い目一覧ページ。"""
+    """今日の買い目一覧ページ（HAHO/HALO プラン切替）。"""
     race_id_col = "レースID(新/馬番無)"
     race_metas  = []
     for race_id, grp in all_df.groupby(race_id_col):
@@ -2060,40 +2261,55 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         hon_row = grp[grp["mark"] == "◎"]
         hon_name  = str(hon_row.iloc[0]["馬名"])  if not hon_row.empty else "-"
         hon_score = float(hon_row.iloc[0]["score"]) if not hon_row.empty else 0.0
-        bets      = get_bets(grp, place, cls_raw, strategy, budget)
-        if not bets:
+        bets_all  = get_bets(grp, place, cls_raw, strategy, budget)
+        if not bets_all:
             continue
         race_metas.append({
-            "race_id": race_id,
-            "場所":    place,
-            "R":       int(meta.get("R", 0)),
-            "クラス":  cls_raw,
-            "発走":    str(meta.get("発走時刻", "")),
-            "距離":    f'{meta.get("芝・ダ","")}{meta.get("距離","")}m',
-            "◎":       hon_name,
-            "◎スコア": hon_score,
-            "買い目":  bets,
-            "総投資":  sum(b["購入額"] for b in bets),
+            "race_id":   race_id,
+            "場所":      place,
+            "R":         int(meta.get("R", 0)),
+            "クラス":    cls_raw,
+            "発走":      str(meta.get("発走時刻", "")),
+            "距離":      f'{meta.get("芝・ダ","")}{meta.get("距離","")}m',
+            "◎":         hon_name,
+            "◎スコア":   hon_score,
+            "HAHO_bets": bets_all.get("HAHO", []),
+            "HALO_bets": bets_all.get("HALO", []),
         })
 
     if not race_metas:
         st.info("本日の買い目対象レースがありません。")
         return
 
-    total_all = sum(r["総投資"] for r in race_metas)
+    # プラン選択
+    plan = st.radio(
+        "プラン選択",
+        ["🛡️ HAHO  安定積み上げ（馬連◎軸2点 ＋ 三連複1点）",
+         "🎯 HALO  高配当特化（三連複ボックス1点のみ）"],
+        horizontal=True, key="buylist_plan",
+    )
+    use_haho = plan.startswith("🛡️")
+    plan_key = "HAHO_bets" if use_haho else "HALO_bets"
+
+    active = [r for r in race_metas if r[plan_key]]
+    if not active:
+        st.info("このプランの対象レースがありません。")
+        return
+
+    total_all = sum(sum(b["購入額"] for b in r[plan_key]) for r in active)
     st.markdown(
         f'<div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;'
         f'padding:12px 16px;margin-bottom:16px;display:flex;gap:32px;align-items:center">'
-        f'<span style="color:#888">対象レース <b style="color:#cdd6f4;font-size:18px">{len(race_metas)}R</b></span>'
+        f'<span style="color:#888">対象レース <b style="color:#cdd6f4;font-size:18px">{len(active)}R</b></span>'
         f'<span style="color:#888">合計投資予定 <b style="color:#cdd6f4;font-size:18px">¥{total_all:,}</b></span>'
         f'</div>',
         unsafe_allow_html=True,
     )
 
-    for r in sorted(race_metas, key=lambda x: (x["場所"], x["R"])):
-        fuku  = [b for b in r["買い目"] if b["馬券種"] == "複勝"]
-        rengo = [b for b in r["買い目"] if b["馬券種"] == "馬連"]
-        sanf  = [b for b in r["買い目"] if b["馬券種"] == "三連複"]
+    for r in sorted(active, key=lambda x: (x["場所"], x["R"])):
+        bets  = r[plan_key]
+        rengo = [b for b in bets if b["馬券種"] == "馬連"]
+        sanf  = [b for b in bets if b["馬券種"] == "三連複"]
 
         # ヘッダー行
         st.markdown(
@@ -2110,13 +2326,6 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
 
         # 買い目行
         lines = []
-        if fuku:
-            lines.append(
-                f'<span style="color:#888;min-width:50px;display:inline-block">複勝</span>'
-                f'<span style="color:#cdd6f4">{fuku[0]["買い目"]}</span>'
-                f'<span style="color:#888;margin-left:8px">¥{fuku[0]["購入額"]:,}</span>'
-                f'<span style="color:#f39c12;font-size:12px;margin-left:8px">ROI目安{fuku[0]["ROI"]:.0f}%</span>'
-            )
         if rengo:
             combos = "　".join(b["買い目"] for b in rengo)
             amt    = sum(b["購入額"] for b in rengo)
@@ -2480,7 +2689,7 @@ def page_race_detail(
         if in_strategy:
             cls_norm = CLASS_NORMALIZE.get(cls_raw, cls_raw)
             cls_key  = cls_norm if cls_norm in strategy.get(place,{}) else cls_raw
-            roi_vals = [v["roi"] for v in strategy[place][cls_key].values()]
+            roi_vals = [v["roi_oos"] for v in strategy[place][cls_key].values()]
             st.success(f"✅ 戦略対象レース　平均ROI: {sum(roi_vals)/len(roi_vals):.1f}%")
         elif place in EXCLUDE_PLACES:
             st.warning(f"⚠️ {place}は除外会場（参考予想）")
@@ -2537,32 +2746,46 @@ def page_race_detail(
             if in_strategy:
                 st.markdown("---")
                 st.markdown("### 🎯 買い目")
-                bets = get_bets(race_df, place, cls_raw, strategy, budget)
-                if not bets:
+                bets_all = get_bets(race_df, place, cls_raw, strategy, budget)
+                if not bets_all:
                     st.warning("買い目を生成できませんでした。")
                 else:
-                    bets_df = pd.DataFrame(bets)
-                    total   = bets_df["購入額"].sum()
-                    m1, m2, m3 = st.columns(3)
-                    m1.metric("合計購入額", f"{total:,}円")
-                    m2.metric("馬券種数",   f"{bets_df['馬券種'].nunique()}種")
-                    m3.metric("総点数",     f"{len(bets_df)}点")
-                    for bet_type, grp_b in bets_df.groupby("馬券種"):
-                        type_total = grp_b["購入額"].sum()
-                        combos_html = "　".join([
-                            f'<span style="font-size:16px;font-weight:bold;color:#cdd6f4">{row["買い目"]}</span>'
-                            f'<span style="color:#888;font-size:12px">({row["購入額"]:,}円)</span>'
-                            for _, row in grp_b.iterrows()
-                        ])
-                        roi_val = grp_b.iloc[0]["ROI"]
-                        st.markdown(
-                            f'<div class="bet-card">'
-                            f'<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
-                            f'<span style="color:#5865f2;font-weight:bold">{bet_type}</span>'
-                            f'<span style="color:#888;font-size:12px">ROI目安:{roi_val:.1f}%　計{type_total:,}円</span>'
-                            f'</div><div>{combos_html}</div></div>',
-                            unsafe_allow_html=True,
-                        )
+                    det_tab_haho, det_tab_halo = st.tabs([
+                        "🛡️ HAHO  安定積み上げ",
+                        "🎯 HALO  高配当特化",
+                    ])
+                    for det_tab, plan_key, plan_label in [
+                        (det_tab_haho, "HAHO", "馬連◎軸2点 ＋ 三連複ボックス1点"),
+                        (det_tab_halo, "HALO", "三連複ボックス1点のみ"),
+                    ]:
+                        with det_tab:
+                            bets = bets_all.get(plan_key, [])
+                            if not bets:
+                                st.info(f"このレースはHAHO戦略の対象外です。" if plan_key=="HAHO" else "このレースは三連複戦略の対象外です。")
+                                continue
+                            bets_df   = pd.DataFrame(bets)
+                            total_amt = bets_df["購入額"].sum()
+                            m1, m2, m3 = st.columns(3)
+                            m1.metric("合計購入額", f"{total_amt:,}円")
+                            m2.metric("馬券種数",   f"{bets_df['馬券種'].nunique()}種")
+                            m3.metric("総点数",     f"{len(bets_df)}点")
+                            st.caption(plan_label)
+                            for bet_type, grp_b in bets_df.groupby("馬券種"):
+                                type_total = grp_b["購入額"].sum()
+                                combos_html = "　".join([
+                                    f'<span style="font-size:16px;font-weight:bold;color:#cdd6f4">{row["買い目"]}</span>'
+                                    f'<span style="color:#888;font-size:12px">({row["購入額"]:,}円)</span>'
+                                    for _, row in grp_b.iterrows()
+                                ])
+                                roi_val = grp_b.iloc[0]["ROI"]
+                                st.markdown(
+                                    f'<div class="bet-card">'
+                                    f'<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
+                                    f'<span style="color:#5865f2;font-weight:bold">{bet_type}</span>'
+                                    f'<span style="color:#888;font-size:12px">ROI目安:{roi_val:.1f}%　計{type_total:,}円</span>'
+                                    f'</div><div>{combos_html}</div></div>',
+                                    unsafe_allow_html=True,
+                                )
 
         with tab2:
             if not shap_ok:

@@ -24,13 +24,20 @@ log = logging.getLogger(__name__)
 # =========================================================
 # 定数
 # =========================================================
-BASE_DIR  = Path(__file__).parent
-KEKKA_DIR = BASE_DIR / "data" / "kekka"
-PRED_DIR  = BASE_DIR / "data" / "weekly"
-OUT_PATH  = BASE_DIR / "data" / "results.json"
+BASE_DIR      = Path(__file__).parent
+KEKKA_DIR     = BASE_DIR / "data" / "kekka"
+PRED_DIR      = BASE_DIR / "reports"
+OUT_PATH      = BASE_DIR / "data" / "results.json"
+STRATEGY_JSON = BASE_DIR / "data" / "strategy_weights.json"
 
 EXCLUDE_PLACES  = {"東京", "小倉"}
 EXCLUDE_CLASSES = {"新馬", "障害"}
+
+CLASS_NORMALIZE = {
+    "新馬":"新馬","未勝利":"未勝利","1勝":"1勝","500万":"1勝",
+    "2勝":"2勝","1000万":"2勝","3勝":"3勝","1600万":"3勝",
+    "OP(L)":"OP(L)","Ｇ１":"Ｇ１","Ｇ２":"Ｇ２","Ｇ３":"Ｇ３",
+}
 
 
 # =========================================================
@@ -89,21 +96,37 @@ def load_kekka(kekka_dir: Path) -> pd.DataFrame:
 
 def load_pred(pred_dir: Path) -> pd.DataFrame:
     """weekly/*.csv (pred) を全読みして結合。"""
-    files = sorted(pred_dir.glob("*.csv"))
+    files = sorted(pred_dir.glob("pred_*.csv"))
     if not files:
         raise FileNotFoundError(f"predCSVが見つかりません: {pred_dir}")
     dfs = []
     for f in files:
         try:
-            dfs.append(pd.read_csv(f, encoding="utf-8"))
+            dfs.append(pd.read_csv(f, encoding="utf-8-sig"))
+        except UnicodeDecodeError:
+            try:
+                dfs.append(pd.read_csv(f, encoding="cp932"))
+            except Exception as e:
+                log.warning(f"スキップ {f.name}: {e}")
         except Exception as e:
             log.warning(f"スキップ {f.name}: {e}")
     pred = pd.concat(dfs, ignore_index=True)
     pred["レースキー"] = pred["レースID"].astype(str).str.zfill(16)
     pred["馬番_k"]     = pred["馬番"].astype(int)
     pred["日付_dt"]    = pd.to_datetime(pred["日付"].str.replace(".", "/"), errors="coerce")
-    for col in ["複勝_購入額", "馬連_購入額", "三連複_購入額"]:
-        pred[col] = pd.to_numeric(pred[col], errors="coerce").fillna(0)
+    # HAHO/HALO 購入額（旧フォーマットCSVには存在しないのでデフォルト0）
+    for col in ["HAHO_馬連_購入額", "HAHO_三連複_購入額", "HALO_三連複_購入額"]:
+        if col in pred.columns:
+            pred[col] = pd.to_numeric(pred[col], errors="coerce").fillna(0)
+        else:
+            pred[col] = 0.0
+    # HAHO/HALO 買い目（旧フォーマットCSVには存在しないのでデフォルト空文字）
+    for col in ["HAHO_馬連_買い目", "HAHO_三連複_買い目", "HALO_三連複_買い目"]:
+        if col not in pred.columns:
+            pred[col] = ""
+    # 印列（念のため保証）
+    if "印" not in pred.columns:
+        pred["印"] = ""
     log.info(f"pred合計: {len(pred)}行 / {pred['レースキー'].nunique()}レース")
     return pred
 
@@ -135,7 +158,7 @@ def build_race_haitou(kekka: pd.DataFrame) -> dict:
 # =========================================================
 # レース単位集計
 # =========================================================
-def calc_records(pred: pd.DataFrame, race_haitou: dict) -> list[dict]:
+def calc_records(pred: pd.DataFrame, race_haitou: dict, strategy: dict) -> list[dict]:
     records = []
     for rk, rdf in pred.groupby("レースキー"):
         h = race_haitou.get(rk)
@@ -145,60 +168,80 @@ def calc_records(pred: pd.DataFrame, race_haitou: dict) -> list[dict]:
         cls_raw = str(rdf.iloc[0].get("クラス", ""))
         if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
             continue
+        # 戦略フィルタ
+        if strategy:
+            cls = CLASS_NORMALIZE.get(cls_raw, cls_raw)
+            bet_info = strategy.get(place, {}).get(cls) or strategy.get(place, {}).get(cls_raw, {})
+            if not bet_info:
+                continue
         hon_rows = rdf[rdf["印"] == "◎"]
         if hon_rows.empty:
             continue
-        h1 = int(hon_rows.iloc[0]["馬番_k"])
+        hon = hon_rows.iloc[0]
 
-        # 複勝◎
-        fuku_amt = float(hon_rows.iloc[0]["複勝_購入額"])
-        fuku_ret = 0.0
-        fuku_hit = False
-        if fuku_amt > 0 and h1 in h["複勝"] and h["複勝"][h1]:
-            fuku_ret = fuku_amt * h["複勝"][h1] / 100
-            fuku_hit = True
+        top2    = frozenset([h["1着"], h["2着"]]) if h["1着"] and h["2着"] else frozenset()
+        top3_fs = frozenset(h["top3"]) if len(h["top3"]) == 3 else None
 
-        # 馬連
-        rengo_amt = rengo_ret = 0.0
-        rengo_hit = False
-        top2 = frozenset([h["1着"], h["2着"]]) if h["1着"] and h["2着"] else frozenset()
-        for _, brow in rdf[rdf["馬連_買い目"].notna() & (rdf["馬連_購入額"] > 0)].iterrows():
-            combos = parse_combos(brow["馬連_買い目"])
-            per = brow["馬連_購入額"] / max(len(combos), 1)
-            rengo_amt += brow["馬連_購入額"]
-            if h["馬連"] and per > 0:
+        # ── HAHO ─────────────────────────────────────────────────────────
+        haho_rengo_amt = float(hon.get("HAHO_馬連_購入額", 0))
+        haho_sf_amt    = float(hon.get("HAHO_三連複_購入額", 0))
+        haho_target    = (haho_rengo_amt + haho_sf_amt) > 0
+        haho_rengo_ret = 0.0; haho_rengo_hit = False
+        haho_sf_ret    = 0.0; haho_sf_hit    = False
+
+        if haho_rengo_amt > 0 and h["馬連"] and top2:
+            mask = rdf["HAHO_馬連_買い目"].notna() & (pd.to_numeric(rdf["HAHO_馬連_購入額"], errors="coerce").fillna(0) > 0)
+            for _, brow in rdf[mask].iterrows():
+                combos = parse_combos(brow["HAHO_馬連_買い目"])
+                per = float(brow["HAHO_馬連_購入額"]) / max(len(combos), 1)
                 for c in combos:
                     if c == top2:
-                        rengo_ret += per * h["馬連"] / 100
-                        rengo_hit = True
+                        haho_rengo_ret += per * h["馬連"] / 100
+                        haho_rengo_hit = True
 
-        # 三連複
-        sanfuku_amt = sanfuku_ret = 0.0
-        sanfuku_hit = False
-        if len(h["top3"]) == 3:
-            top3_fs = frozenset(h["top3"])
-            for _, brow in rdf[rdf["三連複_買い目"].notna() & (rdf["三連複_購入額"] > 0)].iterrows():
-                combos = parse_combos(brow["三連複_買い目"])
-                per = brow["三連複_購入額"] / max(len(combos), 1)
-                sanfuku_amt += brow["三連複_購入額"]
-                if h["三連複"] and per > 0:
-                    for c in combos:
-                        if c == top3_fs:
-                            sanfuku_ret += per * h["三連複"] / 100
-                            sanfuku_hit = True
+        if haho_sf_amt > 0 and h["三連複"] and top3_fs:
+            mask = rdf["HAHO_三連複_買い目"].notna() & (pd.to_numeric(rdf["HAHO_三連複_購入額"], errors="coerce").fillna(0) > 0)
+            for _, brow in rdf[mask].iterrows():
+                combos = parse_combos(brow["HAHO_三連複_買い目"])
+                per = float(brow["HAHO_三連複_購入額"]) / max(len(combos), 1)
+                for c in combos:
+                    if c == top3_fs:
+                        haho_sf_ret += per * h["三連複"] / 100
+                        haho_sf_hit = True
+
+        # ── HALO ─────────────────────────────────────────────────────────
+        halo_sf_amt = float(hon.get("HALO_三連複_購入額", 0))
+        halo_target = halo_sf_amt > 0
+        halo_sf_ret = 0.0; halo_sf_hit = False
+
+        if halo_sf_amt > 0 and h["三連複"] and top3_fs:
+            mask = rdf["HALO_三連複_買い目"].notna() & (pd.to_numeric(rdf["HALO_三連複_購入額"], errors="coerce").fillna(0) > 0)
+            for _, brow in rdf[mask].iterrows():
+                combos = parse_combos(brow["HALO_三連複_買い目"])
+                per = float(brow["HALO_三連複_購入額"]) / max(len(combos), 1)
+                for c in combos:
+                    if c == top3_fs:
+                        halo_sf_ret += per * h["三連複"] / 100
+                        halo_sf_hit = True
 
         records.append({
-            "レースキー":   rk,
-            "日付":         rdf.iloc[0]["日付"],
-            "日付_dt":      rdf.iloc[0]["日付_dt"],
-            "場所":         rdf.iloc[0]["場所"],
-            "R":            int(rdf.iloc[0]["R"]),
-            "クラス":       rdf.iloc[0]["クラス"],
-            "複勝_投資":    fuku_amt,    "複勝_払戻":    fuku_ret,    "複勝_的中":    int(fuku_hit),
-            "馬連_投資":    rengo_amt,   "馬連_払戻":    rengo_ret,   "馬連_的中":    int(rengo_hit),
-            "三連複_投資":  sanfuku_amt, "三連複_払戻":  sanfuku_ret, "三連複_的中":  int(sanfuku_hit),
-            "総投資":       fuku_amt + rengo_amt + sanfuku_amt,
-            "総払戻":       fuku_ret + rengo_ret + sanfuku_ret,
+            "レースキー":        rk,
+            "日付":              rdf.iloc[0]["日付"],
+            "日付_dt":           rdf.iloc[0]["日付_dt"],
+            "場所":              rdf.iloc[0]["場所"],
+            "R":                 int(rdf.iloc[0]["R"]),
+            "クラス":            rdf.iloc[0]["クラス"],
+            # HAHO
+            "HAHO_対象":         int(haho_target),
+            "HAHO_馬連_投資":    haho_rengo_amt, "HAHO_馬連_払戻":    haho_rengo_ret, "HAHO_馬連_的中":    int(haho_rengo_hit),
+            "HAHO_三連複_投資":  haho_sf_amt,    "HAHO_三連複_払戻":  haho_sf_ret,    "HAHO_三連複_的中":  int(haho_sf_hit),
+            "HAHO_総投資":       haho_rengo_amt + haho_sf_amt,
+            "HAHO_総払戻":       haho_rengo_ret + haho_sf_ret,
+            # HALO
+            "HALO_対象":         int(halo_target),
+            "HALO_三連複_投資":  halo_sf_amt,    "HALO_三連複_払戻":  halo_sf_ret,    "HALO_三連複_的中":  int(halo_sf_hit),
+            "HALO_総投資":       halo_sf_amt,
+            "HALO_総払戻":       halo_sf_ret,
         })
     return records
 
@@ -206,22 +249,29 @@ def calc_records(pred: pd.DataFrame, race_haitou: dict) -> list[dict]:
 # =========================================================
 # 集計
 # =========================================================
-def summarize(records: list[dict]) -> dict:
-    df = pd.DataFrame(records)
-    df["収支"]    = df["総払戻"] - df["総投資"]
-    df["日付_dt"] = pd.to_datetime(df["日付_dt"])
-    df["週"]      = df["日付_dt"].dt.to_period("W").apply(lambda x: str(x.end_time.date()))
+def _plan_summary(df: pd.DataFrame, prefix: str) -> dict:
+    """HAHO / HALO のサマリーを計算。"""
+    tgt = df[df[f"{prefix}_対象"] == 1].copy()
+    if tgt.empty:
+        return {"total": {"races": 0, "bet": 0, "ret": 0, "pnl": 0, "roi": 0},
+                "by_type": {}, "weekly": [], "by_place": [], "races": []}
 
-    total_bet = df["総投資"].sum()
-    total_ret = df["総払戻"].sum()
+    total_bet = tgt[f"{prefix}_総投資"].sum()
+    total_ret = tgt[f"{prefix}_総払戻"].sum()
 
     # 馬券種別
     by_type: dict = {}
-    for k in ["複勝", "馬連", "三連複"]:
-        bet = df[f"{k}_投資"].sum()
-        ret = df[f"{k}_払戻"].sum()
-        hit = df[f"{k}_的中"].sum()
-        n   = (df[f"{k}_投資"] > 0).sum()
+    type_keys = ["馬連", "三連複"] if prefix == "HAHO" else ["三連複"]
+    for k in type_keys:
+        col_i = f"{prefix}_{k}_投資"
+        col_r = f"{prefix}_{k}_払戻"
+        col_h = f"{prefix}_{k}_的中"
+        if col_i not in tgt.columns:
+            continue
+        bet = tgt[col_i].sum()
+        ret = tgt[col_r].sum()
+        hit = tgt[col_h].sum()
+        n   = (tgt[col_i] > 0).sum()
         by_type[k] = {
             "bet": int(bet), "ret": int(ret),
             "roi": round(ret / bet * 100, 1) if bet > 0 else 0,
@@ -230,36 +280,39 @@ def summarize(records: list[dict]) -> dict:
         }
 
     # 週次
-    weekly = df.groupby("週").agg(
-        レース数=("総投資", "count"),
-        総投資=("総投資", "sum"),
-        総払戻=("総払戻", "sum"),
-        収支=("収支", "sum"),
+    weekly = tgt.groupby("週").agg(
+        レース数=(f"{prefix}_総投資", "count"),
+        総投資=(f"{prefix}_総投資", "sum"),
+        総払戻=(f"{prefix}_総払戻", "sum"),
     ).reset_index()
-    weekly["ROI"] = (weekly["総払戻"] / weekly["総投資"] * 100).round(1)
+    weekly["収支"] = weekly["総払戻"] - weekly["総投資"]
+    weekly["ROI"]  = (weekly["総払戻"] / weekly["総投資"] * 100).round(1)
+    weekly.loc[weekly["総投資"] == 0, "ROI"] = 0
 
     # 会場別
-    by_place = df.groupby("場所").agg(
-        レース数=("総投資", "count"),
-        総投資=("総投資", "sum"),
-        総払戻=("総払戻", "sum"),
+    by_place = tgt.groupby("場所").agg(
+        レース数=(f"{prefix}_総投資", "count"),
+        総投資=(f"{prefix}_総投資", "sum"),
+        総払戻=(f"{prefix}_総払戻", "sum"),
     ).reset_index()
     by_place["ROI"]  = (by_place["総払戻"] / by_place["総投資"] * 100).round(1)
+    by_place.loc[by_place["総投資"] == 0, "ROI"] = 0
     by_place["収支"] = by_place["総払戻"] - by_place["総投資"]
 
     # 個別レース（日付降順）
-    races_out = df.sort_values("日付_dt", ascending=False)[[
-        "日付", "場所", "R", "クラス",
-        "複勝_投資", "複勝_払戻", "複勝_的中",
-        "馬連_投資", "馬連_払戻", "馬連_的中",
-        "三連複_投資", "三連複_払戻", "三連複_的中",
-        "総投資", "総払戻", "収支",
-    ]].to_dict("records")
+    rename_map = {
+        f"{prefix}_馬連_投資":   "馬連_投資",   f"{prefix}_馬連_払戻":   "馬連_払戻",   f"{prefix}_馬連_的中":   "馬連_的中",
+        f"{prefix}_三連複_投資": "三連複_投資", f"{prefix}_三連複_払戻": "三連複_払戻", f"{prefix}_三連複_的中": "三連複_的中",
+        f"{prefix}_総投資":      "総投資",      f"{prefix}_総払戻":      "総払戻",
+    }
+    base_cols = ["日付", "場所", "R", "クラス"]
+    plan_cols = [c for c in rename_map if c in tgt.columns]
+    races_df  = tgt.sort_values("日付_dt", ascending=False)[base_cols + plan_cols].rename(columns=rename_map)
+    races_df["収支"] = races_df["総払戻"] - races_df["総投資"]
 
     return {
-        "generated_at": pd.Timestamp.now().isoformat(),
         "total": {
-            "races": len(df),
+            "races": len(tgt),
             "bet":   int(total_bet),
             "ret":   int(total_ret),
             "pnl":   int(total_ret - total_bet),
@@ -268,7 +321,19 @@ def summarize(records: list[dict]) -> dict:
         "by_type":  by_type,
         "weekly":   weekly.to_dict("records"),
         "by_place": by_place.sort_values("ROI", ascending=False).to_dict("records"),
-        "races":    races_out,
+        "races":    races_df.to_dict("records"),
+    }
+
+
+def summarize(records: list[dict]) -> dict:
+    df = pd.DataFrame(records)
+    df["日付_dt"] = pd.to_datetime(df["日付_dt"])
+    df["週"]      = df["日付_dt"].dt.to_period("W").apply(lambda x: str(x.end_time.date()))
+
+    return {
+        "generated_at": pd.Timestamp.now().isoformat(),
+        "HAHO": _plan_summary(df, "HAHO"),
+        "HALO": _plan_summary(df, "HALO"),
     }
 
 
@@ -286,10 +351,18 @@ def main() -> None:
     pred_dir  = Path(args.pred_dir)
     out_path  = Path(args.out)
 
+    strategy: dict = {}
+    if STRATEGY_JSON.exists():
+        with open(STRATEGY_JSON, encoding="utf-8") as f:
+            strategy = json.load(f)
+        log.info(f"戦略ファイル読み込み: {STRATEGY_JSON.name}")
+    else:
+        log.warning("strategy_weights.json が見つかりません。全レースを集計します。")
+
     kekka       = load_kekka(kekka_dir)
     pred        = load_pred(pred_dir)
     race_haitou = build_race_haitou(kekka)
-    records     = calc_records(pred, race_haitou)
+    records     = calc_records(pred, race_haitou, strategy)
     summary     = summarize(records)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -297,7 +370,10 @@ def main() -> None:
         json.dump(summary, f, ensure_ascii=False, indent=2, default=str)
 
     log.info(f"生成完了: {out_path}")
-    log.info(f"集計レース: {summary['total']['races']}R  ROI: {summary['total']['roi']}%")
+    haho = summary["HAHO"]["total"]
+    halo = summary["HALO"]["total"]
+    log.info(f"HAHO: {haho['races']}R  ROI: {haho['roi']}%  収支: {haho['pnl']:+,}円")
+    log.info(f"HALO: {halo['races']}R  ROI: {halo['roi']}%  収支: {halo['pnl']:+,}円")
 
 
 if __name__ == "__main__":
