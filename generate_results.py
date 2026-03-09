@@ -114,13 +114,28 @@ def load_pred(pred_dir: Path) -> pd.DataFrame:
     pred["レースキー"] = pred["レースID"].astype(str).str.zfill(16)
     pred["馬番_k"]     = pred["馬番"].astype(int)
     pred["日付_dt"]    = pd.to_datetime(pred["日付"].str.replace(".", "/"), errors="coerce")
-    # HAHO/HALO 購入額（旧フォーマットCSVには存在しないのでデフォルト0）
+
+    # ──────────────────────────────────────────────────────────
+    # 後方互換: 旧フォーマットCSV（HAHO/HALO列なし）を自動マッピング
+    #   旧列: 馬連_買い目, 馬連_購入額, 三連複_買い目, 三連複_購入額
+    #   → HAHO: 馬連 + 三連複  /  HALO: 三連複のみ
+    # ──────────────────────────────────────────────────────────
+    if "HAHO_馬連_購入額" not in pred.columns and "馬連_購入額" in pred.columns:
+        log.info("旧フォーマットCSV検出: 馬連/三連複 → HAHO/HALO にマッピング")
+        pred["HAHO_馬連_購入額"]   = pd.to_numeric(pred["馬連_購入額"],   errors="coerce").fillna(0)
+        pred["HAHO_三連複_購入額"] = pd.to_numeric(pred["三連複_購入額"], errors="coerce").fillna(0)
+        pred["HAHO_馬連_買い目"]   = pred["馬連_買い目"].fillna("")
+        pred["HAHO_三連複_買い目"] = pred["三連複_買い目"].fillna("")
+        pred["HALO_三連複_購入額"] = pd.to_numeric(pred["三連複_購入額"], errors="coerce").fillna(0)
+        pred["HALO_三連複_買い目"] = pred["三連複_買い目"].fillna("")
+
+    # HAHO/HALO 購入額（新フォーマット or マッピング後の数値化）
     for col in ["HAHO_馬連_購入額", "HAHO_三連複_購入額", "HALO_三連複_購入額"]:
         if col in pred.columns:
             pred[col] = pd.to_numeric(pred[col], errors="coerce").fillna(0)
         else:
             pred[col] = 0.0
-    # HAHO/HALO 買い目（旧フォーマットCSVには存在しないのでデフォルト空文字）
+    # HAHO/HALO 買い目（新フォーマット or マッピング後の文字列保証）
     for col in ["HAHO_馬連_買い目", "HAHO_三連複_買い目", "HALO_三連複_買い目"]:
         if col not in pred.columns:
             pred[col] = ""
