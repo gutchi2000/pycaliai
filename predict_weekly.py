@@ -395,7 +395,8 @@ def floor_to_unit(x: int, unit: int = MIN_UNIT) -> int:
 
 def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
              strategy: dict, budget: int) -> dict:
-    """HAHO（馬連◎軸2点+三連複ボックス1点）/ HALO（三連複ボックス1点のみ）を生成する。"""
+    """HAHO（馬連◎軸2点+三連複ボックス1点）/ HALO（三連複ボックス1点のみ）
+       / LALO（複勝◎1点のみ）を生成する。"""
     cls      = CLASS_NORMALIZE.get(cls_raw, cls_raw)
     bet_info = strategy.get(place, {}).get(cls) or strategy.get(place, {}).get(cls_raw, {})
 
@@ -405,6 +406,8 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
         "HAHO_三連複_買い目": "", "HAHO_三連複_購入額": 0,
         "HALO_戦略対象":      False,
         "HALO_三連複_買い目": "", "HALO_三連複_購入額": 0,
+        "LALO_戦略対象":      False,
+        "LALO_複勝_買い目":   "", "LALO_複勝_購入額":   0,
     }
     if not bet_info:
         return result
@@ -449,6 +452,12 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
         c_sf = tuple(sorted([h1, h2, h3]))
         result["HALO_三連複_買い目"] = "-".join(map(str, c_sf))
         result["HALO_三連複_購入額"] = floor_to_unit(budget)
+
+    # ── LALO: 複勝◎1点のみ（全予算）────────────────────────────────────
+    if bet_info:   # 戦略対象レースなら常に発動
+        result["LALO_戦略対象"]    = True
+        result["LALO_複勝_買い目"] = str(h1)
+        result["LALO_複勝_購入額"] = floor_to_unit(budget)
 
     return result
 
@@ -511,6 +520,8 @@ def main() -> None:
                 "HAHO_三連複_買い目": "", "HAHO_三連複_購入額": 0,
                 "HALO_戦略対象": False,
                 "HALO_三連複_買い目": "", "HALO_三連複_購入額": 0,
+                "LALO_戦略対象": False,
+                "LALO_複勝_買い目": "", "LALO_複勝_購入額": 0,
             }
         else:
             # 買い目生成
@@ -538,6 +549,9 @@ def main() -> None:
                 "HALO_戦略対象":       "✅" if bets["HALO_戦略対象"] else "",
                 "HALO_三連複_買い目":  bets["HALO_三連複_買い目"]  if is_hon else "",
                 "HALO_三連複_購入額":  bets["HALO_三連複_購入額"]  if is_hon else "",
+                "LALO_戦略対象":       "✅" if bets["LALO_戦略対象"] else "",
+                "LALO_複勝_買い目":    bets["LALO_複勝_買い目"]    if is_hon else "",
+                "LALO_複勝_購入額":    bets["LALO_複勝_購入額"]    if is_hon else "",
             })
 
     out_df = pd.DataFrame(rows)
@@ -550,9 +564,10 @@ def main() -> None:
     # サマリ表示
     haho_races = out_df[out_df["HAHO_戦略対象"]=="✅"]["レースID"].nunique()
     halo_races = out_df[out_df["HALO_戦略対象"]=="✅"]["レースID"].nunique()
+    lalo_races = out_df[out_df["LALO_戦略対象"]=="✅"]["レースID"].nunique()
     print(f"\n{'='*50}")
     print(f"予想完了: {out_df['レースID'].nunique()}レース / {len(out_df)}頭")
-    print(f"HAHO対象: {haho_races}レース  HALO対象: {halo_races}レース")
+    print(f"HAHO対象: {haho_races}レース  HALO対象: {halo_races}レース  LALO対象: {lalo_races}レース")
     print(f"出力先:   {out_path}")
     print(f"{'='*50}")
 
@@ -574,6 +589,13 @@ def main() -> None:
         if not halo_disp.empty:
             print("\n【HALO 買い目一覧（三連複ボックス1点のみ）】")
             print(halo_disp.to_string(index=False))
+        lalo_disp = hon_rows[hon_rows["LALO_戦略対象"]=="✅"][[
+            "日付","場所","R","クラス","距離","馬名",
+            "LALO_複勝_買い目","LALO_複勝_購入額",
+        ]]
+        if not lalo_disp.empty:
+            print("\n【LALO 買い目一覧（複勝◎1点のみ）】")
+            print(lalo_disp.to_string(index=False))
 
 
 if __name__ == "__main__":

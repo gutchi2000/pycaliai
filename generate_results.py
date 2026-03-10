@@ -124,7 +124,7 @@ def load_pred(pred_dir: Path) -> pd.DataFrame:
     #            ※旧システムは全額を按分していたので、合計≒1万円 = HALO想定
     # ──────────────────────────────────────────────────────────
     if "HAHO_馬連_購入額" not in pred.columns and "馬連_購入額" in pred.columns:
-        log.info("旧フォーマットCSV検出: 馬連/三連複 → HAHO/HALO にマッピング")
+        log.info("旧フォーマットCSV検出: 馬連/三連複 → HAHO/HALO/LALO にマッピング")
         pred["HAHO_馬連_購入額"]   = pd.to_numeric(pred["馬連_購入額"],   errors="coerce").fillna(0)
         pred["HAHO_三連複_購入額"] = pd.to_numeric(pred["三連複_購入額"], errors="coerce").fillna(0)
         pred["HAHO_馬連_買い目"]   = pred["馬連_買い目"].fillna("")
@@ -133,15 +133,19 @@ def load_pred(pred_dir: Path) -> pd.DataFrame:
         sf_amt = pd.to_numeric(pred["三連複_購入額"], errors="coerce").fillna(0)
         pred["HALO_三連複_購入額"] = sf_amt.apply(lambda x: BUDGET if x > 0 else 0)
         pred["HALO_三連複_買い目"] = pred["三連複_買い目"].fillna("")
+        # LALO = 複勝◎1点：HAHO対象レース（馬連 or 三連複に1円以上）は全て対象
+        haho_amt = pred["HAHO_馬連_購入額"] + pred["HAHO_三連複_購入額"]
+        pred["LALO_複勝_購入額"] = haho_amt.apply(lambda x: BUDGET if x > 0 else 0)
+        pred["LALO_複勝_買い目"] = ""   # ◎馬番は calc_records で馬番_k から取得
 
-    # HAHO/HALO 購入額（新フォーマット or マッピング後の数値化）
-    for col in ["HAHO_馬連_購入額", "HAHO_三連複_購入額", "HALO_三連複_購入額"]:
+    # HAHO/HALO/LALO 購入額（新フォーマット or マッピング後の数値化）
+    for col in ["HAHO_馬連_購入額", "HAHO_三連複_購入額", "HALO_三連複_購入額", "LALO_複勝_購入額"]:
         if col in pred.columns:
             pred[col] = pd.to_numeric(pred[col], errors="coerce").fillna(0)
         else:
             pred[col] = 0.0
-    # HAHO/HALO 買い目（新フォーマット or マッピング後の文字列保証）
-    for col in ["HAHO_馬連_買い目", "HAHO_三連複_買い目", "HALO_三連複_買い目"]:
+    # HAHO/HALO/LALO 買い目（新フォーマット or マッピング後の文字列保証）
+    for col in ["HAHO_馬連_買い目", "HAHO_三連複_買い目", "HALO_三連複_買い目", "LALO_複勝_買い目"]:
         if col not in pred.columns:
             pred[col] = ""
     # 印列（念のため保証）
@@ -244,6 +248,18 @@ def calc_records(pred: pd.DataFrame, race_haitou: dict, strategy: dict) -> list[
                         halo_sf_ret += per * h["三連複"] / 100
                         halo_sf_hit = True
 
+        # ── LALO: 複勝◎1点 ───────────────────────────────────────────────
+        lalo_fuku_amt = float(hon.get("LALO_複勝_購入額", 0))
+        lalo_target   = lalo_fuku_amt > 0
+        lalo_fuku_ret = 0.0; lalo_fuku_hit = False
+
+        if lalo_fuku_amt > 0:
+            hon_ban      = int(hon["馬番_k"])
+            fuku_payout  = h["複勝"].get(hon_ban, 0) or 0
+            if fuku_payout > 0:
+                lalo_fuku_ret = lalo_fuku_amt * fuku_payout / 100
+                lalo_fuku_hit = True
+
         records.append({
             "レースキー":        rk,
             "日付":              rdf.iloc[0]["日付"],
@@ -262,6 +278,11 @@ def calc_records(pred: pd.DataFrame, race_haitou: dict, strategy: dict) -> list[
             "HALO_三連複_投資":  halo_sf_amt,    "HALO_三連複_払戻":  halo_sf_ret,    "HALO_三連複_的中":  int(halo_sf_hit),
             "HALO_総投資":       halo_sf_amt,
             "HALO_総払戻":       halo_sf_ret,
+            # LALO
+            "LALO_対象":         int(lalo_target),
+            "LALO_複勝_投資":    lalo_fuku_amt,  "LALO_複勝_払戻":    lalo_fuku_ret,  "LALO_複勝_的中":    int(lalo_fuku_hit),
+            "LALO_総投資":       lalo_fuku_amt,
+            "LALO_総払戻":       lalo_fuku_ret,
         })
     return records
 
@@ -281,7 +302,12 @@ def _plan_summary(df: pd.DataFrame, prefix: str) -> dict:
 
     # 馬券種別
     by_type: dict = {}
-    type_keys = ["馬連", "三連複"] if prefix == "HAHO" else ["三連複"]
+    if prefix == "HAHO":
+        type_keys = ["馬連", "三連複"]
+    elif prefix == "LALO":
+        type_keys = ["複勝"]
+    else:
+        type_keys = ["三連複"]
     for k in type_keys:
         col_i = f"{prefix}_{k}_投資"
         col_r = f"{prefix}_{k}_払戻"
@@ -354,6 +380,7 @@ def summarize(records: list[dict]) -> dict:
         "generated_at": pd.Timestamp.now().isoformat(),
         "HAHO": _plan_summary(df, "HAHO"),
         "HALO": _plan_summary(df, "HALO"),
+        "LALO": _plan_summary(df, "LALO"),
     }
 
 
@@ -392,8 +419,10 @@ def main() -> None:
     log.info(f"生成完了: {out_path}")
     haho = summary["HAHO"]["total"]
     halo = summary["HALO"]["total"]
+    lalo = summary["LALO"]["total"]
     log.info(f"HAHO: {haho['races']}R  ROI: {haho['roi']}%  収支: {haho['pnl']:+,}円")
     log.info(f"HALO: {halo['races']}R  ROI: {halo['roi']}%  収支: {halo['pnl']:+,}円")
+    log.info(f"LALO: {lalo['races']}R  ROI: {lalo['roi']}%  収支: {lalo['pnl']:+,}円")
 
 
 if __name__ == "__main__":

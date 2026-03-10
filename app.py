@@ -575,8 +575,9 @@ def is_in_strategy(place: str, cls_raw: str, strategy: dict) -> bool:
 
 def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
              strategy: dict, budget: int) -> dict:
-    """HAHO（馬連◎軸2点+三連複ボックス1点）/ HALO（三連複ボックス1点のみ）を返す。
-    戻り値: {"HAHO": [bets...], "HALO": [bets...]}  ※空の場合はキーなし"""
+    """HAHO（馬連◎軸2点+三連複ボックス1点）/ HALO（三連複ボックス1点のみ）
+       / LALO（複勝◎1点のみ）を返す。
+    戻り値: {"HAHO": [bets...], "HALO": [bets...], "LALO": [bets...]}  ※空の場合はキーなし"""
     if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
         return {}
     cls      = CLASS_NORMALIZE.get(cls_raw, cls_raw)
@@ -623,6 +624,11 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
         c_sf = tuple(sorted([h1, h2, h3]))
         result["HALO"] = [{"馬券種":"三連複","買い目":"-".join(map(str, c_sf)),
                            "購入額":floor_to_unit(budget),"ROI":info.get("roi_oos", info.get("roi", 0))}]
+
+    # ── LALO: 複勝◎1点のみ（全予算）────────────────────────────────────
+    any_info = next(iter(bet_info.values()), {})
+    result["LALO"] = [{"馬券種":"複勝","買い目":str(h1),
+                       "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
 
     return result
 
@@ -2114,11 +2120,12 @@ def page_results(results: dict) -> None:
         unsafe_allow_html=True,
     )
 
-    # 新フォーマット（HAHO/HALO キーあり）
-    if "HAHO" in results or "HALO" in results:
-        tab_haho, tab_halo = st.tabs([
+    # 新フォーマット（HAHO/HALO/LALO キーあり）
+    if "HAHO" in results or "HALO" in results or "LALO" in results:
+        tab_haho, tab_halo, tab_lalo = st.tabs([
             "🛡️ HAHO  安定積み上げ",
             "🎯 HALO  高配当特化",
+            "🍀 LALO  コツコツ複勝",
         ])
         with tab_haho:
             haho_data = results.get("HAHO", {})
@@ -2132,9 +2139,15 @@ def page_results(results: dict) -> None:
                 st.info("HALOのデータがありません。generate_results.py を実行してください。")
             else:
                 _render_plan_results(halo_data, "HALO")
+        with tab_lalo:
+            lalo_data = results.get("LALO", {})
+            if not lalo_data or not lalo_data.get("total", {}).get("races"):
+                st.info("LALOのデータがありません。generate_results.py を実行してください。")
+            else:
+                _render_plan_results(lalo_data, "LALO")
     else:
         # 旧フォーマット（後方互換）
-        st.info("旧フォーマットのresults.jsonです。generate_results.py を再実行するとHAHO/HALOタブが表示されます。")
+        st.info("旧フォーマットのresults.jsonです。generate_results.py を再実行するとHAHO/HALO/LALOタブが表示されます。")
         total = results.get("total", {})
         bet   = total.get("bet", 0)
         ret   = total.get("ret", 0)
@@ -2275,6 +2288,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             "◎スコア":   hon_score,
             "HAHO_bets": bets_all.get("HAHO", []),
             "HALO_bets": bets_all.get("HALO", []),
+            "LALO_bets": bets_all.get("LALO", []),
         })
 
     if not race_metas:
@@ -2285,11 +2299,16 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
     plan = st.radio(
         "プラン選択",
         ["🛡️ HAHO  安定積み上げ（馬連◎軸2点 ＋ 三連複1点）",
-         "🎯 HALO  高配当特化（三連複ボックス1点のみ）"],
+         "🎯 HALO  高配当特化（三連複ボックス1点のみ）",
+         "🍀 LALO  コツコツ複勝（複勝◎1点のみ）"],
         horizontal=True, key="buylist_plan",
     )
-    use_haho = plan.startswith("🛡️")
-    plan_key = "HAHO_bets" if use_haho else "HALO_bets"
+    if plan.startswith("🛡️"):
+        plan_key = "HAHO_bets"
+    elif plan.startswith("🎯"):
+        plan_key = "HALO_bets"
+    else:
+        plan_key = "LALO_bets"
 
     active = [r for r in race_metas if r[plan_key]]
     if not active:
@@ -2310,6 +2329,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         bets  = r[plan_key]
         rengo = [b for b in bets if b["馬券種"] == "馬連"]
         sanf  = [b for b in bets if b["馬券種"] == "三連複"]
+        fuku  = [b for b in bets if b["馬券種"] == "複勝"]
 
         # ヘッダー行
         st.markdown(
@@ -2343,6 +2363,15 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
                 f'<span style="color:#cdd6f4">{combos}</span>'
                 f'<span style="color:#888;margin-left:8px">¥{amt:,}</span>'
                 f'<span style="color:#f39c12;font-size:12px;margin-left:8px">ROI目安{sanf[0]["ROI"]:.0f}%</span>'
+            )
+        if fuku:
+            combos = "　".join(b["買い目"] for b in fuku)
+            amt    = sum(b["購入額"] for b in fuku)
+            lines.append(
+                f'<span style="color:#888;min-width:50px;display:inline-block">複勝</span>'
+                f'<span style="color:#cdd6f4">◎ {combos}番</span>'
+                f'<span style="color:#888;margin-left:8px">¥{amt:,}</span>'
+                f'<span style="color:#f39c12;font-size:12px;margin-left:8px">ROI目安{fuku[0]["ROI"]:.0f}%</span>'
             )
 
         body = "".join(
