@@ -89,9 +89,11 @@ def load_csv(path: Path) -> pd.DataFrame:
 # =========================================================
 # 集計
 # =========================================================
-def build_trend(df: pd.DataFrame, min_n: int) -> dict:
+def build_trend(df: pd.DataFrame, min_n: int, start_yymmdd: int = 0) -> dict:
     """DataFrame → course_trend dict。"""
     # 前処理
+    if start_yymmdd:
+        df = df[pd.to_numeric(df["日付"], errors="coerce").fillna(0) >= start_yymmdd]
     df = df[df["場所"].isin(PLACES)].copy()
     df["race_key"] = df["レースID(新)"].astype(str).str.zfill(18).str[:16]
     df["smile"]    = df["距離"].apply(smile_from_dist)
@@ -287,8 +289,9 @@ def build_trend(df: pd.DataFrame, min_n: int) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description="course_trend.json 生成スクリプト")
     parser.add_argument("--input",  required=True, help="入力CSVパス")
-    parser.add_argument("--output", default="data/course_trend.json", help="出力JSONパス")
-    parser.add_argument("--min_n",  type=int, default=30, help="有効判定の最小レース数（デフォルト30）")
+    parser.add_argument("--output",        default="data/course_trend.json", help="出力JSONパス")
+    parser.add_argument("--min_n",         type=int, default=30,     help="有効判定の最小レース数（デフォルト30）")
+    parser.add_argument("--start_yymmdd",  type=int, default=0,      help="集計開始日付 YYMMDD（例: 160101 = 2016-01-01）")
     args = parser.parse_args()
 
     input_path  = Path(args.input)
@@ -303,9 +306,11 @@ def main() -> None:
     logger.info(f"入力: {input_path}")
     logger.info(f"出力: {output_path}")
     logger.info(f"最小サンプル数: {args.min_n}")
+    if args.start_yymmdd:
+        logger.info(f"集計開始日付: {args.start_yymmdd}")
 
     df = load_csv(input_path)
-    trend = build_trend(df, args.min_n)
+    trend = build_trend(df, args.min_n, args.start_yymmdd)
 
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(trend, f, ensure_ascii=False, indent=2)
