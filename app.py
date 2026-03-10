@@ -566,6 +566,11 @@ def floor_to_unit(x: int, unit: int = MIN_UNIT) -> int:
     return max((x // unit) * unit, unit)
 
 
+def _normalize_baba(raw: str) -> str:
+    """'重(暫定)' → '重'  / '稍重(暫定)' → '稍重' など、（暫定）表記を除去する。"""
+    return raw.replace("(暫定)", "").replace("暫定", "").strip()
+
+
 def is_in_strategy(place: str, cls_raw: str, strategy: dict) -> bool:
     if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
         return False
@@ -2316,6 +2321,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             "クラス":    cls_raw,
             "発走":      str(meta.get("発走時刻", "")),
             "距離":      f'{meta.get("芝・ダ","")}{meta.get("距離","")}m',
+            "馬場":      _normalize_baba(str(meta.get("馬場状態",""))),
             "◎":         hon_name,
             "◎スコア":   hon_score,
             "HAHO_bets": bets_all.get("HAHO", []),
@@ -2346,7 +2352,14 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
     else:
         plan_key = "CQC_bets"
 
+    # 馬場フィルタ
+    all_babas    = sorted({r["馬場"] for r in race_metas if r["馬場"]})
+    baba_options = ["全馬場"] + all_babas
+    baba_filter  = st.selectbox("🏟 馬場フィルタ", baba_options, key="buylist_baba")
+
     active = [r for r in race_metas if r[plan_key]]
+    if baba_filter != "全馬場":
+        active = [r for r in active if r["馬場"] == baba_filter]
     if not active:
         st.info("このプランの対象レースがありません。")
         return
@@ -2374,7 +2387,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             f'padding:10px 0 4px;border-top:1px solid #2a2a3e;margin-top:4px">'
             f'<span style="background:#313244;color:#cdd6f4;border-radius:4px;'
             f'padding:2px 10px;font-weight:bold;font-size:15px">{r["場所"]} {r["R"]}R</span>'
-            f'<span style="color:#888;font-size:13px">{r["クラス"]}　{r["発走"]}　{r["距離"]}</span>'
+            f'<span style="color:#888;font-size:13px">{r["クラス"]}　{r["発走"]}　{r["距離"]}　馬場:{r["馬場"]}</span>'
             f'<span style="color:#a6e3a1;font-size:13px;margin-left:auto">'
             f'◎{r["◎"]}　{r["◎スコア"]:.1f}%</span>'
             f'</div>',
@@ -2621,7 +2634,7 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             "距離":     f'{meta.get("芝・ダ","")}{meta.get("距離","")}m',
             "発走":     str(meta.get("発走時刻","")),
             "天気":     str(meta.get("天気","")),
-            "馬場":     str(meta.get("馬場状態","")),
+            "馬場":     _normalize_baba(str(meta.get("馬場状態",""))),
             "頭数":     len(grp),
             "◎":        hon_name,
             "◎スコア":  hon_score,
@@ -2675,9 +2688,16 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
 
         if races_here:
             m0 = races_here[0]
+            # 芝とダートで馬場が異なる場合を個別表示
+            shiba_babas = sorted({r["馬場"] for r in races_here if r["距離"].startswith("芝")})
+            dirt_babas  = sorted({r["馬場"] for r in races_here if not r["距離"].startswith("芝")})
+            baba_parts  = []
+            if shiba_babas: baba_parts.append(f'芝:{"/".join(shiba_babas)}')
+            if dirt_babas:  baba_parts.append(f'ダ:{"/".join(dirt_babas)}')
+            baba_str = "　".join(baba_parts) if baba_parts else m0["馬場"]
             st.markdown(
                 f'<div style="font-size:13px;color:#888;padding:4px 0 8px">'
-                f'天気: {m0["天気"]}　馬場: {m0["馬場"]}</div>',
+                f'天気: {m0["天気"]}　馬場: {baba_str}</div>',
                 unsafe_allow_html=True,
             )
 
@@ -2707,7 +2727,7 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
                 f'<div style="flex:1">'
                 f'<span style="font-size:18px;color:#cdd6f4">{r["クラス"]}</span>{badge}'
                 f'<span style="color:#888;font-size:14px;margin-left:8px">'
-                f'{r["発走"]}　{r["距離"]}　{r["頭数"]}頭</span>'
+                f'{r["発走"]}　{r["距離"]}　馬場:{r["馬場"]}　{r["頭数"]}頭</span>'
                 f'<br><span style="font-size:14px;color:#a6e3a1">◎ {r["◎"]}　{r["◎スコア"]:.1f}%</span>'
                 f'</div></div>',
                 unsafe_allow_html=True,
@@ -2759,7 +2779,9 @@ def page_race_detail(
             st.session_state.selected_race_id = None
             st.rerun()
 
-        st.markdown(f"## {place} {r_num}R / {cls_raw} / {shida}{dist}m")
+        baba_raw = str(meta.get("馬場状態",""))
+        baba_disp = _normalize_baba(baba_raw)
+        st.markdown(f"## {place} {r_num}R / {cls_raw} / {shida}{dist}m　🏟 馬場:{baba_disp}")
 
         if in_strategy:
             cls_norm = CLASS_NORMALIZE.get(cls_raw, cls_raw)
