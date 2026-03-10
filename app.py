@@ -1887,7 +1887,8 @@ def _render_course_stat(data: dict) -> None:
 def _render_course_analysis(course_trend: dict, place: str, meta: pd.Series) -> None:
     """コース分析タブ全体をレンダリング。季節のみ選択可、他は自動設定。"""
     dist    = meta.get("距離", 0)
-    shida   = str(meta.get("芝・ダ", "芝"))
+    shida_raw = str(meta.get("芝・ダ", "芝"))
+    shida   = "ダ" if shida_raw.startswith("ダ") else "芝"   # "ダート" → "ダ" に正規化
     cls_raw = str(meta.get("クラス名", ""))
     cls_g   = CLASS_NORMALIZE_TREND.get(cls_raw, "OP/重賞")
     sm_auto = _smile_from_dist(dist)
