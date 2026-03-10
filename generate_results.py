@@ -349,6 +349,7 @@ def _plan_summary(df: pd.DataFrame, prefix: str) -> dict:
     rename_map = {
         f"{prefix}_馬連_投資":   "馬連_投資",   f"{prefix}_馬連_払戻":   "馬連_払戻",   f"{prefix}_馬連_的中":   "馬連_的中",
         f"{prefix}_三連複_投資": "三連複_投資", f"{prefix}_三連複_払戻": "三連複_払戻", f"{prefix}_三連複_的中": "三連複_的中",
+        f"{prefix}_複勝_投資":   "複勝_投資",   f"{prefix}_複勝_払戻":   "複勝_払戻",   f"{prefix}_複勝_的中":   "複勝_的中",
         f"{prefix}_総投資":      "総投資",      f"{prefix}_総払戻":      "総払戻",
     }
     base_cols = ["日付", "場所", "R", "クラス"]

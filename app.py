@@ -1970,7 +1970,12 @@ def _render_plan_results(plan_data: dict, plan_key: str) -> None:
     # 馬券種別
     st.markdown("#### 馬券種別成績")
     by_type = plan_data.get("by_type", {})
-    type_keys = ["馬連", "三連複"] if plan_key == "HAHO" else ["三連複"]
+    if plan_key == "HAHO":
+        type_keys = ["馬連", "三連複"]
+    elif plan_key == "LALO":
+        type_keys = ["複勝"]
+    else:
+        type_keys = ["三連複"]
     cols_bt = st.columns(len(type_keys))
     for col, k in zip(cols_bt, type_keys):
         d = by_type.get(k, {})
@@ -2051,7 +2056,12 @@ def _render_plan_results(plan_data: dict, plan_key: str) -> None:
         places    = ["全会場"] + sorted(rdf["場所"].unique().tolist())
         dates     = ["通年"] + sorted(rdf["日付"].unique().tolist(),
                                      key=lambda d: pd.to_datetime(d.replace(".", "/"), errors="coerce"))
-        filter_opts = ["全馬券", "馬連的中", "三連複的中"] if plan_key == "HAHO" else ["全馬券", "三連複的中"]
+        if plan_key == "HAHO":
+            filter_opts = ["全馬券", "馬連的中", "三連複的中"]
+        elif plan_key == "LALO":
+            filter_opts = ["全馬券", "複勝的中"]
+        else:
+            filter_opts = ["全馬券", "三連複的中"]
         sel_place = fl1.selectbox("会場", places, key=f"res_place_{plan_key}")
         sel_date  = fl2.selectbox("日付", dates,  key=f"res_date_{plan_key}")
         sel_type  = fl3.selectbox("絞り込み", filter_opts, key=f"res_type_{plan_key}")
@@ -2065,6 +2075,8 @@ def _render_plan_results(plan_data: dict, plan_key: str) -> None:
             disp = disp[disp["馬連_的中"] == 1]
         elif sel_type == "三連複的中" and "三連複_的中" in disp.columns:
             disp = disp[disp["三連複_的中"] == 1]
+        elif sel_type == "複勝的中" and "複勝_的中" in disp.columns:
+            disp = disp[disp["複勝_的中"] == 1]
 
         # 日次サマリー（通年以外の場合）
         if sel_date != "通年" and len(disp) > 0:
@@ -2090,6 +2102,7 @@ def _render_plan_results(plan_data: dict, plan_key: str) -> None:
             hits = []
             if "馬連_的中"   in row and row["馬連_的中"]:   hits.append("馬連✅")
             if "三連複_的中" in row and row["三連複_的中"]: hits.append("三連複✅")
+            if "複勝_的中"   in row and row["複勝_的中"]:   hits.append("複勝✅")
             hit_str = "　".join(hits) if hits else "❌"
             pnl_v   = int(row["収支"])
             rc      = "#4ade80" if pnl_v >= 0 else "#e74c3c"
