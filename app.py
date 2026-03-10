@@ -2151,7 +2151,7 @@ def page_results(results: dict) -> None:
             "🛡️ HAHO  安定積み上げ",
             "🎯 HALO  高配当特化",
             "🍀 LALO  コツコツ複勝",
-            "⚔️ CQC   近接格闘",
+            "⚔️ CQC   孤高の真髄",
         ])
         with tab_haho:
             haho_data = results.get("HAHO", {})
@@ -2334,7 +2334,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         ["🛡️ HAHO  安定積み上げ（馬連◎軸2点 ＋ 三連複1点）",
          "🎯 HALO  高配当特化（三連複ボックス1点のみ）",
          "🍀 LALO  コツコツ複勝（複勝◎1点のみ）",
-         "⚔️ CQC   近接格闘（単勝◎1点のみ）"],
+         "⚔️ CQC   孤高の真髄（単勝◎1点のみ）"],
         horizontal=True, key="buylist_plan",
     )
     if plan.startswith("🛡️"):
@@ -2825,18 +2825,28 @@ def page_race_detail(
                 if not bets_all:
                     st.warning("買い目を生成できませんでした。")
                 else:
-                    det_tab_haho, det_tab_halo = st.tabs([
+                    det_tab_haho, det_tab_halo, det_tab_lalo, det_tab_cqc = st.tabs([
                         "🛡️ HAHO  安定積み上げ",
                         "🎯 HALO  高配当特化",
+                        "🍀 LALO  コツコツ複勝",
+                        "⚔️ CQC   孤高の真髄",
                     ])
+                    _no_bet_msg = {
+                        "HAHO": "このレースはHAHO戦略の対象外です。",
+                        "HALO": "このレースは三連複戦略の対象外です。",
+                        "LALO": "このレースは複勝戦略の対象外です。",
+                        "CQC":  "このレースは単勝戦略の対象外です。",
+                    }
                     for det_tab, plan_key, plan_label in [
                         (det_tab_haho, "HAHO", "馬連◎軸2点 ＋ 三連複ボックス1点"),
                         (det_tab_halo, "HALO", "三連複ボックス1点のみ"),
+                        (det_tab_lalo, "LALO", "複勝◎1点のみ"),
+                        (det_tab_cqc,  "CQC",  "単勝◎1点のみ"),
                     ]:
                         with det_tab:
                             bets = bets_all.get(plan_key, [])
                             if not bets:
-                                st.info(f"このレースはHAHO戦略の対象外です。" if plan_key=="HAHO" else "このレースは三連複戦略の対象外です。")
+                                st.info(_no_bet_msg.get(plan_key, "買い目がありません。"))
                                 continue
                             bets_df   = pd.DataFrame(bets)
                             total_amt = bets_df["購入額"].sum()
