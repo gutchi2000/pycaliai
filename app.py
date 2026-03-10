@@ -630,6 +630,10 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
     result["LALO"] = [{"馬券種":"複勝","買い目":str(h1),
                        "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
 
+    # ── CQC: 単勝◎1点のみ（全予算）─────────────────────────────────────
+    result["CQC"]  = [{"馬券種":"単勝","買い目":str(h1),
+                       "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
+
     return result
 
 
@@ -1975,6 +1979,8 @@ def _render_plan_results(plan_data: dict, plan_key: str) -> None:
         type_keys = ["馬連", "三連複"]
     elif plan_key == "LALO":
         type_keys = ["複勝"]
+    elif plan_key == "CQC":
+        type_keys = ["単勝"]
     else:
         type_keys = ["三連複"]
     cols_bt = st.columns(len(type_keys))
@@ -2061,6 +2067,8 @@ def _render_plan_results(plan_data: dict, plan_key: str) -> None:
             filter_opts = ["全馬券", "馬連的中", "三連複的中"]
         elif plan_key == "LALO":
             filter_opts = ["全馬券", "複勝的中"]
+        elif plan_key == "CQC":
+            filter_opts = ["全馬券", "単勝的中"]
         else:
             filter_opts = ["全馬券", "三連複的中"]
         sel_place = fl1.selectbox("会場", places, key=f"res_place_{plan_key}")
@@ -2078,6 +2086,8 @@ def _render_plan_results(plan_data: dict, plan_key: str) -> None:
             disp = disp[disp["三連複_的中"] == 1]
         elif sel_type == "複勝的中" and "複勝_的中" in disp.columns:
             disp = disp[disp["複勝_的中"] == 1]
+        elif sel_type == "単勝的中" and "単勝_的中" in disp.columns:
+            disp = disp[disp["単勝_的中"] == 1]
 
         # 日次サマリー（通年以外の場合）
         if sel_date != "通年" and len(disp) > 0:
@@ -2104,6 +2114,7 @@ def _render_plan_results(plan_data: dict, plan_key: str) -> None:
             if "馬連_的中"   in row and row["馬連_的中"]:   hits.append("馬連✅")
             if "三連複_的中" in row and row["三連複_的中"]: hits.append("三連複✅")
             if "複勝_的中"   in row and row["複勝_的中"]:   hits.append("複勝✅")
+            if "単勝_的中"   in row and row["単勝_的中"]:   hits.append("単勝✅")
             hit_str = "　".join(hits) if hits else "❌"
             pnl_v   = int(row["収支"])
             rc      = "#4ade80" if pnl_v >= 0 else "#e74c3c"
@@ -2134,12 +2145,13 @@ def page_results(results: dict) -> None:
         unsafe_allow_html=True,
     )
 
-    # 新フォーマット（HAHO/HALO/LALO キーあり）
-    if "HAHO" in results or "HALO" in results or "LALO" in results:
-        tab_haho, tab_halo, tab_lalo = st.tabs([
+    # 新フォーマット（HAHO/HALO/LALO/CQC キーあり）
+    if "HAHO" in results or "HALO" in results or "LALO" in results or "CQC" in results:
+        tab_haho, tab_halo, tab_lalo, tab_cqc = st.tabs([
             "🛡️ HAHO  安定積み上げ",
             "🎯 HALO  高配当特化",
             "🍀 LALO  コツコツ複勝",
+            "⚔️ CQC   近接格闘",
         ])
         with tab_haho:
             haho_data = results.get("HAHO", {})
@@ -2159,9 +2171,15 @@ def page_results(results: dict) -> None:
                 st.info("LALOのデータがありません。generate_results.py を実行してください。")
             else:
                 _render_plan_results(lalo_data, "LALO")
+        with tab_cqc:
+            cqc_data = results.get("CQC", {})
+            if not cqc_data or not cqc_data.get("total", {}).get("races"):
+                st.info("CQCのデータがありません。generate_results.py を実行してください。")
+            else:
+                _render_plan_results(cqc_data, "CQC")
     else:
         # 旧フォーマット（後方互換）
-        st.info("旧フォーマットのresults.jsonです。generate_results.py を再実行するとHAHO/HALO/LALOタブが表示されます。")
+        st.info("旧フォーマットのresults.jsonです。generate_results.py を再実行するとHAHO/HALO/LALO/CQCタブが表示されます。")
         total = results.get("total", {})
         bet   = total.get("bet", 0)
         ret   = total.get("ret", 0)
@@ -2303,6 +2321,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             "HAHO_bets": bets_all.get("HAHO", []),
             "HALO_bets": bets_all.get("HALO", []),
             "LALO_bets": bets_all.get("LALO", []),
+            "CQC_bets":  bets_all.get("CQC",  []),
         })
 
     if not race_metas:
@@ -2314,15 +2333,18 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         "プラン選択",
         ["🛡️ HAHO  安定積み上げ（馬連◎軸2点 ＋ 三連複1点）",
          "🎯 HALO  高配当特化（三連複ボックス1点のみ）",
-         "🍀 LALO  コツコツ複勝（複勝◎1点のみ）"],
+         "🍀 LALO  コツコツ複勝（複勝◎1点のみ）",
+         "⚔️ CQC   近接格闘（単勝◎1点のみ）"],
         horizontal=True, key="buylist_plan",
     )
     if plan.startswith("🛡️"):
         plan_key = "HAHO_bets"
     elif plan.startswith("🎯"):
         plan_key = "HALO_bets"
-    else:
+    elif plan.startswith("🍀"):
         plan_key = "LALO_bets"
+    else:
+        plan_key = "CQC_bets"
 
     active = [r for r in race_metas if r[plan_key]]
     if not active:
@@ -2344,6 +2366,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         rengo = [b for b in bets if b["馬券種"] == "馬連"]
         sanf  = [b for b in bets if b["馬券種"] == "三連複"]
         fuku  = [b for b in bets if b["馬券種"] == "複勝"]
+        tan   = [b for b in bets if b["馬券種"] == "単勝"]
 
         # ヘッダー行
         st.markdown(
@@ -2386,6 +2409,15 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
                 f'<span style="color:#cdd6f4">◎ {combos}番</span>'
                 f'<span style="color:#888;margin-left:8px">¥{amt:,}</span>'
                 f'<span style="color:#f39c12;font-size:12px;margin-left:8px">ROI目安{fuku[0]["ROI"]:.0f}%</span>'
+            )
+        if tan:
+            combos = "　".join(b["買い目"] for b in tan)
+            amt    = sum(b["購入額"] for b in tan)
+            lines.append(
+                f'<span style="color:#888;min-width:50px;display:inline-block">単勝</span>'
+                f'<span style="color:#cdd6f4">◎ {combos}番</span>'
+                f'<span style="color:#888;margin-left:8px">¥{amt:,}</span>'
+                f'<span style="color:#f39c12;font-size:12px;margin-left:8px">ROI目安{tan[0]["ROI"]:.0f}%</span>'
             )
 
         body = "".join(

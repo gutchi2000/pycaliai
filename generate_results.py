@@ -91,6 +91,15 @@ def load_kekka(kekka_dir: Path) -> pd.DataFrame:
     kekka["複勝配当_n"] = pd.to_numeric(kekka["複勝配当"], errors="coerce")
     kekka["馬連_n"]     = pd.to_numeric(kekka["馬連"],     errors="coerce")
     kekka["三連複_n"]   = pd.to_numeric(kekka["３連複"],   errors="coerce")
+    # 単勝配当: "260" or "(3.7)"（倍率）の2形式を100円あたりに統一
+    def _parse_tansho(val):
+        if pd.isna(val): return None
+        s = str(val).strip()
+        if s.startswith("(") and s.endswith(")"):
+            return round(float(s[1:-1]) * 100)
+        try: return int(float(s))
+        except: return None
+    kekka["単勝配当_n"] = kekka["単勝配当"].apply(_parse_tansho)
     log.info(f"kekka合計: {len(kekka)}行 / {kekka['レースキー'].nunique()}レース")
     return kekka
 
@@ -137,15 +146,18 @@ def load_pred(pred_dir: Path) -> pd.DataFrame:
         haho_amt = pred["HAHO_馬連_購入額"] + pred["HAHO_三連複_購入額"]
         pred["LALO_複勝_購入額"] = haho_amt.apply(lambda x: BUDGET if x > 0 else 0)
         pred["LALO_複勝_買い目"] = ""   # ◎馬番は calc_records で馬番_k から取得
+        # CQC = 単勝◎1点：LALO と同じくHAHO対象レース全て
+        pred["CQC_単勝_購入額"]  = pred["LALO_複勝_購入額"].copy()
+        pred["CQC_単勝_買い目"]  = ""
 
-    # HAHO/HALO/LALO 購入額（新フォーマット or マッピング後の数値化）
-    for col in ["HAHO_馬連_購入額", "HAHO_三連複_購入額", "HALO_三連複_購入額", "LALO_複勝_購入額"]:
+    # HAHO/HALO/LALO/CQC 購入額（新フォーマット or マッピング後の数値化）
+    for col in ["HAHO_馬連_購入額", "HAHO_三連複_購入額", "HALO_三連複_購入額", "LALO_複勝_購入額", "CQC_単勝_購入額"]:
         if col in pred.columns:
             pred[col] = pd.to_numeric(pred[col], errors="coerce").fillna(0)
         else:
             pred[col] = 0.0
-    # HAHO/HALO/LALO 買い目（新フォーマット or マッピング後の文字列保証）
-    for col in ["HAHO_馬連_買い目", "HAHO_三連複_買い目", "HALO_三連複_買い目", "LALO_複勝_買い目"]:
+    # HAHO/HALO/LALO/CQC 買い目（新フォーマット or マッピング後の文字列保証）
+    for col in ["HAHO_馬連_買い目", "HAHO_三連複_買い目", "HALO_三連複_買い目", "LALO_複勝_買い目", "CQC_単勝_買い目"]:
         if col not in pred.columns:
             pred[col] = ""
     # 印列（念のため保証）
@@ -166,11 +178,13 @@ def build_race_haitou(kekka: pd.DataFrame) -> dict:
         ban = row["馬番_k"]
         jun = row["確定着順"]
         if rk not in race_haitou:
-            race_haitou[rk] = {"複勝": {}, "馬連": None, "三連複": None, "top3": set(), "1着": None, "2着": None}
+            race_haitou[rk] = {"単勝": {}, "複勝": {}, "馬連": None, "三連複": None, "top3": set(), "1着": None, "2着": None}
         if jun == 1:
             race_haitou[rk]["馬連"]   = row["馬連_n"]
             race_haitou[rk]["三連複"] = row["三連複_n"]
             race_haitou[rk]["1着"]    = ban
+            if row["単勝配当_n"]:
+                race_haitou[rk]["単勝"][ban] = row["単勝配当_n"]
         if jun == 2:
             race_haitou[rk]["2着"]    = ban
         if jun in [1, 2, 3]:
@@ -260,6 +274,18 @@ def calc_records(pred: pd.DataFrame, race_haitou: dict, strategy: dict) -> list[
                 lalo_fuku_ret = lalo_fuku_amt * fuku_payout / 100
                 lalo_fuku_hit = True
 
+        # ── CQC: 単勝◎1点 ────────────────────────────────────────────────
+        cqc_tan_amt = float(hon.get("CQC_単勝_購入額", 0))
+        cqc_target  = cqc_tan_amt > 0
+        cqc_tan_ret = 0.0; cqc_tan_hit = False
+
+        if cqc_tan_amt > 0:
+            hon_ban     = int(hon["馬番_k"])
+            tan_payout  = h["単勝"].get(hon_ban, 0) or 0
+            if tan_payout > 0:
+                cqc_tan_ret = cqc_tan_amt * tan_payout / 100
+                cqc_tan_hit = True
+
         records.append({
             "レースキー":        rk,
             "日付":              rdf.iloc[0]["日付"],
@@ -283,6 +309,11 @@ def calc_records(pred: pd.DataFrame, race_haitou: dict, strategy: dict) -> list[
             "LALO_複勝_投資":    lalo_fuku_amt,  "LALO_複勝_払戻":    lalo_fuku_ret,  "LALO_複勝_的中":    int(lalo_fuku_hit),
             "LALO_総投資":       lalo_fuku_amt,
             "LALO_総払戻":       lalo_fuku_ret,
+            # CQC
+            "CQC_対象":          int(cqc_target),
+            "CQC_単勝_投資":     cqc_tan_amt,    "CQC_単勝_払戻":     cqc_tan_ret,    "CQC_単勝_的中":     int(cqc_tan_hit),
+            "CQC_総投資":        cqc_tan_amt,
+            "CQC_総払戻":        cqc_tan_ret,
         })
     return records
 
@@ -306,6 +337,8 @@ def _plan_summary(df: pd.DataFrame, prefix: str) -> dict:
         type_keys = ["馬連", "三連複"]
     elif prefix == "LALO":
         type_keys = ["複勝"]
+    elif prefix == "CQC":
+        type_keys = ["単勝"]
     else:
         type_keys = ["三連複"]
     for k in type_keys:
@@ -350,6 +383,7 @@ def _plan_summary(df: pd.DataFrame, prefix: str) -> dict:
         f"{prefix}_馬連_投資":   "馬連_投資",   f"{prefix}_馬連_払戻":   "馬連_払戻",   f"{prefix}_馬連_的中":   "馬連_的中",
         f"{prefix}_三連複_投資": "三連複_投資", f"{prefix}_三連複_払戻": "三連複_払戻", f"{prefix}_三連複_的中": "三連複_的中",
         f"{prefix}_複勝_投資":   "複勝_投資",   f"{prefix}_複勝_払戻":   "複勝_払戻",   f"{prefix}_複勝_的中":   "複勝_的中",
+        f"{prefix}_単勝_投資":   "単勝_投資",   f"{prefix}_単勝_払戻":   "単勝_払戻",   f"{prefix}_単勝_的中":   "単勝_的中",
         f"{prefix}_総投資":      "総投資",      f"{prefix}_総払戻":      "総払戻",
     }
     base_cols = ["日付", "場所", "R", "クラス"]
@@ -382,6 +416,7 @@ def summarize(records: list[dict]) -> dict:
         "HAHO": _plan_summary(df, "HAHO"),
         "HALO": _plan_summary(df, "HALO"),
         "LALO": _plan_summary(df, "LALO"),
+        "CQC":  _plan_summary(df, "CQC"),
     }
 
 
@@ -421,9 +456,11 @@ def main() -> None:
     haho = summary["HAHO"]["total"]
     halo = summary["HALO"]["total"]
     lalo = summary["LALO"]["total"]
+    cqc  = summary["CQC"]["total"]
     log.info(f"HAHO: {haho['races']}R  ROI: {haho['roi']}%  収支: {haho['pnl']:+,}円")
     log.info(f"HALO: {halo['races']}R  ROI: {halo['roi']}%  収支: {halo['pnl']:+,}円")
     log.info(f"LALO: {lalo['races']}R  ROI: {lalo['roi']}%  収支: {lalo['pnl']:+,}円")
+    log.info(f"CQC:  {cqc['races']}R  ROI: {cqc['roi']}%  収支: {cqc['pnl']:+,}円")
 
 
 if __name__ == "__main__":

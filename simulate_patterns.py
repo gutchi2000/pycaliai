@@ -105,6 +105,8 @@ PATTERNS: dict[str, dict] = {
     "PL1_複勝のみ_◎1点":    {"複勝": "◎1"},
     "PL2_複勝のみ_◎◯2点":   {"複勝": "◎◯2"},
     "PL3_複勝のみ_◎◯▲3点":  {"複勝": "◎◯▲3"},
+    # ── 単勝のみ比較（CQCプラン候補）──────────────────────
+    "CQC1_単勝のみ_◎1点":   {"単勝": "◎1"},
     # ── 馬連追加パターン（三連複はボックス1固定で比較）─────
     # ◎軸3点: ◎-◯、◎-▲、◎-△
     "P22_複勝なし_馬連◎軸3_三連複ボックス1":      {                    "馬連": "◎軸3",       "三連複": "ボックス1"},
@@ -123,7 +125,9 @@ def floor100(x: float) -> int:
 
 def get_payout(combo: list[int], bet_type: str, kekka: dict) -> int:
     """実払戻配当（100円あたり）を返す。外れ=0。"""
-    if bet_type == "複勝":
+    if bet_type == "単勝":
+        return int(kekka.get("単勝", {}).get(combo[0], 0) or 0)
+    elif bet_type == "複勝":
         return int(kekka.get("複勝", {}).get(combo[0], 0) or 0)
     elif bet_type == "馬連":
         key = "-".join(map(str, sorted(combo)))
@@ -157,7 +161,11 @@ def generate_bets(
 
     combos: list[list[int]] = []
 
-    if bet_type == "複勝":
+    if bet_type == "単勝":
+        if pattern_key == "◎1":
+            combos = [[h1]]
+
+    elif bet_type == "複勝":
         if pattern_key == "◎1":
             combos = [[h1]]
         elif pattern_key == "◎◯2" and h2:
@@ -304,6 +312,15 @@ def simulate_race(
     out: dict[str, list[dict]] = {}
 
     for pat_name, pat_def in PATTERNS.items():
+        # 単勝のみパターン（CQC）は strategy に 単勝 キーがなくても全額で実行
+        if list(pat_def.keys()) == ["単勝"]:
+            bets = generate_bets(h1, h2, h3, h4, h5, "単勝", pat_def["単勝"], budget, kekka)
+            for item in bets:
+                item["pattern"] = pat_name
+            if bets:
+                out[pat_name] = bets
+            continue
+
         # パターンが使う馬券種 × 戦略にある馬券種の積集合
         active_types = [bt for bt in pat_def if bt in bet_info]
         if not active_types:
@@ -453,7 +470,7 @@ def load_kekka(path: Path) -> dict:
     kd = {}
     for rid, g in df.groupby("race_id"):
         g    = g.sort_values("確定着順")
-        ent  = {"複勝": {}, "馬連": {}, "三連複": {}}
+        ent  = {"単勝": {}, "複勝": {}, "馬連": {}, "三連複": {}}
         top3 = [int(h) for h in g[g["確定着順"] <= 3]["馬番"].tolist() if pd.notna(h)]
         for _, row in g[g["確定着順"] <= 3].iterrows():
             ban, pay = row["馬番"], row["複勝配当"]
@@ -462,6 +479,15 @@ def load_kekka(path: Path) -> dict:
         r1_rows = g[g["確定着順"] == 1]
         if not r1_rows.empty and len(top3) >= 2:
             r1 = r1_rows.iloc[0]
+            # 単勝（"260" = 100円あたり260円 / "(3.7)" = 3.7倍 = 370円 の2形式混在）
+            tansho_raw = r1.get("単勝配当")
+            if pd.notna(tansho_raw):
+                s = str(tansho_raw).strip()
+                if s.startswith("(") and s.endswith(")"):
+                    tansho_pay = round(float(s[1:-1]) * 100)
+                else:
+                    tansho_pay = int(float(s))
+                ent["単勝"][int(r1["馬番"])] = tansho_pay
             key = "-".join(map(str, sorted(top3[:2])))
             if pd.notna(r1.get("馬連")):
                 ent["馬連"][key] = int(r1["馬連"])
