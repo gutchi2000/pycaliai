@@ -63,6 +63,7 @@ MODEL_DIR     = BASE_DIR / "models"
 STRATEGY_JSON    = DATA_DIR / "strategy_weights.json"
 COURSE_TREND_JSON = DATA_DIR / "course_trend.json"
 RESULTS_JSON      = DATA_DIR / "results.json"
+TYAKU_DIR     = DATA_DIR / "tyaku"
 LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
 CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v1.pkl"
@@ -178,6 +179,77 @@ HORSE_COLS_99 = [
     "三走前マイニング順位","三走前通過1","三走前通過2","三走前通過3","三走前通過4","三走前Ave3F",
     "三走前上り3F","三走前上り3F順位","三走前1_2着馬",
 ]
+
+
+# =========================================================
+# 着度数CSV パース（predict_weekly.py と同一ロジック）
+# =========================================================
+TYAKU_HORSE_COLS = [
+    "枠番","B","馬番","印","M2","M3","M4","馬名S","C","性別","年齢","替","騎手","斤量","減M","単勝",
+    "馬体重","増減",
+    "中央平地全:1着","中央平地全:2着","中央平地全:3着","中央平地全:外","中央平地全:連対率",
+    "同騎手:1着","同騎手:2着","同騎手:3着","同騎手:外","同騎手:連対率",
+    "全ダート:1着","全ダート:2着","全ダート:3着","全ダート:外","全ダート:連対率",
+    "同距離:1着","同距離:2着","同距離:3着","同距離:外","同距離:連対率",
+    "同場所:1着","同場所:2着","同場所:3着","同場所:外","同場所:連対率",
+    "同コース:1着","同コース:2着","同コース:3着","同コース:外","同コース:連対率",
+    "同クラス:1着","同クラス:2着","同クラス:3着","同クラス:外","同クラス:連対率",
+    "穴傾向","BESTタイム",
+]
+
+
+def _load_tyaku(date_str: str) -> "pd.DataFrame | None":
+    """data/tyaku/YYYYMMDD.csv を読み込み、馬番→着度数の対応表を返す。"""
+    path = TYAKU_DIR / f"{date_str}.csv"
+    if not path.exists():
+        return None
+    for enc in ["cp932", "shift_jis", "utf-8"]:
+        try:
+            text = path.read_bytes().decode(enc); break
+        except Exception:
+            continue
+    else:
+        return None
+
+    rows: list[dict] = []
+    current_race_id: str | None = None
+    for line in text.splitlines():
+        cols = line.split(",")
+        if len(cols) == 19 and cols[0] not in ("レースID(新)", ""):
+            current_race_id = cols[0].strip()[:16]
+        elif len(cols) == 55 and cols[0] not in ("枠番", "") and current_race_id:
+            row = dict(zip(TYAKU_HORSE_COLS, cols))
+            row["レースID(新/馬番無)"] = current_race_id
+            rows.append(row)
+
+    if not rows:
+        return None
+
+    df = pd.DataFrame(rows)
+    for col in ["馬番","馬体重","増減",
+                "中央平地全:1着","中央平地全:2着","中央平地全:3着","中央平地全:外",
+                "同コース:1着","同コース:2着","同コース:3着","同コース:外",
+                "同クラス:1着","同クラス:2着","同クラス:3着","同クラス:外"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Bayesian smoothing: prior = 0.286, 仮想サンプル数 5
+    _PRIOR_ALPHA = 1.43
+    _PRIOR_BETA  = 5.0
+    for prefix, out_col in [("中央平地全", "horse_fuku_career"),
+                             ("同コース",   "horse_fuku_course"),
+                             ("同クラス",   "horse_fuku_class")]:
+        w = df[f"{prefix}:1着"].fillna(0) + df[f"{prefix}:2着"].fillna(0) + df[f"{prefix}:3着"].fillna(0)
+        total = w + df[f"{prefix}:外"].fillna(0)
+        df[out_col] = (w + _PRIOR_ALPHA) / (total + _PRIOR_BETA)
+
+    if "増減" in df.columns:
+        df["増減"] = df["増減"].astype(str).str.replace(" ", "").str.replace("－","-").str.replace("＋","+")
+        df["増減"] = pd.to_numeric(df["増減"], errors="coerce")
+
+    keep = ["レースID(新/馬番無)","馬番","馬体重","増減",
+            "horse_fuku_career","horse_fuku_course","horse_fuku_class"]
+    return df[[c for c in keep if c in df.columns]]
 
 
 # =========================================================
@@ -297,9 +369,32 @@ def parse_target_csv(source) -> pd.DataFrame:
             for col in stat_cols:
                 df[col] = _ROLLING_TRAIN_MEDIANS.get(col, 0.200)
 
-    # 馬ローリング成績は週次CSVから取得不可のため訓練データ中央値で補完
-    df["horse_fuku10"] = 0.286   # 訓練 valid 中央値
-    df["horse_fuku30"] = 0.312   # 訓練 valid 中央値
+    # ── 着度数CSV（data/tyaku/YYYYMMDD.csv）があればマージ ──
+    if isinstance(source, (str, Path)):
+        date_str = Path(source).stem
+    else:
+        date_str = Path(getattr(source, "name", "")).stem
+    tyaku_df = _load_tyaku(date_str)
+    if tyaku_df is not None:
+        df = df.merge(tyaku_df, on=["レースID(新/馬番無)", "馬番"], how="left",
+                      suffixes=("", "_tyaku"))
+        if "馬体重_tyaku" in df.columns:
+            df["馬体重"] = df["馬体重_tyaku"].combine_first(
+                pd.to_numeric(df.get("馬体重"), errors="coerce"))
+            df.drop(columns=["馬体重_tyaku"], inplace=True)
+        if "増減_tyaku" in df.columns:
+            df["馬体重増減"] = df["増減_tyaku"]
+            df.drop(columns=["増減_tyaku"], inplace=True)
+        if "horse_fuku_career" in df.columns:
+            df["horse_fuku10"] = df["horse_fuku_career"].fillna(0.286)
+            df["horse_fuku30"] = df["horse_fuku_career"].fillna(0.312)
+        else:
+            df["horse_fuku10"] = 0.286
+            df["horse_fuku30"] = 0.312
+    else:
+        # 着度数CSVなし → 訓練データ中央値で補完
+        df["horse_fuku10"] = 0.286   # 訓練 valid 中央値
+        df["horse_fuku30"] = 0.312   # 訓練 valid 中央値
 
     # 週次CSVに含まれないペース指数・体重比を訓練データ中央値で補完
     # （0 のままだと分布外でモデルが誤った方向に流れる）
