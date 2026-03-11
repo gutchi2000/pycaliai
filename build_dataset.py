@@ -115,6 +115,63 @@ def add_rolling_stats(master: pd.DataFrame) -> pd.DataFrame:
     return master
 
 
+def add_horse_rolling_stats(master: pd.DataFrame) -> pd.DataFrame:
+    """馬の直近N走複勝率を時系列リークなしで追加する。
+
+    追加列: horse_fuku10, horse_fuku30
+    """
+    logger.info("馬ローリング成績を計算中...")
+    for window, min_p in [(10, 3), (30, 5)]:
+        col = f"horse_fuku{window}"
+        master[col] = (
+            master.groupby("血統登録番号", sort=False)["fukusho_flag"]
+            .transform(
+                lambda x: x.shift(1).rolling(window, min_periods=min_p).mean()
+            )
+        )
+        na_cnt = master[col].isna().sum()
+        logger.info(f"  {col}: NaN={na_cnt:,}件")
+    return master
+
+
+def add_pace_features(master: pd.DataFrame) -> pd.DataFrame:
+    """前1角〜前4角から脚質指標を生成する。
+
+    prev_pos_rel : 前走の相対的な先行度 (0=先頭, 1=最後方)
+    closing_power: 前走の追込み度 (正=前から来た, 負=後退)
+    """
+    logger.info("脚質特徴量を計算中...")
+    n = pd.to_numeric(master["前走出走頭数"], errors="coerce").clip(lower=2)
+    front = pd.to_numeric(master["前1角"], errors="coerce")
+    back  = pd.to_numeric(master["前4角"], errors="coerce")
+    master["prev_pos_rel"]  = (front - 1) / (n - 1)
+    master["closing_power"] = (front - back) / (n - 1)
+    na_rate = master["prev_pos_rel"].isna().mean()
+    logger.info(f"  prev_pos_rel: NaN={na_rate:.1%}")
+    return master
+
+
+def save_entity_stats(master: pd.DataFrame) -> None:
+    """最新の騎手・調教師ローリング成績を保存する（週次予測参照用スナップショット）。"""
+    for code_col, stat_cols, fname in [
+        ("騎手コード",  ["jockey_fuku30", "jockey_fuku90"],   "jockey_stats.csv"),
+        ("調教師コード", ["trainer_fuku30", "trainer_fuku90"], "trainer_stats.csv"),
+    ]:
+        available = [c for c in stat_cols if c in master.columns]
+        if not available:
+            continue
+        latest = (
+            master.sort_values(["日付", "発走時刻"])
+            .groupby(code_col)[available]
+            .last()
+            .reset_index()
+            .dropna(subset=available, how="all")
+        )
+        out = DATA_DIR / fname
+        latest.to_csv(out, index=False, encoding="utf-8-sig")
+        logger.info(f"  保存: {out.name} ({len(latest):,}件)")
+
+
 def add_roi_target(master: pd.DataFrame) -> pd.DataFrame:
     """kekka CSV の複勝配当から roi_target を生成する。
 
@@ -203,6 +260,12 @@ def build_master() -> pd.DataFrame:
     # ---- 騎手・調教師ローリング成績特徴量を追加 ----
     master = add_rolling_stats(master)
 
+    # ---- 馬ローリング成績特徴量を追加 ----
+    master = add_horse_rolling_stats(master)
+
+    # ---- 脚質特徴量を追加 ----
+    master = add_pace_features(master)
+
     # ---- 期待値ターゲット (roi_target) を追加 ----
     master = add_roi_target(master)
 
@@ -229,6 +292,10 @@ def build_master() -> pd.DataFrame:
     before = len(master)
     master = master.dropna(subset=["着順"])
     logger.info(f"除外・中止除去: {before - len(master):,}件 → {len(master):,}行")
+
+    # ---- 騎手・調教師スタッツスナップショット保存（週次予測用） ----
+    logger.info("エンティティスタッツを保存中...")
+    save_entity_stats(master)
 
     # ---- 保存 ----
     REPORT_DIR.mkdir(parents=True, exist_ok=True)

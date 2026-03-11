@@ -120,14 +120,15 @@ COLUMN_MAP = {
     "前走間隔":       "間隔",
     "前走着差":       "前走着差タイム",
     "前走斤量":       "前走斤量",
-    "前走Ave3F":     "前走平均3F",
-    "前走上り3F順位":  "前走上り3F順位",
+    # master CSV の列名に合わせる（モデルが参照する名前）
+    "前走Ave3F":     "前走Ave-3F",
+    "前走上り3F順位":  "前走上り3F順",
+    "前走通過1":      "前1角",
+    "前走通過2":      "前2角",
+    "前走通過3":      "前3角",
+    "前走通過4":      "前4角",
     "マイニング順位":  "マイニング順位",
     "前走単勝オッズ":  "前走単勝オッズ",
-    "前走通過1":      "前走通過1",
-    "前走通過2":      "前走通過2",
-    "前走通過3":      "前走通過3",
-    "前走通過4":      "前走通過4",
 }
 CLASS_NORMALIZE = {
     "新馬":"新馬","未勝利":"未勝利","1勝":"1勝","500万":"1勝",
@@ -179,12 +180,18 @@ def parse_csv(path: Path) -> pd.DataFrame:
 
     for col in ["枠番","馬番","斤量","ZI","ZI順位","距離","人気","単勝",
                 "前走確定着順","前走上り3F","前走距離","間隔","前走人気",
-                "前走着差タイム","前走斤量","前走平均3F","前走上り3F順位",
+                "前走着差タイム","前走斤量","前走Ave-3F","前走上り3F順",
                 "マイニング順位","前走単勝オッズ",
-                "前走通過1","前走通過2","前走通過3","前走通過4",
+                "前1角","前2角","前3角","前4角",
                 "フルゲート頭数","年齢","出走頭数","コーナー回数"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # 脚質特徴量：前走コーナー通過順位から計算（モデルと同じ定義）
+    if "前1角" in df.columns and "前4角" in df.columns:
+        n = df["出走頭数"].clip(lower=2)
+        df["prev_pos_rel"]   = (df["前1角"] - 1) / (n - 1)
+        df["closing_power"]  = (df["前1角"] - df["前4角"]) / (n - 1)
 
     for col in ["前走走破タイム","前走着差タイム","馬体重","馬体重増減","前走斤量","生産者"]:
         if col not in df.columns:
@@ -217,9 +224,12 @@ def predict_lgbm(df: pd.DataFrame, obj: dict) -> np.ndarray:
         if "__NaN__" not in le.classes_:
             le.classes_ = np.append(le.classes_, "__NaN__")
         df[col] = le.transform(df[col])
+    # rolling stats 系は 0 ではなく NaN（モデルの「データなし」分岐を利用）
+    _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
+                     "horse_fuku10","horse_fuku30"}
     for col in feature_cols:
         if col not in df.columns:
-            df[col] = 0
+            df[col] = np.nan if col in _ROLLING_COLS else 0
     return model.predict_proba(df[feature_cols])[:, 1]
 
 
@@ -239,9 +249,11 @@ def predict_catboost(df: pd.DataFrame, obj: dict) -> np.ndarray:
             df[col] = parse_time_str(df[col])
     for col in cat_list:
         df[col] = df[col].fillna("__NaN__").astype(str) if col in df.columns else "__NaN__"
+    _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
+                     "horse_fuku10","horse_fuku30"}
     for col in feature_cols:
         if col not in df.columns:
-            df[col] = 0.0
+            df[col] = np.nan if col in _ROLLING_COLS else 0.0
     cat_idx = [i for i, c in enumerate(feature_cols) if c in cat_list]
     pool = Pool(df[feature_cols], cat_features=cat_idx)
     return model.predict_proba(pool)[:, 1]

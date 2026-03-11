@@ -68,6 +68,10 @@ NUM_FEATURES = [
     # 騎手・調教師の直近成績（build_dataset.py で生成）
     "jockey_fuku30", "jockey_fuku90",
     "trainer_fuku30", "trainer_fuku90",
+    # 馬の直近成績（build_dataset.py で生成）
+    "horse_fuku10", "horse_fuku30",
+    # 脚質特徴量（build_dataset.py で生成）
+    "prev_pos_rel", "closing_power",
 ]
 
 TIME_STR_FEATURES = ["前走走破タイム", "前走着差タイム"]
@@ -135,9 +139,9 @@ def main() -> None:
     feature_cols = [c for c in all_features if c in train.columns]
     logger.info(f"使用特徴量数: {len(feature_cols)}")
 
-    # roi_target を sample_weight として使用（圏外=1.0, 高配当3着以内=高weight）
-    w_tr = train["roi_target"].clip(lower=1.0).fillna(1.0) if "roi_target" in train.columns else None
-    pool_tr = make_pool(train, feature_cols, sample_weight=w_tr)
+    # CatBoost は auto_class_weights="Balanced" で不均衡対応済み。
+    # roi_target を sample_weight に加えると正例が過剰重み付けされるため使わない。
+    pool_tr = make_pool(train, feature_cols)
     pool_va = make_pool(valid, feature_cols)
     pool_te = make_pool(test,  feature_cols, with_label=False)
 
@@ -148,7 +152,7 @@ def main() -> None:
             "random_seed":           RANDOM_STATE,
             "verbose":               0,
             "early_stopping_rounds": 50,
-            # auto_class_weights は sample_weight と競合するため無効化
+            "auto_class_weights":    "Balanced",   # 不均衡対策（roi_target と併用可能）
             "task_type":             "CPU",
             "learning_rate":         trial.suggest_float("learning_rate", 0.01, 0.1, log=True),
             "depth":                 trial.suggest_int("depth", 4, 10),
@@ -183,7 +187,7 @@ def main() -> None:
         "random_seed":           RANDOM_STATE,
         "verbose":               200,
         "early_stopping_rounds": 50,
-        # auto_class_weights は sample_weight と競合するため無効化
+        "auto_class_weights":    "Balanced",   # 不均衡対策（roi_target と併用可能）
         "task_type":             "CPU",
     }
 

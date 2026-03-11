@@ -68,6 +68,10 @@ NUM_FEATURES = [
     # 騎手・調教師の直近成績（build_dataset.py で生成）
     "jockey_fuku30", "jockey_fuku90",
     "trainer_fuku30", "trainer_fuku90",
+    # 馬の直近成績（build_dataset.py で生成）
+    "horse_fuku10", "horse_fuku30",
+    # 脚質特徴量（build_dataset.py で生成）
+    "prev_pos_rel", "closing_power",
 ]
 
 TIME_STR_FEATURES = ["前走走破タイム", "前走着差タイム"]
