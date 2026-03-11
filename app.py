@@ -469,7 +469,7 @@ def predict_stacking(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
 
         return meta_model.predict_proba(meta_df[meta_cols])[:, 1]
     except Exception as e:
-        logger.warning(f"スタッキング予測失敗（フォールバック）: {e}")
+        logger.debug(f"スタッキング予測失敗（フォールバック）: {e}")
         return None
 
 
