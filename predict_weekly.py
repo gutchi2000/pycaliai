@@ -129,6 +129,8 @@ COLUMN_MAP = {
     "前走通過4":      "前4角",
     "マイニング順位":  "マイニング順位",
     "前走単勝オッズ":  "前走単勝オッズ",
+    # 前走距離 → 前距離（モデルが使う列名）
+    "前走距離":       "前距離",
 }
 CLASS_NORMALIZE = {
     "新馬":"新馬","未勝利":"未勝利","1勝":"1勝","500万":"1勝",
@@ -183,15 +185,97 @@ def parse_csv(path: Path) -> pd.DataFrame:
                 "前走着差タイム","前走斤量","前走Ave-3F","前走上り3F順",
                 "マイニング順位","前走単勝オッズ",
                 "前1角","前2角","前3角","前4角",
-                "フルゲート頭数","年齢","出走頭数","コーナー回数"]:
+                "フルゲート頭数","年齢","出走頭数","コーナー回数",
+                # COLUMN_MAP で rename された後の列名
+                "前距離","前走馬体重","前走馬体重増減"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # 出走頭数：週次CSVは直接持たないため、レースIDごとの馬数から算出
+    if "出走頭数" not in df.columns:
+        df["出走頭数"] = df.groupby("レースID(新/馬番無)")["馬番"].transform("count")
+    df["出走頭数"] = pd.to_numeric(df["出走頭数"], errors="coerce").fillna(
+        pd.to_numeric(df.get("フルゲート頭数"), errors="coerce")
+    )
 
     # 脚質特徴量：前走コーナー通過順位から計算（モデルと同じ定義）
     if "前1角" in df.columns and "前4角" in df.columns:
         n = df["出走頭数"].clip(lower=2)
         df["prev_pos_rel"]   = (df["前1角"] - 1) / (n - 1)
         df["closing_power"]  = (df["前1角"] - df["前4角"]) / (n - 1)
+
+    # 騎手・調教師ローリング成績（週次CSVに騎手コードなし → 訓練データ中央値で補完）
+    # 訓練 valid 中央値: jockey_fuku30=0.200, jockey_fuku90=0.200,
+    #                    trainer_fuku30=0.200, trainer_fuku90=0.211
+    _ROLLING_TRAIN_MEDIANS = {
+        "jockey_fuku30": 0.200,
+        "jockey_fuku90": 0.200,
+        "trainer_fuku30": 0.200,
+        "trainer_fuku90": 0.211,
+    }
+    for fname, code_col, stat_cols in [
+        ("jockey_stats.csv",  "騎手コード",  ["jockey_fuku30", "jockey_fuku90"]),
+        ("trainer_stats.csv", "調教師コード", ["trainer_fuku30", "trainer_fuku90"]),
+    ]:
+        stats_path = BASE_DIR / "data" / fname
+        if stats_path.exists():
+            stats = pd.read_csv(stats_path, encoding="utf-8-sig")
+            if code_col in df.columns:
+                df[code_col] = pd.to_numeric(df[code_col], errors="coerce")
+                df = df.merge(stats[[code_col] + stat_cols], on=code_col, how="left")
+                for col in stat_cols:
+                    if col in df.columns:
+                        df[col] = df[col].fillna(_ROLLING_TRAIN_MEDIANS.get(col, 0.200))
+            else:
+                for col in stat_cols:
+                    df[col] = _ROLLING_TRAIN_MEDIANS.get(col, 0.200)
+        else:
+            for col in stat_cols:
+                df[col] = _ROLLING_TRAIN_MEDIANS.get(col, 0.200)
+
+    # 馬ローリング成績は週次CSVから取得不可のため訓練データ中央値で補完
+    # （NaN=0 より中央値を使うとモデルが「平均的な馬」として扱える）
+    df["horse_fuku10"] = 0.286   # 訓練 valid 中央値
+    df["horse_fuku30"] = 0.312   # 訓練 valid 中央値
+
+    # 週次CSVに含まれないペース指数・体重比を訓練データ中央値で補完
+    # （0 のままだと分布外でモデルが誤った方向に流れる）
+    _PACE_MEDIANS = {
+        "前PCI": 49.0,
+        "前走PCI3": 50.2,
+        "前走RPCI": 48.5,
+        "前走平均1Fタイム": 12.26,
+    }
+    for col, med in _PACE_MEDIANS.items():
+        if col not in df.columns:
+            df[col] = med
+
+    # 斤量体重比 = 斤量 / 馬体重（馬体重 0 or 欠損のときは訓練中央値で補完）
+    if "斤量体重比" not in df.columns:
+        wt = pd.to_numeric(df["馬体重"], errors="coerce").replace(0, np.nan) if "馬体重" in df.columns else np.nan
+        jk = pd.to_numeric(df["斤量"], errors="coerce") if "斤量" in df.columns else np.nan
+        if isinstance(wt, pd.Series) and isinstance(jk, pd.Series):
+            df["斤量体重比"] = (jk / wt).fillna(11.8)
+        else:
+            df["斤量体重比"] = 11.8
+
+    # 訓練データに含まれるが週次CSVにない特徴量を中央値で補完
+    # （0 のままだと out-of-distribution でモデルが誤判断する）
+    _MISSING_FEATURE_MEDIANS = {
+        "馬齢斤量差":            -1,    # 訓練 valid 中央値
+        "トラックコード(JV)":      23,   # 訓練 valid 中央値（芝・内=23）
+        "前走トラックコード(JV)":  23,   # 訓練 valid 中央値
+        "前走競走種別":           13,   # 訓練 valid 中央値
+        "前走出走頭数":           15,   # 訓練 valid 中央値
+        "前走馬体重":            472,   # 訓練 valid 中央値
+        "前走馬体重増減":           0,   # 訓練 valid 中央値（増減ゼロが最多）
+        "騎手年齢":              30,   # 訓練 valid 中央値
+        "調教師年齢":             53,   # 訓練 valid 中央値
+        "休み明け～戦目":           2,   # 訓練 valid 中央値
+    }
+    for col, med in _MISSING_FEATURE_MEDIANS.items():
+        if col not in df.columns:
+            df[col] = med
 
     for col in ["前走走破タイム","前走着差タイム","馬体重","馬体重増減","前走斤量","生産者"]:
         if col not in df.columns:
@@ -372,13 +456,19 @@ def predict_stacking(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
 
 
 def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray:
-    # スタッキング優先
+    # スタッキング優先（キャリブレーター妥当性チェック付き）
     stacking = predict_stacking(df, lgbm_obj, cat_obj)
     if stacking is not None:
         cal_obj = _get_cached(STACK_CAL_PATH, "stack_cal")
         if cal_obj is not None:
-            return cal_obj["calibrator"].transform(stacking)
-        return stacking
+            calibrated = cal_obj["calibrator"].transform(stacking)
+            # キャリブレーター出力の妥当性チェック：平均 5% 以上かつ最大 50% 未満
+            if calibrated.mean() >= 0.05 and calibrated.max() < 0.50:
+                return calibrated
+            logger.warning(
+                f"スタッキングキャリブレーター出力が異常（mean={calibrated.mean():.3f}, "
+                f"max={calibrated.max():.3f}）→ エンサンブルにフォールバック"
+            )
     # フォールバック: 2モデル平均 + キャリブレーション
     raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
     cal_obj = _get_cached(CAL_PATH, "ens_cal")
