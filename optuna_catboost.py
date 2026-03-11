@@ -153,7 +153,7 @@ def main() -> None:
             "verbose":               0,
             "early_stopping_rounds": 50,
             "auto_class_weights":    "Balanced",   # 不均衡対策（roi_target と併用可能）
-            "task_type":             "CPU",
+            "task_type":             "GPU",         # RTX 3070 Ti で高速化
             "learning_rate":         trial.suggest_float("learning_rate", 0.01, 0.1, log=True),
             "depth":                 trial.suggest_int("depth", 4, 10),
             "l2_leaf_reg":           trial.suggest_float("l2_leaf_reg", 1e-8, 10.0, log=True),
@@ -188,7 +188,7 @@ def main() -> None:
         "verbose":               200,
         "early_stopping_rounds": 50,
         "auto_class_weights":    "Balanced",   # 不均衡対策（roi_target と併用可能）
-        "task_type":             "CPU",
+        "task_type":             "GPU",         # RTX 3070 Ti で高速化
     }
 
     best_model = CatBoostClassifier(**best_params)
