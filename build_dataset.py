@@ -29,6 +29,7 @@ CSV_CAT         = DATA_DIR / "cat_20130105-20251228.csv"
 CSV_TORCH       = DATA_DIR / "torch_transformer_20130105-20251228.csv"
 CSV_ADD         = DATA_DIR / "add_20130105-20251228.csv"
 MASTER_CSV      = DATA_DIR / "master_20130105-20251228.csv"
+KEKKA_CSV       = DATA_DIR / "kekka_20130105-20251228.csv"
 
 JOIN_KEY        = ["レースID(新)", "馬番"]
 COL_FINISH      = "着順"          # 全角文字列 → 数値変換する
@@ -81,6 +82,65 @@ def convert_finish(series: pd.Series) -> pd.Series:
     zen2han = str.maketrans("０１２３４５６７８９", "0123456789")
     converted = series.astype(str).str.translate(zen2han)
     return pd.to_numeric(converted, errors="coerce")
+
+
+# =========================================================
+# 特徴量エンジニアリング
+# =========================================================
+def add_rolling_stats(master: pd.DataFrame) -> pd.DataFrame:
+    """騎手・調教師の直近N走複勝率を時系列リークなしで追加する。
+
+    shift(1) を使うことで「当該レースより前のレース」のみを参照し、
+    データリークを防ぐ。
+    追加列: jockey_fuku30, jockey_fuku90, trainer_fuku30, trainer_fuku90
+    """
+    logger.info("騎手・調教師ローリング成績を計算中...")
+    # 日付・発走時刻・レース内馬番 の順でソートして時系列を正確に保つ
+    master = master.sort_values(
+        ["日付", "発走時刻", "レースID(新/馬番無)", "馬番"]
+    ).reset_index(drop=True)
+
+    for code_col, prefix in [("騎手コード", "jockey"), ("調教師コード", "trainer")]:
+        for window in [30, 90]:
+            col = f"{prefix}_fuku{window}"
+            master[col] = (
+                master.groupby(code_col, sort=False)["fukusho_flag"]
+                .transform(
+                    lambda x: x.shift(1).rolling(window, min_periods=5).mean()
+                )
+            )
+            na_cnt = master[col].isna().sum()
+            logger.info(f"  {col}: NaN={na_cnt:,}件（キャリア浅い等）")
+
+    return master
+
+
+def add_roi_target(master: pd.DataFrame) -> pd.DataFrame:
+    """kekka CSV の複勝配当から roi_target を生成する。
+
+    roi_target = 複勝配当 / 100  (3着以内の場合)
+               = 0               (圏外の場合)
+    kekka は3着以内のみ収録のため、LEFT JOIN で自然に圏外=0 になる。
+    """
+    logger.info(f"kekka CSV 読み込み: {KEKKA_CSV.name}")
+    try:
+        kekka = pd.read_csv(KEKKA_CSV, encoding="utf-8-sig", low_memory=False)
+    except UnicodeDecodeError:
+        kekka = pd.read_csv(KEKKA_CSV, encoding="cp932", low_memory=False)
+
+    kekka = kekka[["レースID(新)", "複勝配当"]].copy()
+    kekka["複勝配当"] = pd.to_numeric(kekka["複勝配当"], errors="coerce")
+
+    master = master.merge(kekka, on="レースID(新)", how="left")
+    master["roi_target"] = (master["複勝配当"].fillna(0) / 100).round(3)
+    master = master.drop(columns=["複勝配当"])
+
+    pos_mean = master.loc[master["fukusho_flag"] == 1, "roi_target"].mean()
+    logger.info(
+        f"roi_target 生成完了: 3着以内平均={pos_mean:.3f}倍 "
+        f"(全体mean={master['roi_target'].mean():.3f})"
+    )
+    return master
 
 
 # =========================================================
@@ -139,6 +199,12 @@ def build_master() -> pd.DataFrame:
     master[TARGET] = (master[COL_FINISH] <= 3).astype("Int8")  # NaN対応
     pos_rate = master[TARGET].mean()
     logger.info(f"ターゲット生成完了: 複勝率={pos_rate:.3f}")
+
+    # ---- 騎手・調教師ローリング成績特徴量を追加 ----
+    master = add_rolling_stats(master)
+
+    # ---- 期待値ターゲット (roi_target) を追加 ----
+    master = add_roi_target(master)
 
     # ---- 時系列分割列を追加 ----
     def assign_split(date_int: int) -> str:

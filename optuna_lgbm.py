@@ -65,6 +65,9 @@ NUM_FEATURES = [
     "前走上り3F", "前走上り3F順",
     "前走Ave-3F", "前PCI", "前走PCI3", "前走RPCI",
     "前走平均1Fタイム",
+    # 騎手・調教師の直近成績（build_dataset.py で生成）
+    "jockey_fuku30", "jockey_fuku90",
+    "trainer_fuku30", "trainer_fuku90",
 ]
 
 TIME_STR_FEATURES = ["前走走破タイム", "前走着差タイム"]
@@ -74,16 +77,7 @@ ALL_FEATURES = CAT_FEATURES + NUM_FEATURES + TIME_STR_FEATURES
 # =========================================================
 # 前処理
 # =========================================================
-def parse_time_str(series: pd.Series) -> pd.Series:
-    def _convert(val: str) -> float | None:
-        try:
-            parts = str(val).strip().split(".")
-            if len(parts) == 3:
-                return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 10
-            return float(val)
-        except Exception:
-            return None
-    return series.apply(_convert)
+from utils import parse_time_str, backup_model
 
 
 def encode_categoricals(
@@ -156,9 +150,10 @@ def make_objective(
 
     X_va = valid[feature_cols]
     y_va = valid[TARGET]
-    neg  = (train[TARGET] == 0).sum()
-    pos  = (train[TARGET] == 1).sum()
-    spw  = neg / pos
+
+    # roi_target を sample_weight として使用（圏外=1.0, 高配当3着以内=高weight）
+    # min_periods=5未満の行は NaN → 1.0 で補完
+    w_tr = train["roi_target"].clip(lower=1.0).fillna(1.0) if "roi_target" in train.columns else None
 
     def objective(trial: optuna.Trial) -> float:
         params = {
@@ -166,7 +161,7 @@ def make_objective(
             "metric":              "auc",
             "random_state":        RANDOM_STATE,
             "verbose":             -1,
-            "scale_pos_weight":    spw,
+            # scale_pos_weight は roi_target の sample_weight で代替
             # 探索するパラメータ
             "num_leaves":          trial.suggest_int("num_leaves", 31, 255),
             "learning_rate":       trial.suggest_float("learning_rate", 0.01, 0.1, log=True),
@@ -185,6 +180,7 @@ def make_objective(
         model = LGBMClassifier(**params)
         model.fit(
             X_tr, y_tr,
+            sample_weight=w_tr,
             eval_set=[(X_va, y_va)],
             callbacks=[
                 early_stopping(stopping_rounds=50, verbose=False),
@@ -231,24 +227,23 @@ def main() -> None:
 
     # 最適パラメータで再学習
     logger.info("最適パラメータで再学習中...")
-    neg = (train[TARGET] == 0).sum()
-    pos = (train[TARGET] == 1).sum()
     best_params = {
         **study.best_params,
-        "objective":        "binary",
-        "metric":           "auc",
-        "random_state":     RANDOM_STATE,
-        "verbose":          -1,
-        "scale_pos_weight": neg / pos,
-        "n_estimators":     2000,
+        "objective":    "binary",
+        "metric":       "auc",
+        "random_state": RANDOM_STATE,
+        "verbose":      -1,
+        "n_estimators": 2000,
     }
 
     X_tr, y_tr = train[feature_cols], train[TARGET]
     X_va, y_va = valid[feature_cols], valid[TARGET]
+    w_tr = train["roi_target"].clip(lower=1.0).fillna(1.0) if "roi_target" in train.columns else None
 
     best_model = LGBMClassifier(**best_params)
     best_model.fit(
         X_tr, y_tr,
+        sample_weight=w_tr,
         eval_set=[(X_va, y_va)],
         callbacks=[
             early_stopping(stopping_rounds=50, verbose=False),
@@ -266,7 +261,8 @@ def main() -> None:
     logger.info(f"[Valid] AUC={auc_va:.4f}  (旧: 0.7412)")
     logger.info(f"[Test]  AUC={auc_te:.4f}  (旧: 0.7474)")
 
-    # 保存
+    # 保存（既存モデルをバックアップしてから上書き）
+    backup_model(MODEL_PATH)
     joblib.dump(
         {"model": best_model, "encoders": encoders, "feature_cols": feature_cols},
         MODEL_PATH,

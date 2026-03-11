@@ -65,21 +65,15 @@ NUM_FEATURES = [
     "前走上り3F", "前走上り3F順",
     "前走Ave-3F", "前PCI", "前走PCI3", "前走RPCI",
     "前走平均1Fタイム",
+    # 騎手・調教師の直近成績（build_dataset.py で生成）
+    "jockey_fuku30", "jockey_fuku90",
+    "trainer_fuku30", "trainer_fuku90",
 ]
 
 TIME_STR_FEATURES = ["前走走破タイム", "前走着差タイム"]
 
 
-def parse_time_str(series: pd.Series) -> pd.Series:
-    def _convert(val: str) -> float | None:
-        try:
-            parts = str(val).strip().split(".")
-            if len(parts) == 3:
-                return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 10
-            return float(val)
-        except Exception:
-            return None
-    return series.apply(_convert)
+from utils import parse_time_str, backup_model
 
 
 def preprocess(df: pd.DataFrame) -> pd.DataFrame:
@@ -104,13 +98,18 @@ def make_pool(
     df: pd.DataFrame,
     feature_cols: list[str],
     with_label: bool = True,
+    sample_weight: pd.Series | None = None,
 ) -> Pool:
     cat_indices = [
         i for i, c in enumerate(feature_cols)
         if c in CAT_FEATURES_LIST
     ]
     if with_label:
-        return Pool(df[feature_cols], df[TARGET].astype(int), cat_features=cat_indices)
+        return Pool(
+            df[feature_cols], df[TARGET].astype(int),
+            cat_features=cat_indices,
+            weight=sample_weight,
+        )
     return Pool(df[feature_cols], cat_features=cat_indices)
 
 
@@ -136,7 +135,9 @@ def main() -> None:
     feature_cols = [c for c in all_features if c in train.columns]
     logger.info(f"使用特徴量数: {len(feature_cols)}")
 
-    pool_tr = make_pool(train, feature_cols)
+    # roi_target を sample_weight として使用（圏外=1.0, 高配当3着以内=高weight）
+    w_tr = train["roi_target"].clip(lower=1.0).fillna(1.0) if "roi_target" in train.columns else None
+    pool_tr = make_pool(train, feature_cols, sample_weight=w_tr)
     pool_va = make_pool(valid, feature_cols)
     pool_te = make_pool(test,  feature_cols, with_label=False)
 
@@ -147,7 +148,7 @@ def main() -> None:
             "random_seed":           RANDOM_STATE,
             "verbose":               0,
             "early_stopping_rounds": 50,
-            "auto_class_weights":    "Balanced",
+            # auto_class_weights は sample_weight と競合するため無効化
             "task_type":             "CPU",
             "learning_rate":         trial.suggest_float("learning_rate", 0.01, 0.1, log=True),
             "depth":                 trial.suggest_int("depth", 4, 10),
@@ -182,7 +183,7 @@ def main() -> None:
         "random_seed":           RANDOM_STATE,
         "verbose":               200,
         "early_stopping_rounds": 50,
-        "auto_class_weights":    "Balanced",
+        # auto_class_weights は sample_weight と競合するため無効化
         "task_type":             "CPU",
     }
 
@@ -197,6 +198,8 @@ def main() -> None:
     logger.info(f"[Valid] AUC={auc_va:.4f}  (旧: 0.7433)")
     logger.info(f"[Test]  AUC={auc_te:.4f}  (旧: 0.7431)")
 
+    # 既存モデルをバックアップしてから上書き
+    backup_model(MODEL_PATH)
     joblib.dump(
         {"model": best_model, "feature_cols": feature_cols},
         MODEL_PATH,
