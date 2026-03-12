@@ -17,6 +17,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import warnings
 from pathlib import Path
@@ -54,6 +55,10 @@ KEKKA_CSV        = DATA_DIR  / "kekka_20130105-20251228.csv"
 LGBM_MODEL_PATH  = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_MODEL_PATH   = MODEL_DIR / "catboost_optuna_v1.pkl"
 TORCH_MODEL_PATH = MODEL_DIR / "transformer_optuna_v1.pkl"
+META_PATH        = MODEL_DIR / "stacking_meta_v1.pkl"
+STRATEGY_JSON    = BASE_DIR  / "data" / "strategy_weights.json"
+STACK_CAL_PATH   = MODEL_DIR / "stacking_calibrator_v1.pkl"
+CAL_PATH         = MODEL_DIR / "ensemble_calibrator_v1.pkl"
 
 TARGET      = "fukusho_flag"
 COL_RACE_ID = "レースID(新/馬番無)"
@@ -61,24 +66,33 @@ COL_RANK    = "着順"
 BUDGET      = 10_000
 MIN_UNIT    = 100
 
-MODEL_WEIGHTS = {
-    "lgbm":        0.7425,
-    "catboost":    0.7472,
-    "transformer": 0.7496,
+# app.py / predict_weekly.py と同じ除外条件
+EXCLUDE_PLACES  = {"東京", "小倉"}
+EXCLUDE_CLASSES = {"新馬", "障害"}
+
+# predict_weekly.py と同じ定数
+_META_EXTRA = ["芝・ダ", "距離", "クラス名", "場所", "馬場状態", "出走頭数", "枠番", "馬番"]
+CLASS_NORMALIZE = {
+    "新馬":"新馬","未勝利":"未勝利","1勝":"1勝","500万":"1勝",
+    "2勝":"2勝","1000万":"2勝","3勝":"3勝","1600万":"3勝",
+    "OP(L)":"OP(L)","Ｇ１":"Ｇ１","Ｇ２":"Ｇ２","Ｇ３":"Ｇ３",
 }
 
+# --no_strategy（組み合わせ探索）用: 全馬券種を等分でベット
 BUDGET_RATIO = {
+    "単勝":   0.20,
     "複勝":   0.20,
-    "馬連":   0.25,
-    "三連複": 0.30,
-    "三連単": 0.25,
+    "枠連":   0.20,
+    "馬連":   0.20,
+    "三連複": 0.20,
 }
 
 TAKEOUT = {
+    "単勝":   0.20,
     "複勝":   0.20,
+    "枠連":   0.225,
     "馬連":   0.225,
     "三連複": 0.25,
-    "三連単": 0.275,
 }
 
 
@@ -100,7 +114,7 @@ def load_kekka(kekka_path: Path) -> dict[str, dict]:
         group = group.sort_values("確定着順")
 
         entry: dict = {
-            "複勝": {}, "馬連": {}, "馬単": {}, "三連複": {}, "三連単": {}
+            "単勝": {}, "複勝": {}, "枠連": {}, "馬連": {}, "馬単": {}, "三連複": {}, "三連単": {}
         }
 
         # 複勝（1〜3着馬番→配当）
@@ -124,7 +138,28 @@ def load_kekka(kekka_path: Path) -> dict[str, dict]:
             continue
         r1 = rank1.iloc[0]
 
+        # 単勝（1着馬番→配当）
+        ban = r1["馬番"]
+        pay = r1.get("単勝配当")
+        if pd.notna(ban) and pd.notna(pay):
+            try:
+                entry["単勝"][int(ban)] = int(pay)
+            except (ValueError, TypeError):
+                pass
+
         if len(top3) >= 2:
+            # 枠連（1着・2着の枠番→配当）
+            rank2 = group[group["確定着順"] == 2]
+            if not rank2.empty:
+                w1 = r1.get("枠番")
+                w2 = rank2.iloc[0].get("枠番")
+                pay_wk = r1.get("枠連")
+                if pd.notna(w1) and pd.notna(w2) and pd.notna(pay_wk):
+                    try:
+                        wk = "-".join(map(str, sorted([int(w1), int(w2)])))
+                        entry["枠連"][wk] = int(pay_wk)
+                    except (ValueError, TypeError):
+                        pass
             # 馬連
             key = "-".join(map(str, sorted(top3[:2])))
             pay = r1["馬連"]
@@ -167,9 +202,19 @@ def get_actual_payout(
     実際の払戻配当（100円あたり）を返す。
     的中しない場合は0を返す。
     """
-    if bet_type == "複勝":
+    if bet_type == "単勝":
+        h = combo[0]
+        pay = kekka_entry.get("単勝", {}).get(int(h), 0)
+        return int(pay) if pay else 0
+
+    elif bet_type == "複勝":
         h = combo[0]
         pay = kekka_entry["複勝"].get(h, 0)
+        return int(pay) if pay else 0
+
+    elif bet_type == "枠連":
+        key = "-".join(map(str, sorted(combo)))
+        pay = kekka_entry.get("枠連", {}).get(key, 0)
         return int(pay) if pay else 0
 
     elif bet_type == "馬連":
@@ -199,16 +244,7 @@ def get_actual_payout(
 # =========================================================
 # 前処理ユーティリティ
 # =========================================================
-def parse_time_str(series: pd.Series) -> pd.Series:
-    def _convert(val: str) -> float | None:
-        try:
-            parts = str(val).strip().split(".")
-            if len(parts) == 3:
-                return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 10
-            return float(val)
-        except Exception:
-            return None
-    return series.apply(_convert)
+from utils import parse_time_str
 
 
 def floor_to_unit(amount: int, unit: int = MIN_UNIT) -> int:
@@ -250,6 +286,8 @@ def calc_win_prob_pl(
 # 各モデル予測
 # =========================================================
 def predict_lgbm_batch(df: pd.DataFrame) -> np.ndarray:
+    if not LGBM_MODEL_PATH.exists():
+        raise FileNotFoundError(f"LightGBMモデルが見つかりません: {LGBM_MODEL_PATH}")
     obj          = joblib.load(LGBM_MODEL_PATH)
     model        = obj["model"]
     encoders     = obj["encoders"]
@@ -275,6 +313,8 @@ def predict_lgbm_batch(df: pd.DataFrame) -> np.ndarray:
 
 
 def predict_catboost_batch(df: pd.DataFrame) -> np.ndarray:
+    if not CAT_MODEL_PATH.exists():
+        raise FileNotFoundError(f"CatBoostモデルが見つかりません: {CAT_MODEL_PATH}")
     obj          = joblib.load(CAT_MODEL_PATH)
     model        = obj["model"]
     feature_cols = obj["feature_cols"]
@@ -301,79 +341,139 @@ def predict_catboost_batch(df: pd.DataFrame) -> np.ndarray:
 
 
 def predict_transformer_batch(df: pd.DataFrame) -> np.ndarray:
-    import torch
-    from train_transformer import RaceTransformer, RaceDataset, MAX_HORSES
-    from train_transformer import preprocess as torch_preprocess
-    from torch.utils.data import DataLoader
+    """Transformer予測。モデル未存在 or 失敗時はゼロ配列を返す。"""
+    try:
+        import torch
+        from train_transformer import RaceTransformer, RaceDataset, MAX_HORSES
+        from train_transformer import preprocess as torch_preprocess
+        from torch.utils.data import DataLoader
 
-    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    obj          = joblib.load(TORCH_MODEL_PATH)
-    model_state  = obj["model_state"]
-    model_config = obj["model_config"]
-    encoders     = obj["encoders"]
-    num_stats    = obj["num_stats"]
-    num_cols     = obj["num_cols"]
-    cat_cols     = obj["cat_cols"]
+        DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if not TORCH_MODEL_PATH.exists():
+            logger.warning(f"Transformerモデルが見つかりません: {TORCH_MODEL_PATH}")
+            return np.zeros(len(df))
+        obj          = joblib.load(TORCH_MODEL_PATH)
+        model_state  = obj["model_state"]
+        model_config = obj["model_config"]
+        encoders     = obj["encoders"]
+        num_stats    = obj["num_stats"]
+        num_cols     = obj["num_cols"]
+        cat_cols     = obj["cat_cols"]
 
-    df = df.copy()
-    df, _, _ = torch_preprocess(df, encoders=encoders, fit=False, num_stats=num_stats)
+        df = df.copy()
+        if "fukusho_flag" not in df.columns:
+            df["fukusho_flag"] = 0
+        df, _, _ = torch_preprocess(df, encoders=encoders, fit=False, num_stats=num_stats)
 
-    model = RaceTransformer(
-        cat_vocab_sizes=model_config["cat_vocab_sizes"],
-        cat_cols=model_config["cat_cols"],
-        n_num=model_config["n_num"],
-        d_model=model_config.get("d_model", 128),
-        n_heads=model_config.get("n_heads", 4),
-        n_layers=model_config.get("n_layers", 2),
-        d_ff=model_config.get("d_ff", 256),
-        dropout=model_config.get("dropout", 0.1),
-    ).to(DEVICE)
-    model.load_state_dict(model_state)
-    model.eval()
+        model = RaceTransformer(
+            cat_vocab_sizes=model_config["cat_vocab_sizes"],
+            cat_cols=model_config["cat_cols"],
+            n_num=model_config["n_num"],
+            d_model=model_config.get("d_model", 128),
+            n_heads=model_config.get("n_heads", 4),
+            n_layers=model_config.get("n_layers", 2),
+            d_ff=model_config.get("d_ff", 256),
+            dropout=model_config.get("dropout", 0.1),
+        ).to(DEVICE)
+        model.load_state_dict(model_state)
+        model.eval()
 
-    ds     = RaceDataset(df, cat_cols, num_cols, model_config["cat_vocab_sizes"])
-    loader = DataLoader(ds, batch_size=512, shuffle=False, num_workers=0)
+        ds     = RaceDataset(df, cat_cols, num_cols, model_config["cat_vocab_sizes"])
+        loader = DataLoader(ds, batch_size=512, shuffle=False, num_workers=0)
 
-    all_proba = []
-    with torch.no_grad():
-        for batch in loader:
-            cat    = batch["cat"].to(DEVICE)
-            num    = batch["num"].to(DEVICE)
-            mask   = batch["mask"].to(DEVICE)
-            logits = model(cat, num, mask)
-            probas = torch.sigmoid(logits).cpu().numpy()
-            valid  = ~batch["mask"].numpy()
-            for b in range(len(probas)):
-                for h in range(MAX_HORSES):
-                    if valid[b, h]:
-                        all_proba.append(probas[b, h])
+        all_proba = []
+        with torch.no_grad():
+            for batch in loader:
+                cat    = batch["cat"].to(DEVICE)
+                num    = batch["num"].to(DEVICE)
+                mask   = batch["mask"].to(DEVICE)
+                logits = model(cat, num, mask)
+                probas = torch.sigmoid(logits).cpu().numpy()
+                valid  = ~batch["mask"].numpy()
+                for b in range(len(probas)):
+                    for h in range(MAX_HORSES):
+                        if valid[b, h]:
+                            all_proba.append(probas[b, h])
 
-    df_sorted = df.sort_values(COL_RACE_ID).reset_index(drop=True)
-    result    = np.zeros(len(df))
-    idx = 0
-    for _, group in df_sorted.groupby(COL_RACE_ID, sort=True):
-        n = min(len(group), MAX_HORSES)
-        for i, orig_idx in enumerate(group.index[:n]):
-            if idx < len(all_proba):
-                result[orig_idx] = all_proba[idx]
-                idx += 1
-    return result
+        df_sorted = df.sort_values(COL_RACE_ID).reset_index(drop=True)
+        result    = np.zeros(len(df))
+        idx = 0
+        for _, group in df_sorted.groupby(COL_RACE_ID, sort=True):
+            n = min(len(group), MAX_HORSES)
+            for i, orig_idx in enumerate(group.index[:n]):
+                if idx < len(all_proba):
+                    result[orig_idx] = all_proba[idx]
+                    idx += 1
+        return result
+    except Exception as e:
+        logger.warning(f"Transformer予測失敗（0で埋め）: {e}")
+        return np.zeros(len(df))
+
+
+def predict_stacking_batch(df: pd.DataFrame) -> np.ndarray | None:
+    """スタッキング予測。モデル未存在 or 失敗時は None を返す。"""
+    if not META_PATH.exists() or not TORCH_MODEL_PATH.exists():
+        return None
+    try:
+        p_lgbm  = predict_lgbm_batch(df)
+        p_cat   = predict_catboost_batch(df)
+        p_torch = predict_transformer_batch(df)
+
+        meta_obj      = joblib.load(META_PATH)
+        meta_model    = meta_obj["meta_model"]
+        meta_encoders = meta_obj["meta_encoders"]
+        meta_cols     = meta_obj["meta_cols"]
+
+        meta_df = df.copy()
+        if "出走頭数" not in meta_df.columns or meta_df["出走頭数"].isna().all():
+            meta_df["出走頭数"] = meta_df.groupby(COL_RACE_ID)["馬番"].transform("count")
+        meta_df["クラス名"] = meta_df["クラス名"].map(CLASS_NORMALIZE).fillna(meta_df["クラス名"])
+        meta_df = meta_df.reindex(columns=_META_EXTRA).copy()
+
+        for col in meta_df.select_dtypes(include="object").columns:
+            if col in meta_encoders:
+                le = meta_encoders[col]
+                meta_df[col] = meta_df[col].fillna("__NaN__").astype(str)
+                known = set(le.classes_)
+                meta_df[col] = meta_df[col].apply(lambda x: x if x in known else "__NaN__")
+                if "__NaN__" not in le.classes_:
+                    le.classes_ = np.append(le.classes_, "__NaN__")
+                meta_df[col] = le.transform(meta_df[col])
+
+        meta_df["lgbm"]        = p_lgbm
+        meta_df["catboost"]    = p_cat
+        meta_df["transformer"] = p_torch
+
+        return meta_model.predict_proba(meta_df[meta_cols])[:, 1]
+    except Exception as e:
+        logger.warning(f"スタッキング予測失敗（フォールバック）: {e}")
+        return None
 
 
 def ensemble_predict_batch(df: pd.DataFrame) -> np.ndarray:
+    """predict_weekly.py / app.py と同じスタッキング優先フロー。"""
+    # スタッキング優先
+    logger.info("スタッキング予測中...")
+    stacking = predict_stacking_batch(df)
+    if stacking is not None:
+        if STACK_CAL_PATH.exists():
+            cal_obj = joblib.load(STACK_CAL_PATH)
+            logger.info("スタッキング + キャリブレーション適用")
+            return cal_obj["calibrator"].transform(stacking)
+        return stacking
+
+    # フォールバック: 2モデル平均 + キャリブレーション
+    logger.warning("スタッキング失敗。2モデルアンサンブルにフォールバック...")
     logger.info("LightGBM予測中...")
-    p_lgbm  = predict_lgbm_batch(df)
+    p_lgbm = predict_lgbm_batch(df)
     logger.info("CatBoost予測中...")
-    p_cat   = predict_catboost_batch(df)
-    logger.info("Transformer予測中...")
-    p_torch = predict_transformer_batch(df)
-    w     = MODEL_WEIGHTS
-    total = sum(w.values())
-    return (
-        (w["lgbm"]        / total) * p_lgbm  +
-        (w["catboost"]    / total) * p_cat   +
-        (w["transformer"] / total) * p_torch
-    )
+    p_cat  = predict_catboost_batch(df)
+    raw    = 0.5 * p_lgbm + 0.5 * p_cat
+    if CAL_PATH.exists():
+        cal_obj = joblib.load(CAL_PATH)
+        return cal_obj["calibrator"].transform(raw)
+    logger.warning("キャリブレーター未生成。calibrate.py を先に実行してください。")
+    return raw
 
 
 def assign_marks_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -395,6 +495,7 @@ def process_one_race(
     race_df: pd.DataFrame,
     kekka_entry: dict,
     budget: int = BUDGET,
+    bet_info: dict | None = None,
 ) -> list[dict]:
     import itertools
 
@@ -421,11 +522,39 @@ def process_one_race(
         }
 
     candidates: dict[str, list[dict]] = {
-        "複勝": [], "馬連": [], "三連複": [], "三連単": [],
+        "単勝": [], "複勝": [], "枠連": [], "馬連": [], "三連複": [],
     }
+
+    # 単勝: ◎のみ
+    if hon:
+        candidates["単勝"].append(make_bet([hon[0]], "単勝", False))
 
     for h in hon + taikou:
         candidates["複勝"].append(make_bet([h], "複勝", False))
+
+    # 枠連: ◎枠番 × ◯▲枠番（重複枠番はスキップ）
+    if hon and "枠番" in race_df.columns:
+        waku_map = race_df.set_index("馬番")["枠番"].dropna().to_dict()
+        hon_waku = waku_map.get(hon[0])
+        if hon_waku:
+            seen_wk = set()
+            for h in taikou + sabo:
+                h_waku = waku_map.get(h)
+                if h_waku:
+                    wk = tuple(sorted([int(hon_waku), int(h_waku)]))
+                    if wk not in seen_wk:
+                        seen_wk.add(wk)
+                        p_est = min(calc_win_prob_pl([hon[0], h], prob_series, False) * 1.2, 0.99)
+                        candidates["枠連"].append({
+                            "買い目":      f"{wk[0]}-{wk[1]}",
+                            "combo":       list(wk),
+                            "ordered":     False,
+                            "bet_type":    "枠連",
+                            "推定的中確率": round(p_est, 4),
+                            "推定オッズ":   estimate_odds(p_est / 1.2, "枠連"),
+                            "推定期待値":   round(p_est, 3),
+                        })
+
     if hon:
         for h in taikou + sabo:
             candidates["馬連"].append(
@@ -434,15 +563,21 @@ def process_one_race(
     if len(top3) >= 3:
         rows = [make_bet(c, "三連複", False) for c in itertools.combinations(top3[:4], 3)]
         candidates["三連複"] = sorted(rows, key=lambda x: x["推定期待値"], reverse=True)[:3]
-        rows = [make_bet(p, "三連単", True) for p in itertools.permutations(top3[:3], 3)]
-        candidates["三連単"] = sorted(rows, key=lambda x: x["推定期待値"], reverse=True)[:3]
 
-    # 予算按分
-    active      = {k: v for k, v in candidates.items() if len(v) > 0}
-    total_ratio = sum(BUDGET_RATIO[k] for k in active)
+    # 予算按分（戦略の bet_ratio を使用、未指定時は BUDGET_RATIO）
+    if bet_info:
+        ratios = {k: v.get("bet_ratio", 0) for k, v in bet_info.items()
+                  if k in candidates and len(candidates[k]) > 0}
+    else:
+        ratios = {k: BUDGET_RATIO[k] for k in BUDGET_RATIO
+                  if k in candidates and len(candidates[k]) > 0}
+    active      = {k: candidates[k] for k in ratios}
+    total_ratio = sum(ratios.values())
+    if total_ratio <= 0:
+        return []
     for bet_type, bets in active.items():
         n       = len(bets)
-        alloc   = floor_to_unit(int(budget * BUDGET_RATIO[bet_type] / total_ratio))
+        alloc   = floor_to_unit(int(budget * ratios[bet_type] / total_ratio))
         per_bet = max(floor_to_unit(alloc // n), MIN_UNIT)
         while per_bet * n > alloc and per_bet > MIN_UNIT:
             per_bet -= MIN_UNIT
@@ -520,7 +655,7 @@ def summarize(df: pd.DataFrame) -> None:
     print(f"{'馬券種':<6} {'投資':>10} {'払戻':>10} {'収支':>10} {'回収率':>8} {'的中率':>8} {'的中数':>6} {'点数':>6}")
     print("-" * 70)
 
-    for bet_type in ["複勝", "馬連", "三連複", "三連単"]:
+    for bet_type in ["単勝", "複勝", "枠連", "馬連", "三連複"]:
         sub = df[df["馬券種"] == bet_type]
         if sub.empty:
             continue
@@ -602,6 +737,11 @@ def main() -> None:
     parser.add_argument("--budget",        type=int, default=BUDGET)
     parser.add_argument("--output_suffix", type=str, default="",
                         help="出力ファイル名のサフィックス（例: _train）")
+    parser.add_argument("--no_strategy", action="store_true",
+                        help="戦略フィルタを無効化（strategy_weights.json 再構築用）")
+    parser.add_argument("--period", type=str, default=None,
+                        choices=["train", "valid", "test"],
+                        help="対象期間 (train: 〜2022年, valid: 2023年, test: 2024年〜)")
     args = parser.parse_args()
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -610,13 +750,33 @@ def main() -> None:
     logger.info(f"マスターCSV読み込み: {MASTER_CSV}")
     df      = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", low_memory=False)
     df["日付"] = pd.to_numeric(df["日付"], errors="coerce")
-    if args.output_suffix == "_train":
+    # --period が明示されれば優先、なければ output_suffix で判定（後方互換）
+    period = args.period or ("train" if "_train" in args.output_suffix
+                             else "valid" if "_valid" in args.output_suffix
+                             else "test")
+    if period == "train":
         test_df = df[df["日付"] < 20230101].copy().reset_index(drop=True)
-        logger.info("対象期間: 2013〜2022年（発見期）")
+        logger.info("対象期間: 〜2022年（発見期）")
+    elif period == "valid":
+        test_df = df[df["split"] == "valid"].copy().reset_index(drop=True)
+        logger.info("対象期間: 2023年（Valid セット）")
     else:
         test_df = df[df["split"] == "test"].copy().reset_index(drop=True)
-        logger.info("対象期間: テストデータ（2024年）")
-    logger.info(f"テストデータ: {len(test_df):,}行")
+        logger.info("対象期間: テストデータ（2024年〜）")
+    logger.info(f"テストデータ（全体）: {len(test_df):,}行")
+
+    # 除外フィルタ（app.py / predict_weekly.py と統一）
+    if "場所" in test_df.columns and "クラス名" in test_df.columns:
+        before = len(test_df)
+        test_df = test_df[
+            ~test_df["場所"].isin(EXCLUDE_PLACES) &
+            ~test_df["クラス名"].isin(EXCLUDE_CLASSES)
+        ].copy().reset_index(drop=True)
+        logger.info(
+            f"  除外フィルタ後: {len(test_df):,}行 "
+            f"（除外: {before - len(test_df):,}行 / "
+            f"会場={sorted(EXCLUDE_PLACES)} クラス={sorted(EXCLUDE_CLASSES)}）"
+        )
 
     # 払戻辞書ロード
     kekka_dict = load_kekka(KEKKA_CSV)
@@ -635,21 +795,46 @@ def main() -> None:
         race_ids = race_ids[:args.n_races]
     logger.info(f"バックテスト開始: {len(race_ids):,}レース")
 
+    # 戦略フィルタ読み込み
+    strategy: dict = {}
+    if args.no_strategy:
+        logger.info("--no_strategy: 戦略フィルタ無効（全レース対象）")
+    elif STRATEGY_JSON.exists():
+        with open(STRATEGY_JSON, encoding="utf-8") as f:
+            strategy = json.load(f)
+        logger.info(f"戦略ファイル読み込み: {STRATEGY_JSON.name}")
+    else:
+        logger.warning(f"strategy_weights.json が見つかりません。全レースを対象にします。")
+
     all_results = []
     skipped     = 0
+    skipped_strategy = 0
     for race_id in tqdm(race_ids, desc="バックテスト"):
         race_df     = test_df[test_df[COL_RACE_ID] == race_id].copy()
+
+        # 戦略フィルタ（predict_weekly.py と同じ場所×クラス判定）
+        current_bet_info = None
+        if strategy:
+            place   = race_df["場所"].iloc[0] if "場所" in race_df.columns else ""
+            cls_raw = race_df["クラス名"].iloc[0] if "クラス名" in race_df.columns else ""
+            cls     = CLASS_NORMALIZE.get(cls_raw, cls_raw)
+            current_bet_info = strategy.get(place, {}).get(cls) or strategy.get(place, {}).get(cls_raw, {})
+            if not current_bet_info:
+                skipped_strategy += 1
+                continue
+
         kekka_entry = kekka_dict.get(str(race_id), {
-            "複勝": {}, "馬連": {}, "馬単": {}, "三連複": {}, "三連単": {}
+            "単勝": {}, "複勝": {}, "枠連": {}, "馬連": {}, "馬単": {}, "三連複": {}, "三連単": {}
         })
         try:
-            results = process_one_race(race_df, kekka_entry, budget=args.budget)
+            results = process_one_race(race_df, kekka_entry, budget=args.budget, bet_info=current_bet_info)
             all_results.extend(results)
         except Exception as e:
             logger.warning(f"レース {race_id} スキップ: {e}")
             skipped += 1
 
-    logger.info(f"スキップ: {skipped}レース")
+    logger.info(f"戦略対象外スキップ: {skipped_strategy}レース")
+    logger.info(f"エラースキップ: {skipped}レース")
 
     if not all_results:
         logger.error("結果が0件です。")
