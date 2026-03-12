@@ -399,9 +399,12 @@ def parse_csv(path: Path) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = med
 
-    for col in ["前走走破タイム","前走着差タイム","馬体重","馬体重増減","前走斤量","生産者"]:
+    for col in ["馬体重","馬体重増減","前走斤量","生産者"]:
         if col not in df.columns:
             df[col] = 0
+    for col in ["前走走破タイム","前走着差タイム"]:
+        if col not in df.columns:
+            df[col] = float("nan")  # LGBMのNaN処理に任せる（0だと分布が大きく外れる）
 
     df = df[~df["距離"].astype(str).str.contains("障", na=False)].copy()
     logger.info(f"パース完了（障害除外済）: {len(df)}頭 / {df['レースID(新/馬番無)'].nunique()}レース")

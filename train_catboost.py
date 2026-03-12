@@ -300,7 +300,7 @@ def main() -> None:
     print("CatBoost 学習完了サマリ")
     print("=" * 50)
     print(f"Valid AUC    : {metrics_valid['auc']:.4f}")
-    print(f"Test  AUC    : {metrics_valid['auc']:.4f}")
+    print(f"Test  AUC    : {metrics_test['auc']:.4f}")
     print(f"Valid PR-AUC : {metrics_valid['pr_auc']:.4f}")
     print(f"Test  PR-AUC : {metrics_test['pr_auc']:.4f}")
     print(f"特徴量数      : {len(feature_cols)}")
