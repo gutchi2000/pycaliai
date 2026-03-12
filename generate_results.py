@@ -106,7 +106,7 @@ def load_kekka(kekka_dir: Path) -> pd.DataFrame:
 
 def load_pred(pred_dir: Path) -> pd.DataFrame:
     """weekly/*.csv (pred) を全読みして結合。"""
-    files = sorted(pred_dir.glob("pred_*.csv"))
+    files = sorted(pred_dir.glob("pred_????????.csv"))  # 8桁日付のみ（test/v2/v3等を除外）
     if not files:
         raise FileNotFoundError(f"predCSVが見つかりません: {pred_dir}")
     dfs = []

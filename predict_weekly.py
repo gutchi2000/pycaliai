@@ -651,7 +651,7 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
 
     # ── HAHO: 馬連◎軸2点 + 三連複ボックス1点 ──────────────────────────
     haho_types = {k: v for k, v in bet_info.items() if k in ("馬連", "三連複")}
-    if haho_types and h2 and h3:
+    if haho_types and "馬連" in haho_types and h2 and h3:  # 馬連が戦略にない場合はHALOに任せる
         total_ratio = sum(v["bet_ratio"] for v in haho_types.values()) or 1.0
         # 馬連: ◎-◯, ◎-▲ の2点
         if "馬連" in haho_types:
