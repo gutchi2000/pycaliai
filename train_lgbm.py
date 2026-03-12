@@ -82,6 +82,11 @@ NUM_FEATURES = [
     "前走上り3F", "前走上り3F順",
     "前走Ave-3F", "前PCI", "前走PCI3", "前走RPCI",
     "前走平均1Fタイム",
+    # 騎手・調教師直近複勝率
+    "jockey_fuku30", "jockey_fuku90",
+    "trainer_fuku30", "trainer_fuku90",
+    # 馬の直近フォーム指数
+    "horse_fuku10", "horse_fuku30",
 ]
 
 # 前走走破タイム・着差タイム（文字列→数値変換が必要）
@@ -109,25 +114,7 @@ LGBM_PARAMS = {
 # =========================================================
 # 前処理
 # =========================================================
-def parse_time_str(series: pd.Series) -> pd.Series:
-    """
-    走破タイム文字列を秒数（float）に変換する。
-    '1.45.7' → 105.7秒
-    '0.3'    → 0.3秒（着差タイム）
-    変換不能は NaN。
-    """
-    def _convert(val: str) -> float | None:
-        try:
-            parts = str(val).strip().split(".")
-            if len(parts) == 3:        # 分.秒.1/10秒
-                return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 10
-            elif len(parts) == 2:      # 秒.1/10秒（着差タイム等）
-                return float(val)
-            else:
-                return float(val)
-        except Exception:
-            return None
-    return series.apply(_convert)
+from utils import parse_time_str
 
 
 def encode_categoricals(
