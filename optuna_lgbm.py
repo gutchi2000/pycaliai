@@ -37,7 +37,8 @@ DATA_DIR   = BASE_DIR / "data"
 MODEL_DIR  = BASE_DIR / "models"
 REPORT_DIR = BASE_DIR / "reports"
 
-MASTER_CSV = DATA_DIR / "master_20130105-20251228.csv"
+MASTER_CSV   = DATA_DIR / "master_20130105-20251228.csv"
+HOSSEI_CSV   = DATA_DIR / "hossei" / "H_20130105-20251228.csv"
 MODEL_PATH = MODEL_DIR / "lgbm_optuna_v1.pkl"
 STUDY_PATH = REPORT_DIR / "optuna_lgbm_study.pkl"
 
@@ -72,6 +73,8 @@ NUM_FEATURES = [
     "horse_fuku10", "horse_fuku30",
     # 脚質特徴量（build_dataset.py で生成）
     "prev_pos_rel", "closing_power",
+    # 補正タイム（data/hossei/ からJOIN）
+    "前走補9", "前走補正",
 ]
 
 TIME_STR_FEATURES = ["前走走破タイム", "前走着差タイム"]
@@ -132,6 +135,16 @@ def preprocess(
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     logger.info(f"マスターCSV読み込み: {MASTER_CSV}")
     df = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", low_memory=False)
+    # 補正タイムJOIN
+    if HOSSEI_CSV.exists():
+        hossei = pd.read_csv(HOSSEI_CSV, encoding="cp932",
+                             usecols=["レースID(新)", "馬番", "前走補9", "前走補正"])
+        df = df.merge(hossei, on=["レースID(新)", "馬番"], how="left")
+        logger.info(f"hossei JOIN完了: 前走補9カバレッジ={df['前走補9'].notna().mean()*100:.1f}%")
+    else:
+        df["前走補9"]  = float("nan")
+        df["前走補正"] = float("nan")
+        logger.warning(f"hossei CSV未検出: {HOSSEI_CSV}")
     train = df[df["split"] == "train"].copy()
     valid = df[df["split"] == "valid"].copy()
     test  = df[df["split"] == "test"].copy()

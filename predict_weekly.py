@@ -151,7 +151,8 @@ CLASS_NORMALIZE = {
 # =========================================================
 # 着度数CSV パース
 # =========================================================
-TYAKU_DIR = BASE_DIR / "data" / "tyaku"
+TYAKU_DIR  = BASE_DIR / "data" / "tyaku"
+HOSSEI_DIR = BASE_DIR / "data" / "hossei"
 
 TYAKU_HORSE_COLS = [
     "枠番","B","馬番","印","M2","M3","M4","馬名S","C","性別","年齢","替","騎手","斤量","減M","単勝",
@@ -228,6 +229,25 @@ def _load_tyaku(date_str: str) -> pd.DataFrame | None:
     keep = ["レースID(新/馬番無)","馬番","馬体重","増減",
             "horse_fuku_career","horse_fuku_course","horse_fuku_class"]
     return df[[c for c in keep if c in df.columns]]
+
+
+def _load_hossei(date_str: str) -> pd.DataFrame | None:
+    """data/hossei/YYYYMMDD.csv を読み込み レースID×馬番→補正タイム の対応表を返す。"""
+    path = HOSSEI_DIR / f"{date_str}.csv"
+    if not path.exists():
+        return None
+    for enc in ["cp932", "utf-8-sig", "utf-8"]:
+        try:
+            df = pd.read_csv(path, encoding=enc,
+                             usecols=["レースID(新)", "馬番", "前走補9", "前走補正"])
+            df["レースID(新/馬番無)"] = df["レースID(新)"].astype(str).str[:16]
+            df["馬番"] = pd.to_numeric(df["馬番"], errors="coerce")
+            for col in ["前走補9", "前走補正"]:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+            return df[["レースID(新/馬番無)", "馬番", "前走補9", "前走補正"]]
+        except Exception:
+            continue
+    return None
 
 
 # =========================================================
@@ -343,11 +363,19 @@ def parse_csv(path: Path) -> pd.DataFrame:
         if "増減_tyaku" in df.columns:
             df["馬体重増減"] = df["増減_tyaku"]
             df.drop(columns=["増減_tyaku"], inplace=True)
-        # horse_fuku: キャリア複勝率を horse_fuku10/30 に使用
-        # 同コース・同クラスが0走の場合はキャリア値でフォールバック
-        if "horse_fuku_career" in df.columns:
-            df["horse_fuku10"] = df["horse_fuku_career"].fillna(0.286)
-            df["horse_fuku30"] = df["horse_fuku_career"].fillna(0.312)
+        # horse_fuku: tyaku CSV 由来 (horse_fuku_career_tyaku) を優先、
+        #             なければ週次CSV由来 (horse_fuku_career) を使用。
+        #             app.py も tyaku CSV を優先するので両者の予測を一致させる。
+        if "horse_fuku_career_tyaku" in df.columns:
+            fuku_src = df["horse_fuku_career_tyaku"].combine_first(df.get("horse_fuku_career", pd.Series(dtype=float)))
+            df.drop(columns=["horse_fuku_career_tyaku"], inplace=True, errors="ignore")
+        elif "horse_fuku_career" in df.columns:
+            fuku_src = df["horse_fuku_career"]
+        else:
+            fuku_src = None
+        if fuku_src is not None:
+            df["horse_fuku10"] = fuku_src.fillna(0.286)
+            df["horse_fuku30"] = fuku_src.fillna(0.312)
             logger.info(
                 f"着度数CSV読み込み済: horse_fuku mean={df['horse_fuku10'].mean():.3f}, "
                 f"std={df['horse_fuku10'].std():.3f}"
@@ -406,6 +434,18 @@ def parse_csv(path: Path) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = float("nan")  # LGBMのNaN処理に任せる（0だと分布が大きく外れる）
 
+    # ── 補正タイムCSV（data/hossei/YYYYMMDD.csv）があればマージ ──
+    hossei_df = _load_hossei(date_str)
+    if hossei_df is not None:
+        df = df.merge(hossei_df, on=["レースID(新/馬番無)", "馬番"], how="left")
+        logger.info(
+            f"hossei CSV読み込み済: 前走補9 mean={df['前走補9'].mean():.1f}, "
+            f"カバレッジ={df['前走補9'].notna().mean()*100:.1f}%"
+        )
+    else:
+        df["前走補9"]  = float("nan")
+        df["前走補正"] = float("nan")
+
     df = df[~df["距離"].astype(str).str.contains("障", na=False)].copy()
     logger.info(f"パース完了（障害除外済）: {len(df)}頭 / {df['レースID(新/馬番無)'].nunique()}レース")
     return df
@@ -435,10 +475,14 @@ def predict_lgbm(df: pd.DataFrame, obj: dict) -> np.ndarray:
         df[col] = le.transform(df[col])
     # rolling stats 系は 0 ではなく NaN（モデルの「データなし」分岐を利用）
     _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
-                     "horse_fuku10","horse_fuku30"}
+                     "horse_fuku10","horse_fuku30","前走補9","前走補正"}
     for col in feature_cols:
         if col not in df.columns:
             df[col] = np.nan if col in _ROLLING_COLS else 0
+    # lgb.Booster と LGBMClassifier 両対応
+    import lightgbm as lgb
+    if isinstance(model, lgb.Booster):
+        return model.predict(df[feature_cols])
     return model.predict_proba(df[feature_cols])[:, 1]
 
 
@@ -459,7 +503,7 @@ def predict_catboost(df: pd.DataFrame, obj: dict) -> np.ndarray:
     for col in cat_list:
         df[col] = df[col].fillna("__NaN__").astype(str) if col in df.columns else "__NaN__"
     _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
-                     "horse_fuku10","horse_fuku30"}
+                     "horse_fuku10","horse_fuku30","前走補9","前走補正"}
     for col in feature_cols:
         if col not in df.columns:
             df[col] = np.nan if col in _ROLLING_COLS else 0.0

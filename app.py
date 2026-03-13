@@ -64,6 +64,7 @@ STRATEGY_JSON    = DATA_DIR / "strategy_weights.json"
 COURSE_TREND_JSON = DATA_DIR / "course_trend.json"
 RESULTS_JSON      = DATA_DIR / "results.json"
 TYAKU_DIR     = DATA_DIR / "tyaku"
+HOSSEI_DIR    = DATA_DIR / "hossei"
 LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
 CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v1.pkl"
@@ -252,6 +253,25 @@ def _load_tyaku(date_str: str) -> "pd.DataFrame | None":
     return df[[c for c in keep if c in df.columns]]
 
 
+def _load_hossei(date_str: str) -> "pd.DataFrame | None":
+    """data/hossei/YYYYMMDD.csv を読み込み レースID×馬番→補正タイム の対応表を返す。"""
+    path = HOSSEI_DIR / f"{date_str}.csv"
+    if not path.exists():
+        return None
+    for enc in ["cp932", "utf-8-sig", "utf-8"]:
+        try:
+            df = pd.read_csv(path, encoding=enc,
+                             usecols=["レースID(新)", "馬番", "前走補9", "前走補正"])
+            df["レースID(新/馬番無)"] = df["レースID(新)"].astype(str).str[:16]
+            df["馬番"] = pd.to_numeric(df["馬番"], errors="coerce")
+            for col in ["前走補9", "前走補正"]:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+            return df[["レースID(新/馬番無)", "馬番", "前走補9", "前走補正"]]
+        except Exception:
+            continue
+    return None
+
+
 # =========================================================
 # CSV パース
 # =========================================================
@@ -317,10 +337,12 @@ def parse_target_csv(source) -> pd.DataFrame:
             df[col] = pd.to_numeric(df[col], errors="coerce")
     df["日付"] = pd.to_datetime(df["日付S"], format="%Y.%m.%d", errors="coerce")
     df["日付"] = df["日付"].dt.strftime("%Y%m%d").astype("Int64")
-    for col in ["前走走破タイム","前走着差タイム","馬体重","馬体重増減",
-                "前走斤量","生産者","馬主(最新/仮想)"]:
+    for col in ["馬体重","馬体重増減","前走斤量","生産者","馬主(最新/仮想)"]:
         if col not in df.columns:
             df[col] = 0
+    for col in ["前走走破タイム","前走着差タイム"]:
+        if col not in df.columns:
+            df[col] = float("nan")  # LGBMのNaN処理に任せる（0だと分布が大きく外れる）
 
     # 出走頭数：週次CSVは直接持たないため、レースIDごとの馬数から算出
     if "出走頭数" not in df.columns:
@@ -434,6 +456,14 @@ def parse_target_csv(source) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = med
 
+    # ── 補正タイムCSV（data/hossei/YYYYMMDD.csv）があればマージ ──
+    hossei_df = _load_hossei(date_str)
+    if hossei_df is not None:
+        df = df.merge(hossei_df, on=["レースID(新/馬番無)", "馬番"], how="left")
+    else:
+        df["前走補9"]  = float("nan")
+        df["前走補正"] = float("nan")
+
     return df
 
 
@@ -499,10 +529,15 @@ def predict_lgbm(df: pd.DataFrame, obj: dict) -> np.ndarray:
             le.classes_ = np.append(le.classes_, "__NaN__")
         df[col] = le.transform(df[col])
     _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
-                     "horse_fuku10","horse_fuku30","prev_pos_rel","closing_power"}
+                     "horse_fuku10","horse_fuku30","prev_pos_rel","closing_power",
+                     "前走補9","前走補正"}
     for col in feature_cols:
         if col not in df.columns:
             df[col] = np.nan if col in _ROLLING_COLS else 0
+    # lgb.Booster と LGBMClassifier 両対応
+    import lightgbm as lgb
+    if isinstance(model, lgb.Booster):
+        return model.predict(df[feature_cols])
     return model.predict_proba(df[feature_cols])[:, 1]
 
 
@@ -523,7 +558,8 @@ def predict_catboost(df: pd.DataFrame, obj: dict) -> np.ndarray:
     for col in cat_list:
         df[col] = df[col].fillna("__NaN__").astype(str) if col in df.columns else "__NaN__"
     _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
-                     "horse_fuku10","horse_fuku30","prev_pos_rel","closing_power"}
+                     "horse_fuku10","horse_fuku30","prev_pos_rel","closing_power",
+                     "前走補9","前走補正"}
     for col in feature_cols:
         if col not in df.columns:
             df[col] = np.nan if col in _ROLLING_COLS else 0.0
@@ -3239,7 +3275,14 @@ def main() -> None:
             st.error("CSVの読み込みに失敗しました。")
             return
 
-    predicted_json = predict_all_races(selected_date, raw_df.to_json(), lgbm_obj, cat_obj)
+    # cache_key にモデルの更新時刻を含める（モデル再訓練後も正しく再計算される）
+    import os
+    _model_mtime = max(
+        os.path.getmtime(str(LGBM_PATH)) if LGBM_PATH.exists() else 0,
+        os.path.getmtime(str(CAT_PATH))  if CAT_PATH.exists()  else 0,
+    )
+    _cache_key = f"{selected_date}_{int(_model_mtime)}"
+    predicted_json = predict_all_races(_cache_key, raw_df.to_json(), lgbm_obj, cat_obj)
     import io
     all_df = pd.read_json(io.StringIO(predicted_json))
 
