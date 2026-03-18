@@ -37,8 +37,11 @@ DATA_DIR   = BASE_DIR / "data"
 MODEL_DIR  = BASE_DIR / "models"
 REPORT_DIR = BASE_DIR / "reports"
 
-MASTER_CSV   = DATA_DIR / "master_20130105-20251228.csv"
-HOSSEI_CSV   = DATA_DIR / "hossei" / "H_20130105-20251228.csv"
+MASTER_CSV    = DATA_DIR / "master_20130105-20251228.csv"
+HOSSEI_CSV    = DATA_DIR / "hossei" / "H_20130105-20251228.csv"
+KEKKA_CSV     = DATA_DIR / "kekka_20130105-20251228.csv"
+HANRO_MASTER  = Path(r"E:\競馬過去走データ\H-20150401-20260313.csv")
+WC_MASTER     = Path(r"E:\競馬過去走データ\W-20150401-20260313.csv")
 MODEL_PATH = MODEL_DIR / "lgbm_optuna_v1.pkl"
 STUDY_PATH = REPORT_DIR / "optuna_lgbm_study.pkl"
 
@@ -75,6 +78,11 @@ NUM_FEATURES = [
     "prev_pos_rel", "closing_power",
     # 補正タイム（data/hossei/ からJOIN）
     "前走補9", "前走補正",
+    # 調教データ（E:\競馬過去走データ\ からJOIN）
+    "trn_hanro_4f", "trn_hanro_lap1", "trn_hanro_days",
+    "trn_wc_3f", "trn_wc_lap1", "trn_wc_days",
+    # 前走単勝オッズ（kekka CSV からJOIN）※今走は配当データのためリーク→除外
+    "前走単勝オッズ",
 ]
 
 TIME_STR_FEATURES = ["前走走破タイム", "前走着差タイム"]
@@ -130,6 +138,91 @@ def preprocess(
 
 
 # =========================================================
+# 調教データロード・マージ
+# =========================================================
+def load_chukyo():
+    """坂路・WCマスターCSVを読み込む。ファイルがなければNoneを返す。"""
+    hanro = wc = None
+    if HANRO_MASTER.exists():
+        hanro = pd.read_csv(HANRO_MASTER, encoding="cp932",
+                            usecols=["年月日", "馬名", "Time1", "Lap1"])
+        hanro = hanro.rename(columns={"Time1": "hanro_4f", "Lap1": "hanro_lap1"})
+        hanro["_dt"] = pd.to_datetime(hanro["年月日"].astype(str), format="%Y%m%d")
+        hanro = hanro.sort_values(["馬名", "_dt"]).reset_index(drop=True)
+        logger.info(f"坂路CSV読み込み: {len(hanro):,}行")
+    else:
+        logger.warning(f"坂路CSV未検出: {HANRO_MASTER}")
+    if WC_MASTER.exists():
+        wc = pd.read_csv(WC_MASTER, encoding="cp932",
+                         usecols=["年月日", "馬名", "3F", "Lap1"])
+        wc = wc.rename(columns={"3F": "wc_3f", "Lap1": "wc_lap1"})
+        wc["_dt"] = pd.to_datetime(wc["年月日"].astype(str), format="%Y%m%d")
+        wc = wc.sort_values(["馬名", "_dt"]).reset_index(drop=True)
+        logger.info(f"WC CSV読み込み: {len(wc):,}行")
+    else:
+        logger.warning(f"WC CSV未検出: {WC_MASTER}")
+    return hanro, wc
+
+
+def merge_chukyo(df: pd.DataFrame, hanro, wc) -> pd.DataFrame:
+    """グループ別searchsortedで最終追い切り（レース14日前以内）をJOIN。"""
+    import numpy as np
+
+    df = df.copy()
+    df["_race_dt"] = pd.to_datetime(df["日付"].astype(str), format="%Y%m%d")
+    df_idx = df.reset_index(drop=True)
+
+    for trn, feat_cols, out_cols, prefix in [
+        (hanro, ["hanro_4f", "hanro_lap1"],
+                ["trn_hanro_4f", "trn_hanro_lap1"], "hanro"),
+        (wc,    ["wc_3f", "wc_lap1"],
+                ["trn_wc_3f", "trn_wc_lap1"],       "wc"),
+    ]:
+        days_col = f"trn_{prefix}_days"
+        result = {c: np.full(len(df_idx), np.nan) for c in out_cols + [days_col]}
+
+        if trn is None:
+            for col in out_cols + [days_col]:
+                df[col] = float("nan")
+            continue
+
+        trn_sorted = trn.sort_values(["馬名", "_dt"])
+        trn_g = trn_sorted.groupby("馬名", sort=True)
+        race_g = df_idx.groupby("馬名", sort=True)
+
+        for horse, race_rows in race_g:
+            if horse not in trn_g.groups:
+                continue
+            trn_h = trn_g.get_group(horse)
+            trn_dates = trn_h["_dt"].values
+            trn_feats = trn_h[feat_cols].values
+            race_idxs = race_rows.index.values
+            race_dates = race_rows["_race_dt"].values
+
+            positions = np.searchsorted(trn_dates, race_dates, side="right") - 1
+            cutoffs   = race_dates - np.timedelta64(14, "D")
+            valid     = (positions >= 0) & (trn_dates[np.maximum(positions, 0)] >= cutoffs)
+
+            vp = positions[valid]
+            vi = race_idxs[valid]
+            for j, col in enumerate(out_cols):
+                result[col][vi] = trn_feats[vp, j]
+            if valid.any():
+                result[days_col][vi] = (
+                    race_dates[valid] - trn_dates[vp]
+                ).astype("timedelta64[D]").astype(float)
+
+        for col in out_cols + [days_col]:
+            df[col] = result[col]
+
+    df = df.drop(columns=["_race_dt"])
+    cov_h = df["trn_hanro_4f"].notna().mean() * 100
+    cov_w = df["trn_wc_3f"].notna().mean() * 100
+    logger.info(f"調教JOIN完了: 坂路カバレッジ={cov_h:.1f}%  WC={cov_w:.1f}%")
+    return df
+
+
+# =========================================================
 # データロード（1回だけ読み込んでキャッシュ）
 # =========================================================
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -145,6 +238,40 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         df["前走補9"]  = float("nan")
         df["前走補正"] = float("nan")
         logger.warning(f"hossei CSV未検出: {HOSSEI_CSV}")
+    # 調教データJOIN
+    hanro, wc = load_chukyo()
+    df = merge_chukyo(df, hanro, wc)
+    # 単勝オッズJOIN（kekka CSV）
+    if KEKKA_CSV.exists():
+        kekka = pd.read_csv(KEKKA_CSV, encoding="cp932",
+                            usecols=["レースID(新)", "馬番", "単勝配当"])
+        def _parse_tansho(s):
+            s = str(s).strip()
+            if s.startswith("(") and s.endswith(")"):
+                return float(s[1:-1])   # 既にオッズ形式
+            try:
+                return float(s) / 100   # 配当→オッズ
+            except Exception:
+                return float("nan")
+        kekka["単勝オッズ"] = kekka["単勝配当"].apply(_parse_tansho)
+        kekka = kekka.drop(columns=["単勝配当"])
+        kekka["レースID(新)"] = kekka["レースID(新)"].astype("int64")
+        kekka["馬番"] = kekka["馬番"].astype("int64")
+        # 今走単勝オッズ
+        df = df.merge(kekka, on=["レースID(新)", "馬番"], how="left")
+        # 前走単勝オッズ（前走レースID×馬番でJOIN）
+        kekka_prev = kekka.rename(columns={
+            "レースID(新)": "前走レースID(新)", "単勝オッズ": "前走単勝オッズ"})
+        df["前走レースID(新)"] = pd.to_numeric(df["前走レースID(新)"], errors="coerce")
+        df = df.merge(kekka_prev, on=["前走レースID(新)", "馬番"], how="left")
+        logger.info(
+            f"単勝オッズJOIN完了: 今走={df['単勝オッズ'].notna().mean()*100:.1f}%"
+            f"  前走={df['前走単勝オッズ'].notna().mean()*100:.1f}%"
+        )
+    else:
+        df["単勝オッズ"]   = float("nan")
+        df["前走単勝オッズ"] = float("nan")
+        logger.warning(f"kekka CSV未検出: {KEKKA_CSV}")
     train = df[df["split"] == "train"].copy()
     valid = df[df["split"] == "valid"].copy()
     test  = df[df["split"] == "test"].copy()

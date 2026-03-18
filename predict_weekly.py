@@ -446,7 +446,22 @@ def parse_csv(path: Path) -> pd.DataFrame:
         df["前走補9"]  = float("nan")
         df["前走補正"] = float("nan")
 
+    # ── 調教データ（坂路・WCマスターCSVからJOIN）──
+    try:
+        from optuna_lgbm import load_chukyo, merge_chukyo
+        hanro, wc = load_chukyo()
+        df = merge_chukyo(df, hanro, wc)
+    except Exception as e:
+        logger.warning(f"調教JOIN失敗（スキップ）: {e}")
+        for col in ["trn_hanro_4f","trn_hanro_lap1","trn_hanro_days",
+                    "trn_wc_3f","trn_wc_lap1","trn_wc_days"]:
+            df[col] = float("nan")
+
     df = df[~df["距離"].astype(str).str.contains("障", na=False)].copy()
+
+    if "前走単勝オッズ" not in df.columns:
+        df["前走単勝オッズ"] = float("nan")
+
     logger.info(f"パース完了（障害除外済）: {len(df)}頭 / {df['レースID(新/馬番無)'].nunique()}レース")
     return df
 
@@ -475,7 +490,10 @@ def predict_lgbm(df: pd.DataFrame, obj: dict) -> np.ndarray:
         df[col] = le.transform(df[col])
     # rolling stats 系は 0 ではなく NaN（モデルの「データなし」分岐を利用）
     _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
-                     "horse_fuku10","horse_fuku30","前走補9","前走補正"}
+                     "horse_fuku10","horse_fuku30","前走補9","前走補正",
+                     "trn_hanro_4f","trn_hanro_lap1","trn_hanro_days",
+                     "trn_wc_3f","trn_wc_lap1","trn_wc_days",
+                     "前走単勝オッズ"}
     for col in feature_cols:
         if col not in df.columns:
             df[col] = np.nan if col in _ROLLING_COLS else 0
@@ -503,7 +521,10 @@ def predict_catboost(df: pd.DataFrame, obj: dict) -> np.ndarray:
     for col in cat_list:
         df[col] = df[col].fillna("__NaN__").astype(str) if col in df.columns else "__NaN__"
     _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
-                     "horse_fuku10","horse_fuku30","前走補9","前走補正"}
+                     "horse_fuku10","horse_fuku30","前走補9","前走補正",
+                     "trn_hanro_4f","trn_hanro_lap1","trn_hanro_days",
+                     "trn_wc_3f","trn_wc_lap1","trn_wc_days",
+                     "前走単勝オッズ"}
     for col in feature_cols:
         if col not in df.columns:
             df[col] = np.nan if col in _ROLLING_COLS else 0.0

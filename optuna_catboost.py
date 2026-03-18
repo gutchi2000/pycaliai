@@ -36,8 +36,11 @@ DATA_DIR   = BASE_DIR / "data"
 MODEL_DIR  = BASE_DIR / "models"
 REPORT_DIR = BASE_DIR / "reports"
 
-MASTER_CSV   = DATA_DIR / "master_20130105-20251228.csv"
-HOSSEI_CSV   = DATA_DIR / "hossei" / "H_20130105-20251228.csv"
+MASTER_CSV    = DATA_DIR / "master_20130105-20251228.csv"
+HOSSEI_CSV    = DATA_DIR / "hossei" / "H_20130105-20251228.csv"
+KEKKA_CSV     = DATA_DIR / "kekka_20130105-20251228.csv"
+HANRO_MASTER  = Path(r"E:\競馬過去走データ\H-20150401-20260313.csv")
+WC_MASTER     = Path(r"E:\競馬過去走データ\W-20150401-20260313.csv")
 MODEL_PATH = MODEL_DIR / "catboost_optuna_v1.pkl"
 STUDY_PATH = REPORT_DIR / "optuna_catboost_study.pkl"
 
@@ -75,12 +78,18 @@ NUM_FEATURES = [
     "prev_pos_rel", "closing_power",
     # 補正タイム（data/hossei/ からJOIN）
     "前走補9", "前走補正",
+    # 調教データ（E:\競馬過去走データ\ からJOIN）
+    "trn_hanro_4f", "trn_hanro_lap1", "trn_hanro_days",
+    "trn_wc_3f", "trn_wc_lap1", "trn_wc_days",
+    # 前走単勝オッズ（kekka CSV からJOIN）※今走は配当データのためリーク→除外
+    "前走単勝オッズ",
 ]
 
 TIME_STR_FEATURES = ["前走走破タイム", "前走着差タイム"]
 
 
 from utils import parse_time_str, backup_model
+from optuna_lgbm import load_chukyo, merge_chukyo
 
 
 def preprocess(df: pd.DataFrame) -> pd.DataFrame:
@@ -133,6 +142,37 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         df["前走補9"]  = float("nan")
         df["前走補正"] = float("nan")
         logger.warning(f"hossei CSV未検出: {HOSSEI_CSV}")
+    # 調教データJOIN
+    hanro, wc = load_chukyo()
+    df = merge_chukyo(df, hanro, wc)
+    # 単勝オッズJOIN（kekka CSV）
+    if KEKKA_CSV.exists():
+        kekka = pd.read_csv(KEKKA_CSV, encoding="cp932",
+                            usecols=["レースID(新)", "馬番", "単勝配当"])
+        def _parse_tansho(s):
+            s = str(s).strip()
+            if s.startswith("(") and s.endswith(")"):
+                return float(s[1:-1])
+            try:
+                return float(s) / 100
+            except Exception:
+                return float("nan")
+        kekka["単勝オッズ"] = kekka["単勝配当"].apply(_parse_tansho)
+        kekka = kekka.drop(columns=["単勝配当"])
+        kekka["レースID(新)"] = kekka["レースID(新)"].astype("int64")
+        kekka["馬番"] = kekka["馬番"].astype("int64")
+        df = df.merge(kekka, on=["レースID(新)", "馬番"], how="left")
+        kekka_prev = kekka.rename(columns={
+            "レースID(新)": "前走レースID(新)", "単勝オッズ": "前走単勝オッズ"})
+        df["前走レースID(新)"] = pd.to_numeric(df["前走レースID(新)"], errors="coerce")
+        df = df.merge(kekka_prev, on=["前走レースID(新)", "馬番"], how="left")
+        logger.info(
+            f"単勝オッズJOIN完了: 今走={df['単勝オッズ'].notna().mean()*100:.1f}%"
+            f"  前走={df['前走単勝オッズ'].notna().mean()*100:.1f}%"
+        )
+    else:
+        df["単勝オッズ"]   = float("nan")
+        df["前走単勝オッズ"] = float("nan")
     train = preprocess(df[df["split"] == "train"].copy())
     valid = preprocess(df[df["split"] == "valid"].copy())
     test  = preprocess(df[df["split"] == "test"].copy())
