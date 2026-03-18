@@ -35,6 +35,7 @@ MODEL_DIR     = BASE_DIR / "models"
 STRATEGY_JSON = BASE_DIR / "data" / "strategy_weights.json"
 LGBM_PATH      = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH       = MODEL_DIR / "catboost_optuna_v1.pkl"
+RANK_PATH      = MODEL_DIR / "catboost_rank_v1.pkl"
 CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v1.pkl"
 TORCH_PATH     = MODEL_DIR / "transformer_optuna_v1.pkl"
 META_PATH      = MODEL_DIR / "stacking_meta_v1.pkl"
@@ -533,6 +534,47 @@ def predict_catboost(df: pd.DataFrame, obj: dict) -> np.ndarray:
     return model.predict_proba(pool)[:, 1]
 
 
+def predict_catboost_rank(df: pd.DataFrame, obj: dict) -> np.ndarray:
+    """YetiRankモデルで予測。スコアをレース内min-max正規化して[0,1]の擬似確率に変換。"""
+    from catboost import Pool
+    model, feature_cols = obj["model"], obj["feature_cols"]
+    cat_list = [
+        "種牡馬","父タイプ名","母父馬","母父タイプ名","毛色",
+        "馬主(最新/仮想)","生産者","芝・ダ","コース区分","芝(内・外)",
+        "馬場状態","天気","クラス名","場所","性別","斤量",
+        "ブリンカー","重量種別","年齢限定","限定","性別限定","指定条件",
+        "前走場所","前芝・ダ","前走馬場状態","前走斤量","前好走",
+    ]
+    df = df.copy()
+    for col in ["前走走破タイム","前走着差タイム"]:
+        if col in df.columns:
+            df[col] = parse_time_str(df[col])
+    for col in cat_list:
+        df[col] = df[col].fillna("__NaN__").astype(str) if col in df.columns else "__NaN__"
+    _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
+                     "horse_fuku10","horse_fuku30","前走補9","前走補正",
+                     "trn_hanro_4f","trn_hanro_lap1","trn_hanro_days",
+                     "trn_wc_3f","trn_wc_lap1","trn_wc_days",
+                     "前走単勝オッズ"}
+    for col in feature_cols:
+        if col not in df.columns:
+            df[col] = np.nan if col in _ROLLING_COLS else 0.0
+    cat_idx = [i for i, c in enumerate(feature_cols) if c in cat_list]
+    pool = Pool(df[feature_cols], cat_features=cat_idx)
+    scores = model.predict(pool)  # 生のランキングスコア
+
+    # レース内min-max正規化で[0,1]に変換（レース内相対評価を保持）
+    result = np.full(len(df), 0.5)
+    df_reset = df.reset_index(drop=True)
+    for race_id, group in df_reset.groupby("レースID(新/馬番無)"):
+        idx = group.index.tolist()
+        s = scores[idx]
+        s_min, s_max = s.min(), s.max()
+        if s_max > s_min:
+            result[idx] = (s - s_min) / (s_max - s_min)
+    return result
+
+
 _META_EXTRA = ["芝・ダ", "距離", "クラス名", "場所", "馬場状態", "出走頭数", "枠番", "馬番"]
 
 
@@ -659,8 +701,20 @@ def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
                 f"スタッキングキャリブレーター出力が異常（mean={calibrated.mean():.3f}, "
                 f"max={calibrated.max():.3f}）→ エンサンブルにフォールバック"
             )
-    # フォールバック: 2モデル平均 + キャリブレーション
-    raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
+    # YetiRankモデルが存在すれば3モデル加重平均（LGBM 0.4 + CatBoost 0.4 + Rank 0.2）
+    rank_obj = _get_cached(RANK_PATH, "rank")
+    if rank_obj is not None:
+        try:
+            p_lgbm = predict_lgbm(df, lgbm_obj)
+            p_cat  = predict_catboost(df, cat_obj)
+            p_rank = predict_catboost_rank(df, rank_obj)
+            raw = 0.4 * p_lgbm + 0.4 * p_cat + 0.2 * p_rank
+        except Exception as e:
+            logger.warning(f"YetiRank予測失敗（2モデルにフォールバック）: {e}")
+            raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
+    else:
+        # フォールバック: 2モデル平均
+        raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
     cal_obj = _get_cached(CAL_PATH, "ens_cal")
     if cal_obj is not None:
         return cal_obj["calibrator"].transform(raw)

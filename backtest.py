@@ -54,6 +54,7 @@ MASTER_CSV       = DATA_DIR  / "master_20130105-20251228.csv"
 KEKKA_CSV        = DATA_DIR  / "kekka_20130105-20251228.csv"
 LGBM_MODEL_PATH  = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_MODEL_PATH   = MODEL_DIR / "catboost_optuna_v1.pkl"
+RANK_MODEL_PATH  = MODEL_DIR / "catboost_rank_v1.pkl"
 TORCH_MODEL_PATH = MODEL_DIR / "transformer_optuna_v1.pkl"
 META_PATH        = MODEL_DIR / "stacking_meta_v1.pkl"
 STRATEGY_JSON    = BASE_DIR  / "data" / "strategy_weights.json"
@@ -340,6 +341,48 @@ def predict_catboost_batch(df: pd.DataFrame) -> np.ndarray:
     return model.predict_proba(pool)[:, 1]
 
 
+def predict_catboost_rank_batch(df: pd.DataFrame) -> np.ndarray:
+    """YetiRankバッチ予測。スコアをレース内min-max正規化して[0,1]に変換。"""
+    if not RANK_MODEL_PATH.exists():
+        return np.zeros(len(df))
+    obj          = joblib.load(RANK_MODEL_PATH)
+    model        = obj["model"]
+    feature_cols = obj["feature_cols"]
+    cat_features_list = [
+        "種牡馬", "父タイプ名", "母父馬", "母父タイプ名", "毛色",
+        "馬主(最新/仮想)", "生産者",
+        "芝・ダ", "コース区分", "芝(内・外)", "馬場状態", "天気",
+        "クラス名", "場所", "性別", "斤量", "ブリンカー", "重量種別",
+        "年齢限定", "限定", "性別限定", "指定条件",
+        "前走場所", "前芝・ダ", "前走馬場状態", "前走斤量", "前好走",
+    ]
+    _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
+                     "horse_fuku10","horse_fuku30","前走補9","前走補正",
+                     "trn_hanro_4f","trn_hanro_lap1","trn_hanro_days",
+                     "trn_wc_3f","trn_wc_lap1","trn_wc_days","前走単勝オッズ"}
+    df = df.reset_index(drop=True).copy()
+    for col in ["前走走破タイム", "前走着差タイム"]:
+        if col in df.columns:
+            df[col] = parse_time_str(df[col])
+    for col in cat_features_list:
+        df[col] = df[col].fillna("__NaN__").astype(str) if col in df.columns else "__NaN__"
+    for col in feature_cols:
+        if col not in df.columns:
+            df[col] = np.nan if col in _ROLLING_COLS else 0.0
+    cat_indices = [i for i, c in enumerate(feature_cols) if c in cat_features_list]
+    pool   = Pool(df[feature_cols], cat_features=cat_indices)
+    scores = model.predict(pool)
+    # レース内min-max正規化
+    result = np.full(len(df), 0.5)
+    for _, group in df.groupby(COL_RACE_ID):
+        idx  = group.index.tolist()
+        s    = scores[idx]
+        smin, smax = s.min(), s.max()
+        if smax > smin:
+            result[idx] = (s - smin) / (smax - smin)
+    return result
+
+
 def predict_transformer_batch(df: pd.DataFrame) -> np.ndarray:
     """Transformer予測。モデル未存在 or 失敗時はゼロ配列を返す。"""
     try:
@@ -411,8 +454,13 @@ def predict_transformer_batch(df: pd.DataFrame) -> np.ndarray:
 
 
 def predict_stacking_batch(df: pd.DataFrame) -> np.ndarray | None:
-    """スタッキング予測。モデル未存在 or 失敗時は None を返す。"""
+    """スタッキング予測。モデル未存在 or torch未インストール or 失敗時は None を返す。"""
     if not META_PATH.exists() or not TORCH_MODEL_PATH.exists():
+        return None
+    try:
+        import torch  # noqa: F401
+    except ImportError:
+        logger.info("torchが見つかりません。スタッキングをスキップして3モデルアンサンブルへ。")
         return None
     try:
         p_lgbm  = predict_lgbm_batch(df)
@@ -462,13 +510,19 @@ def ensemble_predict_batch(df: pd.DataFrame) -> np.ndarray:
             return cal_obj["calibrator"].transform(stacking)
         return stacking
 
-    # フォールバック: 2モデル平均 + キャリブレーション
-    logger.warning("スタッキング失敗。2モデルアンサンブルにフォールバック...")
+    # YetiRankが存在すれば3モデル加重平均（LGBM 0.4 + CatBoost 0.4 + Rank 0.2）
     logger.info("LightGBM予測中...")
     p_lgbm = predict_lgbm_batch(df)
     logger.info("CatBoost予測中...")
     p_cat  = predict_catboost_batch(df)
-    raw    = 0.5 * p_lgbm + 0.5 * p_cat
+    if RANK_MODEL_PATH.exists():
+        logger.info("YetiRank予測中...")
+        p_rank = predict_catboost_rank_batch(df)
+        raw = 0.4 * p_lgbm + 0.4 * p_cat + 0.2 * p_rank
+        logger.info("3モデルアンサンブル（LGBM 0.4 + CatBoost 0.4 + Rank 0.2）")
+    else:
+        raw = 0.5 * p_lgbm + 0.5 * p_cat
+        logger.info("2モデルアンサンブル（LGBM 0.5 + CatBoost 0.5）")
     if CAL_PATH.exists():
         cal_obj = joblib.load(CAL_PATH)
         return cal_obj["calibrator"].transform(raw)
