@@ -713,15 +713,21 @@ def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
                 f"max={calibrated.max():.3f}）→ エンサンブルにフォールバック"
             )
     # YetiRank + Transformer PL が存在すれば4モデル加重平均
-    rank_obj = _get_cached(RANK_PATH, "rank")
+    # キャリブレーターに最適重みが保存されていればそちらを使用（なければデフォルト値）
+    rank_obj  = _get_cached(RANK_PATH, "rank")
     torch_obj = _get_cached(TORCH_PATH, "torch")
+    cal_obj_pre = _get_cached(CAL_PATH, "ens_cal")
+    w_lgbm  = cal_obj_pre.get("w_lgbm",  0.262) if cal_obj_pre else 0.262
+    w_cat   = cal_obj_pre.get("w_cat",   0.479) if cal_obj_pre else 0.479
+    w_rank  = cal_obj_pre.get("w_rank",  0.156) if cal_obj_pre else 0.156
+    w_trans = cal_obj_pre.get("w_trans", 0.103) if cal_obj_pre else 0.103
     if rank_obj is not None and torch_obj is not None:
         try:
             p_lgbm  = predict_lgbm(df, lgbm_obj)
             p_cat   = predict_catboost(df, cat_obj)
             p_rank  = predict_catboost_rank(df, rank_obj)
             p_trans = predict_transformer_local(df)
-            raw = 0.30 * p_lgbm + 0.30 * p_cat + 0.20 * p_rank + 0.20 * p_trans
+            raw = w_lgbm * p_lgbm + w_cat * p_cat + w_rank * p_rank + w_trans * p_trans
         except Exception as e:
             logger.warning(f"4モデル予測失敗（2モデルにフォールバック）: {e}")
             raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
