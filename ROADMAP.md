@@ -1,6 +1,6 @@
 # PyCaLiAI 強化ロードマップ
 
-最終更新: 2026-03-19（YetiRank訓練完了）
+最終更新: 2026-03-19（Transformer PL訓練完了・4モデルアンサンブル統合）
 
 ---
 
@@ -36,17 +36,21 @@ CatBoostの **YetiRank**（GPU対応、精度が高い）から実装する。
 
 ---
 
-## Phase 3: Transformer × Plackett-Luce（長期） ← いまここ！
+## Phase 3: Transformer × Plackett-Luce ✅ 完了
 
 **注**: 訓練データは2015年〜分が揃っている。実装コストが高いため後回しにしているだけ。
 
 | タスク | 状態 | 概要 |
 |---|---|---|
-| Transformer実装 | ⬜ | レース内全馬を一括入力（注意機構で馬間関係を学習） |
-| Plackett-Luce損失 | ⬜ | 全順列の確率を最大化する損失関数 |
-| 既存モデルとアンサンブル | ⬜ | LGBM / CatBoost / Transformer の加重平均 |
+| Transformer実装 | ✅ | レース内全馬を一括入力（注意機構で馬間関係を学習） |
+| Plackett-Luce損失 | ✅ | 全順列の確率を最大化する損失関数 |
+| Optuna 30試行 | ✅ | Best Valid AUC=0.7255（d_model=64, n_heads=2, n_layers=4） |
+| 最終訓練 | ✅ | Valid AUC=0.7231 / Test AUC=0.7304（Early stopping Epoch 16） |
+| 4モデルアンサンブル統合 | ✅ | LGBM×0.30 + CatBoost×0.30 + YetiRank×0.20 + TransPL×0.20 |
+| Ensemble Calibrator 更新 | ✅ | Brier score +32.8%改善（前回3モデル比+3.2pt） |
+| 全pred CSV 再生成（24週分） | ✅ | |
 
-**なぜ超高適合か**: 競馬は「このレースの出走馬全員の相互関係」が重要。Transformerはそれを自然に扱える。Plackett-Luceは順位全体の確率を一度に最適化する理論的に最も正しい損失関数。
+**なぜ有効か**: 競馬は「このレースの出走馬全員の相互関係」が重要。Transformerはそれを自然に扱える。Plackett-Luceは順位全体の確率を一度に最適化する理論的に最も正しい損失関数。
 
 ---
 
@@ -67,8 +71,8 @@ CatBoostの **YetiRank**（GPU対応、精度が高い）から実装する。
 | LGBM（65特徴量） | 0.7551 | 0.7594 |
 | CatBoost（65特徴量） | 0.7656 | 0.7706 |
 | CatBoost YetiRank（ランキング） | 0.7482 | 0.7546 |
-| 3モデルアンサンブル（+YetiRank） | - | ROI: **69.9%**（2モデル比+8.0pt） |
-| アンサンブル（2モデル平均+Cal） | - | - |
+| Transformer Plackett-Luce | 0.7231 | 0.7304 |
+| 4モデルアンサンブル（+TransPL） | - | ROI: LALO **76.8%** / CQC **75.3%** |
 
 ---
 

@@ -37,7 +37,7 @@ LGBM_PATH      = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH       = MODEL_DIR / "catboost_optuna_v1.pkl"
 RANK_PATH      = MODEL_DIR / "catboost_rank_v1.pkl"
 CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v1.pkl"
-TORCH_PATH     = MODEL_DIR / "transformer_optuna_v1.pkl"
+TORCH_PATH     = MODEL_DIR / "transformer_pl_v2.pkl"
 META_PATH      = MODEL_DIR / "stacking_meta_v1.pkl"
 STACK_CAL_PATH = MODEL_DIR / "stacking_calibrator_v1.pkl"
 
@@ -579,14 +579,14 @@ _META_EXTRA = ["芝・ダ", "距離", "クラス名", "場所", "馬場状態", 
 
 
 def predict_transformer_local(df: pd.DataFrame) -> np.ndarray:
-    """Transformer予測。モデル未存在 or 失敗時はゼロ配列を返す。"""
+    """Transformer PL予測。レース内スコアをmin-max正規化して[0,1]に変換。モデル未存在 or 失敗時はゼロ配列を返す。"""
     torch_obj = _get_cached(TORCH_PATH, "torch")
     if torch_obj is None:
         return np.zeros(len(df))
     try:
         import torch
-        from train_transformer import RaceTransformer, RaceDataset, MAX_HORSES
-        from train_transformer import preprocess as torch_preprocess
+        from train_transformer import RaceTransformer
+        from optuna_transformer_pl import preprocess as pl_preprocess, RaceDatasetPL, MAX_HORSES as PL_MAX_HORSES
         from torch.utils.data import DataLoader
 
         DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -599,7 +599,9 @@ def predict_transformer_local(df: pd.DataFrame) -> np.ndarray:
         df_copy = df.copy()
         if "fukusho_flag" not in df_copy.columns:
             df_copy["fukusho_flag"] = 0
-        df2, _, _ = torch_preprocess(df_copy, encoders=encoders, fit=False, num_stats=num_stats)
+        if "着順" not in df_copy.columns:
+            df_copy["着順"] = 0
+        df2, _, _ = pl_preprocess(df_copy, encoders=encoders, fit=False, num_stats=num_stats)
 
         # モデルをキャッシュ（起動後1回だけビルド）
         if "torch_model" not in _model_cache:
@@ -607,9 +609,9 @@ def predict_transformer_local(df: pd.DataFrame) -> np.ndarray:
                 cat_vocab_sizes=model_config["cat_vocab_sizes"],
                 cat_cols=model_config["cat_cols"],
                 n_num=model_config["n_num"],
-                d_model=model_config.get("d_model", 128),
-                n_heads=model_config.get("n_heads", 4),
-                n_layers=model_config.get("n_layers", 2),
+                d_model=model_config.get("d_model", 64),
+                n_heads=model_config.get("n_heads", 2),
+                n_layers=model_config.get("n_layers", 4),
                 d_ff=model_config.get("d_ff", 256),
                 dropout=model_config.get("dropout", 0.1),
             ).to(DEVICE)
@@ -618,31 +620,40 @@ def predict_transformer_local(df: pd.DataFrame) -> np.ndarray:
             _model_cache["torch_model"] = (m, DEVICE)
         model, DEVICE = _model_cache["torch_model"]
 
-        ds     = RaceDataset(df2, cat_cols, num_cols, model_config["cat_vocab_sizes"])
+        ds     = RaceDatasetPL(df2, cat_cols, num_cols, model_config["cat_vocab_sizes"])
         loader = DataLoader(ds, batch_size=512, shuffle=False, num_workers=0)
 
-        all_proba: list[float] = []
+        all_scores: list[float] = []
         with torch.no_grad():
             for batch in loader:
-                logits = model(batch["cat"].to(DEVICE), batch["num"].to(DEVICE), batch["mask"].to(DEVICE))
-                proba  = torch.sigmoid(logits).cpu().numpy()
-                valid  = ~batch["mask"].numpy()
-                for b in range(len(proba)):
-                    for h in range(MAX_HORSES):
-                        if valid[b, h]:
-                            all_proba.append(float(proba[b, h]))
+                out   = model(batch["cat"].to(DEVICE), batch["num"].to(DEVICE), batch["mask"].to(DEVICE))
+                valid = ~batch["mask"]
+                all_scores.extend(out.cpu()[valid].numpy().tolist())
 
+        # race_id 順に並べ替えて元 index に戻す
         result  = np.zeros(len(df))
         df_sort = df.sort_values("レースID(新/馬番無)").reset_index(drop=True)
         idx = 0
         for _, group in df_sort.groupby("レースID(新/馬番無)", sort=True):
-            for orig_idx in list(group.index)[:MAX_HORSES]:
-                if idx < len(all_proba):
-                    result[orig_idx] = all_proba[idx]
+            valid_n = min(len(group), PL_MAX_HORSES)
+            for orig_idx in list(group.index)[:valid_n]:
+                if idx < len(all_scores):
+                    result[orig_idx] = all_scores[idx]
                     idx += 1
+
+        # レース内 min-max 正規化で [0, 1] に変換
+        df_reset = df.reset_index(drop=True)
+        for _, group in df_reset.groupby("レースID(新/馬番無)"):
+            idxs = group.index.tolist()
+            s = result[idxs]
+            s_min, s_max = s.min(), s.max()
+            if s_max > s_min:
+                result[idxs] = (s - s_min) / (s_max - s_min)
+            else:
+                result[idxs] = 0.5
         return result
     except Exception as e:
-        logger.warning(f"Transformer予測失敗（0で埋め）: {e}")
+        logger.warning(f"Transformer PL予測失敗（0で埋め）: {e}")
         return np.zeros(len(df))
 
 
@@ -701,9 +712,20 @@ def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
                 f"スタッキングキャリブレーター出力が異常（mean={calibrated.mean():.3f}, "
                 f"max={calibrated.max():.3f}）→ エンサンブルにフォールバック"
             )
-    # YetiRankモデルが存在すれば3モデル加重平均（LGBM 0.4 + CatBoost 0.4 + Rank 0.2）
+    # YetiRank + Transformer PL が存在すれば4モデル加重平均
     rank_obj = _get_cached(RANK_PATH, "rank")
-    if rank_obj is not None:
+    torch_obj = _get_cached(TORCH_PATH, "torch")
+    if rank_obj is not None and torch_obj is not None:
+        try:
+            p_lgbm  = predict_lgbm(df, lgbm_obj)
+            p_cat   = predict_catboost(df, cat_obj)
+            p_rank  = predict_catboost_rank(df, rank_obj)
+            p_trans = predict_transformer_local(df)
+            raw = 0.30 * p_lgbm + 0.30 * p_cat + 0.20 * p_rank + 0.20 * p_trans
+        except Exception as e:
+            logger.warning(f"4モデル予測失敗（2モデルにフォールバック）: {e}")
+            raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
+    elif rank_obj is not None:
         try:
             p_lgbm = predict_lgbm(df, lgbm_obj)
             p_cat  = predict_catboost(df, cat_obj)

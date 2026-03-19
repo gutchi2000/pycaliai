@@ -52,12 +52,13 @@ REPORT_DIR = BASE_DIR / "reports"
 
 MASTER_CSV      = DATA_DIR  / "master_20130105-20251228.csv"
 HOSSEI_CSV      = DATA_DIR  / "hossei" / "H_20130105-20251228.csv"
-LGBM_MODEL_PATH = MODEL_DIR / "lgbm_optuna_v1.pkl"
-CAT_MODEL_PATH  = MODEL_DIR / "catboost_optuna_v1.pkl"
-TORCH_MODEL_PATH = MODEL_DIR / "transformer_optuna_v1.pkl"
+LGBM_MODEL_PATH  = MODEL_DIR / "lgbm_optuna_v1.pkl"
+CAT_MODEL_PATH   = MODEL_DIR / "catboost_optuna_v1.pkl"
+RANK_MODEL_PATH  = MODEL_DIR / "catboost_rank_v1.pkl"
+TORCH_MODEL_PATH = MODEL_DIR / "transformer_pl_v2.pkl"
 META_MODEL_PATH  = MODEL_DIR / "stacking_meta_v1.pkl"
-CAL_OUT_PATH    = MODEL_DIR / "ensemble_calibrator_v1.pkl"
-STACK_CAL_PATH  = MODEL_DIR / "stacking_calibrator_v1.pkl"
+CAL_OUT_PATH     = MODEL_DIR / "ensemble_calibrator_v1.pkl"
+STACK_CAL_PATH   = MODEL_DIR / "stacking_calibrator_v1.pkl"
 
 TARGET = "fukusho_flag"
 
@@ -109,8 +110,43 @@ def _predict_lgbm(df: pd.DataFrame, obj: dict) -> np.ndarray:
     return model.predict_proba(df[feature_cols])[:, 1]
 
 
+def _predict_catboost_rank(df: pd.DataFrame, obj: dict) -> np.ndarray:
+    """YetiRankモデルで予測。スコアをレース内min-max正規化して[0,1]に変換。"""
+    model, feature_cols = obj["model"], obj["feature_cols"]
+    cat_list = [
+        "種牡馬", "父タイプ名", "母父馬", "母父タイプ名", "毛色",
+        "馬主(最新/仮想)", "生産者", "芝・ダ", "コース区分", "芝(内・外)",
+        "馬場状態", "天気", "クラス名", "場所", "性別", "斤量",
+        "ブリンカー", "重量種別", "年齢限定", "限定", "性別限定", "指定条件",
+        "前走場所", "前芝・ダ", "前走馬場状態", "前走斤量", "前好走",
+    ]
+    df = df.copy()
+    for col in ["前走走破タイム", "前走着差タイム"]:
+        if col in df.columns:
+            df[col] = parse_time_str(df[col])
+    for col in cat_list:
+        df[col] = df[col].fillna("__NaN__").astype(str) if col in df.columns else "__NaN__"
+    for col in feature_cols:
+        if col not in df.columns:
+            df[col] = 0.0
+    cat_idx = [i for i, c in enumerate(feature_cols) if c in cat_list]
+    pool = Pool(df[feature_cols], cat_features=cat_idx)
+    scores = model.predict(pool)
+
+    race_id_col = "レースID(新/馬番無)" if "レースID(新/馬番無)" in df.columns else df.columns[0]
+    result = np.full(len(df), 0.5)
+    df_reset = df.reset_index(drop=True)
+    for _, group in df_reset.groupby(race_id_col):
+        idxs = group.index.tolist()
+        s = scores[idxs]
+        s_min, s_max = s.min(), s.max()
+        if s_max > s_min:
+            result[idxs] = (s - s_min) / (s_max - s_min)
+    return result
+
+
 def _predict_transformer(df: pd.DataFrame) -> np.ndarray:
-    """Transformer予測。モデル未存在 or 失敗時はゼロ配列を返す。"""
+    """Transformer PL予測。レース内スコアをmin-max正規化して[0,1]に変換。モデル未存在 or 失敗時はゼロ配列を返す。"""
     if not TORCH_MODEL_PATH.exists():
         return np.zeros(len(df))
     if "torch" not in _model_cache:
@@ -118,8 +154,8 @@ def _predict_transformer(df: pd.DataFrame) -> np.ndarray:
     torch_obj = _model_cache["torch"]
     try:
         import torch
-        from train_transformer import RaceTransformer, RaceDataset, MAX_HORSES
-        from train_transformer import preprocess as torch_preprocess
+        from train_transformer import RaceTransformer
+        from optuna_transformer_pl import preprocess as pl_preprocess, RaceDatasetPL, MAX_HORSES as PL_MAX_HORSES
         from torch.utils.data import DataLoader
 
         DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -129,16 +165,21 @@ def _predict_transformer(df: pd.DataFrame) -> np.ndarray:
         num_cols     = torch_obj["num_cols"]
         cat_cols     = torch_obj["cat_cols"]
 
-        df2, _, _ = torch_preprocess(df.copy(), encoders=encoders, fit=False, num_stats=num_stats)
+        df_copy = df.copy()
+        if "fukusho_flag" not in df_copy.columns:
+            df_copy["fukusho_flag"] = 0
+        if "着順" not in df_copy.columns:
+            df_copy["着順"] = 0
+        df2, _, _ = pl_preprocess(df_copy, encoders=encoders, fit=False, num_stats=num_stats)
 
         if "torch_model" not in _model_cache:
             m = RaceTransformer(
                 cat_vocab_sizes=model_config["cat_vocab_sizes"],
                 cat_cols=model_config["cat_cols"],
                 n_num=model_config["n_num"],
-                d_model=model_config.get("d_model", 128),
-                n_heads=model_config.get("n_heads", 4),
-                n_layers=model_config.get("n_layers", 2),
+                d_model=model_config.get("d_model", 64),
+                n_heads=model_config.get("n_heads", 2),
+                n_layers=model_config.get("n_layers", 4),
                 d_ff=model_config.get("d_ff", 256),
                 dropout=model_config.get("dropout", 0.1),
             ).to(DEVICE)
@@ -147,33 +188,40 @@ def _predict_transformer(df: pd.DataFrame) -> np.ndarray:
             _model_cache["torch_model"] = (m, DEVICE)
         model, DEVICE = _model_cache["torch_model"]
 
-        ds     = RaceDataset(df2, cat_cols, num_cols, model_config["cat_vocab_sizes"])
+        ds     = RaceDatasetPL(df2, cat_cols, num_cols, model_config["cat_vocab_sizes"])
         loader = DataLoader(ds, batch_size=512, shuffle=False, num_workers=0)
 
-        all_proba: list[float] = []
+        all_scores: list[float] = []
         with torch.no_grad():
             for batch in loader:
-                logits = model(batch["cat"].to(DEVICE), batch["num"].to(DEVICE), batch["mask"].to(DEVICE))
-                proba  = torch.sigmoid(logits).cpu().numpy()
-                valid  = ~batch["mask"].numpy()
-                for b in range(len(proba)):
-                    for h in range(MAX_HORSES):
-                        if valid[b, h]:
-                            all_proba.append(float(proba[b, h]))
+                out   = model(batch["cat"].to(DEVICE), batch["num"].to(DEVICE), batch["mask"].to(DEVICE))
+                valid = ~batch["mask"]
+                all_scores.extend(out.cpu()[valid].numpy().tolist())
 
-        # race_id で並べ替えて元indexに戻す
         race_id_col = "レースID(新/馬番無)" if "レースID(新/馬番無)" in df.columns else df.columns[0]
         result  = np.zeros(len(df))
         df_sort = df.sort_values(race_id_col).reset_index(drop=True)
         idx = 0
         for _, group in df_sort.groupby(race_id_col, sort=True):
-            for orig_idx in list(group.index)[:MAX_HORSES]:
-                if idx < len(all_proba):
-                    result[orig_idx] = all_proba[idx]
+            valid_n = min(len(group), PL_MAX_HORSES)
+            for orig_idx in list(group.index)[:valid_n]:
+                if idx < len(all_scores):
+                    result[orig_idx] = all_scores[idx]
                     idx += 1
+
+        # レース内 min-max 正規化
+        df_reset = df.reset_index(drop=True)
+        for _, group in df_reset.groupby(race_id_col):
+            idxs = group.index.tolist()
+            s = result[idxs]
+            s_min, s_max = s.min(), s.max()
+            if s_max > s_min:
+                result[idxs] = (s - s_min) / (s_max - s_min)
+            else:
+                result[idxs] = 0.5
         return result
     except Exception as e:
-        logger.warning(f"Transformer予測失敗（0で埋め）: {e}")
+        logger.warning(f"Transformer PL予測失敗（0で埋め）: {e}")
         return np.zeros(len(df))
 
 
@@ -343,7 +391,29 @@ def main() -> None:
     logger.info("CatBoost 予測中...")
     cat_proba = _predict_catboost(valid, cat_obj)
 
-    ens_proba = 0.5 * lgbm_proba + 0.5 * cat_proba
+    # YetiRank・Transformer PLが存在すれば4モデル加重平均
+    rank_proba  = np.zeros(len(valid))
+    trans_proba = np.zeros(len(valid))
+    use_rank    = RANK_MODEL_PATH.exists()
+    use_trans   = TORCH_MODEL_PATH.exists()
+
+    if use_rank:
+        logger.info("YetiRank 予測中...")
+        rank_obj   = joblib.load(RANK_MODEL_PATH)
+        rank_proba = _predict_catboost_rank(valid, rank_obj)
+    if use_trans:
+        logger.info("Transformer PL 予測中...")
+        trans_proba = _predict_transformer(valid)
+
+    if use_rank and use_trans:
+        ens_proba = 0.30 * lgbm_proba + 0.30 * cat_proba + 0.20 * rank_proba + 0.20 * trans_proba
+        logger.info("4モデルアンサンブル（LGBM×0.30 + CatBoost×0.30 + YetiRank×0.20 + TransPL×0.20）")
+    elif use_rank:
+        ens_proba = 0.40 * lgbm_proba + 0.40 * cat_proba + 0.20 * rank_proba
+        logger.info("3モデルアンサンブル（LGBM×0.40 + CatBoost×0.40 + YetiRank×0.20）")
+    else:
+        ens_proba = 0.5 * lgbm_proba + 0.5 * cat_proba
+        logger.info("2モデルアンサンブル（LGBM×0.50 + CatBoost×0.50）")
 
     logger.info(f"予測確率の統計（アンサンブル生）: "
                 f"mean={ens_proba.mean():.3f}  std={ens_proba.std():.3f}  "
