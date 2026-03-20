@@ -897,6 +897,147 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
 
 
 # =========================================================
+# pred CSV 自動保存（Streamlit の表示結果を基準にする）
+# =========================================================
+def _get_bets_flat(race_df: pd.DataFrame, place: str, cls_raw: str,
+                   strategy: dict, budget: int) -> dict:
+    """predict_weekly.py と同じ flat dict 形式で買い目を返す。"""
+    cls      = CLASS_NORMALIZE.get(cls_raw, cls_raw)
+    bet_info = strategy.get(place, {}).get(cls) or strategy.get(place, {}).get(cls_raw, {})
+
+    result: dict = {
+        "HAHO_戦略対象": False,
+        "HAHO_馬連_買い目": "", "HAHO_馬連_購入額": 0,
+        "HAHO_三連複_買い目": "", "HAHO_三連複_購入額": 0,
+        "HALO_戦略対象": False,
+        "HALO_三連複_買い目": "", "HALO_三連複_購入額": 0,
+        "LALO_戦略対象": False,
+        "LALO_複勝_買い目": "", "LALO_複勝_購入額": 0,
+        "CQC_戦略対象": False,
+        "CQC_単勝_買い目": "", "CQC_単勝_購入額": 0,
+    }
+    if not bet_info:
+        return result
+
+    marks_df = {m: race_df[race_df["mark"] == m] for m in ["◎", "◯", "▲"]}
+    hon    = marks_df["◎"]
+    taikou = marks_df["◯"]
+    sabo   = marks_df["▲"]
+    if hon.empty:
+        return result
+
+    h1 = int(hon.iloc[0]["馬番"])
+    h2 = int(taikou.iloc[0]["馬番"]) if not taikou.empty else None
+    h3 = int(sabo.iloc[0]["馬番"])   if not sabo.empty  else None
+
+    haho_types = {k: v for k, v in bet_info.items() if k in ("馬連", "三連複")}
+    if haho_types and "馬連" in haho_types and h2 and h3:
+        total_ratio = sum(v["bet_ratio"] for v in haho_types.values()) or 1.0
+        if "馬連" in haho_types:
+            r   = haho_types["馬連"]["bet_ratio"]
+            amt = floor_to_unit(int(budget * r / total_ratio))
+            cbs = [(h1, h2), (h1, h3)]
+            per = floor_to_unit(amt // len(cbs))
+            result["HAHO_馬連_買い目"] = " / ".join(f"{min(a,b)}-{max(a,b)}" for a, b in cbs)
+            result["HAHO_馬連_購入額"] = per * len(cbs)
+        if "三連複" in haho_types:
+            r    = haho_types["三連複"]["bet_ratio"]
+            amt  = floor_to_unit(int(budget * r / total_ratio))
+            c_sf = tuple(sorted([h1, h2, h3]))
+            result["HAHO_三連複_買い目"] = "-".join(map(str, c_sf))
+            result["HAHO_三連複_購入額"] = amt
+        if result["HAHO_馬連_買い目"] or result["HAHO_三連複_買い目"]:
+            result["HAHO_戦略対象"] = True
+
+    if "三連複" in bet_info and h2 and h3:
+        result["HALO_戦略対象"] = True
+        c_sf = tuple(sorted([h1, h2, h3]))
+        result["HALO_三連複_買い目"] = "-".join(map(str, c_sf))
+        result["HALO_三連複_購入額"] = floor_to_unit(budget)
+
+    if bet_info:
+        result["LALO_戦略対象"]    = True
+        result["LALO_複勝_買い目"] = str(h1)
+        result["LALO_複勝_購入額"] = floor_to_unit(budget)
+
+    if bet_info:
+        result["CQC_戦略対象"]    = True
+        result["CQC_単勝_買い目"] = str(h1)
+        result["CQC_単勝_購入額"] = floor_to_unit(budget)
+
+    return result
+
+
+def save_pred_csv_from_streamlit(all_df: pd.DataFrame, selected_date: str,
+                                  strategy: dict, budget: int) -> None:
+    """Streamlit が表示した予測をそのまま pred CSV として保存する。
+    URL で確認した内容 = 的中実績の基準にするためのエクスポート。"""
+    out_path = BASE_DIR / "reports" / f"pred_{selected_date}.csv"
+    race_id_col = "レースID(新/馬番無)"
+    rows: list[dict] = []
+
+    for race_id, race_df in all_df.groupby(race_id_col):
+        race_df = race_df.copy()
+        meta    = race_df.iloc[0]
+        place   = str(meta.get("場所", "")).strip()
+        cls_raw = str(meta.get("クラス名", meta.get("クラス", ""))).strip()
+        r_num   = str(meta.get("R", ""))
+        date_s  = str(meta.get("日付S", selected_date))
+        dist    = str(meta.get("距離", ""))
+
+        if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
+            bets: dict = {
+                "HAHO_戦略対象": False,
+                "HAHO_馬連_買い目": "", "HAHO_馬連_購入額": 0,
+                "HAHO_三連複_買い目": "", "HAHO_三連複_購入額": 0,
+                "HALO_戦略対象": False,
+                "HALO_三連複_買い目": "", "HALO_三連複_購入額": 0,
+                "LALO_戦略対象": False,
+                "LALO_複勝_買い目": "", "LALO_複勝_購入額": 0,
+                "CQC_戦略対象": False,
+                "CQC_単勝_買い目": "", "CQC_単勝_購入額": 0,
+            }
+        else:
+            bets = _get_bets_flat(race_df, place, cls_raw, strategy, budget)
+
+        for _, row in race_df.sort_values("馬番").iterrows():
+            is_hon = str(row.get("mark", "")) == "◎"
+            rows.append({
+                "日付":               date_s,
+                "場所":               place,
+                "R":                  r_num,
+                "クラス":             cls_raw,
+                "距離":               dist,
+                "レースID":           race_id,
+                "馬番":               int(row["馬番"]) if pd.notna(row.get("馬番")) else "",
+                "馬名":               str(row.get("馬名", "")),
+                "騎手":               str(row.get("騎手", "")),
+                "スコア":             float(row.get("score", 0.0)),
+                "単勝オッズ":         float(row["単勝"]) if pd.notna(row.get("単勝")) else "",
+                "期待値スコア":       float(row.get("ev_score", 0.0)),
+                "印":                 str(row.get("mark", "")),
+                "HAHO_戦略対象":      "✅" if bets["HAHO_戦略対象"] else "",
+                "HAHO_馬連_買い目":   bets["HAHO_馬連_買い目"]   if is_hon else "",
+                "HAHO_馬連_購入額":   bets["HAHO_馬連_購入額"]   if is_hon else "",
+                "HAHO_三連複_買い目": bets["HAHO_三連複_買い目"] if is_hon else "",
+                "HAHO_三連複_購入額": bets["HAHO_三連複_購入額"] if is_hon else "",
+                "HALO_戦略対象":      "✅" if bets["HALO_戦略対象"] else "",
+                "HALO_三連複_買い目": bets["HALO_三連複_買い目"] if is_hon else "",
+                "HALO_三連複_購入額": bets["HALO_三連複_購入額"] if is_hon else "",
+                "LALO_戦略対象":      "✅" if bets["LALO_戦略対象"] else "",
+                "LALO_複勝_買い目":   bets["LALO_複勝_買い目"]   if is_hon else "",
+                "LALO_複勝_購入額":   bets["LALO_複勝_購入額"]   if is_hon else "",
+                "CQC_戦略対象":       "✅" if bets["CQC_戦略対象"]  else "",
+                "CQC_単勝_買い目":    bets["CQC_単勝_買い目"]    if is_hon else "",
+                "CQC_単勝_購入額":    bets["CQC_単勝_購入額"]    if is_hon else "",
+            })
+
+    if rows:
+        pd.DataFrame(rows).to_csv(out_path, index=False, encoding="utf-8-sig")
+        logger.info(f"pred CSV 保存（Streamlit基準）: {out_path}")
+
+
+# =========================================================
 # レース傾向データ（過去10年実績・2016〜2025）
 # =========================================================
 TREND_DATA: dict[str, dict] = {
@@ -3293,6 +3434,12 @@ def main() -> None:
     predicted_json = predict_all_races(_cache_key, raw_df.to_json(), lgbm_obj, cat_obj)
     import io
     all_df = pd.read_json(io.StringIO(predicted_json))
+
+    # ── Streamlit の表示結果を pred CSV として自動保存（的中実績の基準）──
+    try:
+        save_pred_csv_from_streamlit(all_df, selected_date, strategy, budget)
+    except Exception as _e:
+        logger.warning(f"pred CSV 自動保存失敗: {_e}")
 
     if "selected_race_id" not in st.session_state:
         st.session_state.selected_race_id = None
