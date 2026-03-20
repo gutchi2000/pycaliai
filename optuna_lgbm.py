@@ -38,10 +38,11 @@ MODEL_DIR  = BASE_DIR / "models"
 REPORT_DIR = BASE_DIR / "reports"
 
 MASTER_CSV    = DATA_DIR / "master_20130105-20251228.csv"
-HOSSEI_CSV    = DATA_DIR / "hossei" / "H_20130105-20251228.csv"
+HOSEI_DIR     = DATA_DIR / "hosei"
 KEKKA_CSV     = DATA_DIR / "kekka_20130105-20251228.csv"
 HANRO_MASTER  = Path(r"E:\競馬過去走データ\H-20150401-20260313.csv")
 WC_MASTER     = Path(r"E:\競馬過去走データ\W-20150401-20260313.csv")
+CHUKYO_DIR    = DATA_DIR / "training"  # 週次調教CSV置き場（H-*.csv / W-*.csv）
 MODEL_PATH = MODEL_DIR / "lgbm_optuna_v1.pkl"
 STUDY_PATH = REPORT_DIR / "optuna_lgbm_study.pkl"
 
@@ -76,11 +77,15 @@ NUM_FEATURES = [
     "horse_fuku10", "horse_fuku30",
     # 脚質特徴量（build_dataset.py で生成）
     "prev_pos_rel", "closing_power",
-    # 補正タイム（data/hossei/ からJOIN）
+    # 補正タイム（data/hosei/ からJOIN）
     "前走補9", "前走補正",
-    # 調教データ（E:\競馬過去走データ\ からJOIN）
-    "trn_hanro_4f", "trn_hanro_lap1", "trn_hanro_days",
-    "trn_wc_3f", "trn_wc_lap1", "trn_wc_days",
+    # 調教データ（E:\競馬過去走データ\ マスター + data/training/ 週次からJOIN）
+    "trn_hanro_4f", "trn_hanro_3f", "trn_hanro_2f", "trn_hanro_1f",
+    "trn_hanro_lap1", "trn_hanro_lap2", "trn_hanro_lap3", "trn_hanro_lap4",
+    "trn_hanro_days",
+    "trn_wc_5f", "trn_wc_4f", "trn_wc_3f",
+    "trn_wc_lap1", "trn_wc_lap2", "trn_wc_lap3",
+    "trn_wc_days",
     # 前走単勝オッズ（kekka CSV からJOIN）※今走は配当データのためリーク→除外
     "前走単勝オッズ",
 ]
@@ -141,26 +146,65 @@ def preprocess(
 # 調教データロード・マージ
 # =========================================================
 def load_chukyo():
-    """坂路・WCマスターCSVを読み込む。ファイルがなければNoneを返す。"""
-    hanro = wc = None
-    if HANRO_MASTER.exists():
-        hanro = pd.read_csv(HANRO_MASTER, encoding="cp932",
-                            usecols=["年月日", "馬名", "Time1", "Lap1"])
-        hanro = hanro.rename(columns={"Time1": "hanro_4f", "Lap1": "hanro_lap1"})
-        hanro["_dt"] = pd.to_datetime(hanro["年月日"].astype(str), format="%Y%m%d")
-        hanro = hanro.sort_values(["馬名", "_dt"]).reset_index(drop=True)
-        logger.info(f"坂路CSV読み込み: {len(hanro):,}行")
-    else:
-        logger.warning(f"坂路CSV未検出: {HANRO_MASTER}")
-    if WC_MASTER.exists():
-        wc = pd.read_csv(WC_MASTER, encoding="cp932",
-                         usecols=["年月日", "馬名", "3F", "Lap1"])
-        wc = wc.rename(columns={"3F": "wc_3f", "Lap1": "wc_lap1"})
-        wc["_dt"] = pd.to_datetime(wc["年月日"].astype(str), format="%Y%m%d")
-        wc = wc.sort_values(["馬名", "_dt"]).reset_index(drop=True)
-        logger.info(f"WC CSV読み込み: {len(wc):,}行")
-    else:
-        logger.warning(f"WC CSV未検出: {WC_MASTER}")
+    """坂路・WCマスターCSV + 週次追加ファイル（H-*.csv / W-*.csv）を読み込む。
+
+    毎週、レース週（土〜金）の調教CSVを以下の命名規則で置くだけで自動取り込みされる:
+        E:\\PyCaLiAI\\data\\training\\H-YYYYMMDD-YYYYMMDD.csv  （坂路）
+        E:\\PyCaLiAI\\data\\training\\W-YYYYMMDD-YYYYMMDD.csv  （WC）
+    例: H-20260314-20260320.csv, W-20260314-20260320.csv
+    重複行は自動で除去するので、マスターと日付が被っても問題ない。
+    """
+    chukyo_dir = CHUKYO_DIR
+    CHUKYO_DIR.mkdir(parents=True, exist_ok=True)
+
+    def _read_hanro(path: Path):
+        return pd.read_csv(path, encoding="cp932",
+                           usecols=["年月日", "馬名", "Time1", "Time2", "Time3", "Time4",
+                                    "Lap4", "Lap3", "Lap2", "Lap1"])
+
+    def _read_wc(path: Path):
+        return pd.read_csv(path, encoding="cp932",
+                           usecols=["年月日", "馬名", "5F", "4F", "3F", "Lap3", "Lap2", "Lap1"])
+
+    def _collect(master: Path, glob_pat: str, reader, rename_map: dict, label: str):
+        files = []
+        if master.exists():
+            files.append(master)
+        for f in sorted(chukyo_dir.glob(glob_pat)):
+            if f != master:
+                files.append(f)
+        if not files:
+            logger.warning(f"{label} CSV未検出: {chukyo_dir}")
+            return None
+        dfs = []
+        for f in files:
+            try:
+                dfs.append(reader(f))
+            except Exception as e:
+                logger.warning(f"{label} CSV読み込みスキップ: {f.name} ({e})")
+        if not dfs:
+            return None
+        result = pd.concat(dfs, ignore_index=True).drop_duplicates()
+        result = result.rename(columns=rename_map)
+        result["_dt"] = pd.to_datetime(result["年月日"].astype(str), format="%Y%m%d")
+        result = result.sort_values(["馬名", "_dt"]).reset_index(drop=True)
+        weekly = [f.name for f in files if f != master]
+        extra = f" + 週次{len(weekly)}件: {weekly}" if weekly else ""
+        logger.info(f"{label} CSV読み込み: {len(result):,}行（マスター{extra}）")
+        return result
+
+    hanro = _collect(
+        HANRO_MASTER, "H-*.csv", _read_hanro,
+        {"Time1": "hanro_4f", "Time2": "hanro_3f", "Time3": "hanro_2f", "Time4": "hanro_1f",
+         "Lap4": "hanro_lap4", "Lap3": "hanro_lap3", "Lap2": "hanro_lap2", "Lap1": "hanro_lap1"},
+        "坂路",
+    )
+    wc = _collect(
+        WC_MASTER, "W-*.csv", _read_wc,
+        {"5F": "wc_5f", "4F": "wc_4f", "3F": "wc_3f",
+         "Lap3": "wc_lap3", "Lap2": "wc_lap2", "Lap1": "wc_lap1"},
+        "WC",
+    )
     return hanro, wc
 
 
@@ -173,10 +217,16 @@ def merge_chukyo(df: pd.DataFrame, hanro, wc) -> pd.DataFrame:
     df_idx = df.reset_index(drop=True)
 
     for trn, feat_cols, out_cols, prefix in [
-        (hanro, ["hanro_4f", "hanro_lap1"],
-                ["trn_hanro_4f", "trn_hanro_lap1"], "hanro"),
-        (wc,    ["wc_3f", "wc_lap1"],
-                ["trn_wc_3f", "trn_wc_lap1"],       "wc"),
+        (hanro,
+         ["hanro_4f", "hanro_3f", "hanro_2f", "hanro_1f",
+          "hanro_lap4", "hanro_lap3", "hanro_lap2", "hanro_lap1"],
+         ["trn_hanro_4f", "trn_hanro_3f", "trn_hanro_2f", "trn_hanro_1f",
+          "trn_hanro_lap4", "trn_hanro_lap3", "trn_hanro_lap2", "trn_hanro_lap1"],
+         "hanro"),
+        (wc,
+         ["wc_5f", "wc_4f", "wc_3f", "wc_lap3", "wc_lap2", "wc_lap1"],
+         ["trn_wc_5f", "trn_wc_4f", "trn_wc_3f", "trn_wc_lap3", "trn_wc_lap2", "trn_wc_lap1"],
+         "wc"),
     ]:
         days_col = f"trn_{prefix}_days"
         result = {c: np.full(len(df_idx), np.nan) for c in out_cols + [days_col]}
@@ -228,16 +278,20 @@ def merge_chukyo(df: pd.DataFrame, hanro, wc) -> pd.DataFrame:
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     logger.info(f"マスターCSV読み込み: {MASTER_CSV}")
     df = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", low_memory=False)
-    # 補正タイムJOIN
-    if HOSSEI_CSV.exists():
-        hossei = pd.read_csv(HOSSEI_CSV, encoding="cp932",
-                             usecols=["レースID(新)", "馬番", "前走補9", "前走補正"])
-        df = df.merge(hossei, on=["レースID(新)", "馬番"], how="left")
-        logger.info(f"hossei JOIN完了: 前走補9カバレッジ={df['前走補9'].notna().mean()*100:.1f}%")
+    # 補正タイムJOIN（data/hosei/H_*.csv を全て結合）
+    hosei_files = sorted(HOSEI_DIR.glob("H_*.csv"))
+    if hosei_files:
+        hosei = pd.concat([
+            pd.read_csv(f, encoding="cp932",
+                        usecols=["レースID(新)", "前走補9", "前走補正"])
+            for f in hosei_files
+        ], ignore_index=True).drop_duplicates()
+        df = df.merge(hosei, on="レースID(新)", how="left")
+        logger.info(f"hosei JOIN完了 ({len(hosei_files)}ファイル): 前走補9カバレッジ={df['前走補9'].notna().mean()*100:.1f}%")
     else:
         df["前走補9"]  = float("nan")
         df["前走補正"] = float("nan")
-        logger.warning(f"hossei CSV未検出: {HOSSEI_CSV}")
+        logger.warning(f"hosei CSV未検出: {HOSEI_DIR}")
     # 調教データJOIN
     hanro, wc = load_chukyo()
     df = merge_chukyo(df, hanro, wc)

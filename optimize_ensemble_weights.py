@@ -40,7 +40,7 @@ MODEL_DIR  = BASE_DIR / "models"
 REPORT_DIR = BASE_DIR / "reports"
 
 MASTER_CSV      = DATA_DIR  / "master_20130105-20251228.csv"
-HOSSEI_CSV      = DATA_DIR  / "hossei" / "H_20130105-20251228.csv"
+HOSEI_DIR       = DATA_DIR  / "hosei"
 LGBM_MODEL_PATH = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_MODEL_PATH  = MODEL_DIR / "catboost_optuna_v1.pkl"
 RANK_MODEL_PATH = MODEL_DIR / "catboost_rank_v1.pkl"
@@ -227,10 +227,14 @@ def main() -> None:
     logger.info(f"マスターCSV読み込み: {MASTER_CSV}")
     df = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", low_memory=False)
 
-    if HOSSEI_CSV.exists():
-        hossei = pd.read_csv(HOSSEI_CSV, encoding="cp932",
-                             usecols=["レースID(新)", "馬番", "前走補9", "前走補正"])
-        df = df.merge(hossei, on=["レースID(新)", "馬番"], how="left")
+    hosei_files = sorted(HOSEI_DIR.glob("H_*.csv"))
+    if hosei_files:
+        hosei = pd.concat([
+            pd.read_csv(f, encoding="cp932",
+                        usecols=["レースID(新)", "前走補9", "前走補正"])
+            for f in hosei_files
+        ], ignore_index=True).drop_duplicates()
+        df = df.merge(hosei, on="レースID(新)", how="left")
 
     valid = df[df["split"] == "valid"].copy()
     test  = df[df["split"] == "test"].copy()

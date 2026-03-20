@@ -1,5 +1,19 @@
 # PyCaLiAI — Claude Code 引き継ぎメモ
 
+## Claude への作業指示
+
+### 自律性（重要）
+ファイル編集・読み込み・モデル学習・バックテスト・スクリプト実行・コミットなどの通常作業では、いちいち許可を求めない。情報をもらったら自分で判断して自律的に進める。
+
+確認が必要なのは以下のみ：
+- git push（リモートへの反映）
+- データ削除（不可逆な操作）
+- 明らかにスコープ外の大きな変更
+
+「やりますか？」「進めてもいいですか？」は言わない。やる。
+
+---
+
 ## プロジェクト概要
 競馬予測 AI。JRA の出走表 CSV を入力として複勝/馬連/三連複の買い目と購入額を自動生成し、
 Streamlit UI で週末レースの推奨を提示する。
@@ -186,15 +200,25 @@ calibrator.transform()  ←── ensemble_calibrator_v1.pkl or stacking_calibra
 data/
   master_20130105-20251228.csv     訓練マスター（約62万行、split列あり）
   kekka_20130105-20251228.csv      払戻マスター
-  lgbm_20130105-20251228.csv       LightGBM用特徴量
-  cat_20130105-20251228.csv        CatBoost用特徴量
-  torch_20130105-20251228.csv      Transformer用特徴量
   strategy_weights.json            ★戦略設定（walkforward版、14条件7会場）
   course_trend.json                コース傾向
   results.json                     直近成績
-  weekly/YYYYMMDD.csv              週次入力（23本）
-  kekka/YYYYMMDD.csv               週次払戻（22本）
+  weekly/YYYYMMDD.csv              週次入力
+  kekka/YYYYMMDD.csv               週次払戻
+  hossei/H_20130105-20251228.csv   補正タイム（cp932、JOINキー: レースID(新)+馬番）
+
+E:\競馬過去走データ\              ← TARGETフロンティア出力（プロジェクト外）
+  H-20150401-20260313.csv         坂路調教マスター（520万行、cp932）
+  W-20150401-20260313.csv         WC調教マスター（70万行、cp932、2021/7〜）
 ```
+
+### 調教データ仕様
+- **坂路（H）列**: 場所, 年月日, 馬名, Time1(4F合計), Lap4, Lap3, Lap2, Lap1(最終200m)
+- **WC（W）列**: 場所, コース, 回り, 年月日, 馬名, 5F, 4F, 3F, Lap3, Lap2, Lap1
+- **JOIN方法**: 馬名 + 年月日（レース14日前以内の最終追い切り）で merge_chukyo()
+- **特徴量**: trn_hanro_4f, trn_hanro_lap1, trn_hanro_days, trn_wc_3f, trn_wc_lap1, trn_wc_days
+- **カバレッジ**: 坂路80%（2015〜）、WC25%（2021〜、2022以降は67%）
+- **週次更新**: ユーザーがTARGETフロンティアから日別エクスポート → 月次or週次でマスター更新
 
 ---
 

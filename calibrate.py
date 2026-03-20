@@ -51,7 +51,7 @@ MODEL_DIR  = BASE_DIR / "models"
 REPORT_DIR = BASE_DIR / "reports"
 
 MASTER_CSV      = DATA_DIR  / "master_20130105-20251228.csv"
-HOSSEI_CSV      = DATA_DIR  / "hossei" / "H_20130105-20251228.csv"
+HOSEI_DIR       = DATA_DIR  / "hosei"
 LGBM_MODEL_PATH  = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_MODEL_PATH   = MODEL_DIR / "catboost_optuna_v1.pkl"
 RANK_MODEL_PATH  = MODEL_DIR / "catboost_rank_v1.pkl"
@@ -226,13 +226,17 @@ def _predict_transformer(df: pd.DataFrame) -> np.ndarray:
 
 
 def _predict_stacking(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray | None:
-    """スタッキングモデルで予測。未存在 or 失敗時は None を返す。"""
-    if not META_MODEL_PATH.exists() or not TORCH_MODEL_PATH.exists():
+    """スタッキングモデルで予測（4モデル対応）。未存在 or 失敗時は None を返す。"""
+    if not META_MODEL_PATH.exists():
         return None
     try:
+        from stacking import build_meta_features
+
         p_lgbm  = _predict_lgbm(df, lgbm_obj)
         p_cat   = _predict_catboost(df, cat_obj)
-        p_torch = _predict_transformer(df)
+        p_rank  = _predict_catboost_rank(df, joblib.load(RANK_MODEL_PATH)) \
+                  if RANK_MODEL_PATH.exists() else np.full(len(df), 0.5)
+        p_trans = _predict_transformer(df)
 
         if "meta" not in _model_cache:
             _model_cache["meta"] = joblib.load(META_MODEL_PATH)
@@ -241,27 +245,17 @@ def _predict_stacking(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.nda
         meta_encoders = meta_obj["meta_encoders"]
         meta_cols     = meta_obj["meta_cols"]
 
-        meta_df = df.copy()
-        if "出走頭数" not in meta_df.columns or meta_df["出走頭数"].isna().all():
-            race_id_col = "レースID(新/馬番無)" if "レースID(新/馬番無)" in df.columns else df.columns[0]
-            meta_df["出走頭数"] = meta_df.groupby(race_id_col)["馬番"].transform("count")
-        meta_df["クラス名"] = meta_df["クラス名"].map(CLASS_NORMALIZE).fillna(meta_df["クラス名"])
-        meta_df = meta_df.reindex(columns=_META_EXTRA).copy()
+        # レースID列の確認
+        race_id_col = "レースID(新/馬番無)" if "レースID(新/馬番無)" in df.columns else "レースID(新)"
+        if "出走頭数" not in df.columns or df["出走頭数"].isna().all():
+            df = df.copy()
+            df["出走頭数"] = df.groupby(race_id_col)["馬番"].transform("count")
 
-        for col in meta_df.select_dtypes(include="object").columns:
-            if col in meta_encoders:
-                le    = meta_encoders[col]
-                meta_df[col] = meta_df[col].fillna("__NaN__").astype(str)
-                known = set(le.classes_)
-                meta_df[col] = meta_df[col].apply(lambda x: x if x in known else "__NaN__")
-                meta_df[col] = le.transform(meta_df[col])
-            else:
-                meta_df[col] = 0
-
-        meta_df = meta_df.fillna(0)
-        meta_df["lgbm"]        = p_lgbm
-        meta_df["catboost"]    = p_cat
-        meta_df["transformer"] = p_torch
+        meta_df, _ = build_meta_features(
+            df, p_lgbm, p_cat, p_rank, p_trans,
+            meta_encoders=meta_encoders, fit=False,
+            race_col=race_id_col,
+        )
 
         return meta_model.predict_proba(meta_df[meta_cols])[:, 1]
     except Exception as e:
@@ -356,12 +350,16 @@ def main() -> None:
     df = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", low_memory=False)
     logger.info(f"  総行数: {len(df):,}")
 
-    # 補正タイムJOIN
-    if HOSSEI_CSV.exists():
-        hossei = pd.read_csv(HOSSEI_CSV, encoding="cp932",
-                             usecols=["レースID(新)", "馬番", "前走補9", "前走補正"])
-        df = df.merge(hossei, on=["レースID(新)", "馬番"], how="left")
-        logger.info(f"  hossei JOIN完了: 前走補9カバレッジ={df['前走補9'].notna().mean()*100:.1f}%")
+    # 補正タイムJOIN（data/hosei/H_*.csv を全て結合）
+    hosei_files = sorted(HOSEI_DIR.glob("H_*.csv"))
+    if hosei_files:
+        hosei = pd.concat([
+            pd.read_csv(f, encoding="cp932",
+                        usecols=["レースID(新)", "前走補9", "前走補正"])
+            for f in hosei_files
+        ], ignore_index=True).drop_duplicates()
+        df = df.merge(hosei, on="レースID(新)", how="left")
+        logger.info(f"  hosei JOIN完了 ({len(hosei_files)}ファイル): 前走補9カバレッジ={df['前走補9'].notna().mean()*100:.1f}%")
 
     if "split" not in df.columns:
         raise ValueError(

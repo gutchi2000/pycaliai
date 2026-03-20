@@ -23,6 +23,8 @@ try:
 except ImportError:
     plt.rcParams["font.family"] = "MS Gothic"
 
+from utils import add_meta
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -41,23 +43,6 @@ MIN_UNIT   = 100
 # =========================================================
 def floor_to_unit(x: int, unit: int = MIN_UNIT) -> int:
     return (x // unit) * unit
-
-
-def add_meta(df: pd.DataFrame) -> pd.DataFrame:
-    """日付・曜日・土日フラグ・同日同会場R数を付与する。"""
-    df = df.copy()
-    df["date"] = pd.to_datetime(df["日付"].astype(str), format="%Y%m%d")
-    df["曜日"]  = df["date"].dt.dayofweek
-    df["土日"]  = df["曜日"].isin([5, 6])
-    rc = (
-        df.groupby(["日付", "場所"])["race_id"]
-        .nunique()
-        .reset_index()
-        .rename(columns={"race_id": "R数"})
-    )
-    df = df.merge(rc, on=["日付", "場所"], how="left")
-    df["週末10R"] = df["土日"] & (df["R数"] >= 10)
-    return df
 
 
 def reallocate(df: pd.DataFrame, budget: int = BUDGET) -> pd.DataFrame:
@@ -264,11 +249,11 @@ def strategy_filter(df: pd.DataFrame, strategy_id: str) -> pd.DataFrame:
         return reallocate(sub)
 
     elif strategy_id == "S12":
-        # 新馬×馬連 × 東京・中山・中京・小倉
+        # 新馬×馬連 × 中山・中京（東京・小倉はアプリと合わせて除外）
         sub = base[
             (base["クラス"] == "新馬") &
             (base["馬券種"] == "馬連") &
-            (base["場所"].isin(["東京", "中山", "中京", "小倉"]))
+            (base["場所"].isin(["中山", "中京"]))
         ]
         return full_budget(sub)
 
@@ -301,7 +286,7 @@ STRATEGIES = {
     "S09": "複勝◎1点全振り",
     "S10": "三連単期待値1位1点全振り",
     "S11": "高回収率4会場のみ 全馬券種",
-    "S12": "新馬×馬連 高回収率4会場のみ",
+    "S12": "新馬×馬連 中山・中京のみ",
     "S13": "3勝×馬連 全会場",
     "S14": "新馬/3勝/G3×馬連統一",
 }

@@ -64,7 +64,7 @@ STRATEGY_JSON    = DATA_DIR / "strategy_weights.json"
 COURSE_TREND_JSON = DATA_DIR / "course_trend.json"
 RESULTS_JSON      = DATA_DIR / "results.json"
 TYAKU_DIR     = DATA_DIR / "tyaku"
-HOSSEI_DIR    = DATA_DIR / "hossei"
+HOSSEI_DIR    = DATA_DIR / "hosei"
 LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
 CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v1.pkl"
@@ -253,8 +253,8 @@ def _load_tyaku(date_str: str) -> "pd.DataFrame | None":
     return df[[c for c in keep if c in df.columns]]
 
 
-def _load_hossei(date_str: str) -> "pd.DataFrame | None":
-    """data/hossei/YYYYMMDD.csv を読み込み レースID×馬番→補正タイム の対応表を返す。"""
+def _load_hosei(date_str: str) -> "pd.DataFrame | None":
+    """data/hosei/YYYYMMDD.csv を読み込み レースID×馬番→補正タイム の対応表を返す。"""
     path = HOSSEI_DIR / f"{date_str}.csv"
     if not path.exists():
         return None
@@ -456,10 +456,10 @@ def parse_target_csv(source) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = med
 
-    # ── 補正タイムCSV（data/hossei/YYYYMMDD.csv）があればマージ ──
-    hossei_df = _load_hossei(date_str)
-    if hossei_df is not None:
-        df = df.merge(hossei_df, on=["レースID(新/馬番無)", "馬番"], how="left")
+    # ── 補正タイムCSV（data/hosei/YYYYMMDD.csv）があればマージ ──
+    hosei_df = _load_hosei(date_str)
+    if hosei_df is not None:
+        df = df.merge(hosei_df, on=["レースID(新/馬番無)", "馬番"], how="left")
     else:
         df["前走補9"]  = float("nan")
         df["前走補正"] = float("nan")

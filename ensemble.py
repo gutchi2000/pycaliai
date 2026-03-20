@@ -82,16 +82,7 @@ MARK_THRESHOLDS = {
 # 各モデルの前処理（train時と同じ処理を再現）
 # =========================================================
 
-def parse_time_str(series: pd.Series) -> pd.Series:
-    def _convert(val: str) -> float | None:
-        try:
-            parts = str(val).strip().split(".")
-            if len(parts) == 3:
-                return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 10
-            return float(val)
-        except Exception:
-            return None
-    return series.apply(_convert)
+from utils import parse_time_str
 
 
 # =========================================================
@@ -100,6 +91,8 @@ def parse_time_str(series: pd.Series) -> pd.Series:
 def predict_lgbm(df: pd.DataFrame) -> np.ndarray:
     """LightGBMモデルで複勝確率を予測する。"""
     logger.info("LightGBM予測中...")
+    if not LGBM_MODEL_PATH.exists():
+        raise FileNotFoundError(f"LightGBMモデルが見つかりません: {LGBM_MODEL_PATH}")
     obj      = joblib.load(LGBM_MODEL_PATH)
     model    = obj["model"]
     encoders = obj["encoders"]
@@ -140,6 +133,8 @@ def predict_lgbm(df: pd.DataFrame) -> np.ndarray:
 def predict_catboost(df: pd.DataFrame) -> np.ndarray:
     """CatBoostモデルで複勝確率を予測する。"""
     logger.info("CatBoost予測中...")
+    if not CAT_MODEL_PATH.exists():
+        raise FileNotFoundError(f"CatBoostモデルが見つかりません: {CAT_MODEL_PATH}")
     obj          = joblib.load(CAT_MODEL_PATH)
     model        = obj["model"]
     feature_cols = obj["feature_cols"]
@@ -210,6 +205,8 @@ def predict_transformer(df: pd.DataFrame) -> np.ndarray:
     )
     from torch.utils.data import DataLoader
 
+    if not TORCH_MODEL_PATH.exists():
+        raise FileNotFoundError(f"Transformerモデルが見つかりません: {TORCH_MODEL_PATH}")
     obj          = joblib.load(TORCH_MODEL_PATH)
     model_state  = obj["model_state"]
     model_config = obj["model_config"]
@@ -241,25 +238,6 @@ def predict_transformer(df: pd.DataFrame) -> np.ndarray:
     ds     = RaceDataset(df, cat_cols, num_cols, cat_vocab_sizes)
     loader = DataLoader(ds, batch_size=256, shuffle=False, num_workers=0)
 
-    # レースID順に予測を並べるためにインデックスを保持
-    proba_dict: dict[tuple, float] = {}
-
-    with torch.no_grad():
-        for batch in loader:
-            cat     = batch["cat"].to(DEVICE)
-            num     = batch["num"].to(DEVICE)
-            mask    = batch["mask"].to(DEVICE)
-            logits  = model(cat, num, mask)
-            probas  = torch.sigmoid(logits).cpu().numpy()
-
-    # RaceDatasetの順序でprobabilityを取り出す
-    proba_list = []
-    for race in ds.races:
-        n = (~race["mask"]).sum().item()
-        # races内の順序でprobabilityを返す（batch処理後に再構築）
-        proba_list.append(None)  # 後でbatch結果で埋める
-
-    # batchを通じて全馬の確率を取得
     all_proba = []
     with torch.no_grad():
         for batch in loader:

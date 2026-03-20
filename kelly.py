@@ -82,7 +82,7 @@ def kelly_analysis(df: pd.DataFrame, strategy: str = "S12") -> pd.DataFrame:
     filtered = base[
         (base["クラス"] == "新馬") &
         (base["馬券種"] == "馬連") &
-        (base["場所"].isin(["東京", "中山", "中京", "小倉"]))
+        (base["場所"].isin(["中山", "中京"]))
     ].copy()
 
     rows = []

@@ -26,6 +26,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+from utils import add_meta
+
 warnings.filterwarnings("ignore")
 
 try:
@@ -60,7 +62,7 @@ STRATEGIES = {
     "S06": "G3×馬連 全会場",
     "S07": "新馬×馬連 + G3×三連複 按分",
     "S08": "新馬/3勝/G3/OP(L)×馬連統一",
-    "S12": "新馬×馬連 高回収率4会場のみ",
+    "S12": "新馬×馬連 中山・中京のみ",
     "S14": "新馬/3勝/G3×馬連統一",
 }
 
@@ -70,22 +72,6 @@ STRATEGIES = {
 # =========================================================
 def floor_to_unit(x: int, unit: int = MIN_UNIT) -> int:
     return (x // unit) * unit
-
-
-def add_meta(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-    df["date"] = pd.to_datetime(df["日付"].astype(str), format="%Y%m%d")
-    df["曜日"]  = df["date"].dt.dayofweek
-    df["土日"]  = df["曜日"].isin([5, 6])
-    rc = (
-        df.groupby(["日付", "場所"])["race_id"]
-        .nunique()
-        .reset_index()
-        .rename(columns={"race_id": "R数"})
-    )
-    df = df.merge(rc, on=["日付", "場所"], how="left")
-    df["週末10R"] = df["土日"] & (df["R数"] >= 10)
-    return df
 
 
 def full_budget_series(df: pd.DataFrame, budget: int = BUDGET) -> pd.DataFrame:
@@ -174,7 +160,7 @@ def apply_strategy(df: pd.DataFrame, sid: str) -> pd.DataFrame:
         sub = base[
             (base["クラス"] == "新馬") &
             (base["馬券種"] == "馬連") &
-            (base["場所"].isin(["東京", "中山", "中京", "小倉"]))
+            (base["場所"].isin(["中山", "中京"]))
         ]
         return full_budget_series(sub)
 

@@ -113,16 +113,7 @@ LR           = 1e-3
 # =========================================================
 # 前処理
 # =========================================================
-def parse_time_str(series: pd.Series) -> pd.Series:
-    def _convert(val: str) -> float | None:
-        try:
-            parts = str(val).strip().split(".")
-            if len(parts) == 3:
-                return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 10
-            return float(val)
-        except Exception:
-            return None
-    return series.apply(_convert)
+from utils import parse_time_str
 
 
 def preprocess(

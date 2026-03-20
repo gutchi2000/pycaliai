@@ -1,14 +1,12 @@
 """
 stacking.py
-PyCaLiAI - Stackingアンサンブル
+PyCaLiAI - 4モデルスタッキング（メタ学習）
 
-Out-of-Fold (OOF) 予測でリークを防ぎながら
-LightGBM / CatBoost / Transformer の予測確率を
-メタ特徴量としてメタモデル（LightGBM）で学習する。
+Level 0: LGBM / CatBoost / YetiRank / Transformer PL（既存モデル）
+Level 1: MetaLightGBM（4モデルの予測 + レース内順位 + レース条件）
 
-構造:
-    Level 0: LightGBM / CatBoost / Transformer（既存モデル）
-    Level 1: MetaLightGBM（3モデルの予測 + レース条件）
+Valid セット（2023年）= メタ学習データ（ベースモデルの訓練データに含まれない）
+Test セット（2024年〜）= 評価データ
 
 Usage:
     python stacking.py
@@ -21,26 +19,15 @@ import warnings
 from pathlib import Path
 
 import joblib
+import optuna
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier, early_stopping, log_evaluation
-from sklearn.metrics import (
-    RocCurveDisplay,
-    average_precision_score,
-    classification_report,
-    roc_auc_score,
-)
-from sklearn.model_selection import KFold
+from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import LabelEncoder
-from catboost import CatBoostClassifier, Pool
-import matplotlib.pyplot as plt
 
 warnings.filterwarnings("ignore")
-
-try:
-    import japanize_matplotlib  # noqa: F401
-except ImportError:
-    plt.rcParams["font.family"] = "MS Gothic"
+optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -51,21 +38,24 @@ logger = logging.getLogger(__name__)
 # =========================================================
 # パス設定
 # =========================================================
-BASE_DIR   = Path(r"E:\PyCaLiAI")
-DATA_DIR   = BASE_DIR / "data"
-MODEL_DIR  = BASE_DIR / "models"
-REPORT_DIR = BASE_DIR / "reports"
+BASE_DIR         = Path(r"E:\PyCaLiAI")
+DATA_DIR         = BASE_DIR / "data"
+MODEL_DIR        = BASE_DIR / "models"
+REPORT_DIR       = BASE_DIR / "reports"
 
 MASTER_CSV       = DATA_DIR  / "master_20130105-20251228.csv"
+HOSEI_DIR        = DATA_DIR  / "hosei"
+KEKKA_CSV        = DATA_DIR  / "kekka_20130105-20251228.csv"
 LGBM_MODEL_PATH  = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_MODEL_PATH   = MODEL_DIR / "catboost_optuna_v1.pkl"
-TORCH_MODEL_PATH = MODEL_DIR / "transformer_optuna_v1.pkl"
+RANK_MODEL_PATH  = MODEL_DIR / "catboost_rank_v1.pkl"
+TORCH_MODEL_PATH = MODEL_DIR / "transformer_pl_v2.pkl"
 META_MODEL_PATH  = MODEL_DIR / "stacking_meta_v1.pkl"
 
 TARGET       = "fukusho_flag"
-COL_RACE_ID  = "レースID(新/馬番無)"
+COL_RACE_ID  = "レースID(新)"
 RANDOM_STATE = 42
-N_FOLDS      = 5
+N_TRIALS     = 50
 
 # メタモデルに追加するレース条件特徴量
 META_EXTRA_FEATURES = [
@@ -74,346 +64,325 @@ META_EXTRA_FEATURES = [
 ]
 
 # =========================================================
-# 前処理ユーティリティ
+# ベースモデル予測関数（calibrate.py から移植）
 # =========================================================
-def parse_time_str(series: pd.Series) -> pd.Series:
-    def _convert(val: str) -> float | None:
-        try:
-            parts = str(val).strip().split(".")
-            if len(parts) == 3:
-                return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 10
-            return float(val)
-        except Exception:
-            return None
-    return series.apply(_convert)
+from calibrate import (
+    _predict_lgbm,
+    _predict_catboost_rank,
+    _predict_transformer,
+)
+from utils import parse_time_str
 
 
-# =========================================================
-# LightGBM予測
-# =========================================================
-def predict_lgbm(df: pd.DataFrame) -> np.ndarray:
-    obj          = joblib.load(LGBM_MODEL_PATH)
-    model        = obj["model"]
-    encoders     = obj["encoders"]
-    feature_cols = obj["feature_cols"]
-
-    df = df.copy()
-    for col in ["前走走破タイム", "前走着差タイム"]:
-        if col in df.columns:
-            df[col] = parse_time_str(df[col])
-
-    for col, le in encoders.items():
-        if col not in df.columns:
-            df[col] = 0
-            continue
-        df[col] = df[col].astype(str).fillna("__NaN__")
-        known = set(le.classes_)
-        df[col] = df[col].apply(lambda x: x if x in known else "__NaN__")
-        if "__NaN__" not in le.classes_:
-            le.classes_ = np.append(le.classes_, "__NaN__")
-        df[col] = le.transform(df[col])
-
-    for col in feature_cols:
-        if col not in df.columns:
-            df[col] = 0
-
-    return model.predict_proba(df[feature_cols])[:, 1]
-
-
-# =========================================================
-# CatBoost予測
-# =========================================================
-def predict_catboost(df: pd.DataFrame) -> np.ndarray:
-    obj          = joblib.load(CAT_MODEL_PATH)
-    model        = obj["model"]
-    feature_cols = obj["feature_cols"]
-
-    cat_features_list = [
+def _predict_catboost(df: pd.DataFrame, obj: dict) -> np.ndarray:
+    from catboost import Pool
+    model, feature_cols = obj["model"], obj["feature_cols"]
+    cat_list = [
         "種牡馬", "父タイプ名", "母父馬", "母父タイプ名", "毛色",
-        "馬主(最新/仮想)", "生産者",
-        "芝・ダ", "コース区分", "芝(内・外)", "馬場状態", "天気",
-        "クラス名", "場所",
-        "性別", "斤量", "ブリンカー", "重量種別",
-        "年齢限定", "限定", "性別限定", "指定条件",
+        "馬主(最新/仮想)", "生産者", "芝・ダ", "コース区分", "芝(内・外)",
+        "馬場状態", "天気", "クラス名", "場所", "性別", "斤量",
+        "ブリンカー", "重量種別", "年齢限定", "限定", "性別限定", "指定条件",
         "前走場所", "前芝・ダ", "前走馬場状態", "前走斤量", "前好走",
     ]
-
     df = df.copy()
     for col in ["前走走破タイム", "前走着差タイム"]:
         if col in df.columns:
             df[col] = parse_time_str(df[col])
-
-    for col in cat_features_list:
-        if col in df.columns:
-            df[col] = df[col].fillna("__NaN__").astype(str)
-        else:
-            df[col] = "__NaN__"
-
+    for col in cat_list:
+        df[col] = df[col].fillna("__NaN__").astype(str) if col in df.columns else "__NaN__"
     for col in feature_cols:
         if col not in df.columns:
             df[col] = 0.0
-
-    cat_indices = [i for i, c in enumerate(feature_cols) if c in cat_features_list]
-    pool = Pool(df[feature_cols], cat_features=cat_indices)
+    cat_idx = [i for i, c in enumerate(feature_cols) if c in cat_list]
+    pool = Pool(df[feature_cols], cat_features=cat_idx)
     return model.predict_proba(pool)[:, 1]
 
 
 # =========================================================
-# Transformer予測
+# データロード
 # =========================================================
-def predict_transformer(df: pd.DataFrame) -> np.ndarray:
-    import torch
-    from train_transformer import RaceTransformer, RaceDataset
-    from torch.utils.data import DataLoader
+def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    logger.info(f"マスターCSV読み込み: {MASTER_CSV}")
+    df = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", low_memory=False)
 
-    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # hosei JOIN（data/hosei/H_*.csv を全て結合）
+    hosei_files = sorted(HOSEI_DIR.glob("H_*.csv"))
+    if hosei_files:
+        hosei = pd.concat([
+            pd.read_csv(f, encoding="cp932",
+                        usecols=["レースID(新)", "前走補9", "前走補正"])
+            for f in hosei_files
+        ], ignore_index=True).drop_duplicates()
+        df = df.merge(hosei, on="レースID(新)", how="left")
+        logger.info(f"  hosei JOIN ({len(hosei_files)}ファイル): 前走補9カバレッジ={df['前走補9'].notna().mean()*100:.1f}%")
+    else:
+        df["前走補9"] = float("nan")
+        df["前走補正"] = float("nan")
 
-    obj          = joblib.load(TORCH_MODEL_PATH)
-    model_state  = obj["model_state"]
-    model_config = obj["model_config"]
-    encoders     = obj["encoders"]
-    num_stats    = obj["num_stats"]
-    num_cols     = obj["num_cols"]
-    cat_cols     = obj["cat_cols"]
+    # 前走単勝オッズ JOIN
+    if KEKKA_CSV.exists():
+        kekka = pd.read_csv(KEKKA_CSV, encoding="cp932",
+                            usecols=["レースID(新)", "馬番", "単勝配当"])
+        def _parse_tansho(s):
+            s = str(s).strip()
+            if s.startswith("(") and s.endswith(")"):
+                return float(s[1:-1])
+            try:
+                return float(s) / 100
+            except Exception:
+                return float("nan")
+        kekka["単勝オッズ"] = kekka["単勝配当"].apply(_parse_tansho)
+        kekka = kekka.drop(columns=["単勝配当"])
+        kekka_prev = kekka.rename(columns={"レースID(新)": "前走レースID(新)", "単勝オッズ": "前走単勝オッズ"})
+        kekka_prev["前走レースID(新)"] = kekka_prev["前走レースID(新)"].astype("int64")
+        kekka_prev["馬番"] = kekka_prev["馬番"].astype("int64")
+        df["前走レースID(新)"] = pd.to_numeric(df["前走レースID(新)"], errors="coerce")
+        df = df.merge(kekka_prev, on=["前走レースID(新)", "馬番"], how="left")
+    else:
+        df["前走単勝オッズ"] = float("nan")
 
-    from train_transformer import (
-        CAT_FEATURES as TORCH_CAT,
-        NUM_FEATURES as TORCH_NUM,
-        TIME_STR_FEATURES as TORCH_TIME,
-        MAX_HORSES,
-        preprocess as torch_preprocess,
-    )
+    # レースID(新/馬番無)
+    if "レースID(新/馬番無)" not in df.columns:
+        df["レースID(新/馬番無)"] = df["レースID(新)"].astype(str).str[:16]
 
-    df = df.copy()
-    df, _, _ = torch_preprocess(df, encoders=encoders, fit=False, num_stats=num_stats)
-
-    model = RaceTransformer(
-        cat_vocab_sizes=model_config["cat_vocab_sizes"],
-        cat_cols=model_config["cat_cols"],
-        n_num=model_config["n_num"],
-        d_model=model_config.get("d_model", 128),
-        n_heads=model_config.get("n_heads", 4),
-        n_layers=model_config.get("n_layers", 2),
-        d_ff=model_config.get("d_ff", 256),
-        dropout=model_config.get("dropout", 0.1),
-    ).to(DEVICE)
-    model.load_state_dict(model_state)
-    model.eval()
-
-    cat_vocab_sizes = model_config["cat_vocab_sizes"]
-    ds     = RaceDataset(df, cat_cols, num_cols, cat_vocab_sizes)
-    loader = DataLoader(ds, batch_size=256, shuffle=False, num_workers=0)
-
-    all_proba = []
-    with torch.no_grad():
-        for batch in loader:
-            cat    = batch["cat"].to(DEVICE)
-            num    = batch["num"].to(DEVICE)
-            mask   = batch["mask"].to(DEVICE)
-            logits = model(cat, num, mask)
-            probas = torch.sigmoid(logits).cpu().numpy()
-            valid  = ~batch["mask"].numpy()
-            for b in range(len(probas)):
-                for h in range(MAX_HORSES):
-                    if valid[b, h]:
-                        all_proba.append(probas[b, h])
-
-    df_sorted = df.sort_values(COL_RACE_ID).reset_index(drop=True)
-    result    = np.zeros(len(df))
-    idx = 0
-    for _, group in df_sorted.groupby(COL_RACE_ID, sort=True):
-        n = min(len(group), MAX_HORSES)
-        for i, orig_idx in enumerate(group.index[:n]):
-            if idx < len(all_proba):
-                result[orig_idx] = all_proba[idx]
-                idx += 1
-
-    return result
+    train = df[df["split"] == "train"].copy().reset_index(drop=True)
+    valid = df[df["split"] == "valid"].copy().reset_index(drop=True)
+    test  = df[df["split"] == "test"].copy().reset_index(drop=True)
+    logger.info(f"  分割: train={len(train):,} / valid={len(valid):,} / test={len(test):,}")
+    return train, valid, test
 
 
 # =========================================================
-# メタ特徴量のLabelEncoding
+# メタ特徴量構築
 # =========================================================
-def encode_meta_features(
+def build_meta_features(
     df: pd.DataFrame,
-    extra_cols: list[str],
-    encoders: dict[str, LabelEncoder] | None = None,
+    p_lgbm: np.ndarray,
+    p_cat: np.ndarray,
+    p_rank: np.ndarray,
+    p_trans: np.ndarray,
+    meta_encoders: dict | None = None,
     fit: bool = True,
-) -> tuple[pd.DataFrame, dict[str, LabelEncoder]]:
-    df = df.copy()
-    if encoders is None:
-        encoders = {}
+    race_col: str = "レースID(新/馬番無)",
+) -> tuple[pd.DataFrame, dict]:
+    """
+    メタ特徴量：
+    - 4モデルの予測確率
+    - 4モデルそれぞれのレース内順位（1=最高スコア）
+    - レース条件特徴量
+    """
+    meta = df[META_EXTRA_FEATURES].copy()
 
-    str_cols = df[extra_cols].select_dtypes(include="object").columns.tolist()
-    for col in str_cols:
-        df[col] = df[col].fillna("__NaN__").astype(str)
+    # 予測確率
+    meta["p_lgbm"]  = p_lgbm
+    meta["p_cat"]   = p_cat
+    meta["p_rank"]  = p_rank
+    meta["p_trans"] = p_trans
+
+    # レース内順位（1=最高評価）
+    df_tmp = df[[race_col]].copy()
+    for col_name, proba in [("p_lgbm", p_lgbm), ("p_cat", p_cat),
+                             ("p_rank", p_rank), ("p_trans", p_trans)]:
+        df_tmp[col_name] = proba
+        rank_col = f"rank_{col_name.split('_')[1]}"
+        meta[rank_col] = df_tmp.groupby(race_col)[col_name].rank(
+            ascending=False, method="min"
+        ).values
+
+    # 予測の分散・最大差（モデル間の一致度）
+    preds = np.stack([p_lgbm, p_cat, p_rank, p_trans], axis=1)
+    meta["pred_mean"]  = preds.mean(axis=1)
+    meta["pred_std"]   = preds.std(axis=1)
+    meta["pred_range"] = preds.max(axis=1) - preds.min(axis=1)
+
+    # カテゴリエンコード
+    if meta_encoders is None:
+        meta_encoders = {}
+    for col in meta.select_dtypes(include="object").columns:
+        meta[col] = meta[col].fillna("__NaN__").astype(str)
         if fit:
             le   = LabelEncoder()
-            vals = df[col].tolist()
+            vals = meta[col].tolist()
             if "__NaN__" not in vals:
                 vals.append("__NaN__")
             le.fit(vals)
-            encoders[col] = le
+            meta_encoders[col] = le
         else:
-            le    = encoders[col]
+            le    = meta_encoders.get(col)
+            if le is None:
+                meta[col] = 0
+                continue
             known = set(le.classes_)
-            df[col] = df[col].apply(lambda x: x if x in known else "__NaN__")
-        df[col] = le.transform(df[col])
+            meta[col] = meta[col].apply(lambda x: x if x in known else "__NaN__")
+        meta[col] = meta_encoders[col].transform(meta[col])
 
-    return df, encoders
+    # 数値列のNaN補完
+    for col in meta.select_dtypes(include=[float, int]).columns:
+        meta[col] = pd.to_numeric(meta[col], errors="coerce").fillna(0)
+
+    return meta, meta_encoders
 
 
 # =========================================================
-# メイン処理
+# Optuna 目標関数
+# =========================================================
+def make_meta_objective(
+    X_tr: pd.DataFrame,
+    y_tr: pd.Series,
+    X_va: pd.DataFrame,
+    y_va: pd.Series,
+):
+    def objective(trial: optuna.Trial) -> float:
+        params = {
+            "objective":         "binary",
+            "metric":            "auc",
+            "random_state":      RANDOM_STATE,
+            "verbose":           -1,
+            "num_leaves":        trial.suggest_int("num_leaves", 16, 127),
+            "learning_rate":     trial.suggest_float("learning_rate", 0.01, 0.1, log=True),
+            "min_child_samples": trial.suggest_int("min_child_samples", 10, 100),
+            "subsample":         trial.suggest_float("subsample", 0.6, 1.0),
+            "colsample_bytree":  trial.suggest_float("colsample_bytree", 0.6, 1.0),
+            "reg_alpha":         trial.suggest_float("reg_alpha", 1e-8, 10.0, log=True),
+            "reg_lambda":        trial.suggest_float("reg_lambda", 1e-8, 10.0, log=True),
+            "n_estimators":      2000,
+        }
+        model = LGBMClassifier(**params)
+        model.fit(
+            X_tr, y_tr,
+            eval_set=[(X_va, y_va)],
+            callbacks=[
+                early_stopping(stopping_rounds=50, verbose=False),
+                log_evaluation(period=-1),
+            ],
+        )
+        return roc_auc_score(y_va, model.predict_proba(X_va)[:, 1])
+    return objective
+
+
+# =========================================================
+# main
 # =========================================================
 def main() -> None:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
-    # ---- データロード ----
-    logger.info(f"マスターCSV読み込み: {MASTER_CSV}")
-    df = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", low_memory=False)
-    logger.info(f"  {len(df):,}行 × {len(df.columns)}列")
+    # データロード
+    _, valid, test = load_data()
 
-    train_df = df[df["split"] == "train"].copy().reset_index(drop=True)
-    valid_df = df[df["split"] == "valid"].copy().reset_index(drop=True)
-    test_df  = df[df["split"] == "test"].copy().reset_index(drop=True)
+    # ベースモデル読み込み
+    logger.info("ベースモデル読み込み...")
+    lgbm_obj = joblib.load(LGBM_MODEL_PATH)
+    cat_obj  = joblib.load(CAT_MODEL_PATH)
+    rank_obj = joblib.load(RANK_MODEL_PATH) if RANK_MODEL_PATH.exists() else None
+    use_rank = rank_obj is not None
 
-    # ---- Level0: Train全体で予測（Valid/Test用）----
-    logger.info("Level0予測: Valid / Test...")
-    proba_lgbm_va  = predict_lgbm(valid_df)
-    proba_cat_va   = predict_catboost(valid_df)
-    proba_torch_va = predict_transformer(valid_df)
+    # ── Valid セット予測（メタ学習データ） ──
+    logger.info("Valid セット予測（4モデル）...")
+    pv_lgbm  = _predict_lgbm(valid, lgbm_obj)
+    pv_cat   = _predict_catboost(valid, cat_obj)
+    pv_rank  = _predict_catboost_rank(valid, rank_obj) if use_rank else np.full(len(valid), 0.5)
+    pv_trans = _predict_transformer(valid)
 
-    proba_lgbm_te  = predict_lgbm(test_df)
-    proba_cat_te   = predict_catboost(test_df)
-    proba_torch_te = predict_transformer(test_df)
+    logger.info(f"  LGBM  AUC={roc_auc_score(valid[TARGET], pv_lgbm):.4f}")
+    logger.info(f"  Cat   AUC={roc_auc_score(valid[TARGET], pv_cat):.4f}")
+    if use_rank:
+        logger.info(f"  Rank  AUC={roc_auc_score(valid[TARGET], pv_rank):.4f}")
+    if pv_trans.any():
+        logger.info(f"  Trans AUC={roc_auc_score(valid[TARGET], pv_trans):.4f}")
 
-    # ---- Level0: Train OOF予測（メタモデル学習用）----
-    logger.info(f"Level0 OOF予測: {N_FOLDS}分割...")
-    oof_lgbm  = np.zeros(len(train_df))
-    oof_cat   = np.zeros(len(train_df))
-    oof_torch = np.zeros(len(train_df))
+    # ── Test セット予測（評価データ） ──
+    logger.info("Test セット予測（4モデル）...")
+    pt_lgbm  = _predict_lgbm(test, lgbm_obj)
+    pt_cat   = _predict_catboost(test, cat_obj)
+    pt_rank  = _predict_catboost_rank(test, rank_obj) if use_rank else np.full(len(test), 0.5)
+    pt_trans = _predict_transformer(test)
 
-    # 時系列順を保持したままKFold（シャッフルなし）
-    kf = KFold(n_splits=N_FOLDS, shuffle=False)
-
-    for fold, (tr_idx, va_idx) in enumerate(kf.split(train_df)):
-        logger.info(f"  Fold {fold + 1}/{N_FOLDS}...")
-        fold_va = train_df.iloc[va_idx].copy()
-
-        oof_lgbm[va_idx]  = predict_lgbm(fold_va)
-        oof_cat[va_idx]   = predict_catboost(fold_va)
-        oof_torch[va_idx] = predict_transformer(fold_va)
-
-    logger.info(f"OOF AUC LGBM      : {roc_auc_score(train_df[TARGET], oof_lgbm):.4f}")
-    logger.info(f"OOF AUC CatBoost  : {roc_auc_score(train_df[TARGET], oof_cat):.4f}")
-    logger.info(f"OOF AUC Transformer: {roc_auc_score(train_df[TARGET], oof_torch):.4f}")
-
-    # ---- メタ特徴量の構築 ----
+    # ── メタ特徴量構築 ──
     logger.info("メタ特徴量構築...")
-
-    # trainのメタ特徴量（OOF予測 + レース条件）
-    meta_train = train_df[META_EXTRA_FEATURES].copy()
-    meta_train, meta_encoders = encode_meta_features(
-        meta_train, META_EXTRA_FEATURES, fit=True
+    meta_valid, meta_encoders = build_meta_features(
+        valid, pv_lgbm, pv_cat, pv_rank, pv_trans, fit=True
     )
-    meta_train["lgbm"]        = oof_lgbm
-    meta_train["catboost"]    = oof_cat
-    meta_train["transformer"] = oof_torch
-
-    # validのメタ特徴量
-    meta_valid = valid_df[META_EXTRA_FEATURES].copy()
-    meta_valid, _ = encode_meta_features(
-        meta_valid, META_EXTRA_FEATURES, encoders=meta_encoders, fit=False
+    meta_test, _ = build_meta_features(
+        test, pt_lgbm, pt_cat, pt_rank, pt_trans,
+        meta_encoders=meta_encoders, fit=False
     )
-    meta_valid["lgbm"]        = proba_lgbm_va
-    meta_valid["catboost"]    = proba_cat_va
-    meta_valid["transformer"] = proba_torch_va
 
-    # testのメタ特徴量
-    meta_test = test_df[META_EXTRA_FEATURES].copy()
-    meta_test, _ = encode_meta_features(
-        meta_test, META_EXTRA_FEATURES, encoders=meta_encoders, fit=False
+    meta_cols = meta_valid.columns.tolist()
+    logger.info(f"  メタ特徴量数: {len(meta_cols)}")
+
+    X_va = meta_valid
+    y_va = valid[TARGET]
+    X_te = meta_test
+    y_te = test[TARGET]
+
+    # ── Optuna 最適化 ──
+    logger.info(f"Optuna開始: {N_TRIALS}試行...")
+
+    # valid を train/val に分割（時系列順）してOptunaで調整
+    split_idx = int(len(X_va) * 0.7)
+    X_opt_tr, y_opt_tr = X_va.iloc[:split_idx], y_va.iloc[:split_idx]
+    X_opt_va, y_opt_va = X_va.iloc[split_idx:], y_va.iloc[split_idx:]
+
+    study = optuna.create_study(
+        direction="maximize",
+        sampler=optuna.samplers.TPESampler(seed=RANDOM_STATE),
     )
-    meta_test["lgbm"]        = proba_lgbm_te
-    meta_test["catboost"]    = proba_cat_te
-    meta_test["transformer"] = proba_torch_te
-
-    meta_cols = META_EXTRA_FEATURES + ["lgbm", "catboost", "transformer"]
-
-    # ---- メタモデル学習 ----
-    logger.info("メタモデル学習...")
-    y_train = train_df[TARGET]
-    y_valid = valid_df[TARGET]
-    y_test  = test_df[TARGET]
-
-    neg = (y_train == 0).sum()
-    pos = (y_train == 1).sum()
-
-    meta_model = LGBMClassifier(
-        objective="binary",
-        metric="auc",
-        num_leaves=31,
-        learning_rate=0.05,
-        n_estimators=1000,
-        scale_pos_weight=neg / pos,
-        random_state=RANDOM_STATE,
-        verbose=-1,
+    study.optimize(
+        make_meta_objective(X_opt_tr, y_opt_tr, X_opt_va, y_opt_va),
+        n_trials=N_TRIALS,
+        show_progress_bar=True,
     )
+    logger.info(f"最適パラメータ: {study.best_params}")
+    logger.info(f"Best Optuna AUC: {study.best_value:.4f}")
+
+    # ── メタモデル再学習（valid全体で） ──
+    logger.info("メタモデル最終学習（valid全体）...")
+    best_params = {
+        **study.best_params,
+        "objective":    "binary",
+        "metric":       "auc",
+        "random_state": RANDOM_STATE,
+        "verbose":      -1,
+        "n_estimators": 2000,
+    }
+    meta_model = LGBMClassifier(**best_params)
     meta_model.fit(
-        meta_train[meta_cols], y_train,
-        eval_set=[(meta_valid[meta_cols], y_valid)],
+        X_opt_tr, y_opt_tr,
+        eval_set=[(X_opt_va, y_opt_va)],
         callbacks=[
             early_stopping(stopping_rounds=50, verbose=False),
-            log_evaluation(period=100),
+            log_evaluation(period=200),
         ],
     )
 
-    # ---- 評価 ----
-    proba_meta_va = meta_model.predict_proba(meta_valid[meta_cols])[:, 1]
-    proba_meta_te = meta_model.predict_proba(meta_test[meta_cols])[:, 1]
+    # ── 評価 ──
+    proba_va = meta_model.predict_proba(X_va)[:, 1]
+    proba_te = meta_model.predict_proba(X_te)[:, 1]
+    auc_va   = roc_auc_score(y_va, proba_va)
+    auc_te   = roc_auc_score(y_te, proba_te)
 
-    auc_va    = roc_auc_score(y_valid, proba_meta_va)
-    auc_te    = roc_auc_score(y_test,  proba_meta_te)
-    pr_auc_te = average_precision_score(y_test, proba_meta_te)
+    # 比較基準：現行アンサンブル加重平均
+    OLD_AUC_VA = 0.7712
+    OLD_AUC_TE = 0.7756
 
-    logger.info(f"[Valid] AUC={auc_va:.4f}")
-    logger.info(f"[Test]  AUC={auc_te:.4f}  PR-AUC={pr_auc_te:.4f}")
+    delta_va = auc_va - OLD_AUC_VA
+    delta_te = auc_te - OLD_AUC_TE
+    verdict = "改善" if delta_te > 0.001 else ("同等" if abs(delta_te) <= 0.001 else "悪化")
 
-    print(f"\n=== Test 分類レポート ===")
-    pred = (proba_meta_te >= 0.5).astype(int)
-    print(classification_report(y_test, pred, target_names=["圏外", "複勝内"]))
+    logger.info(f"[Valid] AUC={auc_va:.4f}  (加重平均: {OLD_AUC_VA}  差: {delta_va:+.4f})")
+    logger.info(f"[Test]  AUC={auc_te:.4f}  (加重平均: {OLD_AUC_TE}  差: {delta_te:+.4f})")
+    logger.info(f"判定: {verdict}")
 
-    # ROC曲線
-    fig, ax = plt.subplots(figsize=(6, 5))
-    RocCurveDisplay.from_predictions(y_test, proba_meta_te, ax=ax, name="Stacking")
-    ax.set_title("ROC曲線 [Test] Stacking")
-    fig.savefig(REPORT_DIR / "stacking_roc_test.png", dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    # 特徴量重要度
+    importance = pd.Series(
+        meta_model.feature_importances_, index=meta_cols
+    ).sort_values(ascending=False)
+    logger.info("特徴量重要度 (上位10):")
+    for feat, imp in importance.head(10).items():
+        logger.info(f"  {feat}: {imp}")
 
-    # 印別的中率
-    test_df["stack_prob"] = proba_meta_te
-    test_df["mark"]       = ""
-    for race_id, group in test_df.groupby(COL_RACE_ID, sort=False):
-        ranked = group["stack_prob"].rank(ascending=False, method="first")
-        marks  = {1: "◎", 2: "◯", 3: "▲", 4: "△", 5: "×"}
-        for idx, rank in ranked.items():
-            if rank <= 5:
-                test_df.at[idx, "mark"] = marks[int(rank)]
-
-    print("\n=== 印別 実複勝率 ===")
-    print(f"{'印':<4} {'予測件数':>8} {'複勝内':>8} {'実複勝率':>8}")
-    print("-" * 34)
-    for mark in ["◎", "◯", "▲", "△", "×"]:
-        sub  = test_df[test_df["mark"] == mark]
-        if len(sub) == 0:
-            continue
-        hit  = sub[TARGET].sum()
-        rate = hit / len(sub)
-        print(f"{mark:<4} {len(sub):>8,} {int(hit):>8,} {rate:>8.3f}")
-
-    # ---- 保存 ----
+    # ── 保存 ──
     joblib.dump(
         {
             "meta_model":    meta_model,
@@ -424,13 +393,15 @@ def main() -> None:
     )
     logger.info(f"メタモデル保存: {META_MODEL_PATH}")
 
-    print("\n" + "=" * 50)
+    print("\n" + "=" * 60)
     print("Stacking 完了サマリ")
-    print("=" * 50)
-    print(f"Valid AUC    : {auc_va:.4f}")
-    print(f"Test  AUC    : {auc_te:.4f}  (加重平均: 0.7616)")
-    print(f"Test  PR-AUC : {pr_auc_te:.4f}  (加重平均: 0.4826)")
-    print(f"メタモデル保存: {META_MODEL_PATH}")
+    print("=" * 60)
+    print(f"Valid AUC  : {auc_va:.4f}  (加重平均比: {delta_va:+.4f})")
+    print(f"Test  AUC  : {auc_te:.4f}  (加重平均比: {delta_te:+.4f})")
+    print(f"判定       : {verdict}")
+    if delta_te > 0.001:
+        print("-> stacking_meta_v1.pkl を calibrate.py / predict_weekly.py で有効化推奨")
+    print("=" * 60)
 
 
 if __name__ == "__main__":

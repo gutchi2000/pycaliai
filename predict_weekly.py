@@ -153,7 +153,7 @@ CLASS_NORMALIZE = {
 # 着度数CSV パース
 # =========================================================
 TYAKU_DIR  = BASE_DIR / "data" / "tyaku"
-HOSSEI_DIR = BASE_DIR / "data" / "hossei"
+HOSSEI_DIR = BASE_DIR / "data" / "hosei"
 
 TYAKU_HORSE_COLS = [
     "枠番","B","馬番","印","M2","M3","M4","馬名S","C","性別","年齢","替","騎手","斤量","減M","単勝",
@@ -232,23 +232,30 @@ def _load_tyaku(date_str: str) -> pd.DataFrame | None:
     return df[[c for c in keep if c in df.columns]]
 
 
-def _load_hossei(date_str: str) -> pd.DataFrame | None:
-    """data/hossei/YYYYMMDD.csv を読み込み レースID×馬番→補正タイム の対応表を返す。"""
-    path = HOSSEI_DIR / f"{date_str}.csv"
-    if not path.exists():
+def _load_hosei(date_str: str) -> pd.DataFrame | None:
+    """data/hosei/H_*.csv を全て結合してレースID×馬番→補正タイムの対応表を返す。
+    毎週 H_YYYYMMDD-YYYYMMDD.csv 形式でフォルダに追加するだけで自動取り込みされる。
+    """
+    hosei_files = sorted(HOSSEI_DIR.glob("H_*.csv"))
+    if not hosei_files:
         return None
-    for enc in ["cp932", "utf-8-sig", "utf-8"]:
-        try:
-            df = pd.read_csv(path, encoding=enc,
-                             usecols=["レースID(新)", "馬番", "前走補9", "前走補正"])
-            df["レースID(新/馬番無)"] = df["レースID(新)"].astype(str).str[:16]
-            df["馬番"] = pd.to_numeric(df["馬番"], errors="coerce")
-            for col in ["前走補9", "前走補正"]:
-                df[col] = pd.to_numeric(df[col], errors="coerce")
-            return df[["レースID(新/馬番無)", "馬番", "前走補9", "前走補正"]]
-        except Exception:
-            continue
-    return None
+    dfs = []
+    for path in hosei_files:
+        for enc in ["cp932", "utf-8-sig", "utf-8"]:
+            try:
+                tmp = pd.read_csv(path, encoding=enc,
+                                  usecols=["レースID(新)", "前走補9", "前走補正"])
+                dfs.append(tmp)
+                break
+            except Exception:
+                continue
+    if not dfs:
+        return None
+    df = pd.concat(dfs, ignore_index=True).drop_duplicates()
+    df["レースID(新)"] = df["レースID(新)"].astype(str)
+    for col in ["前走補9", "前走補正"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df[["レースID(新)", "前走補9", "前走補正"]]
 
 
 # =========================================================
@@ -435,12 +442,12 @@ def parse_csv(path: Path) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = float("nan")  # LGBMのNaN処理に任せる（0だと分布が大きく外れる）
 
-    # ── 補正タイムCSV（data/hossei/YYYYMMDD.csv）があればマージ ──
-    hossei_df = _load_hossei(date_str)
-    if hossei_df is not None:
-        df = df.merge(hossei_df, on=["レースID(新/馬番無)", "馬番"], how="left")
+    # ── 補正タイムCSV（data/hosei/H_*.csv）があればマージ ──
+    hosei_df = _load_hosei(date_str)
+    if hosei_df is not None:
+        df = df.merge(hosei_df, on="レースID(新)", how="left")
         logger.info(
-            f"hossei CSV読み込み済: 前走補9 mean={df['前走補9'].mean():.1f}, "
+            f"hosei CSV読み込み済: 前走補9 mean={df['前走補9'].mean():.1f}, "
             f"カバレッジ={df['前走補9'].notna().mean()*100:.1f}%"
         )
     else:
@@ -454,8 +461,12 @@ def parse_csv(path: Path) -> pd.DataFrame:
         df = merge_chukyo(df, hanro, wc)
     except Exception as e:
         logger.warning(f"調教JOIN失敗（スキップ）: {e}")
-        for col in ["trn_hanro_4f","trn_hanro_lap1","trn_hanro_days",
-                    "trn_wc_3f","trn_wc_lap1","trn_wc_days"]:
+        for col in ["trn_hanro_4f","trn_hanro_3f","trn_hanro_2f","trn_hanro_1f",
+                    "trn_hanro_lap1","trn_hanro_lap2","trn_hanro_lap3","trn_hanro_lap4",
+                    "trn_hanro_days",
+                    "trn_wc_5f","trn_wc_4f","trn_wc_3f",
+                    "trn_wc_lap1","trn_wc_lap2","trn_wc_lap3",
+                    "trn_wc_days"]:
             df[col] = float("nan")
 
     df = df[~df["距離"].astype(str).str.contains("障", na=False)].copy()
@@ -492,8 +503,12 @@ def predict_lgbm(df: pd.DataFrame, obj: dict) -> np.ndarray:
     # rolling stats 系は 0 ではなく NaN（モデルの「データなし」分岐を利用）
     _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
                      "horse_fuku10","horse_fuku30","前走補9","前走補正",
-                     "trn_hanro_4f","trn_hanro_lap1","trn_hanro_days",
-                     "trn_wc_3f","trn_wc_lap1","trn_wc_days",
+                     "trn_hanro_4f","trn_hanro_3f","trn_hanro_2f","trn_hanro_1f",
+                     "trn_hanro_lap1","trn_hanro_lap2","trn_hanro_lap3","trn_hanro_lap4",
+                     "trn_hanro_days",
+                     "trn_wc_5f","trn_wc_4f","trn_wc_3f",
+                     "trn_wc_lap1","trn_wc_lap2","trn_wc_lap3",
+                     "trn_wc_days",
                      "前走単勝オッズ"}
     for col in feature_cols:
         if col not in df.columns:
@@ -523,8 +538,12 @@ def predict_catboost(df: pd.DataFrame, obj: dict) -> np.ndarray:
         df[col] = df[col].fillna("__NaN__").astype(str) if col in df.columns else "__NaN__"
     _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
                      "horse_fuku10","horse_fuku30","前走補9","前走補正",
-                     "trn_hanro_4f","trn_hanro_lap1","trn_hanro_days",
-                     "trn_wc_3f","trn_wc_lap1","trn_wc_days",
+                     "trn_hanro_4f","trn_hanro_3f","trn_hanro_2f","trn_hanro_1f",
+                     "trn_hanro_lap1","trn_hanro_lap2","trn_hanro_lap3","trn_hanro_lap4",
+                     "trn_hanro_days",
+                     "trn_wc_5f","trn_wc_4f","trn_wc_3f",
+                     "trn_wc_lap1","trn_wc_lap2","trn_wc_lap3",
+                     "trn_wc_days",
                      "前走単勝オッズ"}
     for col in feature_cols:
         if col not in df.columns:
@@ -553,8 +572,12 @@ def predict_catboost_rank(df: pd.DataFrame, obj: dict) -> np.ndarray:
         df[col] = df[col].fillna("__NaN__").astype(str) if col in df.columns else "__NaN__"
     _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
                      "horse_fuku10","horse_fuku30","前走補9","前走補正",
-                     "trn_hanro_4f","trn_hanro_lap1","trn_hanro_days",
-                     "trn_wc_3f","trn_wc_lap1","trn_wc_days",
+                     "trn_hanro_4f","trn_hanro_3f","trn_hanro_2f","trn_hanro_1f",
+                     "trn_hanro_lap1","trn_hanro_lap2","trn_hanro_lap3","trn_hanro_lap4",
+                     "trn_hanro_days",
+                     "trn_wc_5f","trn_wc_4f","trn_wc_3f",
+                     "trn_wc_lap1","trn_wc_lap2","trn_wc_lap3",
+                     "trn_wc_days",
                      "前走単勝オッズ"}
     for col in feature_cols:
         if col not in df.columns:
@@ -658,39 +681,33 @@ def predict_transformer_local(df: pd.DataFrame) -> np.ndarray:
 
 
 def predict_stacking(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray | None:
-    """スタッキングモデルで予測。未存在 or 失敗時は None を返す。"""
-    if not META_PATH.exists() or not TORCH_PATH.exists():
+    """スタッキングモデルで予測（4モデル対応）。未存在 or 失敗時は None を返す。"""
+    if not META_PATH.exists():
         return None
     try:
+        from stacking import build_meta_features
+
         p_lgbm  = predict_lgbm(df, lgbm_obj)
         p_cat   = predict_catboost(df, cat_obj)
-        p_torch = predict_transformer_local(df)
+        rank_obj = _get_cached(RANK_PATH, "rank")
+        p_rank  = predict_catboost_rank(df, rank_obj) \
+                  if rank_obj is not None else np.full(len(df), 0.5)
+        p_trans = predict_transformer_local(df)
 
         meta_obj      = _get_cached(META_PATH, "meta")
         meta_model    = meta_obj["meta_model"]
         meta_encoders = meta_obj["meta_encoders"]
         meta_cols     = meta_obj["meta_cols"]
 
-        meta_df = df.copy()
-        if "出走頭数" not in meta_df.columns or meta_df["出走頭数"].isna().all():
-            meta_df["出走頭数"] = meta_df.groupby("レースID(新/馬番無)")["馬番"].transform("count")
-        meta_df["クラス名"] = meta_df["クラス名"].map(CLASS_NORMALIZE).fillna(meta_df["クラス名"])
-        meta_df = meta_df.reindex(columns=_META_EXTRA).copy()
+        df_tmp = df.copy()
+        if "出走頭数" not in df_tmp.columns or df_tmp["出走頭数"].isna().all():
+            df_tmp["出走頭数"] = df_tmp.groupby("レースID(新/馬番無)")["馬番"].transform("count")
 
-        for col in meta_df.select_dtypes(include="object").columns:
-            if col in meta_encoders:
-                le    = meta_encoders[col]
-                meta_df[col] = meta_df[col].fillna("__NaN__").astype(str)
-                known = set(le.classes_)
-                meta_df[col] = meta_df[col].apply(lambda x: x if x in known else "__NaN__")
-                meta_df[col] = le.transform(meta_df[col])
-            else:
-                meta_df[col] = 0
-
-        meta_df = meta_df.fillna(0)
-        meta_df["lgbm"]        = p_lgbm
-        meta_df["catboost"]    = p_cat
-        meta_df["transformer"] = p_torch
+        meta_df, _ = build_meta_features(
+            df_tmp, p_lgbm, p_cat, p_rank, p_trans,
+            meta_encoders=meta_encoders, fit=False,
+            race_col="レースID(新/馬番無)",
+        )
 
         return meta_model.predict_proba(meta_df[meta_cols])[:, 1]
     except Exception as e:
@@ -888,11 +905,15 @@ def main() -> None:
             race_df["prob"]  = ensemble_predict(race_df, lgbm_obj, cat_obj)
             race_df          = assign_marks(race_df)
             race_df["score"] = (race_df["prob"] * 100).round(1)
+            # 期待値スコア = 複勝確率 × 単勝オッズ（市場の過小評価を検出）
+            tansho = pd.to_numeric(race_df.get("単勝", pd.Series(dtype=float)), errors="coerce")
+            race_df["ev_score"] = (race_df["prob"] * tansho).round(2)
         except Exception as e:
             logger.warning(f"予測失敗 {race_id}: {e}")
-            race_df["prob"]  = 0.0
-            race_df["mark"]  = ""
-            race_df["score"] = 0.0
+            race_df["prob"]     = 0.0
+            race_df["mark"]     = ""
+            race_df["score"]    = 0.0
+            race_df["ev_score"] = 0.0
 
         # 除外フィルタ: 東京・小倉・新馬・障害
         if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
@@ -924,6 +945,8 @@ def main() -> None:
                 "馬名":                str(row.get("馬名","")),
                 "騎手":                str(row.get("騎手","")),
                 "スコア":              float(row["score"]),
+                "単勝オッズ":          float(row["単勝"]) if pd.notna(row.get("単勝")) else "",
+                "期待値スコア":        float(row.get("ev_score", 0.0)),
                 "印":                  str(row["mark"]),
                 "HAHO_戦略対象":       "✅" if bets["HAHO_戦略対象"] else "",
                 "HAHO_馬連_買い目":    bets["HAHO_馬連_買い目"]    if is_hon else "",

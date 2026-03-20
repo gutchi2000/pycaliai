@@ -40,7 +40,7 @@ MODEL_DIR  = BASE_DIR / "models"
 REPORT_DIR = BASE_DIR / "reports"
 
 MASTER_CSV   = DATA_DIR / "master_20130105-20251228.csv"
-HOSSEI_CSV   = DATA_DIR / "hossei" / "H_20130105-20251228.csv"
+HOSEI_DIR    = DATA_DIR / "hosei"
 KEKKA_CSV    = DATA_DIR / "kekka_20130105-20251228.csv"
 HANRO_MASTER = Path(r"E:\競馬過去走データ\H-20150401-20260313.csv")
 WC_MASTER    = Path(r"E:\競馬過去走データ\W-20150401-20260313.csv")
@@ -154,12 +154,16 @@ def make_pool(
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     logger.info(f"マスターCSV読み込み: {MASTER_CSV}")
     df = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", low_memory=False)
-    # hossei JOIN
-    if HOSSEI_CSV.exists():
-        hossei = pd.read_csv(HOSSEI_CSV, encoding="cp932",
-                             usecols=["レースID(新)", "馬番", "前走補9", "前走補正"])
-        df = df.merge(hossei, on=["レースID(新)", "馬番"], how="left")
-        logger.info(f"hossei JOIN完了: 前走補9カバレッジ={df['前走補9'].notna().mean()*100:.1f}%")
+    # hosei JOIN（data/hosei/H_*.csv を全て結合）
+    hosei_files = sorted(HOSEI_DIR.glob("H_*.csv"))
+    if hosei_files:
+        hosei = pd.concat([
+            pd.read_csv(f, encoding="cp932",
+                        usecols=["レースID(新)", "前走補9", "前走補正"])
+            for f in hosei_files
+        ], ignore_index=True).drop_duplicates()
+        df = df.merge(hosei, on="レースID(新)", how="left")
+        logger.info(f"hosei JOIN完了 ({len(hosei_files)}ファイル): 前走補9カバレッジ={df['前走補9'].notna().mean()*100:.1f}%")
     else:
         df["前走補9"]  = float("nan")
         df["前走補正"] = float("nan")
