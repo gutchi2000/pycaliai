@@ -254,22 +254,30 @@ def _load_tyaku(date_str: str) -> "pd.DataFrame | None":
 
 
 def _load_hosei(date_str: str) -> "pd.DataFrame | None":
-    """data/hosei/YYYYMMDD.csv を読み込み レースID×馬番→補正タイム の対応表を返す。"""
-    path = HOSSEI_DIR / f"{date_str}.csv"
-    if not path.exists():
+    """data/hosei/H_*.csv を glob して全期間の補正タイムを返す。
+    date_str は互換性のために受け取るが現在は使用しない。
+    """
+    files = sorted(HOSSEI_DIR.glob("H_*.csv"))
+    if not files:
         return None
-    for enc in ["cp932", "utf-8-sig", "utf-8"]:
-        try:
-            df = pd.read_csv(path, encoding=enc,
-                             usecols=["レースID(新)", "馬番", "前走補9", "前走補正"])
-            df["レースID(新/馬番無)"] = df["レースID(新)"].astype(str).str[:16]
-            df["馬番"] = pd.to_numeric(df["馬番"], errors="coerce")
-            for col in ["前走補9", "前走補正"]:
-                df[col] = pd.to_numeric(df[col], errors="coerce")
-            return df[["レースID(新/馬番無)", "馬番", "前走補9", "前走補正"]]
-        except Exception:
-            continue
-    return None
+    dfs = []
+    for path in files:
+        for enc in ["cp932", "utf-8-sig", "utf-8"]:
+            try:
+                df = pd.read_csv(path, encoding=enc,
+                                 usecols=["レースID(新)", "馬番", "前走補9", "前走補正"])
+                dfs.append(df)
+                break
+            except Exception:
+                continue
+    if not dfs:
+        return None
+    result = pd.concat(dfs, ignore_index=True).drop_duplicates()
+    result["レースID(新/馬番無)"] = result["レースID(新)"].astype(str).str[:16]
+    result["馬番"] = pd.to_numeric(result["馬番"], errors="coerce")
+    for col in ["前走補9", "前走補正"]:
+        result[col] = pd.to_numeric(result[col], errors="coerce")
+    return result[["レースID(新/馬番無)", "馬番", "前走補9", "前走補正"]]
 
 
 # =========================================================
