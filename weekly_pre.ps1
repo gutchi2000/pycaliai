@@ -44,8 +44,15 @@ Write-Host ""
 Write-Host "=== weekly_pre: $Date ===" -ForegroundColor Green
 Write-Host ""
 
-# -- Step 1: generate pred CSV --
-Write-Host "[1/3] Running predict_weekly.py ..." -ForegroundColor Cyan
+# -- Step 1: generate hosei CSV --
+Write-Host "[1/4] Running make_weekly_hosei.py ..." -ForegroundColor Cyan
+python make_weekly_hosei.py --csv $csvPath
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "      make_weekly_hosei.py failed (skipping hosei)." -ForegroundColor Yellow
+}
+
+# -- Step 2: generate pred CSV --
+Write-Host "[2/4] Running predict_weekly.py ..." -ForegroundColor Cyan
 python predict_weekly.py --csv $csvPath
 if ($LASTEXITCODE -ne 0) {
     Write-Error "predict_weekly.py failed."
@@ -53,13 +60,19 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "      reports\pred_$Date.csv created." -ForegroundColor Green
 
-# -- Step 2: git add --
-Write-Host "[2/3] git add ..." -ForegroundColor Cyan
+# -- Step 3: git add --
+Write-Host "[3/4] git add ..." -ForegroundColor Cyan
 git add $csvPath
-Write-Host "      staged: $csvPath" -ForegroundColor Green
+$hoseiPath = "data\hosei\H_$Date.csv"
+if (Test-Path $hoseiPath) {
+    git add $hoseiPath
+    Write-Host "      staged: $csvPath + $hoseiPath" -ForegroundColor Green
+} else {
+    Write-Host "      staged: $csvPath" -ForegroundColor Green
+}
 
-# -- Step 3: git commit & push --
-Write-Host "[3/3] git commit & push ..." -ForegroundColor Cyan
+# -- Step 4: git commit & push --
+Write-Host "[4/4] git commit & push ..." -ForegroundColor Cyan
 $y = $Date.Substring(0,4)
 $m = $Date.Substring(4,2)
 $d = $Date.Substring(6,2)

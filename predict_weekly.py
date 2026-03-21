@@ -244,7 +244,8 @@ def _load_hosei(date_str: str) -> pd.DataFrame | None:
         for enc in ["cp932", "utf-8-sig", "utf-8"]:
             try:
                 tmp = pd.read_csv(path, encoding=enc,
-                                  usecols=["レースID(新)", "前走補9", "前走補正"])
+                                  usecols=["レースID(新)", "前走補9", "前走補正"],
+                                  dtype={"レースID(新)": str})
                 dfs.append(tmp)
                 break
             except Exception:
@@ -445,7 +446,14 @@ def parse_csv(path: Path) -> pd.DataFrame:
     # ── 補正タイムCSV（data/hosei/H_*.csv）があればマージ ──
     hosei_df = _load_hosei(date_str)
     if hosei_df is not None:
-        df = df.merge(hosei_df, on="レースID(新)", how="left")
+        # hosei は18桁ID（レース16桁+馬番2桁）なので一致させてマージ
+        df["_hosei_key"] = (
+            df["レースID(新/馬番無)"].astype(str)
+            + df["馬番"].astype(int).astype(str).str.zfill(2)
+        )
+        hosei_df = hosei_df.rename(columns={"レースID(新)": "_hosei_key"})
+        df = df.merge(hosei_df, on="_hosei_key", how="left")
+        df = df.drop(columns=["_hosei_key"])
         logger.info(
             f"hosei CSV読み込み済: 前走補9 mean={df['前走補9'].mean():.1f}, "
             f"カバレッジ={df['前走補9'].notna().mean()*100:.1f}%"
