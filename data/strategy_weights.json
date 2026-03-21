@@ -1,273 +1,263 @@
 {
   "中京": {
     "1勝": {
-      "馬連": {
-        "roi_train_combined": 308.4,
-        "roi_oos": 175.8,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.6322,
-        "bet_ratio": 0.6322
+      "単勝": {
+        "roi_valid": 93.9,
+        "roi_test": 107.3,
+        "roi_combined": 102.8,
+        "weight": 0.3746,
+        "bet_ratio": 0.3746
       },
       "複勝": {
-        "roi_train_combined": 132.3,
-        "roi_oos": 102.3,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.3678,
-        "bet_ratio": 0.3678
+        "roi_valid": 80.1,
+        "roi_test": 89.6,
+        "roi_combined": 86.4,
+        "weight": 0.3149,
+        "bet_ratio": 0.3149
+      },
+      "馬連": {
+        "roi_valid": 56.6,
+        "roi_test": 99.5,
+        "roi_combined": 85.2,
+        "weight": 0.3105,
+        "bet_ratio": 0.3105
       }
     },
     "2勝": {
-      "馬連": {
-        "roi_train_combined": 213.1,
-        "roi_oos": 192.8,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.6483,
-        "bet_ratio": 0.6483
-      },
       "三連複": {
-        "roi_train_combined": 420.9,
-        "roi_oos": 104.6,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.3517,
-        "bet_ratio": 0.3517
+        "roi_valid": 117.4,
+        "roi_test": 162.2,
+        "roi_combined": 146.7,
+        "weight": 0.3393,
+        "bet_ratio": 0.3393
+      },
+      "馬連": {
+        "roi_valid": 88.2,
+        "roi_test": 108.4,
+        "roi_combined": 101.4,
+        "weight": 0.2346,
+        "bet_ratio": 0.2346
+      },
+      "単勝": {
+        "roi_valid": 128.7,
+        "roi_test": 81.6,
+        "roi_combined": 97.9,
+        "weight": 0.2265,
+        "bet_ratio": 0.2265
+      },
+      "複勝": {
+        "roi_valid": 90.0,
+        "roi_test": 84.4,
+        "roi_combined": 86.3,
+        "weight": 0.1996,
+        "bet_ratio": 0.1996
+      }
+    },
+    "3勝": {
+      "複勝": {
+        "roi_valid": 81.5,
+        "roi_test": 94.6,
+        "roi_combined": 90.1,
+        "weight": 1.0,
+        "bet_ratio": 1.0
+      }
+    },
+    "未勝利": {
+      "複勝": {
+        "roi_valid": 84.2,
+        "roi_test": 86.9,
+        "roi_combined": 86.0,
+        "weight": 1.0,
+        "bet_ratio": 1.0
       }
     }
   },
   "中山": {
     "1勝": {
       "三連複": {
-        "roi_train_combined": 486.3,
-        "roi_oos": 112.6,
-        "profitable_years": 4,
-        "confidence": 100.0,
+        "roi_valid": 75.0,
+        "roi_test": 83.7,
+        "roi_combined": 80.7,
         "weight": 1.0,
         "bet_ratio": 1.0
-      }
-    },
-    "2勝": {
-      "三連複": {
-        "roi_train_combined": 1145.6,
-        "roi_oos": 131.2,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 1.0,
-        "bet_ratio": 1.0
-      }
-    },
-    "3勝": {
-      "三連複": {
-        "roi_train_combined": 577.7,
-        "roi_oos": 1474.9,
-        "profitable_years": 3,
-        "confidence": 100.0,
-        "weight": 0.8227,
-        "bet_ratio": 0.8227
-      },
-      "馬連": {
-        "roi_train_combined": 231.7,
-        "roi_oos": 317.9,
-        "profitable_years": 3,
-        "confidence": 100.0,
-        "weight": 0.1773,
-        "bet_ratio": 0.1773
       }
     },
     "未勝利": {
+      "複勝": {
+        "roi_valid": 75.0,
+        "roi_test": 84.6,
+        "roi_combined": 81.4,
+        "weight": 1.0,
+        "bet_ratio": 1.0
+      }
+    }
+  },
+  "京都": {
+    "2勝": {
       "馬連": {
-        "roi_train_combined": 239.1,
-        "roi_oos": 108.4,
-        "profitable_years": 5,
-        "confidence": 100.0,
-        "weight": 0.5098,
-        "bet_ratio": 0.5098
+        "roi_valid": 103.9,
+        "roi_test": 84.2,
+        "roi_combined": 88.7,
+        "weight": 0.5205,
+        "bet_ratio": 0.5205
       },
-      "三連複": {
-        "roi_train_combined": 425.4,
-        "roi_oos": 104.2,
-        "profitable_years": 5,
-        "confidence": 100.0,
-        "weight": 0.4902,
-        "bet_ratio": 0.4902
+      "複勝": {
+        "roi_valid": 75.7,
+        "roi_test": 83.4,
+        "roi_combined": 81.7,
+        "weight": 0.4795,
+        "bet_ratio": 0.4795
       }
     },
-    "ｵｰﾌﾟﾝ": {
-      "複勝": {
-        "roi_train_combined": 145.6,
-        "roi_oos": 116.3,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.5037,
-        "bet_ratio": 0.5037
+    "3勝": {
+      "馬連": {
+        "roi_valid": 116.2,
+        "roi_test": 80.5,
+        "roi_combined": 88.7,
+        "weight": 0.5218,
+        "bet_ratio": 0.5218
       },
-      "三連複": {
-        "roi_train_combined": 558.7,
-        "roi_oos": 114.6,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.4963,
-        "bet_ratio": 0.4963
+      "複勝": {
+        "roi_valid": 72.3,
+        "roi_test": 84.0,
+        "roi_combined": 81.3,
+        "weight": 0.4782,
+        "bet_ratio": 0.4782
+      }
+    },
+    "未勝利": {
+      "複勝": {
+        "roi_valid": 81.4,
+        "roi_test": 89.2,
+        "roi_combined": 87.5,
+        "weight": 1.0,
+        "bet_ratio": 1.0
       }
     }
   },
   "函館": {
-    "1勝": {
-      "三連複": {
-        "roi_train_combined": 433.5,
-        "roi_oos": 213.3,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.6457,
-        "bet_ratio": 0.6457
-      },
-      "馬連": {
-        "roi_train_combined": 213.9,
-        "roi_oos": 117.1,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.3543,
-        "bet_ratio": 0.3543
-      }
-    },
     "2勝": {
       "馬連": {
-        "roi_train_combined": 315.3,
-        "roi_oos": 159.8,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.6112,
-        "bet_ratio": 0.6112
+        "roi_valid": 224.7,
+        "roi_test": 136.9,
+        "roi_combined": 166.2,
+        "weight": 0.4573,
+        "bet_ratio": 0.4573
+      },
+      "単勝": {
+        "roi_valid": 131.2,
+        "roi_test": 101.2,
+        "roi_combined": 111.2,
+        "weight": 0.306,
+        "bet_ratio": 0.306
       },
       "複勝": {
-        "roi_train_combined": 150.3,
-        "roi_oos": 101.6,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.3888,
-        "bet_ratio": 0.3888
+        "roi_valid": 82.4,
+        "roi_test": 87.8,
+        "roi_combined": 86.0,
+        "weight": 0.2367,
+        "bet_ratio": 0.2367
+      }
+    },
+    "未勝利": {
+      "単勝": {
+        "roi_valid": 58.0,
+        "roi_test": 93.5,
+        "roi_combined": 81.7,
+        "weight": 0.5015,
+        "bet_ratio": 0.5015
+      },
+      "馬連": {
+        "roi_valid": 67.2,
+        "roi_test": 88.2,
+        "roi_combined": 81.2,
+        "weight": 0.4985,
+        "bet_ratio": 0.4985
       }
     }
   },
   "新潟": {
     "1勝": {
       "馬連": {
-        "roi_train_combined": 311.0,
-        "roi_oos": 124.3,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 1.0,
-        "bet_ratio": 1.0
+        "roi_valid": 62.4,
+        "roi_test": 150.0,
+        "roi_combined": 120.5,
+        "weight": 0.4215,
+        "bet_ratio": 0.4215
+      },
+      "複勝": {
+        "roi_valid": 80.6,
+        "roi_test": 84.2,
+        "roi_combined": 83.0,
+        "weight": 0.2903,
+        "bet_ratio": 0.2903
+      },
+      "単勝": {
+        "roi_valid": 85.1,
+        "roi_test": 81.1,
+        "roi_combined": 82.4,
+        "weight": 0.2882,
+        "bet_ratio": 0.2882
       }
-    },
-    "2勝": {
-      "三連複": {
-        "roi_train_combined": 876.9,
-        "roi_oos": 197.9,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 1.0,
-        "bet_ratio": 1.0
-      }
-    },
+    }
+  },
+  "札幌": {
     "未勝利": {
-      "三連複": {
-        "roi_train_combined": 394.3,
-        "roi_oos": 103.9,
-        "profitable_years": 5,
-        "confidence": 100.0,
+      "馬連": {
+        "roi_valid": 59.5,
+        "roi_test": 100.0,
+        "roi_combined": 86.5,
         "weight": 1.0,
         "bet_ratio": 1.0
       }
     }
   },
-  "札幌": {
-    "1勝": {
-      "三連複": {
-        "roi_train_combined": 659.9,
-        "roi_oos": 180.3,
-        "profitable_years": 4,
-        "confidence": 100.0,
+  "福島": {
+    "2勝": {
+      "馬連": {
+        "roi_valid": 89.8,
+        "roi_test": 131.8,
+        "roi_combined": 117.6,
         "weight": 1.0,
         "bet_ratio": 1.0
       }
     },
-    "2勝": {
-      "馬連": {
-        "roi_train_combined": 372.2,
-        "roi_oos": 157.7,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.6042,
-        "bet_ratio": 0.6042
-      },
-      "複勝": {
-        "roi_train_combined": 158.9,
-        "roi_oos": 103.3,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.3958,
-        "bet_ratio": 0.3958
-      }
-    },
     "未勝利": {
-      "三連複": {
-        "roi_train_combined": 442.7,
-        "roi_oos": 187.6,
-        "profitable_years": 5,
-        "confidence": 100.0,
-        "weight": 0.594,
-        "bet_ratio": 0.594
-      },
-      "馬連": {
-        "roi_train_combined": 273.1,
-        "roi_oos": 128.2,
-        "profitable_years": 5,
-        "confidence": 100.0,
-        "weight": 0.406,
-        "bet_ratio": 0.406
+      "複勝": {
+        "roi_valid": 94.2,
+        "roi_test": 83.5,
+        "roi_combined": 87.1,
+        "weight": 1.0,
+        "bet_ratio": 1.0
       }
     }
   },
   "阪神": {
     "1勝": {
-      "三連複": {
-        "roi_train_combined": 518.3,
-        "roi_oos": 121.8,
-        "profitable_years": 4,
-        "confidence": 100.0,
+      "複勝": {
+        "roi_valid": 80.0,
+        "roi_test": 82.5,
+        "roi_combined": 81.3,
         "weight": 1.0,
         "bet_ratio": 1.0
       }
     },
     "2勝": {
-      "三連複": {
-        "roi_train_combined": 311.3,
-        "roi_oos": 124.5,
-        "profitable_years": 4,
-        "confidence": 100.0,
+      "馬連": {
+        "roi_valid": 74.1,
+        "roi_test": 102.2,
+        "roi_combined": 89.7,
         "weight": 1.0,
         "bet_ratio": 1.0
       }
     },
-    "3勝": {
-      "三連複": {
-        "roi_train_combined": 442.0,
-        "roi_oos": 296.8,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.7441,
-        "bet_ratio": 0.7441
-      },
+    "未勝利": {
       "複勝": {
-        "roi_train_combined": 139.4,
-        "roi_oos": 102.1,
-        "profitable_years": 4,
-        "confidence": 100.0,
-        "weight": 0.2559,
-        "bet_ratio": 0.2559
+        "roi_valid": 80.8,
+        "roi_test": 83.9,
+        "roi_combined": 82.5,
+        "weight": 1.0,
+        "bet_ratio": 1.0
       }
     }
   }

@@ -40,8 +40,10 @@ TEST_CSV    = REPORT_DIR / "backtest_results_2024.csv"    # 2024-2025年（out-o
 OUT_JSON    = DATA_DIR   / "strategy_weights.json"
 OUT_CSV     = REPORT_DIR / "stable_conditions.csv"
 
-MIN_RACES   = 30    # 各期間で必要な最低レース数
-MIN_ROI_PCT = 100.0 # 両期間それぞれで要求する最低ROI(%)
+MIN_RACES        = 15    # 各期間で必要な最低レース数
+MIN_ROI_VALID    = 50.0  # valid期間(2023)の最低ROI(%) ← 旧モデル期間は緩く
+MIN_ROI_TEST     = 80.0  # test期間(2024-2025)の最低ROI(%) ← 土日各5R以上を毎週保証
+MIN_ROI_COMBINED = 80.0  # 両期間合算の最低ROI(%)
 
 
 # =========================================================
@@ -120,9 +122,9 @@ def main() -> None:
     stable = merged[
         (merged["レース数_valid"] >= MIN_RACES) &
         (merged["レース数_test"]  >= MIN_RACES) &
-        (merged["ROI_valid"]      >= MIN_ROI_PCT) &
-        (merged["ROI_test"]       >= MIN_ROI_PCT) &
-        (merged["ROI_合算"]       >= MIN_ROI_PCT)
+        (merged["ROI_valid"]      >= MIN_ROI_VALID) &
+        (merged["ROI_test"]       >= MIN_ROI_TEST) &
+        (merged["ROI_合算"]       >= MIN_ROI_COMBINED)
     ].copy().sort_values("ROI_合算", ascending=False)
 
     logger.info(f"安定黒字条件数: {len(stable)}")
