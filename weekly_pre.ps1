@@ -76,11 +76,16 @@ Write-Host "[4/4] git commit & push ..." -ForegroundColor Cyan
 $y = $Date.Substring(0,4)
 $m = $Date.Substring(4,2)
 $d = $Date.Substring(6,2)
-git commit -m "add weekly csv $y-$m-$d"
-git push origin master
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "git push failed."
-    exit 1
+$staged = git diff --cached --name-only 2>$null
+if ($staged) {
+    git commit -m "add weekly csv $y-$m-$d"
+    git push origin master
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "git push failed."
+        exit 1
+    }
+} else {
+    Write-Host "      already committed, skipping push." -ForegroundColor Yellow
 }
 
 Write-Host ""
