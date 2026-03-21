@@ -1,6 +1,6 @@
 # PyCaLiAI 強化ロードマップ
 
-最終更新: 2026-03-20（全4モデル再訓練完了・調教特徴量拡張・補正タイム2026追加・スタッキング再学習済み）
+最終更新: 2026-03-22（新モデルでバックテスト再実行・戦略再生成・hosei JOIN正常化・週次自動化PS1完成）
 
 ---
 
@@ -110,7 +110,8 @@ CatBoostの **YetiRank**（GPU対応、精度が高い）から実装する。
 - **状態**: 🔧 一部完了
   - ✅ `data/hosei/` フォルダ設計・運用開始（H_*.csv 自動glob取り込み）
   - ✅ マスター `H_20130105-20251228.csv` + 2026追加分 `H_20260104-20260315.csv` 配置済み
-  - ✅ 週次: 3/21〜は `H_YYYYMMDD-YYYYMMDD.csv` 形式で毎週追加
+  - ✅ 週次: `make_weekly_hosei.py` で当週18桁ID → kekka → hosei橋渡しJOIN（カバレッジ64〜69%）
+  - ✅ predict_weekly.py: 18桁IDマージに修正済み（旧: 16桁直接結合 → 常時0%）
   - ⬜ 補正タイムを学習特徴量に追加（現状はJOINのみ、NUMFEATURESに未追加）
   - ⬜ `data/kako5/`（過去5走詳細）= 週次データのみ取得可能、設計未着手
 
@@ -137,12 +138,33 @@ CatBoostの **YetiRank**（GPU対応、精度が高い）から実装する。
 
 ---
 
+## Phase F: 戦略再構築（新モデル対応） ✅ 完了（2026-03-22）
+
+| タスク | 状態 | 結果 |
+|---|---|---|
+| backtest.py --no_strategy --period valid 再実行 | ✅ | 2,422レース |
+| backtest.py --no_strategy --period test 再実行 | ✅ | 4,855レース |
+| build_strategy_stable.py 閾値調整（MIN_ROI_PCT=80） | ✅ | 30条件採用（旧: 1条件） |
+| strategy_weights.json 更新 | ✅ | 8会場・複数クラス対応 |
+| 全pred CSV（26週分）再生成 | ✅ | 新戦略で再生成済み |
+| generate_results.py で的中実績更新 | ✅ | HALO +12,000円（ROI 102.7%） |
+
+**2026年実績（新モデル＋新戦略）**:
+| プラン | R数 | ROI |
+|---|---|---|
+| HAHO | 66R | 73.5% |
+| **HALO** | **45R** | **102.7%（黒字）** |
+| LALO | 305R | 81.6% |
+| CQC | 305R | 77.6% |
+
+---
+
 ## 週次運用（常時）
 
 | タスク | 頻度 | 状態 |
 |---|---|---|
-| 週次CSVをdata/weekly/に配置 | 毎週 | ✅ 運用中 |
+| 週次CSVをdata/weekly/に配置 → `.\weekly_pre.ps1 YYYYMMDD` | 毎週 | ✅ 自動化済み（3/21〜） |
 | 週次調教CSVをdata/training/に配置（H-*.csv/W-*.csv） | 毎週 | ✅ 運用中 |
-| 週次補正タイムCSVをdata/hosei/に配置（H_*.csv） | 毎週 | ✅ 運用中（3/21〜） |
-| predict_weekly.py 実行 | 毎週 | ✅ 運用中 |
+| 週次補正タイムCSVをdata/hosei/に配置（H_*.csv） | 毎週 | ✅ make_weekly_hosei.py で自動生成 |
+| kekka CSV配置 → `.\weekly_post.ps1 YYYYMMDD` | 毎週 | ✅ 自動化済み |
 | master CSVにデータ追加（年次） | 年1回 | ⬜ 次回2026年末 |
