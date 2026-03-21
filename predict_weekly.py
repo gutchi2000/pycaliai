@@ -466,6 +466,11 @@ def parse_csv(path: Path) -> pd.DataFrame:
     try:
         from optuna_lgbm import load_chukyo, merge_chukyo
         hanro, wc = load_chukyo()
+        # merge_chukyo は "日付"(YYYYMMDD) を参照するが週次CSVは "日付S"(YYYY.M.D) なので変換
+        if "日付" not in df.columns and "日付S" in df.columns:
+            df["日付"] = df["日付S"].apply(
+                lambda s: "{:04d}{:02d}{:02d}".format(*[int(x) for x in str(s).split(".")])
+            )
         df = merge_chukyo(df, hanro, wc)
     except Exception as e:
         logger.warning(f"調教JOIN失敗（スキップ）: {e}")
