@@ -67,7 +67,10 @@ TYAKU_DIR     = DATA_DIR / "tyaku"
 HOSSEI_DIR    = DATA_DIR / "hosei"
 LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
-CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v1.pkl"
+CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v3.pkl"   # Train-based (no look-ahead)
+CAL_PATH_V2    = MODEL_DIR / "ensemble_calibrator_v2.pkl"   # Valid-based fallback
+CAL_PATH_V1    = MODEL_DIR / "ensemble_calibrator_v1.pkl"   # legacy fallback
+WIN_MODEL_PATH = MODEL_DIR / "lgbm_win_v1.pkl"
 TORCH_PATH     = MODEL_DIR / "transformer_optuna_v1.pkl"
 META_PATH      = MODEL_DIR / "stacking_meta_v1.pkl"
 STACK_CAL_PATH = MODEL_DIR / "stacking_calibrator_v1.pkl"
@@ -549,6 +552,36 @@ def predict_lgbm(df: pd.DataFrame, obj: dict) -> np.ndarray:
     return model.predict_proba(df[feature_cols])[:, 1]
 
 
+def predict_lgbm_win(df: pd.DataFrame) -> np.ndarray:
+    """lgbm_win_v1 (is_1st_place) 予測。モデル未存在時は None を返す。"""
+    if not WIN_MODEL_PATH.exists():
+        return None
+    obj = _get_cached(WIN_MODEL_PATH, "lgbm_win")
+    if obj is None:
+        return None
+    model, encoders, feature_cols = obj["model"], obj["encoders"], obj["feature_cols"]
+    df = df.copy()
+    for col in ["前走走破タイム", "前走着差タイム"]:
+        if col in df.columns:
+            df[col] = parse_time_str(df[col])
+    for col, le in encoders.items():
+        if col not in df.columns:
+            df[col] = 0; continue
+        df[col] = df[col].astype(str).fillna("__NaN__")
+        known = set(le.classes_)
+        df[col] = df[col].apply(lambda x: x if x in known else "__NaN__")
+        if "__NaN__" not in le.classes_:
+            le.classes_ = np.append(le.classes_, "__NaN__")
+        df[col] = le.transform(df[col])
+    for col in feature_cols:
+        if col not in df.columns:
+            df[col] = 0
+    import lightgbm as lgb
+    if isinstance(model, lgb.Booster):
+        return model.predict(df[feature_cols])
+    return model.predict_proba(df[feature_cols])[:, 1]
+
+
 def predict_catboost(df: pd.DataFrame, obj: dict) -> np.ndarray:
     from catboost import Pool
     model, feature_cols = obj["model"], obj["feature_cols"]
@@ -689,8 +722,10 @@ def predict_stacking(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
 
 @st.cache_resource
 def _load_calibrator():
-    if CAL_PATH.exists():
-        return joblib.load(CAL_PATH)["calibrator"]
+    for path, name in [(CAL_PATH, "v3"), (CAL_PATH_V2, "v2"), (CAL_PATH_V1, "v1")]:
+        if path.exists():
+            logger.info(f"キャリブレーター {name} をロード: {path}")
+            return joblib.load(path)["calibrator"]
     logger.warning("キャリブレーター未生成。calibrate.py を先に実行してください。")
     return None
 
@@ -709,8 +744,14 @@ def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
                 f"スタッキングキャリブレーター出力が異常（mean={calibrated.mean():.3f}, "
                 f"max={calibrated.max():.3f}）→ エンサンブルにフォールバック"
             )
-    # フォールバック: 2モデル平均 + キャリブレーション
-    raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
+    # 3モデル加重平均: LGBM×0.375 + CatBoost×0.375 + Win×0.25
+    p_lgbm = predict_lgbm(df, lgbm_obj)
+    p_cat  = predict_catboost(df, cat_obj)
+    p_win  = predict_lgbm_win(df)
+    if p_win is not None:
+        raw = 0.375 * p_lgbm + 0.375 * p_cat + 0.25 * p_win
+    else:
+        raw = 0.50 * p_lgbm + 0.50 * p_cat
     cal = _load_calibrator()
     return cal.transform(raw) if cal is not None else raw
 
@@ -733,14 +774,17 @@ def predict_all_races(cache_key: str, df_json: str, _lgbm_obj: dict, _cat_obj: d
     for race_id, race_df in df.groupby("レースID(新/馬番無)"):
         race_df = race_df.copy()
         try:
-            race_df["prob"]  = ensemble_predict(race_df, _lgbm_obj, _cat_obj)
-            race_df          = assign_marks(race_df)
-            race_df["score"] = (race_df["prob"] * 100).round(1)
+            race_df["prob"]     = ensemble_predict(race_df, _lgbm_obj, _cat_obj)
+            race_df             = assign_marks(race_df)
+            race_df["score"]    = (race_df["prob"] * 100).round(1)
+            tansho = pd.to_numeric(race_df.get("単勝", pd.Series(dtype=float)), errors="coerce")
+            race_df["ev_score"] = (race_df["prob"] * tansho / 0.80).round(3)
         except Exception as e:
             logger.warning(f"予測失敗 {race_id}: {e}")
-            race_df["prob"]  = 0.0
-            race_df["mark"]  = ""
-            race_df["score"] = 0.0
+            race_df["prob"]     = 0.0
+            race_df["mark"]     = ""
+            race_df["score"]    = 0.0
+            race_df["ev_score"] = 0.0
         result_frames.append(race_df)
     return pd.concat(result_frames, ignore_index=True).to_json(force_ascii=False)
 
@@ -2693,6 +2737,66 @@ def render_pace_scenario(race_df: pd.DataFrame) -> None:
 
 
 # =========================================================
+# EV単勝候補ページ
+# =========================================================
+def page_ev_candidates(all_df: pd.DataFrame) -> None:
+    """EV >= 閾値 の◎馬を一覧表示するページ。"""
+    st.markdown("### ⭐ EV単勝候補")
+    st.caption("◎馬の期待値スコア (モデル確率 × 単勝オッズ / 0.80) が閾値以上のレースを表示")
+
+    col_thr, col_odds = st.columns(2)
+    with col_thr:
+        ev_thr = st.slider("EV閾値", min_value=0.8, max_value=2.5, value=1.0,
+                           step=0.05, format="%.2f")
+    with col_odds:
+        max_odds = st.slider("単勝オッズ上限（夢馬カット）", min_value=10.0, max_value=99.9,
+                             value=50.0, step=1.0, format="%.0f倍")
+
+    hon_df = all_df[all_df["mark"] == "◎"].copy()
+    hon_df["ev_score"] = pd.to_numeric(hon_df.get("ev_score", 0.0), errors="coerce").fillna(0.0)
+    hon_df["_tansho"]  = pd.to_numeric(hon_df.get("単勝", pd.Series(dtype=float)), errors="coerce").values
+
+    cands = hon_df[(hon_df["ev_score"] >= ev_thr) & (hon_df["_tansho"] <= max_odds)].copy()
+    cands = cands.sort_values("ev_score", ascending=False)
+
+    st.metric("該当レース数", f"{len(cands)} R")
+
+    if cands.empty:
+        st.info(f"EV >= {ev_thr:.2f} かつ 単勝 ≤ {max_odds:.0f}倍 の◎馬はありません")
+        return
+
+    disp_cols = []
+    for c in ["場所", "R", "クラス名", "距離", "馬名", "騎手", "単勝", "ev_score", "score"]:
+        alt = {"馬名": "馬名S"}.get(c, c)
+        if c in cands.columns:
+            disp_cols.append(c)
+        elif alt in cands.columns:
+            disp_cols.append(alt)
+
+    disp = cands[disp_cols].rename(columns={"ev_score": "EV", "score": "スコア(%)"}).reset_index(drop=True)
+
+    def _ev_color(val):
+        if isinstance(val, float):
+            if val >= 2.0: return "background-color:#2d4a2a; color:#a6e3a1; font-weight:bold"
+            if val >= 1.5: return "background-color:#3a3a1a; color:#f9e2af"
+        return ""
+
+    if "EV" in disp.columns:
+        styled = disp.style.applymap(_ev_color, subset=["EV"])
+        st.dataframe(styled, use_container_width=True, hide_index=True)
+    else:
+        st.dataframe(disp, use_container_width=True, hide_index=True)
+
+    st.markdown("""
+| EV | 目安 |
+|---|---|
+| ≥ 2.0 | 🟢 バックテストで ROI ~199% |
+| ≥ 1.5 | 🟡 バックテストで ROI ~125% |
+| ≥ 1.0 | ⚪ 期待値プラス域 |
+""")
+
+
+# =========================================================
 # 今日の買い目専用ページ
 # =========================================================
 def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
@@ -3451,12 +3555,17 @@ def main() -> None:
     race_id_col = "レースID(新/馬番無)"
 
     # メインタブ
-    main_tab1, main_tab2, main_tab3 = st.tabs(["🏇 レース予想", "🎫 今日の買い目", "📊 的中実績"])
+    main_tab1, main_tab2, main_tab3, main_tab4 = st.tabs(
+        ["🏇 レース予想", "🎫 今日の買い目", "⭐ EV候補", "📊 的中実績"]
+    )
 
     results = load_results()
 
-    with main_tab3:
+    with main_tab4:
         page_results(results)
+
+    with main_tab3:
+        page_ev_candidates(all_df)
 
     with main_tab2:
         page_buylist(all_df, strategy, budget)
