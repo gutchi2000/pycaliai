@@ -36,10 +36,17 @@ STRATEGY_JSON = BASE_DIR / "data" / "strategy_weights.json"
 LGBM_PATH      = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH       = MODEL_DIR / "catboost_optuna_v1.pkl"
 RANK_PATH      = MODEL_DIR / "catboost_rank_v1.pkl"
-CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v1.pkl"
+CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v3.pkl"   # Train-based (no look-ahead)
+CAL_PATH_V2    = MODEL_DIR / "ensemble_calibrator_v2.pkl"
+CAL_PATH_V1    = MODEL_DIR / "ensemble_calibrator_v1.pkl"
+WIN_PATH       = MODEL_DIR / "lgbm_win_v1.pkl"
+FUKU_LGBM_PATH = MODEL_DIR / "lgbm_fukusho_v1.pkl"
+FUKU_CAT_PATH  = MODEL_DIR / "catboost_fukusho_v1.pkl"
+RETURN_RATE_FUKU = 0.75   # 複勝控除率
 TORCH_PATH     = MODEL_DIR / "transformer_pl_v2.pkl"
 META_PATH      = MODEL_DIR / "stacking_meta_v1.pkl"
 STACK_CAL_PATH = MODEL_DIR / "stacking_calibrator_v1.pkl"
+RETURN_RATE_TAN = 0.80  # 単勝控除率
 
 # モデルキャッシュ（プロセス内で1回だけロード）
 _model_cache: dict = {}
@@ -566,6 +573,21 @@ def predict_catboost(df: pd.DataFrame, obj: dict) -> np.ndarray:
     return model.predict_proba(pool)[:, 1]
 
 
+def predict_lgbm_win(df: pd.DataFrame, obj: dict) -> np.ndarray:
+    """lgbm_win_v1 (is_1st_place) 予測。predict_lgbm と同じロジック。"""
+    return predict_lgbm(df, obj)
+
+
+def predict_lgbm_fukusho(df: pd.DataFrame, obj: dict) -> np.ndarray:
+    """lgbm_fukusho_v1 (複勝/is_top3) 予測。predict_lgbm と同じロジック。"""
+    return predict_lgbm(df, obj)
+
+
+def predict_catboost_fukusho(df: pd.DataFrame, obj: dict) -> np.ndarray:
+    """catboost_fukusho_v1 (複勝/is_top3) 予測。predict_catboost と同じロジック。"""
+    return predict_catboost(df, obj)
+
+
 def predict_catboost_rank(df: pd.DataFrame, obj: dict) -> np.ndarray:
     """YetiRankモデルで予測。スコアをレース内min-max正規化して[0,1]の擬似確率に変換。"""
     from catboost import Pool
@@ -747,19 +769,27 @@ def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
     rank_obj  = _get_cached(RANK_PATH, "rank")
     torch_obj = _get_cached(TORCH_PATH, "torch")
     cal_obj_pre = _get_cached(CAL_PATH, "ens_cal")
-    w_lgbm  = cal_obj_pre.get("w_lgbm",  0.262) if cal_obj_pre else 0.262
-    w_cat   = cal_obj_pre.get("w_cat",   0.479) if cal_obj_pre else 0.479
-    w_rank  = cal_obj_pre.get("w_rank",  0.156) if cal_obj_pre else 0.156
-    w_trans = cal_obj_pre.get("w_trans", 0.103) if cal_obj_pre else 0.103
-    if rank_obj is not None and torch_obj is not None:
+    win_obj       = _get_cached(WIN_PATH,       "lgbm_win")
+    fuku_lgbm_obj = _get_cached(FUKU_LGBM_PATH, "fuku_lgbm")
+    fuku_cat_obj  = _get_cached(FUKU_CAT_PATH,  "fuku_cat")
+    if rank_obj is not None and win_obj is not None:
         try:
-            p_lgbm  = predict_lgbm(df, lgbm_obj)
-            p_cat   = predict_catboost(df, cat_obj)
-            p_rank  = predict_catboost_rank(df, rank_obj)
-            p_trans = predict_transformer_local(df)
-            raw = w_lgbm * p_lgbm + w_cat * p_cat + w_rank * p_rank + w_trans * p_trans
+            p_lgbm = predict_lgbm(df, lgbm_obj)
+            p_cat  = predict_catboost(df, cat_obj)
+            p_rank = predict_catboost_rank(df, rank_obj)
+            p_win  = predict_lgbm_win(df, win_obj)
+            if fuku_lgbm_obj is not None and fuku_cat_obj is not None:
+                # 6モデル: LGBM×0.25 + Cat×0.25 + Rank×0.20 + Win×0.20 + FukuLGBM×0.05 + FukuCat×0.05
+                p_fuku_lgbm = predict_lgbm_fukusho(df, fuku_lgbm_obj)
+                p_fuku_cat  = predict_catboost_fukusho(df, fuku_cat_obj)
+                raw = (0.25 * p_lgbm + 0.25 * p_cat + 0.20 * p_rank
+                       + 0.20 * p_win + 0.05 * p_fuku_lgbm + 0.05 * p_fuku_cat)
+                logger.debug("6モデルアンサンブル（+複勝専用 LGBM/CatBoost）使用")
+            else:
+                # 4モデル: LGBM×0.30 + CatBoost×0.30 + Rank×0.20 + Win×0.20
+                raw = 0.30 * p_lgbm + 0.30 * p_cat + 0.20 * p_rank + 0.20 * p_win
         except Exception as e:
-            logger.warning(f"4モデル予測失敗（2モデルにフォールバック）: {e}")
+            logger.warning(f"6/4モデル予測失敗（2モデルにフォールバック）: {e}")
             raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
     elif rank_obj is not None:
         try:
@@ -771,11 +801,12 @@ def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
             logger.warning(f"YetiRank予測失敗（2モデルにフォールバック）: {e}")
             raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
     else:
-        # フォールバック: 2モデル平均
         raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
-    cal_obj = _get_cached(CAL_PATH, "ens_cal")
-    if cal_obj is not None:
-        return cal_obj["calibrator"].transform(raw)
+    # キャリブレーター: v3 → v2 → v1 優先チェーン
+    for cal_p, cal_key in [(CAL_PATH, "ens_cal"), (CAL_PATH_V2, "ens_cal_v2"), (CAL_PATH_V1, "ens_cal_v1")]:
+        cal_obj = _get_cached(cal_p, cal_key)
+        if cal_obj is not None:
+            return cal_obj["calibrator"].transform(raw)
     logger.warning("キャリブレーター未生成。calibrate.py を先に実行してください。")
     return raw
 
@@ -918,9 +949,9 @@ def main() -> None:
             race_df["prob"]  = ensemble_predict(race_df, lgbm_obj, cat_obj)
             race_df          = assign_marks(race_df)
             race_df["score"] = (race_df["prob"] * 100).round(1)
-            # 期待値スコア = 複勝確率 × 単勝オッズ（市場の過小評価を検出）
+            # 期待値スコア = model_prob × 単勝オッズ / 控除率(0.80)
             tansho = pd.to_numeric(race_df.get("単勝", pd.Series(dtype=float)), errors="coerce")
-            race_df["ev_score"] = (race_df["prob"] * tansho).round(2)
+            race_df["ev_score"] = (race_df["prob"] * tansho / RETURN_RATE_TAN).round(3)
         except Exception as e:
             logger.warning(f"予測失敗 {race_id}: {e}")
             race_df["prob"]     = 0.0
@@ -1027,6 +1058,26 @@ def main() -> None:
         if not cqc_disp.empty:
             print("\n【CQC 買い目一覧（単勝◎1点のみ）】")
             print(cqc_disp.to_string(index=False))
+
+        # ★EV推奨レース（CQC対象 かつ 期待値スコア >= 1.5）
+        if "期待値スコア" in hon_rows.columns:
+            ev_col = "期待値スコア"
+        elif "乖離スコア" in hon_rows.columns:
+            ev_col = "乖離スコア"
+        else:
+            ev_col = None
+        if ev_col:
+            ev_cands = hon_rows[
+                (hon_rows["CQC_戦略対象"] == "✅") &
+                (pd.to_numeric(hon_rows[ev_col], errors="coerce") >= 1.5)
+            ].copy()
+            ev_cands = ev_cands.sort_values(ev_col, ascending=False)
+            disp_cols = [c for c in ["日付","場所","R","クラス","距離","馬名","単勝オッズ",ev_col] if c in ev_cands.columns]
+            if not ev_cands.empty:
+                print(f"\n【★EV推奨（単勝◎, EV>=1.5, {len(ev_cands)}R）】")
+                print(ev_cands[disp_cols].to_string(index=False))
+            else:
+                print("\n【★EV推奨】該当なし（EV>=1.5 のCQC対象レースなし）")
 
 
 if __name__ == "__main__":
