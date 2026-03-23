@@ -59,7 +59,13 @@ TORCH_MODEL_PATH = MODEL_DIR / "transformer_optuna_v1.pkl"
 META_PATH        = MODEL_DIR / "stacking_meta_v1.pkl"
 STRATEGY_JSON    = BASE_DIR  / "data" / "strategy_weights.json"
 STACK_CAL_PATH   = MODEL_DIR / "stacking_calibrator_v1.pkl"
-CAL_PATH         = MODEL_DIR / "ensemble_calibrator_v1.pkl"
+CAL_PATH         = MODEL_DIR / "ensemble_calibrator_v3.pkl"   # Train-based (no look-ahead)
+CAL_PATH_V2      = MODEL_DIR / "ensemble_calibrator_v2.pkl"   # Valid-based (fallback)
+CAL_PATH_V1      = MODEL_DIR / "ensemble_calibrator_v1.pkl"   # Original (fallback)
+WIN_MODEL_PATH   = MODEL_DIR / "lgbm_win_v1.pkl"              # is_1st_place classifier
+
+RETURN_RATE      = {"単勝": 0.80, "複勝": 0.75}
+ODDS_CSV_DIR     = BASE_DIR / "data"
 
 TARGET      = "fukusho_flag"
 COL_RACE_ID = "レースID(新/馬番無)"
@@ -313,6 +319,34 @@ def predict_lgbm_batch(df: pd.DataFrame) -> np.ndarray:
     return model.predict_proba(df[feature_cols])[:, 1]
 
 
+def predict_lgbm_win_batch(df: pd.DataFrame) -> np.ndarray:
+    """lgbm_win_v1 (is_1st_place) バッチ予測。モデル未存在時は zeros を返す。"""
+    if not WIN_MODEL_PATH.exists():
+        return np.zeros(len(df))
+    obj          = joblib.load(WIN_MODEL_PATH)
+    model        = obj["model"]
+    encoders     = obj["encoders"]
+    feature_cols = obj["feature_cols"]
+    df = df.copy()
+    for col in ["前走走破タイム", "前走着差タイム"]:
+        if col in df.columns:
+            df[col] = parse_time_str(df[col])
+    for col, le in encoders.items():
+        if col not in df.columns:
+            df[col] = 0
+            continue
+        df[col] = df[col].astype(str).fillna("__NaN__")
+        known = set(le.classes_)
+        df[col] = df[col].apply(lambda x: x if x in known else "__NaN__")
+        if "__NaN__" not in le.classes_:
+            le.classes_ = np.append(le.classes_, "__NaN__")
+        df[col] = le.transform(df[col])
+    for col in feature_cols:
+        if col not in df.columns:
+            df[col] = 0
+    return model.predict_proba(df[feature_cols])[:, 1]
+
+
 def predict_catboost_batch(df: pd.DataFrame) -> np.ndarray:
     if not CAT_MODEL_PATH.exists():
         raise FileNotFoundError(f"CatBoostモデルが見つかりません: {CAT_MODEL_PATH}")
@@ -510,12 +544,19 @@ def ensemble_predict_batch(df: pd.DataFrame) -> np.ndarray:
             return cal_obj["calibrator"].transform(stacking)
         return stacking
 
-    # YetiRankが存在すれば3モデル加重平均（LGBM 0.4 + CatBoost 0.4 + Rank 0.2）
+    # 4モデル加重平均: LGBM×0.30 + CatBoost×0.30 + Rank×0.20 + Win×0.20
     logger.info("LightGBM予測中...")
     p_lgbm = predict_lgbm_batch(df)
     logger.info("CatBoost予測中...")
     p_cat  = predict_catboost_batch(df)
-    if RANK_MODEL_PATH.exists():
+    if RANK_MODEL_PATH.exists() and WIN_MODEL_PATH.exists():
+        logger.info("YetiRank予測中...")
+        p_rank = predict_catboost_rank_batch(df)
+        logger.info("lgbm_win_v1予測中...")
+        p_win  = predict_lgbm_win_batch(df)
+        raw = 0.30 * p_lgbm + 0.30 * p_cat + 0.20 * p_rank + 0.20 * p_win
+        logger.info("4モデルアンサンブル（LGBM×0.30 + CatBoost×0.30 + Rank×0.20 + Win×0.20）")
+    elif RANK_MODEL_PATH.exists():
         logger.info("YetiRank予測中...")
         p_rank = predict_catboost_rank_batch(df)
         raw = 0.4 * p_lgbm + 0.4 * p_cat + 0.2 * p_rank
@@ -523,11 +564,60 @@ def ensemble_predict_batch(df: pd.DataFrame) -> np.ndarray:
     else:
         raw = 0.5 * p_lgbm + 0.5 * p_cat
         logger.info("2モデルアンサンブル（LGBM 0.5 + CatBoost 0.5）")
-    if CAL_PATH.exists():
-        cal_obj = joblib.load(CAL_PATH)
-        return cal_obj["calibrator"].transform(raw)
+    # キャリブレーター: v3 → v2 → v1 の優先チェーン
+    for cal_p in [CAL_PATH, CAL_PATH_V2, CAL_PATH_V1]:
+        if cal_p.exists():
+            cal_obj = joblib.load(cal_p)
+            logger.info(f"キャリブレーター適用: {cal_p.name}")
+            return cal_obj["calibrator"].transform(raw)
     logger.warning("キャリブレーター未生成。calibrate.py を先に実行してください。")
     return raw
+
+
+def load_odds(year: int) -> dict:
+    """odds_YYYY*.csv から {レースID(新): {馬番: 単勝オッズ}} を返す。"""
+    pattern = list(ODDS_CSV_DIR.glob(f"odds_{year}*.csv"))
+    if not pattern:
+        logger.warning(f"odds CSV が見つかりません（year={year}）。EV計算をスキップします。")
+        return {}
+    try:
+        dfs = []
+        for p in pattern:
+            for enc in ("utf-8-sig", "cp932"):
+                try:
+                    dfs.append(pd.read_csv(p, encoding=enc, low_memory=False))
+                    break
+                except UnicodeDecodeError:
+                    continue
+        if not dfs:
+            return {}
+        odds_df = pd.concat(dfs, ignore_index=True)
+        # 列名を標準化
+        col_race = next((c for c in odds_df.columns if "レースID" in c), None)
+        col_uma  = next((c for c in odds_df.columns if "馬番" in c), None)
+        col_tan  = next((c for c in odds_df.columns if "単勝" in c), None)
+        if not all([col_race, col_uma, col_tan]):
+            logger.warning(f"odds CSV の列が不足: {odds_df.columns.tolist()}")
+            return {}
+        # レースID列を int64 経由で文字列変換（float精度損失を回避）
+        odds_df[col_race] = (
+            pd.to_numeric(odds_df[col_race], errors="coerce")
+            .fillna(0).astype("int64").astype(str)
+        )
+        result: dict = {}
+        for _, row in odds_df.iterrows():
+            # レースID(新) は 18桁（16桁 race ID + 2桁 zero-padded 馬番）
+            # COL_RACE_ID = レースID(新/馬番無) は 16桁
+            rid  = str(row[col_race])[:16]
+            uma  = int(row[col_uma]) if pd.notna(row[col_uma]) else None
+            odds = float(row[col_tan]) if pd.notna(row[col_tan]) else None
+            if uma and odds:
+                result.setdefault(rid, {})[uma] = odds
+        logger.info(f"odds 読み込み: {len(result)} レース")
+        return result
+    except Exception as e:
+        logger.warning(f"odds CSV 読み込み失敗: {e}")
+        return {}
 
 
 def assign_marks_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -550,6 +640,9 @@ def process_one_race(
     kekka_entry: dict,
     budget: int = BUDGET,
     bet_info: dict | None = None,
+    ev_threshold: float = 0.0,
+    exclude_bets: set | None = None,
+    race_odds: dict | None = None,
 ) -> list[dict]:
     import itertools
 
@@ -618,9 +711,39 @@ def process_one_race(
         rows = [make_bet(c, "三連複", False) for c in itertools.combinations(top3[:4], 3)]
         candidates["三連複"] = sorted(rows, key=lambda x: x["推定期待値"], reverse=True)[:3]
 
+    # EV フィルタ: ◎の単勝 EV が閾値未満なら 単勝 をキャンセル
+    if ev_threshold > 0.0 and hon and race_odds is not None:
+        hon_odds = race_odds.get(hon[0])
+        hon_prob = prob_series.get(hon[0], 0.0)
+        if hon_odds and hon_prob > 0:
+            ev = hon_prob * hon_odds / RETURN_RATE["単勝"]
+            if ev < ev_threshold:
+                candidates["単勝"] = []
+        # ev_score を記録しておく（結果出力用）
+        race_df = race_df.copy()
+        if "ev_score" not in race_df.columns:
+            race_df["ev_score"] = 0.0
+        for idx, row in race_df.iterrows():
+            uma = int(row["馬番"]) if pd.notna(row.get("馬番")) else None
+            if uma and race_odds.get(uma) and prob_series.get(uma, 0) > 0:
+                race_df.at[idx, "ev_score"] = round(
+                    prob_series[uma] * race_odds[uma] / RETURN_RATE["単勝"], 3
+                )
+
+    # exclude_bets フィルタ
+    if exclude_bets:
+        for bt in exclude_bets:
+            candidates.pop(bt, None)
+
     # 予算按分（戦略の bet_ratio を使用、未指定時は BUDGET_RATIO）
-    if bet_info:
-        ratios = {k: v.get("bet_ratio", 0) for k, v in bet_info.items()
+    filtered_bet_info = None
+    if bet_info is not None:
+        filtered_bet_info = {k: v for k, v in bet_info.items()
+                             if k in candidates and len(candidates[k]) > 0}
+        if not filtered_bet_info:
+            return []   # 全馬券種が除外 → BUDGET_RATIO への誤フォールバック防止
+    if filtered_bet_info:
+        ratios = {k: v.get("bet_ratio", 0) for k, v in filtered_bet_info.items()
                   if k in candidates and len(candidates[k]) > 0}
     else:
         ratios = {k: BUDGET_RATIO[k] for k in BUDGET_RATIO
@@ -661,6 +784,14 @@ def process_one_race(
             # 実払戻額 = 購入額 × (実配当 / 100)
             actual_pay = int(b["購入額"] * payout_per100 / 100) if hit else 0
 
+            # EV スコア（単勝◎のみ意味あり）
+            ev_score = 0.0
+            if bet_type == "単勝" and hon and race_odds is not None:
+                hon_odds = race_odds.get(hon[0])
+                hon_prob = prob_series.get(hon[0], 0.0)
+                if hon_odds and hon_prob > 0:
+                    ev_score = round(hon_prob * hon_odds / RETURN_RATE["単勝"], 3)
+
             results.append({
                 "race_id":     race_id,
                 "日付":        race_info.get("日付", ""),
@@ -673,6 +804,7 @@ def process_one_race(
                 "推定的中確率": b["推定的中確率"],
                 "推定オッズ":   b["推定オッズ"],
                 "推定期待値":   b["推定期待値"],
+                "乖離スコア":   ev_score,
                 "購入額":      b["購入額"],
                 "実配当(100円)": payout_per100,
                 "実オッズ":    round(payout_per100 / 100, 1) if payout_per100 else 0,
@@ -724,6 +856,22 @@ def summarize(df: pd.DataFrame) -> None:
             f"{bet_type:<6} {cost:>10,} {pay:>10,} {net:>+10,} "
             f"{r:>7.1f}% {hit_r:>7.1f}% {hits:>6,} {total_b:>6,}"
         )
+
+    # EV スコア別 ROI（単勝のみ）
+    tan = df[(df["馬券種"] == "単勝") & (df["乖離スコア"] > 0)].copy() if "乖離スコア" in df.columns else pd.DataFrame()
+    if not tan.empty:
+        print(f"\n【単勝 EV（乖離スコア）別 ROI】")
+        print(f"{'EV閾値':<10} {'点数':>6} {'投資':>10} {'払戻':>10} {'ROI':>8}")
+        print("-" * 50)
+        for thr in [0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.5, 1.8, 2.0]:
+            sub = tan[tan["乖離スコア"] >= thr]
+            if sub.empty:
+                continue
+            c = sub["購入額"].sum()
+            p = sub["実払戻額"].sum()
+            r = p / c * 100 if c > 0 else 0
+            flag = " ★★" if r >= 150 else " ★" if r >= 110 else ""
+            print(f">= {thr:<7.1f} {len(sub):>6,} {c:>10,} {p:>10,} {r:>7.1f}%{flag}")
 
 
 def plot_cumulative(df: pd.DataFrame, save_path: Path) -> None:
@@ -796,6 +944,10 @@ def main() -> None:
     parser.add_argument("--period", type=str, default=None,
                         choices=["train", "valid", "test"],
                         help="対象期間 (train: 〜2022年, valid: 2023年, test: 2024年〜)")
+    parser.add_argument("--ev_threshold", type=float, default=0.0,
+                        help="単勝 EV 下限（例: 1.0）。0 = フィルタなし")
+    parser.add_argument("--exclude_bets", type=str, default="",
+                        help="除外馬券種（カンマ区切り, 例: 複勝,枠連）")
     args = parser.parse_args()
 
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -834,6 +986,21 @@ def main() -> None:
 
     # 払戻辞書ロード
     kekka_dict = load_kekka(KEKKA_CSV)
+
+    # オッズ読み込み（EV計算用）
+    exclude_bets_set: set = set(filter(None, args.exclude_bets.split(","))) if args.exclude_bets else set()
+    # 対象年リストを決定
+    if period == "train":
+        odds_years = list(range(2013, 2023))
+    elif period == "valid":
+        odds_years = [2023]
+    else:
+        odds_years = [2024]
+    odds_dict: dict = {}
+    if args.ev_threshold > 0.0:
+        for yr in odds_years:
+            odds_dict.update(load_odds(yr))
+        logger.info(f"EV閾値: {args.ev_threshold} / 除外馬券種: {exclude_bets_set or 'なし'}")
 
     # アンサンブル予測
     logger.info("アンサンブル予測開始...")
@@ -881,7 +1048,15 @@ def main() -> None:
             "単勝": {}, "複勝": {}, "枠連": {}, "馬連": {}, "馬単": {}, "三連複": {}, "三連単": {}
         })
         try:
-            results = process_one_race(race_df, kekka_entry, budget=args.budget, bet_info=current_bet_info)
+            race_odds = odds_dict.get(str(race_id)) if odds_dict else None
+            results = process_one_race(
+                race_df, kekka_entry,
+                budget=args.budget,
+                bet_info=current_bet_info,
+                ev_threshold=args.ev_threshold,
+                exclude_bets=exclude_bets_set,
+                race_odds=race_odds,
+            )
             all_results.extend(results)
         except Exception as e:
             logger.warning(f"レース {race_id} スキップ: {e}")
