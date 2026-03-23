@@ -54,7 +54,6 @@ KEKKA_CSV        = DATA_DIR  / "kekka_20130105-20251228.csv"
 LGBM_MODEL_PATH  = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_MODEL_PATH   = MODEL_DIR / "catboost_optuna_v1.pkl"
 TORCH_MODEL_PATH = MODEL_DIR / "transformer_optuna_v1.pkl"
-
 TARGET      = "fukusho_flag"
 COL_RACE_ID = "レースID(新/馬番無)"
 COL_RANK    = "着順"

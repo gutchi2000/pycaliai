@@ -65,7 +65,7 @@ COURSE_TREND_JSON = DATA_DIR / "course_trend.json"
 RESULTS_JSON      = DATA_DIR / "results.json"
 LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
-
+CAL_PATH      = MODEL_DIR / "ensemble_calibrator_v1.pkl"
 MIN_UNIT = 100
 MARKS    = ["◎", "◯", "▲", "△", "×"]
 
@@ -104,10 +104,14 @@ COLUMN_MAP = {
     "前走着順":"前走確定着順","前走上り3F":"前走上り3F",
     "前走TD":"前芝・ダ","前走間隔":"間隔",
     "前走着差":"前走着差タイム","前走斤量":"前走斤量",
-    "前走Ave3F":"前走平均3F","前走上り3F順位":"前走上り3F順位",
-    "マイニング順位":"マイニング順位","前走単勝オッズ":"前走単勝オッズ",
-    "前走通過1":"前走通過1","前走通過2":"前走通過2",
-    "前走通過3":"前走通過3","前走通過4":"前走通過4",
+    # master CSV / モデルの列名に合わせる（predict_weekly.py と統一）
+    "前走Ave3F":      "前走Ave-3F",
+    "前走上り3F順位":  "前走上り3F順",
+    "マイニング順位":  "マイニング順位","前走単勝オッズ":"前走単勝オッズ",
+    "前走通過1": "前1角",
+    "前走通過2": "前2角",
+    "前走通過3": "前3角",
+    "前走通過4": "前4角",
 }
 
 RACE_COLS = [
@@ -211,9 +215,9 @@ def parse_target_csv(source) -> pd.DataFrame:
     df["レースID(新/馬番無)"] = df["レースID(新)"].astype(str).str[:16]
     for col in ["枠番","馬番","斤量","ZI","ZI順位","距離","人気","単勝",
                 "前走確定着順","前走上り3F","前走距離","間隔","前走人気",
-                "前走着差タイム","前走斤量","前走平均3F","前走上り3F順位",
+                "前走着差タイム","前走斤量","前走Ave-3F","前走上り3F順",
                 "マイニング順位","前走単勝オッズ",
-                "前走通過1","前走通過2","前走通過3","前走通過4"]:
+                "前1角","前2角","前3角","前4角"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
     df["日付"] = pd.to_datetime(df["日付S"], format="%Y.%m.%d", errors="coerce")
@@ -222,6 +226,18 @@ def parse_target_csv(source) -> pd.DataFrame:
                 "前走斤量","生産者","馬主(最新/仮想)"]:
         if col not in df.columns:
             df[col] = 0
+
+    # 脚質特徴量：前走コーナー通過順位から計算（predict_weekly.py / モデルと同じ定義）
+    if "前1角" in df.columns and "前4角" in df.columns and "出走頭数" in df.columns:
+        n = pd.to_numeric(df["出走頭数"], errors="coerce").clip(lower=2)
+        front = pd.to_numeric(df["前1角"], errors="coerce")
+        back  = pd.to_numeric(df["前4角"], errors="coerce")
+        df["prev_pos_rel"]  = (front - 1) / (n - 1)
+        df["closing_power"] = (front - back) / (n - 1)
+    else:
+        df["prev_pos_rel"]  = np.nan
+        df["closing_power"] = np.nan
+
     return df
 
 
@@ -318,7 +334,23 @@ def predict_catboost(df: pd.DataFrame, obj: dict) -> np.ndarray:
 
 
 def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray:
-    return 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
+    raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
+    # キャリブレーター適用（predict_weekly.py と統一）
+    cal_obj = _load_calibrator()
+    if cal_obj is not None:
+        return cal_obj["calibrator"].transform(raw)
+    return raw
+
+
+@st.cache_resource(show_spinner=False)
+def _load_calibrator():
+    """ensemble_calibrator_v1.pkl をロード（なければ None）。"""
+    if CAL_PATH.exists():
+        try:
+            return joblib.load(CAL_PATH)
+        except Exception as e:
+            logger.warning(f"キャリブレーターロード失敗: {e}")
+    return None
 
 
 def assign_marks(df: pd.DataFrame) -> pd.DataFrame:
