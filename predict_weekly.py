@@ -27,6 +27,12 @@ import joblib
 import numpy as np
 import pandas as pd
 
+from ev_filter import BetFilter, EVCalibrator, is_upgrade_race
+
+# ── フィルタ・キャリブレーター（グローバルインスタンス） ──
+_bet_filter   = BetFilter()
+_ev_calibrator = EVCalibrator()
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -952,26 +958,56 @@ def main() -> None:
             # 期待値スコア = model_prob × 単勝オッズ / 控除率(0.80)
             tansho = pd.to_numeric(race_df.get("単勝", pd.Series(dtype=float)), errors="coerce")
             race_df["ev_score"] = (race_df["prob"] * tansho / RETURN_RATE_TAN).round(3)
+            # EV 補正スコア（逆転現象を修正）
+            race_df["ev_cal"] = race_df["ev_score"].apply(
+                lambda e: round(_ev_calibrator.transform(float(e)), 3)
+                if pd.notna(e) else 0.0
+            )
         except Exception as e:
             logger.warning(f"予測失敗 {race_id}: {e}")
             race_df["prob"]     = 0.0
             race_df["mark"]     = ""
             race_df["score"]    = 0.0
             race_df["ev_score"] = 0.0
+            race_df["ev_cal"]   = 0.0
 
-        # 除外フィルタ: 東京・小倉・新馬・障害
-        if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
-            bets = {
-                "HAHO_戦略対象": False,
-                "HAHO_馬連_買い目": "", "HAHO_馬連_購入額": 0,
-                "HAHO_三連複_買い目": "", "HAHO_三連複_購入額": 0,
-                "HALO_戦略対象": False,
-                "HALO_三連複_買い目": "", "HALO_三連複_購入額": 0,
-                "LALO_戦略対象": False,
-                "LALO_複勝_買い目": "", "LALO_複勝_購入額": 0,
-                "CQC_戦略対象":  False,
-                "CQC_単勝_買い目": "", "CQC_単勝_購入額":  0,
-            }
+        # ── 昇級戦判定（◎ベース） ───────────────────────────────
+        hon_row      = race_df[race_df["mark"] == "◎"]
+        hon_ev       = float(hon_row["ev_score"].iloc[0]) if len(hon_row) > 0 else 0.0
+        n_horses     = len(race_df)
+        baba         = str(meta.get("馬場状態", "")).strip()
+        cls_now_raw  = pd.to_numeric(meta.get("クラス区分", None), errors="coerce")
+        cls_prev_raw = pd.to_numeric(
+            hon_row["前走クラスコード"].iloc[0]
+            if len(hon_row) > 0 and "前走クラスコード" in hon_row.columns else None,
+            errors="coerce",
+        )
+        upgrade = is_upgrade_race(cls_now_raw, cls_prev_raw)
+
+        # ── フィルタ適用（HELL セグメント除外 + EV 上限） ────────
+        base_excluded = place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES
+        filter_result = _bet_filter.check(
+            place=place, n_horses=n_horses, baba=baba,
+            ev=hon_ev, is_upgrade=upgrade,
+        )
+        filter_reason = filter_result.reason if filter_result.should_skip else ""
+
+        _empty_bets = {
+            "HAHO_戦略対象": False,
+            "HAHO_馬連_買い目": "", "HAHO_馬連_購入額": 0,
+            "HAHO_三連複_買い目": "", "HAHO_三連複_購入額": 0,
+            "HALO_戦略対象": False,
+            "HALO_三連複_買い目": "", "HALO_三連複_購入額": 0,
+            "LALO_戦略対象": False,
+            "LALO_複勝_買い目": "", "LALO_複勝_購入額": 0,
+            "CQC_戦略対象":  False,
+            "CQC_単勝_買い目": "", "CQC_単勝_購入額":  0,
+        }
+
+        if base_excluded or filter_result.should_skip:
+            bets = _empty_bets
+            if filter_result.should_skip and not base_excluded:
+                logger.info(f"[BetFilter] ケン: {place} {r_num}R → {filter_result.reason}")
         else:
             # 買い目生成
             bets = get_bets(race_df, place, cls_raw, strategy, args.budget)
@@ -991,6 +1027,8 @@ def main() -> None:
                 "スコア":              float(row["score"]),
                 "単勝オッズ":          float(row["単勝"]) if pd.notna(row.get("単勝")) else "",
                 "期待値スコア":        float(row.get("ev_score", 0.0)),
+                "EV補正スコア":        float(row.get("ev_cal", 0.0)),
+                "フィルタ除外":        filter_reason if is_hon else "",
                 "印":                  str(row["mark"]),
                 "HAHO_戦略対象":       "✅" if bets["HAHO_戦略対象"] else "",
                 "HAHO_馬連_買い目":    bets["HAHO_馬連_買い目"]    if is_hon else "",
