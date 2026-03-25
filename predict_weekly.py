@@ -42,7 +42,8 @@ STRATEGY_JSON = BASE_DIR / "data" / "strategy_weights.json"
 LGBM_PATH      = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH       = MODEL_DIR / "catboost_optuna_v1.pkl"
 RANK_PATH      = MODEL_DIR / "catboost_rank_v1.pkl"
-CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v3.pkl"   # Train-based (no look-ahead)
+CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v4.pkl"   # Test 2024-fit (2026-03-25更新)
+CAL_PATH_V3    = MODEL_DIR / "ensemble_calibrator_v3.pkl"   # Train-based fallback
 CAL_PATH_V2    = MODEL_DIR / "ensemble_calibrator_v2.pkl"
 CAL_PATH_V1    = MODEL_DIR / "ensemble_calibrator_v1.pkl"
 WIN_PATH       = MODEL_DIR / "lgbm_win_v1.pkl"
@@ -808,10 +809,12 @@ def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
             raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
     else:
         raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
-    # キャリブレーター: v3 → v2 → v1 優先チェーン
-    for cal_p, cal_key in [(CAL_PATH, "ens_cal"), (CAL_PATH_V2, "ens_cal_v2"), (CAL_PATH_V1, "ens_cal_v1")]:
+    # キャリブレーター: v4 → v3 → v2 → v1 優先チェーン
+    for cal_p, cal_key in [(CAL_PATH, "ens_cal"), (CAL_PATH_V3, "ens_cal_v3"),
+                           (CAL_PATH_V2, "ens_cal_v2"), (CAL_PATH_V1, "ens_cal_v1")]:
         cal_obj = _get_cached(cal_p, cal_key)
         if cal_obj is not None:
+            logger.info(f"キャリブレーター使用: {cal_p.name}")
             return cal_obj["calibrator"].transform(raw)
     logger.warning("キャリブレーター未生成。calibrate.py を先に実行してください。")
     return raw
