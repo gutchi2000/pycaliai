@@ -29,6 +29,8 @@ import matplotlib.pyplot as plt
 from catboost import Pool
 from tqdm import tqdm
 
+from ev_filter import BetFilter, is_upgrade_race
+
 warnings.filterwarnings("ignore")
 
 try:
@@ -59,7 +61,8 @@ TORCH_MODEL_PATH = MODEL_DIR / "transformer_optuna_v1.pkl"
 META_PATH        = MODEL_DIR / "stacking_meta_v1.pkl"
 STRATEGY_JSON    = BASE_DIR  / "data" / "strategy_weights.json"
 STACK_CAL_PATH   = MODEL_DIR / "stacking_calibrator_v1.pkl"
-CAL_PATH         = MODEL_DIR / "ensemble_calibrator_v3.pkl"   # Train-based (no look-ahead)
+CAL_PATH         = MODEL_DIR / "ensemble_calibrator_v4.pkl"   # Test-based 2024 (best)
+CAL_PATH_V3      = MODEL_DIR / "ensemble_calibrator_v3.pkl"   # Train-based (fallback)
 CAL_PATH_V2      = MODEL_DIR / "ensemble_calibrator_v2.pkl"   # Valid-based (fallback)
 CAL_PATH_V1      = MODEL_DIR / "ensemble_calibrator_v1.pkl"   # Original (fallback)
 WIN_MODEL_PATH   = MODEL_DIR / "lgbm_win_v1.pkl"              # is_1st_place classifier
@@ -564,8 +567,8 @@ def ensemble_predict_batch(df: pd.DataFrame) -> np.ndarray:
     else:
         raw = 0.5 * p_lgbm + 0.5 * p_cat
         logger.info("2モデルアンサンブル（LGBM 0.5 + CatBoost 0.5）")
-    # キャリブレーター: v3 → v2 → v1 の優先チェーン
-    for cal_p in [CAL_PATH, CAL_PATH_V2, CAL_PATH_V1]:
+    # キャリブレーター: v4 → v3 → v2 → v1 の優先チェーン
+    for cal_p in [CAL_PATH, CAL_PATH_V3, CAL_PATH_V2, CAL_PATH_V1]:
         if cal_p.exists():
             cal_obj = joblib.load(cal_p)
             logger.info(f"キャリブレーター適用: {cal_p.name}")
@@ -1030,6 +1033,8 @@ def main() -> None:
     all_results = []
     skipped     = 0
     skipped_strategy = 0
+    skipped_filter   = 0
+    _bet_filter      = BetFilter()
     for race_id in tqdm(race_ids, desc="バックテスト"):
         race_df     = test_df[test_df[COL_RACE_ID] == race_id].copy()
 
@@ -1043,6 +1048,26 @@ def main() -> None:
             if not current_bet_info:
                 skipped_strategy += 1
                 continue
+
+        # BetFilter（HELL セグメント除外・EV 上限）
+        place    = race_df["場所"].iloc[0] if "場所" in race_df.columns else ""
+        n_horses = len(race_df)
+        baba     = str(race_df["馬場状態"].iloc[0]) if "馬場状態" in race_df.columns else ""
+        # ◎候補（prob 最大馬）の EV を暫定スコアとして使用
+        hon_row  = race_df.loc[race_df["prob"].idxmax()] if "prob" in race_df.columns else None
+        hon_ev   = 0.0  # odds 未取得のため EV=0（EV 上限チェックは predict_weekly.py に委ねる）
+        cls_now  = pd.to_numeric(race_df["クラス区分"].iloc[0]
+                                  if "クラス区分" in race_df.columns else None, errors="coerce")
+        cls_prev = pd.to_numeric(
+            hon_row["前走クラスコード"] if hon_row is not None and "前走クラスコード" in race_df.columns else None,
+            errors="coerce",
+        )
+        upgrade  = is_upgrade_race(cls_now, cls_prev)
+        f_result = _bet_filter.check(place=place, n_horses=n_horses,
+                                     baba=baba, ev=hon_ev, is_upgrade=upgrade)
+        if f_result.should_skip:
+            skipped_filter += 1
+            continue
 
         kekka_entry = kekka_dict.get(str(race_id), {
             "単勝": {}, "複勝": {}, "枠連": {}, "馬連": {}, "馬単": {}, "三連複": {}, "三連単": {}
@@ -1063,6 +1088,7 @@ def main() -> None:
             skipped += 1
 
     logger.info(f"戦略対象外スキップ: {skipped_strategy}レース")
+    logger.info(f"BetFilterスキップ:   {skipped_filter}レース")
     logger.info(f"エラースキップ: {skipped}レース")
 
     if not all_results:
