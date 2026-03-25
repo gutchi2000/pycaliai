@@ -158,11 +158,13 @@ def main() -> None:
         for _, row in grp.iterrows():
             w = row["ROI_合算"] / total_roi
             bets[row["馬券種"]] = {
-                "roi_valid":  row["ROI_valid"],
-                "roi_test":   row["ROI_test"],
+                "roi_valid":    row["ROI_valid"],
+                "roi_test":     row["ROI_test"],
                 "roi_combined": row["ROI_合算"],
-                "weight":     round(w, 4),
-                "bet_ratio":  round(w, 4),
+                "n_races_valid": int(row["レース数_valid"]),
+                "n_races_test":  int(row["レース数_test"]),
+                "weight":       round(w, 4),
+                "bet_ratio":    round(w, 4),
             }
         if place not in strategy:
             strategy[place] = {}
