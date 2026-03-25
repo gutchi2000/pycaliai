@@ -74,16 +74,11 @@ Write-Host ""
 Write-Host "=== Done ===" -ForegroundColor Green
 Write-Host "Streamlit Cloud results page will update in a few seconds." -ForegroundColor Gray
 
-# -- 月次監査（毎月第4週日曜に自動実行）--
-$dow     = (Get-Date).DayOfWeek   # Sunday=0
-$dom     = (Get-Date).Day
-$isLastSundayRange = ($dow -eq 0) -and ($dom -ge 22)
+# -- 週次監査（毎週日曜に自動実行）--
+$dow = (Get-Date).DayOfWeek   # Sunday=0
 
-if ($isLastSundayRange) {
+if ($dow -eq 0) {
     Write-Host ""
-    Write-Host "=== 月次監査を実行します ===" -ForegroundColor Magenta
+    Write-Host "=== 週次監査を実行します ===" -ForegroundColor Magenta
     & "$PSScriptRoot\run_audit.ps1"
-} else {
-    Write-Host ""
-    Write-Host "(月次監査: 毎月第4週日曜に自動実行)" -ForegroundColor DarkGray
 }
