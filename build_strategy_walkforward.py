@@ -2,16 +2,17 @@
 build_strategy_walkforward.py
 PyCaLiAI - ウォークフォワード多年検証による安定条件抽出
 
-train期間（2013-2022）を1年ずつスライドし、
-複数年にわたって黒字が続く条件を「真のエッジ候補」として採用する。
+【設計思想】
+  採用判断 と 評価 を完全に分離する。
 
-さらに valid（2023）+ test（2024-2025）で最終確認を行い
-3段階で信頼度を評価する。
+  採用判断（選別に使うデータ）:
+    1. train（2013-2022）walk-forward: EVAL_YEARS年中MIN_PROFITABLE_YEARS年以上黒字
+    2. valid（2023）のみ: ROI ≥ MIN_ROI_VALID かつ n ≥ MIN_VALID_RACES
 
-採用基準:
-  - 各年で MIN_RACES_PER_YEAR レース以上
-  - MIN_PROFITABLE_YEARS / EVAL_YEARS 年以上で ROI > 100%
-  - valid + test の合算ROIも MIN_ROI_COMBINED 以上
+  独立評価（採用判断に一切使わない）:
+    - test（2024-2025）: 採用後に独立ROIを記録するのみ
+
+  この設計により「testデータで選んでtestで評価する」循環を解消する。
 
 Usage:
     python build_strategy_walkforward.py
@@ -44,11 +45,16 @@ VALID_CSV  = REPORT_DIR / "backtest_results_valid.csv"
 TEST_CSV   = REPORT_DIR / "backtest_results_2024.csv"
 OUT_JSON   = DATA_DIR   / "strategy_weights.json"
 OUT_CSV    = REPORT_DIR / "walkforward_conditions.csv"
+COMPARE_CSV = REPORT_DIR / "walkforward_vs_stable_comparison.csv"  # 旧設計との比較
 
-EVAL_YEARS          = 5      # 評価年数（2018-2022）
+EVAL_YEARS           = 5     # 評価年数（2018-2022）
 MIN_PROFITABLE_YEARS = 3     # 何年以上黒字なら採用
-MIN_RACES_PER_YEAR  = 15     # 各年の最低レース数
-MIN_ROI_COMBINED    = 100.0  # valid+test 合算ROIの最低値（%）
+MIN_RACES_PER_YEAR   = 15    # 各年の最低レース数
+# ── 採用判断（valid 2023のみ）──
+MIN_ROI_VALID        = 80.0  # valid期間の最低ROI（%） ← 採用に使う
+MIN_VALID_RACES      = 8     # valid期間の最低レース数（1年なので緩め）
+# ── 独立評価（test 2024-25、採用判断に使わない）──
+# test ROIは記録のみ。採用基準に含めないことで循環を防ぐ。
 
 
 # =========================================================
@@ -167,77 +173,148 @@ def main() -> None:
     ].copy()
     logger.info(f"  {EVAL_YEARS}年中{MIN_PROFITABLE_YEARS}年以上黒字: {len(stable_train)} 条件")
 
-    # --- valid + test でのクロスチェック ---
-    logger.info(f"Valid CSV 読み込み: {VALID_CSV}")
-    valid_df = add_weekend_filter(pd.read_csv(VALID_CSV, encoding="utf-8-sig"))
-    logger.info(f"Test CSV 読み込み: {TEST_CSV}")
-    test_df  = add_weekend_filter(pd.read_csv(TEST_CSV,  encoding="utf-8-sig"))
 
-    oos_combined = pd.concat([valid_df, test_df], ignore_index=True)
-    oos_roi = roi_by_condition(oos_combined)
-    oos_roi = oos_roi.rename(columns={
-        "レース数": "OOS_レース数",
-        "ROI": "ROI_OOS",
-        "投資": "OOS_投資",
-        "払戻": "OOS_払戻",
+    # --- valid(2023) で採用判断 ---
+    logger.info(f"Valid CSV 読み込み: {VALID_CSV}")
+    valid_df  = add_weekend_filter(pd.read_csv(VALID_CSV, encoding="utf-8-sig"))
+    valid_roi = roi_by_condition(valid_df).rename(columns={
+        "レース数": "n_valid", "ROI": "ROI_valid",
+        "投資": "投資_valid", "払戻": "払戻_valid",
     })
 
-    final = pd.merge(
-        stable_train,
-        oos_roi[["場所", "クラス", "馬券種", "OOS_レース数", "ROI_OOS"]],
-        on=["場所", "クラス", "馬券種"],
-        how="left",
-    )
-    final["ROI_OOS"] = final["ROI_OOS"].fillna(0)
-    final["OOS_レース数"] = final["OOS_レース数"].fillna(0).astype(int)
+    # --- test(2024-25) は独立評価のみ（採用判断に使わない）---
+    logger.info(f"Test CSV 読み込み: {TEST_CSV}")
+    test_df  = add_weekend_filter(pd.read_csv(TEST_CSV, encoding="utf-8-sig"))
+    test_roi = roi_by_condition(test_df).rename(columns={
+        "レース数": "n_test", "ROI": "ROI_test",
+        "投資": "投資_test", "払戻": "払戻_test",
+    })
 
-    # 信頼度スコア（黒字年率 × OOS ROI補正）
+    # --- マージ（train安定条件 × valid ROI）---
+    final = pd.merge(stable_train, valid_roi[["場所","クラス","馬券種","n_valid","ROI_valid"]],
+                     on=["場所","クラス","馬券種"], how="left")
+    final = pd.merge(final, test_roi[["場所","クラス","馬券種","n_test","ROI_test"]],
+                     on=["場所","クラス","馬券種"], how="left")
+    final["ROI_valid"]  = final["ROI_valid"].fillna(0)
+    final["ROI_test"]   = final["ROI_test"].fillna(0)
+    final["n_valid"]    = final["n_valid"].fillna(0).astype(int)
+    final["n_test"]     = final["n_test"].fillna(0).astype(int)
+
+    # 信頼度スコア（train黒字年率）
     final["信頼度"] = (
         final["黒字年数"] / final["データあり年数"] * 100
     ).round(1)
 
-    # valid+test で最低ラインを通過した条件
-    adopted = final[final["ROI_OOS"] >= MIN_ROI_COMBINED].copy()
-    adopted = adopted.sort_values(["信頼度", "ROI_OOS"], ascending=False)
-    logger.info(f"OOS({MIN_ROI_COMBINED}%以上)も通過した条件: {len(adopted)}")
+    # ── 採用判断: valid のみ（testは使わない）──
+    adopted = final[
+        (final["ROI_valid"] >= MIN_ROI_VALID) &
+        (final["n_valid"]   >= MIN_VALID_RACES)
+    ].copy()
+    adopted = adopted.sort_values(["信頼度", "ROI_valid"], ascending=False)
+    logger.info(f"採用条件(valid ROI>={MIN_ROI_VALID}% / n>={MIN_VALID_RACES}): {len(adopted)}")
+    logger.info(f"  → test ROI（独立評価）: 平均 {adopted['ROI_test'].mean():.1f}%"
+                f" / 中央値 {adopted['ROI_test'].median():.1f}%")
 
     # --- 表示 ---
     yr_cols = [f"ROI_{yr}" for yr in eval_years]
     display_cols = (
         ["場所", "クラス", "馬券種", "黒字年数", "データあり年数", "信頼度", "合算ROI_train"]
         + yr_cols
-        + ["OOS_レース数", "ROI_OOS"]
+        + ["n_valid", "ROI_valid", "n_test", "ROI_test"]
     )
 
-    print(f"\n=== ウォークフォワード安定条件（train {MIN_PROFITABLE_YEARS}/{EVAL_YEARS}年以上 + OOS黒字）===")
+    pd.set_option("display.max_rows", 100)
+    pd.set_option("display.width", 220)
+
+    print(f"\n=== 採用条件（train {MIN_PROFITABLE_YEARS}/{EVAL_YEARS}年 + valid ROI>={MIN_ROI_VALID}%）===")
     if adopted.empty:
-        print("  条件なし。MIN_PROFITABLE_YEARS または MIN_ROI_COMBINED を緩めてください。")
+        print("  条件なし。MIN_PROFITABLE_YEARS または MIN_ROI_VALID を緩めてください。")
     else:
-        pd.set_option("display.max_rows", 100)
-        pd.set_option("display.width", 200)
         print(adopted[display_cols].to_string(index=False))
 
-    print(f"\n=== 参考: train安定条件でOOSが赤字だったもの ===")
-    rejected = final[final["ROI_OOS"] < MIN_ROI_COMBINED].sort_values("ROI_OOS", ascending=False)
-    print(rejected[display_cols].head(20).to_string(index=False))
+    print(f"\n=== 独立評価サマリ（test 2024-25、採用判断に使用せず）===")
+    if not adopted.empty:
+        over100 = (adopted["ROI_test"] >= 100).sum()
+        over80  = (adopted["ROI_test"] >= 80).sum()
+        print(f"  採用{len(adopted)}条件のうち test ROI>=100%: {over100}件 / >=80%: {over80}件")
+        print(f"  test ROI 分布: {adopted['ROI_test'].describe().round(1).to_dict()}")
 
-    # --- CSV 保存 ---
+    print(f"\n=== 参考: train安定 + valid通過 だが test が低い条件 ===")
+    if not adopted.empty:
+        low_test = adopted[adopted["ROI_test"] < 80].sort_values("ROI_test")
+        print(low_test[display_cols].to_string(index=False) if not low_test.empty else "  なし")
+
+    print(f"\n=== 参考: train安定 だが valid未通過の条件 ===")
+    rejected_valid = final[
+        (final["ROI_valid"] < MIN_ROI_VALID) | (final["n_valid"] < MIN_VALID_RACES)
+    ].sort_values("ROI_valid", ascending=False)
+    print(rejected_valid[display_cols].head(15).to_string(index=False))
+
+    # --- CSV 保存（全条件、採用フラグ付き）---
+    final["採用"] = (
+        (final["ROI_valid"] >= MIN_ROI_VALID) &
+        (final["n_valid"]   >= MIN_VALID_RACES)
+    )
     final.to_csv(OUT_CSV, index=False, encoding="utf-8-sig")
-    logger.info(f"CSV 保存: {OUT_CSV}")
+    logger.info(f"全条件CSV保存: {OUT_CSV}")
 
     if adopted.empty:
+        logger.warning("採用条件が0件。MIN_ROI_VALID または MIN_VALID_RACES を緩めてください。")
         return
 
-    # --- strategy_weights.json 生成 ---
+    # --- 旧strategy_weights.jsonとの比較CSV ---
+    old_json_path = DATA_DIR / "strategy_weights.json"
+    if old_json_path.exists():
+        with open(old_json_path, encoding="utf-8") as f:
+            old_strat = json.load(f)
+        old_rows = []
+        for place, classes in old_strat.items():
+            for cls, bets in classes.items():
+                for bet, info in bets.items():
+                    old_rows.append({
+                        "場所": place, "クラス": cls, "馬券種": bet,
+                        "旧_roi_valid": info.get("roi_valid", info.get("roi_oos", "")),
+                        "旧_roi_test":  info.get("roi_test", ""),
+                        "旧_採用": True,
+                    })
+        old_df = pd.DataFrame(old_rows)
+        compare = pd.merge(
+            adopted[["場所","クラス","馬券種","ROI_valid","ROI_test","n_valid","n_test","信頼度"]],
+            old_df, on=["場所","クラス","馬券種"], how="outer"
+        )
+        compare["新_採用"] = compare["ROI_valid"].notna() & (compare["ROI_valid"] >= MIN_ROI_VALID)
+        compare["旧_採用"] = compare["旧_採用"].fillna(False)
+        compare["変化"] = compare.apply(
+            lambda r: "維持" if r["新_採用"] and r["旧_採用"]
+                      else ("新規追加" if r["新_採用"] and not r["旧_採用"]
+                      else ("削除" if not r["新_採用"] and r["旧_採用"] else "対象外")),
+            axis=1
+        )
+        compare.to_csv(COMPARE_CSV, index=False, encoding="utf-8-sig")
+        logger.info(f"比較CSV保存: {COMPARE_CSV}")
+
+        print(f"\n=== 旧設計 vs 新設計 比較 ===")
+        for label, grp in compare.groupby("変化"):
+            print(f"  {label}: {len(grp)}件")
+            if label in ("削除", "新規追加"):
+                for _, r in grp.iterrows():
+                    print(f"    {r['場所']} {r['クラス']} {r['馬券種']}"
+                          f"  旧valid={r.get('旧_roi_valid','-')} 旧test={r.get('旧_roi_test','-')}"
+                          f"  新valid={r.get('ROI_valid','-'):.1f}% 新test={r.get('ROI_test','-'):.1f}%")
+
+    # --- strategy_weights.json 生成（valid ROIで重み付け、testは記録のみ）---
     strategy: dict = {}
     for (place, cls), grp in adopted.groupby(["場所", "クラス"]):
-        total_roi = grp["ROI_OOS"].sum()
+        total_roi = grp["ROI_valid"].sum()
         bets: dict = {}
         for _, row in grp.iterrows():
-            w = row["ROI_OOS"] / total_roi
+            w = row["ROI_valid"] / total_roi
             bets[row["馬券種"]] = {
-                "roi_train_combined": row["合算ROI_train"],
-                "roi_oos":            round(row["ROI_OOS"], 1),
+                "roi_train_combined": round(row["合算ROI_train"], 1),
+                "roi_valid":          round(row["ROI_valid"], 1),   # 採用判断に使用
+                "roi_test":           round(row["ROI_test"], 1),    # 独立評価（参考）
+                "n_races_valid":      int(row["n_valid"]),
+                "n_races_test":       int(row["n_test"]),
                 "profitable_years":   int(row["黒字年数"]),
                 "confidence":         row["信頼度"],
                 "weight":             round(w, 4),
@@ -249,27 +326,20 @@ def main() -> None:
 
     with open(OUT_JSON, "w", encoding="utf-8") as f:
         json.dump(strategy, f, ensure_ascii=False, indent=2)
-    logger.info(f"strategy_weights.json 保存: {OUT_JSON}")
+    logger.info(f"strategy_weights.json 保存（walk-forward v2）: {OUT_JSON}")
 
     # --- サマリ ---
     print(f"\n=== サマリ ===")
-    print(f"採用条件数    : {len(adopted)}")
-    print(f"会場数        : {adopted['場所'].nunique()} 箇所 ({sorted(adopted['場所'].unique())})")
-    print(f"平均信頼度    : {adopted['信頼度'].mean():.1f}%")
-    print(f"OOS ROI範囲  : {adopted['ROI_OOS'].min():.1f}% 〜 {adopted['ROI_OOS'].max():.1f}%")
-
-    test_years = 2
-    total_r_per_year = (adopted["OOS_レース数"] / (1 + test_years)).sum()  # valid=1年 + test=2年
-    annual_invest = total_r_per_year * 10_000
-    annual_pay    = adopted.apply(
-        lambda r: r["OOS_レース数"] / (1 + test_years) * 10_000 * r["ROI_OOS"] / 100,
-        axis=1,
-    ).sum()
-    print(f"\n--- 1R=1万円 年間推計（OOS期間ベース）---")
-    print(f"対象レース数/年 : {total_r_per_year:.0f} R/年")
-    print(f"年間総投資額    : {annual_invest:,.0f} 円")
-    print(f"年間推計収支    : {annual_pay - annual_invest:+,.0f} 円")
-    print(f"加重平均OOS ROI : {annual_pay / annual_invest * 100:.1f}%")
+    print(f"採用条件数   : {len(adopted)}")
+    print(f"会場数       : {adopted['場所'].nunique()} 箇所 ({sorted(adopted['場所'].unique())})")
+    print(f"平均信頼度   : {adopted['信頼度'].mean():.1f}%")
+    print(f"valid ROI範囲: {adopted['ROI_valid'].min():.1f}% 〜 {adopted['ROI_valid'].max():.1f}%")
+    print(f"test ROI範囲 : {adopted['ROI_test'].min():.1f}% 〜 {adopted['ROI_test'].max():.1f}%"
+          f"  ← 独立評価")
+    print(f"\n【循環解消の確認】")
+    print(f"  採用判断データ: valid 2023のみ")
+    print(f"  独立評価データ: test 2024-25（採用後に測定）")
+    print(f"  test平均ROI {adopted['ROI_test'].mean():.1f}% が真の汎化性能の推定値")
 
 
 if __name__ == "__main__":

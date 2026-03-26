@@ -1,262 +1,131 @@
 {
   "中京": {
-    "1勝": {
-      "単勝": {
-        "roi_valid": 93.9,
-        "roi_test": 107.3,
-        "roi_combined": 102.8,
-        "n_races_valid": 117,
-        "n_races_test": 235,
-        "weight": 0.3746,
-        "bet_ratio": 0.3746
-      },
-      "複勝": {
-        "roi_valid": 80.1,
-        "roi_test": 89.6,
-        "roi_combined": 86.4,
-        "n_races_valid": 117,
-        "n_races_test": 235,
-        "weight": 0.3149,
-        "bet_ratio": 0.3149
-      },
-      "馬連": {
-        "roi_valid": 56.6,
-        "roi_test": 99.5,
-        "roi_combined": 85.2,
-        "n_races_valid": 117,
-        "n_races_test": 235,
-        "weight": 0.3105,
-        "bet_ratio": 0.3105
-      }
-    },
     "2勝": {
       "三連複": {
+        "roi_train_combined": 218.1,
         "roi_valid": 117.4,
         "roi_test": 162.2,
-        "roi_combined": 146.7,
         "n_races_valid": 46,
         "n_races_test": 87,
-        "weight": 0.3393,
-        "bet_ratio": 0.3393
-      },
-      "馬連": {
-        "roi_valid": 88.2,
-        "roi_test": 108.4,
-        "roi_combined": 101.4,
-        "n_races_valid": 46,
-        "n_races_test": 87,
-        "weight": 0.2346,
-        "bet_ratio": 0.2346
-      },
-      "単勝": {
-        "roi_valid": 128.7,
-        "roi_test": 81.6,
-        "roi_combined": 97.9,
-        "n_races_valid": 46,
-        "n_races_test": 87,
-        "weight": 0.2265,
-        "bet_ratio": 0.2265
+        "profitable_years": 3,
+        "confidence": 75.0,
+        "weight": 0.566,
+        "bet_ratio": 0.566
       },
       "複勝": {
+        "roi_train_combined": 98.1,
         "roi_valid": 90.0,
         "roi_test": 84.4,
-        "roi_combined": 86.3,
         "n_races_valid": 46,
         "n_races_test": 87,
-        "weight": 0.1996,
-        "bet_ratio": 0.1996
-      }
-    },
-    "3勝": {
-      "複勝": {
-        "roi_valid": 81.5,
-        "roi_test": 94.6,
-        "roi_combined": 90.1,
-        "n_races_valid": 20,
-        "n_races_test": 38,
-        "weight": 1.0,
-        "bet_ratio": 1.0
-      }
-    },
-    "未勝利": {
-      "複勝": {
-        "roi_valid": 84.2,
-        "roi_test": 86.9,
-        "roi_combined": 86.0,
-        "n_races_valid": 121,
-        "n_races_test": 240,
-        "weight": 1.0,
-        "bet_ratio": 1.0
+        "profitable_years": 3,
+        "confidence": 75.0,
+        "weight": 0.434,
+        "bet_ratio": 0.434
       }
     }
   },
   "中山": {
-    "1勝": {
-      "三連複": {
-        "roi_valid": 75.0,
-        "roi_test": 83.7,
-        "roi_combined": 80.7,
-        "n_races_valid": 113,
-        "n_races_test": 215,
-        "weight": 1.0,
-        "bet_ratio": 1.0
-      }
-    },
-    "未勝利": {
-      "複勝": {
-        "roi_valid": 75.0,
-        "roi_test": 84.6,
-        "roi_combined": 81.4,
-        "n_races_valid": 161,
-        "n_races_test": 330,
-        "weight": 1.0,
-        "bet_ratio": 1.0
-      }
-    }
-  },
-  "京都": {
     "2勝": {
-      "馬連": {
-        "roi_valid": 103.9,
-        "roi_test": 84.2,
-        "roi_combined": 88.7,
-        "n_races_valid": 51,
-        "n_races_test": 173,
-        "weight": 0.5205,
-        "bet_ratio": 0.5205
-      },
       "複勝": {
-        "roi_valid": 75.7,
-        "roi_test": 83.4,
-        "roi_combined": 81.7,
-        "n_races_valid": 51,
-        "n_races_test": 173,
-        "weight": 0.4795,
-        "bet_ratio": 0.4795
+        "roi_train_combined": 112.4,
+        "roi_valid": 84.4,
+        "roi_test": 70.7,
+        "n_races_valid": 65,
+        "n_races_test": 135,
+        "profitable_years": 3,
+        "confidence": 75.0,
+        "weight": 1.0,
+        "bet_ratio": 1.0
       }
     },
     "3勝": {
-      "馬連": {
-        "roi_valid": 116.2,
-        "roi_test": 80.5,
-        "roi_combined": 88.7,
-        "n_races_valid": 26,
-        "n_races_test": 87,
-        "weight": 0.5218,
-        "bet_ratio": 0.5218
-      },
       "複勝": {
-        "roi_valid": 72.3,
-        "roi_test": 84.0,
-        "roi_combined": 81.3,
-        "n_races_valid": 26,
-        "n_races_test": 87,
-        "weight": 0.4782,
-        "bet_ratio": 0.4782
-      }
-    },
-    "未勝利": {
-      "複勝": {
-        "roi_valid": 81.4,
-        "roi_test": 89.2,
-        "roi_combined": 87.5,
-        "n_races_valid": 102,
-        "n_races_test": 368,
+        "roi_train_combined": 109.9,
+        "roi_valid": 81.9,
+        "roi_test": 74.9,
+        "n_races_valid": 32,
+        "n_races_test": 67,
+        "profitable_years": 3,
+        "confidence": 100.0,
         "weight": 1.0,
         "bet_ratio": 1.0
       }
-    }
-  },
-  "函館": {
-    "2勝": {
-      "馬連": {
-        "roi_valid": 224.7,
-        "roi_test": 136.9,
-        "roi_combined": 166.2,
-        "n_races_valid": 17,
-        "n_races_test": 34,
-        "weight": 0.4573,
-        "bet_ratio": 0.4573
-      },
-      "単勝": {
-        "roi_valid": 131.2,
-        "roi_test": 101.2,
-        "roi_combined": 111.2,
-        "n_races_valid": 17,
-        "n_races_test": 34,
-        "weight": 0.306,
-        "bet_ratio": 0.306
-      },
-      "複勝": {
-        "roi_valid": 82.4,
-        "roi_test": 87.8,
-        "roi_combined": 86.0,
-        "n_races_valid": 17,
-        "n_races_test": 34,
-        "weight": 0.2367,
-        "bet_ratio": 0.2367
-      }
     },
     "未勝利": {
-      "単勝": {
-        "roi_valid": 58.0,
-        "roi_test": 93.5,
-        "roi_combined": 81.7,
-        "n_races_valid": 60,
-        "n_races_test": 121,
-        "weight": 0.5015,
-        "bet_ratio": 0.5015
-      },
       "馬連": {
-        "roi_valid": 67.2,
-        "roi_test": 88.2,
-        "roi_combined": 81.2,
-        "n_races_valid": 60,
-        "n_races_test": 121,
-        "weight": 0.4985,
-        "bet_ratio": 0.4985
+        "roi_train_combined": 110.6,
+        "roi_valid": 80.0,
+        "roi_test": 78.0,
+        "n_races_valid": 161,
+        "n_races_test": 330,
+        "profitable_years": 4,
+        "confidence": 80.0,
+        "weight": 1.0,
+        "bet_ratio": 1.0
+      }
+    },
+    "ｵｰﾌﾟﾝ": {
+      "馬連": {
+        "roi_train_combined": 148.5,
+        "roi_valid": 123.6,
+        "roi_test": 142.1,
+        "n_races_valid": 14,
+        "n_races_test": 26,
+        "profitable_years": 4,
+        "confidence": 100.0,
+        "weight": 0.3941,
+        "bet_ratio": 0.3941
+      },
+      "三連複": {
+        "roi_train_combined": 197.5,
+        "roi_valid": 190.0,
+        "roi_test": 13.8,
+        "n_races_valid": 14,
+        "n_races_test": 26,
+        "profitable_years": 3,
+        "confidence": 75.0,
+        "weight": 0.6059,
+        "bet_ratio": 0.6059
       }
     }
   },
   "新潟": {
     "1勝": {
-      "馬連": {
-        "roi_valid": 62.4,
-        "roi_test": 150.0,
-        "roi_combined": 120.5,
-        "n_races_valid": 96,
-        "n_races_test": 189,
-        "weight": 0.4215,
-        "bet_ratio": 0.4215
-      },
       "複勝": {
+        "roi_train_combined": 107.7,
         "roi_valid": 80.6,
         "roi_test": 84.2,
-        "roi_combined": 83.0,
         "n_races_valid": 96,
         "n_races_test": 189,
-        "weight": 0.2903,
-        "bet_ratio": 0.2903
-      },
-      "単勝": {
-        "roi_valid": 85.1,
-        "roi_test": 81.1,
-        "roi_combined": 82.4,
-        "n_races_valid": 96,
-        "n_races_test": 189,
-        "weight": 0.2882,
-        "bet_ratio": 0.2882
+        "profitable_years": 4,
+        "confidence": 100.0,
+        "weight": 1.0,
+        "bet_ratio": 1.0
       }
-    }
-  },
-  "札幌": {
+    },
+    "2勝": {
+      "馬連": {
+        "roi_train_combined": 108.8,
+        "roi_valid": 137.7,
+        "roi_test": 75.0,
+        "n_races_valid": 30,
+        "n_races_test": 57,
+        "profitable_years": 3,
+        "confidence": 75.0,
+        "weight": 1.0,
+        "bet_ratio": 1.0
+      }
+    },
     "未勝利": {
       "馬連": {
-        "roi_valid": 59.5,
-        "roi_test": 100.0,
-        "roi_combined": 86.5,
-        "n_races_valid": 66,
-        "n_races_test": 132,
+        "roi_train_combined": 111.3,
+        "roi_valid": 83.4,
+        "roi_test": 51.7,
+        "n_races_valid": 123,
+        "n_races_test": 238,
+        "profitable_years": 4,
+        "confidence": 80.0,
         "weight": 1.0,
         "bet_ratio": 1.0
       }
@@ -265,57 +134,52 @@
   "福島": {
     "2勝": {
       "馬連": {
+        "roi_train_combined": 118.5,
         "roi_valid": 89.8,
         "roi_test": 131.8,
-        "roi_combined": 117.6,
         "n_races_valid": 23,
         "n_races_test": 45,
+        "profitable_years": 3,
+        "confidence": 75.0,
         "weight": 1.0,
         "bet_ratio": 1.0
       }
     },
     "未勝利": {
-      "複勝": {
-        "roi_valid": 94.2,
-        "roi_test": 83.5,
-        "roi_combined": 87.1,
+      "三連複": {
+        "roi_train_combined": 248.0,
+        "roi_valid": 108.7,
+        "roi_test": 48.1,
         "n_races_valid": 92,
         "n_races_test": 181,
-        "weight": 1.0,
-        "bet_ratio": 1.0
+        "profitable_years": 5,
+        "confidence": 100.0,
+        "weight": 0.5188,
+        "bet_ratio": 0.5188
+      },
+      "馬連": {
+        "roi_train_combined": 121.8,
+        "roi_valid": 100.8,
+        "roi_test": 72.5,
+        "n_races_valid": 92,
+        "n_races_test": 181,
+        "profitable_years": 4,
+        "confidence": 80.0,
+        "weight": 0.4812,
+        "bet_ratio": 0.4812
       }
     }
   },
   "阪神": {
-    "1勝": {
-      "複勝": {
-        "roi_valid": 80.0,
-        "roi_test": 82.5,
-        "roi_combined": 81.3,
-        "n_races_valid": 128,
-        "n_races_test": 152,
-        "weight": 1.0,
-        "bet_ratio": 1.0
-      }
-    },
-    "2勝": {
-      "馬連": {
-        "roi_valid": 74.1,
-        "roi_test": 102.2,
-        "roi_combined": 89.7,
-        "n_races_valid": 80,
-        "n_races_test": 100,
-        "weight": 1.0,
-        "bet_ratio": 1.0
-      }
-    },
     "未勝利": {
-      "複勝": {
-        "roi_valid": 80.8,
-        "roi_test": 83.9,
-        "roi_combined": 82.5,
+      "三連複": {
+        "roi_train_combined": 129.1,
+        "roi_valid": 91.2,
+        "roi_test": 62.3,
         "n_races_valid": 180,
         "n_races_test": 235,
+        "profitable_years": 3,
+        "confidence": 60.0,
         "weight": 1.0,
         "bet_ratio": 1.0
       }
