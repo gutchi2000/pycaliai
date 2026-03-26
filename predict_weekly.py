@@ -54,6 +54,7 @@ TORCH_PATH     = MODEL_DIR / "transformer_pl_v2.pkl"
 META_PATH      = MODEL_DIR / "stacking_meta_v1.pkl"
 STACK_CAL_PATH = MODEL_DIR / "stacking_calibrator_v1.pkl"
 RETURN_RATE_TAN = 0.80  # 単勝控除率
+LIVE_CSV = BASE_DIR / "data" / "live_results_2026.csv"  # ライブ予測記録（追記式）
 
 # モデルキャッシュ（プロセス内で1回だけロード）
 _model_cache: dict = {}
@@ -978,6 +979,63 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
 
 
 # =========================================================
+# ライブ結果記録
+# =========================================================
+def _append_live_results(out_df: pd.DataFrame) -> None:
+    """予測結果を data/live_results_2026.csv に追記する。
+
+    実績列（着順・払戻）は空欄で記録し、後日レース結果判明後に手動または
+    record_live_results.py で埋める。
+    重複防止: (日付, 場所, R, 馬番) が既存行と一致する場合はスキップ。
+    """
+    # 記録対象列（予測列のみ。実績列は空欄で追加）
+    pred_cols = [
+        "日付", "場所", "R", "クラス", "距離", "レースID",
+        "馬番", "馬名", "騎手",
+        "スコア", "印",
+        "期待値スコア", "EV補正スコア", "単勝オッズ",
+        "フィルタ除外", "警告",
+        "HAHO_戦略対象", "HAHO_馬連_買い目",   "HAHO_馬連_購入額",
+                         "HAHO_三連複_買い目", "HAHO_三連複_購入額",
+        "HALO_戦略対象", "HALO_三連複_買い目", "HALO_三連複_購入額",
+        "LALO_戦略対象", "LALO_複勝_買い目",   "LALO_複勝_購入額",
+        "CQC_戦略対象",  "CQC_単勝_買い目",    "CQC_単勝_購入額",
+    ]
+    # 実際に存在する列のみ抽出
+    use_cols = [c for c in pred_cols if c in out_df.columns]
+    new_rows = out_df[use_cols].copy()
+    # 実績列（空欄）を付加
+    for col in ["着順", "単勝払戻", "複勝払戻", "馬連払戻", "三連複払戻", "三連単払戻"]:
+        if col not in new_rows.columns:
+            new_rows[col] = ""
+
+    key_cols = ["日付", "場所", "R", "馬番"]
+
+    if LIVE_CSV.exists():
+        existing = pd.read_csv(LIVE_CSV, encoding="utf-8-sig", dtype=str)
+        # 重複チェック
+        existing_keys = set(
+            zip(existing["日付"].astype(str), existing["場所"].astype(str),
+                existing["R"].astype(str),    existing["馬番"].astype(str))
+        )
+        new_rows["_key"] = list(zip(
+            new_rows["日付"].astype(str), new_rows["場所"].astype(str),
+            new_rows["R"].astype(str),    new_rows["馬番"].astype(str)
+        ))
+        before = len(new_rows)
+        new_rows = new_rows[~new_rows["_key"].isin(existing_keys)].drop(columns=["_key"])
+        skipped = before - len(new_rows)
+        if skipped > 0:
+            logger.info(f"live_results: {skipped}行は既存レコードのためスキップ")
+        combined = pd.concat([existing, new_rows], ignore_index=True)
+    else:
+        combined = new_rows
+
+    combined.to_csv(LIVE_CSV, index=False, encoding="utf-8-sig")
+    logger.info(f"live_results_2026.csv 更新: +{len(new_rows)}行 → 累計{len(combined)}行  ({LIVE_CSV})")
+
+
+# =========================================================
 # メイン
 # =========================================================
 def main() -> None:
@@ -1125,6 +1183,9 @@ def main() -> None:
     out_path = Path(args.out) if args.out else BASE_DIR / "reports" / f"pred_{csv_path.stem}.csv"
     out_df.to_csv(out_path, index=False, encoding="utf-8-sig")
     logger.info(f"出力完了: {out_path}")
+
+    # ライブ結果記録（予測列を追記、実績列は後日埋める）
+    _append_live_results(out_df)
 
     # サマリ表示
     haho_races = out_df[out_df["HAHO_戦略対象"]=="✅"]["レースID"].nunique()
