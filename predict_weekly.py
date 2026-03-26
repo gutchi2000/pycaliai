@@ -168,6 +168,7 @@ CLASS_NORMALIZE = {
 # =========================================================
 TYAKU_DIR  = BASE_DIR / "data" / "tyaku"
 HOSSEI_DIR = BASE_DIR / "data" / "hosei"
+KAKO5_DIR  = BASE_DIR / "data" / "kako5"
 
 TYAKU_HORSE_COLS = [
     "枠番","B","馬番","印","M2","M3","M4","馬名S","C","性別","年齢","替","騎手","斤量","減M","単勝",
@@ -244,6 +245,68 @@ def _load_tyaku(date_str: str) -> pd.DataFrame | None:
     keep = ["レースID(新/馬番無)","馬番","馬体重","増減",
             "horse_fuku_career","horse_fuku_course","horse_fuku_class"]
     return df[[c for c in keep if c in df.columns]]
+
+
+def _load_kako5_warnings(date_str: str) -> dict[str, str]:
+    """kako5/YYYYMMDD.csv を読み、過去5走に中止(止)・除外(外)・取消(消)がある馬名→警告文 を返す。
+
+    警告例: {"アドマイヤテラ": "2走前中止", "○○": "1走前除外・3走前中止"}
+    ファイルが存在しない場合は空dictを返す。
+    """
+    # 日付変換: "2026.3.8" → "20260308"
+    try:
+        from datetime import datetime
+        d = datetime.strptime(date_str.strip(), "%Y.%m.%d") if "-" not in date_str else \
+            datetime.strptime(date_str.strip(), "%Y-%m-%d")
+    except ValueError:
+        # "2026.3.8" のようにゼロ埋めなし
+        parts = date_str.strip().replace("-", ".").split(".")
+        d = datetime(int(parts[0]), int(parts[1]), int(parts[2]))
+
+    kako5_path = KAKO5_DIR / f"{d.strftime('%Y%m%d')}.csv"
+    if not kako5_path.exists():
+        return {}
+
+    STOP_CODES = {"止", "外", "消"}
+    CODE_LABEL = {"止": "中止", "外": "除外", "消": "取消"}
+    # 着順の列インデックス（1走前=18, 2走前=30, ..., 5走前=66）
+    CHAKU_IDXS = {1: 18, 2: 30, 3: 42, 4: 54, 5: 66}
+    UMANAME_IDX = 7  # 馬名S
+
+    warnings: dict[str, str] = {}
+    in_horse_section = False
+
+    try:
+        with open(kako5_path, encoding="cp932", errors="replace") as f:
+            for line in f:
+                parts = line.rstrip("\n").split(",")
+                # 馬ヘッダー行を検出
+                if parts and parts[0].strip() == "枠番":
+                    in_horse_section = True
+                    continue
+                # レース情報行（先頭がレースIDっぽい数字16桁）はスキップ
+                if not in_horse_section:
+                    continue
+                if len(parts) < 20:
+                    continue
+                # 馬名を取得
+                umaname = parts[UMANAME_IDX].strip() if len(parts) > UMANAME_IDX else ""
+                if not umaname:
+                    continue
+                # 過去5走の着順チェック
+                warns = []
+                for n, idx in CHAKU_IDXS.items():
+                    if idx >= len(parts):
+                        break
+                    val = parts[idx].strip()
+                    if val in STOP_CODES:
+                        warns.append(f"{n}走前{CODE_LABEL[val]}")
+                if warns:
+                    warnings[umaname] = "・".join(warns)
+    except Exception as e:
+        logger.warning(f"kako5警告読み込み失敗: {e}")
+
+    return warnings
 
 
 def _load_hosei(date_str: str) -> pd.DataFrame | None:
@@ -939,6 +1002,12 @@ def main() -> None:
     # CSV パース
     df = parse_csv(csv_path)
 
+    # kako5 警告マップ（馬名→警告文）
+    first_date = str(df["日付S"].iloc[0]) if "日付S" in df.columns else ""
+    kako5_warns = _load_kako5_warnings(first_date)
+    if kako5_warns:
+        logger.info(f"kako5警告対象馬: {len(kako5_warns)}頭 ({', '.join(kako5_warns.keys())})")
+
     # 全レース予測
     logger.info("予測開始...")
     rows = []
@@ -1032,6 +1101,7 @@ def main() -> None:
                 "期待値スコア":        float(row.get("ev_score", 0.0)),
                 "EV補正スコア":        float(row.get("ev_cal", 0.0)),
                 "フィルタ除外":        filter_reason if is_hon else "",
+                "警告":                kako5_warns.get(str(row.get("馬名","")), ""),
                 "印":                  str(row["mark"]),
                 "HAHO_戦略対象":       "✅" if bets["HAHO_戦略対象"] else "",
                 "HAHO_馬連_買い目":    bets["HAHO_馬連_買い目"]    if is_hon else "",
