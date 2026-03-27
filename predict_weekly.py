@@ -822,19 +822,10 @@ def predict_stacking(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
 
 
 def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray:
-    # スタッキング優先（キャリブレーター妥当性チェック付き）
-    stacking = predict_stacking(df, lgbm_obj, cat_obj)
-    if stacking is not None:
-        cal_obj = _get_cached(STACK_CAL_PATH, "stack_cal")
-        if cal_obj is not None:
-            calibrated = cal_obj["calibrator"].transform(stacking)
-            # キャリブレーター出力の妥当性チェック：平均 5% 以上かつ最大 50% 未満
-            if calibrated.mean() >= 0.05 and calibrated.max() < 0.50:
-                return calibrated
-            logger.warning(
-                f"スタッキングキャリブレーター出力が異常（mean={calibrated.mean():.3f}, "
-                f"max={calibrated.max():.3f}）→ エンサンブルにフォールバック"
-            )
+    # スタッキングは無効化（2026-03-28）
+    # 理由: valid Brier改善が0.0010以下で実用価値なし。
+    #       IsotonicRegressionの出力が常にmax>0.50となり100%フォールバックしていたため廃止。
+    #       再学習の場合は predict_stacking() と STACK_CAL_PATH を復活させること。
     # YetiRank + Transformer PL が存在すれば4モデル加重平均
     # キャリブレーターに最適重みが保存されていればそちらを使用（なければデフォルト値）
     rank_obj  = _get_cached(RANK_PATH, "rank")
