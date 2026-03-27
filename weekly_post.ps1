@@ -45,7 +45,7 @@ Write-Host "=== weekly_post: $Date ===" -ForegroundColor Green
 Write-Host ""
 
 # -- Step 1: rebuild results.json --
-Write-Host "[1/3] Running generate_results.py ..." -ForegroundColor Cyan
+Write-Host "[1/4] Running generate_results.py ..." -ForegroundColor Cyan
 python generate_results.py
 if ($LASTEXITCODE -ne 0) {
     Write-Error "generate_results.py failed."
@@ -53,13 +53,21 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "      data\results.json updated." -ForegroundColor Green
 
-# -- Step 2: git add --
-Write-Host "[2/3] git add ..." -ForegroundColor Cyan
-git add $kekkaPath data/results.json
-Write-Host "      staged: $kekkaPath + results.json" -ForegroundColor Green
+# -- Step 2: live_results_2026.csv に実績を照合 --
+Write-Host "[2/4] Updating live_results_2026.csv ..." -ForegroundColor Cyan
+python update_live_results.py --date $Date
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "update_live_results.py failed (non-fatal, continuing...)"
+}
+Write-Host "      live_results_2026.csv updated." -ForegroundColor Green
 
-# -- Step 3: git commit & push --
-Write-Host "[3/3] git commit & push ..." -ForegroundColor Cyan
+# -- Step 3: git add --
+Write-Host "[3/4] git add ..." -ForegroundColor Cyan
+git add $kekkaPath data/results.json data/live_results_2026.csv
+Write-Host "      staged: $kekkaPath + results.json + live_results_2026.csv" -ForegroundColor Green
+
+# -- Step 4: git commit & push --
+Write-Host "[4/4] git commit & push ..." -ForegroundColor Cyan
 $y = $Date.Substring(0,4)
 $m = $Date.Substring(4,2)
 $d = $Date.Substring(6,2)
