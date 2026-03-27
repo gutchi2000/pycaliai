@@ -26,9 +26,11 @@ LIVE_CSV    = BASE_DIR / "data" / "live_results_2026.csv"
 KEKKA_DIR   = BASE_DIR / "data" / "kekka"
 
 # kekka CSV の列インデックス（cp932, ヘッダあり）
+# 実際の列構造（2026年kekka CSV実測値）:
 # 0:日付 1:場所 2:R 3:枠番 4:馬番 5:馬名 6:確定着順 7:レースID
-# 8:単勝払戻 9:複勝払戻 10:馬連払戻 11:馬単払戻 12:ワイド払戻
+# 8:単勝払戻 9:複勝払戻 10:toa(ワイド) 11:馬連払戻 12:馬単払戻
 # 13:三連複払戻 14:三連単払戻
+# 注意: 旧コメントは「10:馬連」と誤記していたが実際は「10:toa(ワイド)」
 COL_DATE   = 0
 COL_PLACE  = 1
 COL_R      = 2
@@ -36,7 +38,7 @@ COL_BANUM  = 4
 COL_CHAKU  = 6
 COL_TAN    = 8   # 単勝払戻
 COL_FUKU   = 9   # 複勝払戻
-COL_UMAREN = 10  # 馬連払戻
+COL_UMAREN = 11  # 馬連払戻（旧: 10 は toa/ワイドのため誤り。2026-03-28修正）
 COL_SANREN = 13  # 三連複払戻
 
 
