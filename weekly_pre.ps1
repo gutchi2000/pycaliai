@@ -84,7 +84,7 @@ if ($staged) {
         Write-Error "git pull failed."
         exit 1
     }
-    git push origin master
+    git push origin HEAD:master
     if ($LASTEXITCODE -ne 0) {
         Write-Error "git push failed."
         exit 1

@@ -64,7 +64,8 @@ $y = $Date.Substring(0,4)
 $m = $Date.Substring(4,2)
 $d = $Date.Substring(6,2)
 git commit -m "add kekka $y-$m-$d / update results"
-git push origin master
+git pull --rebase origin master
+git push origin HEAD:master
 if ($LASTEXITCODE -ne 0) {
     Write-Error "git push failed."
     exit 1
