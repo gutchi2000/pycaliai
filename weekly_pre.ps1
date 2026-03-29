@@ -79,7 +79,7 @@ $d = $Date.Substring(6,2)
 $staged = git diff --cached --name-only 2>$null
 if ($staged) {
     git commit -m "add weekly csv $y-$m-$d"
-    git pull --rebase origin master
+    git pull --rebase --autostash origin master
     if ($LASTEXITCODE -ne 0) {
         Write-Error "git pull failed."
         exit 1
