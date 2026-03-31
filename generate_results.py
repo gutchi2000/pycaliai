@@ -93,9 +93,16 @@ def get_race_kk(kekka_cache: dict, date_key: str, place: str, r_num: str) -> pd.
 
 
 def get_top3(race_kk: pd.DataFrame) -> list[int]:
-    """確定着順 1-3 の馬番リスト（ソート済み）。"""
+    """確定着順 1-3 の馬番リスト（馬番昇順）。三連複判定用。"""
     rows = race_kk[race_kk.iloc[:, 6].astype(str).isin(["1", "2", "3"])]
     return sorted(to_int(x) for x in rows.iloc[:, 4].tolist() if to_int(x) is not None)
+
+
+def get_top2(race_kk: pd.DataFrame) -> frozenset:
+    """1・2着馬番セット（馬連判定用）。着順でフィルタするため馬番の並びに依存しない。"""
+    rows = race_kk[race_kk.iloc[:, 6].astype(str).isin(["1", "2"])]
+    nums = [to_int(x) for x in rows.iloc[:, 4].tolist() if to_int(x) is not None]
+    return frozenset(nums) if len(nums) == 2 else frozenset()
 
 
 def get_winner(race_kk: pd.DataFrame) -> int | None:
@@ -223,7 +230,7 @@ def calc_plan_races(pred: pd.DataFrame, kekka_cache: dict,
             # 馬連
             ren_inv  = float(hon.get("HAHO_馬連_購入額", 0) or 0)
             ren_bets = split_combos(str(hon.get("HAHO_馬連_買い目", "")))
-            top2     = frozenset(top3[:2]) if len(top3) >= 2 else frozenset()
+            top2     = get_top2(race_kk)
             ren_hit  = any(c == top2 for c in ren_bets) if top2 and ren_bets else False
             ren_ret  = 0.0
             if ren_hit:
