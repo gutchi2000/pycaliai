@@ -67,7 +67,8 @@ TYAKU_DIR     = DATA_DIR / "tyaku"
 HOSSEI_DIR    = DATA_DIR / "hosei"
 LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
-CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v3.pkl"   # Train-based (no look-ahead)
+CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v4.pkl"   # Test 2024-fit (2026-03-25更新)
+CAL_PATH_V3    = MODEL_DIR / "ensemble_calibrator_v3.pkl"   # Train-based fallback
 CAL_PATH_V2    = MODEL_DIR / "ensemble_calibrator_v2.pkl"   # Valid-based fallback
 CAL_PATH_V1    = MODEL_DIR / "ensemble_calibrator_v1.pkl"   # legacy fallback
 WIN_MODEL_PATH = MODEL_DIR / "lgbm_win_v1.pkl"
@@ -86,7 +87,7 @@ def _get_cached(path: Path, key: str):
 MIN_UNIT = 100
 MARKS    = ["◎", "◯", "▲", "△", "×"]
 
-EXCLUDE_PLACES  = {"東京", "小倉"}
+EXCLUDE_PLACES  = {"東京", "小倉", "阪神"}  # 阪神: BetFilter SKIP_VENUES準拠（全面除外）
 EXCLUDE_CLASSES = {"新馬", "障害"}
 
 CLASS_NORMALIZE = {
@@ -722,7 +723,7 @@ def predict_stacking(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
 
 @st.cache_resource
 def _load_calibrator():
-    for path, name in [(CAL_PATH, "v3"), (CAL_PATH_V2, "v2"), (CAL_PATH_V1, "v1")]:
+    for path, name in [(CAL_PATH, "v4"), (CAL_PATH_V3, "v3"), (CAL_PATH_V2, "v2"), (CAL_PATH_V1, "v1")]:
         if path.exists():
             logger.info(f"キャリブレーター {name} をロード: {path}")
             return joblib.load(path)["calibrator"]
