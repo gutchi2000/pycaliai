@@ -75,6 +75,7 @@ WIN_MODEL_PATH = MODEL_DIR / "lgbm_win_v1.pkl"
 TORCH_PATH     = MODEL_DIR / "transformer_optuna_v1.pkl"
 META_PATH      = MODEL_DIR / "stacking_meta_v1.pkl"
 STACK_CAL_PATH = MODEL_DIR / "stacking_calibrator_v1.pkl"
+VALUE_MODEL_PATH = MODEL_DIR / "value_model_v2.pkl"
 
 # モデルキャッシュ（プロセス内で1回だけロード）
 _model_cache: dict = {}
@@ -768,6 +769,50 @@ def assign_marks(df: pd.DataFrame) -> pd.DataFrame:
 
 
 @st.cache_data(show_spinner="全レース予想計算中...")
+def _compute_value_scores_app(race_df: pd.DataFrame) -> tuple:
+    """Value Model v2 で predicted ROI と cal_prob を計算する (app.py内用)。"""
+    nan_s = pd.Series(np.nan, index=race_df.index)
+    value_obj = _get_cached(VALUE_MODEL_PATH, "value_model")
+    if value_obj is None:
+        return nan_s, nan_s
+    vm    = value_obj["model"]
+    feats = value_obj["features"]
+    iso   = value_obj.get("calibrator")
+
+    tansho   = pd.to_numeric(race_df.get("単勝", pd.Series(dtype=float)), errors="coerce")
+    fuku_low  = tansho.pow(0.6).round(1)   # 複勝オッズ推定
+    fuku_high = (tansho.pow(0.6) * 1.5).round(1)
+    if tansho.isna().all():
+        return nan_s, nan_s
+
+    raw_prob     = race_df["prob"].values
+    cal_prob_v   = iso.transform(raw_prob) if iso is not None else raw_prob
+    fuku_mid     = (fuku_low + fuku_high) / 2
+    model_rank   = race_df["prob"].rank(ascending=False, method="first")
+    ninki        = tansho.rank(method="first", ascending=True)
+
+    X = pd.DataFrame({
+        "cal_prob":             cal_prob_v,
+        "model_rank":           model_rank.values,
+        "ninki":                ninki.values,
+        "tan_odds":             tansho.values,
+        "fuku_mid":             fuku_mid.values,
+        "EV_fuku":              cal_prob_v * fuku_mid.values,
+        "disagree":             model_rank.values - ninki.values,
+        "abs_disagree":         np.abs(model_rank.values - ninki.values),
+        "log_tan_odds":         np.log1p(tansho.values),
+        "log_fuku_mid":         np.log1p(fuku_mid.values),
+        "odds_rank_ratio":      tansho.values / (ninki.values + 0.5),
+        "model_vs_market_prob": cal_prob_v - (1 / tansho.values),
+        "shutsuu":              len(race_df),
+        "fuku_spread":          (fuku_high - fuku_low).values,
+        "fuku_spread_ratio":    ((fuku_high - fuku_low) / (fuku_mid + 0.01)).values,
+    }, index=race_df.index)
+
+    pred_roi = vm.predict(X[feats])
+    return pd.Series(pred_roi, index=race_df.index), pd.Series(cal_prob_v, index=race_df.index)
+
+
 def predict_all_races(cache_key: str, df_json: str, _lgbm_obj: dict, _cat_obj: dict) -> str:
     import io
     df = pd.read_json(io.StringIO(df_json))
@@ -786,6 +831,12 @@ def predict_all_races(cache_key: str, df_json: str, _lgbm_obj: dict, _cat_obj: d
             race_df["mark"]     = ""
             race_df["score"]    = 0.0
             race_df["ev_score"] = 0.0
+        # Value Model v2 scoring
+        try:
+            race_df["value_score"], race_df["cal_prob"] = _compute_value_scores_app(race_df)
+        except Exception:
+            race_df["value_score"] = np.nan
+            race_df["cal_prob"]    = np.nan
         result_frames.append(race_df)
     return pd.concat(result_frames, ignore_index=True).to_json(force_ascii=False)
 
@@ -2798,6 +2849,97 @@ def page_ev_candidates(all_df: pd.DataFrame) -> None:
 
 
 # =========================================================
+# VALUE複勝候補ページ
+# =========================================================
+def page_value_candidates(all_df: pd.DataFrame) -> None:
+    """Value Model v2 の買い候補を表示するページ。"""
+    st.markdown("### 💰 VALUE複勝候補")
+    st.caption(
+        "Value Model v2 (2nd-stage LightGBM) が予測する高ROI複勝候補。"
+        "バックテスト: balanced戦略で的中38.5%, ROI 141%（2024年9-12月 out-of-sample）"
+    )
+
+    value_obj = _get_cached(VALUE_MODEL_PATH, "value_model")
+    if value_obj is None:
+        st.warning("value_model_v2.pkl が見つかりません。train_value_model.py を実行してください。")
+        return
+
+    strategies = value_obj.get("strategies", {})
+
+    col_strat, col_info = st.columns([2, 3])
+    with col_strat:
+        strat_name = st.selectbox(
+            "戦略",
+            options=list(strategies.keys()),
+            index=0,
+            format_func=lambda k: strategies[k].get("desc", k),
+        )
+    strat      = strategies[strat_name]
+    pr_thr     = strat["pred_roi_thr"]
+    cp_thr     = strat["cal_prob_thr"]
+    with col_info:
+        st.info(f"pred_roi ≥ {pr_thr}  かつ  cal_prob ≥ {cp_thr}")
+
+    # value_score / cal_prob が存在するか確認
+    if "value_score" not in all_df.columns or "cal_prob" not in all_df.columns:
+        st.warning("Value Scoreが計算されていません。CSVを再読込してください。")
+        return
+
+    df_v = all_df.copy()
+    df_v["value_score"] = pd.to_numeric(df_v["value_score"], errors="coerce")
+    df_v["cal_prob"]    = pd.to_numeric(df_v["cal_prob"],    errors="coerce")
+
+    cands = df_v[(df_v["value_score"] >= pr_thr) & (df_v["cal_prob"] >= cp_thr)].copy()
+    cands = cands.sort_values("value_score", ascending=False)
+
+    col_m1, col_m2, col_m3 = st.columns(3)
+    col_m1.metric("該当頭数", f"{len(cands)} 頭")
+    col_m2.metric("対象レース", f"{cands['レースID(新/馬番無)'].nunique()} R")
+    col_m3.metric("平均ValueScore", f"{cands['value_score'].mean():.2f}" if len(cands) > 0 else "—")
+
+    if cands.empty:
+        st.info(f"該当なし (pred_roi≥{pr_thr}, cal_prob≥{cp_thr})")
+        return
+
+    disp_cols = []
+    for c in ["場所", "R", "クラス名", "距離", "馬名", "馬名S", "印", "騎手", "単勝",
+              "value_score", "cal_prob"]:
+        if c in cands.columns and c not in disp_cols:
+            disp_cols.append(c)
+    # 馬名は馬名S優先
+    if "馬名S" in disp_cols and "馬名" in disp_cols:
+        disp_cols.remove("馬名")
+
+    disp = cands[disp_cols].rename(columns={
+        "馬名S": "馬名",
+        "value_score": "ValueScore",
+        "cal_prob": "CalProb(%)",
+    }).copy()
+    if "CalProb(%)" in disp.columns:
+        disp["CalProb(%)"] = (disp["CalProb(%)"] * 100).round(1)
+
+    def _val_color(val):
+        if isinstance(val, (int, float)):
+            if val >= 1.1: return "background-color:#2d4a2a; color:#a6e3a1; font-weight:bold"
+            if val >= 0.95: return "background-color:#3a3a1a; color:#f9e2af"
+        return ""
+
+    if "ValueScore" in disp.columns:
+        styled = disp.style.applymap(_val_color, subset=["ValueScore"])
+        st.dataframe(styled, use_container_width=True, hide_index=True)
+    else:
+        st.dataframe(disp, use_container_width=True, hide_index=True)
+
+    st.markdown("""
+| ValueScore | 目安 |
+|---|---|
+| ≥ 1.1 | 🟢 高確度VALUE候補 |
+| ≥ 0.95 | 🟡 VALUE候補 |
+| ≥ 0.88 | ⚪ balanced閾値域 |
+""")
+
+
+# =========================================================
 # 今日の買い目専用ページ
 # =========================================================
 def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
@@ -3556,14 +3698,17 @@ def main() -> None:
     race_id_col = "レースID(新/馬番無)"
 
     # メインタブ
-    main_tab1, main_tab2, main_tab3, main_tab4 = st.tabs(
-        ["🏇 レース予想", "🎫 今日の買い目", "⭐ EV候補", "📊 的中実績"]
+    main_tab1, main_tab2, main_tab3, main_tab4, main_tab5 = st.tabs(
+        ["🏇 レース予想", "🎫 今日の買い目", "⭐ EV候補", "💰 VALUE複勝", "📊 的中実績"]
     )
 
     results = load_results()
 
-    with main_tab4:
+    with main_tab5:
         page_results(results)
+
+    with main_tab4:
+        page_value_candidates(all_df)
 
     with main_tab3:
         page_ev_candidates(all_df)

@@ -49,6 +49,7 @@ CAL_PATH_V1    = MODEL_DIR / "ensemble_calibrator_v1.pkl"
 WIN_PATH       = MODEL_DIR / "lgbm_win_v1.pkl"
 FUKU_LGBM_PATH = MODEL_DIR / "lgbm_fukusho_v1.pkl"
 FUKU_CAT_PATH  = MODEL_DIR / "catboost_fukusho_v1.pkl"
+VALUE_MODEL_PATH = MODEL_DIR / "value_model_v2.pkl"
 RETURN_RATE_FUKU = 0.75   # 複勝控除率
 TORCH_PATH     = MODEL_DIR / "transformer_pl_v2.pkl"
 META_PATH      = MODEL_DIR / "stacking_meta_v1.pkl"
@@ -886,6 +887,92 @@ def assign_marks(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # =========================================================
+# Value Model (Layer 2) — 市場の歪みを検出して買い判定
+# =========================================================
+def compute_value_scores(race_df: pd.DataFrame,
+                         od_odds: pd.DataFrame | None = None,
+                         ) -> tuple[pd.Series, pd.Series]:
+    """Value Model でレース内各馬の predicted ROI と cal_prob を計算する。
+
+    Returns:
+        (pred_roi, cal_prob) - 両方とも pd.Series
+    """
+    nan_result = (pd.Series(np.nan, index=race_df.index),
+                  pd.Series(np.nan, index=race_df.index))
+
+    value_obj = _get_cached(VALUE_MODEL_PATH, "value_model")
+    if value_obj is None:
+        return nan_result
+
+    vm = value_obj["model"]
+    feats = value_obj["features"]
+    iso = value_obj.get("calibrator")
+
+    # オッズ取得: OD CSVがあれば使う、なければweekly CSVの単勝から推定
+    tansho = pd.to_numeric(race_df.get("単勝", pd.Series(dtype=float)), errors="coerce")
+    fuku_low = pd.Series(np.nan, index=race_df.index)
+    fuku_high = pd.Series(np.nan, index=race_df.index)
+
+    if od_odds is not None:
+        race_id = str(race_df.get("レースID(新/馬番無)", race_df.get("race_id", pd.Series())).iloc[0]
+                      ) if "レースID(新/馬番無)" in race_df.columns else ""
+        od_race = od_odds[od_odds["race_id"] == race_id] if race_id else pd.DataFrame()
+        if len(od_race) > 0:
+            # OD CSVの馬番で結合
+            horse_nums = race_df["馬番"].astype(int)
+            od_map = od_race.set_index("horse_num")
+            for idx, hnum in horse_nums.items():
+                if hnum in od_map.index:
+                    tansho.at[idx] = od_map.at[hnum, "tan_odds"]
+                    fuku_low.at[idx] = od_map.at[hnum, "fuku_low"]
+                    fuku_high.at[idx] = od_map.at[hnum, "fuku_high"]
+
+    # 複勝未取得 → 単勝から推定
+    if fuku_low.isna().all():
+        fuku_low = tansho.pow(0.6).round(1)
+        fuku_high = (tansho.pow(0.6) * 1.5).round(1)
+
+    if tansho.isna().all():
+        return nan_result
+
+    # Calibrate prob
+    raw_prob = race_df["prob"].values
+    if iso is not None:
+        cal_prob_vals = iso.transform(raw_prob)
+    else:
+        cal_prob_vals = raw_prob
+
+    # Feature engineering (match train_value_model.py)
+    fuku_mid = (fuku_low + fuku_high) / 2
+    model_rank = race_df["prob"].rank(ascending=False, method="first")
+    ninki = tansho.rank(method="first", ascending=True)
+    shutsuu = len(race_df)
+
+    X = pd.DataFrame({
+        "cal_prob": cal_prob_vals,
+        "model_rank": model_rank.values,
+        "ninki": ninki.values,
+        "tan_odds": tansho.values,
+        "fuku_mid": fuku_mid.values,
+        "EV_fuku": cal_prob_vals * fuku_mid.values,
+        "disagree": model_rank.values - ninki.values,
+        "abs_disagree": np.abs(model_rank.values - ninki.values),
+        "log_tan_odds": np.log1p(tansho.values),
+        "log_fuku_mid": np.log1p(fuku_mid.values),
+        "odds_rank_ratio": tansho.values / (ninki.values + 0.5),
+        "model_vs_market_prob": cal_prob_vals - (1 / tansho.values),
+        "shutsuu": shutsuu,
+        "fuku_spread": (fuku_high - fuku_low).values,
+        "fuku_spread_ratio": ((fuku_high - fuku_low) / (fuku_mid + 0.01)).values,
+    }, index=race_df.index)
+
+    # Predict
+    pred_roi = vm.predict(X[feats])
+    return (pd.Series(pred_roi, index=race_df.index),
+            pd.Series(cal_prob_vals, index=race_df.index))
+
+
+# =========================================================
 # 買い目生成
 # =========================================================
 def floor_to_unit(x: int, unit: int = MIN_UNIT) -> int:
@@ -1034,6 +1121,10 @@ def main() -> None:
     parser.add_argument("--csv",    required=True, help="入力CSVパス (例: data/weekly/20260301.csv)")
     parser.add_argument("--budget", type=int, default=10000, help="1レース予算（円）")
     parser.add_argument("--out",    default="", help="出力CSVパス（省略時は自動命名）")
+    parser.add_argument("--odds",   default="", help="OD CSVパス (例: E:/競馬過去走データ/OD260329.CSV)")
+    parser.add_argument("--strategy", default="balanced",
+                        choices=["balanced", "high_roi", "volume"],
+                        help="Value Model戦略 (default: balanced)")
     args = parser.parse_args()
 
     csv_path = Path(args.csv)
@@ -1050,6 +1141,30 @@ def main() -> None:
 
     # CSV パース
     df = parse_csv(csv_path)
+
+    # OD CSV (前日オッズ) からの複勝オッズ取り込み
+    od_odds = None
+    if args.odds:
+        try:
+            from parse_od_csv import load_od_odds
+            od_path = Path(args.odds)
+            date_str = csv_path.stem  # "20260329" from filename
+            od_odds = load_od_odds(od_path, date=date_str)
+            logger.info(f"ODオッズ読込: {len(od_odds)}頭 / {od_odds['race_id'].nunique()}R")
+        except Exception as e:
+            logger.warning(f"OD CSV読込失敗: {e}")
+
+    # Value Model v2 戦略設定
+    value_strat_name = args.strategy
+    value_obj = _get_cached(VALUE_MODEL_PATH, "value_model")
+    if value_obj and "strategies" in value_obj:
+        value_strat = value_obj["strategies"].get(value_strat_name, {})
+        value_pr_thr = value_strat.get("pred_roi_thr", 0.88)
+        value_cp_thr = value_strat.get("cal_prob_thr", 0.20)
+        logger.info(f"Value戦略: {value_strat_name} (pred_roi>={value_pr_thr}, cal_prob>={value_cp_thr})")
+    else:
+        value_pr_thr = 0.88
+        value_cp_thr = 0.20
 
     # kako5 警告マップ（馬名→警告文）
     first_date = str(df["日付S"].iloc[0]) if "日付S" in df.columns else ""
@@ -1091,6 +1206,21 @@ def main() -> None:
             race_df["score"]    = 0.0
             race_df["ev_score"] = 0.0
             race_df["ev_cal"]   = 0.0
+
+        # ── Value Model (Layer 2) ─────────────────────────────────
+        try:
+            race_df["value_score"], race_df["cal_prob"] = compute_value_scores(
+                race_df, od_odds=od_odds)
+            # VALUE戦略判定: pred_roi >= threshold AND cal_prob >= threshold
+            race_df["value_buy"] = (
+                (race_df["value_score"] >= value_pr_thr) &
+                (race_df["cal_prob"] >= value_cp_thr)
+            )
+        except Exception as e:
+            logger.debug(f"Value Model スキップ {race_id}: {e}")
+            race_df["value_score"] = np.nan
+            race_df["cal_prob"] = np.nan
+            race_df["value_buy"] = False
 
         # ── 昇級戦判定（◎ベース） ───────────────────────────────
         hon_row      = race_df[race_df["mark"] == "◎"]
@@ -1166,6 +1296,11 @@ def main() -> None:
                 "CQC_戦略対象":        "✅" if bets["CQC_戦略対象"]  else "",
                 "CQC_単勝_買い目":     bets["CQC_単勝_買い目"]     if is_hon else "",
                 "CQC_単勝_購入額":     bets["CQC_単勝_購入額"]     if is_hon else "",
+                "ValueScore":          round(float(row.get("value_score", 0.0)), 3)
+                                       if pd.notna(row.get("value_score")) else "",
+                "CalProb":             round(float(row.get("cal_prob", 0.0)), 3)
+                                       if pd.notna(row.get("cal_prob")) else "",
+                "VALUE_買い":          "✅" if row.get("value_buy", False) else "",
             })
 
     out_df = pd.DataFrame(rows)
@@ -1185,6 +1320,12 @@ def main() -> None:
     cqc_races  = out_df[out_df["CQC_戦略対象"] =="✅"]["レースID"].nunique()
     print(f"\n{'='*50}")
     print(f"予想完了: {out_df['レースID'].nunique()}レース / {len(out_df)}頭")
+    # Value Model サマリ
+    if "VALUE_買い" in out_df.columns:
+        value_horses = (out_df["VALUE_買い"] == "✅").sum()
+        value_races = out_df.loc[out_df["VALUE_買い"] == "✅", "レースID"].nunique()
+        print(f"VALUE戦略({value_strat_name}): {value_horses}頭 / {value_races}R "
+              f"(pred_roi>={value_pr_thr}, cal_prob>={value_cp_thr})")
     print(f"HAHO対象: {haho_races}R  HALO対象: {halo_races}R  LALO対象: {lalo_races}R  CQC対象: {cqc_races}R")
     print(f"出力先:   {out_path}")
     print(f"{'='*50}")
