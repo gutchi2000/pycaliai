@@ -768,7 +768,6 @@ def assign_marks(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-@st.cache_data(show_spinner="全レース予想計算中...")
 def _compute_value_scores_app(race_df: pd.DataFrame) -> tuple:
     """Value Model v2 で predicted ROI と cal_prob を計算する (app.py内用)。"""
     nan_s = pd.Series(np.nan, index=race_df.index)
@@ -813,6 +812,7 @@ def _compute_value_scores_app(race_df: pd.DataFrame) -> tuple:
     return pd.Series(pred_roi, index=race_df.index), pd.Series(cal_prob_v, index=race_df.index)
 
 
+@st.cache_data(show_spinner="全レース予想計算中...")
 def predict_all_races(cache_key: str, df_json: str, _lgbm_obj: dict, _cat_obj: dict) -> str:
     import io
     df = pd.read_json(io.StringIO(df_json))

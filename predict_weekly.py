@@ -1216,6 +1216,25 @@ def main() -> None:
                 (race_df["value_score"] >= value_pr_thr) &
                 (race_df["cal_prob"] >= value_cp_thr)
             )
+            # 調教フィルタ（任意: データがなくても動作に影響なし）
+            try:
+                from parse_training import load_training_features
+                training_dir = BASE_DIR / "data" / "training"
+                if training_dir.exists():
+                    t_feats = load_training_features(str(training_dir), week_date=date)
+                    for idx, row in race_df.iterrows():
+                        horse_name = str(row.get("馬名S", row.get("馬名", "")))
+                        if horse_name in t_feats.index:
+                            tf = t_feats.loc[horse_name]
+                            # 末脚加速良好 → 閾値を0.02緩和して買い判定
+                            if pd.notna(tf.get("h_accel")) and tf["h_accel"] < -1.5:
+                                if race_df.at[idx, "value_score"] >= value_pr_thr - 0.02:
+                                    race_df.at[idx, "value_buy"] = True
+                            # 坂路最終1Fが遅すぎ → 買い判定取消
+                            if pd.notna(tf.get("h_best_lap1")) and tf["h_best_lap1"] > 17.0:
+                                race_df.at[idx, "value_buy"] = False
+            except Exception:
+                pass  # 調教データなし or エラー時はスキップ
         except Exception as e:
             logger.debug(f"Value Model スキップ {race_id}: {e}")
             race_df["value_score"] = np.nan

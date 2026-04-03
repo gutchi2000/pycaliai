@@ -83,9 +83,21 @@ Write-Host ""
 Write-Host "=== Done ===" -ForegroundColor Green
 Write-Host "Streamlit Cloud results page will update in a few seconds." -ForegroundColor Gray
 
-# -- 週次監査（毎週日曜に自動実行）--
+# -- Value Model月次再学習（月初の日曜のみ）--
 $dow = (Get-Date).DayOfWeek   # Sunday=0
+$dayOfMonth = (Get-Date).Day
 
+if ($dow -eq 0 -and $dayOfMonth -le 7) {
+    Write-Host ""
+    Write-Host "=== Value Model月次再学習 ===" -ForegroundColor Yellow
+    $endDate = (Get-Date -Format "yyyyMMdd")
+    python retrain_value_model.py --end-date $endDate
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "retrain_value_model.py failed (non-fatal, continuing...)"
+    }
+}
+
+# -- 週次監査（毎週日曜に自動実行）--
 if ($dow -eq 0) {
     Write-Host ""
     Write-Host "=== 週次監査を実行します ===" -ForegroundColor Magenta
