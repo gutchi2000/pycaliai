@@ -307,6 +307,32 @@ def calc_plan_races(pred: pd.DataFrame, kekka_cache: dict,
                 "収支":   round(tan_ret - tan_inv),
             })
 
+        elif plan == "TRIPLE":
+            # 三連複◎◯▲
+            san_inv  = float(hon.get("TRIPLE_三連複_購入額", 0) or 0)
+            san_bets = split_combos(str(hon.get("TRIPLE_三連複_買い目", "")))
+            san_hit  = (any(c <= set(top3) for c in san_bets)) if san_bets and top3 else False
+            san_ret  = 0.0
+            if san_hit:
+                odds    = get_payout_sanrenfuku(race_kk)
+                san_ret = san_inv * odds / 100
+            # 複勝◎
+            fuku_inv  = float(hon.get("TRIPLE_複勝_購入額", 0) or 0)
+            bet_horse = to_int(hon.get("TRIPLE_複勝_買い目"))
+            fuku_hit  = (bet_horse in top3) if bet_horse and top3 else False
+            fuku_ret  = 0.0
+            if fuku_hit and bet_horse:
+                odds     = get_payout_fukusho(race_kk, bet_horse)
+                fuku_ret = fuku_inv * odds / 100
+
+            rec.update({
+                "三連複_投資": san_inv,  "三連複_払戻": round(san_ret),  "三連複_的中": int(san_hit),
+                "複勝_投資":   fuku_inv, "複勝_払戻":   round(fuku_ret), "複勝_的中":   int(fuku_hit),
+                "総投資": san_inv + fuku_inv,
+                "総払戻": round(san_ret + fuku_ret),
+                "収支":   round(san_ret + fuku_ret - san_inv - fuku_inv),
+            })
+
         records.append(rec)
 
     log.info(f"{plan}: {len(records)} レース集計完了")
@@ -338,6 +364,9 @@ def build_summary(plan: str, records: list[dict]) -> dict:
         type_keys = {"三連複": ("三連複_投資", "三連複_払戻", "三連複_的中")}
     elif plan == "LALO":
         type_keys = {"複勝": ("複勝_投資", "複勝_払戻", "複勝_的中")}
+    elif plan == "TRIPLE":
+        type_keys = {"三連複": ("三連複_投資", "三連複_払戻", "三連複_的中"),
+                     "複勝":   ("複勝_投資",   "複勝_払戻",   "複勝_的中")}
     else:  # CQC
         type_keys = {"単勝": ("単勝_投資", "単勝_払戻", "単勝_的中")}
 
@@ -403,7 +432,7 @@ def main() -> None:
     kekka_cache = load_kekka_all()
 
     result = {"generated_at": pd.Timestamp.now().isoformat()}
-    for plan in ["HAHO", "HALO", "LALO", "CQC"]:
+    for plan in ["HAHO", "HALO", "LALO", "CQC", "TRIPLE"]:
         records = calc_plan_races(pred, kekka_cache, plan)
         result[plan] = build_summary(plan, records)
 
@@ -412,7 +441,7 @@ def main() -> None:
     log.info(f"results.json 保存完了: {OUT_PATH}")
 
     print("\n=== 集計結果 ===")
-    for plan in ["HAHO", "HALO", "LALO", "CQC"]:
+    for plan in ["HAHO", "HALO", "LALO", "CQC", "TRIPLE"]:
         t = result[plan]["total"]
         print(f"{plan}: {t['races']}R  bet={t['bet']:,}  ret={t['ret']:,}  "
               f"pnl={t['pnl']:+,}  ROI={t['roi']}%")

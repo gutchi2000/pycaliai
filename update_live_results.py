@@ -182,8 +182,8 @@ def update_live_results(date_str: str) -> None:
                         changed = True
                         break
 
-        # ── 三連複払戻（HAHO/HALO三連複買い目と照合） ──
-        for bet_col in ["HAHO_三連複_買い目", "HALO_三連複_買い目"]:
+        # ── 三連複払戻（HAHO/HALO/TRIPLE三連複買い目と照合） ──
+        for bet_col in ["HAHO_三連複_買い目", "HALO_三連複_買い目", "TRIPLE_三連複_買い目"]:
             san_str = str(row.get(bet_col, "")).strip()
             if san_str and san_str != "nan" and "三連複払戻" in lr.columns:
                 if pd.isna(lr.at[idx, "三連複払戻"]) or str(lr.at[idx, "三連複払戻"]).strip() in ("", "nan"):

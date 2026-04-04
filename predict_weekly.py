@@ -1056,6 +1056,55 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
     return result
 
 
+def get_triple_bets(race_df: pd.DataFrame, budget: int, triple_type: str = "standard") -> dict:
+    """TRIPLE戦略: 三連複◎◯▲ 1点 + 複勝◎ 1点
+
+    triple_type:
+      aggressive: 三連複100%, 複勝0%
+      standard:   三連複50%, 複勝50%
+      safe:       三連複30%, 複勝70%
+    """
+    splits = {
+        "aggressive": (1.0, 0.0),
+        "standard":   (0.5, 0.5),
+        "safe":       (0.3, 0.7),
+    }
+    san_ratio, fuku_ratio = splits.get(triple_type, (0.5, 0.5))
+
+    result = {
+        "TRIPLE_戦略対象":    False,
+        "TRIPLE_三連複_買い目": "",  "TRIPLE_三連複_購入額": 0,
+        "TRIPLE_複勝_買い目":   "",  "TRIPLE_複勝_購入額":   0,
+    }
+
+    hon   = race_df[race_df["mark"] == "◎"]
+    tai   = race_df[race_df["mark"] == "◯"]
+    sabo  = race_df[race_df["mark"] == "▲"]
+    if hon.empty:
+        return result
+
+    h1 = int(hon.iloc[0]["馬番"])
+    h2 = int(tai.iloc[0]["馬番"])  if not tai.empty  else None
+    h3 = int(sabo.iloc[0]["馬番"]) if not sabo.empty else None
+
+    result["TRIPLE_戦略対象"] = True
+
+    # 複勝◎
+    if fuku_ratio > 0:
+        amt_fuku = floor_to_unit(int(budget * fuku_ratio))
+        result["TRIPLE_複勝_買い目"] = str(h1)
+        result["TRIPLE_複勝_購入額"] = amt_fuku
+
+    # 三連複◎◯▲ 1点
+    if san_ratio > 0 and h2 and h3:
+        amt_san = floor_to_unit(int(budget * san_ratio))
+        key = "-".join(map(str, sorted([h1, h2, h3])))
+        result["TRIPLE_三連複_買い目"] = key
+        result["TRIPLE_三連複_購入額"] = amt_san
+
+    return result
+
+
 # =========================================================
 # ライブ結果記録
 # =========================================================
@@ -1078,6 +1127,8 @@ def _append_live_results(out_df: pd.DataFrame) -> None:
         "HALO_戦略対象", "HALO_三連複_買い目", "HALO_三連複_購入額",
         "LALO_戦略対象", "LALO_複勝_買い目",   "LALO_複勝_購入額",
         "CQC_戦略対象",  "CQC_単勝_買い目",    "CQC_単勝_購入額",
+        "TRIPLE_戦略対象", "TRIPLE_三連複_買い目", "TRIPLE_三連複_購入額",
+                           "TRIPLE_複勝_買い目",   "TRIPLE_複勝_購入額",
     ]
     # 実際に存在する列のみ抽出
     use_cols = [c for c in pred_cols if c in out_df.columns]
@@ -1125,6 +1176,12 @@ def main() -> None:
     parser.add_argument("--strategy", default="balanced",
                         choices=["balanced", "high_roi", "volume"],
                         help="Value Model戦略 (default: balanced)")
+    parser.add_argument("--plan", default="triple",
+                        choices=["triple", "legacy"],
+                        help="買い目プラン: triple=三連複+複勝統一戦略, legacy=旧HAHO/HALO/LALO/CQC (default: triple)")
+    parser.add_argument("--triple-type", default="standard",
+                        choices=["aggressive", "standard", "safe"],
+                        help="TRIPLEプランの配分: aggressive=三連複100%%, standard=三連複50%%+複勝50%%, safe=三連複30%%+複勝70%% (default: standard)")
     args = parser.parse_args()
 
     csv_path = Path(args.csv)
@@ -1272,6 +1329,9 @@ def main() -> None:
             "LALO_複勝_買い目": "", "LALO_複勝_購入額": 0,
             "CQC_戦略対象":  False,
             "CQC_単勝_買い目": "", "CQC_単勝_購入額":  0,
+            "TRIPLE_戦略対象": False,
+            "TRIPLE_三連複_買い目": "", "TRIPLE_三連複_購入額": 0,
+            "TRIPLE_複勝_買い目": "",   "TRIPLE_複勝_購入額":   0,
         }
 
         if base_excluded or filter_result.should_skip:
@@ -1279,8 +1339,17 @@ def main() -> None:
             if filter_result.should_skip and not base_excluded:
                 logger.info(f"[BetFilter] ケン: {place} {r_num}R → {filter_result.reason}")
         else:
-            # 買い目生成
-            bets = get_bets(race_df, place, cls_raw, strategy, args.budget)
+            # 買い目生成（TRIPLE戦略 or レガシー戦略）
+            if args.plan == "triple":
+                triple_bets = get_triple_bets(race_df, args.budget, args.triple_type)
+                bets = {**_empty_bets, **triple_bets}
+            else:
+                bets = get_bets(race_df, place, cls_raw, strategy, args.budget)
+                bets["TRIPLE_戦略対象"] = False
+                bets["TRIPLE_三連複_買い目"] = ""
+                bets["TRIPLE_三連複_購入額"] = 0
+                bets["TRIPLE_複勝_買い目"] = ""
+                bets["TRIPLE_複勝_購入額"] = 0
 
         for _, row in race_df.sort_values("馬番").iterrows():
             is_hon = row["mark"] == "◎"
@@ -1320,6 +1389,11 @@ def main() -> None:
                 "CalProb":             round(float(row.get("cal_prob", 0.0)), 3)
                                        if pd.notna(row.get("cal_prob")) else "",
                 "VALUE_買い":          "✅" if row.get("value_buy", False) else "",
+                "TRIPLE_戦略対象":     "✅" if bets["TRIPLE_戦略対象"] else "",
+                "TRIPLE_三連複_買い目": bets["TRIPLE_三連複_買い目"] if is_hon else "",
+                "TRIPLE_三連複_購入額": bets["TRIPLE_三連複_購入額"] if is_hon else "",
+                "TRIPLE_複勝_買い目":   bets["TRIPLE_複勝_買い目"]   if is_hon else "",
+                "TRIPLE_複勝_購入額":   bets["TRIPLE_複勝_購入額"]   if is_hon else "",
             })
 
     out_df = pd.DataFrame(rows)
@@ -1337,21 +1411,40 @@ def main() -> None:
     halo_races = out_df[out_df["HALO_戦略対象"]=="✅"]["レースID"].nunique()
     lalo_races = out_df[out_df["LALO_戦略対象"]=="✅"]["レースID"].nunique()
     cqc_races  = out_df[out_df["CQC_戦略対象"] =="✅"]["レースID"].nunique()
+    triple_races = out_df[out_df["TRIPLE_戦略対象"]=="✅"]["レースID"].nunique()
     print(f"\n{'='*50}")
     print(f"予想完了: {out_df['レースID'].nunique()}レース / {len(out_df)}頭")
+    print(f"プラン: {args.plan}" + (f" ({args.triple_type})" if args.plan == "triple" else ""))
+    if args.plan == "triple":
+        hon_triple = out_df[(out_df["印"]=="◎") & (out_df["TRIPLE_戦略対象"]=="✅")]
+        total_san = hon_triple["TRIPLE_三連複_購入額"].astype(float).sum()
+        total_fuku = hon_triple["TRIPLE_複勝_購入額"].astype(float).sum()
+        print(f"TRIPLE対象: {triple_races}R  三連複合計: {total_san:,.0f}円  複勝合計: {total_fuku:,.0f}円  総投資: {total_san+total_fuku:,.0f}円")
     # Value Model サマリ
     if "VALUE_買い" in out_df.columns:
         value_horses = (out_df["VALUE_買い"] == "✅").sum()
         value_races = out_df.loc[out_df["VALUE_買い"] == "✅", "レースID"].nunique()
         print(f"VALUE戦略({value_strat_name}): {value_horses}頭 / {value_races}R "
               f"(pred_roi>={value_pr_thr}, cal_prob>={value_cp_thr})")
-    print(f"HAHO対象: {haho_races}R  HALO対象: {halo_races}R  LALO対象: {lalo_races}R  CQC対象: {cqc_races}R")
+    if args.plan == "legacy":
+        print(f"HAHO対象: {haho_races}R  HALO対象: {halo_races}R  LALO対象: {lalo_races}R  CQC対象: {cqc_races}R")
     print(f"出力先:   {out_path}")
     print(f"{'='*50}")
 
     # 戦略対象レースの買い目サマリ
     hon_rows = out_df[out_df["印"]=="◎"].copy()
     if not hon_rows.empty:
+        # TRIPLE買い目（デフォルト表示）
+        if args.plan == "triple" and "TRIPLE_戦略対象" in hon_rows.columns:
+            triple_disp = hon_rows[hon_rows["TRIPLE_戦略対象"]=="✅"][[
+                "日付","場所","R","クラス","距離","馬名",
+                "TRIPLE_三連複_買い目","TRIPLE_三連複_購入額",
+                "TRIPLE_複勝_買い目","TRIPLE_複勝_購入額",
+            ]]
+            if not triple_disp.empty:
+                print(f"\n【TRIPLE 買い目一覧（{args.triple_type}: 三連複◎◯▲1点 + 複勝◎1点）】")
+                print(triple_disp.to_string(index=False))
+
         haho_disp = hon_rows[hon_rows["HAHO_戦略対象"]=="✅"][[
             "日付","場所","R","クラス","距離","馬名",
             "HAHO_馬連_買い目","HAHO_馬連_購入額",

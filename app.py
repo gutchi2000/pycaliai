@@ -989,6 +989,20 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
     result["CQC"]  = [{"馬券種":"単勝","買い目":str(h1),
                        "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
 
+    # ── TRIPLE: 三連複◎◯▲1点 + 複勝◎1点（標準型 50/50）────────────────
+    if h2 and h3:
+        san_key    = "-".join(map(str, sorted([h1, h2, h3])))
+        amt_san    = floor_to_unit(budget // 2)
+        amt_fuku   = floor_to_unit(budget - amt_san)
+        triple_bets = [
+            {"馬券種":"三連複","買い目":san_key,  "購入額":amt_san, "ROI":134},
+            {"馬券種":"複勝",  "買い目":str(h1),  "購入額":amt_fuku,"ROI":84},
+        ]
+    else:
+        # ◯▲不在時は複勝のみ
+        triple_bets = [{"馬券種":"複勝","買い目":str(h1),"購入額":floor_to_unit(budget),"ROI":84}]
+    result["TRIPLE"] = triple_bets
+
     return result
 
 
@@ -2641,14 +2655,21 @@ def page_results(results: dict) -> None:
         unsafe_allow_html=True,
     )
 
-    # 新フォーマット（HAHO/HALO/LALO/CQC キーあり）
-    if "HAHO" in results or "HALO" in results or "LALO" in results or "CQC" in results:
-        tab_haho, tab_halo, tab_lalo, tab_cqc = st.tabs([
+    # 新フォーマット（HAHO/HALO/LALO/CQC/TRIPLE キーあり）
+    if "HAHO" in results or "HALO" in results or "LALO" in results or "CQC" in results or "TRIPLE" in results:
+        tab_triple, tab_haho, tab_halo, tab_lalo, tab_cqc = st.tabs([
+            "🔱 TRIPLE  三連複+複勝",
             "🛡️ HAHO  安定積み上げ",
             "🎯 HALO  高配当特化",
             "🍀 LALO  コツコツ複勝",
             "⚔️ CQC   孤高の真髄",
         ])
+        with tab_triple:
+            triple_data = results.get("TRIPLE", {})
+            if not triple_data or not triple_data.get("total", {}).get("races"):
+                st.info("TRIPLEのデータがありません。predict_weekly.py --plan triple を実行後、weekly_post.ps1 を実行してください。")
+            else:
+                _render_plan_results(triple_data, "TRIPLE")
         with tab_haho:
             haho_data = results.get("HAHO", {})
             if not haho_data or not haho_data.get("total", {}).get("races"):
@@ -2957,19 +2978,20 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         if not bets_all:
             continue
         race_metas.append({
-            "race_id":   race_id,
-            "場所":      place,
-            "R":         int(meta.get("R", 0)),
-            "クラス":    cls_raw,
-            "発走":      str(meta.get("発走時刻", "")),
-            "距離":      f'{meta.get("芝・ダ","")}{meta.get("距離","")}m',
-            "馬場":      _normalize_baba(str(meta.get("馬場状態",""))),
-            "◎":         hon_name,
-            "◎スコア":   hon_score,
-            "HAHO_bets": bets_all.get("HAHO", []),
-            "HALO_bets": bets_all.get("HALO", []),
-            "LALO_bets": bets_all.get("LALO", []),
-            "CQC_bets":  bets_all.get("CQC",  []),
+            "race_id":    race_id,
+            "場所":       place,
+            "R":          int(meta.get("R", 0)),
+            "クラス":     cls_raw,
+            "発走":       str(meta.get("発走時刻", "")),
+            "距離":       f'{meta.get("芝・ダ","")}{meta.get("距離","")}m',
+            "馬場":       _normalize_baba(str(meta.get("馬場状態",""))),
+            "◎":          hon_name,
+            "◎スコア":    hon_score,
+            "HAHO_bets":  bets_all.get("HAHO",   []),
+            "HALO_bets":  bets_all.get("HALO",   []),
+            "LALO_bets":  bets_all.get("LALO",   []),
+            "CQC_bets":   bets_all.get("CQC",    []),
+            "TRIPLE_bets":bets_all.get("TRIPLE", []),
         })
 
     if not race_metas:
@@ -2979,13 +3001,16 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
     # プラン選択
     plan = st.radio(
         "プラン選択",
-        ["🛡️ HAHO  安定積み上げ（馬連◎軸2点 ＋ 三連複1点）",
+        ["🔱 TRIPLE 三連複◎◯▲1点＋複勝◎1点（標準型 50/50）",
+         "🛡️ HAHO  安定積み上げ（馬連◎軸2点 ＋ 三連複1点）",
          "🎯 HALO  高配当特化（三連複ボックス1点のみ）",
          "🍀 LALO  コツコツ複勝（複勝◎1点のみ）",
          "⚔️ CQC   孤高の真髄（単勝◎1点のみ）"],
         horizontal=True, key="buylist_plan",
     )
-    if plan.startswith("🛡️"):
+    if plan.startswith("🔱"):
+        plan_key = "TRIPLE_bets"
+    elif plan.startswith("🛡️"):
         plan_key = "HAHO_bets"
     elif plan.startswith("🎯"):
         plan_key = "HALO_bets"
