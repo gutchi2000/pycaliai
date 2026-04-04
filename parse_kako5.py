@@ -54,6 +54,20 @@ KAKO5_COLS = [
     "kako5_avg_agari3f", "kako5_best_agari3f",
     "kako5_same_td_ratio", "kako5_same_dist_ratio", "kako5_same_place_ratio",
     "kako5_pos_trend", "kako5_race_count",
+    # --- 好走3分類 (Phase 5) ---
+    "kako5_expected_good_count",   # 期待通り好��: 人気<=3 AND 着順<=3（人気なし時: 着順<=3）
+    "kako5_upset_good_count",      # 格上挑戦好走: 人気>=8 AND 着順<=5（人気なし時: NaN）
+    "kako5_hidden_good_count",     # 隠れた好走: 着順>5 AND 上り3F < 34.5
+    # --- 同条件ベスト ---
+    "kako5_same_cond_best_pos",    # 過去5走のうち同条件(TD+距離帯)での最高着順
+]
+
+# 全キャリア検索で算出する特徴量（build_from_master専用、5走制限なし）
+HIST_COLS = [
+    "hist_same_cond_best_pos",     # 全キャリアで同TD+同距離帯の最高���順
+    "hist_same_cond_top3_rate",    # 全キャリアで同条件の複勝率
+    "hist_same_cond_count",        # 全キャリアで同条件出走回数
+    "hist_same_place_best_pos",    # 全��ャリアで同場所の��高着順
 ]
 
 
@@ -129,6 +143,54 @@ def _compute_features(
     elif len(positions) == 1:
         result["kako5_pos_trend"] = 0.0
 
+    # --- 好走3分類 ---
+    # 1. 期待通りの好走: 人気<=3 AND 着順<=3（人気データなし時は着順<=3のみ）
+    expected_good = 0
+    for r in past_races:
+        pos = r.get("着順")
+        ninki = r.get("人気")
+        if pos is not None and pos <= 3:
+            if ninki is not None:
+                if ninki <= 3:
+                    expected_good += 1
+            else:
+                # 人気データなし（master CSV）→ 着順<=3 を代用
+                expected_good += 1
+    result["kako5_expected_good_count"] = expected_good
+
+    # 2. 格上挑戦での好走: 人気>=8 AND 着順<=5（人気なし→NaN）
+    upset_good = 0
+    has_ninki = any(r.get("人気") is not None for r in past_races)
+    if has_ninki:
+        for r in past_races:
+            pos = r.get("着順")
+            ninki = r.get("人気")
+            if pos is not None and ninki is not None and ninki >= 8 and pos <= 5:
+                upset_good += 1
+        result["kako5_upset_good_count"] = upset_good
+    # else: NaN（人気データなし）
+
+    # 3. 隠れた好走: 着順>5 だが上り3F < 34.5（末脚が良い = 次走で爆発する予兆）
+    hidden_good = 0
+    for r in past_races:
+        pos = r.get("着順")
+        agari = r.get("上り3F")
+        if pos is not None and pos > 5 and agari is not None and agari < 34.5:
+            hidden_good += 1
+    result["kako5_hidden_good_count"] = hidden_good
+
+    # --- 同条件ベスト（過去5走のうち同TD+同距離帯）---
+    if current_td is not None and current_dist is not None:
+        same_cond_positions = [
+            r["着順"] for r in past_races
+            if r["着順"] is not None
+            and r.get("TD") == current_td
+            and r.get("距離") is not None
+            and abs(r["距離"] - current_dist) <= 200
+        ]
+        if same_cond_positions:
+            result["kako5_same_cond_best_pos"] = min(same_cond_positions)
+
     return result
 
 
@@ -180,9 +242,14 @@ def build_from_master(master_path: Path, output_path: Path) -> pd.DataFrame:
     for horse_id, group in df.groupby(horse_col, sort=False):
         group = group.sort_values("_date")
         idxs     = group.index.tolist()
-        pos_vals = pd.to_numeric(group["前走確定着順"], errors="coerce").values  # 着順は自身の着順を使う
+        pos_vals = pd.to_numeric(group["前走確定着順"], errors="coerce").values
         着順_vals = pd.to_numeric(group["着順"], errors="coerce").values
         ninki_raw = group.get("人気")  # master に人気列があるか確認
+
+        # 全キャリア検索用: TD・距離・場所を事前取得
+        all_td    = group["_td_code"].values
+        all_dist  = group["_dist"].values
+        all_place = group["_place"].values
 
         for seq_i, idx in enumerate(idxs):
             row = group.loc[idx]
@@ -208,22 +275,62 @@ def build_from_master(master_path: Path, output_path: Path) -> pd.DataFrame:
                 current_dist=_safe_float(row.get("_dist")),
                 current_place=row.get("_place"),
             )
+
+            # --- 全キャリア同条件ベスト（5走制限なし） ---
+            cur_td    = row.get("_td_code", "")
+            cur_dist  = _safe_float(row.get("_dist"))
+            cur_place = row.get("_place", "")
+
+            for hcol in HIST_COLS:
+                feats[hcol] = np.nan
+
+            if seq_i > 0 and cur_td and cur_dist is not None:
+                # 同条件 = 同TD + 同距離帯(±200m)
+                same_cond_pos = []
+                for pi_seq in range(seq_i):
+                    pos = 着順_vals[pi_seq]
+                    if np.isnan(pos):
+                        continue
+                    td_i = all_td[pi_seq]
+                    dist_i = all_dist[pi_seq]
+                    if td_i == cur_td and not np.isnan(dist_i) and abs(dist_i - cur_dist) <= 200:
+                        same_cond_pos.append(int(pos))
+
+                if same_cond_pos:
+                    feats["hist_same_cond_best_pos"] = min(same_cond_pos)
+                    feats["hist_same_cond_top3_rate"] = sum(1 for p in same_cond_pos if p <= 3) / len(same_cond_pos)
+                    feats["hist_same_cond_count"] = len(same_cond_pos)
+
+            if seq_i > 0 and cur_place:
+                # 同場所ベスト
+                same_place_pos = []
+                for pi_seq in range(seq_i):
+                    pos = 着順_vals[pi_seq]
+                    if np.isnan(pos):
+                        continue
+                    if all_place[pi_seq] == cur_place:
+                        same_place_pos.append(int(pos))
+                if same_place_pos:
+                    feats["hist_same_place_best_pos"] = min(same_place_pos)
+
             feats["_idx"] = idx
             feat_rows.append(feats)
 
     feat_df = pd.DataFrame(feat_rows).set_index("_idx")
-    for col in KAKO5_COLS:
-        df[col] = feat_df[col]
+    all_cols = KAKO5_COLS + HIST_COLS
+    for col in all_cols:
+        df[col] = feat_df[col] if col in feat_df.columns else np.nan
 
     # 一時列削除
     df = df.drop(columns=["_date", "_td_code", "_dist", "_place"])
 
     # 保存
     df.to_csv(output_path, index=False, encoding="utf-8-sig")
-    logger.info(f"保存完了: {output_path} ({len(df):,}行, +{len(KAKO5_COLS)}特徴量)")
+    all_feature_count = len(KAKO5_COLS) + len(HIST_COLS)
+    logger.info(f"保存完了: {output_path} ({len(df):,}行, +{all_feature_count}特徴量)")
 
     # 統計表示
-    for col in KAKO5_COLS:
+    for col in all_cols:
         valid_pct = df[col].notna().mean() * 100
         logger.info(f"  {col}: カバレッジ={valid_pct:.1f}%  mean={df[col].mean():.3f}")
 

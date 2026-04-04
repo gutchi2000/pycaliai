@@ -49,6 +49,9 @@ CAL_PATH_V1    = MODEL_DIR / "ensemble_calibrator_v1.pkl"
 WIN_PATH       = MODEL_DIR / "lgbm_win_v1.pkl"
 FUKU_LGBM_PATH = MODEL_DIR / "lgbm_fukusho_v1.pkl"
 FUKU_CAT_PATH  = MODEL_DIR / "catboost_fukusho_v1.pkl"
+RANK_LGBM_PATH = MODEL_DIR / "lgbm_rank_v1.pkl"        # LambdaRank (Phase 5)
+REGRESS_PATH   = MODEL_DIR / "lgbm_regression_v1.pkl"   # 着順回帰 (Phase 5)
+ENS_WEIGHTS_PATH = MODEL_DIR / "ensemble_weights.json"  # 最適化重み (Phase 5)
 VALUE_MODEL_PATH = MODEL_DIR / "value_model_v2.pkl"
 RETURN_RATE_FUKU = 0.75   # 複勝控除率
 TORCH_PATH     = MODEL_DIR / "transformer_pl_v2.pkl"
@@ -743,6 +746,90 @@ def predict_catboost_rank(df: pd.DataFrame, obj: dict) -> np.ndarray:
     return result
 
 
+def predict_lgbm_rank(df: pd.DataFrame, obj: dict) -> np.ndarray:
+    """LambdaRankモデルで予測。スコアをレース内min-max正規化して[0,1]に変換。"""
+    model = obj["model"]
+    encoders = obj["encoders"]
+    feature_cols = obj["feature_cols"]
+    df = df.copy()
+    for col in ["前走走破タイム","前走着差タイム"]:
+        if col in df.columns:
+            df[col] = parse_time_str(df[col])
+    for col, le in encoders.items():
+        if col not in df.columns:
+            df[col] = 0
+            continue
+        df[col] = df[col].astype(str).fillna("__NaN__")
+        known = set(le.classes_)
+        df[col] = df[col].apply(lambda x: x if x in known else "__NaN__")
+        if "__NaN__" not in le.classes_:
+            le.classes_ = np.append(le.classes_, "__NaN__")
+        df[col] = le.transform(df[col])
+    _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
+                     "horse_fuku10","horse_fuku30","前走補9","前走補正",
+                     "trn_hanro_4f","trn_hanro_3f","trn_hanro_2f","trn_hanro_1f",
+                     "trn_hanro_lap1","trn_hanro_lap2","trn_hanro_lap3","trn_hanro_lap4",
+                     "trn_hanro_days",
+                     "trn_wc_5f","trn_wc_4f","trn_wc_3f",
+                     "trn_wc_lap1","trn_wc_lap2","trn_wc_lap3",
+                     "trn_wc_days","前走単勝オッズ"}
+    for col in feature_cols:
+        if col not in df.columns:
+            df[col] = np.nan if col in _ROLLING_COLS else 0
+    scores = model.predict(df[feature_cols])
+    result = np.full(len(df), 0.5)
+    df_reset = df.reset_index(drop=True)
+    for race_id, group in df_reset.groupby("レースID(新/馬番無)"):
+        idx = group.index.tolist()
+        s = scores[idx]
+        s_min, s_max = s.min(), s.max()
+        if s_max > s_min:
+            result[idx] = (s - s_min) / (s_max - s_min)
+    return result
+
+
+def predict_lgbm_regression(df: pd.DataFrame, obj: dict) -> np.ndarray:
+    """着順回帰モデルで予測。着順を反転してレース内正規化で[0,1]に変換。"""
+    model = obj["model"]
+    encoders = obj["encoders"]
+    feature_cols = obj["feature_cols"]
+    df = df.copy()
+    for col in ["前走走破タイム","前走着差タイム"]:
+        if col in df.columns:
+            df[col] = parse_time_str(df[col])
+    for col, le in encoders.items():
+        if col not in df.columns:
+            df[col] = 0
+            continue
+        df[col] = df[col].astype(str).fillna("__NaN__")
+        known = set(le.classes_)
+        df[col] = df[col].apply(lambda x: x if x in known else "__NaN__")
+        if "__NaN__" not in le.classes_:
+            le.classes_ = np.append(le.classes_, "__NaN__")
+        df[col] = le.transform(df[col])
+    _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
+                     "horse_fuku10","horse_fuku30","前走補9","前走補正",
+                     "trn_hanro_4f","trn_hanro_3f","trn_hanro_2f","trn_hanro_1f",
+                     "trn_hanro_lap1","trn_hanro_lap2","trn_hanro_lap3","trn_hanro_lap4",
+                     "trn_hanro_days",
+                     "trn_wc_5f","trn_wc_4f","trn_wc_3f",
+                     "trn_wc_lap1","trn_wc_lap2","trn_wc_lap3",
+                     "trn_wc_days","前走単勝オッズ"}
+    for col in feature_cols:
+        if col not in df.columns:
+            df[col] = np.nan if col in _ROLLING_COLS else 0
+    pred_pos = model.predict(df[feature_cols])
+    result = np.full(len(df), 0.5)
+    df_reset = df.reset_index(drop=True)
+    for race_id, group in df_reset.groupby("レースID(新/馬番無)"):
+        idx = group.index.tolist()
+        s = -pred_pos[idx]  # 着順を反転（小さい着順=高スコア）
+        s_min, s_max = s.min(), s.max()
+        if s_max > s_min:
+            result[idx] = (s - s_min) / (s_max - s_min)
+    return result
+
+
 _META_EXTRA = ["芝・ダ", "距離", "クラス名", "場所", "馬場状態", "出走頭数", "枠番", "馬番"]
 
 
@@ -860,17 +947,107 @@ def predict_stacking(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
         return None
 
 
+def _load_ensemble_weights() -> dict[str, float] | None:
+    """optimize_weights.py で生成した最適化重みをロードする。"""
+    if ENS_WEIGHTS_PATH.exists():
+        try:
+            with open(ENS_WEIGHTS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            weights = data.get("weights", {})
+            logger.info(f"最適化重みロード: {ENS_WEIGHTS_PATH.name} (method={data.get('method')})")
+            return weights
+        except Exception as e:
+            logger.warning(f"最適化重みロード失敗: {e}")
+    return None
+
+
 def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray:
-    # スタッキングは無効化（2026-03-28）
-    # 理由: valid Brier改善が0.0010以下で実用価値なし。
-    #       IsotonicRegressionの出力が常にmax>0.50となり100%フォールバックしていたため廃止。
-    #       再学習の場合は predict_stacking() と STACK_CAL_PATH を復活させること。
-    # YetiRank + Transformer PL が存在すれば4モデル加重平均
-    # キャリブレーターに最適重みが保存されていればそちらを使用（なければデフォルト値）
+    """
+    全モデルアンサンブル予測。
+    Phase 5: optimize_weights.py の最適化重みを自動ロード。
+    重みファイルがなければ従来のハードコード重みにフォールバック。
+    """
+    # --- Phase 5: 最適化重みベースのアンサンブル ---
+    opt_weights = _load_ensemble_weights()
+    if opt_weights is not None:
+        try:
+            raw = _ensemble_with_optimized_weights(df, lgbm_obj, cat_obj, opt_weights)
+        except Exception as e:
+            logger.warning(f"最適化重みアンサンブル失敗（フォールバック）: {e}")
+            raw = _ensemble_fallback(df, lgbm_obj, cat_obj)
+    else:
+        raw = _ensemble_fallback(df, lgbm_obj, cat_obj)
+
+    # キャリブレーター: v4 -> v3 -> v2 -> v1 優先チェーン
+    for cal_p, cal_key in [(CAL_PATH, "ens_cal"), (CAL_PATH_V3, "ens_cal_v3"),
+                           (CAL_PATH_V2, "ens_cal_v2"), (CAL_PATH_V1, "ens_cal_v1")]:
+        cal_obj = _get_cached(cal_p, cal_key)
+        if cal_obj is not None:
+            logger.info(f"キャリブレーター使用: {cal_p.name}")
+            return cal_obj["calibrator"].transform(raw)
+    logger.warning("キャリブレーター未生成。calibrate.py を先に実行してください。")
+    return raw
+
+
+def _ensemble_with_optimized_weights(
+    df: pd.DataFrame,
+    lgbm_obj: dict,
+    cat_obj: dict,
+    weights: dict[str, float],
+) -> np.ndarray:
+    """最適化重みを使った全モデルアンサンブル。"""
+    # モデル名 → (ロードキー, パス, 予測関数, obj or None)
+    model_map = {
+        "lgbm":       ("lgbm_opt",   LGBM_PATH,       predict_lgbm,            lgbm_obj),
+        "catboost":   ("cat_opt",    CAT_PATH,         predict_catboost,        cat_obj),
+        "fuku_lgbm":  ("fuku_lgbm",  FUKU_LGBM_PATH,  predict_lgbm_fukusho,    None),
+        "fuku_cat":   ("fuku_cat",   FUKU_CAT_PATH,    predict_catboost_fukusho, None),
+        "rank_cat":   ("rank",       RANK_PATH,        predict_catboost_rank,   None),
+        "rank_lgbm":  ("rank_lgbm",  RANK_LGBM_PATH,  predict_lgbm_rank,       None),
+        "regression": ("regression", REGRESS_PATH,     predict_lgbm_regression, None),
+        "lgbm_win":   ("lgbm_win",   WIN_PATH,         predict_lgbm_win,        None),
+    }
+
+    raw = np.zeros(len(df))
+    total_w = 0.0
+    used_models = []
+
+    for name, w in weights.items():
+        if w < 0.001 or name not in model_map:
+            continue
+        cache_key, path, fn, pre_obj = model_map[name]
+        # objが事前に渡されているものはそのまま使う
+        if pre_obj is not None:
+            obj = pre_obj
+        else:
+            obj = _get_cached(path, cache_key)
+            if obj is None:
+                logger.debug(f"  {name}: モデル未存在 ({path.name}), スキップ")
+                continue
+        try:
+            p = fn(df, obj)
+            raw += w * p
+            total_w += w
+            used_models.append(name)
+        except Exception as e:
+            logger.warning(f"  {name}: 予測失敗 ({e}), スキップ")
+
+    if total_w < 0.01:
+        raise RuntimeError("有効なモデルがありません")
+
+    # 使われなかったモデルがある場合、重みを再正規化
+    if abs(total_w - 1.0) > 0.01:
+        raw = raw / total_w
+        logger.info(f"重み再正規化: total_w={total_w:.3f} -> 1.0 (欠損モデルあり)")
+
+    logger.info(f"最適化アンサンブル: {len(used_models)}モデル ({', '.join(used_models)})")
+    return raw
+
+
+def _ensemble_fallback(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray:
+    """最適化重みなし時のフォールバック（従来ロジック）。"""
     rank_obj  = _get_cached(RANK_PATH, "rank")
-    torch_obj = _get_cached(TORCH_PATH, "torch")
-    cal_obj_pre = _get_cached(CAL_PATH, "ens_cal")
-    win_obj       = _get_cached(WIN_PATH,       "lgbm_win")
+    win_obj   = _get_cached(WIN_PATH, "lgbm_win")
     fuku_lgbm_obj = _get_cached(FUKU_LGBM_PATH, "fuku_lgbm")
     fuku_cat_obj  = _get_cached(FUKU_CAT_PATH,  "fuku_cat")
     if rank_obj is not None and win_obj is not None:
@@ -880,38 +1057,14 @@ def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
             p_rank = predict_catboost_rank(df, rank_obj)
             p_win  = predict_lgbm_win(df, win_obj)
             if fuku_lgbm_obj is not None and fuku_cat_obj is not None:
-                # 6モデル: LGBM×0.25 + Cat×0.25 + Rank×0.20 + Win×0.20 + FukuLGBM×0.05 + FukuCat×0.05
                 p_fuku_lgbm = predict_lgbm_fukusho(df, fuku_lgbm_obj)
                 p_fuku_cat  = predict_catboost_fukusho(df, fuku_cat_obj)
-                raw = (0.25 * p_lgbm + 0.25 * p_cat + 0.20 * p_rank
-                       + 0.20 * p_win + 0.05 * p_fuku_lgbm + 0.05 * p_fuku_cat)
-                logger.debug("6モデルアンサンブル（+複勝専用 LGBM/CatBoost）使用")
-            else:
-                # 4モデル: LGBM×0.30 + CatBoost×0.30 + Rank×0.20 + Win×0.20
-                raw = 0.30 * p_lgbm + 0.30 * p_cat + 0.20 * p_rank + 0.20 * p_win
+                return (0.25 * p_lgbm + 0.25 * p_cat + 0.20 * p_rank
+                        + 0.20 * p_win + 0.05 * p_fuku_lgbm + 0.05 * p_fuku_cat)
+            return 0.30 * p_lgbm + 0.30 * p_cat + 0.20 * p_rank + 0.20 * p_win
         except Exception as e:
-            logger.warning(f"6/4モデル予測失敗（2モデルにフォールバック）: {e}")
-            raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
-    elif rank_obj is not None:
-        try:
-            p_lgbm = predict_lgbm(df, lgbm_obj)
-            p_cat  = predict_catboost(df, cat_obj)
-            p_rank = predict_catboost_rank(df, rank_obj)
-            raw = 0.4 * p_lgbm + 0.4 * p_cat + 0.2 * p_rank
-        except Exception as e:
-            logger.warning(f"YetiRank予測失敗（2モデルにフォールバック）: {e}")
-            raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
-    else:
-        raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
-    # キャリブレーター: v4 → v3 → v2 → v1 優先チェーン
-    for cal_p, cal_key in [(CAL_PATH, "ens_cal"), (CAL_PATH_V3, "ens_cal_v3"),
-                           (CAL_PATH_V2, "ens_cal_v2"), (CAL_PATH_V1, "ens_cal_v1")]:
-        cal_obj = _get_cached(cal_p, cal_key)
-        if cal_obj is not None:
-            logger.info(f"キャリブレーター使用: {cal_p.name}")
-            return cal_obj["calibrator"].transform(raw)
-    logger.warning("キャリブレーター未生成。calibrate.py を先に実行してください。")
-    return raw
+            logger.warning(f"4/6モデル予測失敗: {e}")
+    return 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
 
 
 def assign_marks(df: pd.DataFrame) -> pd.DataFrame:
@@ -1095,12 +1248,17 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
 
 
 def get_triple_bets(race_df: pd.DataFrame, budget: int, triple_type: str = "standard") -> dict:
-    """TRIPLE戦略: 三連複◎◯▲ 1点 + 複勝◎ 1点
+    """TRIPLE戦略: 三連複◎◯▲ 1点 + 複勝◎ 1点（確信度ベース賭け金）
 
     triple_type:
       aggressive: 三連複100%, 複勝0%
       standard:   三連複50%, 複勝50%
       safe:       三連複30%, 複勝70%
+
+    確信度ベース賭け金:
+      ◎と4番手の確率ギャップが大きい → 強気（最大1.5倍）
+      ギャップが小さい × 多頭数(16+) → 弱気（0.5倍）
+      上限: budget（デフォルト10,000円）、下限: 100円
     """
     splits = {
         "aggressive": (1.0, 0.0),
@@ -1125,17 +1283,40 @@ def get_triple_bets(race_df: pd.DataFrame, budget: int, triple_type: str = "stan
     h2 = int(tai.iloc[0]["馬番"])  if not tai.empty  else None
     h3 = int(sabo.iloc[0]["馬番"]) if not sabo.empty else None
 
+    # ── 確信度ベース賭け金調整 ──────────────────────────────
+    n_horses = len(race_df)
+    probs = race_df["prob"].sort_values(ascending=False)
+    # ◎と4番手の確率ギャップ = モデルの確信度
+    gap = float(probs.iloc[0] - probs.iloc[3]) if len(probs) >= 4 else 0.10
+
+    if gap >= 0.15:
+        # ◎が頭抜けている → 強気（1.5倍）
+        multiplier = 1.5
+    elif gap >= 0.08:
+        # 普通の差 → 通常
+        multiplier = 1.0
+    elif n_horses >= 16:
+        # 差が小さい × 多頭数 → 弱気（0.5倍）
+        multiplier = 0.5
+    else:
+        # 差が小さいが少頭数 → やや弱気
+        multiplier = 0.7
+
+    # 予算調整（上限: budget、下限: MIN_UNIT）
+    adjusted_budget = int(min(budget, budget * multiplier) // MIN_UNIT) * MIN_UNIT
+    adjusted_budget = max(MIN_UNIT, adjusted_budget)
+
     result["TRIPLE_戦略対象"] = True
 
     # 複勝◎
     if fuku_ratio > 0:
-        amt_fuku = floor_to_unit(int(budget * fuku_ratio))
+        amt_fuku = floor_to_unit(int(adjusted_budget * fuku_ratio))
         result["TRIPLE_複勝_買い目"] = str(h1)
         result["TRIPLE_複勝_購入額"] = amt_fuku
 
     # 三連複◎◯▲ 1点
     if san_ratio > 0 and h2 and h3:
-        amt_san = floor_to_unit(int(budget * san_ratio))
+        amt_san = floor_to_unit(int(adjusted_budget * san_ratio))
         key = "-".join(map(str, sorted([h1, h2, h3])))
         result["TRIPLE_三連複_買い目"] = key
         result["TRIPLE_三連複_購入額"] = amt_san
@@ -1339,6 +1520,7 @@ def main() -> None:
         # ── 昇級戦判定（◎ベース） ───────────────────────────────
         hon_row      = race_df[race_df["mark"] == "◎"]
         hon_ev       = float(hon_row["ev_score"].iloc[0]) if len(hon_row) > 0 else 0.0
+        hon_ev_cal   = float(hon_row["ev_cal"].iloc[0]) if len(hon_row) > 0 else 0.0
         n_horses     = len(race_df)
         baba         = str(meta.get("馬場状態", "")).strip()
         cls_now_raw  = pd.to_numeric(meta.get("クラス区分", None), errors="coerce")
@@ -1349,11 +1531,11 @@ def main() -> None:
         )
         upgrade = is_upgrade_race(cls_now_raw, cls_prev_raw)
 
-        # ── フィルタ適用（HELL セグメント除外 + EV 上限） ────────
+        # ── フィルタ適用（HELL セグメント除外 + EV 補正スコア） ───
         base_excluded = place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES
         filter_result = _bet_filter.check(
             place=place, n_horses=n_horses, baba=baba,
-            ev=hon_ev, is_upgrade=upgrade,
+            ev=hon_ev, is_upgrade=upgrade, ev_cal=hon_ev_cal,
         )
         filter_reason = filter_result.reason if filter_result.should_skip else ""
 

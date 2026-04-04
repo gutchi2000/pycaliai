@@ -1,0 +1,69 @@
+{
+  "method": "auc",
+  "weights": {
+    "lgbm": 0.0278,
+    "catboost": 0.0659,
+    "fuku_lgbm": 0.5736,
+    "fuku_cat": 0.0265,
+    "rank_cat": 0.1115,
+    "rank_lgbm": 0.0329,
+    "regression": 0.1611,
+    "lgbm_win": 0.0007
+  },
+  "valid_auc": 0.7767,
+  "test_auc": 0.7809,
+  "available_models": [
+    "lgbm",
+    "catboost",
+    "fuku_lgbm",
+    "fuku_cat",
+    "rank_cat",
+    "rank_lgbm",
+    "regression",
+    "lgbm_win"
+  ],
+  "all_results": {
+    "equal": {
+      "weights": {
+        "lgbm": 0.125,
+        "catboost": 0.125,
+        "fuku_lgbm": 0.125,
+        "fuku_cat": 0.125,
+        "rank_cat": 0.125,
+        "rank_lgbm": 0.125,
+        "regression": 0.125,
+        "lgbm_win": 0.125
+      },
+      "valid_auc": 0.7753194106579713,
+      "test_auc": 0.7797986720046427
+    },
+    "auc_opt": {
+      "weights": {
+        "lgbm": 0.0278,
+        "catboost": 0.0659,
+        "fuku_lgbm": 0.5736,
+        "fuku_cat": 0.0265,
+        "rank_cat": 0.1115,
+        "rank_lgbm": 0.0329,
+        "regression": 0.1611,
+        "lgbm_win": 0.0007
+      },
+      "valid_auc": 0.7767414043403273,
+      "test_auc": 0.7808544156220133
+    },
+    "combo_opt": {
+      "weights": {
+        "lgbm": 0.4295,
+        "catboost": 0.0,
+        "fuku_lgbm": 0.1706,
+        "fuku_cat": 0.0966,
+        "rank_cat": 0.0758,
+        "rank_lgbm": 0.0588,
+        "regression": 0.1688,
+        "lgbm_win": 0.0
+      },
+      "valid_auc": 0.6917281208496457,
+      "test_auc": 0.7808337152168026
+    }
+  }
+}

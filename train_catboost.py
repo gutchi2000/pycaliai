@@ -113,6 +113,12 @@ NUM_FEATURES = [
     "kako5_avg_agari3f", "kako5_best_agari3f",
     "kako5_same_td_ratio", "kako5_same_dist_ratio", "kako5_same_place_ratio",
     "kako5_pos_trend", "kako5_race_count",
+    # 好走3分類 + 同条件ベスト（Phase 5）
+    "kako5_expected_good_count", "kako5_upset_good_count", "kako5_hidden_good_count",
+    "kako5_same_cond_best_pos",
+    # 全キャリア同条件ベスト（build_from_master で生成）
+    "hist_same_cond_best_pos", "hist_same_cond_top3_rate", "hist_same_cond_count",
+    "hist_same_place_best_pos",
 ]
 
 # タイム文字列列（数値変換が必要）

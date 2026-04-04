@@ -42,16 +42,21 @@ from typing import Optional
 # =========================================================
 
 # 全面除外する競馬場（文字列は predict_weekly.py の「場所」カラムと一致）
-SKIP_VENUES: set[str] = {"阪神"}
+# 京都: 全体ROI 12.9%（年間-¥348k）→ 16頭のみ除外では漏れが大きすぎた
+SKIP_VENUES: set[str] = {"阪神", "京都"}
 
-# 16頭立てのみ除外する競馬場
-SKIP_16H_VENUES: set[str] = {"京都", "新潟", "阪神"}
+# 16頭立てのみ除外する競馬場（阪神・京都は全面除外に移動済み）
+SKIP_16H_VENUES: set[str] = {"新潟"}
 
-# 16頭 × 昇級戦を除外する競馬場
-SKIP_16H_UPGRADE_VENUES: set[str] = {"東京", "京都", "新潟"}
+# 16頭 × 昇級戦を除外する競馬場（京都は全面除外に移動済み）
+SKIP_16H_UPGRADE_VENUES: set[str] = {"東京", "新潟"}
 
-# EV の上限（これ以上は過信と判定してスキップ）
+# EV の上限（これ以上は過信と判定してスキップ）― 生 ev_score 用
 EV_UPPER_LIMIT: float = 3.0
+
+# EV 補正スコア（ev_cal）の下限。期待 ROI がこれ以下なら過信 or 低収益帯
+# ev_cal = 0.78 → 期待 ROI 78%（EV 1.5-2.0 帯の実績相当）
+EV_CAL_LOWER_LIMIT: float = 0.78
 
 # 重馬場コード（馬場状態カラムの値）
 HEAVY_TRACK_CODES: set[str] = {"重"}
@@ -110,11 +115,13 @@ class BetFilter:
         skip_16h_venues: set[str]       = SKIP_16H_VENUES,
         skip_16h_upgrade_venues: set[str] = SKIP_16H_UPGRADE_VENUES,
         ev_upper: float                 = EV_UPPER_LIMIT,
+        ev_cal_lower: float             = EV_CAL_LOWER_LIMIT,
     ):
         self.skip_venues            = skip_venues
         self.skip_16h_venues        = skip_16h_venues
         self.skip_16h_upgrade_venues = skip_16h_upgrade_venues
         self.ev_upper               = ev_upper
+        self.ev_cal_lower           = ev_cal_lower
 
     def check(
         self,
@@ -123,6 +130,7 @@ class BetFilter:
         baba: str,
         ev: float,
         is_upgrade: bool = False,
+        ev_cal: float | None = None,
     ) -> FilterResult:
         """
         Parameters
@@ -134,9 +142,12 @@ class BetFilter:
         baba : str
             馬場状態（例: "良", "稍重", "重", "不良"）
         ev : float
-            ◎ の EV スコア（model_prob × tansho_odds / 0.80）
+            ◎ の 生 EV スコア（model_prob × tansho_odds / 0.80）
         is_upgrade : bool
             ◎ が昇級戦かどうか（前走クラス < 今走クラス）
+        ev_cal : float | None
+            ◎ の 補正済み EV スコア（期待 ROI 比率, 0.72-0.95）
+            None の場合は生 EV のみで判定
 
         Returns
         -------
@@ -151,7 +162,7 @@ class BetFilter:
         if n_horses >= 16 and place in self.skip_16h_venues:
             return FilterResult(True, f"{place} 16頭除外(ROI<52%)")
 
-        # ── Rule 3: 16頭 × 昇級 × 東京/京都/新潟 ─────────────────
+        # ── Rule 3: 16頭 × 昇級 × 東京/新潟 ────────────────────
         if n_horses >= 16 and is_upgrade and place in self.skip_16h_upgrade_venues:
             return FilterResult(True, f"{place} 16頭昇級除外(ROI<45%)")
 
@@ -160,8 +171,16 @@ class BetFilter:
         #   除外閾値（<60%）未達のためルール廃止。n=500以上で再検証。
         #   → hypothesis_registry.md「ルール廃止記録」参照
 
-        # ── Rule 5: EV 上限（過信フィルタ） ───────────────────────
-        if ev >= self.ev_upper:
+        # ── Rule 5: EV 補正スコアによるフィルタ ──────────────────
+        # ev_cal（期待ROI比率）が閾値以下 → 収益性が低い
+        # 生 ev_score のフォールバック: ev >= 3.0 は旧ルール互換
+        if ev_cal is not None and ev_cal > 0:
+            if ev_cal < self.ev_cal_lower:
+                return FilterResult(
+                    True,
+                    f"ev_cal={ev_cal:.3f}<{self.ev_cal_lower}(期待ROI{ev_cal*100:.1f}%)"
+                )
+        elif ev >= self.ev_upper:
             return FilterResult(
                 True,
                 f"EV={ev:.2f}>={self.ev_upper}上限除外(valid=59%)"
@@ -176,7 +195,8 @@ class BetFilter:
             f"  全面除外:        {self.skip_venues}",
             f"  16頭除外:        {self.skip_16h_venues}",
             f"  16頭昇級除外:    {self.skip_16h_upgrade_venues}",
-            f"  EV 上限:         {self.ev_upper}",
+            f"  EV 上限(生):     {self.ev_upper}",
+            f"  EV_cal 下限:     {self.ev_cal_lower} (期待ROI{self.ev_cal_lower*100:.0f}%未満で除外)",
             "────────────────────────────────────",
         ]
         return "\n".join(lines)
