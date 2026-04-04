@@ -541,6 +541,44 @@ def parse_csv(path: Path) -> pd.DataFrame:
         df["前走補9"]  = float("nan")
         df["前走補正"] = float("nan")
 
+    # ── 過去5走特徴量（data/kako5/YYYYMMDD.csv）があればマージ ──
+    kako5_path = KAKO5_DIR / f"{date_str}.csv"
+    if kako5_path.exists():
+        try:
+            from parse_kako5 import build_from_kako5, KAKO5_COLS
+            kako5_df = build_from_kako5(kako5_path)
+            if not kako5_df.empty:
+                # kako5_df: [レースID(新), 馬番, ...kako5特徴量]
+                # df: レースID(新/馬番無) = 16桁, 馬番 = int
+                # kako5: レースID(新) = 18桁(レース16+馬番2)
+                # kako5のレースID(新)は18桁なので16桁に変換
+                if kako5_df["レースID(新)"].astype(str).str.len().mode().iloc[0] > 16:
+                    kako5_df["レースID(新)"] = kako5_df["レースID(新)"].astype(str).str[:16]
+                df = df.merge(
+                    kako5_df.rename(columns={"レースID(新)": "レースID(新/馬番無)"}),
+                    on=["レースID(新/馬番無)", "馬番"],
+                    how="left",
+                    suffixes=("", "_kako5"),
+                )
+                valid_pct = df["kako5_avg_pos"].notna().mean() * 100
+                logger.info(f"kako5 CSV読み込み済: カバレッジ={valid_pct:.1f}%")
+        except Exception as e:
+            logger.warning(f"kako5マージ失敗: {e}")
+            for col in ["kako5_avg_pos", "kako5_std_pos", "kako5_best_pos",
+                         "kako5_avg_agari3f", "kako5_best_agari3f",
+                         "kako5_same_td_ratio", "kako5_same_dist_ratio", "kako5_same_place_ratio",
+                         "kako5_pos_trend", "kako5_race_count"]:
+                if col not in df.columns:
+                    df[col] = float("nan")
+    else:
+        logger.info(f"kako5 CSV なし: {kako5_path}")
+        for col in ["kako5_avg_pos", "kako5_std_pos", "kako5_best_pos",
+                     "kako5_avg_agari3f", "kako5_best_agari3f",
+                     "kako5_same_td_ratio", "kako5_same_dist_ratio", "kako5_same_place_ratio",
+                     "kako5_pos_trend", "kako5_race_count"]:
+            if col not in df.columns:
+                df[col] = float("nan")
+
     # ── 調教データ（坂路・WCマスターCSVからJOIN）──
     try:
         from optuna_lgbm import load_chukyo, merge_chukyo

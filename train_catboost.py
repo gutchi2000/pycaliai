@@ -45,7 +45,8 @@ DATA_DIR   = BASE_DIR / "data"
 MODEL_DIR  = BASE_DIR / "models"
 REPORT_DIR = BASE_DIR / "reports"
 
-MASTER_CSV  = DATA_DIR / "master_20130105-20251228.csv"
+MASTER_CSV  = DATA_DIR / "master_kako5.csv"  # kako5特徴量付き
+MASTER_CSV_ORIG = DATA_DIR / "master_20130105-20251228.csv"  # フォールバック
 MODEL_PATH  = MODEL_DIR / "catboost_fukusho_v1.pkl"
 
 TARGET       = "fukusho_flag"
@@ -94,6 +95,24 @@ NUM_FEATURES = [
     "trainer_fuku30", "trainer_fuku90",
     # 馬の直近フォーム指数
     "horse_fuku10", "horse_fuku30",
+    # 派生指標（build_dataset / optuna_lgbm 由来）
+    "prev_pos_rel", "closing_power",
+    # 補正タイム（data/hosei）
+    "前走補9", "前走補正",
+    # 調教データ（坂路・WC）
+    "trn_hanro_4f", "trn_hanro_3f", "trn_hanro_2f", "trn_hanro_1f",
+    "trn_hanro_lap1", "trn_hanro_lap2", "trn_hanro_lap3", "trn_hanro_lap4",
+    "trn_hanro_days",
+    "trn_wc_5f", "trn_wc_4f", "trn_wc_3f",
+    "trn_wc_lap1", "trn_wc_lap2", "trn_wc_lap3",
+    "trn_wc_days",
+    # 前走オッズ
+    "前走単勝オッズ",
+    # 過去5走集約特徴量（parse_kako5.py で生成）
+    "kako5_avg_pos", "kako5_std_pos", "kako5_best_pos",
+    "kako5_avg_agari3f", "kako5_best_agari3f",
+    "kako5_same_td_ratio", "kako5_same_dist_ratio", "kako5_same_place_ratio",
+    "kako5_pos_trend", "kako5_race_count",
 ]
 
 # タイム文字列列（数値変換が必要）
@@ -151,8 +170,9 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
 # データロード・分割
 # =========================================================
 def load_and_split() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    logger.info(f"マスターCSV読み込み: {MASTER_CSV}")
-    df = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", low_memory=False)
+    csv_path = MASTER_CSV if MASTER_CSV.exists() else MASTER_CSV_ORIG
+    logger.info(f"マスターCSV読み込み: {csv_path}")
+    df = pd.read_csv(csv_path, encoding="utf-8-sig", low_memory=False)
     logger.info(f"  {len(df):,}行 × {len(df.columns)}列")
 
     train = df[df["split"] == "train"].copy()

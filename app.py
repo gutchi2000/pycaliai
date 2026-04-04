@@ -65,6 +65,7 @@ COURSE_TREND_JSON = DATA_DIR / "course_trend.json"
 RESULTS_JSON      = DATA_DIR / "results.json"
 TYAKU_DIR     = DATA_DIR / "tyaku"
 HOSSEI_DIR    = DATA_DIR / "hosei"
+KAKO5_DIR     = DATA_DIR / "kako5"
 LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
 CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v4.pkl"   # Test 2024-fit (2026-03-25更新)
@@ -476,6 +477,23 @@ def parse_target_csv(source) -> pd.DataFrame:
     else:
         df["前走補9"]  = float("nan")
         df["前走補正"] = float("nan")
+
+    # ── 過去5走特徴量（data/kako5/YYYYMMDD.csv）があればマージ ──
+    kako5_path = KAKO5_DIR / f"{date_str}.csv"
+    if kako5_path.exists():
+        try:
+            from parse_kako5 import build_from_kako5
+            kako5_df = build_from_kako5(kako5_path)
+            if not kako5_df.empty:
+                if kako5_df["レースID(新)"].astype(str).str.len().mode().iloc[0] > 16:
+                    kako5_df["レースID(新)"] = kako5_df["レースID(新)"].astype(str).str[:16]
+                df = df.merge(
+                    kako5_df.rename(columns={"レースID(新)": "レースID(新/馬番無)"}),
+                    on=["レースID(新/馬番無)", "馬番"], how="left", suffixes=("", "_kako5"),
+                )
+                logger.info(f"kako5 カバレッジ={df['kako5_avg_pos'].notna().mean()*100:.1f}%")
+        except Exception as e:
+            logger.warning(f"kako5マージ失敗: {e}")
 
     return df
 
