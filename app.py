@@ -2855,7 +2855,7 @@ def page_ev_candidates(all_df: pd.DataFrame) -> None:
         return ""
 
     if "EV" in disp.columns:
-        styled = disp.style.applymap(_ev_color, subset=["EV"])
+        styled = disp.style.map(_ev_color, subset=["EV"])
         st.dataframe(styled, use_container_width=True, hide_index=True)
     else:
         st.dataframe(disp, use_container_width=True, hide_index=True)
@@ -2946,7 +2946,7 @@ def page_value_candidates(all_df: pd.DataFrame) -> None:
         return ""
 
     if "ValueScore" in disp.columns:
-        styled = disp.style.applymap(_val_color, subset=["ValueScore"])
+        styled = disp.style.map(_val_color, subset=["ValueScore"])
         st.dataframe(styled, use_container_width=True, hide_index=True)
     else:
         st.dataframe(disp, use_container_width=True, hide_index=True)
