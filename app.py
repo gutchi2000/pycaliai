@@ -89,7 +89,7 @@ def _get_cached(path: Path, key: str):
 MIN_UNIT = 100
 MARKS    = ["◎", "◯", "▲", "△", "×"]
 
-EXCLUDE_PLACES  = {"東京", "小倉", "阪神"}  # 阪神: BetFilter SKIP_VENUES準拠（全面除外）
+EXCLUDE_PLACES  = {"東京", "小倉"}  # Phase 5: 阪神・京都の全面除外解除 (2026-04-05)
 EXCLUDE_CLASSES = {"新馬", "障害"}
 
 CLASS_NORMALIZE = {
