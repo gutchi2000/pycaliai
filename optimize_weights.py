@@ -471,5 +471,103 @@ def main():
         print(f"  {name:15s}: {w:.4f} {bar}")
 
 
+# =========================================================
+# Phase 5+: Expert別の最適化
+# =========================================================
+EXPERT_FILTERS = {
+    "turf_short": {"td": "芝", "dist_max": 1400},
+    "turf_mid":   {"td": "芝", "dist_min": 1600, "dist_max": 2200},
+    "turf_long":  {"td": "芝", "dist_min": 2400},
+    "dirt":       {"td": "ダ"},
+}
+
+
+def _filter_expert(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
+    m = pd.Series(True, index=df.index)
+    if "td" in cfg:
+        m &= (df["芝・ダ"] == cfg["td"])
+    if "dist_min" in cfg:
+        m &= (pd.to_numeric(df["距離"], errors="coerce") >= cfg["dist_min"])
+    if "dist_max" in cfg:
+        m &= (pd.to_numeric(df["距離"], errors="coerce") <= cfg["dist_max"])
+    return df[m].copy()
+
+
+def optimize_for_expert(expert_name: str, valid: pd.DataFrame, test: pd.DataFrame):
+    """Expert別に valid/test をフィルタして重み最適化。Expert モデルが存在すれば候補に追加。"""
+    global MODELS
+    cfg = EXPERT_FILTERS[expert_name]
+    v = _filter_expert(valid, cfg)
+    t = _filter_expert(test, cfg)
+    logger.info(f"\n========= Expert: {expert_name} =========")
+    logger.info(f"  Valid={len(v):,} / Test={len(t):,}")
+    if len(v) < 5000 or len(t) < 1000:
+        logger.warning(f"  サンプル不足、スキップ")
+        return
+
+    # Expert モデルを候補に追加
+    expert_path = MODEL_DIR / f"expert_{expert_name}.pkl"
+    models_local = dict(MODELS)
+    if expert_path.exists():
+        models_local[f"expert_{expert_name}"] = expert_path
+        PREDICT_FN[f"expert_{expert_name}"] = _predict_lgbm_like
+
+    # 一時的に MODELS を差し替えて generate_predictions を再利用
+    saved = MODELS
+    MODELS = models_local
+    try:
+        valid_preds, available = generate_predictions(v)
+        test_preds, _ = generate_predictions(t)
+    finally:
+        MODELS = saved
+
+    if len(available) < 2:
+        logger.warning(f"  利用可能モデル不足({len(available)})、スキップ")
+        return
+
+    y_valid = v[TARGET].values
+    y_test  = t[TARGET].values
+
+    opt_w, opt_score = optimize_nelder_mead(valid_preds, y_valid, available, metric="auc", n_restarts=15)
+    test_eval = evaluate_weights(test_preds, y_test, opt_w, f"Test-{expert_name}")
+    gap = abs(opt_score - test_eval["auc"])
+
+    if gap >= 0.015:
+        logger.warning(f"  V-T gap={gap:.4f} 大、均等重みにフォールバック")
+        opt_w = {n: 1.0 / len(available) for n in available}
+        opt_score = roc_auc_score(y_valid, np.column_stack([valid_preds[n] for n in available]) @
+                                  np.array([opt_w[n] for n in available]))
+        test_eval = evaluate_weights(test_preds, y_test, opt_w, f"Test-{expert_name}-equal")
+
+    out_path = MODEL_DIR / f"ensemble_weights_{expert_name}.json"
+    output = {
+        "method": "auc",
+        "expert": expert_name,
+        "weights": opt_w,
+        "valid_auc": float(round(opt_score, 4)),
+        "test_auc": float(round(test_eval["auc"], 4)),
+        "n_valid": int(len(v)),
+        "n_test": int(len(t)),
+        "available_models": available,
+    }
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(output, f, ensure_ascii=False, indent=2)
+    logger.info(f"  保存: {out_path.name}  Valid={opt_score:.4f}  Test={test_eval['auc']:.4f}")
+
+
+def main_experts():
+    """全Expertについて重み最適化を実行。"""
+    valid, test = load_data()
+    for name in EXPERT_FILTERS.keys():
+        try:
+            optimize_for_expert(name, valid, test)
+        except Exception as e:
+            logger.error(f"Expert {name} 失敗: {e}")
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "--experts":
+        main_experts()
+    else:
+        main()

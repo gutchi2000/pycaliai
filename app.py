@@ -77,6 +77,21 @@ TORCH_PATH     = MODEL_DIR / "transformer_optuna_v1.pkl"
 META_PATH      = MODEL_DIR / "stacking_meta_v1.pkl"
 STACK_CAL_PATH = MODEL_DIR / "stacking_calibrator_v1.pkl"
 VALUE_MODEL_PATH = MODEL_DIR / "value_model_v2.pkl"
+# Phase 5: 8モデルアンサンブル用パス
+RANK_PATH       = MODEL_DIR / "catboost_rank_v1.pkl"
+FUKU_LGBM_PATH  = MODEL_DIR / "lgbm_fukusho_v1.pkl"
+FUKU_CAT_PATH   = MODEL_DIR / "catboost_fukusho_v1.pkl"
+RANK_LGBM_PATH  = MODEL_DIR / "lgbm_rank_v1.pkl"
+REGRESS_PATH    = MODEL_DIR / "lgbm_regression_v1.pkl"
+ENS_WEIGHTS_PATH = MODEL_DIR / "ensemble_weights.json"
+# Phase 5+: 距離別 Mixture of Experts
+EXPERT_DIR      = MODEL_DIR
+EXPERT_PATHS    = {
+    "turf_short": EXPERT_DIR / "expert_turf_short.pkl",
+    "turf_mid":   EXPERT_DIR / "expert_turf_mid.pkl",
+    "turf_long":  EXPERT_DIR / "expert_turf_long.pkl",
+    "dirt":       EXPERT_DIR / "expert_dirt.pkl",
+}
 
 # モデルキャッシュ（プロセス内で1回だけロード）
 _model_cache: dict = {}
@@ -750,28 +765,169 @@ def _load_calibrator():
     return None
 
 
-def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray:
-    # スタッキング優先（キャリブレーター妥当性チェック付き）
-    stacking = predict_stacking(df, lgbm_obj, cat_obj)
-    if stacking is not None:
-        cal_obj = _get_cached(STACK_CAL_PATH, "stack_cal")
-        if cal_obj is not None:
-            calibrated = cal_obj["calibrator"].transform(stacking)
-            # キャリブレーター出力の妥当性チェック：平均 5% 以上かつ最大 50% 未満
-            if calibrated.mean() >= 0.05 and calibrated.max() < 0.50:
-                return calibrated
-            logger.warning(
-                f"スタッキングキャリブレーター出力が異常（mean={calibrated.mean():.3f}, "
-                f"max={calibrated.max():.3f}）→ エンサンブルにフォールバック"
-            )
-    # 3モデル加重平均: LGBM×0.375 + CatBoost×0.375 + Win×0.25
-    p_lgbm = predict_lgbm(df, lgbm_obj)
-    p_cat  = predict_catboost(df, cat_obj)
-    p_win  = predict_lgbm_win(df)
-    if p_win is not None:
-        raw = 0.375 * p_lgbm + 0.375 * p_cat + 0.25 * p_win
+SEGMENT_WEIGHTS_AVAILABLE = {"turf_mid", "dirt"}
+
+
+def _load_ensemble_weights_app(segment: str | None = None) -> dict | None:
+    """Phase 5+: segment 指定時は Expert 別重み優先、なければグローバル。"""
+    if segment is not None:
+        seg_path = MODEL_DIR / f"ensemble_weights_{segment}.json"
+        if seg_path.exists():
+            try:
+                with open(seg_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return data.get("weights", {})
+            except Exception as e:
+                logger.warning(f"ensemble_weights_{segment}.json ロード失敗: {e}")
+    if ENS_WEIGHTS_PATH.exists():
+        try:
+            with open(ENS_WEIGHTS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data.get("weights", {})
+        except Exception as e:
+            logger.warning(f"ensemble_weights.json ロード失敗: {e}")
+    return None
+
+
+def _select_segment_app(df: pd.DataFrame) -> str | None:
+    if len(df) == 0:
+        return None
+    td = str(df.iloc[0].get("芝・ダ", ""))
+    try:
+        d = int(df.iloc[0].get("距離", 0))
+    except (TypeError, ValueError):
+        return None
+    if td == "ダ":
+        seg = "dirt"
+    elif d <= 1400:
+        seg = "turf_short"
+    elif d <= 2200:
+        seg = "turf_mid"
     else:
-        raw = 0.50 * p_lgbm + 0.50 * p_cat
+        seg = "turf_long"
+    return seg if seg in SEGMENT_WEIGHTS_AVAILABLE else None
+
+
+def _select_expert(td: str, dist) -> str | None:
+    """距離・芝/ダから適切な Expert 名を返す。Expert モデルが無ければ None。"""
+    try:
+        d = int(dist)
+    except (TypeError, ValueError):
+        return None
+    if td == "ダ":
+        name = "dirt"
+    elif d <= 1400:
+        name = "turf_short"
+    elif d <= 2200:
+        name = "turf_mid"
+    else:
+        name = "turf_long"
+    if EXPERT_PATHS[name].exists():
+        return name
+    return None
+
+
+def _predict_expert(df: pd.DataFrame, expert_name: str) -> np.ndarray | None:
+    """Expert モデルで予測。失敗時は None。"""
+    obj = _get_cached(EXPERT_PATHS[expert_name], f"expert_{expert_name}")
+    if obj is None:
+        return None
+    try:
+        # Expert は train_lgbm のフォーマットなので predict_lgbm を再利用
+        return predict_lgbm(df, obj)
+    except Exception as e:
+        logger.warning(f"Expert {expert_name} 予測失敗: {e}")
+        return None
+
+
+def _ensemble_with_optimized_weights_app(
+    df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict, weights: dict
+) -> np.ndarray:
+    """8モデル最適化重みでアンサンブル。predict_weekly.py の関数を再利用。"""
+    # 遅延 import (循環回避)
+    from predict_weekly import (
+        predict_lgbm_fukusho, predict_catboost_fukusho,
+        predict_catboost_rank, predict_lgbm_rank, predict_lgbm_regression,
+    )
+    model_map = {
+        "lgbm":       (LGBM_PATH,       "lgbm_opt",   predict_lgbm,             lgbm_obj),
+        "catboost":   (CAT_PATH,        "cat_opt",    predict_catboost,         cat_obj),
+        "fuku_lgbm":  (FUKU_LGBM_PATH,  "fuku_lgbm",  predict_lgbm_fukusho,     None),
+        "fuku_cat":   (FUKU_CAT_PATH,   "fuku_cat",   predict_catboost_fukusho, None),
+        "rank_cat":   (RANK_PATH,       "rank",       predict_catboost_rank,    None),
+        "rank_lgbm":  (RANK_LGBM_PATH,  "rank_lgbm",  predict_lgbm_rank,        None),
+        "regression": (REGRESS_PATH,    "regression", predict_lgbm_regression,  None),
+        "lgbm_win":   (WIN_MODEL_PATH,  "lgbm_win",   None,                     None),  # 特殊ケース
+    }
+    # Phase 5+: Expert モデルも候補登録
+    for exp_name, exp_path in EXPERT_PATHS.items():
+        model_map[f"expert_{exp_name}"] = (exp_path, f"expert_{exp_name}", predict_lgbm, None)
+    raw = np.zeros(len(df))
+    total_w = 0.0
+    used = []
+    for name, w in weights.items():
+        if w < 0.001 or name not in model_map:
+            continue
+        path, key, fn, pre = model_map[name]
+        if name == "lgbm_win":
+            p = predict_lgbm_win(df)
+            if p is None:
+                continue
+        else:
+            obj = pre if pre is not None else _get_cached(path, key)
+            if obj is None:
+                continue
+            try:
+                p = fn(df, obj)
+            except Exception as e:
+                logger.warning(f"{name} 予測失敗: {e}")
+                continue
+        raw += w * p
+        total_w += w
+        used.append(name)
+    if total_w < 0.01:
+        raise RuntimeError("有効モデルなし")
+    if abs(total_w - 1.0) > 0.01:
+        raw = raw / total_w
+    logger.info(f"app.py アンサンブル: {len(used)}モデル ({', '.join(used)})")
+    return raw
+
+
+def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray:
+    """Phase 5+: 8モデル最適化重み + 距離別Expert(あれば加重平均)。"""
+    # --- Phase 5+: Expert別重み優先、なければグローバル ---
+    segment = _select_segment_app(df)
+    opt_weights = _load_ensemble_weights_app(segment)
+    if opt_weights is not None:
+        try:
+            raw = _ensemble_with_optimized_weights_app(df, lgbm_obj, cat_obj, opt_weights)
+        except Exception as e:
+            logger.warning(f"最適化アンサンブル失敗→フォールバック: {e}")
+            raw = None
+    else:
+        raw = None
+
+    # --- フォールバック（旧3モデル）---
+    if raw is None:
+        p_lgbm = predict_lgbm(df, lgbm_obj)
+        p_cat  = predict_catboost(df, cat_obj)
+        p_win  = predict_lgbm_win(df)
+        if p_win is not None:
+            raw = 0.375 * p_lgbm + 0.375 * p_cat + 0.25 * p_win
+        else:
+            raw = 0.50 * p_lgbm + 0.50 * p_cat
+
+    # --- Phase 5+: セグメント別重みを使っていない場合のみ旧式 Expert 単純加重 ---
+    if segment is None and len(df) > 0:
+        td = str(df.iloc[0].get("芝・ダ", ""))
+        dist = df.iloc[0].get("距離", None)
+        expert_name = _select_expert(td, dist)
+        if expert_name is not None:
+            p_exp = _predict_expert(df, expert_name)
+            if p_exp is not None:
+                raw = 0.7 * raw + 0.3 * p_exp
+                logger.info(f"Expert {expert_name} 加重平均適用")
+
     cal = _load_calibrator()
     return cal.transform(raw) if cal is not None else raw
 
@@ -949,14 +1105,14 @@ def is_in_strategy(place: str, cls_raw: str, strategy: dict) -> bool:
 def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
              strategy: dict, budget: int) -> dict:
     """HAHO（馬連◎軸2点+三連複ボックス1点）/ HALO（三連複ボックス1点のみ）
-       / LALO（複勝◎1点のみ）を返す。
-    戻り値: {"HAHO": [bets...], "HALO": [bets...], "LALO": [bets...]}  ※空の場合はキーなし"""
+       / LALO（複勝◎1点のみ）/ CQC（単勝◎1点のみ）/ TRIPLE（三連複+複勝）を返す。
+    戻り値: {"HAHO": [bets...], "HALO": [bets...], "LALO": [bets...], "CQC": [bets...], "TRIPLE": [bets...]}
+    Phase 5 (2026-04-05): TRIPLE は strategy_weights.json に無い会場でも生成する。
+    （HAHO/HALO/LALO/CQC は引き続き戦略テーブル必須）"""
     if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
         return {}
     cls      = CLASS_NORMALIZE.get(cls_raw, cls_raw)
     bet_info = strategy.get(place, {}).get(cls) or strategy.get(place, {}).get(cls_raw, {})
-    if not bet_info:
-        return {}
     marks_df = {m: race_df[race_df["mark"] == m] for m in ["◎","◯","▲"]}
     hon    = marks_df["◎"]
     taikou = marks_df["◯"]
@@ -970,7 +1126,8 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
     result = {}
 
     # ── HAHO: 馬連◎軸2点 + 三連複ボックス1点 ──────────────────────────
-    haho_types = {k: v for k, v in bet_info.items() if k in ("馬連", "三連複")}
+    # bet_info があるときだけ生成（戦略テーブルの ROI を使う）
+    haho_types = {k: v for k, v in bet_info.items() if k in ("馬連", "三連複")} if bet_info else {}
     if haho_types and "馬連" in haho_types and h2 and h3:  # 馬連が戦略にない場合はHALOに任せる
         haho_bets = []
         total_ratio = sum(v["bet_ratio"] for v in haho_types.values()) or 1.0
@@ -992,20 +1149,22 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
             result["HAHO"] = haho_bets
 
     # ── HALO: 三連複ボックス1点のみ（全予算）──────────────────────────
-    if "三連複" in bet_info and h2 and h3:
+    if bet_info and "三連複" in bet_info and h2 and h3:
         info = bet_info["三連複"]
         c_sf = tuple(sorted([h1, h2, h3]))
         result["HALO"] = [{"馬券種":"三連複","買い目":"-".join(map(str, c_sf)),
                            "購入額":floor_to_unit(budget),"ROI":info.get("roi_oos", info.get("roi", 0))}]
 
     # ── LALO: 複勝◎1点のみ（全予算）────────────────────────────────────
-    any_info = next(iter(bet_info.values()), {})
-    result["LALO"] = [{"馬券種":"複勝","買い目":str(h1),
-                       "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
+    # bet_info があるときだけ生成（戦略テーブルの ROI を使う）
+    if bet_info:
+        any_info = next(iter(bet_info.values()), {})
+        result["LALO"] = [{"馬券種":"複勝","買い目":str(h1),
+                           "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
 
-    # ── CQC: 単勝◎1点のみ（全予算）─────────────────────────────────────
-    result["CQC"]  = [{"馬券種":"単勝","買い目":str(h1),
-                       "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
+        # ── CQC: 単勝◎1点のみ（全予算）─────────────────────────────────────
+        result["CQC"]  = [{"馬券種":"単勝","買い目":str(h1),
+                           "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
 
     # ── TRIPLE: 三連複◎◯▲1点 + 複勝◎1点（標準型 50/50）────────────────
     if h2 and h3:
@@ -3011,6 +3170,24 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             "CQC_bets":   bets_all.get("CQC",    []),
             "TRIPLE_bets":bets_all.get("TRIPLE", []),
         })
+
+    # デバッグ可視化（Phase 5+: 阪神表示問題切り分け用）
+    n_total          = all_df[race_id_col].nunique()
+    n_meta           = len(race_metas)
+    venue_counts     = {}
+    venue_triple     = {}
+    for r in race_metas:
+        v = r["場所"]
+        venue_counts[v] = venue_counts.get(v, 0) + 1
+        if r["TRIPLE_bets"]:
+            venue_triple[v] = venue_triple.get(v, 0) + 1
+    venue_str = " / ".join(
+        f"{v}{venue_counts[v]}R(TRIPLE可{venue_triple.get(v,0)})"
+        for v in sorted(venue_counts.keys())
+    )
+    st.caption(
+        f"📊 全{n_total}R / get_bets通過{n_meta}R / 会場別: {venue_str or '(なし)'}"
+    )
 
     if not race_metas:
         st.info("本日の買い目対象レースがありません。")

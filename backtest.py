@@ -547,7 +547,24 @@ def ensemble_predict_batch(df: pd.DataFrame) -> np.ndarray:
             return cal_obj["calibrator"].transform(stacking)
         return stacking
 
-    # 4モデル加重平均: LGBM×0.30 + CatBoost×0.30 + Rank×0.20 + Win×0.20
+    # Phase 5+: predict_weekly.ensemble_predict を使う（最適化重み + Expert別重み + MoE）
+    try:
+        from predict_weekly import ensemble_predict as pw_ensemble, _get_cached, LGBM_PATH as PW_LGBM, CAT_PATH as PW_CAT
+        lgbm_obj = _get_cached(PW_LGBM, "lgbm_opt")
+        cat_obj  = _get_cached(PW_CAT,  "cat_opt")
+        if lgbm_obj is not None and cat_obj is not None:
+            logger.info("Phase 5+ ensemble_predict (最適化重み+MoE) を使用 - レース単位ループ")
+            race_col = "レースID(新/馬番無)"
+            out = np.zeros(len(df))
+            for rid, idx in df.groupby(race_col, sort=False).indices.items():
+                sub = df.iloc[idx]
+                p = pw_ensemble(sub, lgbm_obj, cat_obj)
+                out[idx] = p
+            return out
+    except Exception as e:
+        logger.warning(f"Phase 5+ ensemble失敗→旧4モデルにフォールバック: {e}")
+
+    # 旧: 4モデル加重平均: LGBM×0.30 + CatBoost×0.30 + Rank×0.20 + Win×0.20
     logger.info("LightGBM予測中...")
     p_lgbm = predict_lgbm_batch(df)
     logger.info("CatBoost予測中...")

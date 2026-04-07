@@ -52,6 +52,13 @@ FUKU_CAT_PATH  = MODEL_DIR / "catboost_fukusho_v1.pkl"
 RANK_LGBM_PATH = MODEL_DIR / "lgbm_rank_v1.pkl"        # LambdaRank (Phase 5)
 REGRESS_PATH   = MODEL_DIR / "lgbm_regression_v1.pkl"   # 着順回帰 (Phase 5)
 ENS_WEIGHTS_PATH = MODEL_DIR / "ensemble_weights.json"  # 最適化重み (Phase 5)
+# Phase 5+: 距離別 Mixture of Experts
+EXPERT_PATHS = {
+    "turf_short": MODEL_DIR / "expert_turf_short.pkl",
+    "turf_mid":   MODEL_DIR / "expert_turf_mid.pkl",
+    "turf_long":  MODEL_DIR / "expert_turf_long.pkl",
+    "dirt":       MODEL_DIR / "expert_dirt.pkl",
+}
 VALUE_MODEL_PATH = MODEL_DIR / "value_model_v2.pkl"
 RETURN_RATE_FUKU = 0.75   # 複勝控除率
 TORCH_PATH     = MODEL_DIR / "transformer_pl_v2.pkl"
@@ -947,8 +954,19 @@ def predict_stacking(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
         return None
 
 
-def _load_ensemble_weights() -> dict[str, float] | None:
-    """optimize_weights.py で生成した最適化重みをロードする。"""
+def _load_ensemble_weights(segment: str | None = None) -> dict[str, float] | None:
+    """optimize_weights.py で生成した最適化重みをロードする。
+    segment 指定時は Expert 別重み ensemble_weights_{segment}.json を優先。"""
+    if segment is not None:
+        seg_path = MODEL_DIR / f"ensemble_weights_{segment}.json"
+        if seg_path.exists():
+            try:
+                with open(seg_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                logger.info(f"Expert別重みロード: {seg_path.name} valid={data.get('valid_auc')}")
+                return data.get("weights", {})
+            except Exception as e:
+                logger.warning(f"Expert別重みロード失敗: {e}")
     if ENS_WEIGHTS_PATH.exists():
         try:
             with open(ENS_WEIGHTS_PATH, "r", encoding="utf-8") as f:
@@ -961,14 +979,70 @@ def _load_ensemble_weights() -> dict[str, float] | None:
     return None
 
 
+# Expert別重みに含めるべきセグメント（AUCが上がったもののみ）
+SEGMENT_WEIGHTS_AVAILABLE = {"turf_mid", "dirt"}
+
+
+def _select_segment(df: pd.DataFrame) -> str | None:
+    """距離・トラックからセグメント名を返す（pkl 存在は見ない）。"""
+    if len(df) == 0:
+        return None
+    td = str(df.iloc[0].get("芝・ダ", ""))
+    try:
+        d = int(df.iloc[0].get("距離", 0))
+    except (TypeError, ValueError):
+        return None
+    if td == "ダ":
+        seg = "dirt"
+    elif d <= 1400:
+        seg = "turf_short"
+    elif d <= 2200:
+        seg = "turf_mid"
+    else:
+        seg = "turf_long"
+    return seg if seg in SEGMENT_WEIGHTS_AVAILABLE else None
+
+
+def _select_expert(td: str, dist) -> str | None:
+    """距離・トラックから Expert 名を返す。pkl が無い（=未学習/見送り）なら None。"""
+    try:
+        d = int(dist)
+    except (TypeError, ValueError):
+        return None
+    if td == "ダ":
+        name = "dirt"
+    elif d <= 1400:
+        name = "turf_short"
+    elif d <= 2200:
+        name = "turf_mid"
+    else:
+        name = "turf_long"
+    if EXPERT_PATHS[name].exists():
+        return name
+    return None
+
+
+def _predict_expert(df: pd.DataFrame, name: str) -> np.ndarray | None:
+    """Expertモデルで予測。失敗時 None。"""
+    try:
+        obj = _get_cached(EXPERT_PATHS[name], f"expert_{name}")
+        if obj is None:
+            return None
+        return predict_lgbm(df, obj)
+    except Exception as e:
+        logger.warning(f"Expert {name} 予測失敗: {e}")
+        return None
+
+
 def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray:
     """
     全モデルアンサンブル予測。
     Phase 5: optimize_weights.py の最適化重みを自動ロード。
     重みファイルがなければ従来のハードコード重みにフォールバック。
     """
-    # --- Phase 5: 最適化重みベースのアンサンブル ---
-    opt_weights = _load_ensemble_weights()
+    # --- Phase 5+: Expert別重みを優先、なければグローバル重み ---
+    segment = _select_segment(df)
+    opt_weights = _load_ensemble_weights(segment)
     if opt_weights is not None:
         try:
             raw = _ensemble_with_optimized_weights(df, lgbm_obj, cat_obj, opt_weights)
@@ -977,6 +1051,21 @@ def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndar
             raw = _ensemble_fallback(df, lgbm_obj, cat_obj)
     else:
         raw = _ensemble_fallback(df, lgbm_obj, cat_obj)
+
+    # セグメント別重みを使っていない場合のみ、旧式の Expert 単純加重を適用
+    if segment is None:
+        try:
+            if len(df) > 0:
+                td = str(df.iloc[0].get("芝・ダ", ""))
+                dist = df.iloc[0].get("距離", None)
+                expert_name = _select_expert(td, dist)
+                if expert_name is not None:
+                    p_exp = _predict_expert(df, expert_name)
+                    if p_exp is not None:
+                        raw = 0.7 * raw + 0.3 * p_exp
+                        logger.info(f"Expert適用: {expert_name} (0.7*ens + 0.3*expert)")
+        except Exception as e:
+            logger.warning(f"Expert適用失敗: {e}")
 
     # キャリブレーター: v4 -> v3 -> v2 -> v1 優先チェーン
     for cal_p, cal_key in [(CAL_PATH, "ens_cal"), (CAL_PATH_V3, "ens_cal_v3"),
@@ -1007,6 +1096,9 @@ def _ensemble_with_optimized_weights(
         "regression": ("regression", REGRESS_PATH,     predict_lgbm_regression, None),
         "lgbm_win":   ("lgbm_win",   WIN_PATH,         predict_lgbm_win,        None),
     }
+    # Phase 5+: Expert モデルも候補に追加（predict_lgbm と同じ形式）
+    for exp_name, exp_path in EXPERT_PATHS.items():
+        model_map[f"expert_{exp_name}"] = (f"expert_{exp_name}", exp_path, predict_lgbm, None)
 
     raw = np.zeros(len(df))
     total_w = 0.0
