@@ -107,6 +107,34 @@ MARKS    = ["◎", "◯", "▲", "△", "×"]
 EXCLUDE_PLACES  = {"東京", "小倉"}  # Phase 5: 阪神・京都の全面除外解除 (2026-04-05)
 EXCLUDE_CLASSES = {"新馬", "障害"}
 
+# Phase 5+: SegmentBetFilter — ROI<80% の (距離セグメント, 券種) を購入対象から除外
+# 根拠: 2024-2025 backtest 実測 ROI（dirt三連複 68.9%, turf_short馬連 57.2%, turf_short複勝 74.6%, turf_mid馬連 72.4%）
+SEGMENT_BET_BLACKLIST = {
+    ("dirt",       "三連複"),
+    ("turf_short", "馬連"),
+    ("turf_short", "複勝"),
+    ("turf_mid",   "馬連"),
+}
+
+
+def _race_segment(td: str, dist) -> str:
+    """距離・芝/ダから 4 セグメントを返す。"""
+    try:
+        d = int(dist)
+    except (TypeError, ValueError):
+        return "unknown"
+    if td == "ダ":
+        return "dirt"
+    if d <= 1400:
+        return "turf_short"
+    if d <= 2200:
+        return "turf_mid"
+    return "turf_long"
+
+
+def _is_blacklisted(td: str, dist, bet_type: str) -> bool:
+    return (_race_segment(td, dist), bet_type) in SEGMENT_BET_BLACKLIST
+
 CLASS_NORMALIZE = {
     "新馬":"新馬","未勝利":"未勝利",
     "1勝":"1勝","500万":"1勝",
@@ -1113,6 +1141,11 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
         return {}
     cls      = CLASS_NORMALIZE.get(cls_raw, cls_raw)
     bet_info = strategy.get(place, {}).get(cls) or strategy.get(place, {}).get(cls_raw, {})
+    # Phase 5+: SegmentBetFilter 用にレース条件取得
+    _meta_row = race_df.iloc[0] if len(race_df) > 0 else None
+    _td   = str(_meta_row.get("芝・ダ", "")) if _meta_row is not None else ""
+    _dist = _meta_row.get("距離", None) if _meta_row is not None else None
+    _seg  = _race_segment(_td, _dist)
     marks_df = {m: race_df[race_df["mark"] == m] for m in ["◎","◯","▲"]}
     hon    = marks_df["◎"]
     taikou = marks_df["◯"]
@@ -1127,7 +1160,9 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
 
     # ── HAHO: 馬連◎軸2点 + 三連複ボックス1点 ──────────────────────────
     # bet_info があるときだけ生成（戦略テーブルの ROI を使う）
+    # Phase 5+: SegmentBetFilter
     haho_types = {k: v for k, v in bet_info.items() if k in ("馬連", "三連複")} if bet_info else {}
+    haho_types = {k: v for k, v in haho_types.items() if (_seg, k) not in SEGMENT_BET_BLACKLIST}
     if haho_types and "馬連" in haho_types and h2 and h3:  # 馬連が戦略にない場合はHALOに任せる
         haho_bets = []
         total_ratio = sum(v["bet_ratio"] for v in haho_types.values()) or 1.0
@@ -1149,7 +1184,7 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
             result["HAHO"] = haho_bets
 
     # ── HALO: 三連複ボックス1点のみ（全予算）──────────────────────────
-    if bet_info and "三連複" in bet_info and h2 and h3:
+    if bet_info and "三連複" in bet_info and h2 and h3 and (_seg, "三連複") not in SEGMENT_BET_BLACKLIST:
         info = bet_info["三連複"]
         c_sf = tuple(sorted([h1, h2, h3]))
         result["HALO"] = [{"馬券種":"三連複","買い目":"-".join(map(str, c_sf)),
@@ -1159,26 +1194,38 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
     # bet_info があるときだけ生成（戦略テーブルの ROI を使う）
     if bet_info:
         any_info = next(iter(bet_info.values()), {})
-        result["LALO"] = [{"馬券種":"複勝","買い目":str(h1),
-                           "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
+        if (_seg, "複勝") not in SEGMENT_BET_BLACKLIST:
+            result["LALO"] = [{"馬券種":"複勝","買い目":str(h1),
+                               "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
 
         # ── CQC: 単勝◎1点のみ（全予算）─────────────────────────────────────
-        result["CQC"]  = [{"馬券種":"単勝","買い目":str(h1),
-                           "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
+        if (_seg, "単勝") not in SEGMENT_BET_BLACKLIST:
+            result["CQC"]  = [{"馬券種":"単勝","買い目":str(h1),
+                               "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
 
-    # ── TRIPLE: 三連複◎◯▲1点 + 複勝◎1点（標準型 50/50）────────────────
-    if h2 and h3:
-        san_key    = "-".join(map(str, sorted([h1, h2, h3])))
-        amt_san    = floor_to_unit(budget // 2)
-        amt_fuku   = floor_to_unit(budget - amt_san)
+    # ── TRIPLE: 三連複◎◯▲1点 + 複勝◎1点（SegmentBetFilterで券種自動選択）────────────────
+    san_blocked  = (_seg, "三連複") in SEGMENT_BET_BLACKLIST
+    fuku_blocked = (_seg, "複勝")   in SEGMENT_BET_BLACKLIST
+    triple_bets = []
+    if h2 and h3 and not san_blocked and not fuku_blocked:
+        # 通常型: 三連複+複勝 50/50
+        san_key  = "-".join(map(str, sorted([h1, h2, h3])))
+        amt_san  = floor_to_unit(budget // 2)
+        amt_fuku = floor_to_unit(budget - amt_san)
         triple_bets = [
-            {"馬券種":"三連複","買い目":san_key,  "購入額":amt_san, "ROI":134},
-            {"馬券種":"複勝",  "買い目":str(h1),  "購入額":amt_fuku,"ROI":84},
+            {"馬券種":"三連複","買い目":san_key, "購入額":amt_san, "ROI":134},
+            {"馬券種":"複勝",  "買い目":str(h1), "購入額":amt_fuku,"ROI":84},
         ]
-    else:
-        # ◯▲不在時は複勝のみ
+    elif h2 and h3 and not san_blocked:
+        # 複勝のみブロック → 三連複に全額
+        san_key = "-".join(map(str, sorted([h1, h2, h3])))
+        triple_bets = [{"馬券種":"三連複","買い目":san_key,"購入額":floor_to_unit(budget),"ROI":134}]
+    elif not fuku_blocked:
+        # 三連複ブロック or ◯▲不在 → 複勝のみ
         triple_bets = [{"馬券種":"複勝","買い目":str(h1),"購入額":floor_to_unit(budget),"ROI":84}]
-    result["TRIPLE"] = triple_bets
+    # 両方ブロック → triple_bets は空のまま（このセグメントは買わない）
+    if triple_bets:
+        result["TRIPLE"] = triple_bets
 
     return result
 

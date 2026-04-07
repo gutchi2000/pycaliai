@@ -755,6 +755,31 @@ def process_one_race(
         for bt in exclude_bets:
             candidates.pop(bt, None)
 
+    # Phase 5+: SegmentBetFilter (ROI<80% の (距離セグメント, 券種) を除外)
+    SEGMENT_BET_BLACKLIST = {
+        ("dirt",       "三連複"),
+        ("turf_short", "馬連"),
+        ("turf_short", "複勝"),
+        ("turf_mid",   "馬連"),
+    }
+    try:
+        _r0 = race_df.iloc[0]
+        _td = str(_r0.get("芝・ダ", _r0.get("芝ダ", "")))
+        _d  = int(_r0.get("距離", 0))
+        if _td == "ダ":
+            _seg = "dirt"
+        elif _d <= 1400:
+            _seg = "turf_short"
+        elif _d <= 2200:
+            _seg = "turf_mid"
+        else:
+            _seg = "turf_long"
+        for bt in list(candidates.keys()):
+            if (_seg, bt) in SEGMENT_BET_BLACKLIST:
+                candidates[bt] = []
+    except Exception:
+        pass
+
     # 予算按分（戦略の bet_ratio を使用、未指定時は BUDGET_RATIO）
     filtered_bet_info = None
     if bet_info is not None:
