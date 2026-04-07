@@ -762,10 +762,20 @@ def process_one_race(
         ("turf_short", "複勝"),
         ("turf_mid",   "馬連"),
     }
+    SEGMENT_CLASS_BET_BLACKLIST = {
+        ("dirt", "未勝利",  "馬連"),
+        ("dirt", "オープン", "馬連"),
+        ("dirt", "3勝",    "馬連"),
+        ("dirt", "GⅠ",    "馬連"),
+        ("dirt", "GⅡ",    "馬連"),
+        ("dirt", "GⅢ",    "馬連"),
+        ("dirt", "OP(L)",  "馬連"),
+    }
     try:
         _r0 = race_df.iloc[0]
         _td = str(_r0.get("芝・ダ", _r0.get("芝ダ", "")))
         _d  = int(_r0.get("距離", 0))
+        _cls = str(_r0.get("クラス名", _r0.get("クラス", "")))
         if _td == "ダ":
             _seg = "dirt"
         elif _d <= 1400:
@@ -776,6 +786,8 @@ def process_one_race(
             _seg = "turf_long"
         for bt in list(candidates.keys()):
             if (_seg, bt) in SEGMENT_BET_BLACKLIST:
+                candidates[bt] = []
+            if (_seg, _cls, bt) in SEGMENT_CLASS_BET_BLACKLIST:
                 candidates[bt] = []
     except Exception:
         pass

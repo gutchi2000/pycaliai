@@ -116,6 +116,22 @@ SEGMENT_BET_BLACKLIST = {
     ("turf_mid",   "馬連"),
 }
 
+# Phase 5+ Step2: クラス×セグメント×券種 ブラックリスト
+# 根拠: dirt馬連 89.8%だが内訳で未勝利71.8%, 重賞系0-77.5%が損失源
+SEGMENT_CLASS_BET_BLACKLIST = {
+    ("dirt", "未勝利", "馬連"),
+    ("dirt", "オープン","馬連"),
+    ("dirt", "3勝",   "馬連"),
+    ("dirt", "GⅠ",   "馬連"),
+    ("dirt", "GⅡ",   "馬連"),
+    ("dirt", "GⅢ",   "馬連"),
+    ("dirt", "OP(L)", "馬連"),
+}
+
+
+def _is_class_blacklisted(seg: str, cls_raw: str, bt: str) -> bool:
+    return (seg, cls_raw, bt) in SEGMENT_CLASS_BET_BLACKLIST
+
 
 def _race_segment(td: str, dist) -> str:
     """距離・芝/ダから 4 セグメントを返す。"""
@@ -1160,9 +1176,11 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
 
     # ── HAHO: 馬連◎軸2点 + 三連複ボックス1点 ──────────────────────────
     # bet_info があるときだけ生成（戦略テーブルの ROI を使う）
-    # Phase 5+: SegmentBetFilter
+    # Phase 5+: SegmentBetFilter (距離 + クラス×距離)
     haho_types = {k: v for k, v in bet_info.items() if k in ("馬連", "三連複")} if bet_info else {}
-    haho_types = {k: v for k, v in haho_types.items() if (_seg, k) not in SEGMENT_BET_BLACKLIST}
+    haho_types = {k: v for k, v in haho_types.items()
+                  if (_seg, k) not in SEGMENT_BET_BLACKLIST
+                  and (_seg, cls_raw, k) not in SEGMENT_CLASS_BET_BLACKLIST}
     if haho_types and "馬連" in haho_types and h2 and h3:  # 馬連が戦略にない場合はHALOに任せる
         haho_bets = []
         total_ratio = sum(v["bet_ratio"] for v in haho_types.values()) or 1.0
