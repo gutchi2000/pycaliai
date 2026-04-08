@@ -581,13 +581,19 @@ def load_strategy() -> dict:
         return json.load(f)
 
 
-@st.cache_data(show_spinner=False)
-def load_results() -> dict:
-    """的中実績データ読み込み（results.json）。"""
+@st.cache_data(show_spinner=False, ttl=300)
+def _load_results_cached(mtime: float) -> dict:
     if not RESULTS_JSON.exists():
         return {}
     with open(RESULTS_JSON, encoding="utf-8") as f:
         return json.load(f)
+
+
+def load_results() -> dict:
+    """的中実績データ読み込み（results.json）。mtime をキーにキャッシュ。"""
+    if not RESULTS_JSON.exists():
+        return {}
+    return _load_results_cached(RESULTS_JSON.stat().st_mtime)
 
 
 @st.cache_data(show_spinner=False)
