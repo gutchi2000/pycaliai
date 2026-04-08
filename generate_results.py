@@ -314,7 +314,7 @@ def calc_plan_races(pred: pd.DataFrame, kekka_cache: dict,
             san_hit  = (any(c <= set(top3) for c in san_bets)) if san_bets and top3 else False
             san_ret  = 0.0
             if san_hit:
-                odds    = get_payout_sanrenfuku(race_kk)
+                odds    = get_payout_sanrenpuku(race_kk)
                 san_ret = san_inv * odds / 100
             # 複勝◎
             fuku_inv  = float(hon.get("TRIPLE_複勝_購入額", 0) or 0)
