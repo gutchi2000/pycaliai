@@ -126,6 +126,8 @@ SEGMENT_CLASS_BET_BLACKLIST = {
     ("dirt", "GⅡ",   "馬連"),
     ("dirt", "GⅢ",   "馬連"),
     ("dirt", "OP(L)", "馬連"),
+    # Phase 5+ Step3: 複勝の統計的有意な負ROIブロック (2026-04-08, analyst+statistician推奨)
+    ("dirt",      "1勝", "複勝"),   # n=202 ROI 82.1% p≈0.03 有意
 }
 
 

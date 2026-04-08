@@ -770,6 +770,7 @@ def process_one_race(
         ("dirt", "GⅡ",    "馬連"),
         ("dirt", "GⅢ",    "馬連"),
         ("dirt", "OP(L)",  "馬連"),
+        ("dirt",      "1勝", "複勝"),
     }
     try:
         _r0 = race_df.iloc[0]
