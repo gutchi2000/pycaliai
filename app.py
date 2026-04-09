@@ -3755,7 +3755,7 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
     st.caption(
         "各指標はレース内で 0〜10 に正規化。右側の順位はレース内ランク。　"
         "※ **印（◎◯▲△）はアンサンブルモデル score 順** / **PyCaLi指数は score + 補助指標5つの総合評価**。"
-        "このため補助指標が強い/弱い馬では印順位と PyCa順位が逆転することがあります。"
+        "このため補助指標が強い/弱い馬では印順位と PyCaLi順位が逆転することがあります。"
     )
 
     df = race_df.sort_values("馬番").reset_index(drop=True).copy()
