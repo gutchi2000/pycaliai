@@ -3690,6 +3690,156 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
 # =========================================================
 # 出走表ページ
 # =========================================================
+# =========================================================
+# PyCa 出走馬評価リスト (全頭分析タブ用)
+# =========================================================
+PYCA_INDICATORS = [
+    ("a", "総合力",  "score",               True),   # ensemble score
+    ("b", "スピード", "前走補正",            True),
+    ("c", "持続力",  "前走補9",             True),
+    ("d", "適性",    "horse_fuku_course",  True),
+    ("e", "騎手",    "jockey_fuku90",      True),
+    ("f", "厩舎",    "trainer_fuku90",     True),
+]
+
+
+def _norm_0_10(series: pd.Series) -> pd.Series:
+    """レース内で 0〜10 に min-max 正規化。欠損/全同値は 5.0。"""
+    s = pd.to_numeric(series, errors="coerce")
+    if s.notna().sum() == 0:
+        return pd.Series([5.0] * len(series), index=series.index)
+    vmin, vmax = s.min(), s.max()
+    if vmax - vmin < 1e-9:
+        return pd.Series([5.0] * len(series), index=series.index)
+    out = (s - vmin) / (vmax - vmin) * 10.0
+    return out.fillna(5.0)
+
+
+def _pyca_index(row_score: float, indicators: dict) -> float:
+    """PyCa総合指数 (0-100)。ensemble score を主軸に各指標で微調整。"""
+    base = float(row_score) * 100.0
+    boost = sum(indicators.values()) / max(len(indicators), 1) - 5.0   # -5..+5
+    return float(max(0.0, min(100.0, base + boost * 1.2)))
+
+
+def _pyca_radar_fig(values: list[float], labels: list[str], name: str):
+    """6軸レーダーチャート (matplotlib polar)。"""
+    import matplotlib.pyplot as _plt
+    import numpy as _np
+    n = len(values)
+    angles = _np.linspace(0, 2 * _np.pi, n, endpoint=False).tolist()
+    vals   = values + values[:1]
+    angs   = angles + angles[:1]
+    fig = _plt.figure(figsize=(3.2, 3.2), facecolor="#1e1e2e")
+    ax = fig.add_subplot(111, polar=True, facecolor="#181825")
+    ax.plot(angs, vals, color="#89b4fa", linewidth=2)
+    ax.fill(angs, vals, color="#89b4fa", alpha=0.28)
+    ax.set_ylim(0, 10)
+    ax.set_yticks([2, 4, 6, 8, 10])
+    ax.set_yticklabels(["2","4","6","8","10"], color="#6c7086", fontsize=7)
+    ax.set_xticks(angles)
+    ax.set_xticklabels(labels, color="#cdd6f4", fontsize=9)
+    ax.grid(color="#313244", linewidth=0.8)
+    ax.spines["polar"].set_color("#313244")
+    ax.set_title(name, color="#f5e0dc", fontsize=10, pad=8)
+    fig.tight_layout()
+    return fig
+
+
+def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
+    """全頭分析タブ: PyCa指数ベースの評価リスト。"""
+    st.markdown("### 🔍 出走馬評価リスト（PyCa指数）")
+    st.caption("各指標はレース内で 0〜10 に正規化。右側の順位はレース内ランク。")
+
+    df = race_df.sort_values("馬番").reset_index(drop=True).copy()
+
+    # 指標値を 0〜10 正規化して DF に追加
+    norm_cols: dict[str, str] = {}
+    for key, label, col, higher in PYCA_INDICATORS:
+        nkey = f"_pyca_{key}"
+        if col in df.columns:
+            df[nkey] = _norm_0_10(df[col])
+            if not higher:
+                df[nkey] = 10.0 - df[nkey]
+        else:
+            df[nkey] = 5.0
+        norm_cols[key] = nkey
+
+    # レース内順位 (値の大きい順, 1=最良)
+    rank_cols: dict[str, str] = {}
+    for key, _, _, _ in PYCA_INDICATORS:
+        rkey = f"_rank_{key}"
+        df[rkey] = df[norm_cols[key]].rank(ascending=False, method="min").astype(int)
+        rank_cols[key] = rkey
+
+    # PyCa指数
+    def _calc_pyca(r: pd.Series) -> float:
+        ind = {k: float(r[norm_cols[k]]) for k, *_ in PYCA_INDICATORS}
+        return _pyca_index(float(r.get("score", 0.0)), ind)
+    df["_pyca"] = df.apply(_calc_pyca, axis=1)
+    df["_pyca_rank"] = df["_pyca"].rank(ascending=False, method="min").astype(int)
+
+    labels = [lbl for _, lbl, _, _ in PYCA_INDICATORS]
+
+    for _, row in df.iterrows():
+        name  = str(row.get("馬名", f"{int(row['馬番'])}番"))
+        uma   = int(row.get("馬番", 0))
+        mark  = str(row.get("mark", ""))
+        sex   = str(row.get("性齢", ""))
+        kin   = row.get("斤量", "")
+        jockey= str(row.get("騎手", ""))
+        pyca  = float(row["_pyca"])
+        prank = int(row["_pyca_rank"])
+        mk_cls  = MARK_CLASS.get(mark, "")
+        mk_html = f'<span class="{mk_cls}">{mark}</span> ' if mark else ""
+
+        c_left, c_mid, c_right = st.columns([2, 2, 3], gap="small")
+        with c_left:
+            st.markdown(
+                f'<div style="padding:4px 0;line-height:1.5">'
+                f'<div style="font-size:11px;color:#6c7086">{uma}番</div>'
+                f'<div style="font-size:16px;font-weight:bold">{mk_html}{name}</div>'
+                f'<div style="font-size:11px;color:#a6adc8">{sex} / {kin}kg / {jockey}</div>'
+                f'<div style="margin-top:10px">'
+                f'<span style="font-size:11px;color:#6c7086">PyCa指数</span><br>'
+                f'<span style="font-size:32px;font-weight:bold;color:#89b4fa">{pyca:.1f}</span>'
+                f'<span style="font-size:13px;color:#cdd6f4;margin-left:6px">({prank}位)</span>'
+                f'</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        with c_mid:
+            vals = [float(row[norm_cols[k]]) for k, *_ in PYCA_INDICATORS]
+            fig = _pyca_radar_fig(vals, labels, name)
+            st.pyplot(fig, use_container_width=True)
+            plt.close(fig)
+        with c_right:
+            st.markdown(
+                '<div style="font-size:11px;color:#6c7086;margin-bottom:4px">指標 / 値 / レース内順位</div>',
+                unsafe_allow_html=True,
+            )
+            rows_html = []
+            for key, label, _, _ in PYCA_INDICATORS:
+                v = float(row[norm_cols[key]])
+                rk = int(row[rank_cols[key]])
+                # バー幅
+                bar = int(round(v * 10))  # 0..100
+                top_mark = "★" if rk <= 3 else ""
+                color = "#a6e3a1" if rk == 1 else ("#89b4fa" if rk <= 3 else "#cdd6f4")
+                rows_html.append(
+                    f'<div style="display:flex;align-items:center;gap:6px;margin:3px 0;font-size:12px">'
+                    f'<div style="width:48px;color:#a6adc8">{key}. {label}</div>'
+                    f'<div style="flex:1;height:7px;background:#313244;border-radius:3px;overflow:hidden">'
+                    f'<div style="height:100%;width:{bar}%;background:{color}"></div>'
+                    f'</div>'
+                    f'<div style="width:32px;text-align:right;color:{color};font-weight:bold">{v:.1f}</div>'
+                    f'<div style="width:32px;text-align:right;color:#6c7086">{rk}位{top_mark}</div>'
+                    f'</div>'
+                )
+            st.markdown("".join(rows_html), unsafe_allow_html=True)
+        st.markdown("<hr style='border-color:#313244;margin:8px 0'>", unsafe_allow_html=True)
+
+
 def page_race_detail(
     race_df: pd.DataFrame,
     all_df: pd.DataFrame,
@@ -3830,44 +3980,7 @@ def page_race_detail(
                                 )
 
         with tab2:
-            if not shap_ok:
-                st.error("SHAP計算に失敗しました。")
-            else:
-                st.markdown("### 🔍 全頭分析")
-                for i, row in race_df.sort_values("馬番").reset_index(drop=True).iterrows():
-                    sv_row  = shap_vals[i]
-                    name    = str(row.get("馬名", f"{int(row['馬番'])}番"))
-                    mark    = str(row.get("mark",""))
-                    score   = float(row.get("score",0))
-                    comment = make_comment(sv_row, feature_cols, name, score, mark)
-                    mk_cls  = MARK_CLASS.get(mark,"")
-                    mk_html = f'<span class="{mk_cls}">{mark}</span> ' if mark else ""
-                    sv_arr  = np.array(sv_row)
-                    pairs   = sorted(zip(sv_arr, feature_cols), reverse=True)
-                    pos4    = [(v,c) for v,c in pairs if v > 0][:4]
-                    neg3    = [(v,c) for v,c in pairs if v < 0][-3:]
-                    c_left, c_mid, c_right = st.columns([2, 3, 2])
-                    with c_left:
-                        st.markdown(
-                            f'<div style="padding:8px 0">'
-                            f'<span style="font-size:15px;font-weight:bold">{mk_html}{name}</span>'
-                            f'<span style="font-size:12px;color:#888;margin-left:8px">{score:.1f}%</span>'
-                            f'</div>'
-                            f'<div style="font-size:13px;color:#a6adc8;line-height:1.7">{comment}</div>',
-                            unsafe_allow_html=True,
-                        )
-                    with c_mid:
-                        fig = make_shap_fig(sv_row, feature_cols, name)
-                        st.pyplot(fig, use_container_width=True)
-                        plt.close(fig)
-                    with c_right:
-                        for v, c in pos4:
-                            label = FEATURE_LABEL.get(c,c)
-                            st.markdown(f'<div style="color:#e74c3c;font-size:12px;margin:2px 0">🟥 {label} +{v:.3f}</div>', unsafe_allow_html=True)
-                        for v, c in neg3:
-                            label = FEATURE_LABEL.get(c,c)
-                            st.markdown(f'<div style="color:#5865f2;font-size:12px;margin:2px 0">🟦 {label} {v:.3f}</div>', unsafe_allow_html=True)
-                    st.markdown("<hr style='border-color:#313244;margin:8px 0'>", unsafe_allow_html=True)
+            render_pyca_evaluation_list(race_df)
 
 
         with tab3:
