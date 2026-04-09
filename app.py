@@ -387,12 +387,20 @@ def _load_pycali_history() -> pd.DataFrame:
     return pd.DataFrame()
 
 
+def _norm_horse_name(s) -> str:
+    import unicodedata
+    if not isinstance(s, str):
+        return ""
+    return unicodedata.normalize("NFKC", s).strip().replace("　", "")
+
+
 def _real_pycali_history(horse_name: str, current_date: str | None, n: int = 5) -> list[float]:
-    """馬名ベースで過去N走のスコアを時系列順で返す（最新を末尾）。"""
+    """馬名ベースで過去N走のスコアを時系列順で返す（最新を末尾）。NFKC正規化済みキーで照合。"""
     hist = _load_pycali_history()
     if hist.empty or not horse_name:
         return []
-    sub = hist[hist["馬名"] == horse_name]
+    key = _norm_horse_name(horse_name)
+    sub = hist[hist["馬名"] == key]
     if current_date:
         cd = str(current_date)[:8]
         sub = sub[sub["日付"] < cd]

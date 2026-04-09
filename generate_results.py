@@ -440,6 +440,13 @@ def main() -> None:
         json.dump(result, f, ensure_ascii=False, indent=2, default=str)
     log.info(f"results.json 保存完了: {OUT_PATH}")
 
+    # PyCaLi 履歴DBも更新
+    try:
+        import subprocess, sys
+        subprocess.run([sys.executable, "build_pycali_history.py"], check=False)
+    except Exception as e:
+        log.warning(f"build_pycali_history 実行失敗: {e}")
+
     print("\n=== 集計結果 ===")
     for plan in ["HAHO", "HALO", "LALO", "CQC", "TRIPLE"]:
         t = result[plan]["total"]
