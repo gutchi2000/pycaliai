@@ -3694,32 +3694,35 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
 # PyCa 出走馬評価リスト (全頭分析タブ用)
 # =========================================================
 PYCA_INDICATORS = [
-    ("a", "総合力",  "score",               True),   # ensemble score
-    ("b", "スピード", "前走補正",            True),
-    ("c", "持続力",  "前走補9",             True),
-    ("d", "適性",    "horse_fuku_course",  True),
-    ("e", "騎手",    "jockey_fuku90",      True),
-    ("f", "厩舎",    "trainer_fuku90",     True),
+    ("a", "総合力",  "score",          True),   # ensemble score (0-100)
+    ("b", "スピード", "前走補正",       True),
+    ("c", "持続力",  "前走補9",        True),
+    ("d", "適性",    "horse_fuku30",   True),
+    ("e", "騎手",    "jockey_fuku90",  True),
+    ("f", "厩舎",    "trainer_fuku90", True),
 ]
 
 
-def _norm_0_10(series: pd.Series) -> pd.Series:
-    """レース内で 0〜10 に min-max 正規化。欠損/全同値は 5.0。"""
+def _norm_0_10(series: pd.Series) -> tuple[pd.Series, bool]:
+    """レース内で 0〜10 に min-max 正規化。
+    戻り値: (正規化済み Series, valid(有効フラグ))
+    欠損全部 or 全馬同値なら valid=False, 5.0 固定。
+    """
     s = pd.to_numeric(series, errors="coerce")
     if s.notna().sum() == 0:
-        return pd.Series([5.0] * len(series), index=series.index)
+        return pd.Series([5.0] * len(series), index=series.index), False
     vmin, vmax = s.min(), s.max()
     if vmax - vmin < 1e-9:
-        return pd.Series([5.0] * len(series), index=series.index)
+        return pd.Series([5.0] * len(series), index=series.index), False
     out = (s - vmin) / (vmax - vmin) * 10.0
-    return out.fillna(5.0)
+    return out.fillna(5.0), True
 
 
 def _pyca_index(row_score: float, indicators: dict) -> float:
-    """PyCa総合指数 (0-100)。ensemble score を主軸に各指標で微調整。"""
-    base = float(row_score) * 100.0
+    """PyCa総合指数 (0-100)。ensemble score (0-100) を主軸に各指標で微調整。"""
+    base = float(row_score)  # score は既に 0-100
     boost = sum(indicators.values()) / max(len(indicators), 1) - 5.0   # -5..+5
-    return float(max(0.0, min(100.0, base + boost * 1.2)))
+    return float(max(0.0, min(100.0, base + boost * 1.5)))
 
 
 def _pyca_radar_fig(values: list[float], labels: list[str], name: str):
@@ -3753,23 +3756,30 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
 
     df = race_df.sort_values("馬番").reset_index(drop=True).copy()
 
-    # 指標値を 0〜10 正規化して DF に追加
+    # 指標値を 0〜10 正規化して DF に追加 (valid フラグも保持)
     norm_cols: dict[str, str] = {}
+    valid_map: dict[str, bool] = {}
     for key, label, col, higher in PYCA_INDICATORS:
         nkey = f"_pyca_{key}"
         if col in df.columns:
-            df[nkey] = _norm_0_10(df[col])
-            if not higher:
+            norm, valid = _norm_0_10(df[col])
+            df[nkey] = norm
+            if valid and not higher:
                 df[nkey] = 10.0 - df[nkey]
+            valid_map[key] = valid
         else:
             df[nkey] = 5.0
+            valid_map[key] = False
         norm_cols[key] = nkey
 
-    # レース内順位 (値の大きい順, 1=最良)
+    # レース内順位 (値の大きい順, 1=最良)。valid=False なら順位 0 (表示で "−")
     rank_cols: dict[str, str] = {}
     for key, _, _, _ in PYCA_INDICATORS:
         rkey = f"_rank_{key}"
-        df[rkey] = df[norm_cols[key]].rank(ascending=False, method="min").astype(int)
+        if valid_map[key]:
+            df[rkey] = df[norm_cols[key]].rank(ascending=False, method="min").astype(int)
+        else:
+            df[rkey] = 0
         rank_cols[key] = rkey
 
     # PyCa指数
@@ -3822,10 +3832,16 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
             for key, label, _, _ in PYCA_INDICATORS:
                 v = float(row[norm_cols[key]])
                 rk = int(row[rank_cols[key]])
-                # バー幅
+                valid = valid_map[key]
                 bar = int(round(v * 10))  # 0..100
-                top_mark = "★" if rk <= 3 else ""
-                color = "#a6e3a1" if rk == 1 else ("#89b4fa" if rk <= 3 else "#cdd6f4")
+                if not valid:
+                    color = "#6c7086"
+                    rank_txt = "−"
+                    top_mark = ""
+                else:
+                    color = "#a6e3a1" if rk == 1 else ("#89b4fa" if rk <= 3 else "#cdd6f4")
+                    rank_txt = f"{rk}位"
+                    top_mark = "★" if rk <= 3 else ""
                 rows_html.append(
                     f'<div style="display:flex;align-items:center;gap:6px;margin:3px 0;font-size:12px">'
                     f'<div style="width:48px;color:#a6adc8">{key}. {label}</div>'
@@ -3833,7 +3849,7 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
                     f'<div style="height:100%;width:{bar}%;background:{color}"></div>'
                     f'</div>'
                     f'<div style="width:32px;text-align:right;color:{color};font-weight:bold">{v:.1f}</div>'
-                    f'<div style="width:32px;text-align:right;color:#6c7086">{rk}位{top_mark}</div>'
+                    f'<div style="width:40px;text-align:right;color:#6c7086">{rank_txt}{top_mark}</div>'
                     f'</div>'
                 )
             st.markdown("".join(rows_html), unsafe_allow_html=True)
