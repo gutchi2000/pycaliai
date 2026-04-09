@@ -3719,7 +3719,7 @@ def _norm_0_10(series: pd.Series) -> tuple[pd.Series, bool]:
 
 
 def _pyca_index(row_score: float, indicators: dict) -> float:
-    """PyCa総合指数 (0-100)。ensemble score (0-100) を主軸に各指標で微調整。"""
+    """PyCaLi総合指数 (0-100)。ensemble score (0-100) を主軸に各指標で微調整。"""
     base = float(row_score)  # score は既に 0-100
     boost = sum(indicators.values()) / max(len(indicators), 1) - 5.0   # -5..+5
     return float(max(0.0, min(100.0, base + boost * 1.5)))
@@ -3750,11 +3750,11 @@ def _pyca_radar_fig(values: list[float], labels: list[str], name: str):
 
 
 def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
-    """全頭分析タブ: PyCa指数ベースの評価リスト。"""
-    st.markdown("### 🔍 出走馬評価リスト（PyCa指数）")
+    """全頭分析タブ: PyCaLi指数ベースの評価リスト。"""
+    st.markdown("### 🔍 出走馬評価リスト（PyCaLi指数）")
     st.caption(
         "各指標はレース内で 0〜10 に正規化。右側の順位はレース内ランク。　"
-        "※ **印（◎◯▲△）はアンサンブルモデル score 順** / **PyCa指数は score + 補助指標5つの総合評価**。"
+        "※ **印（◎◯▲△）はアンサンブルモデル score 順** / **PyCaLi指数は score + 補助指標5つの総合評価**。"
         "このため補助指標が強い/弱い馬では印順位と PyCa順位が逆転することがあります。"
     )
 
@@ -3794,7 +3794,7 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
             df[rkey] = 0
         rank_cols[key] = rkey
 
-    # PyCa指数
+    # PyCaLi指数
     def _calc_pyca(r: pd.Series) -> float:
         ind = {k: float(r[norm_cols[k]]) for k, *_ in PYCA_INDICATORS}
         return _pyca_index(float(r.get("score", 0.0)), ind)
@@ -3823,7 +3823,7 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
                 f'<div style="font-size:24px;font-weight:bold">{mk_html}{name}</div>'
                 f'<div style="font-size:17px;color:#a6adc8">{sex} / {kin}kg / {jockey}</div>'
                 f'<div style="margin-top:14px">'
-                f'<span style="font-size:17px;color:#6c7086">PyCa指数</span><br>'
+                f'<span style="font-size:17px;color:#6c7086">PyCaLi指数</span><br>'
                 f'<span style="font-size:48px;font-weight:bold;color:#89b4fa">{pyca:.1f}</span>'
                 f'<span style="font-size:20px;color:#cdd6f4;margin-left:8px">({prank}位)</span>'
                 f'</div>'
