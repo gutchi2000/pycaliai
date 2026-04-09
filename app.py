@@ -367,7 +367,9 @@ def _compute_pycali(row) -> float:
         return 0.0
 
 
-def _pseudo_pycali_history(row, n: int = 5) -> list:
+def _pycali_form_history(row, n: int = 4) -> list:
+    """過去3走の実着順と当該レース推定PyCaLiから簡易推移を作る（実データ由来）。
+    着順は race_df の `三走前着順/二走前着順/前走着順` 列をそのまま使用。"""
     cur = _compute_pycali(row)
     hist = []
     for pre in ["三走前", "二走前", "前走"]:
@@ -377,9 +379,14 @@ def _pseudo_pycali_history(row, n: int = 5) -> list:
             rank = 0
         if rank > 0:
             hist.append(max(0.0, min(100.0, 100.0 - rank * 6.0)))
+        else:
+            hist.append(None)
     hist.append(cur)
-    while len(hist) < n:
-        hist.insert(0, hist[0] if hist else cur)
+    # None を前後補完
+    clean = [v for v in hist if v is not None]
+    if not clean:
+        return [cur] * n
+    hist = [v if v is not None else clean[0] for v in hist]
     return hist[-n:]
 
 
@@ -461,16 +468,21 @@ def render_roi_heatmap() -> None:
         return
     try:
         import plotly.express as px
+        pivot_cap = pivot.clip(upper=200)
         fig = px.imshow(
-            pivot, text_auto=".0f", aspect="auto",
+            pivot_cap, text_auto=".0f", aspect="auto",
             color_continuous_scale="RdYlGn", origin="upper",
-            labels=dict(color="ROI %"),
+            labels=dict(color="ROI %"), zmin=80, zmax=200,
         )
         fig.update_layout(height=420, margin=dict(l=40, r=20, t=30, b=40))
         st.plotly_chart(fig, use_container_width=True)
     except Exception:
         st.dataframe(pivot.round(1))
-    st.caption(f"件数: {len(sub)} 条件 / 平均ROI: {sub['回収率'].mean():.1f}%")
+    st.caption(
+        f"件数: {len(sub)} 条件 / 平均ROI: {sub['回収率'].mean():.1f}% "
+        f"※ `all_profitable_conditions.csv` は ROI≥80% の条件のみを収録した抽出データ。"
+        f"表示は200%でクリップ。全体グリッドではない点に注意。"
+    )
 
 
 def render_weekly_portfolio() -> None:
@@ -4038,6 +4050,14 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
                 f'</div>',
                 unsafe_allow_html=True,
             )
+            try:
+                _hist = _pycali_form_history(row)
+                _sp = _make_sparkline(_hist)
+                st.pyplot(_sp, use_container_width=False)
+                plt.close(_sp)
+                st.caption(f"近走フォーム推移（実着順由来）: {' → '.join(f'{v:.0f}' for v in _hist)}")
+            except Exception:
+                pass
         with c_mid:
             vals = [float(row[norm_cols[k]]) for k, *_ in PYCA_INDICATORS]
             fig = _pyca_radar_fig(vals, labels, name)
@@ -4123,6 +4143,8 @@ def page_race_detail(
                 shap_ok = True
             except Exception as e:
                 st.warning(f"SHAP計算失敗: {e}")
+
+        render_danger_favorite_badge(race_df)
 
         tab1, tab2, tab3 = st.tabs(["📋 出走表 / 買い目", "🔍 全頭分析", "🏇 コース分析"])
 
