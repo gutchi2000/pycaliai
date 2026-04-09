@@ -63,16 +63,98 @@ MODEL_DIR     = BASE_DIR / "models"
 STRATEGY_JSON    = DATA_DIR / "strategy_weights.json"
 COURSE_TREND_JSON = DATA_DIR / "course_trend.json"
 RESULTS_JSON      = DATA_DIR / "results.json"
+TYAKU_DIR     = DATA_DIR / "tyaku"
+HOSSEI_DIR    = DATA_DIR / "hosei"
+KAKO5_DIR     = DATA_DIR / "kako5"
 LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
-CAL_PATH      = MODEL_DIR / "ensemble_calibrator_v1.pkl"
-FUKU_CAL_PATH = MODEL_DIR / "fukusho_calibrator_v1.pkl"
-FUKU_CAL_GATE = 0.55  # 複勝推奨ゲート (Sprint 1.2)
+CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v4.pkl"   # Test 2024-fit (2026-03-25更新)
+CAL_PATH_V3    = MODEL_DIR / "ensemble_calibrator_v3.pkl"   # Train-based fallback
+CAL_PATH_V2    = MODEL_DIR / "ensemble_calibrator_v2.pkl"   # Valid-based fallback
+CAL_PATH_V1    = MODEL_DIR / "ensemble_calibrator_v1.pkl"   # legacy fallback
+FUKU_CAL_PATH  = MODEL_DIR / "fukusho_calibrator_v1.pkl"   # Sprint 1.2 複勝専用
+FUKU_CAL_GATE  = 0.55
+WALKFORWARD_CSV = BASE_DIR / "reports" / "all_profitable_conditions.csv"
+WIN_MODEL_PATH = MODEL_DIR / "lgbm_win_v1.pkl"
+TORCH_PATH     = MODEL_DIR / "transformer_optuna_v1.pkl"
+META_PATH      = MODEL_DIR / "stacking_meta_v1.pkl"
+STACK_CAL_PATH = MODEL_DIR / "stacking_calibrator_v1.pkl"
+VALUE_MODEL_PATH = MODEL_DIR / "value_model_v2.pkl"
+# Phase 5: 8モデルアンサンブル用パス
+RANK_PATH       = MODEL_DIR / "catboost_rank_v1.pkl"
+FUKU_LGBM_PATH  = MODEL_DIR / "lgbm_fukusho_v1.pkl"
+FUKU_CAT_PATH   = MODEL_DIR / "catboost_fukusho_v1.pkl"
+RANK_LGBM_PATH  = MODEL_DIR / "lgbm_rank_v1.pkl"
+REGRESS_PATH    = MODEL_DIR / "lgbm_regression_v1.pkl"
+ENS_WEIGHTS_PATH = MODEL_DIR / "ensemble_weights.json"
+# Phase 5+: 距離別 Mixture of Experts
+EXPERT_DIR      = MODEL_DIR
+EXPERT_PATHS    = {
+    "turf_short": EXPERT_DIR / "expert_turf_short.pkl",
+    "turf_mid":   EXPERT_DIR / "expert_turf_mid.pkl",
+    "turf_long":  EXPERT_DIR / "expert_turf_long.pkl",
+    "dirt":       EXPERT_DIR / "expert_dirt.pkl",
+}
+
+# モデルキャッシュ（プロセス内で1回だけロード）
+_model_cache: dict = {}
+
+def _get_cached(path: Path, key: str):
+    if key not in _model_cache and path.exists():
+        _model_cache[key] = joblib.load(path)
+    return _model_cache.get(key)
+
 MIN_UNIT = 100
 MARKS    = ["◎", "◯", "▲", "△", "×"]
 
-EXCLUDE_PLACES  = {"東京", "小倉"}
+EXCLUDE_PLACES  = {"東京", "小倉"}  # Phase 5: 阪神・京都の全面除外解除 (2026-04-05)
 EXCLUDE_CLASSES = {"新馬", "障害"}
+
+# Phase 5+: SegmentBetFilter — ROI<80% の (距離セグメント, 券種) を購入対象から除外
+# 根拠: 2024-2025 backtest 実測 ROI（dirt三連複 68.9%, turf_short馬連 57.2%, turf_short複勝 74.6%, turf_mid馬連 72.4%）
+SEGMENT_BET_BLACKLIST = {
+    ("dirt",       "三連複"),
+    ("turf_short", "馬連"),
+    ("turf_short", "複勝"),
+    ("turf_mid",   "馬連"),
+}
+
+# Phase 5+ Step2: クラス×セグメント×券種 ブラックリスト
+# 根拠: dirt馬連 89.8%だが内訳で未勝利71.8%, 重賞系0-77.5%が損失源
+SEGMENT_CLASS_BET_BLACKLIST = {
+    ("dirt", "未勝利", "馬連"),
+    ("dirt", "オープン","馬連"),
+    ("dirt", "3勝",   "馬連"),
+    ("dirt", "GⅠ",   "馬連"),
+    ("dirt", "GⅡ",   "馬連"),
+    ("dirt", "GⅢ",   "馬連"),
+    ("dirt", "OP(L)", "馬連"),
+    # Phase 5+ Step3: 複勝の統計的有意な負ROIブロック (2026-04-08, analyst+statistician推奨)
+    ("dirt",      "1勝", "複勝"),   # n=202 ROI 82.1% p≈0.03 有意
+}
+
+
+def _is_class_blacklisted(seg: str, cls_raw: str, bt: str) -> bool:
+    return (seg, cls_raw, bt) in SEGMENT_CLASS_BET_BLACKLIST
+
+
+def _race_segment(td: str, dist) -> str:
+    """距離・芝/ダから 4 セグメントを返す。"""
+    try:
+        d = int(dist)
+    except (TypeError, ValueError):
+        return "unknown"
+    if td == "ダ":
+        return "dirt"
+    if d <= 1400:
+        return "turf_short"
+    if d <= 2200:
+        return "turf_mid"
+    return "turf_long"
+
+
+def _is_blacklisted(td: str, dist, bet_type: str) -> bool:
+    return (_race_segment(td, dist), bet_type) in SEGMENT_BET_BLACKLIST
 
 CLASS_NORMALIZE = {
     "新馬":"新馬","未勝利":"未勝利",
@@ -106,14 +188,12 @@ COLUMN_MAP = {
     "前走着順":"前走確定着順","前走上り3F":"前走上り3F",
     "前走TD":"前芝・ダ","前走間隔":"間隔",
     "前走着差":"前走着差タイム","前走斤量":"前走斤量",
-    # master CSV / モデルの列名に合わせる（predict_weekly.py と統一）
-    "前走Ave3F":      "前走Ave-3F",
-    "前走上り3F順位":  "前走上り3F順",
-    "マイニング順位":  "マイニング順位","前走単勝オッズ":"前走単勝オッズ",
-    "前走通過1": "前1角",
-    "前走通過2": "前2角",
-    "前走通過3": "前3角",
-    "前走通過4": "前4角",
+    "前走Ave3F":"前走Ave-3F","前走上り3F順位":"前走上り3F順",
+    "マイニング順位":"マイニング順位","前走単勝オッズ":"前走単勝オッズ",
+    "前走通過1":"前1角","前走通過2":"前2角",
+    "前走通過3":"前3角","前走通過4":"前4角",
+    # 前走距離 → 前距離（モデルが使う列名）
+    "前走距離":"前距離",
 }
 
 RACE_COLS = [
@@ -134,6 +214,15 @@ HORSE_COLS_46 = [
     "前走B","前走騎手","前走斤量","前走減","前走人気","前走単勝オッズ","前走着順","前走着差",
     "マイニング順位","前走通過1","前走通過2","前走通過3","前走通過4","前走Ave3F",
     "前走上り3F","前走上り3F順位","前走1_2着馬",
+]
+HORSE_COLS_48 = [
+    "枠番","B","馬番","馬名S","性別","年齢","人気_今走","単勝","ZI印","ZI","ZI順",
+    "斤量","減M","替","騎手","所属","調教師","父","母父","父タイプ","母父タイプ",
+    "前走月","前走日","前走開催","前走間隔","前走レース名","前走TD","前走距離","前走馬場状態",
+    "前走B","前走騎手","前走斤量","前走減","前走人気","前走単勝オッズ","前走着順","前走着差",
+    "マイニング順位","前走通過1","前走通過2","前走通過3","前走通過4","前走Ave3F",
+    "前走上り3F","前走上り3F順位","前走1_2着馬",
+    "騎手コード","調教師コード",   # 48列形式: 末尾2列にコード追加
 ]
 HORSE_COLS_49 = [
     "枠番","B","馬番","馬名S","性別","年齢","馬体重","馬体重増減_raw","馬体重増減",
@@ -164,11 +253,106 @@ HORSE_COLS_99 = [
 
 
 # =========================================================
-# v2 拡張ヘルパー
+# 着度数CSV パース（predict_weekly.py と同一ロジック）
 # =========================================================
-WALKFORWARD_CSV = BASE_DIR / "reports" / "all_profitable_conditions.csv"
+TYAKU_HORSE_COLS = [
+    "枠番","B","馬番","印","M2","M3","M4","馬名S","C","性別","年齢","替","騎手","斤量","減M","単勝",
+    "馬体重","増減",
+    "中央平地全:1着","中央平地全:2着","中央平地全:3着","中央平地全:外","中央平地全:連対率",
+    "同騎手:1着","同騎手:2着","同騎手:3着","同騎手:外","同騎手:連対率",
+    "全ダート:1着","全ダート:2着","全ダート:3着","全ダート:外","全ダート:連対率",
+    "同距離:1着","同距離:2着","同距離:3着","同距離:外","同距離:連対率",
+    "同場所:1着","同場所:2着","同場所:3着","同場所:外","同場所:連対率",
+    "同コース:1着","同コース:2着","同コース:3着","同コース:外","同コース:連対率",
+    "同クラス:1着","同クラス:2着","同クラス:3着","同クラス:外","同クラス:連対率",
+    "穴傾向","BESTタイム",
+]
 
 
+def _load_tyaku(date_str: str) -> "pd.DataFrame | None":
+    """data/tyaku/YYYYMMDD.csv を読み込み、馬番→着度数の対応表を返す。"""
+    path = TYAKU_DIR / f"{date_str}.csv"
+    if not path.exists():
+        return None
+    for enc in ["cp932", "shift_jis", "utf-8"]:
+        try:
+            text = path.read_bytes().decode(enc); break
+        except Exception:
+            continue
+    else:
+        return None
+
+    rows: list[dict] = []
+    current_race_id: str | None = None
+    for line in text.splitlines():
+        cols = line.split(",")
+        if len(cols) == 19 and cols[0] not in ("レースID(新)", ""):
+            current_race_id = cols[0].strip()[:16]
+        elif len(cols) == 55 and cols[0] not in ("枠番", "") and current_race_id:
+            row = dict(zip(TYAKU_HORSE_COLS, cols))
+            row["レースID(新/馬番無)"] = current_race_id
+            rows.append(row)
+
+    if not rows:
+        return None
+
+    df = pd.DataFrame(rows)
+    for col in ["馬番","馬体重","増減",
+                "中央平地全:1着","中央平地全:2着","中央平地全:3着","中央平地全:外",
+                "同コース:1着","同コース:2着","同コース:3着","同コース:外",
+                "同クラス:1着","同クラス:2着","同クラス:3着","同クラス:外"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Bayesian smoothing: prior = 0.286, 仮想サンプル数 5
+    _PRIOR_ALPHA = 1.43
+    _PRIOR_BETA  = 5.0
+    for prefix, out_col in [("中央平地全", "horse_fuku_career"),
+                             ("同コース",   "horse_fuku_course"),
+                             ("同クラス",   "horse_fuku_class")]:
+        w = df[f"{prefix}:1着"].fillna(0) + df[f"{prefix}:2着"].fillna(0) + df[f"{prefix}:3着"].fillna(0)
+        total = w + df[f"{prefix}:外"].fillna(0)
+        df[out_col] = (w + _PRIOR_ALPHA) / (total + _PRIOR_BETA)
+
+    if "増減" in df.columns:
+        df["増減"] = df["増減"].astype(str).str.replace(" ", "").str.replace("－","-").str.replace("＋","+")
+        df["増減"] = pd.to_numeric(df["増減"], errors="coerce")
+
+    keep = ["レースID(新/馬番無)","馬番","馬体重","増減",
+            "horse_fuku_career","horse_fuku_course","horse_fuku_class"]
+    return df[[c for c in keep if c in df.columns]]
+
+
+def _load_hosei(date_str: str) -> "pd.DataFrame | None":
+    """data/hosei/H_*.csv を glob して全期間の補正タイムを返す。
+    date_str は互換性のために受け取るが現在は使用しない。
+    """
+    files = sorted(HOSSEI_DIR.glob("H_*.csv"))
+    if not files:
+        return None
+    dfs = []
+    for path in files:
+        for enc in ["cp932", "utf-8-sig", "utf-8"]:
+            try:
+                df = pd.read_csv(path, encoding=enc,
+                                 usecols=["レースID(新)", "馬番", "前走補9", "前走補正"])
+                dfs.append(df)
+                break
+            except Exception:
+                continue
+    if not dfs:
+        return None
+    result = pd.concat(dfs, ignore_index=True).drop_duplicates()
+    result["レースID(新/馬番無)"] = result["レースID(新)"].astype(str).str[:16]
+    result["馬番"] = pd.to_numeric(result["馬番"], errors="coerce")
+    for col in ["前走補9", "前走補正"]:
+        result[col] = pd.to_numeric(result[col], errors="coerce")
+    return result[["レースID(新/馬番無)", "馬番", "前走補9", "前走補正"]]
+
+
+# =========================================================
+# CSV パース
+# =========================================================
 def _compute_pycali(row) -> float:
     try:
         s = float(row.get("score", 0) or 0)
@@ -361,12 +545,8 @@ def render_feedback_dashboard() -> None:
         c1, c2, c3 = st.columns(3)
         c1.metric("週", str(last.get("週", "-")))
         c2.metric("ROI", f"{float(last.get('ROI', 0)):.1f}%")
-        c3.metric("収支", f"{int(last.get('収支', 0)):,}円")
 
 
-# =========================================================
-# CSV パース
-# =========================================================
 def parse_target_csv(source) -> pd.DataFrame:
     if isinstance(source, (str, Path)):
         with open(source, "rb") as f:
@@ -394,6 +574,8 @@ def parse_target_csv(source) -> pd.DataFrame:
             h = dict(zip(HORSE_COLS_33, cols)); h.update(current_race); races.append(h)
         elif len(cols) == 46 and current_race:
             h = dict(zip(HORSE_COLS_46, cols)); h.update(current_race); races.append(h)
+        elif len(cols) == 48 and current_race:
+            h = dict(zip(HORSE_COLS_48, cols)); h.update(current_race); races.append(h)
         elif len(cols) == 49 and current_race:
             h = dict(zip(HORSE_COLS_49, cols)); h.update(current_race); races.append(h)
         elif len(cols) == 99 and current_race:
@@ -420,19 +602,30 @@ def parse_target_csv(source) -> pd.DataFrame:
                 "前走確定着順","前走上り3F","前走距離","間隔","前走人気",
                 "前走着差タイム","前走斤量","前走Ave-3F","前走上り3F順",
                 "マイニング順位","前走単勝オッズ",
-                "前1角","前2角","前3角","前4角"]:
+                "前1角","前2角","前3角","前4角",
+                # COLUMN_MAP で rename された後の列名
+                "前距離","前走馬体重","前走馬体重増減"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
     df["日付"] = pd.to_datetime(df["日付S"], format="%Y.%m.%d", errors="coerce")
     df["日付"] = df["日付"].dt.strftime("%Y%m%d").astype("Int64")
-    for col in ["前走走破タイム","前走着差タイム","馬体重","馬体重増減",
-                "前走斤量","生産者","馬主(最新/仮想)"]:
+    for col in ["馬体重","馬体重増減","前走斤量","生産者","馬主(最新/仮想)"]:
         if col not in df.columns:
             df[col] = 0
+    for col in ["前走走破タイム","前走着差タイム"]:
+        if col not in df.columns:
+            df[col] = float("nan")  # LGBMのNaN処理に任せる（0だと分布が大きく外れる）
 
-    # 脚質特徴量：前走コーナー通過順位から計算（predict_weekly.py / モデルと同じ定義）
-    if "前1角" in df.columns and "前4角" in df.columns and "出走頭数" in df.columns:
-        n = pd.to_numeric(df["出走頭数"], errors="coerce").clip(lower=2)
+    # 出走頭数：週次CSVは直接持たないため、レースIDごとの馬数から算出
+    if "出走頭数" not in df.columns:
+        df["出走頭数"] = df.groupby("レースID(新/馬番無)")["馬番"].transform("count")
+    df["出走頭数"] = pd.to_numeric(df["出走頭数"], errors="coerce").fillna(
+        pd.to_numeric(df.get("フルゲート頭数"), errors="coerce")
+    )
+
+    # 脚質特徴量（前1角・前4角から計算）
+    if "前1角" in df.columns and "前4角" in df.columns:
+        n = df["出走頭数"].clip(lower=2)
         front = pd.to_numeric(df["前1角"], errors="coerce")
         back  = pd.to_numeric(df["前4角"], errors="coerce")
         df["prev_pos_rel"]  = (front - 1) / (n - 1)
@@ -440,6 +633,125 @@ def parse_target_csv(source) -> pd.DataFrame:
     else:
         df["prev_pos_rel"]  = np.nan
         df["closing_power"] = np.nan
+
+    # 騎手・調教師ローリング成績（週次CSVに騎手コードなし → 訓練データ中央値で補完）
+    # 訓練 valid 中央値: jockey_fuku30=0.200, jockey_fuku90=0.200,
+    #                    trainer_fuku30=0.200, trainer_fuku90=0.211
+    _ROLLING_TRAIN_MEDIANS = {
+        "jockey_fuku30": 0.200,
+        "jockey_fuku90": 0.200,
+        "trainer_fuku30": 0.200,
+        "trainer_fuku90": 0.211,
+    }
+    for fname, code_col, stat_cols in [
+        ("jockey_stats.csv",  "騎手コード",  ["jockey_fuku30", "jockey_fuku90"]),
+        ("trainer_stats.csv", "調教師コード", ["trainer_fuku30", "trainer_fuku90"]),
+    ]:
+        stats_path = DATA_DIR / fname
+        if stats_path.exists():
+            stats = pd.read_csv(stats_path, encoding="utf-8-sig")
+            if code_col in df.columns:
+                df[code_col] = pd.to_numeric(df[code_col], errors="coerce")
+                df = df.merge(stats[[code_col] + stat_cols], on=code_col, how="left")
+                for col in stat_cols:
+                    if col in df.columns:
+                        df[col] = df[col].fillna(_ROLLING_TRAIN_MEDIANS.get(col, 0.200))
+            else:
+                for col in stat_cols:
+                    df[col] = _ROLLING_TRAIN_MEDIANS.get(col, 0.200)
+        else:
+            for col in stat_cols:
+                df[col] = _ROLLING_TRAIN_MEDIANS.get(col, 0.200)
+
+    # ── 着度数CSV（data/tyaku/YYYYMMDD.csv）があればマージ ──
+    if isinstance(source, (str, Path)):
+        date_str = Path(source).stem
+    else:
+        date_str = Path(getattr(source, "name", "")).stem
+    tyaku_df = _load_tyaku(date_str)
+    if tyaku_df is not None:
+        df = df.merge(tyaku_df, on=["レースID(新/馬番無)", "馬番"], how="left",
+                      suffixes=("", "_tyaku"))
+        if "馬体重_tyaku" in df.columns:
+            df["馬体重"] = df["馬体重_tyaku"].combine_first(
+                pd.to_numeric(df.get("馬体重"), errors="coerce"))
+            df.drop(columns=["馬体重_tyaku"], inplace=True)
+        if "増減_tyaku" in df.columns:
+            df["馬体重増減"] = df["増減_tyaku"]
+            df.drop(columns=["増減_tyaku"], inplace=True)
+        if "horse_fuku_career" in df.columns:
+            df["horse_fuku10"] = df["horse_fuku_career"].fillna(0.286)
+            df["horse_fuku30"] = df["horse_fuku_career"].fillna(0.312)
+        else:
+            df["horse_fuku10"] = 0.286
+            df["horse_fuku30"] = 0.312
+    else:
+        # 着度数CSVなし → 訓練データ中央値で補完
+        df["horse_fuku10"] = 0.286   # 訓練 valid 中央値
+        df["horse_fuku30"] = 0.312   # 訓練 valid 中央値
+
+    # 週次CSVに含まれないペース指数・体重比を訓練データ中央値で補完
+    # （0 のままだと分布外でモデルが誤った方向に流れる）
+    _PACE_MEDIANS = {
+        "前PCI": 49.0,
+        "前走PCI3": 50.2,
+        "前走RPCI": 48.5,
+        "前走平均1Fタイム": 12.26,
+    }
+    for col, med in _PACE_MEDIANS.items():
+        if col not in df.columns:
+            df[col] = med
+
+    # 斤量体重比 = 斤量 / 馬体重（馬体重 0 or 欠損のときは訓練中央値で補完）
+    if "斤量体重比" not in df.columns:
+        wt = pd.to_numeric(df["馬体重"], errors="coerce").replace(0, np.nan) if "馬体重" in df.columns else np.nan
+        jk = pd.to_numeric(df["斤量"], errors="coerce") if "斤量" in df.columns else np.nan
+        if isinstance(wt, pd.Series) and isinstance(jk, pd.Series):
+            df["斤量体重比"] = (jk / wt).fillna(11.8)
+        else:
+            df["斤量体重比"] = 11.8
+
+    # 訓練データに含まれるが週次CSVにない特徴量を中央値で補完
+    _MISSING_FEATURE_MEDIANS = {
+        "馬齢斤量差":            -1,
+        "トラックコード(JV)":      23,
+        "前走トラックコード(JV)":  23,
+        "前走競走種別":           13,
+        "前走出走頭数":           15,
+        "前走馬体重":            472,
+        "前走馬体重増減":           0,
+        "騎手年齢":              30,
+        "調教師年齢":             53,
+        "休み明け～戦目":           2,
+    }
+    for col, med in _MISSING_FEATURE_MEDIANS.items():
+        if col not in df.columns:
+            df[col] = med
+
+    # ── 補正タイムCSV（data/hosei/YYYYMMDD.csv）があればマージ ──
+    hosei_df = _load_hosei(date_str)
+    if hosei_df is not None:
+        df = df.merge(hosei_df, on=["レースID(新/馬番無)", "馬番"], how="left")
+    else:
+        df["前走補9"]  = float("nan")
+        df["前走補正"] = float("nan")
+
+    # ── 過去5走特徴量（data/kako5/YYYYMMDD.csv）があればマージ ──
+    kako5_path = KAKO5_DIR / f"{date_str}.csv"
+    if kako5_path.exists():
+        try:
+            from parse_kako5 import build_from_kako5
+            kako5_df = build_from_kako5(kako5_path)
+            if not kako5_df.empty:
+                if kako5_df["レースID(新)"].astype(str).str.len().mode().iloc[0] > 16:
+                    kako5_df["レースID(新)"] = kako5_df["レースID(新)"].astype(str).str[:16]
+                df = df.merge(
+                    kako5_df.rename(columns={"レースID(新)": "レースID(新/馬番無)"}),
+                    on=["レースID(新/馬番無)", "馬番"], how="left", suffixes=("", "_kako5"),
+                )
+                logger.info(f"kako5 カバレッジ={df['kako5_avg_pos'].notna().mean()*100:.1f}%")
+        except Exception as e:
+            logger.warning(f"kako5マージ失敗: {e}")
 
     return df
 
@@ -449,22 +761,36 @@ def parse_target_csv(source) -> pd.DataFrame:
 # =========================================================
 @st.cache_resource(show_spinner="モデル読み込み中...")
 def load_models() -> tuple:
+    missing = [p for p in (LGBM_PATH, CAT_PATH) if not p.exists()]
+    if missing:
+        names = ", ".join(p.name for p in missing)
+        st.error(f"モデルファイルが見つかりません: {names}\n`optuna_lgbm.py` / `optuna_catboost.py` を先に実行してください。")
+        st.stop()
     return joblib.load(LGBM_PATH), joblib.load(CAT_PATH)
 
 
 @st.cache_data(show_spinner="戦略データ読み込み中...")
 def load_strategy() -> dict:
+    if not STRATEGY_JSON.exists():
+        st.error(f"戦略ファイルが見つかりません: {STRATEGY_JSON}")
+        st.stop()
     with open(STRATEGY_JSON, encoding="utf-8") as f:
         return json.load(f)
 
 
-@st.cache_data(show_spinner=False)
-def load_results() -> dict:
-    """的中実績データ読み込み（results.json）。"""
+@st.cache_data(show_spinner=False, ttl=300)
+def _load_results_cached(mtime: float) -> dict:
     if not RESULTS_JSON.exists():
         return {}
     with open(RESULTS_JSON, encoding="utf-8") as f:
         return json.load(f)
+
+
+def load_results() -> dict:
+    """的中実績データ読み込み（results.json）。mtime をキーにキャッシュ。"""
+    if not RESULTS_JSON.exists():
+        return {}
+    return _load_results_cached(RESULTS_JSON.stat().st_mtime)
 
 
 @st.cache_data(show_spinner=False)
@@ -479,16 +805,7 @@ def load_course_trend() -> dict:
 # =========================================================
 # 予測
 # =========================================================
-def parse_time_str(series: pd.Series) -> pd.Series:
-    def _conv(val):
-        try:
-            parts = str(val).strip().split(".")
-            if len(parts) == 3:
-                return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 10
-            return float(val)
-        except Exception:
-            return None
-    return series.apply(_conv)
+from utils import parse_time_str
 
 
 def predict_lgbm(df: pd.DataFrame, obj: dict) -> np.ndarray:
@@ -506,9 +823,46 @@ def predict_lgbm(df: pd.DataFrame, obj: dict) -> np.ndarray:
         if "__NaN__" not in le.classes_:
             le.classes_ = np.append(le.classes_, "__NaN__")
         df[col] = le.transform(df[col])
+    _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
+                     "horse_fuku10","horse_fuku30","prev_pos_rel","closing_power",
+                     "前走補9","前走補正"}
+    for col in feature_cols:
+        if col not in df.columns:
+            df[col] = np.nan if col in _ROLLING_COLS else 0
+    # lgb.Booster と LGBMClassifier 両対応
+    import lightgbm as lgb
+    if isinstance(model, lgb.Booster):
+        return model.predict(df[feature_cols])
+    return model.predict_proba(df[feature_cols])[:, 1]
+
+
+def predict_lgbm_win(df: pd.DataFrame) -> np.ndarray:
+    """lgbm_win_v1 (is_1st_place) 予測。モデル未存在時は None を返す。"""
+    if not WIN_MODEL_PATH.exists():
+        return None
+    obj = _get_cached(WIN_MODEL_PATH, "lgbm_win")
+    if obj is None:
+        return None
+    model, encoders, feature_cols = obj["model"], obj["encoders"], obj["feature_cols"]
+    df = df.copy()
+    for col in ["前走走破タイム", "前走着差タイム"]:
+        if col in df.columns:
+            df[col] = parse_time_str(df[col])
+    for col, le in encoders.items():
+        if col not in df.columns:
+            df[col] = 0; continue
+        df[col] = df[col].astype(str).fillna("__NaN__")
+        known = set(le.classes_)
+        df[col] = df[col].apply(lambda x: x if x in known else "__NaN__")
+        if "__NaN__" not in le.classes_:
+            le.classes_ = np.append(le.classes_, "__NaN__")
+        df[col] = le.transform(df[col])
     for col in feature_cols:
         if col not in df.columns:
             df[col] = 0
+    import lightgbm as lgb
+    if isinstance(model, lgb.Booster):
+        return model.predict(df[feature_cols])
     return model.predict_proba(df[feature_cols])[:, 1]
 
 
@@ -528,31 +882,135 @@ def predict_catboost(df: pd.DataFrame, obj: dict) -> np.ndarray:
             df[col] = parse_time_str(df[col])
     for col in cat_list:
         df[col] = df[col].fillna("__NaN__").astype(str) if col in df.columns else "__NaN__"
+    _ROLLING_COLS = {"jockey_fuku30","jockey_fuku90","trainer_fuku30","trainer_fuku90",
+                     "horse_fuku10","horse_fuku30","prev_pos_rel","closing_power",
+                     "前走補9","前走補正"}
     for col in feature_cols:
         if col not in df.columns:
-            df[col] = 0.0
+            df[col] = np.nan if col in _ROLLING_COLS else 0.0
     cat_idx = [i for i, c in enumerate(feature_cols) if c in cat_list]
     pool = Pool(df[feature_cols], cat_features=cat_idx)
     return model.predict_proba(pool)[:, 1]
 
 
-def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray:
-    raw = 0.5 * predict_lgbm(df, lgbm_obj) + 0.5 * predict_catboost(df, cat_obj)
-    # キャリブレーター適用（predict_weekly.py と統一）
-    cal_obj = _load_calibrator()
-    if cal_obj is not None:
-        return cal_obj["calibrator"].transform(raw)
-    return raw
+_META_EXTRA = ["芝・ダ", "距離", "クラス名", "場所", "馬場状態", "出走頭数", "枠番", "馬番"]
 
 
-@st.cache_resource(show_spinner=False)
+def predict_transformer_local(df: pd.DataFrame) -> np.ndarray:
+    """Transformer予測。モデル未存在 or 失敗時はゼロ配列を返す。"""
+    torch_obj = _get_cached(TORCH_PATH, "torch")
+    if torch_obj is None:
+        return np.zeros(len(df))
+    try:
+        import torch
+        from train_transformer import RaceTransformer, RaceDataset, MAX_HORSES
+        from train_transformer import preprocess as torch_preprocess
+        from torch.utils.data import DataLoader
+
+        DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model_config = torch_obj["model_config"]
+        encoders     = torch_obj["encoders"]
+        num_stats    = torch_obj["num_stats"]
+        num_cols     = torch_obj["num_cols"]
+        cat_cols     = torch_obj["cat_cols"]
+
+        df2 = df.copy()
+        if "fukusho_flag" not in df2.columns:
+            df2["fukusho_flag"] = 0  # 予測時はターゲット列不要だが RaceDataset が参照するため
+        df2, _, _ = torch_preprocess(df2, encoders=encoders, fit=False, num_stats=num_stats)
+
+        if "torch_model" not in _model_cache:
+            m = RaceTransformer(
+                cat_vocab_sizes=model_config["cat_vocab_sizes"],
+                cat_cols=model_config["cat_cols"],
+                n_num=model_config["n_num"],
+                d_model=model_config.get("d_model", 128),
+                n_heads=model_config.get("n_heads", 4),
+                n_layers=model_config.get("n_layers", 2),
+                d_ff=model_config.get("d_ff", 256),
+                dropout=model_config.get("dropout", 0.1),
+            ).to(DEVICE)
+            m.load_state_dict(torch_obj["model_state"])
+            m.eval()
+            _model_cache["torch_model"] = (m, DEVICE)
+        model, DEVICE = _model_cache["torch_model"]
+
+        ds     = RaceDataset(df2, cat_cols, num_cols, model_config["cat_vocab_sizes"])
+        loader = DataLoader(ds, batch_size=512, shuffle=False, num_workers=0)
+
+        all_proba: list[float] = []
+        with torch.no_grad():
+            for batch in loader:
+                logits = model(batch["cat"].to(DEVICE), batch["num"].to(DEVICE), batch["mask"].to(DEVICE))
+                proba  = torch.sigmoid(logits).cpu().numpy()
+                valid  = ~batch["mask"].numpy()
+                for b in range(len(proba)):
+                    for h in range(MAX_HORSES):
+                        if valid[b, h]:
+                            all_proba.append(float(proba[b, h]))
+
+        result  = np.zeros(len(df))
+        df_sort = df.sort_values("レースID(新/馬番無)").reset_index(drop=True)
+        idx = 0
+        for _, group in df_sort.groupby("レースID(新/馬番無)", sort=True):
+            for orig_idx in list(group.index)[:MAX_HORSES]:
+                if idx < len(all_proba):
+                    result[orig_idx] = all_proba[idx]
+                    idx += 1
+        return result
+    except Exception as e:
+        logger.warning(f"Transformer予測失敗（0で埋め）: {e}")
+        return np.zeros(len(df))
+
+
+def predict_stacking(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray | None:
+    """スタッキングモデルで予測。未存在 or 失敗時は None を返す。"""
+    if not META_PATH.exists() or not TORCH_PATH.exists():
+        return None
+    try:
+        p_lgbm  = predict_lgbm(df, lgbm_obj)
+        p_cat   = predict_catboost(df, cat_obj)
+        p_torch = predict_transformer_local(df)
+
+        meta_obj      = _get_cached(META_PATH, "meta")
+        meta_model    = meta_obj["meta_model"]
+        meta_encoders = meta_obj["meta_encoders"]
+        meta_cols     = meta_obj["meta_cols"]
+
+        meta_df = df.copy()
+        if "出走頭数" not in meta_df.columns or meta_df["出走頭数"].isna().all():
+            meta_df["出走頭数"] = meta_df.groupby("レースID(新/馬番無)")["馬番"].transform("count")
+        meta_df["クラス名"] = meta_df["クラス名"].map(CLASS_NORMALIZE).fillna(meta_df["クラス名"])
+        meta_df = meta_df.reindex(columns=_META_EXTRA).copy()
+
+        for col in meta_df.select_dtypes(include="object").columns:
+            if col in meta_encoders:
+                le    = meta_encoders[col]
+                meta_df[col] = meta_df[col].fillna("__NaN__").astype(str)
+                known = set(le.classes_)
+                meta_df[col] = meta_df[col].apply(lambda x: x if x in known else "__NaN__")
+                meta_df[col] = le.transform(meta_df[col])
+            else:
+                meta_df[col] = 0
+
+        meta_df = meta_df.fillna(0)
+        meta_df["lgbm"]        = p_lgbm
+        meta_df["catboost"]    = p_cat
+        meta_df["transformer"] = p_torch
+
+        return meta_model.predict_proba(meta_df[meta_cols])[:, 1]
+    except Exception as e:
+        logger.debug(f"スタッキング予測失敗（フォールバック）: {e}")
+        return None
+
+
+@st.cache_resource
 def _load_calibrator():
-    """ensemble_calibrator_v1.pkl をロード（なければ None）。"""
-    if CAL_PATH.exists():
-        try:
-            return joblib.load(CAL_PATH)
-        except Exception as e:
-            logger.warning(f"キャリブレーターロード失敗: {e}")
+    for path, name in [(CAL_PATH, "v4"), (CAL_PATH_V3, "v3"), (CAL_PATH_V2, "v2"), (CAL_PATH_V1, "v1")]:
+        if path.exists():
+            logger.info(f"キャリブレーター {name} をロード: {path}")
+            return joblib.load(path)["calibrator"]
+    logger.warning("キャリブレーター未生成。calibrate.py を先に実行してください。")
     return None
 
 
@@ -567,6 +1025,173 @@ def _load_fukusho_calibrator():
     return None
 
 
+SEGMENT_WEIGHTS_AVAILABLE = {"turf_mid", "dirt"}
+
+
+def _load_ensemble_weights_app(segment: str | None = None) -> dict | None:
+    """Phase 5+: segment 指定時は Expert 別重み優先、なければグローバル。"""
+    if segment is not None:
+        seg_path = MODEL_DIR / f"ensemble_weights_{segment}.json"
+        if seg_path.exists():
+            try:
+                with open(seg_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return data.get("weights", {})
+            except Exception as e:
+                logger.warning(f"ensemble_weights_{segment}.json ロード失敗: {e}")
+    if ENS_WEIGHTS_PATH.exists():
+        try:
+            with open(ENS_WEIGHTS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data.get("weights", {})
+        except Exception as e:
+            logger.warning(f"ensemble_weights.json ロード失敗: {e}")
+    return None
+
+
+def _select_segment_app(df: pd.DataFrame) -> str | None:
+    if len(df) == 0:
+        return None
+    td = str(df.iloc[0].get("芝・ダ", ""))
+    try:
+        d = int(df.iloc[0].get("距離", 0))
+    except (TypeError, ValueError):
+        return None
+    if td == "ダ":
+        seg = "dirt"
+    elif d <= 1400:
+        seg = "turf_short"
+    elif d <= 2200:
+        seg = "turf_mid"
+    else:
+        seg = "turf_long"
+    return seg if seg in SEGMENT_WEIGHTS_AVAILABLE else None
+
+
+def _select_expert(td: str, dist) -> str | None:
+    """距離・芝/ダから適切な Expert 名を返す。Expert モデルが無ければ None。"""
+    try:
+        d = int(dist)
+    except (TypeError, ValueError):
+        return None
+    if td == "ダ":
+        name = "dirt"
+    elif d <= 1400:
+        name = "turf_short"
+    elif d <= 2200:
+        name = "turf_mid"
+    else:
+        name = "turf_long"
+    if EXPERT_PATHS[name].exists():
+        return name
+    return None
+
+
+def _predict_expert(df: pd.DataFrame, expert_name: str) -> np.ndarray | None:
+    """Expert モデルで予測。失敗時は None。"""
+    obj = _get_cached(EXPERT_PATHS[expert_name], f"expert_{expert_name}")
+    if obj is None:
+        return None
+    try:
+        # Expert は train_lgbm のフォーマットなので predict_lgbm を再利用
+        return predict_lgbm(df, obj)
+    except Exception as e:
+        logger.warning(f"Expert {expert_name} 予測失敗: {e}")
+        return None
+
+
+def _ensemble_with_optimized_weights_app(
+    df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict, weights: dict
+) -> np.ndarray:
+    """8モデル最適化重みでアンサンブル。predict_weekly.py の関数を再利用。"""
+    # 遅延 import (循環回避)
+    from predict_weekly import (
+        predict_lgbm_fukusho, predict_catboost_fukusho,
+        predict_catboost_rank, predict_lgbm_rank, predict_lgbm_regression,
+    )
+    model_map = {
+        "lgbm":       (LGBM_PATH,       "lgbm_opt",   predict_lgbm,             lgbm_obj),
+        "catboost":   (CAT_PATH,        "cat_opt",    predict_catboost,         cat_obj),
+        "fuku_lgbm":  (FUKU_LGBM_PATH,  "fuku_lgbm",  predict_lgbm_fukusho,     None),
+        "fuku_cat":   (FUKU_CAT_PATH,   "fuku_cat",   predict_catboost_fukusho, None),
+        "rank_cat":   (RANK_PATH,       "rank",       predict_catboost_rank,    None),
+        "rank_lgbm":  (RANK_LGBM_PATH,  "rank_lgbm",  predict_lgbm_rank,        None),
+        "regression": (REGRESS_PATH,    "regression", predict_lgbm_regression,  None),
+        "lgbm_win":   (WIN_MODEL_PATH,  "lgbm_win",   None,                     None),  # 特殊ケース
+    }
+    # Phase 5+: Expert モデルも候補登録
+    for exp_name, exp_path in EXPERT_PATHS.items():
+        model_map[f"expert_{exp_name}"] = (exp_path, f"expert_{exp_name}", predict_lgbm, None)
+    raw = np.zeros(len(df))
+    total_w = 0.0
+    used = []
+    for name, w in weights.items():
+        if w < 0.001 or name not in model_map:
+            continue
+        path, key, fn, pre = model_map[name]
+        if name == "lgbm_win":
+            p = predict_lgbm_win(df)
+            if p is None:
+                continue
+        else:
+            obj = pre if pre is not None else _get_cached(path, key)
+            if obj is None:
+                continue
+            try:
+                p = fn(df, obj)
+            except Exception as e:
+                logger.warning(f"{name} 予測失敗: {e}")
+                continue
+        raw += w * p
+        total_w += w
+        used.append(name)
+    if total_w < 0.01:
+        raise RuntimeError("有効モデルなし")
+    if abs(total_w - 1.0) > 0.01:
+        raw = raw / total_w
+    logger.info(f"app.py アンサンブル: {len(used)}モデル ({', '.join(used)})")
+    return raw
+
+
+def ensemble_predict(df: pd.DataFrame, lgbm_obj: dict, cat_obj: dict) -> np.ndarray:
+    """Phase 5+: 8モデル最適化重み + 距離別Expert(あれば加重平均)。"""
+    # --- Phase 5+: Expert別重み優先、なければグローバル ---
+    segment = _select_segment_app(df)
+    opt_weights = _load_ensemble_weights_app(segment)
+    if opt_weights is not None:
+        try:
+            raw = _ensemble_with_optimized_weights_app(df, lgbm_obj, cat_obj, opt_weights)
+        except Exception as e:
+            logger.warning(f"最適化アンサンブル失敗→フォールバック: {e}")
+            raw = None
+    else:
+        raw = None
+
+    # --- フォールバック（旧3モデル）---
+    if raw is None:
+        p_lgbm = predict_lgbm(df, lgbm_obj)
+        p_cat  = predict_catboost(df, cat_obj)
+        p_win  = predict_lgbm_win(df)
+        if p_win is not None:
+            raw = 0.375 * p_lgbm + 0.375 * p_cat + 0.25 * p_win
+        else:
+            raw = 0.50 * p_lgbm + 0.50 * p_cat
+
+    # --- Phase 5+: セグメント別重みを使っていない場合のみ旧式 Expert 単純加重 ---
+    if segment is None and len(df) > 0:
+        td = str(df.iloc[0].get("芝・ダ", ""))
+        dist = df.iloc[0].get("距離", None)
+        expert_name = _select_expert(td, dist)
+        if expert_name is not None:
+            p_exp = _predict_expert(df, expert_name)
+            if p_exp is not None:
+                raw = 0.7 * raw + 0.3 * p_exp
+                logger.info(f"Expert {expert_name} 加重平均適用")
+
+    cal = _load_calibrator()
+    return cal.transform(raw) if cal is not None else raw
+
+
 def assign_marks(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["mark"] = ""
@@ -577,6 +1202,50 @@ def assign_marks(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _compute_value_scores_app(race_df: pd.DataFrame) -> tuple:
+    """Value Model v2 で predicted ROI と cal_prob を計算する (app.py内用)。"""
+    nan_s = pd.Series(np.nan, index=race_df.index)
+    value_obj = _get_cached(VALUE_MODEL_PATH, "value_model")
+    if value_obj is None:
+        return nan_s, nan_s
+    vm    = value_obj["model"]
+    feats = value_obj["features"]
+    iso   = value_obj.get("calibrator")
+
+    tansho   = pd.to_numeric(race_df.get("単勝", pd.Series(dtype=float)), errors="coerce")
+    fuku_low  = tansho.pow(0.6).round(1)   # 複勝オッズ推定
+    fuku_high = (tansho.pow(0.6) * 1.5).round(1)
+    if tansho.isna().all():
+        return nan_s, nan_s
+
+    raw_prob     = race_df["prob"].values
+    cal_prob_v   = iso.transform(raw_prob) if iso is not None else raw_prob
+    fuku_mid     = (fuku_low + fuku_high) / 2
+    model_rank   = race_df["prob"].rank(ascending=False, method="first")
+    ninki        = tansho.rank(method="first", ascending=True)
+
+    X = pd.DataFrame({
+        "cal_prob":             cal_prob_v,
+        "model_rank":           model_rank.values,
+        "ninki":                ninki.values,
+        "tan_odds":             tansho.values,
+        "fuku_mid":             fuku_mid.values,
+        "EV_fuku":              cal_prob_v * fuku_mid.values,
+        "disagree":             model_rank.values - ninki.values,
+        "abs_disagree":         np.abs(model_rank.values - ninki.values),
+        "log_tan_odds":         np.log1p(tansho.values),
+        "log_fuku_mid":         np.log1p(fuku_mid.values),
+        "odds_rank_ratio":      tansho.values / (ninki.values + 0.5),
+        "model_vs_market_prob": cal_prob_v - (1 / tansho.values),
+        "shutsuu":              len(race_df),
+        "fuku_spread":          (fuku_high - fuku_low).values,
+        "fuku_spread_ratio":    ((fuku_high - fuku_low) / (fuku_mid + 0.01)).values,
+    }, index=race_df.index)
+
+    pred_roi = vm.predict(X[feats])
+    return pd.Series(pred_roi, index=race_df.index), pd.Series(cal_prob_v, index=race_df.index)
+
+
 @st.cache_data(show_spinner="全レース予想計算中...")
 def predict_all_races(cache_key: str, df_json: str, _lgbm_obj: dict, _cat_obj: dict) -> str:
     import io
@@ -585,26 +1254,23 @@ def predict_all_races(cache_key: str, df_json: str, _lgbm_obj: dict, _cat_obj: d
     for race_id, race_df in df.groupby("レースID(新/馬番無)"):
         race_df = race_df.copy()
         try:
-            race_df["prob"]  = ensemble_predict(race_df, _lgbm_obj, _cat_obj)
-            race_df          = assign_marks(race_df)
-            race_df["score"] = (race_df["prob"] * 100).round(1)
-            # 複勝専用キャリブレータ（Sprint 1.2）
-            _fuku_cal = _load_fukusho_calibrator()
-            if _fuku_cal is not None:
-                try:
-                    race_df["cal_fukusho"] = _fuku_cal.predict(race_df["prob"].values)
-                    race_df["fuku_gate"] = (race_df["cal_fukusho"] >= FUKU_CAL_GATE).astype(int)
-                except Exception:
-                    race_df["cal_fukusho"] = race_df["prob"]
-                    race_df["fuku_gate"] = 0
-            else:
-                race_df["cal_fukusho"] = race_df["prob"]
-                race_df["fuku_gate"] = 0
+            race_df["prob"]     = ensemble_predict(race_df, _lgbm_obj, _cat_obj)
+            race_df             = assign_marks(race_df)
+            race_df["score"]    = (race_df["prob"] * 100).round(1)
+            tansho = pd.to_numeric(race_df.get("単勝", pd.Series(dtype=float)), errors="coerce")
+            race_df["ev_score"] = (race_df["prob"] * tansho / 0.80).round(3)
         except Exception as e:
             logger.warning(f"予測失敗 {race_id}: {e}")
-            race_df["prob"]  = 0.0
-            race_df["mark"]  = ""
-            race_df["score"] = 0.0
+            race_df["prob"]     = 0.0
+            race_df["mark"]     = ""
+            race_df["score"]    = 0.0
+            race_df["ev_score"] = 0.0
+        # Value Model v2 scoring
+        try:
+            race_df["value_score"], race_df["cal_prob"] = _compute_value_scores_app(race_df)
+        except Exception:
+            race_df["value_score"] = np.nan
+            race_df["cal_prob"]    = np.nan
         result_frames.append(race_df)
     return pd.concat(result_frames, ignore_index=True).to_json(force_ascii=False)
 
@@ -684,6 +1350,11 @@ def floor_to_unit(x: int, unit: int = MIN_UNIT) -> int:
     return max((x // unit) * unit, unit)
 
 
+def _normalize_baba(raw: str) -> str:
+    """'重(暫定)' → '重'  / '稍重(暫定)' → '稍重' など、（暫定）表記を除去する。"""
+    return raw.replace("(暫定)", "").replace("暫定", "").strip()
+
+
 def is_in_strategy(place: str, cls_raw: str, strategy: dict) -> bool:
     if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
         return False
@@ -692,51 +1363,246 @@ def is_in_strategy(place: str, cls_raw: str, strategy: dict) -> bool:
 
 
 def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
-             strategy: dict, budget: int) -> list[dict]:
-    """馬連3点流し・三連複◎◯2頭軸×▲△2点・複勝◎のみ。三連単廃止。"""
+             strategy: dict, budget: int) -> dict:
+    """HAHO（馬連◎軸2点+三連複ボックス1点）/ HALO（三連複ボックス1点のみ）
+       / LALO（複勝◎1点のみ）/ CQC（単勝◎1点のみ）/ TRIPLE（三連複+複勝）を返す。
+    戻り値: {"HAHO": [bets...], "HALO": [bets...], "LALO": [bets...], "CQC": [bets...], "TRIPLE": [bets...]}
+    Phase 5 (2026-04-05): TRIPLE は strategy_weights.json に無い会場でも生成する。
+    （HAHO/HALO/LALO/CQC は引き続き戦略テーブル必須）"""
     if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
-        return []
+        return {}
     cls      = CLASS_NORMALIZE.get(cls_raw, cls_raw)
     bet_info = strategy.get(place, {}).get(cls) or strategy.get(place, {}).get(cls_raw, {})
-    if not bet_info:
-        return []
-    marks_df = {m: race_df[race_df["mark"] == m] for m in MARKS}
+    # Phase 5+: SegmentBetFilter 用にレース条件取得
+    _meta_row = race_df.iloc[0] if len(race_df) > 0 else None
+    _td   = str(_meta_row.get("芝・ダ", "")) if _meta_row is not None else ""
+    _dist = _meta_row.get("距離", None) if _meta_row is not None else None
+    _seg  = _race_segment(_td, _dist)
+    marks_df = {m: race_df[race_df["mark"] == m] for m in ["◎","◯","▲"]}
     hon    = marks_df["◎"]
     taikou = marks_df["◯"]
     sabo   = marks_df["▲"]
-    delta  = marks_df["△"]
     if hon.empty:
-        return []
+        return {}
     h1 = int(hon.iloc[0]["馬番"])
     h2 = int(taikou.iloc[0]["馬番"]) if not taikou.empty else None
     h3 = int(sabo.iloc[0]["馬番"])   if not sabo.empty  else None
-    h4 = int(delta.iloc[0]["馬番"])  if not delta.empty else None
 
-    results = []
-    for bet_type, info in bet_info.items():
-        amt = floor_to_unit(int(budget * info["bet_ratio"]))
-        if bet_type == "複勝":
-            results.append({"馬券種":"複勝","買い目":str(h1),"購入額":amt,
-                            "ROI":info["roi"],"ウェイト":round(info["weight"]*100,1)})
-        elif bet_type == "馬連" and h2:
-            combos = [(h1, h2)]
-            if h3:
-                combos += [(h1, h3), (h2, h3)]
-            per_bet = floor_to_unit(amt // len(combos))
-            for a, b in combos:
-                results.append({"馬券種":"馬連","買い目":f"{min(a,b)}-{max(a,b)}",
-                                "購入額":per_bet,"ROI":info["roi"],"ウェイト":round(info["weight"]*100,1)})
-        elif bet_type == "三連複" and h2 and h3:
-            combos = [tuple(sorted([h1, h2, h3]))]
-            if h4:
-                combos.append(tuple(sorted([h1, h2, h4])))
-            per_bet = floor_to_unit(amt // len(combos))
-            for c in combos:
-                results.append({"馬券種":"三連複","買い目":"-".join(map(str, c)),
-                                "購入額":per_bet,"ROI":info["roi"],"ウェイト":round(info["weight"]*100,1)})
-        elif bet_type == "三連単":
-            pass  # 廃止
-    return results
+    result = {}
+
+    # ── HAHO: 馬連◎軸2点 + 三連複ボックス1点 ──────────────────────────
+    # bet_info があるときだけ生成（戦略テーブルの ROI を使う）
+    # Phase 5+: SegmentBetFilter (距離 + クラス×距離)
+    haho_types = {k: v for k, v in bet_info.items() if k in ("馬連", "三連複")} if bet_info else {}
+    haho_types = {k: v for k, v in haho_types.items()
+                  if (_seg, k) not in SEGMENT_BET_BLACKLIST
+                  and (_seg, cls_raw, k) not in SEGMENT_CLASS_BET_BLACKLIST}
+    if haho_types and "馬連" in haho_types and h2 and h3:  # 馬連が戦略にない場合はHALOに任せる
+        haho_bets = []
+        total_ratio = sum(v["bet_ratio"] for v in haho_types.values()) or 1.0
+        if "馬連" in haho_types:
+            info = haho_types["馬連"]
+            amt  = floor_to_unit(int(budget * info["bet_ratio"] / total_ratio))
+            cbs  = [(h1, h2), (h1, h3)]
+            per  = floor_to_unit(amt // len(cbs))
+            for a, b in cbs:
+                haho_bets.append({"馬券種":"馬連","買い目":f"{min(a,b)}-{max(a,b)}",
+                                  "購入額":per,"ROI":info.get("roi_oos", info.get("roi", 0))})
+        if "三連複" in haho_types:
+            info = haho_types["三連複"]
+            amt  = floor_to_unit(int(budget * info["bet_ratio"] / total_ratio))
+            c_sf = tuple(sorted([h1, h2, h3]))
+            haho_bets.append({"馬券種":"三連複","買い目":"-".join(map(str, c_sf)),
+                              "購入額":amt,"ROI":info.get("roi_oos", info.get("roi", 0))})
+        if haho_bets:
+            result["HAHO"] = haho_bets
+
+    # ── HALO: 三連複ボックス1点のみ（全予算）──────────────────────────
+    if bet_info and "三連複" in bet_info and h2 and h3 and (_seg, "三連複") not in SEGMENT_BET_BLACKLIST:
+        info = bet_info["三連複"]
+        c_sf = tuple(sorted([h1, h2, h3]))
+        result["HALO"] = [{"馬券種":"三連複","買い目":"-".join(map(str, c_sf)),
+                           "購入額":floor_to_unit(budget),"ROI":info.get("roi_oos", info.get("roi", 0))}]
+
+    # ── LALO: 複勝◎1点のみ（全予算）────────────────────────────────────
+    # bet_info があるときだけ生成（戦略テーブルの ROI を使う）
+    if bet_info:
+        any_info = next(iter(bet_info.values()), {})
+        if (_seg, "複勝") not in SEGMENT_BET_BLACKLIST:
+            result["LALO"] = [{"馬券種":"複勝","買い目":str(h1),
+                               "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
+
+        # ── CQC: 単勝◎1点のみ（全予算）─────────────────────────────────────
+        if (_seg, "単勝") not in SEGMENT_BET_BLACKLIST:
+            result["CQC"]  = [{"馬券種":"単勝","買い目":str(h1),
+                               "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
+
+    # ── TRIPLE: 三連複◎◯▲1点 + 複勝◎1点（SegmentBetFilterで券種自動選択）────────────────
+    san_blocked  = (_seg, "三連複") in SEGMENT_BET_BLACKLIST
+    fuku_blocked = (_seg, "複勝")   in SEGMENT_BET_BLACKLIST
+    triple_bets = []
+    if h2 and h3 and not san_blocked and not fuku_blocked:
+        # 通常型: 三連複+複勝 50/50
+        san_key  = "-".join(map(str, sorted([h1, h2, h3])))
+        amt_san  = floor_to_unit(budget // 2)
+        amt_fuku = floor_to_unit(budget - amt_san)
+        triple_bets = [
+            {"馬券種":"三連複","買い目":san_key, "購入額":amt_san, "ROI":134},
+            {"馬券種":"複勝",  "買い目":str(h1), "購入額":amt_fuku,"ROI":84},
+        ]
+    elif h2 and h3 and not san_blocked:
+        # 複勝のみブロック → 三連複に全額
+        san_key = "-".join(map(str, sorted([h1, h2, h3])))
+        triple_bets = [{"馬券種":"三連複","買い目":san_key,"購入額":floor_to_unit(budget),"ROI":134}]
+    elif not fuku_blocked:
+        # 三連複ブロック or ◯▲不在 → 複勝のみ
+        triple_bets = [{"馬券種":"複勝","買い目":str(h1),"購入額":floor_to_unit(budget),"ROI":84}]
+    # 両方ブロック → triple_bets は空のまま（このセグメントは買わない）
+    if triple_bets:
+        result["TRIPLE"] = triple_bets
+
+    return result
+
+
+# =========================================================
+# pred CSV 自動保存（Streamlit の表示結果を基準にする）
+# =========================================================
+def _get_bets_flat(race_df: pd.DataFrame, place: str, cls_raw: str,
+                   strategy: dict, budget: int) -> dict:
+    """predict_weekly.py と同じ flat dict 形式で買い目を返す。"""
+    cls      = CLASS_NORMALIZE.get(cls_raw, cls_raw)
+    bet_info = strategy.get(place, {}).get(cls) or strategy.get(place, {}).get(cls_raw, {})
+
+    result: dict = {
+        "HAHO_戦略対象": False,
+        "HAHO_馬連_買い目": "", "HAHO_馬連_購入額": 0,
+        "HAHO_三連複_買い目": "", "HAHO_三連複_購入額": 0,
+        "HALO_戦略対象": False,
+        "HALO_三連複_買い目": "", "HALO_三連複_購入額": 0,
+        "LALO_戦略対象": False,
+        "LALO_複勝_買い目": "", "LALO_複勝_購入額": 0,
+        "CQC_戦略対象": False,
+        "CQC_単勝_買い目": "", "CQC_単勝_購入額": 0,
+    }
+    if not bet_info:
+        return result
+
+    marks_df = {m: race_df[race_df["mark"] == m] for m in ["◎", "◯", "▲"]}
+    hon    = marks_df["◎"]
+    taikou = marks_df["◯"]
+    sabo   = marks_df["▲"]
+    if hon.empty:
+        return result
+
+    h1 = int(hon.iloc[0]["馬番"])
+    h2 = int(taikou.iloc[0]["馬番"]) if not taikou.empty else None
+    h3 = int(sabo.iloc[0]["馬番"])   if not sabo.empty  else None
+
+    haho_types = {k: v for k, v in bet_info.items() if k in ("馬連", "三連複")}
+    if haho_types and "馬連" in haho_types and h2 and h3:
+        total_ratio = sum(v["bet_ratio"] for v in haho_types.values()) or 1.0
+        if "馬連" in haho_types:
+            r   = haho_types["馬連"]["bet_ratio"]
+            amt = floor_to_unit(int(budget * r / total_ratio))
+            cbs = [(h1, h2), (h1, h3)]
+            per = floor_to_unit(amt // len(cbs))
+            result["HAHO_馬連_買い目"] = " / ".join(f"{min(a,b)}-{max(a,b)}" for a, b in cbs)
+            result["HAHO_馬連_購入額"] = per * len(cbs)
+        if "三連複" in haho_types:
+            r    = haho_types["三連複"]["bet_ratio"]
+            amt  = floor_to_unit(int(budget * r / total_ratio))
+            c_sf = tuple(sorted([h1, h2, h3]))
+            result["HAHO_三連複_買い目"] = "-".join(map(str, c_sf))
+            result["HAHO_三連複_購入額"] = amt
+        if result["HAHO_馬連_買い目"] or result["HAHO_三連複_買い目"]:
+            result["HAHO_戦略対象"] = True
+
+    if "三連複" in bet_info and h2 and h3:
+        result["HALO_戦略対象"] = True
+        c_sf = tuple(sorted([h1, h2, h3]))
+        result["HALO_三連複_買い目"] = "-".join(map(str, c_sf))
+        result["HALO_三連複_購入額"] = floor_to_unit(budget)
+
+    if bet_info:
+        result["LALO_戦略対象"]    = True
+        result["LALO_複勝_買い目"] = str(h1)
+        result["LALO_複勝_購入額"] = floor_to_unit(budget)
+
+    if bet_info:
+        result["CQC_戦略対象"]    = True
+        result["CQC_単勝_買い目"] = str(h1)
+        result["CQC_単勝_購入額"] = floor_to_unit(budget)
+
+    return result
+
+
+def save_pred_csv_from_streamlit(all_df: pd.DataFrame, selected_date: str,
+                                  strategy: dict, budget: int) -> None:
+    """Streamlit が表示した予測をそのまま pred CSV として保存する。
+    URL で確認した内容 = 的中実績の基準にするためのエクスポート。"""
+    out_path = BASE_DIR / "reports" / f"pred_{selected_date}.csv"
+    race_id_col = "レースID(新/馬番無)"
+    rows: list[dict] = []
+
+    for race_id, race_df in all_df.groupby(race_id_col):
+        race_df = race_df.copy()
+        meta    = race_df.iloc[0]
+        place   = str(meta.get("場所", "")).strip()
+        cls_raw = str(meta.get("クラス名", meta.get("クラス", ""))).strip()
+        r_num   = str(meta.get("R", ""))
+        date_s  = str(meta.get("日付S", selected_date))
+        dist    = str(meta.get("距離", ""))
+
+        if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
+            bets: dict = {
+                "HAHO_戦略対象": False,
+                "HAHO_馬連_買い目": "", "HAHO_馬連_購入額": 0,
+                "HAHO_三連複_買い目": "", "HAHO_三連複_購入額": 0,
+                "HALO_戦略対象": False,
+                "HALO_三連複_買い目": "", "HALO_三連複_購入額": 0,
+                "LALO_戦略対象": False,
+                "LALO_複勝_買い目": "", "LALO_複勝_購入額": 0,
+                "CQC_戦略対象": False,
+                "CQC_単勝_買い目": "", "CQC_単勝_購入額": 0,
+            }
+        else:
+            bets = _get_bets_flat(race_df, place, cls_raw, strategy, budget)
+
+        for _, row in race_df.sort_values("馬番").iterrows():
+            is_hon = str(row.get("mark", "")) == "◎"
+            rows.append({
+                "日付":               date_s,
+                "場所":               place,
+                "R":                  r_num,
+                "クラス":             cls_raw,
+                "距離":               dist,
+                "レースID":           race_id,
+                "馬番":               int(row["馬番"]) if pd.notna(row.get("馬番")) else "",
+                "馬名":               str(row.get("馬名", "")),
+                "騎手":               str(row.get("騎手", "")),
+                "スコア":             float(row.get("score", 0.0)),
+                "単勝オッズ":         float(row["単勝"]) if pd.notna(row.get("単勝")) else "",
+                "期待値スコア":       float(row.get("ev_score", 0.0)),
+                "印":                 str(row.get("mark", "")),
+                "HAHO_戦略対象":      "✅" if bets["HAHO_戦略対象"] else "",
+                "HAHO_馬連_買い目":   bets["HAHO_馬連_買い目"]   if is_hon else "",
+                "HAHO_馬連_購入額":   bets["HAHO_馬連_購入額"]   if is_hon else "",
+                "HAHO_三連複_買い目": bets["HAHO_三連複_買い目"] if is_hon else "",
+                "HAHO_三連複_購入額": bets["HAHO_三連複_購入額"] if is_hon else "",
+                "HALO_戦略対象":      "✅" if bets["HALO_戦略対象"] else "",
+                "HALO_三連複_買い目": bets["HALO_三連複_買い目"] if is_hon else "",
+                "HALO_三連複_購入額": bets["HALO_三連複_購入額"] if is_hon else "",
+                "LALO_戦略対象":      "✅" if bets["LALO_戦略対象"] else "",
+                "LALO_複勝_買い目":   bets["LALO_複勝_買い目"]   if is_hon else "",
+                "LALO_複勝_購入額":   bets["LALO_複勝_購入額"]   if is_hon else "",
+                "CQC_戦略対象":       "✅" if bets["CQC_戦略対象"]  else "",
+                "CQC_単勝_買い目":    bets["CQC_単勝_買い目"]    if is_hon else "",
+                "CQC_単勝_購入額":    bets["CQC_単勝_購入額"]    if is_hon else "",
+            })
+
+    if rows:
+        pd.DataFrame(rows).to_csv(out_path, index=False, encoding="utf-8-sig")
+        logger.info(f"pred CSV 保存（Streamlit基準）: {out_path}")
 
 
 # =========================================================
@@ -1993,7 +2859,8 @@ def _render_course_stat(data: dict) -> None:
 def _render_course_analysis(course_trend: dict, place: str, meta: pd.Series) -> None:
     """コース分析タブ全体をレンダリング。季節のみ選択可、他は自動設定。"""
     dist    = meta.get("距離", 0)
-    shida   = str(meta.get("芝・ダ", "芝"))
+    shida_raw = str(meta.get("芝・ダ", "芝"))
+    shida   = "ダ" if shida_raw.startswith("ダ") else "芝"   # "ダート" → "ダ" に正規化
     cls_raw = str(meta.get("クラス名", ""))
     cls_g   = CLASS_NORMALIZE_TREND.get(cls_raw, "OP/重賞")
     sm_auto = _smile_from_dist(dist)
@@ -2041,36 +2908,25 @@ def _render_course_analysis(course_trend: dict, place: str, meta: pd.Series) -> 
 # =========================================================
 # 的中実績ページ
 # =========================================================
-def page_results(results: dict) -> None:
-    """的中実績ページ。"""
-    if not results:
-        st.warning("results.json が見つかりません。data/results.json を配置してください。")
-        return
-
-    total = results.get("total", {})
+def _render_plan_results(plan_data: dict, plan_key: str) -> None:
+    """HAHO / HALO 共通の実績描画ロジック。"""
+    total = plan_data.get("total", {})
     bet   = total.get("bet", 0)
     ret   = total.get("ret", 0)
     pnl   = total.get("pnl", 0)
     roi   = total.get("roi", 0)
     races = total.get("races", 0)
 
-    st.markdown("## 📊 的中実績")
-    st.markdown(
-        f'<div style="color:#666;font-size:20px;margin-bottom:16px">'
-        f'集計期間: {results.get("generated_at","")[:10]} 時点</div>',
-        unsafe_allow_html=True,
-    )
-
     # サマリーカード
     c1, c2, c3, c4, c5 = st.columns(5)
     roi_color = "#4ade80" if roi >= 100 else "#f39c12" if roi >= 70 else "#e74c3c"
     pnl_color = "#4ade80" if pnl >= 0 else "#e74c3c"
     for col, label, val in [
-        (c1, "分析レース数",  f"{races}R"),
-        (c2, "総投資額",     f"¥{bet:,}"),
-        (c3, "総払戻額",     f"¥{ret:,}"),
-        (c4, "収支",         f"{'+'if pnl>=0 else ''}¥{pnl:,}"),
-        (c5, "ROI",          f"{roi}%"),
+        (c1, "分析レース数", f"{races}R"),
+        (c2, "総投資額",    f"¥{bet:,}"),
+        (c3, "総払戻額",    f"¥{ret:,}"),
+        (c4, "収支",        f"{'+'if pnl>=0 else ''}¥{pnl:,}"),
+        (c5, "ROI",         f"{roi}%"),
     ]:
         color = roi_color if label == "ROI" else pnl_color if label == "収支" else "#cdd6f4"
         col.markdown(
@@ -2086,9 +2942,17 @@ def page_results(results: dict) -> None:
 
     # 馬券種別
     st.markdown("#### 馬券種別成績")
-    by_type = results.get("by_type", {})
-    tc1, tc2, tc3 = st.columns(3)
-    for col, k in zip([tc1, tc2, tc3], ["複勝", "馬連", "三連複"]):
+    by_type = plan_data.get("by_type", {})
+    if plan_key == "HAHO":
+        type_keys = ["馬連", "三連複"]
+    elif plan_key == "LALO":
+        type_keys = ["複勝"]
+    elif plan_key == "CQC":
+        type_keys = ["単勝"]
+    else:
+        type_keys = ["三連複"]
+    cols_bt = st.columns(len(type_keys))
+    for col, k in zip(cols_bt, type_keys):
         d = by_type.get(k, {})
         if not d:
             continue
@@ -2108,7 +2972,7 @@ def page_results(results: dict) -> None:
 
     # 週次ROI推移グラフ
     st.markdown("#### 週次ROI推移")
-    weekly = results.get("weekly", [])
+    weekly = plan_data.get("weekly", [])
     if weekly:
         wdf = pd.DataFrame(weekly)
         fig, ax = plt.subplots(figsize=(10, 3))
@@ -2121,8 +2985,8 @@ def page_results(results: dict) -> None:
         ax.set_ylabel("ROI (%)", color="#888")
         ax.tick_params(colors="#888", labelsize=14)
         ax.spines[:].set_color("#313244")
-        for label in ax.get_xticklabels():
-            label.set_rotation(45)
+        for lbl in ax.get_xticklabels():
+            lbl.set_rotation(45)
         st.pyplot(fig)
         plt.close(fig)
 
@@ -2130,7 +2994,7 @@ def page_results(results: dict) -> None:
 
     # 会場別成績
     st.markdown("#### 会場別成績")
-    by_place = results.get("by_place", [])
+    by_place = plan_data.get("by_place", [])
     if by_place:
         for row in by_place:
             r  = float(row.get("ROI", 0))
@@ -2153,29 +3017,45 @@ def page_results(results: dict) -> None:
 
     # 個別レース結果（日付フィルタ）
     st.markdown("#### 個別レース結果")
-    race_list = results.get("races", [])
+    race_list = plan_data.get("races", [])
     if race_list:
         rdf = pd.DataFrame(race_list)
-        rdf["収支"] = rdf["総払戻"] - rdf["総投資"]
+        for _c in ["総投資", "総払戻", "馬連_投資", "馬連_払戻", "三連複_投資", "三連複_払戻"]:
+            if _c in rdf.columns:
+                rdf[_c] = pd.to_numeric(rdf[_c], errors="coerce").fillna(0)
+        if "収支" not in rdf.columns:
+            rdf["収支"] = rdf["総払戻"] - rdf["総投資"]
+        rdf["収支"] = pd.to_numeric(rdf["収支"], errors="coerce").fillna(0)
 
         fl1, fl2, fl3 = st.columns(3)
-        places   = ["全会場"] + sorted(rdf["場所"].unique().tolist())
-        dates    = ["通年"] + sorted(rdf["日付"].unique().tolist(), key=lambda d: pd.to_datetime(d.replace(".", "/"), errors="coerce"))
-        sel_place = fl1.selectbox("会場", places, key="res_place")
-        sel_date  = fl2.selectbox("日付", dates, key="res_date")
-        sel_type  = fl3.selectbox("絞り込み", ["全馬券","複勝的中","馬連的中","三連複的中"], key="res_type")
+        places    = ["全会場"] + sorted(rdf["場所"].unique().tolist())
+        dates     = ["通年"] + sorted(rdf["日付"].unique().tolist(),
+                                     key=lambda d: pd.to_datetime(d.replace(".", "/"), errors="coerce"))
+        if plan_key == "HAHO":
+            filter_opts = ["全馬券", "馬連的中", "三連複的中"]
+        elif plan_key == "LALO":
+            filter_opts = ["全馬券", "複勝的中"]
+        elif plan_key == "CQC":
+            filter_opts = ["全馬券", "単勝的中"]
+        else:
+            filter_opts = ["全馬券", "三連複的中"]
+        sel_place = fl1.selectbox("会場", places, key=f"res_place_{plan_key}")
+        sel_date  = fl2.selectbox("日付", dates,  key=f"res_date_{plan_key}")
+        sel_type  = fl3.selectbox("絞り込み", filter_opts, key=f"res_type_{plan_key}")
 
         disp = rdf.copy()
         if sel_place != "全会場":
             disp = disp[disp["場所"] == sel_place]
         if sel_date != "通年":
             disp = disp[disp["日付"] == sel_date]
-        if sel_type == "複勝的中":
-            disp = disp[disp["複勝_的中"] == 1]
-        elif sel_type == "馬連的中":
+        if sel_type == "馬連的中" and "馬連_的中" in disp.columns:
             disp = disp[disp["馬連_的中"] == 1]
-        elif sel_type == "三連複的中":
+        elif sel_type == "三連複的中" and "三連複_的中" in disp.columns:
             disp = disp[disp["三連複_的中"] == 1]
+        elif sel_type == "複勝的中" and "複勝_的中" in disp.columns:
+            disp = disp[disp["複勝_的中"] == 1]
+        elif sel_type == "単勝的中" and "単勝_的中" in disp.columns:
+            disp = disp[disp["単勝_的中"] == 1]
 
         # 日次サマリー（通年以外の場合）
         if sel_date != "通年" and len(disp) > 0:
@@ -2199,9 +3079,10 @@ def page_results(results: dict) -> None:
 
         for _, row in disp.sort_values(["日付","R"], ascending=[False,True]).iterrows():
             hits = []
-            if row["複勝_的中"]:   hits.append("複勝✅")
-            if row["馬連_的中"]:   hits.append("馬連✅")
-            if row["三連複_的中"]: hits.append("三連複✅")
+            if "馬連_的中"   in row and row["馬連_的中"]:   hits.append("馬連✅")
+            if "三連複_的中" in row and row["三連複_的中"]: hits.append("三連複✅")
+            if "複勝_的中"   in row and row["複勝_的中"]:   hits.append("複勝✅")
+            if "単勝_的中"   in row and row["単勝_的中"]:   hits.append("単勝✅")
             hit_str = "　".join(hits) if hits else "❌"
             pnl_v   = int(row["収支"])
             rc      = "#4ade80" if pnl_v >= 0 else "#e74c3c"
@@ -2214,6 +3095,88 @@ def page_results(results: dict) -> None:
                 f'<span style="min-width:150px">{hit_str}</span>'
                 f'<span style="color:#888">¥{int(row["総投資"]):,}</span>'
                 f'<span style="color:{rc};font-weight:bold;margin-left:12px">{"+"if pnl_v>=0 else ""}¥{pnl_v:,}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+
+def page_results(results: dict) -> None:
+    """的中実績ページ（HAHO / HALO タブ）。"""
+    if not results:
+        st.warning("results.json が見つかりません。data/results.json を配置してください。")
+        return
+
+    st.markdown("## 📊 的中実績")
+    st.markdown(
+        f'<div style="color:#666;font-size:20px;margin-bottom:16px">'
+        f'集計期間: {results.get("generated_at","")[:10]} 時点</div>',
+        unsafe_allow_html=True,
+    )
+
+    # 新フォーマット（HAHO/HALO/LALO/CQC/TRIPLE キーあり）
+    if "HAHO" in results or "HALO" in results or "LALO" in results or "CQC" in results or "TRIPLE" in results:
+        tab_triple, tab_haho, tab_halo, tab_lalo, tab_cqc = st.tabs([
+            "🔱 TRIPLE  三連複+複勝",
+            "🛡️ HAHO  安定積み上げ",
+            "🎯 HALO  高配当特化",
+            "🍀 LALO  コツコツ複勝",
+            "⚔️ CQC   孤高の真髄",
+        ])
+        with tab_triple:
+            triple_data = results.get("TRIPLE", {})
+            if not triple_data or not triple_data.get("total", {}).get("races"):
+                st.info("TRIPLEのデータがありません。predict_weekly.py --plan triple を実行後、weekly_post.ps1 を実行してください。")
+            else:
+                _render_plan_results(triple_data, "TRIPLE")
+        with tab_haho:
+            haho_data = results.get("HAHO", {})
+            if not haho_data or not haho_data.get("total", {}).get("races"):
+                st.info("HAHOのデータがありません。generate_results.py を実行してください。")
+            else:
+                _render_plan_results(haho_data, "HAHO")
+        with tab_halo:
+            halo_data = results.get("HALO", {})
+            if not halo_data or not halo_data.get("total", {}).get("races"):
+                st.info("HALOのデータがありません。generate_results.py を実行してください。")
+            else:
+                _render_plan_results(halo_data, "HALO")
+        with tab_lalo:
+            lalo_data = results.get("LALO", {})
+            if not lalo_data or not lalo_data.get("total", {}).get("races"):
+                st.info("LALOのデータがありません。generate_results.py を実行してください。")
+            else:
+                _render_plan_results(lalo_data, "LALO")
+        with tab_cqc:
+            cqc_data = results.get("CQC", {})
+            if not cqc_data or not cqc_data.get("total", {}).get("races"):
+                st.info("CQCのデータがありません。generate_results.py を実行してください。")
+            else:
+                _render_plan_results(cqc_data, "CQC")
+    else:
+        # 旧フォーマット（後方互換）
+        st.info("旧フォーマットのresults.jsonです。generate_results.py を再実行するとHAHO/HALO/LALO/CQCタブが表示されます。")
+        total = results.get("total", {})
+        bet   = total.get("bet", 0)
+        ret   = total.get("ret", 0)
+        pnl   = total.get("pnl", 0)
+        roi   = total.get("roi", 0)
+        races = total.get("races", 0)
+        c1, c2, c3, c4, c5 = st.columns(5)
+        roi_color = "#4ade80" if roi >= 100 else "#f39c12" if roi >= 70 else "#e74c3c"
+        pnl_color = "#4ade80" if pnl >= 0 else "#e74c3c"
+        for col, label, val in [
+            (c1, "分析レース数", f"{races}R"),
+            (c2, "総投資額",    f"¥{bet:,}"),
+            (c3, "総払戻額",    f"¥{ret:,}"),
+            (c4, "収支",        f"{'+'if pnl>=0 else ''}¥{pnl:,}"),
+            (c5, "ROI",         f"{roi}%"),
+        ]:
+            color = roi_color if label == "ROI" else pnl_color if label == "収支" else "#cdd6f4"
+            col.markdown(
+                f'<div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;'
+                f'padding:12px;text-align:center">'
+                f'<div style="color:#888;font-size:18px">{label}</div>'
+                f'<div style="color:{color};font-size:30px;font-weight:bold;margin-top:4px">{val}</div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -2305,10 +3268,161 @@ def render_pace_scenario(race_df: pd.DataFrame) -> None:
 
 
 # =========================================================
+# EV単勝候補ページ
+# =========================================================
+def page_ev_candidates(all_df: pd.DataFrame) -> None:
+    """EV >= 閾値 の◎馬を一覧表示するページ。"""
+    st.markdown("### ⭐ EV単勝候補")
+    st.caption("◎馬の期待値スコア (モデル確率 × 単勝オッズ / 0.80) が閾値以上のレースを表示")
+
+    col_thr, col_odds = st.columns(2)
+    with col_thr:
+        ev_thr = st.slider("EV閾値", min_value=0.8, max_value=2.5, value=1.0,
+                           step=0.05, format="%.2f")
+    with col_odds:
+        max_odds = st.slider("単勝オッズ上限（夢馬カット）", min_value=10.0, max_value=99.9,
+                             value=50.0, step=1.0, format="%.0f倍")
+
+    hon_df = all_df[all_df["mark"] == "◎"].copy()
+    hon_df["ev_score"] = pd.to_numeric(hon_df.get("ev_score", 0.0), errors="coerce").fillna(0.0)
+    hon_df["_tansho"]  = pd.to_numeric(hon_df.get("単勝", pd.Series(dtype=float)), errors="coerce").values
+
+    cands = hon_df[(hon_df["ev_score"] >= ev_thr) & (hon_df["_tansho"] <= max_odds)].copy()
+    cands = cands.sort_values("ev_score", ascending=False)
+
+    st.metric("該当レース数", f"{len(cands)} R")
+
+    if cands.empty:
+        st.info(f"EV >= {ev_thr:.2f} かつ 単勝 ≤ {max_odds:.0f}倍 の◎馬はありません")
+        return
+
+    disp_cols = []
+    for c in ["場所", "R", "クラス名", "距離", "馬名", "騎手", "単勝", "ev_score", "score"]:
+        alt = {"馬名": "馬名S"}.get(c, c)
+        if c in cands.columns:
+            disp_cols.append(c)
+        elif alt in cands.columns:
+            disp_cols.append(alt)
+
+    disp = cands[disp_cols].rename(columns={"ev_score": "EV", "score": "スコア(%)"}).reset_index(drop=True)
+
+    def _ev_color(val):
+        if isinstance(val, float):
+            if val >= 2.0: return "background-color:#2d4a2a; color:#a6e3a1; font-weight:bold"
+            if val >= 1.5: return "background-color:#3a3a1a; color:#f9e2af"
+        return ""
+
+    if "EV" in disp.columns:
+        styled = disp.style.map(_ev_color, subset=["EV"])
+        st.dataframe(styled, use_container_width=True, hide_index=True)
+    else:
+        st.dataframe(disp, use_container_width=True, hide_index=True)
+
+    st.markdown("""
+| EV | 目安 |
+|---|---|
+| ≥ 2.0 | 🟢 バックテストで ROI ~199% |
+| ≥ 1.5 | 🟡 バックテストで ROI ~125% |
+| ≥ 1.0 | ⚪ 期待値プラス域 |
+""")
+
+
+# =========================================================
+# VALUE複勝候補ページ
+# =========================================================
+def page_value_candidates(all_df: pd.DataFrame) -> None:
+    """Value Model v2 の買い候補を表示するページ。"""
+    st.markdown("### 💰 VALUE複勝候補")
+    st.caption(
+        "Value Model v2 (2nd-stage LightGBM) が予測する高ROI複勝候補。"
+        "バックテスト: balanced戦略で的中38.5%, ROI 141%（2024年9-12月 out-of-sample）"
+    )
+
+    value_obj = _get_cached(VALUE_MODEL_PATH, "value_model")
+    if value_obj is None:
+        st.warning("value_model_v2.pkl が見つかりません。train_value_model.py を実行してください。")
+        return
+
+    strategies = value_obj.get("strategies", {})
+
+    col_strat, col_info = st.columns([2, 3])
+    with col_strat:
+        strat_name = st.selectbox(
+            "戦略",
+            options=list(strategies.keys()),
+            index=0,
+            format_func=lambda k: strategies[k].get("desc", k),
+        )
+    strat      = strategies[strat_name]
+    pr_thr     = strat["pred_roi_thr"]
+    cp_thr     = strat["cal_prob_thr"]
+    with col_info:
+        st.info(f"pred_roi ≥ {pr_thr}  かつ  cal_prob ≥ {cp_thr}")
+
+    # value_score / cal_prob が存在するか確認
+    if "value_score" not in all_df.columns or "cal_prob" not in all_df.columns:
+        st.warning("Value Scoreが計算されていません。CSVを再読込してください。")
+        return
+
+    df_v = all_df.copy()
+    df_v["value_score"] = pd.to_numeric(df_v["value_score"], errors="coerce")
+    df_v["cal_prob"]    = pd.to_numeric(df_v["cal_prob"],    errors="coerce")
+
+    cands = df_v[(df_v["value_score"] >= pr_thr) & (df_v["cal_prob"] >= cp_thr)].copy()
+    cands = cands.sort_values("value_score", ascending=False)
+
+    col_m1, col_m2, col_m3 = st.columns(3)
+    col_m1.metric("該当頭数", f"{len(cands)} 頭")
+    col_m2.metric("対象レース", f"{cands['レースID(新/馬番無)'].nunique()} R")
+    col_m3.metric("平均ValueScore", f"{cands['value_score'].mean():.2f}" if len(cands) > 0 else "—")
+
+    if cands.empty:
+        st.info(f"該当なし (pred_roi≥{pr_thr}, cal_prob≥{cp_thr})")
+        return
+
+    disp_cols = []
+    for c in ["場所", "R", "クラス名", "距離", "馬名", "馬名S", "印", "騎手", "単勝",
+              "value_score", "cal_prob"]:
+        if c in cands.columns and c not in disp_cols:
+            disp_cols.append(c)
+    # 馬名は馬名S優先
+    if "馬名S" in disp_cols and "馬名" in disp_cols:
+        disp_cols.remove("馬名")
+
+    disp = cands[disp_cols].rename(columns={
+        "馬名S": "馬名",
+        "value_score": "ValueScore",
+        "cal_prob": "CalProb(%)",
+    }).copy()
+    if "CalProb(%)" in disp.columns:
+        disp["CalProb(%)"] = (disp["CalProb(%)"] * 100).round(1)
+
+    def _val_color(val):
+        if isinstance(val, (int, float)):
+            if val >= 1.1: return "background-color:#2d4a2a; color:#a6e3a1; font-weight:bold"
+            if val >= 0.95: return "background-color:#3a3a1a; color:#f9e2af"
+        return ""
+
+    if "ValueScore" in disp.columns:
+        styled = disp.style.map(_val_color, subset=["ValueScore"])
+        st.dataframe(styled, use_container_width=True, hide_index=True)
+    else:
+        st.dataframe(disp, use_container_width=True, hide_index=True)
+
+    st.markdown("""
+| ValueScore | 目安 |
+|---|---|
+| ≥ 1.1 | 🟢 高確度VALUE候補 |
+| ≥ 0.95 | 🟡 VALUE候補 |
+| ≥ 0.88 | ⚪ balanced閾値域 |
+""")
+
+
+# =========================================================
 # 今日の買い目専用ページ
 # =========================================================
 def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
-    """今日の買い目一覧ページ。"""
+    """今日の買い目一覧ページ（HAHO/HALO プラン切替）。"""
     race_id_col = "レースID(新/馬番無)"
     race_metas  = []
     for race_id, grp in all_df.groupby(race_id_col):
@@ -2318,40 +3432,97 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         hon_row = grp[grp["mark"] == "◎"]
         hon_name  = str(hon_row.iloc[0]["馬名"])  if not hon_row.empty else "-"
         hon_score = float(hon_row.iloc[0]["score"]) if not hon_row.empty else 0.0
-        bets      = get_bets(grp, place, cls_raw, strategy, budget)
-        if not bets:
+        bets_all  = get_bets(grp, place, cls_raw, strategy, budget)
+        if not bets_all:
             continue
         race_metas.append({
-            "race_id": race_id,
-            "場所":    place,
-            "R":       int(meta.get("R", 0)),
-            "クラス":  cls_raw,
-            "発走":    str(meta.get("発走時刻", "")),
-            "距離":    f'{meta.get("芝・ダ","")}{meta.get("距離","")}m',
-            "◎":       hon_name,
-            "◎スコア": hon_score,
-            "買い目":  bets,
-            "総投資":  sum(b["購入額"] for b in bets),
+            "race_id":    race_id,
+            "場所":       place,
+            "R":          int(meta.get("R", 0)),
+            "クラス":     cls_raw,
+            "発走":       str(meta.get("発走時刻", "")),
+            "距離":       f'{meta.get("芝・ダ","")}{meta.get("距離","")}m',
+            "馬場":       _normalize_baba(str(meta.get("馬場状態",""))),
+            "◎":          hon_name,
+            "◎スコア":    hon_score,
+            "HAHO_bets":  bets_all.get("HAHO",   []),
+            "HALO_bets":  bets_all.get("HALO",   []),
+            "LALO_bets":  bets_all.get("LALO",   []),
+            "CQC_bets":   bets_all.get("CQC",    []),
+            "TRIPLE_bets":bets_all.get("TRIPLE", []),
         })
+
+    # デバッグ可視化（Phase 5+: 阪神表示問題切り分け用）
+    n_total          = all_df[race_id_col].nunique()
+    n_meta           = len(race_metas)
+    venue_counts     = {}
+    venue_triple     = {}
+    for r in race_metas:
+        v = r["場所"]
+        venue_counts[v] = venue_counts.get(v, 0) + 1
+        if r["TRIPLE_bets"]:
+            venue_triple[v] = venue_triple.get(v, 0) + 1
+    venue_str = " / ".join(
+        f"{v}{venue_counts[v]}R(TRIPLE可{venue_triple.get(v,0)})"
+        for v in sorted(venue_counts.keys())
+    )
+    st.caption(
+        f"📊 全{n_total}R / get_bets通過{n_meta}R / 会場別: {venue_str or '(なし)'}"
+    )
 
     if not race_metas:
         st.info("本日の買い目対象レースがありません。")
         return
 
-    total_all = sum(r["総投資"] for r in race_metas)
+    # プラン選択
+    plan = st.radio(
+        "プラン選択",
+        ["🔱 TRIPLE 三連複◎◯▲1点＋複勝◎1点（標準型 50/50）",
+         "🛡️ HAHO  安定積み上げ（馬連◎軸2点 ＋ 三連複1点）",
+         "🎯 HALO  高配当特化（三連複ボックス1点のみ）",
+         "🍀 LALO  コツコツ複勝（複勝◎1点のみ）",
+         "⚔️ CQC   孤高の真髄（単勝◎1点のみ）"],
+        horizontal=True, key="buylist_plan",
+    )
+    if plan.startswith("🔱"):
+        plan_key = "TRIPLE_bets"
+    elif plan.startswith("🛡️"):
+        plan_key = "HAHO_bets"
+    elif plan.startswith("🎯"):
+        plan_key = "HALO_bets"
+    elif plan.startswith("🍀"):
+        plan_key = "LALO_bets"
+    else:
+        plan_key = "CQC_bets"
+
+    # 馬場フィルタ
+    all_babas    = sorted({r["馬場"] for r in race_metas if r["馬場"]})
+    baba_options = ["全馬場"] + all_babas
+    baba_filter  = st.selectbox("🏟 馬場フィルタ", baba_options, key="buylist_baba")
+
+    active = [r for r in race_metas if r[plan_key]]
+    if baba_filter != "全馬場":
+        active = [r for r in active if r["馬場"] == baba_filter]
+    if not active:
+        st.info("このプランの対象レースがありません。")
+        return
+
+    total_all = sum(sum(b["購入額"] for b in r[plan_key]) for r in active)
     st.markdown(
         f'<div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;'
         f'padding:12px 16px;margin-bottom:16px;display:flex;gap:32px;align-items:center">'
-        f'<span style="color:#888">対象レース <b style="color:#cdd6f4;font-size:18px">{len(race_metas)}R</b></span>'
+        f'<span style="color:#888">対象レース <b style="color:#cdd6f4;font-size:18px">{len(active)}R</b></span>'
         f'<span style="color:#888">合計投資予定 <b style="color:#cdd6f4;font-size:18px">¥{total_all:,}</b></span>'
         f'</div>',
         unsafe_allow_html=True,
     )
 
-    for r in sorted(race_metas, key=lambda x: (x["場所"], x["R"])):
-        fuku  = [b for b in r["買い目"] if b["馬券種"] == "複勝"]
-        rengo = [b for b in r["買い目"] if b["馬券種"] == "馬連"]
-        sanf  = [b for b in r["買い目"] if b["馬券種"] == "三連複"]
+    for r in sorted(active, key=lambda x: (x["場所"], x["R"])):
+        bets  = r[plan_key]
+        rengo = [b for b in bets if b["馬券種"] == "馬連"]
+        sanf  = [b for b in bets if b["馬券種"] == "三連複"]
+        fuku  = [b for b in bets if b["馬券種"] == "複勝"]
+        tan   = [b for b in bets if b["馬券種"] == "単勝"]
 
         # ヘッダー行
         st.markdown(
@@ -2359,7 +3530,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             f'padding:10px 0 4px;border-top:1px solid #2a2a3e;margin-top:4px">'
             f'<span style="background:#313244;color:#cdd6f4;border-radius:4px;'
             f'padding:2px 10px;font-weight:bold;font-size:15px">{r["場所"]} {r["R"]}R</span>'
-            f'<span style="color:#888;font-size:13px">{r["クラス"]}　{r["発走"]}　{r["距離"]}</span>'
+            f'<span style="color:#888;font-size:13px">{r["クラス"]}　{r["発走"]}　{r["距離"]}　馬場:{r["馬場"]}</span>'
             f'<span style="color:#a6e3a1;font-size:13px;margin-left:auto">'
             f'◎{r["◎"]}　{r["◎スコア"]:.1f}%</span>'
             f'</div>',
@@ -2368,13 +3539,6 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
 
         # 買い目行
         lines = []
-        if fuku:
-            lines.append(
-                f'<span style="color:#888;min-width:50px;display:inline-block">複勝</span>'
-                f'<span style="color:#cdd6f4">{fuku[0]["買い目"]}</span>'
-                f'<span style="color:#888;margin-left:8px">¥{fuku[0]["購入額"]:,}</span>'
-                f'<span style="color:#f39c12;font-size:12px;margin-left:8px">ROI目安{fuku[0]["ROI"]:.0f}%</span>'
-            )
         if rengo:
             combos = "　".join(b["買い目"] for b in rengo)
             amt    = sum(b["購入額"] for b in rengo)
@@ -2392,6 +3556,24 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
                 f'<span style="color:#cdd6f4">{combos}</span>'
                 f'<span style="color:#888;margin-left:8px">¥{amt:,}</span>'
                 f'<span style="color:#f39c12;font-size:12px;margin-left:8px">ROI目安{sanf[0]["ROI"]:.0f}%</span>'
+            )
+        if fuku:
+            combos = "　".join(b["買い目"] for b in fuku)
+            amt    = sum(b["購入額"] for b in fuku)
+            lines.append(
+                f'<span style="color:#888;min-width:50px;display:inline-block">複勝</span>'
+                f'<span style="color:#cdd6f4">◎ {combos}番</span>'
+                f'<span style="color:#888;margin-left:8px">¥{amt:,}</span>'
+                f'<span style="color:#f39c12;font-size:12px;margin-left:8px">ROI目安{fuku[0]["ROI"]:.0f}%</span>'
+            )
+        if tan:
+            combos = "　".join(b["買い目"] for b in tan)
+            amt    = sum(b["購入額"] for b in tan)
+            lines.append(
+                f'<span style="color:#888;min-width:50px;display:inline-block">単勝</span>'
+                f'<span style="color:#cdd6f4">◎ {combos}番</span>'
+                f'<span style="color:#888;margin-left:8px">¥{amt:,}</span>'
+                f'<span style="color:#f39c12;font-size:12px;margin-left:8px">ROI目安{tan[0]["ROI"]:.0f}%</span>'
             )
 
         body = "".join(
@@ -2595,7 +3777,7 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             "距離":     f'{meta.get("芝・ダ","")}{meta.get("距離","")}m',
             "発走":     str(meta.get("発走時刻","")),
             "天気":     str(meta.get("天気","")),
-            "馬場":     str(meta.get("馬場状態","")),
+            "馬場":     _normalize_baba(str(meta.get("馬場状態",""))),
             "頭数":     len(grp),
             "◎":        hon_name,
             "◎スコア":  hon_score,
@@ -2649,9 +3831,16 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
 
         if races_here:
             m0 = races_here[0]
+            # 芝とダートで馬場が異なる場合を個別表示
+            shiba_babas = sorted({r["馬場"] for r in races_here if r["距離"].startswith("芝")})
+            dirt_babas  = sorted({r["馬場"] for r in races_here if not r["距離"].startswith("芝")})
+            baba_parts  = []
+            if shiba_babas: baba_parts.append(f'芝:{"/".join(shiba_babas)}')
+            if dirt_babas:  baba_parts.append(f'ダ:{"/".join(dirt_babas)}')
+            baba_str = "　".join(baba_parts) if baba_parts else m0["馬場"]
             st.markdown(
                 f'<div style="font-size:13px;color:#888;padding:4px 0 8px">'
-                f'天気: {m0["天気"]}　馬場: {m0["馬場"]}</div>',
+                f'天気: {m0["天気"]}　馬場: {baba_str}</div>',
                 unsafe_allow_html=True,
             )
 
@@ -2681,7 +3870,7 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
                 f'<div style="flex:1">'
                 f'<span style="font-size:18px;color:#cdd6f4">{r["クラス"]}</span>{badge}'
                 f'<span style="color:#888;font-size:14px;margin-left:8px">'
-                f'{r["発走"]}　{r["距離"]}　{r["頭数"]}頭</span>'
+                f'{r["発走"]}　{r["距離"]}　馬場:{r["馬場"]}　{r["頭数"]}頭</span>'
                 f'<br><span style="font-size:14px;color:#a6e3a1">◎ {r["◎"]}　{r["◎スコア"]:.1f}%</span>'
                 f'</div></div>',
                 unsafe_allow_html=True,
@@ -2709,6 +3898,184 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
 # =========================================================
 # 出走表ページ
 # =========================================================
+# =========================================================
+# PyCa 出走馬評価リスト (全頭分析タブ用)
+# =========================================================
+PYCA_INDICATORS = [
+    ("a", "総合力",   ["score"],                                            True),
+    ("b", "スピード",  ["前走補正", "前走走破タイム"],                        True),
+    ("c", "末脚",     ["前走補9", "前走上り3F"],                             True),
+    ("d", "前走成績", ["前走確定着順"],                                      False),  # 小さい=良い
+    ("e", "市場評価", ["前走人気", "前走単勝オッズ"],                         False),  # 小さい=良い
+    ("f", "ペース適性", ["前走RPCI", "前走PCI3", "前走Ave-3F"],              True),
+]
+
+
+def _norm_0_10(series: pd.Series) -> tuple[pd.Series, bool]:
+    """レース内で 0〜10 に min-max 正規化。
+    戻り値: (正規化済み Series, valid(有効フラグ))
+    欠損全部 or 全馬同値なら valid=False, 5.0 固定。
+    """
+    s = pd.to_numeric(series, errors="coerce")
+    if s.notna().sum() == 0:
+        return pd.Series([5.0] * len(series), index=series.index), False
+    vmin, vmax = s.min(), s.max()
+    if vmax - vmin < 1e-9:
+        return pd.Series([5.0] * len(series), index=series.index), False
+    out = (s - vmin) / (vmax - vmin) * 10.0
+    return out.fillna(5.0), True
+
+
+def _pyca_index(row_score: float, indicators: dict) -> float:
+    """PyCaLi総合指数 (0-100)。ensemble score (0-100) を主軸に各指標で微調整。"""
+    base = float(row_score)  # score は既に 0-100
+    boost = sum(indicators.values()) / max(len(indicators), 1) - 5.0   # -5..+5
+    return float(max(0.0, min(100.0, base + boost * 1.5)))
+
+
+def _pyca_radar_fig(values: list[float], labels: list[str], name: str):
+    """6軸レーダーチャート (matplotlib polar)。"""
+    import matplotlib.pyplot as _plt
+    import numpy as _np
+    n = len(values)
+    angles = _np.linspace(0, 2 * _np.pi, n, endpoint=False).tolist()
+    vals   = values + values[:1]
+    angs   = angles + angles[:1]
+    fig = _plt.figure(figsize=(3.2, 3.2), facecolor="#1e1e2e")
+    ax = fig.add_subplot(111, polar=True, facecolor="#181825")
+    ax.plot(angs, vals, color="#89b4fa", linewidth=2)
+    ax.fill(angs, vals, color="#89b4fa", alpha=0.28)
+    ax.set_ylim(0, 10)
+    ax.set_yticks([2, 4, 6, 8, 10])
+    ax.set_yticklabels(["2","4","6","8","10"], color="#6c7086", fontsize=7)
+    ax.set_xticks(angles)
+    ax.set_xticklabels(labels, color="#cdd6f4", fontsize=9)
+    ax.grid(color="#313244", linewidth=0.8)
+    ax.spines["polar"].set_color("#313244")
+    ax.set_title(name, color="#f5e0dc", fontsize=10, pad=8)
+    fig.tight_layout()
+    return fig
+
+
+def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
+    """全頭分析タブ: PyCaLi指数ベースの評価リスト。"""
+    st.markdown("### 🔍 出走馬評価リスト（PyCaLi指数）")
+    st.caption(
+        "各指標はレース内で 0〜10 に正規化。右側の順位はレース内ランク。　"
+        "※ **印（◎◯▲△）はアンサンブルモデル score 順** / **PyCaLi指数は score + 補助指標5つの総合評価**。"
+        "このため補助指標が強い/弱い馬では印順位と PyCaLi順位が逆転することがあります。"
+    )
+
+    df = race_df.sort_values("馬番").reset_index(drop=True).copy()
+
+    # 指標値を 0〜10 正規化して DF に追加 (valid フラグも保持)
+    # 各指標は候補カラムを順に試し、レース内で分散がある最初のカラムを採用
+    norm_cols: dict[str, str] = {}
+    valid_map: dict[str, bool] = {}
+    for key, label, col_candidates, higher in PYCA_INDICATORS:
+        nkey = f"_pyca_{key}"
+        used_norm, used_valid = None, False
+        for col in col_candidates:
+            if col not in df.columns:
+                continue
+            norm, valid = _norm_0_10(df[col])
+            if valid:
+                used_norm, used_valid = norm, True
+                break
+            if used_norm is None:
+                used_norm = norm   # フォールバック用 (全 5.0)
+        if used_norm is None:
+            used_norm = pd.Series([5.0] * len(df), index=df.index)
+        df[nkey] = used_norm
+        if used_valid and not higher:
+            df[nkey] = 10.0 - df[nkey]
+        valid_map[key] = used_valid
+        norm_cols[key] = nkey
+
+    # レース内順位 (値の大きい順, 1=最良)。valid=False なら順位 0 (表示で "−")
+    rank_cols: dict[str, str] = {}
+    for key, _, _, _ in PYCA_INDICATORS:
+        rkey = f"_rank_{key}"
+        if valid_map[key]:
+            df[rkey] = df[norm_cols[key]].rank(ascending=False, method="min").astype(int)
+        else:
+            df[rkey] = 0
+        rank_cols[key] = rkey
+
+    # PyCaLi指数
+    def _calc_pyca(r: pd.Series) -> float:
+        ind = {k: float(r[norm_cols[k]]) for k, *_ in PYCA_INDICATORS}
+        return _pyca_index(float(r.get("score", 0.0)), ind)
+    df["_pyca"] = df.apply(_calc_pyca, axis=1)
+    df["_pyca_rank"] = df["_pyca"].rank(ascending=False, method="min").astype(int)
+
+    labels = [lbl for _, lbl, _, _ in PYCA_INDICATORS]
+
+    for _, row in df.iterrows():
+        name  = str(row.get("馬名", f"{int(row['馬番'])}番"))
+        uma   = int(row.get("馬番", 0))
+        mark  = str(row.get("mark", ""))
+        sex   = str(row.get("性齢", ""))
+        kin   = row.get("斤量", "")
+        jockey= str(row.get("騎手", ""))
+        pyca  = float(row["_pyca"])
+        prank = int(row["_pyca_rank"])
+        mk_cls  = MARK_CLASS.get(mark, "")
+        mk_html = f'<span class="{mk_cls}">{mark}</span> ' if mark else ""
+
+        c_left, c_mid, c_right = st.columns([2, 2, 3], gap="small")
+        with c_left:
+            st.markdown(
+                f'<div style="padding:4px 0;line-height:1.5">'
+                f'<div style="font-size:17px;color:#6c7086">{uma}番</div>'
+                f'<div style="font-size:24px;font-weight:bold">{mk_html}{name}</div>'
+                f'<div style="font-size:17px;color:#a6adc8">{sex} / {kin}kg / {jockey}</div>'
+                f'<div style="margin-top:14px">'
+                f'<span style="font-size:17px;color:#6c7086">PyCaLi指数</span><br>'
+                f'<span style="font-size:48px;font-weight:bold;color:#89b4fa">{pyca:.1f}</span>'
+                f'<span style="font-size:20px;color:#cdd6f4;margin-left:8px">({prank}位)</span>'
+                f'</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+        with c_mid:
+            vals = [float(row[norm_cols[k]]) for k, *_ in PYCA_INDICATORS]
+            fig = _pyca_radar_fig(vals, labels, name)
+            st.pyplot(fig, use_container_width=True)
+            plt.close(fig)
+        with c_right:
+            st.markdown(
+                '<div style="font-size:17px;color:#6c7086;margin-bottom:6px">指標 / 値 / レース内順位</div>',
+                unsafe_allow_html=True,
+            )
+            rows_html = []
+            for key, label, _, _ in PYCA_INDICATORS:
+                v = float(row[norm_cols[key]])
+                rk = int(row[rank_cols[key]])
+                valid = valid_map[key]
+                bar = int(round(v * 10))  # 0..100
+                if not valid:
+                    color = "#6c7086"
+                    rank_txt = "−"
+                    top_mark = ""
+                else:
+                    color = "#a6e3a1" if rk == 1 else ("#89b4fa" if rk <= 3 else "#cdd6f4")
+                    rank_txt = f"{rk}位"
+                    top_mark = "★" if rk <= 3 else ""
+                rows_html.append(
+                    f'<div style="display:flex;align-items:center;gap:8px;margin:5px 0;font-size:18px">'
+                    f'<div style="width:90px;color:#a6adc8">{key}. {label}</div>'
+                    f'<div style="flex:1;height:10px;background:#313244;border-radius:4px;overflow:hidden">'
+                    f'<div style="height:100%;width:{bar}%;background:{color}"></div>'
+                    f'</div>'
+                    f'<div style="width:46px;text-align:right;color:{color};font-weight:bold">{v:.1f}</div>'
+                    f'<div style="width:56px;text-align:right;color:#6c7086">{rank_txt}{top_mark}</div>'
+                    f'</div>'
+                )
+            st.markdown("".join(rows_html), unsafe_allow_html=True)
+        st.markdown("<hr style='border-color:#313244;margin:8px 0'>", unsafe_allow_html=True)
+
+
 def page_race_detail(
     race_df: pd.DataFrame,
     all_df: pd.DataFrame,
@@ -2733,14 +4100,14 @@ def page_race_detail(
             st.session_state.selected_race_id = None
             st.rerun()
 
-        st.markdown(f"## {place} {r_num}R / {cls_raw} / {shida}{dist}m")
-
-        render_danger_favorite_badge(race_df)
+        baba_raw = str(meta.get("馬場状態",""))
+        baba_disp = _normalize_baba(baba_raw)
+        st.markdown(f"## {place} {r_num}R / {cls_raw} / {shida}{dist}m　🏟 馬場:{baba_disp}")
 
         if in_strategy:
             cls_norm = CLASS_NORMALIZE.get(cls_raw, cls_raw)
             cls_key  = cls_norm if cls_norm in strategy.get(place,{}) else cls_raw
-            roi_vals = [v["roi"] for v in strategy[place][cls_key].values()]
+            roi_vals = [v.get("roi_oos", v.get("roi", 0)) for v in strategy[place][cls_key].values()]
             st.success(f"✅ 戦略対象レース　平均ROI: {sum(roi_vals)/len(roi_vals):.1f}%")
         elif place in EXCLUDE_PLACES:
             st.warning(f"⚠️ {place}は除外会場（参考予想）")
@@ -2797,79 +4164,59 @@ def page_race_detail(
             if in_strategy:
                 st.markdown("---")
                 st.markdown("### 🎯 買い目")
-                bets = get_bets(race_df, place, cls_raw, strategy, budget)
-                if not bets:
+                bets_all = get_bets(race_df, place, cls_raw, strategy, budget)
+                if not bets_all:
                     st.warning("買い目を生成できませんでした。")
                 else:
-                    bets_df = pd.DataFrame(bets)
-                    total   = bets_df["購入額"].sum()
-                    m1, m2, m3 = st.columns(3)
-                    m1.metric("合計購入額", f"{total:,}円")
-                    m2.metric("馬券種数",   f"{bets_df['馬券種'].nunique()}種")
-                    m3.metric("総点数",     f"{len(bets_df)}点")
-                    for bet_type, grp_b in bets_df.groupby("馬券種"):
-                        type_total = grp_b["購入額"].sum()
-                        combos_html = "　".join([
-                            f'<span style="font-size:16px;font-weight:bold;color:#cdd6f4">{row["買い目"]}</span>'
-                            f'<span style="color:#888;font-size:12px">({row["購入額"]:,}円)</span>'
-                            for _, row in grp_b.iterrows()
-                        ])
-                        roi_val = grp_b.iloc[0]["ROI"]
-                        st.markdown(
-                            f'<div class="bet-card">'
-                            f'<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
-                            f'<span style="color:#5865f2;font-weight:bold">{bet_type}</span>'
-                            f'<span style="color:#888;font-size:12px">ROI目安:{roi_val:.1f}%　計{type_total:,}円</span>'
-                            f'</div><div>{combos_html}</div></div>',
-                            unsafe_allow_html=True,
-                        )
+                    det_tab_haho, det_tab_halo, det_tab_lalo, det_tab_cqc = st.tabs([
+                        "🛡️ HAHO  安定積み上げ",
+                        "🎯 HALO  高配当特化",
+                        "🍀 LALO  コツコツ複勝",
+                        "⚔️ CQC   孤高の真髄",
+                    ])
+                    _no_bet_msg = {
+                        "HAHO": "このレースはHAHO戦略の対象外です。",
+                        "HALO": "このレースは三連複戦略の対象外です。",
+                        "LALO": "このレースは複勝戦略の対象外です。",
+                        "CQC":  "このレースは単勝戦略の対象外です。",
+                    }
+                    for det_tab, plan_key, plan_label in [
+                        (det_tab_haho, "HAHO", "馬連◎軸2点 ＋ 三連複ボックス1点"),
+                        (det_tab_halo, "HALO", "三連複ボックス1点のみ"),
+                        (det_tab_lalo, "LALO", "複勝◎1点のみ"),
+                        (det_tab_cqc,  "CQC",  "単勝◎1点のみ"),
+                    ]:
+                        with det_tab:
+                            bets = bets_all.get(plan_key, [])
+                            if not bets:
+                                st.info(_no_bet_msg.get(plan_key, "買い目がありません。"))
+                                continue
+                            bets_df   = pd.DataFrame(bets)
+                            total_amt = bets_df["購入額"].sum()
+                            m1, m2, m3 = st.columns(3)
+                            m1.metric("合計購入額", f"{total_amt:,}円")
+                            m2.metric("馬券種数",   f"{bets_df['馬券種'].nunique()}種")
+                            m3.metric("総点数",     f"{len(bets_df)}点")
+                            st.caption(plan_label)
+                            for bet_type, grp_b in bets_df.groupby("馬券種"):
+                                type_total = grp_b["購入額"].sum()
+                                combos_html = "　".join([
+                                    f'<span style="font-size:16px;font-weight:bold;color:#cdd6f4">{row["買い目"]}</span>'
+                                    f'<span style="color:#888;font-size:12px">({row["購入額"]:,}円)</span>'
+                                    for _, row in grp_b.iterrows()
+                                ])
+                                roi_val = grp_b.iloc[0]["ROI"]
+                                st.markdown(
+                                    f'<div class="bet-card">'
+                                    f'<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
+                                    f'<span style="color:#5865f2;font-weight:bold">{bet_type}</span>'
+                                    f'<span style="color:#888;font-size:12px">ROI目安:{roi_val:.1f}%　計{type_total:,}円</span>'
+                                    f'</div><div>{combos_html}</div></div>',
+                                    unsafe_allow_html=True,
+                                )
 
         with tab2:
-            if not shap_ok:
-                st.error("SHAP計算に失敗しました。")
-            else:
-                st.markdown("### 🔍 全頭分析")
-                for i, row in race_df.sort_values("馬番").reset_index(drop=True).iterrows():
-                    sv_row  = shap_vals[i]
-                    name    = str(row.get("馬名", f"{int(row['馬番'])}番"))
-                    mark    = str(row.get("mark",""))
-                    score   = float(row.get("score",0))
-                    comment = make_comment(sv_row, feature_cols, name, score, mark)
-                    mk_cls  = MARK_CLASS.get(mark,"")
-                    mk_html = f'<span class="{mk_cls}">{mark}</span> ' if mark else ""
-                    sv_arr  = np.array(sv_row)
-                    pairs   = sorted(zip(sv_arr, feature_cols), reverse=True)
-                    pos4    = [(v,c) for v,c in pairs if v > 0][:4]
-                    neg3    = [(v,c) for v,c in pairs if v < 0][-3:]
-                    c_left, c_mid, c_right = st.columns([2, 3, 2])
-                    with c_left:
-                        st.markdown(
-                            f'<div style="padding:8px 0">'
-                            f'<span style="font-size:15px;font-weight:bold">{mk_html}{name}</span>'
-                            f'<span style="font-size:12px;color:#888;margin-left:8px">{score:.1f}%</span>'
-                            f'</div>'
-                            f'<div style="font-size:13px;color:#a6adc8;line-height:1.7">{comment}</div>',
-                            unsafe_allow_html=True,
-                        )
-                        try:
-                            _hist = _pseudo_pycali_history(row)
-                            _sp = _make_sparkline(_hist)
-                            st.pyplot(_sp, use_container_width=False)
-                            plt.close(_sp)
-                        except Exception:
-                            pass
-                    with c_mid:
-                        fig = make_shap_fig(sv_row, feature_cols, name)
-                        st.pyplot(fig, use_container_width=True)
-                        plt.close(fig)
-                    with c_right:
-                        for v, c in pos4:
-                            label = FEATURE_LABEL.get(c,c)
-                            st.markdown(f'<div style="color:#e74c3c;font-size:12px;margin:2px 0">🟥 {label} +{v:.3f}</div>', unsafe_allow_html=True)
-                        for v, c in neg3:
-                            label = FEATURE_LABEL.get(c,c)
-                            st.markdown(f'<div style="color:#5865f2;font-size:12px;margin:2px 0">🟦 {label} {v:.3f}</div>', unsafe_allow_html=True)
-                    st.markdown("<hr style='border-color:#313244;margin:8px 0'>", unsafe_allow_html=True)
+            render_pyca_evaluation_list(race_df)
 
 
         with tab3:
@@ -2966,9 +4313,22 @@ def main() -> None:
             st.error("CSVの読み込みに失敗しました。")
             return
 
-    predicted_json = predict_all_races(selected_date, raw_df.to_json(), lgbm_obj, cat_obj)
+    # cache_key にモデルの更新時刻を含める（モデル再訓練後も正しく再計算される）
+    import os
+    _model_mtime = max(
+        os.path.getmtime(str(LGBM_PATH)) if LGBM_PATH.exists() else 0,
+        os.path.getmtime(str(CAT_PATH))  if CAT_PATH.exists()  else 0,
+    )
+    _cache_key = f"{selected_date}_{int(_model_mtime)}"
+    predicted_json = predict_all_races(_cache_key, raw_df.to_json(), lgbm_obj, cat_obj)
     import io
     all_df = pd.read_json(io.StringIO(predicted_json))
+
+    # ── Streamlit の表示結果を pred CSV として自動保存（的中実績の基準）──
+    try:
+        save_pred_csv_from_streamlit(all_df, selected_date, strategy, budget)
+    except Exception as _e:
+        logger.warning(f"pred CSV 自動保存失敗: {_e}")
 
     if "selected_race_id" not in st.session_state:
         st.session_state.selected_race_id = None
@@ -2980,27 +4340,31 @@ def main() -> None:
     race_id_col = "レースID(新/馬番無)"
 
     # メインタブ
-    main_tab1, main_tab2, main_tab3, main_tab4, main_tab5, main_tab6 = st.tabs([
-        "🏇 レース予想", "🎫 今日の買い目", "📊 的中実績",
-        "📊 ROIヒートマップ", "💼 今週の推奨", "📋 結果フィードバック",
-    ])
+    main_tab1, main_tab2, main_tab3, main_tab4, main_tab5, main_tab6, main_tab7, main_tab8 = st.tabs(
+        ["🏇 レース予想", "🎫 今日の買い目", "⭐ EV候補", "💰 VALUE複勝", "📊 的中実績",
+         "📊 ROIヒートマップ", "💼 今週の推奨", "📋 結果フィードバック"]
+    )
 
     results = load_results()
 
-    with main_tab3:
+    with main_tab6:
+        render_roi_heatmap()
+    with main_tab7:
+        render_weekly_portfolio()
+    with main_tab8:
+        render_feedback_dashboard()
+
+    with main_tab5:
         page_results(results)
+
+    with main_tab4:
+        page_value_candidates(all_df)
+
+    with main_tab3:
+        page_ev_candidates(all_df)
 
     with main_tab2:
         page_buylist(all_df, strategy, budget)
-
-    with main_tab4:
-        render_roi_heatmap()
-
-    with main_tab5:
-        render_weekly_portfolio()
-
-    with main_tab6:
-        render_feedback_dashboard()
 
     with main_tab1:
         # 選択中のrace_idが現在のCSVに存在しない場合リセット
