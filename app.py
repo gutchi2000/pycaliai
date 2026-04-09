@@ -4051,11 +4051,24 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
                 unsafe_allow_html=True,
             )
             try:
-                _hist = _pycali_form_history(row)
-                _sp = _make_sparkline(_hist)
-                st.pyplot(_sp, use_container_width=False)
-                plt.close(_sp)
-                st.caption(f"近走フォーム推移（実着順由来）: {' → '.join(f'{v:.0f}' for v in _hist)}")
+                prev_rank = None
+                for col in ["前走確定着順", "前走着順"]:
+                    if col in row.index:
+                        v = pd.to_numeric(row.get(col), errors="coerce")
+                        if pd.notna(v) and v > 0:
+                            prev_rank = int(v); break
+                if prev_rank is not None:
+                    cur_p = float(row["_pyca"])
+                    prev_p = max(0.0, min(100.0, 100.0 - prev_rank * 6.0))
+                    delta = cur_p - prev_p
+                    arrow = "▲" if delta > 0 else ("▼" if delta < 0 else "→")
+                    color = "#a6e3a1" if delta > 0 else ("#f38ba8" if delta < 0 else "#cdd6f4")
+                    st.markdown(
+                        f'<div style="font-size:13px;color:#6c7086;margin-top:6px">'
+                        f'前走{prev_rank}着 (form {prev_p:.0f}) '
+                        f'<span style="color:{color};font-weight:bold">{arrow} {abs(delta):.0f}</span> '
+                        f'→ 今走 PyCaLi {cur_p:.0f}'
+                        f'</div>', unsafe_allow_html=True)
             except Exception:
                 pass
         with c_mid:
