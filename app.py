@@ -3694,12 +3694,12 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
 # PyCa 出走馬評価リスト (全頭分析タブ用)
 # =========================================================
 PYCA_INDICATORS = [
-    ("a", "総合力",  ["score"],                                          True),
-    ("b", "スピード", ["前走補正", "前走走破タイム"],                      True),
-    ("c", "持続力",  ["前走補9", "前走上り3F"],                           True),
-    ("d", "実績",    ["horse_fuku30", "horse_fuku10", "horse_fuku_career"], True),
-    ("e", "騎手",    ["jockey_fuku30", "jockey_fuku90"],                 True),
-    ("f", "厩舎",    ["trainer_fuku30", "trainer_fuku90"],               True),
+    ("a", "総合力",   ["score"],                                            True),
+    ("b", "スピード",  ["前走補正", "前走走破タイム"],                        True),
+    ("c", "末脚",     ["前走補9", "前走上り3F"],                             True),
+    ("d", "前走成績", ["前走確定着順"],                                      False),  # 小さい=良い
+    ("e", "市場評価", ["前走人気", "前走単勝オッズ"],                         False),  # 小さい=良い
+    ("f", "ペース適性", ["前走RPCI", "前走PCI3", "前走Ave-3F"],              True),
 ]
 
 
@@ -3815,13 +3815,13 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
         with c_left:
             st.markdown(
                 f'<div style="padding:4px 0;line-height:1.5">'
-                f'<div style="font-size:11px;color:#6c7086">{uma}番</div>'
-                f'<div style="font-size:16px;font-weight:bold">{mk_html}{name}</div>'
-                f'<div style="font-size:11px;color:#a6adc8">{sex} / {kin}kg / {jockey}</div>'
-                f'<div style="margin-top:10px">'
-                f'<span style="font-size:11px;color:#6c7086">PyCa指数</span><br>'
-                f'<span style="font-size:32px;font-weight:bold;color:#89b4fa">{pyca:.1f}</span>'
-                f'<span style="font-size:13px;color:#cdd6f4;margin-left:6px">({prank}位)</span>'
+                f'<div style="font-size:17px;color:#6c7086">{uma}番</div>'
+                f'<div style="font-size:24px;font-weight:bold">{mk_html}{name}</div>'
+                f'<div style="font-size:17px;color:#a6adc8">{sex} / {kin}kg / {jockey}</div>'
+                f'<div style="margin-top:14px">'
+                f'<span style="font-size:17px;color:#6c7086">PyCa指数</span><br>'
+                f'<span style="font-size:48px;font-weight:bold;color:#89b4fa">{pyca:.1f}</span>'
+                f'<span style="font-size:20px;color:#cdd6f4;margin-left:8px">({prank}位)</span>'
                 f'</div>'
                 f'</div>',
                 unsafe_allow_html=True,
@@ -3833,7 +3833,7 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
             plt.close(fig)
         with c_right:
             st.markdown(
-                '<div style="font-size:11px;color:#6c7086;margin-bottom:4px">指標 / 値 / レース内順位</div>',
+                '<div style="font-size:17px;color:#6c7086;margin-bottom:6px">指標 / 値 / レース内順位</div>',
                 unsafe_allow_html=True,
             )
             rows_html = []
@@ -3851,13 +3851,13 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
                     rank_txt = f"{rk}位"
                     top_mark = "★" if rk <= 3 else ""
                 rows_html.append(
-                    f'<div style="display:flex;align-items:center;gap:6px;margin:3px 0;font-size:12px">'
-                    f'<div style="width:48px;color:#a6adc8">{key}. {label}</div>'
-                    f'<div style="flex:1;height:7px;background:#313244;border-radius:3px;overflow:hidden">'
+                    f'<div style="display:flex;align-items:center;gap:8px;margin:5px 0;font-size:18px">'
+                    f'<div style="width:90px;color:#a6adc8">{key}. {label}</div>'
+                    f'<div style="flex:1;height:10px;background:#313244;border-radius:4px;overflow:hidden">'
                     f'<div style="height:100%;width:{bar}%;background:{color}"></div>'
                     f'</div>'
-                    f'<div style="width:32px;text-align:right;color:{color};font-weight:bold">{v:.1f}</div>'
-                    f'<div style="width:40px;text-align:right;color:#6c7086">{rank_txt}{top_mark}</div>'
+                    f'<div style="width:46px;text-align:right;color:{color};font-weight:bold">{v:.1f}</div>'
+                    f'<div style="width:56px;text-align:right;color:#6c7086">{rank_txt}{top_mark}</div>'
                     f'</div>'
                 )
             st.markdown("".join(rows_html), unsafe_allow_html=True)
