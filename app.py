@@ -3694,12 +3694,12 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
 # PyCa 出走馬評価リスト (全頭分析タブ用)
 # =========================================================
 PYCA_INDICATORS = [
-    ("a", "総合力",  "score",          True),   # ensemble score (0-100)
-    ("b", "スピード", "前走補正",       True),
-    ("c", "持続力",  "前走補9",        True),
-    ("d", "適性",    "horse_fuku30",   True),
-    ("e", "騎手",    "jockey_fuku90",  True),
-    ("f", "厩舎",    "trainer_fuku90", True),
+    ("a", "総合力",  ["score"],                                          True),
+    ("b", "スピード", ["前走補正", "前走走破タイム"],                      True),
+    ("c", "持続力",  ["前走補9", "前走上り3F"],                           True),
+    ("d", "実績",    ["horse_fuku30", "horse_fuku10", "horse_fuku_career"], True),
+    ("e", "騎手",    ["jockey_fuku30", "jockey_fuku90"],                 True),
+    ("f", "厩舎",    ["trainer_fuku30", "trainer_fuku90"],               True),
 ]
 
 
@@ -3757,19 +3757,27 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
     df = race_df.sort_values("馬番").reset_index(drop=True).copy()
 
     # 指標値を 0〜10 正規化して DF に追加 (valid フラグも保持)
+    # 各指標は候補カラムを順に試し、レース内で分散がある最初のカラムを採用
     norm_cols: dict[str, str] = {}
     valid_map: dict[str, bool] = {}
-    for key, label, col, higher in PYCA_INDICATORS:
+    for key, label, col_candidates, higher in PYCA_INDICATORS:
         nkey = f"_pyca_{key}"
-        if col in df.columns:
+        used_norm, used_valid = None, False
+        for col in col_candidates:
+            if col not in df.columns:
+                continue
             norm, valid = _norm_0_10(df[col])
-            df[nkey] = norm
-            if valid and not higher:
-                df[nkey] = 10.0 - df[nkey]
-            valid_map[key] = valid
-        else:
-            df[nkey] = 5.0
-            valid_map[key] = False
+            if valid:
+                used_norm, used_valid = norm, True
+                break
+            if used_norm is None:
+                used_norm = norm   # フォールバック用 (全 5.0)
+        if used_norm is None:
+            used_norm = pd.Series([5.0] * len(df), index=df.index)
+        df[nkey] = used_norm
+        if used_valid and not higher:
+            df[nkey] = 10.0 - df[nkey]
+        valid_map[key] = used_valid
         norm_cols[key] = nkey
 
     # レース内順位 (値の大きい順, 1=最良)。valid=False なら順位 0 (表示で "−")
