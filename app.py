@@ -66,6 +66,8 @@ RESULTS_JSON      = DATA_DIR / "results.json"
 LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
 CAL_PATH      = MODEL_DIR / "ensemble_calibrator_v1.pkl"
+FUKU_CAL_PATH = MODEL_DIR / "fukusho_calibrator_v1.pkl"
+FUKU_CAL_GATE = 0.55  # 複勝推奨ゲート (Sprint 1.2)
 MIN_UNIT = 100
 MARKS    = ["◎", "◯", "▲", "△", "×"]
 
@@ -554,6 +556,17 @@ def _load_calibrator():
     return None
 
 
+@st.cache_resource(show_spinner=False)
+def _load_fukusho_calibrator():
+    """fukusho_calibrator_v1.pkl (Sprint 1.2) をロード。bare IsotonicRegression。"""
+    if FUKU_CAL_PATH.exists():
+        try:
+            return joblib.load(FUKU_CAL_PATH)
+        except Exception as e:
+            logger.warning(f"複勝キャリブレーターロード失敗: {e}")
+    return None
+
+
 def assign_marks(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["mark"] = ""
@@ -575,6 +588,18 @@ def predict_all_races(cache_key: str, df_json: str, _lgbm_obj: dict, _cat_obj: d
             race_df["prob"]  = ensemble_predict(race_df, _lgbm_obj, _cat_obj)
             race_df          = assign_marks(race_df)
             race_df["score"] = (race_df["prob"] * 100).round(1)
+            # 複勝専用キャリブレータ（Sprint 1.2）
+            _fuku_cal = _load_fukusho_calibrator()
+            if _fuku_cal is not None:
+                try:
+                    race_df["cal_fukusho"] = _fuku_cal.predict(race_df["prob"].values)
+                    race_df["fuku_gate"] = (race_df["cal_fukusho"] >= FUKU_CAL_GATE).astype(int)
+                except Exception:
+                    race_df["cal_fukusho"] = race_df["prob"]
+                    race_df["fuku_gate"] = 0
+            else:
+                race_df["cal_fukusho"] = race_df["prob"]
+                race_df["fuku_gate"] = 0
         except Exception as e:
             logger.warning(f"予測失敗 {race_id}: {e}")
             race_df["prob"]  = 0.0
