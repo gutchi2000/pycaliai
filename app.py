@@ -75,6 +75,8 @@ CAL_PATH_V1    = MODEL_DIR / "ensemble_calibrator_v1.pkl"   # legacy fallback
 FUKU_CAL_PATH  = MODEL_DIR / "fukusho_calibrator_v1.pkl"   # Sprint 1.2 複勝専用
 FUKU_CAL_GATE  = 0.55
 WALKFORWARD_CSV = BASE_DIR / "reports" / "all_profitable_conditions.csv"
+PYCALI_HIST_CSV = BASE_DIR / "data" / "pycali_history.csv"
+PYCALI_HIST_PARQUET = BASE_DIR / "data" / "pycali_history.parquet"
 WIN_MODEL_PATH = MODEL_DIR / "lgbm_win_v1.pkl"
 TORCH_PATH     = MODEL_DIR / "transformer_optuna_v1.pkl"
 META_PATH      = MODEL_DIR / "stacking_meta_v1.pkl"
@@ -365,6 +367,37 @@ def _compute_pycali(row) -> float:
         return max(0.0, min(100.0, 100.0 - pop * 5.0))
     except Exception:
         return 0.0
+
+
+@st.cache_data(show_spinner=False)
+def _load_pycali_history() -> pd.DataFrame:
+    """data/pycali_history.(parquet|csv) を読む。(馬名, 日付, スコア) の実データ。"""
+    for path, reader in [
+        (PYCALI_HIST_PARQUET, lambda p: pd.read_parquet(p)),
+        (PYCALI_HIST_CSV,     lambda p: pd.read_csv(p, encoding="utf-8-sig")),
+    ]:
+        if path.exists():
+            try:
+                df = reader(path)
+                df["日付"] = df["日付"].astype(str).str[:8]
+                df["スコア"] = pd.to_numeric(df["スコア"], errors="coerce")
+                return df.dropna(subset=["スコア"])
+            except Exception as e:
+                logger.warning(f"pycali_history読込失敗 {path.name}: {e}")
+    return pd.DataFrame()
+
+
+def _real_pycali_history(horse_name: str, current_date: str | None, n: int = 5) -> list[float]:
+    """馬名ベースで過去N走のスコアを時系列順で返す（最新を末尾）。"""
+    hist = _load_pycali_history()
+    if hist.empty or not horse_name:
+        return []
+    sub = hist[hist["馬名"] == horse_name]
+    if current_date:
+        cd = str(current_date)[:8]
+        sub = sub[sub["日付"] < cd]
+    sub = sub.sort_values("日付").tail(n)
+    return sub["スコア"].astype(float).tolist()
 
 
 def _pycali_form_history(row, n: int = 4) -> list:
@@ -4051,26 +4084,21 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
                 unsafe_allow_html=True,
             )
             try:
-                prev_rank = None
-                for col in ["前走確定着順", "前走着順"]:
-                    if col in row.index:
-                        v = pd.to_numeric(row.get(col), errors="coerce")
-                        if pd.notna(v) and v > 0:
-                            prev_rank = int(v); break
-                if prev_rank is not None:
-                    cur_p = float(row["_pyca"])
-                    prev_p = max(0.0, min(100.0, 100.0 - prev_rank * 6.0))
-                    delta = cur_p - prev_p
-                    arrow = "▲" if delta > 0 else ("▼" if delta < 0 else "→")
-                    color = "#a6e3a1" if delta > 0 else ("#f38ba8" if delta < 0 else "#cdd6f4")
-                    st.markdown(
-                        f'<div style="font-size:13px;color:#6c7086;margin-top:6px">'
-                        f'前走{prev_rank}着 (form {prev_p:.0f}) '
-                        f'<span style="color:{color};font-weight:bold">{arrow} {abs(delta):.0f}</span> '
-                        f'→ 今走 PyCaLi {cur_p:.0f}'
-                        f'</div>', unsafe_allow_html=True)
-            except Exception:
-                pass
+                cur_date = str(row.get("日付", "")) if "日付" in row.index else None
+                past = _real_pycali_history(name, cur_date, n=5)
+                series = past + [float(row["_pyca"])]
+                if len(series) >= 2:
+                    _sp = _make_sparkline(series)
+                    st.pyplot(_sp, use_container_width=False)
+                    plt.close(_sp)
+                    st.caption(
+                        f"PyCaLi 実履歴 ({len(past)}走+今走): "
+                        + " → ".join(f"{v:.0f}" for v in series)
+                    )
+                else:
+                    st.caption("PyCaLi 履歴: 過去出走データなし（初出走扱い）")
+            except Exception as _e:
+                logger.debug(f"sparkline skip: {_e}")
         with c_mid:
             vals = [float(row[norm_cols[k]]) for k, *_ in PYCA_INDICATORS]
             fig = _pyca_radar_fig(vals, labels, name)
