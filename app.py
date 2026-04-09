@@ -162,6 +162,207 @@ HORSE_COLS_99 = [
 
 
 # =========================================================
+# v2 拡張ヘルパー
+# =========================================================
+WALKFORWARD_CSV = BASE_DIR / "reports" / "all_profitable_conditions.csv"
+
+
+def _compute_pycali(row) -> float:
+    try:
+        s = float(row.get("score", 0) or 0)
+        if s > 0:
+            return max(0.0, min(100.0, s))
+    except Exception:
+        pass
+    try:
+        pop = float(row.get("人気", 99) or 99)
+        return max(0.0, min(100.0, 100.0 - pop * 5.0))
+    except Exception:
+        return 0.0
+
+
+def _pseudo_pycali_history(row, n: int = 5) -> list:
+    cur = _compute_pycali(row)
+    hist = []
+    for pre in ["三走前", "二走前", "前走"]:
+        try:
+            rank = float(row.get(f"{pre}着順", 0) or 0)
+        except Exception:
+            rank = 0
+        if rank > 0:
+            hist.append(max(0.0, min(100.0, 100.0 - rank * 6.0)))
+    hist.append(cur)
+    while len(hist) < n:
+        hist.insert(0, hist[0] if hist else cur)
+    return hist[-n:]
+
+
+def _make_sparkline(values: list, width: float = 1.6, height: float = 0.35):
+    fig, ax = plt.subplots(figsize=(width, height), dpi=100)
+    if values:
+        ax.plot(range(len(values)), values, color="#5865f2", linewidth=1.5, marker="o", markersize=2)
+        ax.fill_between(range(len(values)), values, alpha=0.2, color="#5865f2")
+    ax.set_ylim(0, 100)
+    ax.axis("off")
+    fig.patch.set_alpha(0)
+    fig.tight_layout(pad=0)
+    return fig
+
+
+def render_danger_favorite_badge(race_df) -> None:
+    if race_df is None or race_df.empty:
+        return
+    df = race_df.copy()
+    try:
+        df["_pyca"] = df.apply(_compute_pycali, axis=1)
+        df["_pop"] = pd.to_numeric(df.get("人気"), errors="coerce")
+    except Exception:
+        return
+    if df["_pop"].isna().all():
+        return
+    median_pyca = df["_pyca"].median()
+    danger = df[(df["_pop"].between(1, 3)) & (df["_pyca"] < median_pyca)]
+    if danger.empty:
+        st.markdown(
+            '<div style="padding:8px 12px;background:#1e3a24;border-left:3px solid #22c55e;'
+            'border-radius:4px;margin:6px 0;font-size:13px;color:#a7f3d0">'
+            '🟢 危険な人気馬は検出されませんでした</div>', unsafe_allow_html=True)
+        return
+    parts = []
+    for _, r in danger.sort_values("_pop").iterrows():
+        pop = int(r["_pop"])
+        icon = "🔴" if pop == 1 else "🟡"
+        name = str(r.get("馬名", f'{int(r.get("馬番",0))}番'))
+        parts.append(f'{icon} {pop}人気 {name} (PyCaLi {r["_pyca"]:.0f})')
+    html = "　".join(parts)
+    st.markdown(
+        f'<div style="padding:10px 14px;background:#3a1e1e;border-left:3px solid #ef4444;'
+        f'border-radius:4px;margin:6px 0;font-size:13px;color:#fecaca">'
+        f'⚠️ 危険な人気馬: {html}</div>', unsafe_allow_html=True)
+
+
+@st.cache_data(show_spinner=False)
+def _load_walkforward_conditions() -> pd.DataFrame:
+    if not WALKFORWARD_CSV.exists():
+        return pd.DataFrame()
+    for enc in ("utf-8-sig", "cp932", "utf-8"):
+        try:
+            return pd.read_csv(WALKFORWARD_CSV, encoding=enc)
+        except Exception:
+            continue
+    return pd.DataFrame()
+
+
+def render_roi_heatmap() -> None:
+    st.markdown("### 📊 ROI ヒートマップ (場所 × クラス)")
+    df = _load_walkforward_conditions()
+    if df.empty:
+        st.info("reports/all_profitable_conditions.csv が見つかりません。")
+        return
+    bet_types = sorted(df["馬券種"].dropna().unique().tolist())
+    if not bet_types:
+        st.info("馬券種データがありません。")
+        return
+    sel = st.selectbox("馬券種", bet_types, key="roi_heatmap_bet_type")
+    sub = df[df["馬券種"] == sel]
+    if sub.empty:
+        st.info("該当データなし")
+        return
+    try:
+        pivot = sub.pivot_table(index="場所", columns="クラス", values="回収率", aggfunc="mean")
+    except Exception as e:
+        st.error(f"ピボット失敗: {e}")
+        return
+    try:
+        import plotly.express as px
+        fig = px.imshow(
+            pivot, text_auto=".0f", aspect="auto",
+            color_continuous_scale="RdYlGn", origin="upper",
+            labels=dict(color="ROI %"),
+        )
+        fig.update_layout(height=420, margin=dict(l=40, r=20, t=30, b=40))
+        st.plotly_chart(fig, use_container_width=True)
+    except Exception:
+        st.dataframe(pivot.round(1))
+    st.caption(f"件数: {len(sub)} 条件 / 平均ROI: {sub['回収率'].mean():.1f}%")
+
+
+def render_weekly_portfolio() -> None:
+    st.markdown("### 💼 今週の推奨ポートフォリオ")
+    results = load_results()
+    weekly = results.get("weekly", []) if isinstance(results, dict) else []
+    if not weekly:
+        st.info("results.json に週次データがありません。")
+        return
+    latest = weekly[-1]
+    st.markdown(
+        f'<div style="padding:12px 16px;background:#1a1a2e;border-radius:6px;margin:8px 0">'
+        f'<div style="color:#a6adc8;font-size:12px">対象週</div>'
+        f'<div style="font-size:18px;font-weight:bold;color:#cdd6f4">{latest.get("週","-")}</div>'
+        f'</div>', unsafe_allow_html=True)
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("レース数", f"{int(latest.get('レース数', 0))}R")
+    c2.metric("総投資", f"{int(latest.get('総投資', 0)):,}円")
+    c3.metric("総払戻", f"{int(latest.get('総払戻', 0)):,}円")
+    c4.metric("ROI", f"{float(latest.get('ROI', 0)):.1f}%")
+    st.markdown("#### 週次推移")
+    hist_df = pd.DataFrame(weekly)
+    if "ROI" in hist_df.columns and "週" in hist_df.columns:
+        try:
+            st.line_chart(hist_df.set_index("週")["ROI"])
+        except Exception:
+            pass
+    st.dataframe(hist_df, use_container_width=True)
+
+
+def render_feedback_dashboard() -> None:
+    st.markdown("### 📋 結果フィードバック")
+    results = load_results()
+    if not results:
+        st.info("results.json が見つかりません。")
+        return
+    by_type = results.get("by_type", {})
+    by_place = results.get("by_place", {})
+    if by_type:
+        st.markdown("#### 馬券種別パフォーマンス")
+        rows = []
+        for k, v in by_type.items():
+            if isinstance(v, dict):
+                rows.append({
+                    "馬券種": k,
+                    "投資": v.get("bet", 0),
+                    "払戻": v.get("ret", 0),
+                    "ROI(%)": v.get("roi", 0),
+                    "的中率(%)": v.get("hit_rate", 0),
+                    "的中": v.get("hit", 0),
+                    "レース": v.get("races", 0),
+                })
+        if rows:
+            bt_df = pd.DataFrame(rows)
+            st.dataframe(bt_df, use_container_width=True)
+            try:
+                st.bar_chart(bt_df.set_index("馬券種")["ROI(%)"])
+            except Exception:
+                pass
+    if by_place:
+        st.markdown("#### 場所別パフォーマンス")
+        rows = []
+        for k, v in by_place.items():
+            if isinstance(v, dict):
+                rows.append({"場所": k, **{kk: vv for kk, vv in v.items()}})
+        if rows:
+            st.dataframe(pd.DataFrame(rows), use_container_width=True)
+    weekly = results.get("weekly", [])
+    if weekly:
+        st.markdown("#### 先週の成績")
+        last = weekly[-1]
+        c1, c2, c3 = st.columns(3)
+        c1.metric("週", str(last.get("週", "-")))
+        c2.metric("ROI", f"{float(last.get('ROI', 0)):.1f}%")
+        c3.metric("収支", f"{int(last.get('収支', 0)):,}円")
+
+
+# =========================================================
 # CSV パース
 # =========================================================
 def parse_target_csv(source) -> pd.DataFrame:
@@ -2509,6 +2710,8 @@ def page_race_detail(
 
         st.markdown(f"## {place} {r_num}R / {cls_raw} / {shida}{dist}m")
 
+        render_danger_favorite_badge(race_df)
+
         if in_strategy:
             cls_norm = CLASS_NORMALIZE.get(cls_raw, cls_raw)
             cls_key  = cls_norm if cls_norm in strategy.get(place,{}) else cls_raw
@@ -2623,6 +2826,13 @@ def page_race_detail(
                             f'<div style="font-size:13px;color:#a6adc8;line-height:1.7">{comment}</div>',
                             unsafe_allow_html=True,
                         )
+                        try:
+                            _hist = _pseudo_pycali_history(row)
+                            _sp = _make_sparkline(_hist)
+                            st.pyplot(_sp, use_container_width=False)
+                            plt.close(_sp)
+                        except Exception:
+                            pass
                     with c_mid:
                         fig = make_shap_fig(sv_row, feature_cols, name)
                         st.pyplot(fig, use_container_width=True)
@@ -2745,7 +2955,10 @@ def main() -> None:
     race_id_col = "レースID(新/馬番無)"
 
     # メインタブ
-    main_tab1, main_tab2, main_tab3 = st.tabs(["🏇 レース予想", "🎫 今日の買い目", "📊 的中実績"])
+    main_tab1, main_tab2, main_tab3, main_tab4, main_tab5, main_tab6 = st.tabs([
+        "🏇 レース予想", "🎫 今日の買い目", "📊 的中実績",
+        "📊 ROIヒートマップ", "💼 今週の推奨", "📋 結果フィードバック",
+    ])
 
     results = load_results()
 
@@ -2754,6 +2967,15 @@ def main() -> None:
 
     with main_tab2:
         page_buylist(all_df, strategy, budget)
+
+    with main_tab4:
+        render_roi_heatmap()
+
+    with main_tab5:
+        render_weekly_portfolio()
+
+    with main_tab6:
+        render_feedback_dashboard()
 
     with main_tab1:
         # 選択中のrace_idが現在のCSVに存在しない場合リセット
