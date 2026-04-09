@@ -3752,7 +3752,11 @@ def _pyca_radar_fig(values: list[float], labels: list[str], name: str):
 def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
     """全頭分析タブ: PyCa指数ベースの評価リスト。"""
     st.markdown("### 🔍 出走馬評価リスト（PyCa指数）")
-    st.caption("各指標はレース内で 0〜10 に正規化。右側の順位はレース内ランク。")
+    st.caption(
+        "各指標はレース内で 0〜10 に正規化。右側の順位はレース内ランク。　"
+        "※ **印（◎◯▲△）はアンサンブルモデル score 順** / **PyCa指数は score + 補助指標5つの総合評価**。"
+        "このため補助指標が強い/弱い馬では印順位と PyCa順位が逆転することがあります。"
+    )
 
     df = race_df.sort_values("馬番").reset_index(drop=True).copy()
 
