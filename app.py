@@ -527,31 +527,88 @@ def render_roi_heatmap() -> None:
 
 
 def render_weekly_portfolio() -> None:
+    """今週の pred CSV から買い目ポートフォリオを自動集計して表示。"""
     st.markdown("### 💼 今週の推奨ポートフォリオ")
-    results = load_results()
-    weekly = results.get("weekly", []) if isinstance(results, dict) else []
-    if not weekly:
-        st.info("results.json に週次データがありません。")
+
+    # 最新 pred CSV を探す
+    pred_dir = BASE_DIR / "reports"
+    preds = sorted(pred_dir.glob("pred_*.csv"), reverse=True)
+    if not preds:
+        st.info("reports/pred_*.csv が見つかりません。weekly_pre.ps1 を実行してください。")
         return
-    latest = weekly[-1]
+
+    latest = preds[0]
+    date_str = latest.stem.replace("pred_", "")
+    try:
+        df = pd.read_csv(latest, encoding="utf-8-sig")
+    except Exception:
+        df = pd.read_csv(latest, encoding="cp932")
+
     st.markdown(
         f'<div style="padding:12px 16px;background:#1a1a2e;border-radius:6px;margin:8px 0">'
-        f'<div style="color:#a6adc8;font-size:12px">対象週</div>'
-        f'<div style="font-size:18px;font-weight:bold;color:#cdd6f4">{latest.get("週","-")}</div>'
+        f'<div style="color:#a6adc8;font-size:12px">対象日</div>'
+        f'<div style="font-size:18px;font-weight:bold;color:#cdd6f4">{date_str[:4]}/{date_str[4:6]}/{date_str[6:]}</div>'
         f'</div>', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("レース数", f"{int(latest.get('レース数', 0))}R")
-    c2.metric("総投資", f"{int(latest.get('総投資', 0)):,}円")
-    c3.metric("総払戻", f"{int(latest.get('総払戻', 0)):,}円")
-    c4.metric("ROI", f"{float(latest.get('ROI', 0)):.1f}%")
-    st.markdown("#### 週次推移")
-    hist_df = pd.DataFrame(weekly)
-    if "ROI" in hist_df.columns and "週" in hist_df.columns:
-        try:
-            st.line_chart(hist_df.set_index("週")["ROI"])
-        except Exception:
-            pass
-    st.dataframe(hist_df, use_container_width=True)
+
+    plans = [
+        ("TRIPLE", "三連複", "TRIPLE_三連複_購入額", "複勝", "TRIPLE_複勝_購入額"),
+        ("HAHO",   "馬連",   "HAHO_馬連_購入額",   "三連複", "HAHO_三連複_購入額"),
+        ("HALO",   "三連複", "HALO_三連複_購入額",  None, None),
+        ("LALO",   "複勝",   "LALO_複勝_購入額",    None, None),
+        ("CQC",    "単勝",   "CQC_単勝_購入額",     None, None),
+    ]
+
+    summary_rows = []
+    for plan, t1, c1, t2, c2 in plans:
+        target_col = f"{plan}_戦略対象"
+        if target_col not in df.columns:
+            continue
+        sub = df[df[target_col] == 1] if target_col in df.columns else pd.DataFrame()
+        if sub.empty:
+            sub = df[pd.to_numeric(df.get(c1, 0), errors="coerce").fillna(0) > 0]
+        if sub.empty:
+            continue
+        inv1 = pd.to_numeric(sub.get(c1, 0), errors="coerce").fillna(0).sum()
+        inv2 = pd.to_numeric(sub.get(c2, 0), errors="coerce").fillna(0).sum() if c2 and c2 in sub.columns else 0
+        total_inv = inv1 + inv2
+        n_races = sub["レースID"].nunique() if "レースID" in sub.columns else len(sub)
+        types = t1 if not t2 else f"{t1}+{t2}"
+        summary_rows.append({
+            "プラン": plan, "券種": types, "対象R": n_races,
+            "投資額": int(total_inv),
+        })
+
+    if not summary_rows:
+        st.info("この日の買い目データがありません。")
+        return
+
+    sum_df = pd.DataFrame(summary_rows)
+    total_inv = sum_df["投資額"].sum()
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("プラン数", f"{len(sum_df)}")
+    c2.metric("合計投資", f"{total_inv:,}円")
+    c3.metric("対象レース", f"{df['レースID'].nunique() if 'レースID' in df.columns else '-'}R")
+
+    st.markdown("#### プラン別 投資配分")
+    for _, row in sum_df.iterrows():
+        pct = row["投資額"] / total_inv * 100 if total_inv > 0 else 0
+        bar_w = int(pct * 2)
+        st.markdown(
+            f'<div style="display:flex;align-items:center;gap:10px;margin:6px 0">'
+            f'<div style="width:70px;font-weight:bold;color:#89b4fa">{row["プラン"]}</div>'
+            f'<div style="width:80px;color:#a6adc8;font-size:13px">{row["券種"]}</div>'
+            f'<div style="flex:1;height:16px;background:#313244;border-radius:4px;overflow:hidden">'
+            f'<div style="height:100%;width:{bar_w}%;background:#5865f2"></div></div>'
+            f'<div style="width:100px;text-align:right;color:#cdd6f4">{row["投資額"]:,}円</div>'
+            f'<div style="width:50px;text-align:right;color:#6c7086">{pct:.0f}%</div>'
+            f'</div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("#### 全買い目一覧")
+    show_cols = [c for c in df.columns if c in ("場所", "R", "クラス", "印", "馬名") or "買い目" in c or "購入額" in c]
+    if show_cols:
+        st.dataframe(df[show_cols].head(100), use_container_width=True, hide_index=True)
 
 
 def render_feedback_dashboard() -> None:
