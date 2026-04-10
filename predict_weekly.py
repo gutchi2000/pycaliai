@@ -1403,7 +1403,7 @@ def get_triple_bets(race_df: pd.DataFrame, budget: int, triple_type: str = "safe
 
     if split_val == "fixed_san":
         # safe: 三連複1,000円固定、残り全部複勝
-        FIXED_SAN = MIN_UNIT  # 1,000円 (= 100円単位の最低額ではなくMIN_UNIT)
+        FIXED_SAN = 1000  # 三連複は宝くじ枠として1,000円固定
         amt_san = FIXED_SAN
         amt_fuku = max(MIN_UNIT, adjusted_budget - FIXED_SAN)
     else:
