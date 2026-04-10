@@ -4468,9 +4468,9 @@ def main() -> None:
     race_id_col = "レースID(新/馬番無)"
 
     # メインタブ
-    main_tab1, main_tab2, main_tab3, main_tab4, main_tab5, main_tab6, main_tab7, main_tab8 = st.tabs(
+    main_tab1, main_tab2, main_tab3, main_tab4, main_tab5, main_tab6, main_tab7 = st.tabs(
         ["🏇 レース予想", "🎫 今日の買い目", "⭐ EV候補", "💰 VALUE複勝", "📊 的中実績",
-         "📊 ROIヒートマップ", "💼 今週の推奨", "📋 結果フィードバック"]
+         "📊 ROIヒートマップ", "📋 結果フィードバック"]
     )
 
     results = load_results()
@@ -4478,8 +4478,6 @@ def main() -> None:
     with main_tab6:
         render_roi_heatmap()
     with main_tab7:
-        render_weekly_portfolio()
-    with main_tab8:
         render_feedback_dashboard()
 
     with main_tab5:
