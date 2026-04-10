@@ -1551,8 +1551,8 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
     san_blocked  = (_seg, "三連複") in SEGMENT_BET_BLACKLIST or _is_class_blacklisted(_seg, cls_raw, "三連複")
     fuku_blocked = (_seg, "複勝")   in SEGMENT_BET_BLACKLIST or _is_class_blacklisted(_seg, cls_raw, "複勝")
     triple_bets = []
+    # TRIPLE = 三連複+複勝のセット。どちらか欠けたらTRIPLE対象外。
     if h2 and h3 and not san_blocked and not fuku_blocked:
-        # safe型: 三連複1,000円固定（宝くじ枠）+ 残り全部複勝
         FIXED_SAN = 1000
         san_key  = "-".join(map(str, sorted([h1, h2, h3])))
         amt_san  = FIXED_SAN
@@ -1561,14 +1561,7 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
             {"馬券種":"三連複","買い目":san_key, "購入額":amt_san, "ROI":134},
             {"馬券種":"複勝",  "買い目":str(h1), "購入額":amt_fuku,"ROI":107},
         ]
-    elif h2 and h3 and not san_blocked:
-        # 複勝のみブロック → 三連複のみ（宝くじ枠なので最小額）
-        san_key = "-".join(map(str, sorted([h1, h2, h3])))
-        triple_bets = [{"馬券種":"三連複","買い目":san_key,"購入額":1000,"ROI":134}]
-    elif not fuku_blocked:
-        # 三連複ブロック or ◯▲不在 → 複勝のみ
-        triple_bets = [{"馬券種":"複勝","買い目":str(h1),"購入額":floor_to_unit(budget),"ROI":84}]
-    # 両方ブロック → triple_bets は空のまま（このセグメントは買わない）
+    # それ以外（片方ブロック/◯▲不在/両方ブロック）→ TRIPLE不成立
     if triple_bets:
         result["TRIPLE"] = triple_bets
 
