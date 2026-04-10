@@ -63,13 +63,21 @@ Write-Host "      reports\pred_$Date.csv created." -ForegroundColor Green
 # -- Step 3: git add --
 Write-Host "[3/4] git add ..." -ForegroundColor Cyan
 git add $csvPath
+$staged = @($csvPath)
+
 $hoseiPath = "data\hosei\H_$Date.csv"
-if (Test-Path $hoseiPath) {
-    git add $hoseiPath
-    Write-Host "      staged: $csvPath + $hoseiPath" -ForegroundColor Green
-} else {
-    Write-Host "      staged: $csvPath" -ForegroundColor Green
-}
+if (Test-Path $hoseiPath) { git add $hoseiPath; $staged += $hoseiPath }
+
+$predPath = "reports\pred_$Date.csv"
+if (Test-Path $predPath) { git add -f $predPath; $staged += $predPath }
+
+$livePath = "data\live_results_2026.csv"
+if (Test-Path $livePath) { git add $livePath; $staged += $livePath }
+
+$kako5Path = "data\kako5\$Date.csv"
+if (Test-Path $kako5Path) { git add $kako5Path; $staged += $kako5Path }
+
+Write-Host ("      staged: " + ($staged -join ", ")) -ForegroundColor Green
 
 # -- Step 4: git commit & push --
 Write-Host "[4/4] git commit & push ..." -ForegroundColor Cyan
