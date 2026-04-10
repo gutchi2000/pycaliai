@@ -1552,13 +1552,14 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
     fuku_blocked = (_seg, "複勝")   in SEGMENT_BET_BLACKLIST
     triple_bets = []
     if h2 and h3 and not san_blocked and not fuku_blocked:
-        # 通常型: 三連複+複勝 50/50
+        # safe型: 三連複1,000円固定（宝くじ枠）+ 残り全部複勝
+        FIXED_SAN = 1000
         san_key  = "-".join(map(str, sorted([h1, h2, h3])))
-        amt_san  = floor_to_unit(budget // 2)
-        amt_fuku = floor_to_unit(budget - amt_san)
+        amt_san  = FIXED_SAN
+        amt_fuku = max(100, floor_to_unit(budget - FIXED_SAN))
         triple_bets = [
             {"馬券種":"三連複","買い目":san_key, "購入額":amt_san, "ROI":134},
-            {"馬券種":"複勝",  "買い目":str(h1), "購入額":amt_fuku,"ROI":84},
+            {"馬券種":"複勝",  "買い目":str(h1), "購入額":amt_fuku,"ROI":107},
         ]
     elif h2 and h3 and not san_blocked:
         # 複勝のみブロック → 三連複に全額
@@ -3589,7 +3590,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
     # プラン選択
     plan = st.radio(
         "プラン選択",
-        ["🔱 TRIPLE 三連複◎◯▲1点＋複勝◎1点（標準型 50/50）",
+        ["🔱 TRIPLE 三連複◎◯▲1点＋複勝◎1点（三連複¥1,000固定＋残り複勝）",
          "🛡️ HAHO  安定積み上げ（馬連◎軸2点 ＋ 三連複1点）",
          "🎯 HALO  高配当特化（三連複ボックス1点のみ）",
          "🍀 LALO  コツコツ複勝（複勝◎1点のみ）",
