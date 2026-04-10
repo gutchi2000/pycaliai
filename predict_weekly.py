@@ -1339,25 +1339,26 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
     return result
 
 
-def get_triple_bets(race_df: pd.DataFrame, budget: int, triple_type: str = "standard") -> dict:
+def get_triple_bets(race_df: pd.DataFrame, budget: int, triple_type: str = "safe") -> dict:
     """TRIPLE戦略: 三連複◎◯▲ 1点 + 複勝◎ 1点（確信度ベース賭け金）
 
     triple_type:
       aggressive: 三連複100%, 複勝0%
       standard:   三連複50%, 複勝50%
-      safe:       三連複30%, 複勝70%
+      safe:       三連複1,000円固定, 残り全部複勝（デフォルト）
 
     確信度ベース賭け金:
       ◎と4番手の確率ギャップが大きい → 強気（最大1.5倍）
       ギャップが小さい × 多頭数(16+) → 弱気（0.5倍）
       上限: budget（デフォルト10,000円）、下限: 100円
     """
+    # aggressive: 三連複全振り, standard: 50:50, safe: 三連複1000円固定+残り複勝
     splits = {
         "aggressive": (1.0, 0.0),
         "standard":   (0.5, 0.5),
-        "safe":       (0.3, 0.7),
+        "safe":       "fixed_san",   # 三連複1,000円固定、残り全部複勝
     }
-    san_ratio, fuku_ratio = splits.get(triple_type, (0.5, 0.5))
+    split_val = splits.get(triple_type, (0.5, 0.5))
 
     result = {
         "TRIPLE_戦略対象":    False,
@@ -1400,15 +1401,23 @@ def get_triple_bets(race_df: pd.DataFrame, budget: int, triple_type: str = "stan
 
     result["TRIPLE_戦略対象"] = True
 
+    if split_val == "fixed_san":
+        # safe: 三連複1,000円固定、残り全部複勝
+        FIXED_SAN = MIN_UNIT  # 1,000円 (= 100円単位の最低額ではなくMIN_UNIT)
+        amt_san = FIXED_SAN
+        amt_fuku = max(MIN_UNIT, adjusted_budget - FIXED_SAN)
+    else:
+        san_ratio, fuku_ratio = split_val
+        amt_san = floor_to_unit(int(adjusted_budget * san_ratio)) if san_ratio > 0 else 0
+        amt_fuku = floor_to_unit(int(adjusted_budget * fuku_ratio)) if fuku_ratio > 0 else 0
+
     # 複勝◎
-    if fuku_ratio > 0:
-        amt_fuku = floor_to_unit(int(adjusted_budget * fuku_ratio))
+    if amt_fuku > 0:
         result["TRIPLE_複勝_買い目"] = str(h1)
         result["TRIPLE_複勝_購入額"] = amt_fuku
 
     # 三連複◎◯▲ 1点
-    if san_ratio > 0 and h2 and h3:
-        amt_san = floor_to_unit(int(adjusted_budget * san_ratio))
+    if amt_san > 0 and h2 and h3:
         key = "-".join(map(str, sorted([h1, h2, h3])))
         result["TRIPLE_三連複_買い目"] = key
         result["TRIPLE_三連複_購入額"] = amt_san
@@ -1490,9 +1499,9 @@ def main() -> None:
     parser.add_argument("--plan", default="triple",
                         choices=["triple", "legacy"],
                         help="買い目プラン: triple=三連複+複勝統一戦略, legacy=旧HAHO/HALO/LALO/CQC (default: triple)")
-    parser.add_argument("--triple-type", default="standard",
+    parser.add_argument("--triple-type", default="safe",
                         choices=["aggressive", "standard", "safe"],
-                        help="TRIPLEプランの配分: aggressive=三連複100%%, standard=三連複50%%+複勝50%%, safe=三連複30%%+複勝70%% (default: standard)")
+                        help="TRIPLEプランの配分: aggressive=三連複100%%, standard=三連複50%%+複勝50%%, safe=三連複1000円固定+残り複勝 (default: safe)")
     args = parser.parse_args()
 
     csv_path = Path(args.csv)
