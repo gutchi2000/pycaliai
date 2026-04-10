@@ -3055,6 +3055,8 @@ def _render_plan_results(plan_data: dict, plan_key: str) -> None:
     by_type = plan_data.get("by_type", {})
     if plan_key == "HAHO":
         type_keys = ["馬連", "三連複"]
+    elif plan_key == "TRIPLE":
+        type_keys = ["三連複", "複勝"]
     elif plan_key == "LALO":
         type_keys = ["複勝"]
     elif plan_key == "CQC":
