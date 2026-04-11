@@ -1399,6 +1399,16 @@ def get_triple_bets(race_df: pd.DataFrame, budget: int, triple_type: str = "safe
     adjusted_budget = int(min(budget, budget * multiplier) // MIN_UNIT) * MIN_UNIT
     adjusted_budget = max(MIN_UNIT, adjusted_budget)
 
+    # 単勝2.0倍以下 → 複勝1.1-1.2倍で確実に負ける → TRIPLE不成立
+    MIN_TANSHO_FOR_FUKU = 2.0
+    try:
+        hon_tansho = float(race_df[race_df["mark"] == "◎"].iloc[0].get("単勝オッズ",
+                           race_df[race_df["mark"] == "◎"].iloc[0].get("単勝", 0)) or 0)
+    except Exception:
+        hon_tansho = 0.0
+    if 0 < hon_tansho < MIN_TANSHO_FOR_FUKU:
+        return result  # TRIPLE不成立（複勝で勝てない）
+
     result["TRIPLE_戦略対象"] = True
 
     if split_val == "fixed_san":

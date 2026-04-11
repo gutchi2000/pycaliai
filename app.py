@@ -1538,9 +1538,16 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
     # bet_info があるときだけ生成（戦略テーブルの ROI を使う）
     if bet_info:
         any_info = next(iter(bet_info.values()), {})
-        if (_seg, "複勝") not in SEGMENT_BET_BLACKLIST:
-            result["LALO"] = [{"馬券種":"複勝","買い目":str(h1),
-                               "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
+        if (_seg, "複勝") not in SEGMENT_BET_BLACKLIST and not _is_class_blacklisted(_seg, cls_raw, "複勝"):
+            # 単勝2.0倍以下（≒複勝1.1倍）は複勝で勝てない → スキップ
+            _hon_odds = 0.0
+            try:
+                _hon_odds = float(hon.iloc[0].get("単勝", 0) or 0)
+            except Exception:
+                pass
+            if _hon_odds <= 0 or _hon_odds >= 2.0:
+                result["LALO"] = [{"馬券種":"複勝","買い目":str(h1),
+                                   "購入額":floor_to_unit(budget),"ROI":any_info.get("roi_oos", any_info.get("roi", 0))}]
 
         # ── CQC: 単勝◎1点のみ（全予算）─────────────────────────────────────
         if (_seg, "単勝") not in SEGMENT_BET_BLACKLIST:
@@ -1552,7 +1559,16 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
     fuku_blocked = (_seg, "複勝")   in SEGMENT_BET_BLACKLIST or _is_class_blacklisted(_seg, cls_raw, "複勝")
     triple_bets = []
     # TRIPLE = 三連複+複勝のセット。どちらか欠けたらTRIPLE対象外。
-    if h2 and h3 and not san_blocked and not fuku_blocked:
+    # 複勝オッズが低すぎる（単勝2.0倍以下≒複勝1.1-1.2倍）場合も対象外。
+    hon_tansho = 0.0
+    try:
+        hon_tansho = float(hon_row.iloc[0].get("単勝", 0) or 0)
+    except Exception:
+        pass
+    MIN_TANSHO_FOR_FUKU = 2.0  # 単勝2.0倍以下 → 複勝1.1-1.2倍で確実に負ける
+    odds_too_low = hon_tansho > 0 and hon_tansho < MIN_TANSHO_FOR_FUKU
+
+    if h2 and h3 and not san_blocked and not fuku_blocked and not odds_too_low:
         FIXED_SAN = 1000
         san_key  = "-".join(map(str, sorted([h1, h2, h3])))
         amt_san  = FIXED_SAN
@@ -1561,7 +1577,7 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
             {"馬券種":"三連複","買い目":san_key, "購入額":amt_san, "ROI":134},
             {"馬券種":"複勝",  "買い目":str(h1), "購入額":amt_fuku,"ROI":107},
         ]
-    # それ以外（片方ブロック/◯▲不在/両方ブロック）→ TRIPLE不成立
+    # それ以外（片方ブロック/◯▲不在/オッズ低すぎ）→ TRIPLE不成立
     if triple_bets:
         result["TRIPLE"] = triple_bets
 
