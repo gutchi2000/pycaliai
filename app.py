@@ -4246,7 +4246,7 @@ def page_race_detail(
 
         with tab1:
             st.markdown(
-                '### 出走表　<span style="font-size:14px;color:#6c7086;font-weight:normal">'
+                '### 出走表　<span style="font-size:14px;color:#cdd6f4;font-weight:normal">'
                 '◎ &gt; ◯ &gt; ▲ &gt; △ &gt; ☆ &gt; ★</span>',
                 unsafe_allow_html=True,
             )
