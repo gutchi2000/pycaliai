@@ -1313,13 +1313,10 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
         "HALO_戦略対象": False,
         "HALO_三連単_買い目": "", "HALO_三連単_購入額": 0, "HALO_三連単_点数": 0,
         "STANDARD_戦略対象": False,
+        "STANDARD_戦略対象": False,
         "STANDARD_単勝_買い目": "", "STANDARD_単勝_購入額": 0,
         "STANDARD_複勝_買い目": "", "STANDARD_複勝_購入額": 0,
         "STANDARD_馬連_買い目": "", "STANDARD_馬連_購入額": 0,
-        "LALO_戦略対象": False,
-        "LALO_複勝_買い目": "", "LALO_複勝_購入額": 0,
-        "CQC_戦略対象": False,
-        "CQC_単勝_買い目": "", "CQC_単勝_購入額": 0,
         "TRIPLE_戦略対象": False,
         "TRIPLE_三連複_買い目": "", "TRIPLE_三連複_購入額": 0,
         "TRIPLE_複勝_買い目": "",   "TRIPLE_複勝_購入額":   0,
@@ -1375,46 +1372,66 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
         result["HAHO_三連複_購入額"] = 1000 * len(combos)
         result["HAHO_三連複_点数"]   = len(combos)
 
-    # ── HALO: 三連単◎◯2頭軸マルチ-相手4頭（24点×¥400）──────────
-    if h2 and opponents_4 and not santan_blocked:
-        combos = []
-        for opp in opponents_4:
-            for perm in itertools.permutations([h1, h2, opp]):
-                combos.append("→".join(map(str, perm)))
-        result["HALO_戦略対象"]    = True
-        result["HALO_三連単_買い目"] = " / ".join(combos)
-        result["HALO_三連単_購入額"] = 400 * len(combos)
-        result["HALO_三連単_点数"]   = len(combos)
+    # ── HALO: 三連単フォーメーション（スコアベース自動選択）──────────
+    if h2 and not santan_blocked:
+        scores = race_df.set_index("馬番")["score"].to_dict() if "score" in race_df.columns else {}
+        s_hon = float(scores.get(h1, 0))
+        s_tai = float(scores.get(h2, 0))
+        s_sab = float(scores.get(h_marks.get("▲", -1), 0))
+        s_del = float(scores.get(h_marks.get("△", -1), 0))
+        gap_12 = s_hon - s_tai
+        gap_top4 = s_hon - s_del if s_del > 0 else s_hon - s_sab
 
-    # ── STANDARD: 単勝◎ + 複勝◎ + 馬連◎-◯ ──────────────────────
-    std_any = False
-    if not tansho_blocked:
+        if gap_12 >= 10:
+            first  = [h1]
+            second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
+            third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
+        elif gap_12 <= 5 and gap_top4 <= 15:
+            first  = [h1, h2]
+            second = [h_marks[m] for m in ["◎","◯","▲"] if m in h_marks]
+            third  = [h_marks[m] for m in ["◎","◯","▲","△","☆"] if m in h_marks]
+        else:
+            first  = [h1, h2]
+            second = [h_marks[m] for m in ["◎","◯","▲","△"] if m in h_marks]
+            third  = [h_marks[m] for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
+
+        fm_combos = set()
+        for f in first:
+            for s in second:
+                for t in third:
+                    if len({f, s, t}) == 3:
+                        fm_combos.add((f, s, t))
+        if len(fm_combos) > 36:
+            third = third[:4]
+            fm_combos = set()
+            for f in first:
+                for s in second:
+                    for t in third:
+                        if len({f, s, t}) == 3:
+                            fm_combos.add((f, s, t))
+
+        if fm_combos:
+            n = len(fm_combos)
+            per_bet = max(100, (9600 // n // 100) * 100)
+            combo_strs = [f"{f}→{s}→{t}" for f, s, t in sorted(fm_combos)]
+            result["HALO_戦略対象"]    = True
+            result["HALO_三連単_買い目"] = " / ".join(combo_strs)
+            result["HALO_三連単_購入額"] = per_bet * n
+            result["HALO_三連単_点数"]   = n
+
+    # ── STANDARD: 単勝◎(20%) + 複勝◎(60%) + 馬連◎-◯(20%) ────────
+    # 3券種全て揃わなければ不可
+    if (not tansho_blocked
+            and not fuku_blocked and not odds_too_low
+            and h2 and not umaren_blocked):
+        uma_key = f"{min(h1,h2)}-{max(h1,h2)}"
+        result["STANDARD_戦略対象"]    = True
         result["STANDARD_単勝_買い目"] = str(h1)
-        result["STANDARD_単勝_購入額"] = floor_to_unit(budget * 3 // 10)
-        std_any = True
-    if not fuku_blocked and not odds_too_low:
+        result["STANDARD_単勝_購入額"] = floor_to_unit(budget * 2 // 10)
         result["STANDARD_複勝_買い目"] = str(h1)
-        result["STANDARD_複勝_購入額"] = floor_to_unit(budget * 4 // 10)
-        std_any = True
-    if h2 and not umaren_blocked:
-        key = f"{min(h1,h2)}-{max(h1,h2)}"
-        result["STANDARD_馬連_買い目"] = key
-        result["STANDARD_馬連_購入額"] = floor_to_unit(budget * 3 // 10)
-        std_any = True
-    if std_any:
-        result["STANDARD_戦略対象"] = True
-
-    # ── LALO: 複勝◎1点のみ ──────────────────────────────────────
-    if not fuku_blocked and not odds_too_low:
-        result["LALO_戦略対象"]    = True
-        result["LALO_複勝_買い目"] = str(h1)
-        result["LALO_複勝_購入額"] = floor_to_unit(budget)
-
-    # ── CQC: 単勝◎1点のみ ──────────────────────────────────────
-    if not tansho_blocked:
-        result["CQC_戦略対象"]   = True
-        result["CQC_単勝_買い目"] = str(h1)
-        result["CQC_単勝_購入額"] = floor_to_unit(budget)
+        result["STANDARD_複勝_購入額"] = floor_to_unit(budget * 6 // 10)
+        result["STANDARD_馬連_買い目"] = uma_key
+        result["STANDARD_馬連_購入額"] = floor_to_unit(budget * 2 // 10)
 
     # ── TRIPLE: 三連複◎◯▲1点(¥1,000) + 複勝◎(残り) ──────────────
     h3 = h_marks.get("▲")
@@ -1448,11 +1465,11 @@ def _append_live_results(out_df: pd.DataFrame) -> None:
         "スコア", "印",
         "期待値スコア", "EV補正スコア", "単勝オッズ",
         "フィルタ除外", "警告",
-        "HAHO_戦略対象", "HAHO_馬連_買い目",   "HAHO_馬連_購入額",
-                         "HAHO_三連複_買い目", "HAHO_三連複_購入額",
-        "HALO_戦略対象", "HALO_三連複_買い目", "HALO_三連複_購入額",
-        "LALO_戦略対象", "LALO_複勝_買い目",   "LALO_複勝_購入額",
-        "CQC_戦略対象",  "CQC_単勝_買い目",    "CQC_単勝_購入額",
+        "HAHO_戦略対象", "HAHO_三連複_買い目", "HAHO_三連複_購入額", "HAHO_三連複_点数",
+        "HALO_戦略対象", "HALO_三連単_買い目", "HALO_三連単_購入額", "HALO_三連単_点数",
+        "STANDARD_戦略対象", "STANDARD_単勝_買い目", "STANDARD_単勝_購入額",
+                             "STANDARD_複勝_買い目", "STANDARD_複勝_購入額",
+                             "STANDARD_馬連_買い目", "STANDARD_馬連_購入額",
         "TRIPLE_戦略対象", "TRIPLE_三連複_買い目", "TRIPLE_三連複_購入額",
                            "TRIPLE_複勝_買い目",   "TRIPLE_複勝_購入額",
     ]
@@ -1673,19 +1690,20 @@ def main() -> None:
                 "警告":                kako5_warns.get(str(row.get("馬名","")), ""),
                 "印":                  str(row["mark"]),
                 "HAHO_戦略対象":       "✅" if bets["HAHO_戦略対象"] else "",
-                "HAHO_馬連_買い目":    bets["HAHO_馬連_買い目"]    if is_hon else "",
-                "HAHO_馬連_購入額":    bets["HAHO_馬連_購入額"]    if is_hon else "",
                 "HAHO_三連複_買い目":  bets["HAHO_三連複_買い目"]  if is_hon else "",
                 "HAHO_三連複_購入額":  bets["HAHO_三連複_購入額"]  if is_hon else "",
+                "HAHO_三連複_点数":    bets["HAHO_三連複_点数"]    if is_hon else "",
                 "HALO_戦略対象":       "✅" if bets["HALO_戦略対象"] else "",
-                "HALO_三連複_買い目":  bets["HALO_三連複_買い目"]  if is_hon else "",
-                "HALO_三連複_購入額":  bets["HALO_三連複_購入額"]  if is_hon else "",
-                "LALO_戦略対象":       "✅" if bets["LALO_戦略対象"] else "",
-                "LALO_複勝_買い目":    bets["LALO_複勝_買い目"]    if is_hon else "",
-                "LALO_複勝_購入額":    bets["LALO_複勝_購入額"]    if is_hon else "",
-                "CQC_戦略対象":        "✅" if bets["CQC_戦略対象"]  else "",
-                "CQC_単勝_買い目":     bets["CQC_単勝_買い目"]     if is_hon else "",
-                "CQC_単勝_購入額":     bets["CQC_単勝_購入額"]     if is_hon else "",
+                "HALO_三連単_買い目":  bets["HALO_三連単_買い目"]  if is_hon else "",
+                "HALO_三連単_購入額":  bets["HALO_三連単_購入額"]  if is_hon else "",
+                "HALO_三連単_点数":    bets["HALO_三連単_点数"]    if is_hon else "",
+                "STANDARD_戦略対象":   "✅" if bets["STANDARD_戦略対象"] else "",
+                "STANDARD_単勝_買い目":bets["STANDARD_単勝_買い目"] if is_hon else "",
+                "STANDARD_単勝_購入額":bets["STANDARD_単勝_購入額"] if is_hon else "",
+                "STANDARD_複勝_買い目":bets["STANDARD_複勝_買い目"] if is_hon else "",
+                "STANDARD_複勝_購入額":bets["STANDARD_複勝_購入額"] if is_hon else "",
+                "STANDARD_馬連_買い目":bets["STANDARD_馬連_買い目"] if is_hon else "",
+                "STANDARD_馬連_購入額":bets["STANDARD_馬連_購入額"] if is_hon else "",
                 "ValueScore":          round(float(row.get("value_score", 0.0)), 3)
                                        if pd.notna(row.get("value_score")) else "",
                 "CalProb":             round(float(row.get("cal_prob", 0.0)), 3)
@@ -1709,27 +1727,20 @@ def main() -> None:
     _append_live_results(out_df)
 
     # サマリ表示
-    haho_races = out_df[out_df["HAHO_戦略対象"]=="✅"]["レースID"].nunique()
-    halo_races = out_df[out_df["HALO_戦略対象"]=="✅"]["レースID"].nunique()
-    lalo_races = out_df[out_df["LALO_戦略対象"]=="✅"]["レースID"].nunique()
-    cqc_races  = out_df[out_df["CQC_戦略対象"] =="✅"]["レースID"].nunique()
-    triple_races = out_df[out_df["TRIPLE_戦略対象"]=="✅"]["レースID"].nunique()
+    def _count_plan(col: str) -> int:
+        return out_df[out_df[col]=="✅"]["レースID"].nunique() if col in out_df.columns else 0
     print(f"\n{'='*50}")
     print(f"予想完了: {out_df['レースID'].nunique()}レース / {len(out_df)}頭")
-    print(f"プラン: {args.plan}" + (f" ({args.triple_type})" if args.plan == "triple" else ""))
-    if args.plan == "triple":
-        hon_triple = out_df[(out_df["印"]=="◎") & (out_df["TRIPLE_戦略対象"]=="✅")]
-        total_san = hon_triple["TRIPLE_三連複_購入額"].astype(float).sum()
-        total_fuku = hon_triple["TRIPLE_複勝_購入額"].astype(float).sum()
-        print(f"TRIPLE対象: {triple_races}R  三連複合計: {total_san:,.0f}円  複勝合計: {total_fuku:,.0f}円  総投資: {total_san+total_fuku:,.0f}円")
+    print(f"TRIPLE: {_count_plan('TRIPLE_戦略対象')}R  "
+          f"HAHO: {_count_plan('HAHO_戦略対象')}R  "
+          f"HALO: {_count_plan('HALO_戦略対象')}R  "
+          f"STANDARD: {_count_plan('STANDARD_戦略対象')}R")
     # Value Model サマリ
     if "VALUE_買い" in out_df.columns:
         value_horses = (out_df["VALUE_買い"] == "✅").sum()
         value_races = out_df.loc[out_df["VALUE_買い"] == "✅", "レースID"].nunique()
         print(f"VALUE戦略({value_strat_name}): {value_horses}頭 / {value_races}R "
               f"(pred_roi>={value_pr_thr}, cal_prob>={value_cp_thr})")
-    if args.plan == "legacy":
-        print(f"HAHO対象: {haho_races}R  HALO対象: {halo_races}R  LALO対象: {lalo_races}R  CQC対象: {cqc_races}R")
     print(f"出力先:   {out_path}")
     print(f"{'='*50}")
 
