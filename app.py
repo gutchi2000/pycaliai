@@ -4132,7 +4132,7 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
                 f'<div style="font-size:17px;color:#a6adc8">{sex} / {kin}kg / {jockey}</div>'
                 f'<div style="margin-top:14px">'
                 f'<span style="font-size:17px;color:#6c7086">PyCaLi指数</span><br>'
-                f'<span style="font-size:48px;font-weight:bold;color:#89b4fa">{pyca:.1f}%</span>'
+                f'<span style="font-size:48px;font-weight:bold;color:#89b4fa">{pyca:.1f}</span>'
                 f'<span style="font-size:20px;color:#cdd6f4;margin-left:8px">({prank}位)</span>'
                 f'</div>'
                 f'</div>',
