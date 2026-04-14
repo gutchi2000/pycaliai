@@ -79,6 +79,42 @@ MIN_UNIT        = 100
 EXCLUDE_PLACES  = {"東京", "小倉"}
 EXCLUDE_CLASSES = {"新馬", "障害"}
 
+# SegmentBetFilter（app.py と同一定義）
+SEGMENT_BET_BLACKLIST = {
+    ("dirt",       "三連複"),
+    ("turf_short", "馬連"),
+    ("turf_short", "複勝"),
+    ("turf_mid",   "馬連"),
+}
+SEGMENT_CLASS_BET_BLACKLIST = {
+    ("dirt", "未勝利", "馬連"),
+    ("dirt", "オープン","馬連"),
+    ("dirt", "3勝",   "馬連"),
+    ("dirt", "GⅠ",   "馬連"),
+    ("dirt", "GⅡ",   "馬連"),
+    ("dirt", "GⅢ",   "馬連"),
+    ("dirt", "OP(L)", "馬連"),
+    ("dirt", "1勝", "複勝"),
+}
+
+
+def _race_segment(td: str, dist) -> str:
+    try:
+        d = int(dist)
+    except (TypeError, ValueError):
+        return "unknown"
+    if td == "ダ":
+        return "dirt"
+    if d <= 1400:
+        return "turf_short"
+    if d <= 2200:
+        return "turf_mid"
+    return "turf_long"
+
+
+def _is_class_blacklisted(seg: str, cls_raw: str, bt: str) -> bool:
+    return (seg, cls_raw, bt) in SEGMENT_CLASS_BET_BLACKLIST
+
 # =========================================================
 # 列定義
 # =========================================================
@@ -1163,9 +1199,10 @@ def assign_marks(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["mark"] = ""
     ranked = df["prob"].rank(ascending=False, method="first")
+    MARK_MAP = {1:"◎", 2:"◯", 3:"▲", 4:"△", 5:"☆", 6:"★"}
     for idx, r in ranked.items():
-        if r <= 5:
-            df.at[idx, "mark"] = {1:"◎",2:"◯",3:"▲",4:"△",5:"×"}[int(r)]
+        if r <= 6:
+            df.at[idx, "mark"] = MARK_MAP[int(r)]
     return df
 
 
@@ -1264,173 +1301,132 @@ def floor_to_unit(x: int, unit: int = MIN_UNIT) -> int:
 
 def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
              strategy: dict, budget: int) -> dict:
-    """HAHO（馬連◎軸2点+三連複ボックス1点）/ HALO（三連複ボックス1点のみ）
-       / LALO（複勝◎1点のみ）/ CQC（単勝◎1点のみ）を生成する。"""
+    """全6プラン(HAHO/HALO/STANDARD/LALO/CQC/TRIPLE)の買い目を flat dict で返す。
+    app.py の get_bets() と同じ戦略ロジックだが、CSV出力用に flat 形式。"""
+    import itertools
     cls      = CLASS_NORMALIZE.get(cls_raw, cls_raw)
     bet_info = strategy.get(place, {}).get(cls) or strategy.get(place, {}).get(cls_raw, {})
 
     result: dict = {
-        "HAHO_戦略対象":      False,   # 実際にベットが生成されたときのみ True
-        "HAHO_馬連_買い目":   "", "HAHO_馬連_購入額":   0,
-        "HAHO_三連複_買い目": "", "HAHO_三連複_購入額": 0,
-        "HALO_戦略対象":      False,
-        "HALO_三連複_買い目": "", "HALO_三連複_購入額": 0,
-        "LALO_戦略対象":      False,
-        "LALO_複勝_買い目":   "", "LALO_複勝_購入額":   0,
-        "CQC_戦略対象":       False,
-        "CQC_単勝_買い目":    "", "CQC_単勝_購入額":    0,
+        "HAHO_戦略対象": False,
+        "HAHO_三連複_買い目": "", "HAHO_三連複_購入額": 0, "HAHO_三連複_点数": 0,
+        "HALO_戦略対象": False,
+        "HALO_三連単_買い目": "", "HALO_三連単_購入額": 0, "HALO_三連単_点数": 0,
+        "STANDARD_戦略対象": False,
+        "STANDARD_単勝_買い目": "", "STANDARD_単勝_購入額": 0,
+        "STANDARD_複勝_買い目": "", "STANDARD_複勝_購入額": 0,
+        "STANDARD_馬連_買い目": "", "STANDARD_馬連_購入額": 0,
+        "LALO_戦略対象": False,
+        "LALO_複勝_買い目": "", "LALO_複勝_購入額": 0,
+        "CQC_戦略対象": False,
+        "CQC_単勝_買い目": "", "CQC_単勝_購入額": 0,
+        "TRIPLE_戦略対象": False,
+        "TRIPLE_三連複_買い目": "", "TRIPLE_三連複_購入額": 0,
+        "TRIPLE_複勝_買い目": "",   "TRIPLE_複勝_購入額":   0,
     }
-    if not bet_info:
+
+    if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
         return result
 
-    marks_df = {m: race_df[race_df["mark"] == m] for m in ["◎","◯","▲"]}
-    hon    = marks_df["◎"]
-    taikou = marks_df["◯"]
-    sabo   = marks_df["▲"]
-    if hon.empty:
+    # 全マーク馬の馬番を抽出
+    h_marks = {}
+    hon_row = None
+    for m in ["◎","◯","▲","△","☆","★"]:
+        rows = race_df[race_df["mark"] == m]
+        if not rows.empty:
+            h_marks[m] = int(rows.iloc[0]["馬番"])
+            if m == "◎":
+                hon_row = rows.iloc[0]
+    if "◎" not in h_marks:
         return result
 
-    h1 = int(hon.iloc[0]["馬番"])
-    h2 = int(taikou.iloc[0]["馬番"]) if not taikou.empty else None
-    h3 = int(sabo.iloc[0]["馬番"])   if not sabo.empty  else None
+    h1 = h_marks["◎"]
+    h2 = h_marks.get("◯")
+    others_5    = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
+    opponents_4 = [h_marks[m] for m in ["▲","△","☆","★"]     if m in h_marks]
 
-    # ── HAHO: 馬連◎軸2点 + 三連複ボックス1点 ──────────────────────────
-    haho_types = {k: v for k, v in bet_info.items() if k in ("馬連", "三連複")}
-    if haho_types and "馬連" in haho_types and h2 and h3:  # 馬連が戦略にない場合はHALOに任せる
-        total_ratio = sum(v["bet_ratio"] for v in haho_types.values()) or 1.0
-        # 馬連: ◎-◯, ◎-▲ の2点
-        if "馬連" in haho_types:
-            r   = haho_types["馬連"]["bet_ratio"]
-            amt = floor_to_unit(int(budget * r / total_ratio))
-            cbs = [(h1, h2), (h1, h3)]
-            per = floor_to_unit(amt // len(cbs))
-            result["HAHO_馬連_買い目"] = " / ".join(f"{min(a,b)}-{max(a,b)}" for a, b in cbs)
-            result["HAHO_馬連_購入額"] = per * len(cbs)
-        # 三連複: ◎◯▲ボックス1点
-        if "三連複" in haho_types:
-            r    = haho_types["三連複"]["bet_ratio"]
-            amt  = floor_to_unit(int(budget * r / total_ratio))
-            c_sf = tuple(sorted([h1, h2, h3]))
-            result["HAHO_三連複_買い目"] = "-".join(map(str, c_sf))
-            result["HAHO_三連複_購入額"] = amt
-        # ベットが1件でも生成されたら対象フラグを立てる
-        if result["HAHO_馬連_買い目"] or result["HAHO_三連複_買い目"]:
-            result["HAHO_戦略対象"] = True
+    # 単勝オッズガード
+    hon_tansho = 0.0
+    try:
+        hon_tansho = float(hon_row.get("単勝オッズ", hon_row.get("単勝", 0)) or 0)
+    except Exception:
+        pass
+    MIN_TANSHO_FOR_FUKU = 2.0
+    odds_too_low = 0 < hon_tansho < MIN_TANSHO_FOR_FUKU
 
-    # ── HALO: 三連複ボックス1点のみ（全予算）──────────────────────────
-    if "三連複" in bet_info and h2 and h3:
-        result["HALO_戦略対象"] = True
-        c_sf = tuple(sorted([h1, h2, h3]))
-        result["HALO_三連複_買い目"] = "-".join(map(str, c_sf))
-        result["HALO_三連複_購入額"] = floor_to_unit(budget)
+    # SegmentBetFilter
+    _meta_row = race_df.iloc[0]
+    _td   = str(_meta_row.get("芝・ダ", _meta_row.get("芝・ダート", "")))
+    _dist = _meta_row.get("距離", None)
+    _seg  = _race_segment(_td, _dist)
+    san_blocked    = (_seg, "三連複") in SEGMENT_BET_BLACKLIST or _is_class_blacklisted(_seg, cls_raw, "三連複")
+    fuku_blocked   = (_seg, "複勝")   in SEGMENT_BET_BLACKLIST or _is_class_blacklisted(_seg, cls_raw, "複勝")
+    umaren_blocked = (_seg, "馬連")   in SEGMENT_BET_BLACKLIST or _is_class_blacklisted(_seg, cls_raw, "馬連")
+    tansho_blocked = (_seg, "単勝")   in SEGMENT_BET_BLACKLIST
+    santan_blocked = (_seg, "三連単") in SEGMENT_BET_BLACKLIST
 
-    # ── LALO: 複勝◎1点のみ（全予算）────────────────────────────────────
-    if bet_info:   # 戦略対象レースなら常に発動
+    # ── HAHO: 三連複◎1頭軸-5頭流し（10点×¥1,000）──────────────────
+    if len(others_5) >= 2 and not san_blocked:
+        combos = []
+        for a, b in itertools.combinations(others_5, 2):
+            combos.append("-".join(map(str, sorted([h1, a, b]))))
+        result["HAHO_戦略対象"]    = True
+        result["HAHO_三連複_買い目"] = " / ".join(combos)
+        result["HAHO_三連複_購入額"] = 1000 * len(combos)
+        result["HAHO_三連複_点数"]   = len(combos)
+
+    # ── HALO: 三連単◎◯2頭軸マルチ-相手4頭（24点×¥400）──────────
+    if h2 and opponents_4 and not santan_blocked:
+        combos = []
+        for opp in opponents_4:
+            for perm in itertools.permutations([h1, h2, opp]):
+                combos.append("→".join(map(str, perm)))
+        result["HALO_戦略対象"]    = True
+        result["HALO_三連単_買い目"] = " / ".join(combos)
+        result["HALO_三連単_購入額"] = 400 * len(combos)
+        result["HALO_三連単_点数"]   = len(combos)
+
+    # ── STANDARD: 単勝◎ + 複勝◎ + 馬連◎-◯ ──────────────────────
+    std_any = False
+    if not tansho_blocked:
+        result["STANDARD_単勝_買い目"] = str(h1)
+        result["STANDARD_単勝_購入額"] = floor_to_unit(budget * 3 // 10)
+        std_any = True
+    if not fuku_blocked and not odds_too_low:
+        result["STANDARD_複勝_買い目"] = str(h1)
+        result["STANDARD_複勝_購入額"] = floor_to_unit(budget * 4 // 10)
+        std_any = True
+    if h2 and not umaren_blocked:
+        key = f"{min(h1,h2)}-{max(h1,h2)}"
+        result["STANDARD_馬連_買い目"] = key
+        result["STANDARD_馬連_購入額"] = floor_to_unit(budget * 3 // 10)
+        std_any = True
+    if std_any:
+        result["STANDARD_戦略対象"] = True
+
+    # ── LALO: 複勝◎1点のみ ──────────────────────────────────────
+    if not fuku_blocked and not odds_too_low:
         result["LALO_戦略対象"]    = True
         result["LALO_複勝_買い目"] = str(h1)
         result["LALO_複勝_購入額"] = floor_to_unit(budget)
 
-    # ── CQC: 単勝◎1点のみ（全予算）─────────────────────────────────────
-    if bet_info:   # 戦略対象レースなら常に発動
+    # ── CQC: 単勝◎1点のみ ──────────────────────────────────────
+    if not tansho_blocked:
         result["CQC_戦略対象"]   = True
         result["CQC_単勝_買い目"] = str(h1)
         result["CQC_単勝_購入額"] = floor_to_unit(budget)
 
-    return result
-
-
-def get_triple_bets(race_df: pd.DataFrame, budget: int, triple_type: str = "safe") -> dict:
-    """TRIPLE戦略: 三連複◎◯▲ 1点 + 複勝◎ 1点（確信度ベース賭け金）
-
-    triple_type:
-      aggressive: 三連複100%, 複勝0%
-      standard:   三連複50%, 複勝50%
-      safe:       三連複1,000円固定, 残り全部複勝（デフォルト）
-
-    確信度ベース賭け金:
-      ◎と4番手の確率ギャップが大きい → 強気（最大1.5倍）
-      ギャップが小さい × 多頭数(16+) → 弱気（0.5倍）
-      上限: budget（デフォルト10,000円）、下限: 100円
-    """
-    # aggressive: 三連複全振り, standard: 50:50, safe: 三連複1000円固定+残り複勝
-    splits = {
-        "aggressive": (1.0, 0.0),
-        "standard":   (0.5, 0.5),
-        "safe":       "fixed_san",   # 三連複1,000円固定、残り全部複勝
-    }
-    split_val = splits.get(triple_type, (0.5, 0.5))
-
-    result = {
-        "TRIPLE_戦略対象":    False,
-        "TRIPLE_三連複_買い目": "",  "TRIPLE_三連複_購入額": 0,
-        "TRIPLE_複勝_買い目":   "",  "TRIPLE_複勝_購入額":   0,
-    }
-
-    hon   = race_df[race_df["mark"] == "◎"]
-    tai   = race_df[race_df["mark"] == "◯"]
-    sabo  = race_df[race_df["mark"] == "▲"]
-    if hon.empty:
-        return result
-
-    h1 = int(hon.iloc[0]["馬番"])
-    h2 = int(tai.iloc[0]["馬番"])  if not tai.empty  else None
-    h3 = int(sabo.iloc[0]["馬番"]) if not sabo.empty else None
-
-    # ── 確信度ベース賭け金調整 ──────────────────────────────
-    n_horses = len(race_df)
-    probs = race_df["prob"].sort_values(ascending=False)
-    # ◎と4番手の確率ギャップ = モデルの確信度
-    gap = float(probs.iloc[0] - probs.iloc[3]) if len(probs) >= 4 else 0.10
-
-    if gap >= 0.15:
-        # ◎が頭抜けている → 強気（1.5倍）
-        multiplier = 1.5
-    elif gap >= 0.08:
-        # 普通の差 → 通常
-        multiplier = 1.0
-    elif n_horses >= 16:
-        # 差が小さい × 多頭数 → 弱気（0.5倍）
-        multiplier = 0.5
-    else:
-        # 差が小さいが少頭数 → やや弱気
-        multiplier = 0.7
-
-    # 予算調整（上限: budget、下限: MIN_UNIT）
-    adjusted_budget = int(min(budget, budget * multiplier) // MIN_UNIT) * MIN_UNIT
-    adjusted_budget = max(MIN_UNIT, adjusted_budget)
-
-    # 単勝2.0倍以下 → 複勝1.1-1.2倍で確実に負ける → TRIPLE不成立
-    MIN_TANSHO_FOR_FUKU = 2.0
-    try:
-        hon_tansho = float(race_df[race_df["mark"] == "◎"].iloc[0].get("単勝オッズ",
-                           race_df[race_df["mark"] == "◎"].iloc[0].get("単勝", 0)) or 0)
-    except Exception:
-        hon_tansho = 0.0
-    if 0 < hon_tansho < MIN_TANSHO_FOR_FUKU:
-        return result  # TRIPLE不成立（複勝で勝てない）
-
-    result["TRIPLE_戦略対象"] = True
-
-    if split_val == "fixed_san":
-        # safe: 三連複1,000円固定、残り全部複勝
-        FIXED_SAN = 1000  # 三連複は宝くじ枠として1,000円固定
-        amt_san = FIXED_SAN
-        amt_fuku = max(MIN_UNIT, adjusted_budget - FIXED_SAN)
-    else:
-        san_ratio, fuku_ratio = split_val
-        amt_san = floor_to_unit(int(adjusted_budget * san_ratio)) if san_ratio > 0 else 0
-        amt_fuku = floor_to_unit(int(adjusted_budget * fuku_ratio)) if fuku_ratio > 0 else 0
-
-    # 複勝◎
-    if amt_fuku > 0:
-        result["TRIPLE_複勝_買い目"] = str(h1)
-        result["TRIPLE_複勝_購入額"] = amt_fuku
-
-    # 三連複◎◯▲ 1点
-    if amt_san > 0 and h2 and h3:
-        key = "-".join(map(str, sorted([h1, h2, h3])))
-        result["TRIPLE_三連複_買い目"] = key
-        result["TRIPLE_三連複_購入額"] = amt_san
+    # ── TRIPLE: 三連複◎◯▲1点(¥1,000) + 複勝◎(残り) ──────────────
+    h3 = h_marks.get("▲")
+    if h2 and h3 and not san_blocked and not fuku_blocked and not odds_too_low:
+        FIXED_SAN = 1000
+        san_key  = "-".join(map(str, sorted([h1, h2, h3])))
+        amt_fuku = max(MIN_UNIT, floor_to_unit(budget - FIXED_SAN))
+        result["TRIPLE_戦略対象"]      = True
+        result["TRIPLE_三連複_買い目"] = san_key
+        result["TRIPLE_三連複_購入額"] = FIXED_SAN
+        result["TRIPLE_複勝_買い目"]   = str(h1)
+        result["TRIPLE_複勝_購入額"]   = amt_fuku
 
     return result
 
@@ -1650,37 +1646,12 @@ def main() -> None:
         )
         filter_reason = filter_result.reason if filter_result.should_skip else ""
 
-        _empty_bets = {
-            "HAHO_戦略対象": False,
-            "HAHO_馬連_買い目": "", "HAHO_馬連_購入額": 0,
-            "HAHO_三連複_買い目": "", "HAHO_三連複_購入額": 0,
-            "HALO_戦略対象": False,
-            "HALO_三連複_買い目": "", "HALO_三連複_購入額": 0,
-            "LALO_戦略対象": False,
-            "LALO_複勝_買い目": "", "LALO_複勝_購入額": 0,
-            "CQC_戦略対象":  False,
-            "CQC_単勝_買い目": "", "CQC_単勝_購入額":  0,
-            "TRIPLE_戦略対象": False,
-            "TRIPLE_三連複_買い目": "", "TRIPLE_三連複_購入額": 0,
-            "TRIPLE_複勝_買い目": "",   "TRIPLE_複勝_購入額":   0,
-        }
-
         if base_excluded or filter_result.should_skip:
-            bets = _empty_bets
+            bets = get_bets(race_df, "", "", {}, 0)  # empty result with correct keys
             if filter_result.should_skip and not base_excluded:
                 logger.info(f"[BetFilter] ケン: {place} {r_num}R → {filter_result.reason}")
         else:
-            # 買い目生成（TRIPLE戦略 or レガシー戦略）
-            if args.plan == "triple":
-                triple_bets = get_triple_bets(race_df, args.budget, args.triple_type)
-                bets = {**_empty_bets, **triple_bets}
-            else:
-                bets = get_bets(race_df, place, cls_raw, strategy, args.budget)
-                bets["TRIPLE_戦略対象"] = False
-                bets["TRIPLE_三連複_買い目"] = ""
-                bets["TRIPLE_三連複_購入額"] = 0
-                bets["TRIPLE_複勝_買い目"] = ""
-                bets["TRIPLE_複勝_購入額"] = 0
+            bets = get_bets(race_df, place, cls_raw, strategy, args.budget)
 
         for _, row in race_df.sort_values("馬番").iterrows():
             is_hon = row["mark"] == "◎"
