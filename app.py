@@ -4245,7 +4245,11 @@ def page_race_detail(
         tab1, tab2, tab3 = st.tabs(["📋 出走表 / 買い目", "🔍 全頭分析", "🏇 コース分析"])
 
         with tab1:
-            st.markdown("### 出走表")
+            st.markdown(
+                '### 出走表　<span style="font-size:14px;color:#6c7086;font-weight:normal">'
+                '◎ &gt; ◯ &gt; ▲ &gt; △ &gt; ☆ &gt; ★</span>',
+                unsafe_allow_html=True,
+            )
             st.markdown(
                 '<div class="tbl-header">'
                 '<span>枠</span><span>馬番</span><span>印</span>'
