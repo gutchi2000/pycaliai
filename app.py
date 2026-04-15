@@ -1474,68 +1474,132 @@ def is_in_strategy(place: str, cls_raw: str, strategy: dict) -> bool:
     return place in strategy and (cls in strategy[place] or cls_raw in strategy[place])
 
 
+def _predict_order_proba(race_df: pd.DataFrame) -> pd.DataFrame | None:
+    """着順予測モデルで各馬の (p_win, p_place23, p_out) を返す。
+    モデルがなければ None。"""
+    order_obj = _get_cached(ORDER_MODEL_PATH, "order_model")
+    if order_obj is None:
+        return None
+    try:
+        model = order_obj["model"]
+        feats = order_obj["features"]
+        encs  = order_obj["encoders"]
+        df = race_df.copy()
+        # カテゴリエンコード
+        for col, le in encs.items():
+            if col in df.columns:
+                df[col] = df[col].astype(str).fillna("__NaN__")
+                known = set(le.classes_)
+                df[col] = df[col].apply(lambda x: x if x in known else "__unknown__")
+                if "__unknown__" not in le.classes_:
+                    le.classes_ = np.append(le.classes_, "__unknown__")
+                df[col] = le.transform(df[col])
+        # タイム文字列変換
+        from utils import parse_time_str
+        for col in ["前走走破タイム", "前走着差タイム"]:
+            if col in df.columns:
+                df[col] = parse_time_str(df[col])
+        # 欠損特徴量を NaN で埋める
+        for f in feats:
+            if f not in df.columns:
+                df[f] = np.nan
+        proba = model.predict_proba(df[feats])
+        result = pd.DataFrame(proba, columns=["p_win", "p_place23", "p_out"], index=race_df.index)
+        result["馬番"] = race_df["馬番"].values
+        return result
+    except Exception as e:
+        logger.debug(f"order model predict failed: {e}")
+        return None
+
+
 def _build_sanrentan_formation(race_df: pd.DataFrame, h_marks: dict,
-                                budget: int = 9600) -> list[dict]:
+                                budget: int = 9600) -> tuple[list[dict], dict]:
     """着順予測ベースで三連単フォーメーションを自動構築する。
 
-    スコア分布から1着/2着/3着候補を決定:
-    - ◎のスコアが突出(2位と10pt以上差) → 1着◎固定、2着◯▲、3着広め
-    - ◎◯が拮抗(差5pt以内) → 1着◎◯、2着◎◯▲、3着広め
-    - 混戦(上位4頭が10pt以内) → 1着◎◯▲、2着広め、3着広め
-
-    点数目標: 12〜36点、1点あたり最低100円
+    Returns: (bets_list, info_dict)
+      info_dict: {"pattern": str, "first": [...], "second": [...], "third": [...],
+                  "n_combos": int, "source": "order_model"|"score_rule"}
     """
-    scores = race_df.set_index("馬番")["score"].to_dict()
-    mark_scores = {m: float(scores.get(h_marks[m], 0)) for m in h_marks}
-
-    # スコア取得
-    s_hon = mark_scores.get("◎", 0)
-    s_tai = mark_scores.get("◯", 0)
-    s_sab = mark_scores.get("▲", 0)
-    s_del = mark_scores.get("△", 0)
-
-    # 全マーク馬番
-    all_marked = [h_marks[m] for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
     h1 = h_marks.get("◎")
     h2 = h_marks.get("◯")
-    h3 = h_marks.get("▲")
     if not h1 or not h2:
-        return []
+        return [], {}
 
-    # 1着/2着/3着候補を決定
-    gap_12 = s_hon - s_tai  # ◎と◯のスコア差
-    gap_top4 = s_hon - s_del if s_del > 0 else s_hon - s_sab
+    info: dict = {"source": "score_rule"}
 
-    if gap_12 >= 10:
-        # ◎が突出 → 1着固定
-        first  = [h1]
-        second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
-        third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
-    elif gap_12 <= 5 and gap_top4 <= 15:
-        # ◎◯拮抗 → 両方1着候補
-        first  = [h1, h2]
-        second = [h_marks[m] for m in ["◎","◯","▲"] if m in h_marks]
-        third  = [h_marks[m] for m in ["◎","◯","▲","△","☆"] if m in h_marks]
+    # === 着順モデル使用を試行 ===
+    order_proba = _predict_order_proba(race_df)
+    if order_proba is not None:
+        info["source"] = "order_model"
+        # マーク付き馬の p_win を取得
+        pw = order_proba.set_index("馬番")["p_win"].to_dict()
+        marked_pw = [(m, h_marks[m], float(pw.get(h_marks[m], 0)))
+                     for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
+        marked_pw.sort(key=lambda x: -x[2])
+
+        # p_win 上位で 1着/2着/3着候補を決定
+        pw_hon = float(pw.get(h1, 0))
+        pw_tai = float(pw.get(h2, 0))
+
+        if pw_hon >= pw_tai * 2.0:
+            # ◎がp_winで圧倒 → 1着◎固定
+            first  = [h1]
+            second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
+            third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
+            info["pattern"] = "◎突出(着順モデル)"
+        elif pw_tai >= pw_hon * 0.7:
+            # ◎◯が拮抗
+            first  = [h1, h2]
+            second = [h_marks[m] for m in ["◎","◯","▲"] if m in h_marks]
+            third  = [h_marks[m] for m in ["◎","◯","▲","△","☆"] if m in h_marks]
+            info["pattern"] = "◎◯拮抗(着順モデル)"
+        else:
+            first  = [h1, h2]
+            second = [h_marks[m] for m in ["◎","◯","▲","△"] if m in h_marks]
+            third  = [h_marks[m] for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
+            info["pattern"] = "標準(着順モデル)"
     else:
-        # 標準パターン
-        first  = [h1, h2]
-        second = [h_marks[m] for m in ["◎","◯","▲","△"] if m in h_marks]
-        third  = [h_marks[m] for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
+        # === フォールバック: スコアベースルール ===
+        scores = race_df.set_index("馬番")["score"].to_dict() if "score" in race_df.columns else {}
+        s_hon = float(scores.get(h1, 0))
+        s_tai = float(scores.get(h2, 0))
+        s_sab = float(scores.get(h_marks.get("▲", -1), 0))
+        s_del = float(scores.get(h_marks.get("△", -1), 0))
+        gap_12 = s_hon - s_tai
+        gap_top4 = s_hon - s_del if s_del > 0 else s_hon - s_sab
 
-    # フォーメーション生成（重複・同一馬排除）
+        if gap_12 >= 10:
+            first  = [h1]
+            second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
+            third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
+            info["pattern"] = "◎突出(スコア差)"
+        elif gap_12 <= 5 and gap_top4 <= 15:
+            first  = [h1, h2]
+            second = [h_marks[m] for m in ["◎","◯","▲"] if m in h_marks]
+            third  = [h_marks[m] for m in ["◎","◯","▲","△","☆"] if m in h_marks]
+            info["pattern"] = "◎◯拮抗(スコア差)"
+        else:
+            first  = [h1, h2]
+            second = [h_marks[m] for m in ["◎","◯","▲","△"] if m in h_marks]
+            third  = [h_marks[m] for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
+            info["pattern"] = "標準(スコア差)"
+
+    info["first"] = first
+    info["second"] = second
+    info["third"] = third
+
+    # フォーメーション生成（同一馬排除）
     combos = set()
     for f in first:
         for s in second:
             for t in third:
-                if len({f, s, t}) == 3:  # 3頭異なる
+                if len({f, s, t}) == 3:
                     combos.add((f, s, t))
-
-    if not combos:
-        return []
 
     # 点数が多すぎる場合は3着候補を絞る
     if len(combos) > 36:
         third = third[:4]
+        info["third"] = third
         combos = set()
         for f in first:
             for s in second:
@@ -1543,15 +1607,19 @@ def _build_sanrentan_formation(race_df: pd.DataFrame, h_marks: dict,
                     if len({f, s, t}) == 3:
                         combos.add((f, s, t))
 
+    if not combos:
+        return [], info
+
     n_combos = len(combos)
     per_bet = max(100, (budget // n_combos // 100) * 100)
+    info["n_combos"] = n_combos
 
     bets = []
     for f, s, t in sorted(combos):
         key = f"{f}→{s}→{t}"
         bets.append({"馬券種":"三連単", "買い目":key, "購入額":per_bet, "ROI":0})
 
-    return bets
+    return bets, info
 
 
 def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
@@ -1616,9 +1684,10 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
 
     # ── HALO: 三連単フォーメーション（AI自動選択）──────────────────
     if h2 and (_seg, "三連単") not in SEGMENT_BET_BLACKLIST:
-        halo_bets = _build_sanrentan_formation(race_df, h_marks, budget=9600)
+        halo_bets, halo_info = _build_sanrentan_formation(race_df, h_marks, budget=9600)
         if halo_bets:
             result["HALO"] = halo_bets
+            result["_HALO_INFO"] = halo_info  # UI 表示用メタ情報
 
     # ── STANDARD: 単勝◎(20%) + 複勝◎(60%) + 馬連◎-◯(20%) ────────
     # 3券種全て揃わなければ不可
@@ -1671,6 +1740,8 @@ def _get_bets_flat(race_df: pd.DataFrame, place: str, cls_raw: str,
         return result
 
     for plan, bets in bets_all.items():
+        if plan.startswith("_"):
+            continue  # メタ情報（_HALO_INFO 等）はスキップ
         result[f"{plan}_戦略対象"] = True
         for b in bets:
             typ = b["馬券種"]
@@ -3583,6 +3654,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             "◎スコア":    hon_score,
             "HAHO_bets":    bets_all.get("HAHO",     []),
             "HALO_bets":    bets_all.get("HALO",     []),
+            "HALO_info":    bets_all.get("_HALO_INFO", {}),
             "STANDARD_bets":bets_all.get("STANDARD", []),
             "TRIPLE_bets":  bets_all.get("TRIPLE",   []),
         })
@@ -3614,7 +3686,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         "プラン選択",
         ["🔱 TRIPLE  三連複1点＋複勝（¥1,000固定＋残り複勝）",
          "🛡️ HAHO   三連複◎軸5頭流し（10点×¥1,000）",
-         "🎯 HALO   三連単◎◯軸マルチ（24点×¥400）",
+         "🎯 HALO   三連単フォーメーション（AI自動選択）",
          "📋 STANDARD 単勝＋複勝＋馬連（2:6:2）"],
         horizontal=True, key="buylist_plan",
     )
@@ -3664,7 +3736,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             f'padding:2px 10px;font-weight:bold;font-size:15px">{r["場所"]} {r["R"]}R</span>'
             f'<span style="color:#888;font-size:13px">{r["クラス"]}　{r["発走"]}　{r["距離"]}　馬場:{r["馬場"]}</span>'
             f'<span style="color:#a6e3a1;font-size:13px;margin-left:auto">'
-            f'◎{r["◎"]}　{r["◎スコア"]:.1f}%</span>'
+            f'◎{r["◎"]}　{r["◎スコア"]:.1f}</span>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -3702,11 +3774,31 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             n = len(sant)
             per = sant[0]["購入額"]
             amt = sum(b["購入額"] for b in sant)
+            info = r.get("HALO_info", {}) if isinstance(r, dict) else {}
+            pattern = info.get("pattern", "フォーメーション")
+            src     = info.get("source", "")
+            src_tag = "🧠AI" if src == "order_model" else "📐Rule"
+            first   = info.get("first", [])
+            second  = info.get("second", [])
+            third   = info.get("third", [])
+            fmt_str = ""
+            if first and second and third:
+                fmt_str = (
+                    f'<span style="color:#89b4fa">'
+                    f'{"・".join(map(str,first))} → {"・".join(map(str,second))} → {"・".join(map(str,third))}'
+                    f'</span>'
+                )
             lines.append(
                 f'<span style="color:#888;min-width:60px;display:inline-block">三連単</span>'
-                f'<span style="color:#cdd6f4">◎◯軸マルチ{n}点 @¥{per:,}</span>'
+                f'<span style="color:#cdd6f4">{pattern} {n}点 @¥{per:,}</span>'
+                f'<span style="color:#fab387;margin-left:8px;font-size:11px">{src_tag}</span>'
                 f'<span style="color:#888;margin-left:8px">計¥{amt:,}</span>'
             )
+            if fmt_str:
+                lines.append(
+                    f'<span style="color:#888;min-width:60px;display:inline-block"></span>'
+                    f'{fmt_str}'
+                )
         if fuku:
             combos = "　".join(b["買い目"] for b in fuku)
             amt    = sum(b["購入額"] for b in fuku)
@@ -4349,7 +4441,7 @@ def page_race_detail(
                     for det_tab, plan_key, plan_label in [
                         (det_tabs[0], "TRIPLE",   "三連複◎◯▲1点(¥1,000) + 複勝◎(残り)"),
                         (det_tabs[1], "HAHO",     "三連複◎1頭軸-5頭流し（10点×¥1,000）"),
-                        (det_tabs[2], "HALO",     "三連単◎◯2頭軸マルチ（24点×¥400）"),
+                        (det_tabs[2], "HALO",     "三連単フォーメーション（AI自動選択）"),
                         (det_tabs[3], "STANDARD", "単勝◎(20%) + 複勝◎(60%) + 馬連◎-◯(20%)"),
                     ]:
                         with det_tab:
@@ -4364,6 +4456,29 @@ def page_race_detail(
                             m2.metric("馬券種数",   f"{bets_df['馬券種'].nunique()}種")
                             m3.metric("総点数",     f"{len(bets_df)}点")
                             st.caption(plan_label)
+                            # HALO: フォーメーション情報表示
+                            if plan_key == "HALO":
+                                halo_info = bets_all.get("_HALO_INFO", {})
+                                if halo_info:
+                                    pattern = halo_info.get("pattern", "")
+                                    src = halo_info.get("source", "")
+                                    src_tag = "🧠 着順予測モデル" if src == "order_model" else "📐 スコアルール"
+                                    first  = halo_info.get("first", [])
+                                    second = halo_info.get("second", [])
+                                    third  = halo_info.get("third", [])
+                                    st.markdown(
+                                        f'<div style="background:#1e1e2e;border:1px solid #313244;'
+                                        f'border-radius:6px;padding:8px 12px;margin:6px 0;font-size:13px">'
+                                        f'<div style="color:#fab387;margin-bottom:4px">'
+                                        f'<b>パターン:</b> {pattern} '
+                                        f'<span style="color:#6c7086;margin-left:8px">判定:{src_tag}</span></div>'
+                                        f'<div style="color:#89b4fa">'
+                                        f'1着: [{", ".join(map(str,first))}] → '
+                                        f'2着: [{", ".join(map(str,second))}] → '
+                                        f'3着: [{", ".join(map(str,third))}]'
+                                        f'</div></div>',
+                                        unsafe_allow_html=True,
+                                    )
                             for bet_type, grp_b in bets_df.groupby("馬券種"):
                                 type_total = grp_b["購入額"].sum()
                                 combos_html = "　".join([
@@ -4376,7 +4491,7 @@ def page_race_detail(
                                     f'<div class="bet-card">'
                                     f'<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
                                     f'<span style="color:#5865f2;font-weight:bold">{bet_type}</span>'
-                                    f'<span style="color:#888;font-size:12px">ROI目安:{roi_val:.1f}%　計{type_total:,}円</span>'
+                                    f'<span style="color:#888;font-size:12px">計{type_total:,}円</span>'
                                     f'</div><div>{combos_html}</div></div>',
                                     unsafe_allow_html=True,
                                 )

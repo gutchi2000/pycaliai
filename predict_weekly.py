@@ -60,6 +60,7 @@ EXPERT_PATHS = {
     "dirt":       MODEL_DIR / "expert_dirt.pkl",
 }
 VALUE_MODEL_PATH = MODEL_DIR / "value_model_v2.pkl"
+ORDER_MODEL_PATH = MODEL_DIR / "order_model_v1.pkl"  # 着順3クラス予測モデル（HALOフォーメーション用）
 RETURN_RATE_FUKU = 0.75   # 複勝控除率
 TORCH_PATH     = MODEL_DIR / "transformer_pl_v2.pkl"
 META_PATH      = MODEL_DIR / "stacking_meta_v1.pkl"
@@ -1299,6 +1300,41 @@ def floor_to_unit(x: int, unit: int = MIN_UNIT) -> int:
     return max((x // unit) * unit, unit)
 
 
+def _predict_order_proba(race_df: pd.DataFrame):
+    """着順予測モデル（order_model_v1.pkl）で各馬の (p_win, p_place23, p_out) を返す。
+    モデルが無い場合 None。"""
+    order_obj = _get_cached(ORDER_MODEL_PATH, "order_model")
+    if order_obj is None:
+        return None
+    try:
+        model = order_obj["model"]
+        feats = order_obj["features"]
+        encs  = order_obj["encoders"]
+        df = race_df.copy()
+        for col, le in encs.items():
+            if col in df.columns:
+                df[col] = df[col].astype(str).fillna("__NaN__")
+                known = set(le.classes_)
+                df[col] = df[col].apply(lambda x: x if x in known else "__unknown__")
+                if "__unknown__" not in le.classes_:
+                    le.classes_ = np.append(le.classes_, "__unknown__")
+                df[col] = le.transform(df[col])
+        from utils import parse_time_str as _pts
+        for col in ["前走走破タイム", "前走着差タイム"]:
+            if col in df.columns:
+                df[col] = _pts(df[col])
+        for f in feats:
+            if f not in df.columns:
+                df[f] = np.nan
+        proba = model.predict_proba(df[feats])
+        result = pd.DataFrame(proba, columns=["p_win", "p_place23", "p_out"], index=race_df.index)
+        result["馬番"] = race_df["馬番"].values
+        return result
+    except Exception as e:
+        logger.debug(f"order model predict failed: {e}")
+        return None
+
+
 def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
              strategy: dict, budget: int) -> dict:
     """全6プラン(HAHO/HALO/STANDARD/LALO/CQC/TRIPLE)の買い目を flat dict で返す。
@@ -1372,28 +1408,50 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
         result["HAHO_三連複_購入額"] = 1000 * len(combos)
         result["HAHO_三連複_点数"]   = len(combos)
 
-    # ── HALO: 三連単フォーメーション（スコアベース自動選択）──────────
+    # ── HALO: 三連単フォーメーション（AI自動選択／スコアfallback）──
     if h2 and not santan_blocked:
-        scores = race_df.set_index("馬番")["score"].to_dict() if "score" in race_df.columns else {}
-        s_hon = float(scores.get(h1, 0))
-        s_tai = float(scores.get(h2, 0))
-        s_sab = float(scores.get(h_marks.get("▲", -1), 0))
-        s_del = float(scores.get(h_marks.get("△", -1), 0))
-        gap_12 = s_hon - s_tai
-        gap_top4 = s_hon - s_del if s_del > 0 else s_hon - s_sab
+        # まず着順予測モデルを試行
+        order_proba = _predict_order_proba(race_df)
+        first = second = third = None
+        if order_proba is not None:
+            pw = order_proba.set_index("馬番")["p_win"].to_dict()
+            pw_hon = float(pw.get(h1, 0))
+            pw_tai = float(pw.get(h2, 0))
+            if pw_hon >= pw_tai * 2.0:
+                first  = [h1]
+                second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
+                third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
+            elif pw_tai >= pw_hon * 0.7:
+                first  = [h1, h2]
+                second = [h_marks[m] for m in ["◎","◯","▲"] if m in h_marks]
+                third  = [h_marks[m] for m in ["◎","◯","▲","△","☆"] if m in h_marks]
+            else:
+                first  = [h1, h2]
+                second = [h_marks[m] for m in ["◎","◯","▲","△"] if m in h_marks]
+                third  = [h_marks[m] for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
 
-        if gap_12 >= 10:
-            first  = [h1]
-            second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
-            third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
-        elif gap_12 <= 5 and gap_top4 <= 15:
-            first  = [h1, h2]
-            second = [h_marks[m] for m in ["◎","◯","▲"] if m in h_marks]
-            third  = [h_marks[m] for m in ["◎","◯","▲","△","☆"] if m in h_marks]
-        else:
-            first  = [h1, h2]
-            second = [h_marks[m] for m in ["◎","◯","▲","△"] if m in h_marks]
-            third  = [h_marks[m] for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
+        if first is None:
+            # フォールバック: スコア差ルール
+            scores = race_df.set_index("馬番")["score"].to_dict() if "score" in race_df.columns else {}
+            s_hon = float(scores.get(h1, 0))
+            s_tai = float(scores.get(h2, 0))
+            s_sab = float(scores.get(h_marks.get("▲", -1), 0))
+            s_del = float(scores.get(h_marks.get("△", -1), 0))
+            gap_12 = s_hon - s_tai
+            gap_top4 = s_hon - s_del if s_del > 0 else s_hon - s_sab
+
+            if gap_12 >= 10:
+                first  = [h1]
+                second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
+                third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
+            elif gap_12 <= 5 and gap_top4 <= 15:
+                first  = [h1, h2]
+                second = [h_marks[m] for m in ["◎","◯","▲"] if m in h_marks]
+                third  = [h_marks[m] for m in ["◎","◯","▲","△","☆"] if m in h_marks]
+            else:
+                first  = [h1, h2]
+                second = [h_marks[m] for m in ["◎","◯","▲","△"] if m in h_marks]
+                third  = [h_marks[m] for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
 
         fm_combos = set()
         for f in first:
