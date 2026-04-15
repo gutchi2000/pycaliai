@@ -614,48 +614,118 @@ def render_weekly_portfolio() -> None:
 
 def render_feedback_dashboard() -> None:
     st.markdown("### 📋 結果フィードバック")
+    st.caption("全プラン横断の総合サマリ（プラン別内訳は「📋 的中実績」タブ）")
     results = load_results()
     if not results:
-        st.info("results.json が見つかりません。")
+        st.info("results.json が見つかりません。`python generate_results.py` で生成してください。")
         return
-    by_type = results.get("by_type", {})
-    by_place = results.get("by_place", {})
-    if by_type:
-        st.markdown("#### 馬券種別パフォーマンス")
+
+    # 新フォーマット: {HAHO: {total/by_type/by_place/weekly}, HALO: {...}, ...}
+    # 旧フォーマット fallback: top-level に by_type/by_place
+    plan_keys = [k for k in ["HAHO", "HALO", "STANDARD", "TRIPLE"]
+                 if k in results and isinstance(results[k], dict)]
+
+    if not plan_keys:
+        # 旧フォーマット fallback（念のため）
+        by_type = results.get("by_type", {})
+        if by_type:
+            st.markdown("#### 馬券種別パフォーマンス（旧形式）")
+            rows = []
+            for k, v in by_type.items():
+                if isinstance(v, dict):
+                    rows.append({"馬券種": k, **v})
+            if rows:
+                st.dataframe(pd.DataFrame(rows), use_container_width=True)
+            return
+        st.info("results.json に有効なプランデータがありません。")
+        return
+
+    # --- プラン横断サマリ ---
+    total_bet = total_ret = total_races = 0
+    plan_rows = []
+    for pk in plan_keys:
+        t = results[pk].get("total", {})
+        bet = int(t.get("bet", 0) or 0)
+        ret = int(t.get("ret", 0) or 0)
+        races = int(t.get("races", 0) or 0)
+        roi = float(t.get("roi", 0) or 0)
+        total_bet += bet
+        total_ret += ret
+        total_races = max(total_races, races)
+        plan_rows.append({
+            "プラン": pk,
+            "対象R": races,
+            "投資": bet,
+            "払戻": ret,
+            "収支": ret - bet,
+            "ROI(%)": roi,
+        })
+    total_pnl = total_ret - total_bet
+    total_roi = (total_ret / total_bet * 100) if total_bet else 0
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("対象レース", f"{total_races}R")
+    c2.metric("総投資", f"¥{total_bet:,}")
+    c3.metric("総払戻", f"¥{total_ret:,}")
+    roi_icon = "🟢" if total_roi >= 100 else "🟡" if total_roi >= 80 else "🔴"
+    c4.metric("総合ROI", f"{roi_icon} {total_roi:.1f}%",
+              delta=f"{total_pnl:+,}円")
+
+    st.markdown("---")
+    st.markdown("#### プラン別パフォーマンス")
+    pdf = pd.DataFrame(plan_rows)
+    st.dataframe(pdf, use_container_width=True, hide_index=True)
+
+    # プラン別 ROI バーチャート
+    try:
+        st.bar_chart(pdf.set_index("プラン")["ROI(%)"])
+    except Exception:
+        pass
+
+    # --- 馬券種横断 ---
+    agg_bt: dict[str, dict] = {}
+    for pk in plan_keys:
+        for k, v in results[pk].get("by_type", {}).items():
+            if not isinstance(v, dict):
+                continue
+            d = agg_bt.setdefault(k, {"bet":0,"ret":0,"hit":0,"races":0})
+            d["bet"]   += int(v.get("bet", 0) or 0)
+            d["ret"]   += int(v.get("ret", 0) or 0)
+            d["hit"]   += int(v.get("hit", 0) or 0)
+            d["races"] += int(v.get("races", 0) or 0)
+    if agg_bt:
+        st.markdown("---")
+        st.markdown("#### 馬券種横断パフォーマンス")
         rows = []
-        for k, v in by_type.items():
-            if isinstance(v, dict):
-                rows.append({
-                    "馬券種": k,
-                    "投資": v.get("bet", 0),
-                    "払戻": v.get("ret", 0),
-                    "ROI(%)": v.get("roi", 0),
-                    "的中率(%)": v.get("hit_rate", 0),
-                    "的中": v.get("hit", 0),
-                    "レース": v.get("races", 0),
-                })
-        if rows:
-            bt_df = pd.DataFrame(rows)
-            st.dataframe(bt_df, use_container_width=True)
-            try:
-                st.bar_chart(bt_df.set_index("馬券種")["ROI(%)"])
-            except Exception:
-                pass
-    if by_place:
-        st.markdown("#### 場所別パフォーマンス")
-        rows = []
-        for k, v in by_place.items():
-            if isinstance(v, dict):
-                rows.append({"場所": k, **{kk: vv for kk, vv in v.items()}})
-        if rows:
-            st.dataframe(pd.DataFrame(rows), use_container_width=True)
-    weekly = results.get("weekly", [])
-    if weekly:
-        st.markdown("#### 先週の成績")
-        last = weekly[-1]
+        for k, d in agg_bt.items():
+            roi = (d["ret"]/d["bet"]*100) if d["bet"] else 0
+            hr  = (d["hit"]/d["races"]*100) if d["races"] else 0
+            rows.append({
+                "馬券種": k,
+                "対象R": d["races"],
+                "的中": d["hit"],
+                "的中率(%)": round(hr, 1),
+                "投資": d["bet"],
+                "払戻": d["ret"],
+                "ROI(%)": round(roi, 1),
+            })
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    # --- 先週 ---
+    last_weekly = None
+    for pk in plan_keys:
+        wl = results[pk].get("weekly", [])
+        if wl:
+            last_weekly = (pk, wl[-1])
+            break
+    if last_weekly:
+        pk, last = last_weekly
+        st.markdown("---")
+        st.markdown(f"#### 直近週ハイライト（{pk}基準）")
         c1, c2, c3 = st.columns(3)
         c1.metric("週", str(last.get("週", "-")))
-        c2.metric("ROI", f"{float(last.get('ROI', 0)):.1f}%")
+        c2.metric("レース数", str(last.get("レース数", "-")))
+        c3.metric("ROI", f"{float(last.get('ROI', 0)):.1f}%")
 
 
 def parse_target_csv(source) -> pd.DataFrame:
