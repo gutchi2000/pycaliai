@@ -1948,18 +1948,17 @@ def main() -> None:
 
         haho_disp = hon_rows[hon_rows["HAHO_戦略対象"]=="✅"][[
             "日付","場所","R","クラス","距離","馬名",
-            "HAHO_馬連_買い目","HAHO_馬連_購入額",
             "HAHO_三連複_買い目","HAHO_三連複_購入額",
         ]]
         if not haho_disp.empty:
-            print("\n【HAHO 買い目一覧（馬連◎軸2点 + 三連複ボックス1点）】")
+            print("\n【HAHO 買い目一覧（三連複◎1頭軸-5頭流し）】")
             print(haho_disp.to_string(index=False))
         halo_disp = hon_rows[hon_rows["HALO_戦略対象"]=="✅"][[
             "日付","場所","R","クラス","距離","馬名",
-            "HALO_三連複_買い目","HALO_三連複_購入額",
+            "HALO_三連単_買い目","HALO_三連単_購入額",
         ]]
         if not halo_disp.empty:
-            print("\n【HALO 買い目一覧（三連複ボックス1点のみ）】")
+            print("\n【HALO 買い目一覧（三連単フォーメーション）】")
             print(halo_disp.to_string(index=False))
         lalo_disp = hon_rows[hon_rows["LALO_戦略対象"]=="✅"][[
             "日付","場所","R","クラス","距離","馬名",
