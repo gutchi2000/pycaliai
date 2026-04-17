@@ -950,6 +950,20 @@ def load_models() -> tuple:
     return joblib.load(LGBM_PATH), joblib.load(CAT_PATH)
 
 
+@st.cache_resource(show_spinner=False)
+def _load_trifecta_model():
+    """trifecta_model_v1.pkl をロード（存在しない場合は None を返す）。"""
+    path = BASE_DIR / "models" / "trifecta_model_v1.pkl"
+    if not path.exists():
+        return None, None
+    try:
+        obj = joblib.load(path)
+        return obj.get("model"), obj.get("feature_cols")
+    except Exception as e:
+        logger.warning(f"trifecta_model_v1 ロード失敗: {e}")
+        return None, None
+
+
 @st.cache_data(show_spinner="戦略データ読み込み中...")
 def load_strategy() -> dict:
     if not STRATEGY_JSON.exists():
@@ -1428,10 +1442,64 @@ def _compute_value_scores_app(race_df: pd.DataFrame) -> tuple:
     return pd.Series(pred_roi, index=race_df.index), pd.Series(cal_prob_v, index=race_df.index)
 
 
+def _load_precomputed_predictions(date_str: str) -> pd.DataFrame | None:
+    """reports/buylist_horses_YYYYMMDD.parquet が存在すれば読み込む。
+    Stage 1-07: 画面切替の待ち時間ゼロ化のため、予測結果を週次 precompute から取得。
+    """
+    pq = BASE_DIR / "reports" / f"buylist_horses_{date_str}.parquet"
+    if not pq.exists():
+        return None
+    try:
+        return pd.read_parquet(pq)
+    except Exception as e:
+        logger.warning(f"precompute parquet 読込失敗 {pq}: {e}")
+        return None
+
+
 @st.cache_data(show_spinner="全レース予想計算中...")
 def predict_all_races(cache_key: str, df_json: str, _lgbm_obj: dict, _cat_obj: dict) -> str:
+    """予測を実行。
+
+    Stage 1-07 (2026-04-16): cache_key の先頭が "PRECOMPUTED:" なら、
+    precompute parquet から merge する高速パスを使う（推論不要）。
+    """
     import io
     df = pd.read_json(io.StringIO(df_json))
+
+    # ── 高速パス: precompute parquet があればそれを merge ──
+    if cache_key.startswith("PRECOMPUTED:"):
+        date_str = cache_key.split(":", 1)[1].split("_")[0]
+        pre = _load_precomputed_predictions(date_str)
+        if pre is not None and not pre.empty:
+            # 結合キー: race_id + 馬番
+            need_cols = ["race_id", "馬番", "prob", "score", "印",
+                         "p_win", "p_place23", "p_fuku",
+                         "popularity", "value_score", "cal_prob"]
+            keep = [c for c in need_cols if c in pre.columns]
+            pre_sub = pre[keep].rename(columns={"印": "mark"})
+            # 結合キーは両側を str/Int64 に統一して型不一致を防ぐ
+            rid_col = "レースID(新/馬番無)" if "レースID(新/馬番無)" in df.columns else "race_id"
+            df["_rid"]  = df[rid_col].astype(str) if rid_col in df.columns else ""
+            df["_hnum"] = pd.to_numeric(df.get("馬番"), errors="coerce").astype("Int64")
+            pre_sub     = pre_sub.copy()
+            pre_sub["_rid"]  = pre_sub["race_id"].astype(str)
+            pre_sub["_hnum"] = pd.to_numeric(pre_sub["馬番"], errors="coerce").astype("Int64")
+            merged = df.merge(
+                pre_sub.drop(columns=["race_id", "馬番"]),
+                on=["_rid", "_hnum"], how="left",
+            )
+            merged = merged.drop(columns=["_rid", "_hnum"])
+            # ev_score 計算（precompute には未収録）
+            tansho = pd.to_numeric(merged.get("単勝", pd.Series(dtype=float)), errors="coerce")
+            merged["ev_score"] = (merged["prob"].fillna(0) * tansho / 0.80).round(3)
+            # 欠損の補完
+            for col, default in [("prob", 0.0), ("mark", ""), ("score", 0.0)]:
+                if col in merged.columns:
+                    merged[col] = merged[col].fillna(default)
+            logger.info(f"[predict_all_races] precompute parquet 採用 (date={date_str}) → 推論スキップ")
+            return merged.to_json(force_ascii=False)
+
+    # ── 通常パス: モデル推論 ──
     result_frames = []
     for race_id, race_df in df.groupby("レースID(新/馬番無)"):
         race_df = race_df.copy()
@@ -1537,6 +1605,71 @@ def _normalize_baba(raw: str) -> str:
     return raw.replace("(暫定)", "").replace("暫定", "").strip()
 
 
+# =========================================================
+# 発走時刻カウントダウン（Stage 1-08 / 2026-04-16）
+# =========================================================
+def _parse_hassou_hm(hassou: str) -> tuple[int, int] | None:
+    """発走時刻 "15:35" 形式を (hour, minute) に。解析失敗時 None。"""
+    if not hassou:
+        return None
+    import re as _re
+    m = _re.search(r"(\d{1,2})[:：](\d{2})", str(hassou))
+    if not m:
+        return None
+    try:
+        return int(m.group(1)), int(m.group(2))
+    except Exception:
+        return None
+
+
+def countdown_html(date_str: str, hassou: str, *,
+                   size: str = "12px", color: str = "#f38ba8") -> str:
+    """発走までの残り時間を表示する <span>。JS で 1 秒ごと更新。
+
+    date_str: "2026.4.12" / "20260412" 等
+    hassou:   "15:35"
+    """
+    hm = _parse_hassou_hm(hassou)
+    if hm is None:
+        return ""
+    h, m = hm
+    # 日付正規化
+    ds = str(date_str).replace(".", "-").replace("/", "-").strip()
+    parts = ds.split("-")
+    try:
+        if len(parts) == 3:
+            y = int(parts[0]); mo = int(parts[1]); d = int(parts[2])
+        elif len(ds) == 8 and ds.isdigit():
+            y = int(ds[:4]); mo = int(ds[4:6]); d = int(ds[6:8])
+        else:
+            return ""
+    except Exception:
+        return ""
+
+    # 発走 ISO (JST = +09:00)
+    iso = f"{y:04d}-{mo:02d}-{d:02d}T{h:02d}:{m:02d}:00+09:00"
+    # 各カウントダウンにユニーク id
+    cd_id = f"cd_{y}{mo:02d}{d:02d}_{h:02d}{m:02d}_{abs(hash(iso))%10000}"
+    html = (
+        f'<span id="{cd_id}" data-deadline="{iso}" '
+        f'style="font-size:{size};color:{color};margin-left:8px;font-weight:bold">⏰ --</span>'
+        '<script>'
+        '(function(){var el=document.getElementById("' + cd_id + '");if(!el)return;'
+        'function upd(){var d=new Date(el.dataset.deadline);var now=new Date();'
+        'var diff=Math.floor((d-now)/1000);'
+        'if(diff<=-60){el.textContent="🏁 発走済";el.style.color="#6c7086";return;}'
+        'if(diff<=0){el.textContent="🏇 発走中";el.style.color="#a6e3a1";return;}'
+        'var h=Math.floor(diff/3600);var m=Math.floor((diff%3600)/60);var s=diff%60;'
+        'var txt;if(h>0){txt="⏰ "+h+"h"+m+"m";}'
+        'else if(m>=10){txt="⏰ "+m+"分";}'
+        'else{txt="⏰ "+m+":"+String(s).padStart(2,"0");'
+        'el.style.color=(m<3?"#f38ba8":"#fab387");}'
+        'el.textContent=txt;}upd();setInterval(upd,1000);'
+        '})();</script>'
+    )
+    return html
+
+
 def is_in_strategy(place: str, cls_raw: str, strategy: dict) -> bool:
     if place in EXCLUDE_PLACES or cls_raw in EXCLUDE_CLASSES:
         return False
@@ -1597,62 +1730,105 @@ def _build_sanrentan_formation(race_df: pd.DataFrame, h_marks: dict,
 
     info: dict = {"source": "score_rule"}
 
-    # === 着順モデル使用を試行 ===
+    # === Stage 2-02: trifecta_model_v1 (LambdaRank + Plackett-Luce) を優先 ===
+    try:
+        tri_model, tri_feats = _load_trifecta_model()
+        if tri_model is not None and tri_feats is not None:
+            from train_trifecta_model import add_race_features, pl_combo_probs, FEATURE_COLS as TRI_FEATS
+            # race_df に必要な列を補完
+            _rdf = race_df.copy()
+            if "mark" not in _rdf.columns and h_marks:
+                mark_map = {v: k for k, v in h_marks.items()}
+                _rdf["mark"] = pd.to_numeric(_rdf["馬番"], errors="coerce") \
+                                  .map(lambda ub: mark_map.get(int(ub), "") if pd.notna(ub) else "")
+            if "jyun" not in _rdf.columns:
+                _rdf["jyun"] = float("nan")
+            if "race_id" not in _rdf.columns:
+                _rdf["race_id"] = "tmp"
+            if "place" not in _rdf.columns:
+                _rdf["place"] = ""
+            if "race_santan_pay" not in _rdf.columns:
+                _rdf["race_santan_pay"] = 0.0
+            if "ensemble_prob" not in _rdf.columns:
+                _rdf["ensemble_prob"] = pd.to_numeric(_rdf.get("prob", pd.Series(dtype=float)),
+                                                        errors="coerce").fillna(0.0)
+            _rdf = add_race_features(_rdf)
+            _X = pd.DataFrame([
+                {f: float(row.get(f, 0)) for f in TRI_FEATS}
+                for _, row in _rdf.iterrows()
+            ])
+            _model_scores = tri_model.predict(_X.fillna(0))
+            _umabans = [int(r["馬番"]) for _, r in race_df.iterrows()
+                        if pd.notna(r.get("馬番"))]
+            _score_map = {ub: float(s) for ub, s in zip(_umabans, _model_scores)}
+            _combos_with_prob = pl_combo_probs(_score_map, top_n=min(8, len(_score_map)))
+            if _combos_with_prob:
+                _TOP_N = 3  # OOS 最高 ROI
+                _selected = [c for c, _ in _combos_with_prob[:_TOP_N]]
+                if _selected:
+                    n = len(_selected)
+                    per_bet = max(100, (budget // n // 100) * 100)
+                    bets = [{"馬券種": "三連単", "買い目": f"{f}→{s}→{t}",
+                             "購入額": per_bet, "ROI": 0}
+                            for f, s, t in sorted(_selected)]
+                    info.update({"pattern": "trifecta_v1[top3]", "source": "trifecta_model_v1",
+                                 "n_combos": n, "first": [], "second": [], "third": []})
+                    return bets, info
+    except Exception as _tri_e:
+        logger.debug(f"trifecta_model_v1 推論失敗、スコア差ルールへフォールバック: {_tri_e}")
+
+    # === Stage 2-01b: Optuna 最適化済み閾値を halo_thresholds.json から読み込み ===
+    # backtest 5,309R: スコア差ルール ROI 70.37% > 着順モデル ROI 67.58%
+    # OOS 2025: 最適化後 65.15% (+4.36pt vs baseline 60.78%)
+    from utils import load_halo_thresholds as _lht
+    _hthr = _lht()
+    _gap12_hi   = _hthr["gap_12_hi"]    # default 10 → opt 3.68
+    _gap12_lo   = _hthr["gap_12_lo"]    # default  5 → opt 2.54
+    _gap_top4   = _hthr["gap_top4_lo"]  # default 15 → opt 27.04
+    _pw_min     = _hthr["pw_min"]       # default 0.50 → opt 0.73
+    _pw_ratio   = _hthr["pw_ratio"]     # default 2.0  → opt 1.58
+
+    scores = race_df.set_index("馬番")["score"].to_dict() if "score" in race_df.columns else {}
+    s_hon = float(scores.get(h1, 0))
+    s_tai = float(scores.get(h2, 0))
+    s_sab = float(scores.get(h_marks.get("▲", -1), 0))
+    s_del = float(scores.get(h_marks.get("△", -1), 0))
+    gap_12 = s_hon - s_tai
+    gap_top4 = s_hon - s_del if s_del > 0 else s_hon - s_sab
+
+    if gap_12 >= _gap12_hi:
+        first  = [h1]
+        second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
+        third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
+        info["pattern"] = "◎突出(スコア差)"
+    elif gap_12 <= _gap12_lo and gap_top4 <= _gap_top4:
+        first  = [h1, h2]
+        second = [h_marks[m] for m in ["◎","◯","▲"] if m in h_marks]
+        third  = [h_marks[m] for m in ["◎","◯","▲","△","☆"] if m in h_marks]
+        info["pattern"] = "◎◯拮抗(スコア差)"
+    else:
+        first  = [h1, h2]
+        second = [h_marks[m] for m in ["◎","◯","▲","△"] if m in h_marks]
+        third  = [h_marks[m] for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
+        info["pattern"] = "標準(スコア差)"
+
+    # === 着順モデルは補強用途のみ参照 (高信頼な ◎突出ケースのみ AI 採用) ===
+    # 条件: p_win(◎) ≥ pw_min かつ p_win(◎) ≥ p_win(◯) × pw_ratio
     order_proba = _predict_order_proba(race_df)
     if order_proba is not None:
-        info["source"] = "order_model"
-        # マーク付き馬の p_win を取得
-        pw = order_proba.set_index("馬番")["p_win"].to_dict()
-        marked_pw = [(m, h_marks[m], float(pw.get(h_marks[m], 0)))
-                     for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
-        marked_pw.sort(key=lambda x: -x[2])
-
-        # p_win 上位で 1着/2着/3着候補を決定
-        pw_hon = float(pw.get(h1, 0))
-        pw_tai = float(pw.get(h2, 0))
-
-        if pw_hon >= pw_tai * 2.0:
-            # ◎がp_winで圧倒 → 1着◎固定
-            first  = [h1]
-            second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
-            third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
-            info["pattern"] = "◎突出(着順モデル)"
-        elif pw_tai >= pw_hon * 0.7:
-            # ◎◯が拮抗
-            first  = [h1, h2]
-            second = [h_marks[m] for m in ["◎","◯","▲"] if m in h_marks]
-            third  = [h_marks[m] for m in ["◎","◯","▲","△","☆"] if m in h_marks]
-            info["pattern"] = "◎◯拮抗(着順モデル)"
-        else:
-            first  = [h1, h2]
-            second = [h_marks[m] for m in ["◎","◯","▲","△"] if m in h_marks]
-            third  = [h_marks[m] for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
-            info["pattern"] = "標準(着順モデル)"
-    else:
-        # === フォールバック: スコアベースルール ===
-        scores = race_df.set_index("馬番")["score"].to_dict() if "score" in race_df.columns else {}
-        s_hon = float(scores.get(h1, 0))
-        s_tai = float(scores.get(h2, 0))
-        s_sab = float(scores.get(h_marks.get("▲", -1), 0))
-        s_del = float(scores.get(h_marks.get("△", -1), 0))
-        gap_12 = s_hon - s_tai
-        gap_top4 = s_hon - s_del if s_del > 0 else s_hon - s_sab
-
-        if gap_12 >= 10:
-            first  = [h1]
-            second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
-            third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
-            info["pattern"] = "◎突出(スコア差)"
-        elif gap_12 <= 5 and gap_top4 <= 15:
-            first  = [h1, h2]
-            second = [h_marks[m] for m in ["◎","◯","▲"] if m in h_marks]
-            third  = [h_marks[m] for m in ["◎","◯","▲","△","☆"] if m in h_marks]
-            info["pattern"] = "◎◯拮抗(スコア差)"
-        else:
-            first  = [h1, h2]
-            second = [h_marks[m] for m in ["◎","◯","▲","△"] if m in h_marks]
-            third  = [h_marks[m] for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
-            info["pattern"] = "標準(スコア差)"
+        try:
+            pw = order_proba.set_index("馬番")["p_win"].to_dict()
+            pw_hon = float(pw.get(h1, 0))
+            pw_tai = float(pw.get(h2, 0))
+            if pw_hon >= _pw_min and pw_hon >= pw_tai * _pw_ratio:
+                first  = [h1]
+                second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
+                third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
+                info["pattern"] = "◎突出(着順モデル[高信頼])"
+                info["source"] = "order_model_high_conf"
+        except Exception:
+            # AI 補強失敗時はスコア差判定をそのまま使う
+            pass
 
     info["first"] = first
     info["second"] = second
@@ -1759,17 +1935,95 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
             result["HALO"] = halo_bets
             result["_HALO_INFO"] = halo_info  # UI 表示用メタ情報
 
-    # ── STANDARD: 単勝◎(20%) + 複勝◎(60%) + 馬連◎-◯(20%) ────────
-    # 3券種全て揃わなければ不可
-    if (not tansho_blocked
-            and not fuku_blocked and not odds_too_low
-            and h2 and not umaren_blocked):
-        uma_key = f"{min(h1,h2)}-{max(h1,h2)}"
-        result["STANDARD"] = [
-            {"馬券種":"単勝", "買い目":str(h1), "購入額":floor_to_unit(budget * 2 // 10), "ROI":0},
-            {"馬券種":"複勝", "買い目":str(h1), "購入額":floor_to_unit(budget * 6 // 10), "ROI":0},
-            {"馬券種":"馬連", "買い目":uma_key, "購入額":floor_to_unit(budget * 2 // 10), "ROI":0},
-        ]
+    # ── STANDARD: 単複馬連 EV ベース選別（Stage 1-06: 2026-04-16）─────
+    # 旧仕様 (◎-◯固定 1 点 + 単勝20%+複勝60%+馬連20%) は撤廃。
+    # 単勝 ◎/◯, 複勝 ◎/◯, 馬連 ◎-{◯,▲,△,☆} の各候補を EV 計算し、
+    # 閾値 (utils.MIN_EV_*) を通過したものだけ採用。予算は EV 重み配分。
+    if not (tansho_blocked and fuku_blocked and umaren_blocked):
+        try:
+            from ev_gate import (
+                make_race_meta, compute_ev_tansho, compute_ev_fuku,
+                compute_ev_umaren, pass_ev_gate,
+            )
+            try:
+                _dist_int = int(float(_dist)) if _dist is not None else 1600
+            except Exception:
+                _dist_int = 1600
+            race_meta = make_race_meta(place, _td, _dist_int, len(race_df))
+
+            tansho_series = pd.to_numeric(race_df.get("単勝", pd.Series(dtype=float)), errors="coerce")
+            pop_series = tansho_series.rank(method="min", ascending=True)
+            pop_map = {int(r["馬番"]): int(p)
+                       for (_, r), p in zip(race_df.iterrows(), pop_series)
+                       if pd.notna(r.get("馬番")) and pd.notna(p)}
+
+            order_proba = _predict_order_proba(race_df)
+            if order_proba is not None and "馬番" in order_proba.columns:
+                p_win_map  = {int(r["馬番"]): float(r["p_win"])
+                              for _, r in order_proba.iterrows() if pd.notna(r.get("馬番"))}
+                p_p23_map  = {int(r["馬番"]): float(r["p_place23"])
+                              for _, r in order_proba.iterrows() if pd.notna(r.get("馬番"))}
+                p_fuku_map = {k: min(1.0, p_win_map.get(k, 0) + p_p23_map.get(k, 0)) for k in p_win_map}
+            else:
+                p_win_map  = {int(r["馬番"]): float(r.get("prob", 0))
+                              for _, r in race_df.iterrows() if pd.notna(r.get("馬番"))}
+                p_fuku_map = {k: min(1.0, v * 2.5) for k, v in p_win_map.items()}
+
+            cand: list[dict] = []  # 候補 buylist
+
+            # 単勝: ◎, ◯
+            if not tansho_blocked:
+                for mark in ["◎", "◯"]:
+                    if mark in h_marks:
+                        h = h_marks[mark]
+                        p = p_win_map.get(h, 0.0)
+                        ev, pay = compute_ev_tansho(p, pop_map.get(h, 7), race_meta)
+                        if pass_ev_gate("単勝", ev):
+                            cand.append({"馬券種":"単勝","買い目":str(h),"ev":ev,"pay":pay,"p":p})
+
+            # 複勝: ◎, ◯
+            if not fuku_blocked:
+                for mark in ["◎", "◯"]:
+                    if mark in h_marks:
+                        h = h_marks[mark]
+                        p = p_fuku_map.get(h, p_win_map.get(h, 0.0) * 2.5)
+                        ev, pay = compute_ev_fuku(p, pop_map.get(h, 7), race_meta)
+                        if pass_ev_gate("複勝", ev):
+                            cand.append({"馬券種":"複勝","買い目":str(h),"ev":ev,"pay":pay,"p":p})
+
+            # 馬連: ◎-{◯,▲,△,☆}
+            if not umaren_blocked:
+                for mark in ["◯", "▲", "△", "☆"]:
+                    if mark in h_marks:
+                        ho = h_marks[mark]
+                        a, b = sorted([h1, ho])
+                        # 馬連 p_hit ≈ 「両者とも 3 着以内」÷ 3（粗い近似）
+                        p_a = p_fuku_map.get(h1, 0.0)
+                        p_b = p_fuku_map.get(ho, 0.0)
+                        p_hit = p_a * p_b / 3.0
+                        ev, pay = compute_ev_umaren(p_hit, pop_map.get(a, 7), pop_map.get(b, 7), race_meta)
+                        if pass_ev_gate("馬連", ev):
+                            cand.append({"馬券種":"馬連","買い目":f"{a}-{b}","ev":ev,"pay":pay,"p":p_hit})
+
+            # 予算配分: EV-1 を重みに（簡易 Kelly 近似）。Stage 2 で本格 Kelly に置換。
+            if cand:
+                pos = [max(0.0, c["ev"] - 1.0) for c in cand]
+                tot = sum(pos)
+                if tot > 0:
+                    weights = [w / tot for w in pos]
+                else:
+                    weights = [1.0 / len(cand)] * len(cand)
+                std_bets = []
+                for c, w in zip(cand, weights):
+                    amt = floor_to_unit(int(budget * w))
+                    if amt > 0:
+                        std_bets.append({"馬券種": c["馬券種"], "買い目": c["買い目"],
+                                          "購入額": amt, "ROI": 0,
+                                          "EV": round(float(c["ev"]), 3)})
+                if std_bets:
+                    result["STANDARD"] = std_bets
+        except Exception as e:
+            logger.warning(f"STANDARD EV 計算失敗 {place} {cls_raw}: {e}")
 
     # ── TRIPLE: 三連複◎◯▲1点(¥1,000) + 複勝◎(残り) ──────────────
     if h2 and h3 and not san_blocked and not fuku_blocked and not odds_too_low:
@@ -3701,6 +3955,11 @@ def page_value_candidates(all_df: pd.DataFrame) -> None:
 def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
     """今日の買い目一覧ページ（HAHO/HALO プラン切替）。"""
     race_id_col = "レースID(新/馬番無)"
+    # Stage 1-08: countdown 用に日付を取得
+    if "日付S" in all_df.columns and not all_df.empty:
+        selected_date = str(all_df["日付S"].iloc[0])
+    else:
+        selected_date = ""
     race_metas  = []
     for race_id, grp in all_df.groupby(race_id_col):
         meta    = grp.iloc[0]
@@ -3798,13 +4057,14 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         fuku  = [b for b in bets if b["馬券種"] == "複勝"]
         tan   = [b for b in bets if b["馬券種"] == "単勝"]
 
-        # ヘッダー行
+        # ヘッダー行（発走時刻カウントダウン付き）
+        _bet_cd = countdown_html(selected_date, r["発走"])
         st.markdown(
             f'<div style="display:flex;align-items:center;gap:12px;'
             f'padding:10px 0 4px;border-top:1px solid #2a2a3e;margin-top:4px">'
             f'<span style="background:#313244;color:#cdd6f4;border-radius:4px;'
             f'padding:2px 10px;font-weight:bold;font-size:15px">{r["場所"]} {r["R"]}R</span>'
-            f'<span style="color:#888;font-size:13px">{r["クラス"]}　{r["発走"]}　{r["距離"]}　馬場:{r["馬場"]}</span>'
+            f'<span style="color:#888;font-size:13px">{r["クラス"]}　{r["発走"]}{_bet_cd}　{r["距離"]}　馬場:{r["馬場"]}</span>'
             f'<span style="color:#a6e3a1;font-size:13px;margin-left:auto">'
             f'◎{r["◎"]}　{r["◎スコア"]:.1f}</span>'
             f'</div>',
@@ -4069,6 +4329,11 @@ CSS = """
 # =========================================================
 def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
     race_id_col = "レースID(新/馬番無)"
+    # Stage 1-08: countdown 用に日付を取得
+    if "日付S" in all_df.columns and not all_df.empty:
+        selected_date = str(all_df["日付S"].iloc[0])
+    else:
+        selected_date = ""
 
     race_metas: list[dict] = []
     for race_id, grp in all_df.groupby(race_id_col):
@@ -4101,11 +4366,12 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         mr = graded[0]
         grade_label = CLASS_NORMALIZE.get(mr["クラス"], mr["クラス"])
         grade_cls   = {"Ｇ１":"grade-g1","Ｇ２":"grade-g2","Ｇ３":"grade-g3"}.get(grade_label,"grade-op")
+        _banner_cd = countdown_html(selected_date, mr["発走"], size="13px")
         st.markdown(
             f'<div class="main-race-banner">'
             f'<div style="margin-bottom:6px">'
             f'<span class="{grade_cls}">{grade_label}</span>'
-            f'<span style="color:#888;font-size:13px">{mr["場所"]} {mr["R"]}R　{mr["発走"]}発走</span></div>'
+            f'<span style="color:#888;font-size:13px">{mr["場所"]} {mr["R"]}R　{mr["発走"]}発走{_banner_cd}</span></div>'
             f'<div style="font-size:22px;font-weight:bold;color:#cdd6f4;margin-bottom:4px">'
             f'{mr["レース名"] or mr["クラス"]}</div>'
             f'<div style="color:#888;font-size:14px">{mr["距離"]}　{mr["頭数"]}頭立て'
@@ -4174,13 +4440,14 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             elif excluded:
                 badge = '<span style="background:#3a2a1a;color:#f39c12;border-radius:3px;padding:1px 6px;font-size:10px;margin-left:4px">除外</span>'
 
+            _row_cd = countdown_html(selected_date, r["発走"])
             st.markdown(
                 f'<div class="race-row">'
                 f'<span class="{"r-badge" if not excluded else "r-badge-ex"}">{r["R"]}R</span>'
                 f'<div style="flex:1">'
                 f'<span style="font-size:18px;color:#cdd6f4">{r["クラス"]}</span>{badge}'
                 f'<span style="color:#888;font-size:14px;margin-left:8px">'
-                f'{r["発走"]}　{r["距離"]}　馬場:{r["馬場"]}　{r["頭数"]}頭</span>'
+                f'{r["発走"]}{_row_cd}　{r["距離"]}　馬場:{r["馬場"]}　{r["頭数"]}頭</span>'
                 f'<br><span style="font-size:14px;color:#a6e3a1">◎ {r["◎"]}　{r["◎スコア"]:.1f}%</span>'
                 f'</div></div>',
                 unsafe_allow_html=True,
@@ -4665,12 +4932,19 @@ def main() -> None:
             return
 
     # cache_key にモデルの更新時刻を含める（モデル再訓練後も正しく再計算される）
+    # Stage 1-07: precompute parquet があれば優先 → 画面切替の待ち時間ゼロ化
     import os
-    _model_mtime = max(
-        os.path.getmtime(str(LGBM_PATH)) if LGBM_PATH.exists() else 0,
-        os.path.getmtime(str(CAT_PATH))  if CAT_PATH.exists()  else 0,
-    )
-    _cache_key = f"{selected_date}_{int(_model_mtime)}"
+    _precompute_pq = BASE_DIR / "reports" / f"buylist_horses_{selected_date}.parquet"
+    if _precompute_pq.exists():
+        _pq_mtime = os.path.getmtime(str(_precompute_pq))
+        _cache_key = f"PRECOMPUTED:{selected_date}_{int(_pq_mtime)}"
+        logger.info(f"[predict_all_races] precompute parquet 発見 → 高速パス採用 ({_precompute_pq.name})")
+    else:
+        _model_mtime = max(
+            os.path.getmtime(str(LGBM_PATH)) if LGBM_PATH.exists() else 0,
+            os.path.getmtime(str(CAT_PATH))  if CAT_PATH.exists()  else 0,
+        )
+        _cache_key = f"{selected_date}_{int(_model_mtime)}"
     predicted_json = predict_all_races(_cache_key, raw_df.to_json(), lgbm_obj, cat_obj)
     import io
     all_df = pd.read_json(io.StringIO(predicted_json))

@@ -1408,30 +1408,68 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
         result["HAHO_三連複_購入額"] = 1000 * len(combos)
         result["HAHO_三連複_点数"]   = len(combos)
 
-    # ── HALO: 三連単フォーメーション（AI自動選択／スコアfallback）──
+    # ── HALO: 三連単フォーメーション ──
+    # Stage 0 (2026-04-16 反転): スコア差ルールを主軸、着順モデルは
+    # 高信頼ケース（◎の絶対勝率 ≥ 0.50 かつ p_hon ≥ p_tai × 2.0）のみ補強
+    # 根拠: backtest 5,309R で score-rule ROI 70.37% > order-model ROI 67.58%
     if h2 and not santan_blocked:
-        # まず着順予測モデルを試行
-        order_proba = _predict_order_proba(race_df)
-        first = second = third = None
-        if order_proba is not None:
-            pw = order_proba.set_index("馬番")["p_win"].to_dict()
-            pw_hon = float(pw.get(h1, 0))
-            pw_tai = float(pw.get(h2, 0))
-            if pw_hon >= pw_tai * 2.0:
-                first  = [h1]
-                second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
-                third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
-            elif pw_tai >= pw_hon * 0.7:
-                first  = [h1, h2]
-                second = [h_marks[m] for m in ["◎","◯","▲"] if m in h_marks]
-                third  = [h_marks[m] for m in ["◎","◯","▲","△","☆"] if m in h_marks]
-            else:
-                first  = [h1, h2]
-                second = [h_marks[m] for m in ["◎","◯","▲","△"] if m in h_marks]
-                third  = [h_marks[m] for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
+        # === Stage 2-02: trifecta_model_v1 (LambdaRank + Plackett-Luce) を優先 ===
+        _tri_done = False
+        try:
+            _tri_path = BASE_DIR / "models" / "trifecta_model_v1.pkl"
+            if _tri_path.exists():
+                import joblib as _jl
+                _tri_obj = _jl.load(_tri_path)
+                _tri_model = _tri_obj.get("model")
+                _tri_feats = _tri_obj.get("feature_cols")
+                if _tri_model is not None and _tri_feats is not None:
+                    from train_trifecta_model import add_race_features as _arf, pl_combo_probs as _plc, FEATURE_COLS as _TFC
+                    _rdf2 = race_df.copy()
+                    if "mark" not in _rdf2.columns:
+                        _mk_map = {v: k for k, v in h_marks.items()}
+                        _rdf2["mark"] = pd.to_numeric(_rdf2["馬番"], errors="coerce") \
+                                          .map(lambda ub: _mk_map.get(int(ub), "") if pd.notna(ub) else "")
+                    if "jyun" not in _rdf2.columns:
+                        _rdf2["jyun"] = float("nan")
+                    if "race_id" not in _rdf2.columns:
+                        _rdf2["race_id"] = "tmp"
+                    if "place" not in _rdf2.columns:
+                        _rdf2["place"] = place
+                    if "race_santan_pay" not in _rdf2.columns:
+                        _rdf2["race_santan_pay"] = 0.0
+                    if "ensemble_prob" not in _rdf2.columns:
+                        _rdf2["ensemble_prob"] = pd.to_numeric(
+                            _rdf2.get("prob", pd.Series(dtype=float)), errors="coerce").fillna(0.0)
+                    _rdf2 = _arf(_rdf2)
+                    _X2 = pd.DataFrame(
+                        [{f: float(r.get(f, 0)) for f in _TFC} for _, r in _rdf2.iterrows()])
+                    _ms2 = _tri_model.predict(_X2.fillna(0))
+                    _ubs2 = [int(r["馬番"]) for _, r in race_df.iterrows() if pd.notna(r.get("馬番"))]
+                    _sm2 = {ub: float(s) for ub, s in zip(_ubs2, _ms2)}
+                    _cwp = _plc(_sm2, top_n=min(8, len(_sm2)))
+                    if _cwp:
+                        _sel = [c for c, _ in _cwp[:3]]
+                        n = len(_sel)
+                        per_bet = max(100, (9600 // n // 100) * 100)
+                        result["HALO_戦略対象"]    = True
+                        result["HALO_三連単_買い目"] = " / ".join(f"{f}→{s}→{t}" for f, s, t in sorted(_sel))
+                        result["HALO_三連単_購入額"] = per_bet * n
+                        result["HALO_三連単_点数"]   = n
+                        _tri_done = True
+        except Exception as _te:
+            pass  # フォールバック: スコア差ルールへ
 
-        if first is None:
-            # フォールバック: スコア差ルール
+        if not _tri_done:
+            # === Stage 2-01b: Optuna 最適化済み閾値を halo_thresholds.json から読み込み ===
+            from utils import load_halo_thresholds as _lht
+            _hthr = _lht()
+            _gap12_hi  = _hthr["gap_12_hi"]    # default 10 → opt 3.68
+            _gap12_lo  = _hthr["gap_12_lo"]    # default  5 → opt 2.54
+            _gap_top4  = _hthr["gap_top4_lo"]  # default 15 → opt 27.04
+            _pw_min    = _hthr["pw_min"]       # default 0.50 → opt 0.73
+            _pw_ratio  = _hthr["pw_ratio"]     # default 2.0  → opt 1.58
+
+            # === スコア差ルール（一次採用） ===
             scores = race_df.set_index("馬番")["score"].to_dict() if "score" in race_df.columns else {}
             s_hon = float(scores.get(h1, 0))
             s_tai = float(scores.get(h2, 0))
@@ -1440,11 +1478,11 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
             gap_12 = s_hon - s_tai
             gap_top4 = s_hon - s_del if s_del > 0 else s_hon - s_sab
 
-            if gap_12 >= 10:
+            if gap_12 >= _gap12_hi:
                 first  = [h1]
                 second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
                 third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
-            elif gap_12 <= 5 and gap_top4 <= 15:
+            elif gap_12 <= _gap12_lo and gap_top4 <= _gap_top4:
                 first  = [h1, h2]
                 second = [h_marks[m] for m in ["◎","◯","▲"] if m in h_marks]
                 third  = [h_marks[m] for m in ["◎","◯","▲","△","☆"] if m in h_marks]
@@ -1453,43 +1491,135 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
                 second = [h_marks[m] for m in ["◎","◯","▲","△"] if m in h_marks]
                 third  = [h_marks[m] for m in ["◎","◯","▲","△","☆","★"] if m in h_marks]
 
-        fm_combos = set()
-        for f in first:
-            for s in second:
-                for t in third:
-                    if len({f, s, t}) == 3:
-                        fm_combos.add((f, s, t))
-        if len(fm_combos) > 36:
-            third = third[:4]
+            # === 着順モデル補強（高信頼な ◎突出ケースのみ） ===
+            order_proba = _predict_order_proba(race_df)
+            if order_proba is not None:
+                try:
+                    pw = order_proba.set_index("馬番")["p_win"].to_dict()
+                    pw_hon = float(pw.get(h1, 0))
+                    pw_tai = float(pw.get(h2, 0))
+                    if pw_hon >= _pw_min and pw_hon >= pw_tai * _pw_ratio:
+                        first  = [h1]
+                        second = [h_marks[m] for m in ["◯","▲"] if m in h_marks]
+                        third  = [h_marks[m] for m in ["◯","▲","△","☆","★"] if m in h_marks]
+                except Exception:
+                    pass
+
             fm_combos = set()
             for f in first:
                 for s in second:
                     for t in third:
                         if len({f, s, t}) == 3:
                             fm_combos.add((f, s, t))
+            if len(fm_combos) > 36:
+                third = third[:4]
+                fm_combos = set()
+                for f in first:
+                    for s in second:
+                        for t in third:
+                            if len({f, s, t}) == 3:
+                                fm_combos.add((f, s, t))
 
-        if fm_combos:
-            n = len(fm_combos)
-            per_bet = max(100, (9600 // n // 100) * 100)
-            combo_strs = [f"{f}→{s}→{t}" for f, s, t in sorted(fm_combos)]
-            result["HALO_戦略対象"]    = True
-            result["HALO_三連単_買い目"] = " / ".join(combo_strs)
-            result["HALO_三連単_購入額"] = per_bet * n
-            result["HALO_三連単_点数"]   = n
+            if fm_combos:
+                n = len(fm_combos)
+                per_bet = max(100, (9600 // n // 100) * 100)
+                combo_strs = [f"{f}→{s}→{t}" for f, s, t in sorted(fm_combos)]
+                result["HALO_戦略対象"]    = True
+                result["HALO_三連単_買い目"] = " / ".join(combo_strs)
+                result["HALO_三連単_購入額"] = per_bet * n
+                result["HALO_三連単_点数"]   = n
 
-    # ── STANDARD: 単勝◎(20%) + 複勝◎(60%) + 馬連◎-◯(20%) ────────
-    # 3券種全て揃わなければ不可
-    if (not tansho_blocked
-            and not fuku_blocked and not odds_too_low
-            and h2 and not umaren_blocked):
-        uma_key = f"{min(h1,h2)}-{max(h1,h2)}"
-        result["STANDARD_戦略対象"]    = True
-        result["STANDARD_単勝_買い目"] = str(h1)
-        result["STANDARD_単勝_購入額"] = floor_to_unit(budget * 2 // 10)
-        result["STANDARD_複勝_買い目"] = str(h1)
-        result["STANDARD_複勝_購入額"] = floor_to_unit(budget * 6 // 10)
-        result["STANDARD_馬連_買い目"] = uma_key
-        result["STANDARD_馬連_購入額"] = floor_to_unit(budget * 2 // 10)
+    # ── STANDARD: 単複馬連 EV ベース選別（Stage 1-06: 2026-04-16）─────
+    # 旧仕様 (◎-◯固定 1 点 + 単勝20%+複勝60%+馬連20%) は撤廃。
+    # 単勝 ◎/◯, 複勝 ◎/◯, 馬連 ◎-{◯,▲,△,☆} の各候補を EV 計算し、
+    # 閾値 (utils.MIN_EV_*) を通過したものだけ採用、EV-1 を重み配分。
+    if not (tansho_blocked and fuku_blocked and umaren_blocked):
+        try:
+            from ev_gate import (
+                make_race_meta, compute_ev_tansho, compute_ev_fuku,
+                compute_ev_umaren, pass_ev_gate,
+            )
+            try:
+                _dist_int = int(float(_dist)) if _dist is not None else 1600
+            except Exception:
+                _dist_int = 1600
+            race_meta = make_race_meta(place, _td, _dist_int, len(race_df))
+
+            tansho_series = pd.to_numeric(race_df.get("単勝", pd.Series(dtype=float)), errors="coerce")
+            pop_series = tansho_series.rank(method="min", ascending=True)
+            pop_map = {int(r["馬番"]): int(p)
+                       for (_, r), p in zip(race_df.iterrows(), pop_series)
+                       if pd.notna(r.get("馬番")) and pd.notna(p)}
+
+            order_proba = _predict_order_proba(race_df)
+            if order_proba is not None and "馬番" in order_proba.columns:
+                p_win_map  = {int(r["馬番"]): float(r["p_win"])
+                              for _, r in order_proba.iterrows() if pd.notna(r.get("馬番"))}
+                p_p23_map  = {int(r["馬番"]): float(r["p_place23"])
+                              for _, r in order_proba.iterrows() if pd.notna(r.get("馬番"))}
+                p_fuku_map = {k: min(1.0, p_win_map.get(k, 0) + p_p23_map.get(k, 0)) for k in p_win_map}
+            else:
+                p_win_map  = {int(r["馬番"]): float(r.get("prob", 0))
+                              for _, r in race_df.iterrows() if pd.notna(r.get("馬番"))}
+                p_fuku_map = {k: min(1.0, v * 2.5) for k, v in p_win_map.items()}
+
+            cand: list[dict] = []
+
+            if not tansho_blocked:
+                for mark in ["◎", "◯"]:
+                    if mark in h_marks:
+                        h = h_marks[mark]
+                        p = p_win_map.get(h, 0.0)
+                        ev, pay = compute_ev_tansho(p, pop_map.get(h, 7), race_meta)
+                        if pass_ev_gate("単勝", ev):
+                            cand.append({"馬券種":"単勝","key":str(h),"ev":ev})
+
+            if not fuku_blocked:
+                for mark in ["◎", "◯"]:
+                    if mark in h_marks:
+                        h = h_marks[mark]
+                        p = p_fuku_map.get(h, p_win_map.get(h, 0.0) * 2.5)
+                        ev, pay = compute_ev_fuku(p, pop_map.get(h, 7), race_meta)
+                        if pass_ev_gate("複勝", ev):
+                            cand.append({"馬券種":"複勝","key":str(h),"ev":ev})
+
+            if not umaren_blocked:
+                for mark in ["◯", "▲", "△", "☆"]:
+                    if mark in h_marks:
+                        ho = h_marks[mark]
+                        a, b = sorted([h1, ho])
+                        p_a = p_fuku_map.get(h1, 0.0)
+                        p_b = p_fuku_map.get(ho, 0.0)
+                        p_hit = p_a * p_b / 3.0
+                        ev, pay = compute_ev_umaren(p_hit, pop_map.get(a, 7), pop_map.get(b, 7), race_meta)
+                        if pass_ev_gate("馬連", ev):
+                            cand.append({"馬券種":"馬連","key":f"{a}-{b}","ev":ev})
+
+            if cand:
+                pos = [max(0.0, c["ev"] - 1.0) for c in cand]
+                tot = sum(pos)
+                weights = [w / tot for w in pos] if tot > 0 else [1.0/len(cand)] * len(cand)
+
+                # 馬券種ごとに集約
+                grouped: dict = {"単勝": [], "複勝": [], "馬連": []}
+                for c, w in zip(cand, weights):
+                    amt = floor_to_unit(int(budget * w))
+                    if amt > 0:
+                        grouped[c["馬券種"]].append((c["key"], amt))
+
+                if any(grouped.values()):
+                    result["STANDARD_戦略対象"] = True
+                    if grouped["単勝"]:
+                        result["STANDARD_単勝_買い目"] = " / ".join(k for k,_ in grouped["単勝"])
+                        result["STANDARD_単勝_購入額"] = sum(a for _,a in grouped["単勝"])
+                    if grouped["複勝"]:
+                        result["STANDARD_複勝_買い目"] = " / ".join(k for k,_ in grouped["複勝"])
+                        result["STANDARD_複勝_購入額"] = sum(a for _,a in grouped["複勝"])
+                    if grouped["馬連"]:
+                        result["STANDARD_馬連_買い目"] = " / ".join(k for k,_ in grouped["馬連"])
+                        result["STANDARD_馬連_購入額"] = sum(a for _,a in grouped["馬連"])
+        except Exception as e:
+            logger.warning(f"STANDARD EV 計算失敗 {place} {cls_raw}: {e}")
 
     # ── TRIPLE: 三連複◎◯▲1点(¥1,000) + 複勝◎(残り) ──────────────
     h3 = h_marks.get("▲")

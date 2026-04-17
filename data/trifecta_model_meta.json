@@ -1,0 +1,24 @@
+{
+  "feature_cols": [
+    "ensemble_prob",
+    "prob_rank",
+    "prob_z",
+    "gap_top1",
+    "gap_top2",
+    "field_size",
+    "race_prob_std",
+    "race_entropy",
+    "race_gap_12",
+    "is_honmei",
+    "is_taikou",
+    "is_sabo",
+    "is_delta"
+  ],
+  "best_top_combos": 3,
+  "oos_roi": 132.2123,
+  "oos_hits": 148,
+  "oos_n_races": 2676,
+  "train_months": "2024/01-09",
+  "val_months": "2024/10-12",
+  "oos_year": 2025
+}
