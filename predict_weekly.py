@@ -1946,34 +1946,38 @@ def main() -> None:
                 print(f"\n【TRIPLE 買い目一覧（{args.triple_type}: 三連複◎◯▲1点 + 複勝◎1点）】")
                 print(triple_disp.to_string(index=False))
 
-        haho_disp = hon_rows[hon_rows["HAHO_戦略対象"]=="✅"][[
-            "日付","場所","R","クラス","距離","馬名",
-            "HAHO_三連複_買い目","HAHO_三連複_購入額",
-        ]]
-        if not haho_disp.empty:
-            print("\n【HAHO 買い目一覧（三連複◎1頭軸-5頭流し）】")
-            print(haho_disp.to_string(index=False))
-        halo_disp = hon_rows[hon_rows["HALO_戦略対象"]=="✅"][[
-            "日付","場所","R","クラス","距離","馬名",
-            "HALO_三連単_買い目","HALO_三連単_購入額",
-        ]]
-        if not halo_disp.empty:
-            print("\n【HALO 買い目一覧（三連単フォーメーション）】")
-            print(halo_disp.to_string(index=False))
-        lalo_disp = hon_rows[hon_rows["LALO_戦略対象"]=="✅"][[
-            "日付","場所","R","クラス","距離","馬名",
-            "LALO_複勝_買い目","LALO_複勝_購入額",
-        ]]
-        if not lalo_disp.empty:
-            print("\n【LALO 買い目一覧（複勝◎1点のみ）】")
-            print(lalo_disp.to_string(index=False))
-        cqc_disp = hon_rows[hon_rows["CQC_戦略対象"]=="✅"][[
-            "日付","場所","R","クラス","距離","馬名",
-            "CQC_単勝_買い目","CQC_単勝_購入額",
-        ]]
-        if not cqc_disp.empty:
-            print("\n【CQC 買い目一覧（単勝◎1点のみ）】")
-            print(cqc_disp.to_string(index=False))
+        if "HAHO_戦略対象" in hon_rows.columns:
+            haho_disp = hon_rows[hon_rows["HAHO_戦略対象"]=="✅"][[
+                "日付","場所","R","クラス","距離","馬名",
+                "HAHO_三連複_買い目","HAHO_三連複_購入額",
+            ]]
+            if not haho_disp.empty:
+                print("\n【HAHO 買い目一覧（三連複◎1頭軸-5頭流し）】")
+                print(haho_disp.to_string(index=False))
+        if "HALO_戦略対象" in hon_rows.columns:
+            halo_disp = hon_rows[hon_rows["HALO_戦略対象"]=="✅"][[
+                "日付","場所","R","クラス","距離","馬名",
+                "HALO_三連単_買い目","HALO_三連単_購入額",
+            ]]
+            if not halo_disp.empty:
+                print("\n【HALO 買い目一覧（三連単フォーメーション）】")
+                print(halo_disp.to_string(index=False))
+        if "LALO_戦略対象" in hon_rows.columns:
+            lalo_disp = hon_rows[hon_rows["LALO_戦略対象"]=="✅"][[
+                "日付","場所","R","クラス","距離","馬名",
+                "LALO_複勝_買い目","LALO_複勝_購入額",
+            ]]
+            if not lalo_disp.empty:
+                print("\n【LALO 買い目一覧（複勝◎1点のみ）】")
+                print(lalo_disp.to_string(index=False))
+        if "CQC_戦略対象" in hon_rows.columns:
+            cqc_disp = hon_rows[hon_rows["CQC_戦略対象"]=="✅"][[
+                "日付","場所","R","クラス","距離","馬名",
+                "CQC_単勝_買い目","CQC_単勝_購入額",
+            ]]
+            if not cqc_disp.empty:
+                print("\n【CQC 買い目一覧（単勝◎1点のみ）】")
+                print(cqc_disp.to_string(index=False))
 
         # ★EV推奨レース（CQC対象 かつ 期待値スコア >= 1.5）
         if "期待値スコア" in hon_rows.columns:
@@ -1982,7 +1986,7 @@ def main() -> None:
             ev_col = "乖離スコア"
         else:
             ev_col = None
-        if ev_col:
+        if ev_col and "CQC_戦略対象" in hon_rows.columns:
             ev_cands = hon_rows[
                 (hon_rows["CQC_戦略対象"] == "✅") &
                 (pd.to_numeric(hon_rows[ev_col], errors="coerce") >= 1.5)
