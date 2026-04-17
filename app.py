@@ -3950,6 +3950,246 @@ def page_value_candidates(all_df: pd.DataFrame) -> None:
 
 
 # =========================================================
+# プラン選択ガイドページ
+# =========================================================
+def page_plan_selector(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
+    """全レース横断で「どのプランを買うか」を1画面に提示する専用タブ。"""
+    import math
+
+    race_id_col = "レースID(新/馬番無)"
+
+    # ── データ収集 ──────────────────────────────────────────
+    rows = []
+    for race_id, grp in all_df.groupby(race_id_col):
+        meta     = grp.iloc[0]
+        place    = str(meta.get("場所", ""))
+        cls_raw  = str(meta.get("クラス名", ""))
+        hon_row  = grp[grp["mark"] == "◎"]
+        if hon_row.empty:
+            continue
+        hon_name  = str(hon_row.iloc[0]["馬名"])
+        hon_score = float(hon_row.iloc[0].get("score", 0) or 0)
+        ev_score  = float(hon_row.iloc[0].get("ev_score", 0) or 0)
+
+        bets_all = get_bets(grp, place, cls_raw, strategy, budget)
+        if not bets_all:
+            continue
+
+        halo_bets  = bets_all.get("HALO",     [])
+        halo_info  = bets_all.get("_HALO_INFO", {})
+        haho_bets  = bets_all.get("HAHO",     [])
+        std_bets   = bets_all.get("STANDARD", [])
+        triple_bets= bets_all.get("TRIPLE",   [])
+
+        halo_src   = halo_info.get("source", "") if halo_info else ""
+        halo_pat   = halo_info.get("pattern", "") if halo_info else ""
+        halo_ai    = halo_src in ("trifecta_model_v1", "order_model", "order_model_high_conf")
+
+        # ── 推奨プラン決定ロジック ─────────────────────────
+        # スコアリング: 数値が高いほど優先
+        plan_scores: dict[str, float] = {}
+        if halo_bets:
+            base = 80.0 if halo_ai else 50.0
+            plan_scores["HALO"] = base + min(ev_score * 5, 20)
+        if std_bets:
+            std_ev_max = max((b.get("EV", 1.0) for b in std_bets), default=1.0)
+            plan_scores["STANDARD"] = 40.0 + (std_ev_max - 1.0) * 30
+        if haho_bets:
+            plan_scores["HAHO"] = 20.0
+        if triple_bets:
+            plan_scores["TRIPLE"] = 15.0
+
+        if not plan_scores:
+            continue
+
+        rec_plan = max(plan_scores, key=lambda k: plan_scores[k])
+
+        # 推奨プランの買い目テキスト
+        def _fmt_bets(bets: list) -> tuple[str, int]:
+            lines, total = [], 0
+            for b in bets:
+                lines.append(f'{b.get("馬券種","")}{b.get("買い目","")} ¥{b.get("購入額",0):,}')
+                total += int(b.get("購入額", 0))
+            return " / ".join(lines[:4]) + ("…" if len(lines) > 4 else ""), total
+
+        rec_bets_map = {
+            "HALO": halo_bets, "STANDARD": std_bets,
+            "HAHO": haho_bets, "TRIPLE": triple_bets,
+        }
+        rec_bets_text, rec_total = _fmt_bets(rec_bets_map.get(rec_plan, []))
+
+        # 推奨理由テキスト
+        if rec_plan == "HALO":
+            reason = f"{'🧠AI ' + halo_pat if halo_ai else '📐Rule ' + halo_pat}"
+            if ev_score >= 1.3:
+                reason += f" EV:{ev_score:.2f}"
+        elif rec_plan == "STANDARD":
+            std_ev_max = max((b.get("EV", 1.0) for b in std_bets), default=1.0)
+            types = list(dict.fromkeys(b.get("馬券種","") for b in std_bets))
+            reason = f"EV:{std_ev_max:.2f} {'+'.join(types)}"
+        elif rec_plan == "HAHO":
+            reason = f"三連複◎軸{len(haho_bets)}点"
+        else:
+            reason = f"三連複+複勝{len(triple_bets)}点"
+
+        # 有効プラン一覧
+        active = [p for p in ["HALO","STANDARD","HAHO","TRIPLE"] if p in plan_scores and p != rec_plan]
+
+        rows.append({
+            "_race_id":    race_id,
+            "場所":        place,
+            "R":           int(meta.get("R", 0)),
+            "クラス":      cls_raw,
+            "距離":        f'{meta.get("芝・ダ","")}{meta.get("距離","")}m',
+            "発走":        str(meta.get("発走時刻", "")),
+            "◎":           hon_name,
+            "スコア":      round(hon_score, 1),
+            "推奨":        rec_plan,
+            "理由":        reason,
+            "買い目":      rec_bets_text,
+            "総額":        rec_total,
+            "他プラン":    " ".join(active),
+            # 詳細表示用
+            "_halo_bets":  halo_bets,
+            "_halo_info":  halo_info,
+            "_std_bets":   std_bets,
+            "_haho_bets":  haho_bets,
+            "_triple_bets":triple_bets,
+            "_plan_scores":plan_scores,
+        })
+
+    if not rows:
+        st.info("データがありません。CSVを読み込んでください。")
+        return
+
+    # ── フィルター UI ───────────────────────────────────────
+    all_places = sorted({r["場所"] for r in rows})
+    col_f1, col_f2 = st.columns([2, 2])
+    with col_f1:
+        sel_places = st.multiselect("会場", all_places, default=all_places, key="ps_place")
+    with col_f2:
+        sel_plan = st.selectbox("推奨プランで絞り込み",
+                                ["すべて","HALO","STANDARD","HAHO","TRIPLE"],
+                                key="ps_plan_filter")
+
+    filtered = [r for r in rows
+                if r["場所"] in sel_places
+                and (sel_plan == "すべて" or r["推奨"] == sel_plan)]
+
+    if not filtered:
+        st.warning("該当レースなし")
+        return
+
+    # ── サマリ統計 ─────────────────────────────────────────
+    total_budget = sum(r["総額"] for r in filtered)
+    plan_counts  = {}
+    for r in filtered:
+        plan_counts[r["推奨"]] = plan_counts.get(r["推奨"], 0) + 1
+
+    mc1, mc2, mc3, mc4 = st.columns(4)
+    mc1.metric("対象レース数", f"{len(filtered)} R")
+    mc2.metric("推奨総投資額", f"¥{total_budget:,}")
+    mc3.metric("主力プラン", max(plan_counts, key=lambda k: plan_counts[k]) if plan_counts else "-")
+    mc4.metric("HALO(AI)本数", sum(1 for r in filtered if r["推奨"]=="HALO" and "🧠AI" in r["理由"]))
+
+    st.divider()
+
+    # ── レース別テーブル + 詳細 expander ──────────────────────
+    _PLAN_COLOR = {
+        "HALO":     "#89b4fa",   # blue
+        "STANDARD": "#a6e3a1",   # green
+        "HAHO":     "#fab387",   # peach
+        "TRIPLE":   "#cba6f7",   # mauve
+    }
+
+    for r in sorted(filtered, key=lambda x: (x["場所"], x["R"])):
+        plan  = r["推奨"]
+        color = _PLAN_COLOR.get(plan, "#cdd6f4")
+
+        # ヘッダ行
+        hcol1, hcol2, hcol3, hcol4, hcol5 = st.columns([1, 0.6, 1.8, 2.5, 1.5])
+        with hcol1:
+            st.markdown(
+                f'<span style="font-size:13px;color:#cdd6f4">'
+                f'<b>{r["場所"]}</b>{r["R"]}R&nbsp;{r["発走"]}</span>',
+                unsafe_allow_html=True)
+        with hcol2:
+            st.markdown(
+                f'<span style="background:{color};color:#1e1e2e;'
+                f'padding:2px 8px;border-radius:4px;font-weight:bold;font-size:12px">'
+                f'{plan}</span>',
+                unsafe_allow_html=True)
+        with hcol3:
+            st.markdown(
+                f'<span style="color:#cdd6f4;font-size:12px">◎ {r["◎"]}'
+                f' <span style="color:#888">(スコア:{r["スコア"]})</span></span>',
+                unsafe_allow_html=True)
+        with hcol4:
+            st.markdown(
+                f'<span style="color:#a6e3a1;font-size:11px">{r["理由"]}</span>',
+                unsafe_allow_html=True)
+        with hcol5:
+            other_str = r["他プラン"]
+            st.markdown(
+                f'<span style="color:#888;font-size:11px">'
+                f'¥{r["総額"]:,}'
+                + (f' | 他: {other_str}' if other_str else '')
+                + '</span>',
+                unsafe_allow_html=True)
+
+        # expander で全プランの詳細
+        with st.expander(f'　詳細・プラン切替 [{r["クラス"]} {r["距離"]}]', expanded=False):
+            det_tabs_list = []
+            det_labels    = []
+            bets_by_plan  = {
+                "HALO":     r["_halo_bets"],
+                "STANDARD": r["_std_bets"],
+                "HAHO":     r["_haho_bets"],
+                "TRIPLE":   r["_triple_bets"],
+            }
+            for p in ["HALO","STANDARD","HAHO","TRIPLE"]:
+                if bets_by_plan[p]:
+                    star = "⭐ " if p == plan else ""
+                    det_labels.append(f"{star}{p}")
+                    det_tabs_list.append(p)
+
+            if det_labels:
+                tabs_obj = st.tabs(det_labels)
+                for tab_obj, p_name in zip(tabs_obj, det_tabs_list):
+                    with tab_obj:
+                        bets = bets_by_plan[p_name]
+                        if p_name == "HALO" and r["_halo_info"]:
+                            info  = r["_halo_info"]
+                            src   = info.get("source","")
+                            pat   = info.get("pattern","")
+                            src_tag = "🧠 AIモデル" if src in ("trifecta_model_v1","order_model","order_model_high_conf") else "📐 スコアルール"
+                            f_lst = info.get("first",  [])
+                            s_lst = info.get("second", [])
+                            t_lst = info.get("third",  [])
+                            fmt = ""
+                            if f_lst and s_lst and t_lst:
+                                fmt = f'{"・".join(map(str,f_lst))} → {"・".join(map(str,s_lst))} → {"・".join(map(str,t_lst))}'
+                            st.caption(f"{src_tag}  パターン: {pat}  {fmt}")
+                        total_p = 0
+                        for b in bets:
+                            amt = int(b.get("購入額", 0))
+                            total_p += amt
+                            ev_str = f'  EV:{b["EV"]:.2f}' if "EV" in b else ""
+                            st.markdown(
+                                f'<span style="color:#cdd6f4">'
+                                f'{b.get("馬券種","")} '
+                                f'<b>{b.get("買い目","")}</b>'
+                                f'</span>'
+                                f'<span style="color:#888;margin-left:8px">¥{amt:,}{ev_str}</span>',
+                                unsafe_allow_html=True)
+                        st.markdown(
+                            f'<span style="color:#f38ba8;font-size:12px">合計 ¥{total_p:,}</span>',
+                            unsafe_allow_html=True)
+
+        st.markdown('<hr style="border-color:#313244;margin:4px 0">', unsafe_allow_html=True)
+
+
+# =========================================================
 # 今日の買い目専用ページ
 # =========================================================
 def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
@@ -4107,7 +4347,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             info = r.get("HALO_info", {}) if isinstance(r, dict) else {}
             pattern = info.get("pattern", "フォーメーション")
             src     = info.get("source", "")
-            src_tag = "🧠AI" if src == "order_model" else "📐Rule"
+            src_tag = "🧠AI" if src in ("order_model", "trifecta_model_v1", "order_model_high_conf") else "📐Rule"
             first   = info.get("first", [])
             second  = info.get("second", [])
             third   = info.get("third", [])
@@ -4799,7 +5039,7 @@ def page_race_detail(
                                 if halo_info:
                                     pattern = halo_info.get("pattern", "")
                                     src = halo_info.get("source", "")
-                                    src_tag = "🧠 着順予測モデル" if src == "order_model" else "📐 スコアルール"
+                                    src_tag = "🧠 AIモデル" if src in ("order_model", "trifecta_model_v1", "order_model_high_conf") else "📐 スコアルール"
                                     first  = halo_info.get("first", [])
                                     second = halo_info.get("second", [])
                                     third  = halo_info.get("third", [])
@@ -4965,8 +5205,8 @@ def main() -> None:
     race_id_col = "レースID(新/馬番無)"
 
     # メインタブ
-    main_tab1, main_tab2, main_tab3, main_tab4, main_tab5, main_tab6, main_tab7 = st.tabs(
-        ["🏇 レース予想", "🎫 今日の買い目", "⭐ EV候補", "💰 VALUE複勝", "📊 的中実績",
+    main_tab1, main_tab2, main_tab_ps, main_tab3, main_tab4, main_tab5, main_tab6, main_tab7 = st.tabs(
+        ["🏇 レース予想", "🎫 今日の買い目", "🎯 プラン選択", "⭐ EV候補", "💰 VALUE複勝", "📊 的中実績",
          "📊 ROIヒートマップ", "📋 結果フィードバック"]
     )
 
@@ -4985,6 +5225,9 @@ def main() -> None:
 
     with main_tab3:
         page_ev_candidates(all_df)
+
+    with main_tab_ps:
+        page_plan_selector(all_df, strategy, budget)
 
     with main_tab2:
         page_buylist(all_df, strategy, budget)
