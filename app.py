@@ -5191,7 +5191,21 @@ def page_race_detail(
                                 )
 
         with tab2:
-            render_pyca_evaluation_list(race_df)
+            # 全頭分析は matplotlib 図を 1 レース 32 枚レンダーするため重い
+            # （体感15秒の主因）。レース毎にユーザーが開いたときだけ計算する遅延方式。
+            rid_key = str(meta.get("レースID(新/馬番無)", "")) or f"{place}_{r_num}"
+            _flag_key = f"pyca_eval_open_{rid_key}"
+            if st.session_state.get(_flag_key, False):
+                render_pyca_evaluation_list(race_df)
+                if st.button("🔽 全頭分析を閉じる", key=f"pyca_close_{rid_key}"):
+                    st.session_state[_flag_key] = False
+                    st.rerun()
+            else:
+                st.info("全頭分析は matplotlib 描画が多く時間がかかるため、必要なときのみ表示します。")
+                if st.button("🔍 全頭分析を表示", key=f"pyca_open_{rid_key}",
+                             type="primary", use_container_width=True):
+                    st.session_state[_flag_key] = True
+                    st.rerun()
 
 
         with tab3:
