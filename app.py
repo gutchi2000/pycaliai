@@ -5063,13 +5063,8 @@ def page_race_detail(
         else:
             st.info("ℹ️ 戦略対象外（参考予想）")
 
-        shap_ok = False; shap_vals: list = []; feature_cols: list = []
-        with st.spinner("SHAP計算中..."):
-            try:
-                shap_vals, feature_cols = compute_shap(lgbm_obj, race_df.to_json())
-                shap_ok = True
-            except Exception as e:
-                st.warning(f"SHAP計算失敗: {e}")
+        # SHAP 計算は結果を使用していなかった（21秒の主因）ため削除。
+        # 将来 SHAP を UI に出す場合は、ユーザー操作（expander/ボタン）で遅延計算にすること。
 
         render_danger_favorite_badge(race_df)
 
