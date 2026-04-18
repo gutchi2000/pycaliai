@@ -1887,6 +1887,99 @@ def _build_sanrentan_formation(race_df: pd.DataFrame, h_marks: dict,
     return bets, info
 
 
+# ============================================================
+# Stage 1-07: precompute buylist_bets_*.parquet から bets を再構築
+# ============================================================
+@st.cache_data(show_spinner=False)
+def _load_precomputed_bets(date_str: str) -> pd.DataFrame | None:
+    """reports/buylist_bets_YYYYMMDD.parquet があれば読み込み、race_id で index 可能な DF を返す。"""
+    if not date_str:
+        return None
+    pq = BASE_DIR / "reports" / f"buylist_bets_{date_str}.parquet"
+    if not pq.exists():
+        return None
+    try:
+        df = pd.read_parquet(pq)
+        df["race_id"] = df["race_id"].astype(str)
+        return df
+    except Exception as e:
+        logger.warning(f"precompute bets parquet 読込失敗 {pq}: {e}")
+        return None
+
+
+def _reconstruct_bets_from_precompute(bets_df: pd.DataFrame) -> dict:
+    """precompute された bets 行群 (1 race 分) を app.py 形式の bets_all dict に再構築する。"""
+    result: dict = {}
+    if bets_df.empty:
+        return result
+
+    for plan, grp in bets_df.groupby("plan"):
+        items = []
+        for _, r in grp.iterrows():
+            amt = int(r["amount"]) if pd.notna(r.get("amount")) else 0
+            if amt <= 0:
+                continue
+            d = {
+                "馬券種": str(r.get("bet_type", "")),
+                "買い目": str(r.get("combo", "")),
+                "購入額": amt,
+                "ROI":    0,
+            }
+            ev_val = r.get("ev")
+            if pd.notna(ev_val):
+                d["EV"] = round(float(ev_val), 3)
+            items.append(d)
+        if items:
+            result[plan] = items
+
+    # _HALO_INFO を combo から最低限再構築（pattern は top_n から推定）
+    halo_rows = bets_df[bets_df["plan"] == "HALO"]
+    if not halo_rows.empty:
+        firsts, seconds, thirds = set(), set(), set()
+        for c in halo_rows["combo"].astype(str):
+            parts = c.replace("→", "-").split("-")
+            if len(parts) == 3:
+                try:
+                    f, s, t = int(parts[0]), int(parts[1]), int(parts[2])
+                    firsts.add(f); seconds.add(s); thirds.add(t)
+                except ValueError:
+                    pass
+        n_combos = len(halo_rows)
+        pattern = f"trifecta_v1[top{n_combos}]" if n_combos <= 9 else "フォーメーション"
+        result["_HALO_INFO"] = {
+            "pattern":  pattern,
+            "source":   "trifecta_model_v1",  # precompute 由来は大半が trifecta 経由
+            "n_combos": n_combos,
+            "first":    sorted(firsts),
+            "second":   sorted(seconds),
+            "third":    sorted(thirds),
+        }
+    return result
+
+
+def get_bets_cached(race_df: pd.DataFrame, place: str, cls_raw: str,
+                    strategy: dict, budget: int, selected_date: str = "") -> dict:
+    """get_bets() の高速版。precompute parquet があればそれを使う（推論スキップ）。
+
+    Streamlit 画面切替時の遅延を防ぐ主要入口。
+    """
+    # race_id 取得
+    rid = ""
+    if "レースID(新/馬番無)" in race_df.columns and len(race_df) > 0:
+        rid = str(race_df["レースID(新/馬番無)"].iloc[0])
+
+    # 高速パス
+    if selected_date and rid:
+        pre = _load_precomputed_bets(selected_date)
+        if pre is not None and not pre.empty:
+            sub = pre[pre["race_id"] == rid]
+            if not sub.empty:
+                return _reconstruct_bets_from_precompute(sub)
+
+    # フォールバック: 従来のライブ計算
+    return get_bets(race_df, place, cls_raw, strategy, budget)
+
+
 def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
              strategy: dict, budget: int) -> dict:
     """HAHO（三連複◎軸5頭流し）/ HALO（三連単フォーメーション）
@@ -3976,6 +4069,10 @@ def page_plan_selector(all_df: pd.DataFrame, strategy: dict, budget: int) -> Non
     import math
 
     race_id_col = "レースID(新/馬番無)"
+    try:
+        _psel_date = str(all_df["日付S"].iloc[0]) if "日付S" in all_df.columns and len(all_df) > 0 else ""
+    except Exception:
+        _psel_date = ""
 
     # ── データ収集 ──────────────────────────────────────────
     rows = []
@@ -3990,7 +4087,7 @@ def page_plan_selector(all_df: pd.DataFrame, strategy: dict, budget: int) -> Non
         hon_score = float(hon_row.iloc[0].get("score", 0) or 0)
         ev_score  = float(hon_row.iloc[0].get("ev_score", 0) or 0)
 
-        bets_all = get_bets(grp, place, cls_raw, strategy, budget)
+        bets_all = get_bets_cached(grp, place, cls_raw, strategy, budget, selected_date=_psel_date)
         if not bets_all:
             continue
 
@@ -4227,7 +4324,7 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         hon_row = grp[grp["mark"] == "◎"]
         hon_name  = str(hon_row.iloc[0]["馬名"])  if not hon_row.empty else "-"
         hon_score = float(hon_row.iloc[0]["score"]) if not hon_row.empty else 0.0
-        bets_all  = get_bets(grp, place, cls_raw, strategy, budget)
+        bets_all  = get_bets_cached(grp, place, cls_raw, strategy, budget, selected_date=selected_date)
         if not bets_all:
             continue
         race_metas.append({
@@ -5018,7 +5115,11 @@ def page_race_detail(
             if in_strategy:
                 st.markdown("---")
                 st.markdown("### 🎯 買い目")
-                bets_all = get_bets(race_df, place, cls_raw, strategy, budget)
+                try:
+                    _rd_date = str(race_df["日付S"].iloc[0]) if "日付S" in race_df.columns and len(race_df) > 0 else ""
+                except Exception:
+                    _rd_date = ""
+                bets_all = get_bets_cached(race_df, place, cls_raw, strategy, budget, selected_date=_rd_date)
                 if not bets_all:
                     st.warning("買い目を生成できませんでした。")
                 else:
