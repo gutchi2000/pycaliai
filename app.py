@@ -1895,7 +1895,9 @@ def _load_precomputed_bets(date_str: str) -> pd.DataFrame | None:
     """reports/buylist_bets_YYYYMMDD.parquet があれば読み込み、race_id で index 可能な DF を返す。"""
     if not date_str:
         return None
-    pq = BASE_DIR / "reports" / f"buylist_bets_{date_str}.parquet"
+    # "2026.04.19" / "2026-04-19" のようなドット・ハイフン付きを "20260419" に正規化
+    date_norm = str(date_str).replace(".", "").replace("-", "").replace("/", "")
+    pq = BASE_DIR / "reports" / f"buylist_bets_{date_norm}.parquet"
     if not pq.exists():
         return None
     try:
