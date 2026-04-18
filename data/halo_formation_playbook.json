@@ -1,0 +1,80 @@
+{
+  "baseline": {
+    "val_roi": 149.21,
+    "test_roi": 120.64,
+    "n_val": 2638,
+    "n_test": 2676
+  },
+  "cells": {
+    "ダ_中": {
+      "top_n": 3,
+      "ev_gate": 0.0,
+      "val_roi": 110.58,
+      "val_n": 481,
+      "val_hits": 25,
+      "oos_roi": 135.12,
+      "oos_n": 458,
+      "oos_hits": 36,
+      "note": "baseline (top3,gate=0) - alt not significantly better"
+    },
+    "ダ_多": {
+      "top_n": 3,
+      "ev_gate": 0.0,
+      "val_roi": 209.64,
+      "val_n": 689,
+      "val_hits": 28,
+      "oos_roi": 155.7,
+      "oos_n": 745,
+      "oos_hits": 25,
+      "note": "baseline (top3,gate=0) - alt not significantly better"
+    },
+    "ダ_少": {
+      "top_n": 0,
+      "ev_gate": 999.0,
+      "val_roi": 59.9,
+      "val_n": 170,
+      "oos_roi": 82.26,
+      "oos_n": 137,
+      "note": "NO_BET (base val_roi 59.9 < 100.0)"
+    },
+    "芝_中": {
+      "top_n": 0,
+      "ev_gate": 999.0,
+      "val_roi": 96.66,
+      "val_n": 410,
+      "oos_roi": 72.73,
+      "oos_n": 417,
+      "note": "NO_BET (base val_roi 96.7 < 100.0)"
+    },
+    "芝_多": {
+      "top_n": 3,
+      "ev_gate": 0.0,
+      "val_roi": 194.19,
+      "val_n": 554,
+      "val_hits": 17,
+      "oos_roi": 107.99,
+      "oos_n": 578,
+      "oos_hits": 16,
+      "note": "baseline (top3,gate=0) - alt not significantly better"
+    },
+    "芝_少": {
+      "top_n": 3,
+      "ev_gate": 0.0,
+      "val_roi": 115.58,
+      "val_n": 334,
+      "val_hits": 32,
+      "oos_roi": 120.02,
+      "oos_n": 341,
+      "oos_hits": 35,
+      "note": "baseline (top3,gate=0) - alt not significantly better"
+    }
+  },
+  "integrated_oos": {
+    "roi": 132.53,
+    "n_played": 2122,
+    "hits": 112,
+    "total_bet": 20371200,
+    "baseline_roi": 120.64,
+    "delta": 11.89
+  }
+}

@@ -1413,51 +1413,70 @@ def get_bets(race_df: pd.DataFrame, place: str, cls_raw: str,
     # 高信頼ケース（◎の絶対勝率 ≥ 0.50 かつ p_hon ≥ p_tai × 2.0）のみ補強
     # 根拠: backtest 5,309R で score-rule ROI 70.37% > order-model ROI 67.58%
     if h2 and not santan_blocked:
-        # === Stage 2-02: trifecta_model_v1 (LambdaRank + Plackett-Luce) を優先 ===
-        _tri_done = False
+        # === Stage 2-05: HALO playbook (条件別 NO_BET / top_n) ===
+        _playbook_top_n = 3
+        _playbook_no_bet = False
+        _playbook_cell   = ""
         try:
-            _tri_path = BASE_DIR / "models" / "trifecta_model_v1.pkl"
-            if _tri_path.exists():
-                import joblib as _jl
-                _tri_obj = _jl.load(_tri_path)
-                _tri_model = _tri_obj.get("model")
-                _tri_feats = _tri_obj.get("feature_cols")
-                if _tri_model is not None and _tri_feats is not None:
-                    from train_trifecta_model import add_race_features as _arf, pl_combo_probs as _plc, FEATURE_COLS as _TFC
-                    _rdf2 = race_df.copy()
-                    if "mark" not in _rdf2.columns:
-                        _mk_map = {v: k for k, v in h_marks.items()}
-                        _rdf2["mark"] = pd.to_numeric(_rdf2["馬番"], errors="coerce") \
-                                          .map(lambda ub: _mk_map.get(int(ub), "") if pd.notna(ub) else "")
-                    if "jyun" not in _rdf2.columns:
-                        _rdf2["jyun"] = float("nan")
-                    if "race_id" not in _rdf2.columns:
-                        _rdf2["race_id"] = "tmp"
-                    if "place" not in _rdf2.columns:
-                        _rdf2["place"] = place
-                    if "race_santan_pay" not in _rdf2.columns:
-                        _rdf2["race_santan_pay"] = 0.0
-                    if "ensemble_prob" not in _rdf2.columns:
-                        _rdf2["ensemble_prob"] = pd.to_numeric(
-                            _rdf2.get("prob", pd.Series(dtype=float)), errors="coerce").fillna(0.0)
-                    _rdf2 = _arf(_rdf2)
-                    _X2 = pd.DataFrame(
-                        [{f: float(r.get(f, 0)) for f in _TFC} for _, r in _rdf2.iterrows()])
-                    _ms2 = _tri_model.predict(_X2.fillna(0))
-                    _ubs2 = [int(r["馬番"]) for _, r in race_df.iterrows() if pd.notna(r.get("馬番"))]
-                    _sm2 = {ub: float(s) for ub, s in zip(_ubs2, _ms2)}
-                    _cwp = _plc(_sm2, top_n=min(8, len(_sm2)))
-                    if _cwp:
-                        _sel = [c for c, _ in _cwp[:3]]
-                        n = len(_sel)
-                        per_bet = max(100, (9600 // n // 100) * 100)
-                        result["HALO_戦略対象"]    = True
-                        result["HALO_三連単_買い目"] = " / ".join(f"{f}→{s}→{t}" for f, s, t in sorted(_sel))
-                        result["HALO_三連単_購入額"] = per_bet * n
-                        result["HALO_三連単_点数"]   = n
-                        _tri_done = True
-        except Exception as _te:
-            pass  # フォールバック: スコア差ルールへ
+            from utils import lookup_halo_policy as _lhp
+            _meta_row_pw = race_df.iloc[0] if len(race_df) > 0 else None
+            _shiba_da_pw = str(_meta_row_pw.get("芝・ダ", "")) if _meta_row_pw is not None else ""
+            _fsize_pw    = len(race_df)
+            _policy_pw   = _lhp(_shiba_da_pw, _fsize_pw)
+            _playbook_no_bet = bool(_policy_pw.get("no_bet"))
+            _playbook_top_n  = max(3, int(_policy_pw.get("top_n", 3)))
+            _playbook_cell   = _policy_pw.get("cell", "")
+        except Exception:
+            pass
+
+        # NO_BET セルは HALO 空欄のままスキップ
+        _tri_done = _playbook_no_bet
+
+        # === Stage 2-02: trifecta_model_v1 (LambdaRank + Plackett-Luce) を優先 ===
+        if not _playbook_no_bet:
+            try:
+                _tri_path = BASE_DIR / "models" / "trifecta_model_v1.pkl"
+                if _tri_path.exists():
+                    import joblib as _jl
+                    _tri_obj = _jl.load(_tri_path)
+                    _tri_model = _tri_obj.get("model")
+                    _tri_feats = _tri_obj.get("feature_cols")
+                    if _tri_model is not None and _tri_feats is not None:
+                        from train_trifecta_model import add_race_features as _arf, pl_combo_probs as _plc, FEATURE_COLS as _TFC
+                        _rdf2 = race_df.copy()
+                        if "mark" not in _rdf2.columns:
+                            _mk_map = {v: k for k, v in h_marks.items()}
+                            _rdf2["mark"] = pd.to_numeric(_rdf2["馬番"], errors="coerce") \
+                                              .map(lambda ub: _mk_map.get(int(ub), "") if pd.notna(ub) else "")
+                        if "jyun" not in _rdf2.columns:
+                            _rdf2["jyun"] = float("nan")
+                        if "race_id" not in _rdf2.columns:
+                            _rdf2["race_id"] = "tmp"
+                        if "place" not in _rdf2.columns:
+                            _rdf2["place"] = place
+                        if "race_santan_pay" not in _rdf2.columns:
+                            _rdf2["race_santan_pay"] = 0.0
+                        if "ensemble_prob" not in _rdf2.columns:
+                            _rdf2["ensemble_prob"] = pd.to_numeric(
+                                _rdf2.get("prob", pd.Series(dtype=float)), errors="coerce").fillna(0.0)
+                        _rdf2 = _arf(_rdf2)
+                        _X2 = pd.DataFrame(
+                            [{f: float(r.get(f, 0)) for f in _TFC} for _, r in _rdf2.iterrows()])
+                        _ms2 = _tri_model.predict(_X2.fillna(0))
+                        _ubs2 = [int(r["馬番"]) for _, r in race_df.iterrows() if pd.notna(r.get("馬番"))]
+                        _sm2 = {ub: float(s) for ub, s in zip(_ubs2, _ms2)}
+                        _cwp = _plc(_sm2, top_n=min(8, len(_sm2)))
+                        if _cwp:
+                            _sel = [c for c, _ in _cwp[:_playbook_top_n]]
+                            n = len(_sel)
+                            per_bet = max(100, (9600 // n // 100) * 100)
+                            result["HALO_戦略対象"]    = True
+                            result["HALO_三連単_買い目"] = " / ".join(f"{f}→{s}→{t}" for f, s, t in sorted(_sel))
+                            result["HALO_三連単_購入額"] = per_bet * n
+                            result["HALO_三連単_点数"]   = n
+                            _tri_done = True
+            except Exception as _te:
+                pass  # フォールバック: スコア差ルールへ
 
         if not _tri_done:
             # === Stage 2-01b: Optuna 最適化済み閾値を halo_thresholds.json から読み込み ===

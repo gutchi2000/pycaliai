@@ -50,6 +50,67 @@ def load_halo_thresholds() -> dict:
 
 
 # =====================================================
+# HALO 条件別 playbook (Stage 2-05)
+#   grid_search_playbook.py で生成される
+#   data/halo_formation_playbook.json を読む。
+#   セル key: "{芝ダ}_{field_bucket}"  例: "ダ_多"
+#   field_bucket: 少<=10 / 中 11-14 / 多 15+
+# =====================================================
+
+def _field_bucket_for_playbook(n: int) -> str:
+    if n <= 10: return "少"
+    if n <= 14: return "中"
+    return "多"
+
+
+@lru_cache(maxsize=1)
+def load_halo_playbook() -> dict:
+    """data/halo_formation_playbook.json を読み込み、cells dict を返す。
+
+    Returns:
+        {"ダ_多": {"top_n": 3, "ev_gate": 0.0, ...}, ...}
+        ファイル不存在 or 読み込み失敗時は空 dict（= 常に baseline 動作）。
+    """
+    json_path = Path(__file__).parent / "data" / "halo_formation_playbook.json"
+    try:
+        with open(json_path, encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("cells", {})
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        import warnings
+        warnings.warn(f"[load_halo_playbook] 読み込み失敗、baseline 動作: {e}")
+        return {}
+
+
+def lookup_halo_policy(shiba_da: str, field_size: int) -> dict:
+    """レース条件から HALO playbook のポリシーを引く。
+
+    Args:
+        shiba_da: "芝" または "ダ"
+        field_size: 出走頭数
+
+    Returns:
+        {"top_n": int, "ev_gate": float, "no_bet": bool, "note": str}
+        top_n=0 or no_bet=True → このレースは HALO を買わない。
+        該当セル無しは baseline (top_n=3, ev_gate=0) を返す。
+    """
+    playbook = load_halo_playbook()
+    key = f"{shiba_da}_{_field_bucket_for_playbook(field_size)}"
+    policy = playbook.get(key)
+    if policy is None:
+        # フォールバック: baseline
+        return {"top_n": 3, "ev_gate": 0.0, "no_bet": False,
+                "note": "no playbook cell, using baseline"}
+    top_n   = int(policy.get("top_n", 3))
+    ev_gate = float(policy.get("ev_gate", 0.0))
+    no_bet  = (top_n <= 0) or (ev_gate >= 99.0)
+    return {"top_n": top_n, "ev_gate": ev_gate, "no_bet": no_bet,
+            "note": policy.get("note", ""), "cell": key}
+
+
+# =====================================================
 # 馬券種別 EV ゲート閾値（Stage 1）
 #   ev_gate.py からも参照可。
 #   pass_ev_gate(bet_type, ev) 判定で使用。

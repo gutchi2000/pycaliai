@@ -1730,6 +1730,25 @@ def _build_sanrentan_formation(race_df: pd.DataFrame, h_marks: dict,
 
     info: dict = {"source": "score_rule"}
 
+    # === Stage 2-05: HALO playbook (条件別 top_n + NO_BET) を先にチェック ===
+    try:
+        from utils import lookup_halo_policy as _lhp
+        _meta_row = race_df.iloc[0] if len(race_df) > 0 else None
+        _shiba_da = str(_meta_row.get("芝・ダ", "")) if _meta_row is not None else ""
+        _fsize    = len(race_df)
+        _policy   = _lhp(_shiba_da, _fsize)
+        if _policy.get("no_bet"):
+            info.update({"source": "playbook_no_bet",
+                         "pattern": f"NO_BET[{_policy.get('cell','')}]",
+                         "n_combos": 0, "first": [], "second": [], "third": []})
+            return [], info
+        _playbook_top_n = max(3, int(_policy.get("top_n", 3)))
+        _playbook_gate  = float(_policy.get("ev_gate", 0.0))
+        info["_playbook_cell"] = _policy.get("cell", "")
+    except Exception:
+        _playbook_top_n = 3
+        _playbook_gate  = 0.0
+
     # === Stage 2-02: trifecta_model_v1 (LambdaRank + Plackett-Luce) を優先 ===
     try:
         tri_model, tri_feats = _load_trifecta_model()
@@ -1763,7 +1782,7 @@ def _build_sanrentan_formation(race_df: pd.DataFrame, h_marks: dict,
             _score_map = {ub: float(s) for ub, s in zip(_umabans, _model_scores)}
             _combos_with_prob = pl_combo_probs(_score_map, top_n=min(8, len(_score_map)))
             if _combos_with_prob:
-                _TOP_N = 3  # OOS 最高 ROI
+                _TOP_N = _playbook_top_n  # playbook 由来 (default 3)
                 _selected = [c for c, _ in _combos_with_prob[:_TOP_N]]
                 if _selected:
                     n = len(_selected)
@@ -1771,7 +1790,7 @@ def _build_sanrentan_formation(race_df: pd.DataFrame, h_marks: dict,
                     bets = [{"馬券種": "三連単", "買い目": f"{f}→{s}→{t}",
                              "購入額": per_bet, "ROI": 0}
                             for f, s, t in sorted(_selected)]
-                    info.update({"pattern": "trifecta_v1[top3]", "source": "trifecta_model_v1",
+                    info.update({"pattern": f"trifecta_v1[top{_TOP_N}]", "source": "trifecta_model_v1",
                                  "n_combos": n, "first": [], "second": [], "third": []})
                     return bets, info
     except Exception as _tri_e:
