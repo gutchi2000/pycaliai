@@ -444,6 +444,30 @@ def _make_sparkline(values: list, width: float = 1.6, height: float = 0.35):
     return fig
 
 
+@st.cache_data(show_spinner=False, max_entries=4096)
+def _sparkline_png(values_tuple: tuple) -> str:
+    """値タプルから sparkline PNG base64 data URL を生成（キャッシュあり）。"""
+    import base64, io as _io
+    fig = _make_sparkline(list(values_tuple))
+    buf = _io.BytesIO()
+    fig.savefig(buf, format="png", transparent=True, bbox_inches="tight", pad_inches=0)
+    plt.close(fig)
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+    return f"data:image/png;base64,{b64}"
+
+
+@st.cache_data(show_spinner=False, max_entries=4096)
+def _radar_png(values_tuple: tuple, labels_tuple: tuple, name: str) -> str:
+    """値タプルからレーダー PNG base64 data URL を生成（キャッシュあり）。"""
+    import base64, io as _io
+    fig = _pyca_radar_fig_impl(list(values_tuple), list(labels_tuple), name)
+    buf = _io.BytesIO()
+    fig.savefig(buf, format="png", facecolor=fig.get_facecolor(), bbox_inches="tight")
+    plt.close(fig)
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+    return f"data:image/png;base64,{b64}"
+
+
 def render_danger_favorite_badge(race_df) -> None:
     if race_df is None or race_df.empty:
         return
@@ -4868,8 +4892,8 @@ def _pyca_index(row_score: float, indicators: dict) -> float:
     return float(max(0.0, min(100.0, base + boost * 1.5)))
 
 
-def _pyca_radar_fig(values: list[float], labels: list[str], name: str):
-    """6軸レーダーチャート (matplotlib polar)。"""
+def _pyca_radar_fig_impl(values: list[float], labels: list[str], name: str):
+    """6軸レーダーチャート実装 (matplotlib polar)。キャッシュ経由で呼ぶこと。"""
     import matplotlib.pyplot as _plt
     import numpy as _np
     n = len(values)
@@ -4974,9 +4998,11 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
                 past = _real_pycali_history(name, cur_date, n=5)
                 series = past + [float(row["_pyca"])]
                 if len(series) >= 2:
-                    _sp = _make_sparkline(series)
-                    st.pyplot(_sp, use_container_width=False)
-                    plt.close(_sp)
+                    _sp_url = _sparkline_png(tuple(round(v, 1) for v in series))
+                    st.markdown(
+                        f'<img src="{_sp_url}" style="width:160px;height:auto">',
+                        unsafe_allow_html=True,
+                    )
                     st.caption(
                         f"PyCaLi指数履歴 ({len(past)}走+今走): "
                         + " → ".join(f"{v:.0f}" for v in series)
@@ -4987,9 +5013,13 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
                 logger.debug(f"sparkline skip: {_e}")
         with c_mid:
             vals = [float(row[norm_cols[k]]) for k, *_ in PYCA_INDICATORS]
-            fig = _pyca_radar_fig(vals, labels, name)
-            st.pyplot(fig, use_container_width=True)
-            plt.close(fig)
+            _radar_url = _radar_png(
+                tuple(round(v, 2) for v in vals), tuple(labels), name,
+            )
+            st.markdown(
+                f'<img src="{_radar_url}" style="width:100%;height:auto;max-width:320px">',
+                unsafe_allow_html=True,
+            )
         with c_right:
             st.markdown(
                 '<div style="font-size:17px;color:#6c7086;margin-bottom:6px">指数内訳 / 値 / レース内順位</div>',
@@ -5191,21 +5221,7 @@ def page_race_detail(
                                 )
 
         with tab2:
-            # 全頭分析は matplotlib 図を 1 レース 32 枚レンダーするため重い
-            # （体感15秒の主因）。レース毎にユーザーが開いたときだけ計算する遅延方式。
-            rid_key = str(meta.get("レースID(新/馬番無)", "")) or f"{place}_{r_num}"
-            _flag_key = f"pyca_eval_open_{rid_key}"
-            if st.session_state.get(_flag_key, False):
-                render_pyca_evaluation_list(race_df)
-                if st.button("🔽 全頭分析を閉じる", key=f"pyca_close_{rid_key}"):
-                    st.session_state[_flag_key] = False
-                    st.rerun()
-            else:
-                st.info("全頭分析は matplotlib 描画が多く時間がかかるため、必要なときのみ表示します。")
-                if st.button("🔍 全頭分析を表示", key=f"pyca_open_{rid_key}",
-                             type="primary", use_container_width=True):
-                    st.session_state[_flag_key] = True
-                    st.rerun()
+            render_pyca_evaluation_list(race_df)
 
 
         with tab3:
@@ -5319,6 +5335,9 @@ def main() -> None:
     predicted_json = predict_all_races(_cache_key, raw_df.to_json(), lgbm_obj, cat_obj)
     import io
     all_df = pd.read_json(io.StringIO(predicted_json))
+    # JSON round-trip で race_id が数値化する問題を修正（初期画面リダイレクトの主因）
+    if "レースID(新/馬番無)" in all_df.columns:
+        all_df["レースID(新/馬番無)"] = all_df["レースID(新/馬番無)"].astype(str)
 
     # ── Streamlit の表示結果を pred CSV として自動保存（的中実績の基準）──
     try:
@@ -5335,38 +5354,30 @@ def main() -> None:
 
     race_id_col = "レースID(新/馬番無)"
 
-    # メインタブ
-    main_tab1, main_tab2, main_tab_ps, main_tab3, main_tab4, main_tab5, main_tab6, main_tab7 = st.tabs(
-        ["🏇 レース予想", "🎫 今日の買い目", "🎯 プラン選択", "⭐ EV候補", "💰 VALUE複勝", "📊 的中実績",
-         "📊 ROIヒートマップ", "📋 結果フィードバック"]
+    # メインタブ（st.tabs は全タブ中身を毎回レンダーして重いため、
+    # radio ベースの擬似タブで選択中のみレンダリングする）
+    _TAB_LABELS = [
+        "🏇 レース予想", "🎫 今日の買い目", "🎯 プラン選択", "⭐ EV候補",
+        "💰 VALUE複勝", "📊 的中実績", "📊 ROIヒートマップ", "📋 結果フィードバック",
+    ]
+    if "active_main_tab" not in st.session_state:
+        st.session_state.active_main_tab = _TAB_LABELS[0]
+    active = st.radio(
+        "メインタブ", _TAB_LABELS,
+        index=_TAB_LABELS.index(st.session_state.active_main_tab)
+              if st.session_state.active_main_tab in _TAB_LABELS else 0,
+        horizontal=True, label_visibility="collapsed", key="active_main_tab",
     )
+    st.markdown("<hr style='margin:4px 0 12px;border-color:#313244'>", unsafe_allow_html=True)
 
     results = load_results()
 
-    with main_tab6:
-        render_roi_heatmap()
-    with main_tab7:
-        render_feedback_dashboard()
-
-    with main_tab5:
-        page_results(results)
-
-    with main_tab4:
-        page_value_candidates(all_df)
-
-    with main_tab3:
-        page_ev_candidates(all_df)
-
-    with main_tab_ps:
-        page_plan_selector(all_df, strategy, budget)
-
-    with main_tab2:
-        page_buylist(all_df, strategy, budget)
-
-    with main_tab1:
+    if active == "🏇 レース予想":
         # 選択中のrace_idが現在のCSVに存在しない場合リセット
         if st.session_state.selected_race_id is not None:
-            if st.session_state.selected_race_id not in all_df[race_id_col].values:
+            # 型揺れ対策（JSON 往復で int64 になるなど）: 文字列で比較する
+            st.session_state.selected_race_id = str(st.session_state.selected_race_id)
+            if st.session_state.selected_race_id not in all_df[race_id_col].astype(str).values:
                 st.session_state.selected_race_id = None
 
         if st.session_state.selected_race_id is None:
@@ -5381,8 +5392,22 @@ def main() -> None:
             st.markdown("---")
             page_race_list(all_df, strategy, budget)
         else:
-            race_df = all_df[all_df[race_id_col] == st.session_state.selected_race_id].copy()
+            race_df = all_df[all_df[race_id_col].astype(str) == st.session_state.selected_race_id].copy()
             page_race_detail(race_df.reset_index(drop=True), all_df, strategy, budget, lgbm_obj, course_trend)
+    elif active == "🎫 今日の買い目":
+        page_buylist(all_df, strategy, budget)
+    elif active == "🎯 プラン選択":
+        page_plan_selector(all_df, strategy, budget)
+    elif active == "⭐ EV候補":
+        page_ev_candidates(all_df)
+    elif active == "💰 VALUE複勝":
+        page_value_candidates(all_df)
+    elif active == "📊 的中実績":
+        page_results(results)
+    elif active == "📊 ROIヒートマップ":
+        render_roi_heatmap()
+    elif active == "📋 結果フィードバック":
+        render_feedback_dashboard()
 
 
 if __name__ == "__main__":
