@@ -4341,8 +4341,169 @@ def page_plan_selector(all_df: pd.DataFrame, strategy: dict, budget: int) -> Non
 # =========================================================
 # 今日の買い目専用ページ
 # =========================================================
+def _render_buylist_cowork_plan(race_metas: list, selected_date_str: str) -> None:
+    """page_buylist の「🤖 Cowork」プラン専用レンダリング。
+
+    reports/cowork_bets/{YYYYMMDD}/{race_id}.json から保存済み買い目を読んで、
+    理由 (race_reason / 各 bet の "理由") とともに表示する。
+    """
+    # "2026.4.26" → "20260426"
+    try:
+        ymd = "{:04d}{:02d}{:02d}".format(
+            *[int(x) for x in str(selected_date_str).split(".")]
+        )
+    except Exception:
+        st.warning(f"日付変換失敗: {selected_date_str}")
+        return
+
+    save_dir = COWORK_BETS_DIR / ymd
+    if not save_dir.exists():
+        st.info(
+            f"`{save_dir.relative_to(BASE_DIR).as_posix()}` がありません。"
+            "メインタブ「🤖 Cowork取込」で保存してください。"
+        )
+        return
+
+    # cowork_bets ファイル読み込み
+    cowork_data: dict = {}
+    for rmeta in race_metas:
+        rid = str(rmeta["race_id"])[:16]
+        p = save_dir / f"{rid}.json"
+        if p.exists():
+            try:
+                with open(p, encoding="utf-8") as f:
+                    cowork_data[rid] = json.load(f)
+            except Exception:
+                continue
+
+    if not cowork_data:
+        st.info(
+            f"`{save_dir.relative_to(BASE_DIR).as_posix()}/` に保存済み買い目が見つかりません。"
+            "メインタブ「🤖 Cowork取込」で保存してください。"
+        )
+        return
+
+    # 馬場フィルタ
+    all_babas    = sorted({r["馬場"] for r in race_metas if r["馬場"]})
+    baba_options = ["全馬場"] + all_babas
+    baba_filter  = st.selectbox("🏟 馬場フィルタ", baba_options, key="buylist_baba_cowork")
+
+    active = []
+    for rmeta in race_metas:
+        rid = str(rmeta["race_id"])[:16]
+        if rid not in cowork_data:
+            continue
+        if baba_filter != "全馬場" and rmeta["馬場"] != baba_filter:
+            continue
+        active.append((rmeta, cowork_data[rid]))
+
+    if not active:
+        st.info("このフィルタに該当する Cowork 保存済みレースがありません。")
+        return
+
+    # サマリ
+    total_yen = sum(sum(b.get("購入額", 0) for b in cd.get("bets", []))
+                    for _, cd in active)
+    n_bets = sum(len(cd.get("bets", [])) for _, cd in active)
+    n_pass = sum(1 for _, cd in active if not cd.get("bets"))
+    st.markdown(
+        f'<div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;'
+        f'padding:12px 16px;margin-bottom:16px;display:flex;gap:32px;align-items:center">'
+        f'<span style="color:#888">対象レース <b style="color:#cdd6f4;font-size:18px">{len(active)}R</b></span>'
+        f'<span style="color:#888">見送り <b style="color:#cdd6f4;font-size:18px">{n_pass}R</b></span>'
+        f'<span style="color:#888">点数 <b style="color:#cdd6f4;font-size:18px">{n_bets}</b></span>'
+        f'<span style="color:#888">合計投資予定 <b style="color:#cdd6f4;font-size:18px">¥{total_yen:,}</b></span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    # レース毎レンダー (◎見送りも含む)
+    for rmeta, cd in sorted(active, key=lambda x: (x[0]["場所"], x[0]["R"])):
+        bets = cd.get("bets", [])
+        race_nature = (cd.get("race_nature") or "").strip()
+        race_reason = (cd.get("race_reason") or "").strip()
+
+        nature_tag = ""
+        if race_nature:
+            color_map = {
+                "固い": "#a6e3a1", "中堅": "#89b4fa", "混戦": "#cba6f7",
+                "穴推奨": "#fab387", "見送り": "#6c7086",
+            }
+            nc = color_map.get(race_nature, "#fab387")
+            nature_tag = (
+                f'<span style="background:{nc};color:#1e1e2e;border-radius:4px;'
+                f'padding:2px 8px;font-size:11px;font-weight:bold;margin-left:8px">'
+                f'{race_nature}</span>'
+            )
+        st.markdown(
+            f'<div style="display:flex;align-items:center;gap:12px;'
+            f'padding:10px 0 4px;border-top:1px solid #2a2a3e;margin-top:4px">'
+            f'<span style="background:#313244;color:#cdd6f4;border-radius:4px;'
+            f'padding:2px 10px;font-weight:bold;font-size:15px">{rmeta["場所"]} {rmeta["R"]}R</span>'
+            f'{nature_tag}'
+            f'<span style="color:#888;font-size:13px">{rmeta["クラス"]}　{rmeta["発走"]}　{rmeta["距離"]}</span>'
+            f'<span style="color:#a6e3a1;font-size:13px;margin-left:auto">'
+            f'◎{rmeta["◎"]}　{rmeta["◎スコア"]:.1f}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        # レース根拠 (race_reason)
+        if race_reason:
+            st.markdown(
+                f'<div style="background:#1e1e2e;border-left:3px solid #fab387;'
+                f'padding:6px 10px;margin:4px 8px 8px;color:#cdd6f4;font-size:13px">'
+                f'<b style="color:#fab387">📝 根拠:</b> {race_reason}</div>',
+                unsafe_allow_html=True,
+            )
+
+        if not bets:
+            st.markdown(
+                f'<div style="padding:4px 8px 10px;color:#6c7086;font-size:13px">'
+                f'→ 見送り (購入額 0 円)</div>',
+                unsafe_allow_html=True,
+            )
+            continue
+
+        # 馬券リスト (馬券種ごとにグループ)
+        type_groups: dict = {}
+        for b in bets:
+            type_groups.setdefault(b.get("馬券種", "?"), []).append(b)
+
+        body_html = []
+        for btype, blist in type_groups.items():
+            type_total = sum(b.get("購入額", 0) for b in blist)
+            for b in blist:
+                rsn = (b.get("理由") or "").strip()
+                rsn_block = (
+                    f'<div style="color:#a6adc8;font-size:11px;margin:2px 0 4px;'
+                    f'padding-left:12px;border-left:2px solid #45475a">'
+                    f'💭 {rsn}</div>'
+                ) if rsn else ""
+                body_html.append(
+                    f'<div style="padding:3px 0">'
+                    f'<span style="color:#5865f2;min-width:60px;display:inline-block;'
+                    f'font-weight:bold;font-size:14px">{btype}</span>'
+                    f'<span style="color:#cdd6f4;font-size:14px">{b.get("買い目", "")}</span>'
+                    f'<span style="color:#888;margin-left:8px;font-size:13px">'
+                    f'¥{int(b.get("購入額", 0)):,}</span>'
+                    f'{rsn_block}'
+                    f'</div>'
+                )
+            # 馬券種末尾の小計
+            body_html.append(
+                f'<div style="padding-left:60px;color:#6c7086;font-size:11px;'
+                f'margin-bottom:6px">{btype}小計: ¥{type_total:,}</div>'
+            )
+
+        st.markdown(
+            f'<div style="padding:4px 8px 12px">{"".join(body_html)}</div>',
+            unsafe_allow_html=True,
+        )
+
+
 def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
-    """今日の買い目一覧ページ（HAHO/HALO プラン切替）。"""
+    """今日の買い目一覧ページ（STANDARD / Cowork プラン切替）。"""
     race_id_col = "レースID(新/馬番無)"
     # Stage 1-08: countdown 用に日付を取得
     if "日付S" in all_df.columns and not all_df.empty:
@@ -4399,15 +4560,32 @@ def page_buylist(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         st.info("本日の買い目対象レースがありません。")
         return
 
-    # プラン選択
-    plan = st.radio(
-        "プラン選択",
-        ["🔱 TRIPLE  三連複1点＋複勝（¥1,000固定＋残り複勝）",
-         "🛡️ HAHO   三連複◎軸5頭流し（10点×¥1,000）",
-         "🎯 HALO   三連単フォーメーション（AI自動選択）",
-         "📋 STANDARD 単勝＋複勝＋馬連（2:6:2）"],
-        horizontal=True, key="buylist_plan",
-    )
+    # プラン選択 (三連系 TRIPLE/HAHO/HALO は scope 外として一時 hide。
+    # 復活したい場合は _SHOW_TRIPLE_PLANS = True に戻す)
+    _SHOW_TRIPLE_PLANS = False
+    if _SHOW_TRIPLE_PLANS:
+        _plan_options = [
+            "🔱 TRIPLE  三連複1点＋複勝（¥1,000固定＋残り複勝）",
+            "🛡️ HAHO   三連複◎軸5頭流し（10点×¥1,000）",
+            "🎯 HALO   三連単フォーメーション（AI自動選択）",
+            "📋 STANDARD 単勝＋複勝＋馬連（2:6:2）",
+            "🤖 Cowork (Anthropic Desktop)  保存済み買い目 + 理由",
+        ]
+    else:
+        _plan_options = [
+            "📋 STANDARD 単勝＋複勝＋馬連（2:6:2）",
+            "🤖 Cowork (Anthropic Desktop)  保存済み買い目 + 理由",
+        ]
+    # 旧プラン選択 (TRIPLE/HAHO/HALO) が session_state に残ってると Streamlit がエラーを出すため
+    if ("buylist_plan" in st.session_state
+        and st.session_state["buylist_plan"] not in _plan_options):
+        del st.session_state["buylist_plan"]
+    plan = st.radio("プラン選択", _plan_options, horizontal=True, key="buylist_plan")
+
+    if plan.startswith("🤖"):
+        # ── Cowork レンダリング (専用ロジック) ──
+        _render_buylist_cowork_plan(race_metas, selected_date)
+        return
     if plan.startswith("🔱"):
         plan_key = "TRIPLE_bets"
     elif plan.startswith("🛡️"):
@@ -5134,11 +5312,16 @@ def parse_cowork_response(text: str) -> tuple[list[dict], list[str]]:
             except Exception:
                 errors.append(f"[{i}] race={rid} bet[{j}]: 購入額が数値でない (got {amt})")
                 continue
-            bets.append({"馬券種": btype, "買い目": sel.strip(), "購入額": amt_i})
+            reason = b.get("理由") or b.get("reason") or ""
+            bets.append({
+                "馬券種": btype, "買い目": sel.strip(),
+                "購入額": amt_i, "理由": str(reason),
+            })
         records.append({
-            "race_id": rid,
-            "race_label": str(race.get("race_label", "")),
+            "race_id":     rid,
+            "race_label":  str(race.get("race_label", "")),
             "race_nature": str(race.get("race_nature", "")),
+            "race_reason": str(race.get("race_reason") or race.get("根拠") or ""),
             "bets": bets,
         })
     return records, errors
@@ -5235,13 +5418,16 @@ def page_cowork_import(date_yyyymmdd: str, all_df: pd.DataFrame) -> None:
     )
 
     # ── 詳細 expander ──
-    with st.expander("各レース詳細を見る", expanded=False):
+    with st.expander("各レース詳細・理由を見る", expanded=False):
         for r in records:
             st.markdown(f"**{r['race_id']}**  {r.get('race_label', '')}  ({r.get('race_nature', '')})")
+            rsn = (r.get("race_reason") or "").strip()
+            if rsn:
+                st.caption(f"📝 {rsn}")
             if r["bets"]:
                 st.dataframe(pd.DataFrame(r["bets"]), use_container_width=True, hide_index=True)
             else:
-                st.caption("見送り (bets=[])")
+                st.caption("→ 見送り (bets=[])")
 
     # ── 保存 + git push ──
     if col_s.button("💾 全レース保存 + git push", type="primary",
@@ -5254,12 +5440,13 @@ def page_cowork_import(date_yyyymmdd: str, all_df: pd.DataFrame) -> None:
             p = save_dir / f"{r['race_id']}.json"
             with open(p, "w", encoding="utf-8") as f:
                 json.dump({
-                    "race_id":    r["race_id"],
-                    "race_label": r.get("race_label", ""),
+                    "race_id":     r["race_id"],
+                    "race_label":  r.get("race_label", ""),
                     "race_nature": r.get("race_nature", ""),
-                    "saved_at":   _dt.now().isoformat(timespec="seconds"),
-                    "bets":       r["bets"],
-                    "source":     "cowork_batch_import",
+                    "race_reason": r.get("race_reason", ""),
+                    "saved_at":    _dt.now().isoformat(timespec="seconds"),
+                    "bets":        r["bets"],
+                    "source":      "cowork_batch_import",
                 }, f, indent=2, ensure_ascii=False)
             saved_paths.append(p)
         st.success(f"✅ {len(saved_paths)} ファイル保存 → {save_dir.relative_to(BASE_DIR)}")
@@ -5470,12 +5657,25 @@ def render_cowork_bets_tab(race_df: pd.DataFrame,
             return
         bets = saved.get("bets", [])
         saved_at = (saved.get("saved_at", "") or "")[:19]
-        st.markdown(f"##### ✅ 保存済み買い目  <span style='color:#888;font-size:12px'>"
+        race_nature = saved.get("race_nature", "")
+        race_reason = saved.get("race_reason", "")
+        nature_str = f"  <span style='color:#fab387'>[{race_nature}]</span>" if race_nature else ""
+        st.markdown(f"##### ✅ 保存済み買い目{nature_str}  <span style='color:#888;font-size:12px'>"
                     f"({saved_at})</span>", unsafe_allow_html=True)
+        if race_reason:
+            st.markdown(
+                f'<div style="background:#1e1e2e;border-left:3px solid #fab387;'
+                f'padding:8px 12px;margin:6px 0;color:#cdd6f4;font-size:13px">'
+                f'<b style="color:#fab387">📝 レース全体の根拠:</b> {race_reason}</div>',
+                unsafe_allow_html=True,
+            )
         if not bets:
-            st.info("保存済みファイルに買い目がありません。")
+            st.info("→ 見送り (購入なし)")
+            st.caption(f"Cowork 提案を採用 ({cowork_bets_path.relative_to(BASE_DIR)})")
             return
         bets_df = pd.DataFrame(bets)
+        if "理由" not in bets_df.columns:
+            bets_df["理由"] = ""
         total_amt = int(bets_df["購入額"].sum())
         m1, m2, m3 = st.columns(3)
         m1.metric("合計購入額", f"{total_amt:,}円")
@@ -5484,21 +5684,31 @@ def render_cowork_bets_tab(race_df: pd.DataFrame,
         st.caption(f"Cowork 提案を採用 ({cowork_bets_path.relative_to(BASE_DIR)})")
         for bet_type, grp_b in bets_df.groupby("馬券種"):
             type_total = int(grp_b["購入額"].sum())
-            combos_html = "　".join([
-                f'<span style="font-size:16px;font-weight:bold;color:#cdd6f4">'
-                f'{row["買い目"]}</span>'
-                f'<span style="color:#888;font-size:12px">'
-                f'({int(row["購入額"]):,}円)</span>'
-                for _, row in grp_b.iterrows()
-            ])
+            rows_html = []
+            for _, row in grp_b.iterrows():
+                rsn = (row.get("理由") or "").strip()
+                rsn_block = (
+                    f'<div style="color:#a6adc8;font-size:12px;margin-top:4px;'
+                    f'padding-left:8px;border-left:2px solid #45475a">'
+                    f'💭 {rsn}</div>'
+                ) if rsn else ""
+                rows_html.append(
+                    f'<div style="margin-bottom:6px">'
+                    f'<span style="font-size:16px;font-weight:bold;color:#cdd6f4">'
+                    f'{row["買い目"]}</span>'
+                    f'<span style="color:#888;font-size:12px;margin-left:8px">'
+                    f'({int(row["購入額"]):,}円)</span>'
+                    f'{rsn_block}'
+                    f'</div>'
+                )
             st.markdown(
                 f'<div class="bet-card">'
                 f'<div style="display:flex;justify-content:space-between;'
-                f'margin-bottom:6px">'
+                f'margin-bottom:8px">'
                 f'<span style="color:#5865f2;font-weight:bold">{bet_type}</span>'
                 f'<span style="color:#888;font-size:12px">'
                 f'計{type_total:,}円</span>'
-                f'</div><div>{combos_html}</div></div>',
+                f'</div>{"".join(rows_html)}</div>',
                 unsafe_allow_html=True,
             )
     else:
@@ -5602,25 +5812,40 @@ def page_race_detail(
                 if not bets_all:
                     st.warning("買い目を生成できませんでした。")
                 else:
-                    det_tabs = st.tabs([
-                        "🔱 TRIPLE",
-                        "🛡️ HAHO ◎軸流し",
-                        "🎯 HALO 三連単マルチ",
-                        "📋 STANDARD 単複馬連",
-                        "🤖 Cowork (Anthropic Desktop)",
-                    ])
+                    # 三連系プラン (TRIPLE/HAHO/HALO) は scope 外として一時 hide。
+                    # 復活させたい場合は下記 _SHOW_TRIPLE_PLANS = True にする。
+                    _SHOW_TRIPLE_PLANS = False
+                    if _SHOW_TRIPLE_PLANS:
+                        det_tabs_labels = [
+                            "🔱 TRIPLE", "🛡️ HAHO ◎軸流し", "🎯 HALO 三連単マルチ",
+                            "📋 STANDARD 単複馬連", "🤖 Cowork (Anthropic Desktop)",
+                        ]
+                        _det_iter = [
+                            (0, "TRIPLE",   "三連複◎◯▲1点(¥1,000) + 複勝◎(残り)"),
+                            (1, "HAHO",     "三連複◎1頭軸-5頭流し（10点×¥1,000）"),
+                            (2, "HALO",     "三連単フォーメーション（AI自動選択）"),
+                            (3, "STANDARD", "単勝◎(20%) + 複勝◎(60%) + 馬連◎-◯(20%)"),
+                        ]
+                        _cowork_tab_idx = 4
+                    else:
+                        det_tabs_labels = [
+                            "📋 STANDARD 単複馬連",
+                            "🤖 Cowork (Anthropic Desktop)",
+                        ]
+                        _det_iter = [
+                            (0, "STANDARD", "単勝◎(20%) + 複勝◎(60%) + 馬連◎-◯(20%)"),
+                        ]
+                        _cowork_tab_idx = 1
+
+                    det_tabs = st.tabs(det_tabs_labels)
                     _no_bet_msg = {
                         "TRIPLE":   "このレースはTRIPLE対象外です（三連複or複勝がブロック）。",
                         "HAHO":     "このレースはHAHO対象外です（◎以外の馬不足or三連複ブロック）。",
                         "HALO":     "このレースはHALO対象外です（◎◯不足or三連単ブロック）。",
                         "STANDARD": "このレースはSTANDARD対象外です（3券種揃わず）。",
                     }
-                    for det_tab, plan_key, plan_label in [
-                        (det_tabs[0], "TRIPLE",   "三連複◎◯▲1点(¥1,000) + 複勝◎(残り)"),
-                        (det_tabs[1], "HAHO",     "三連複◎1頭軸-5頭流し（10点×¥1,000）"),
-                        (det_tabs[2], "HALO",     "三連単フォーメーション（AI自動選択）"),
-                        (det_tabs[3], "STANDARD", "単勝◎(20%) + 複勝◎(60%) + 馬連◎-◯(20%)"),
-                    ]:
+                    for tab_idx, plan_key, plan_label in _det_iter:
+                        det_tab = det_tabs[tab_idx]
                         with det_tab:
                             bets = bets_all.get(plan_key, [])
                             if not bets:
@@ -5674,7 +5899,7 @@ def page_race_detail(
                                 )
 
                     # ── Cowork タブ (PyCaLiAI 自動買い目とは別系統。手動入力) ──
-                    with det_tabs[4]:
+                    with det_tabs[_cowork_tab_idx]:
                         try:
                             _race_id = str(race_df["レースID(新/馬番無)"].iloc[0])[:16]
                         except Exception:
