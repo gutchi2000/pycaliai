@@ -103,6 +103,76 @@ def load_od_odds(od_csv_path: str | Path, date: str | None = None) -> pd.DataFra
                     "fuku_low", "fuku_high", "fuku_mid", "ninki"]]
 
 
+def load_od_matrix_odds(od_csv_path: str | Path, date: str | None = None) -> dict:
+    """OD CSV から 単勝・複勝・馬連 の確定オッズを抽出。
+
+    OD CSV カラム構造 (227 列):
+      cols 0-9   : race ID, 頭数, 馬番, 馬名, 単勝, 複勝(低,高)
+      cols 10-27 : 馬連 (18 slots, this row's horse vs j=1..18, self=0, 対称) ✓検証済
+      cols 28-38 : 枠連 + 発走時刻 (スキップ)
+      cols 39-90 : ワイド + 馬単 と推定したが layout reverse-engineering 未完
+                   (頭数によってオフセットが変わる可能性あり、誤データを返さないため非対応)
+      cols 91+   : 三連複/三連単 (スキップ)
+
+    馬単・ワイドは PL 確率 (p_win, p_sho) から Cowork 側で推定する設計。
+
+    Returns dict:
+        {
+            'tansho':  {(rid_s, ban): float},
+            'fukusho': {(rid_s, ban): (low, high)},
+            'umaren':  {(rid_s, i, j): float},  # i < j (対称)
+        }
+    """
+    od_csv_path = Path(od_csv_path)
+    if date is None:
+        ymd = od_csv_path.stem.replace("OD", "").replace("od", "")
+        date = f"20{ymd}"
+
+    od = pd.read_csv(od_csv_path, encoding="cp932", header=None, dtype=str)
+    od[0] = od[0].astype(str).str.strip().str.zfill(10)
+
+    tansho_idx: dict = {}
+    fukusho_idx: dict = {}
+    umaren_idx: dict = {}
+
+    def _f(s):
+        try:
+            return float(str(s).strip()) if s is not None else None
+        except Exception:
+            return None
+
+    for _, row in od.iterrows():
+        try:
+            rid_s = od_to_weekly_race_id(row[0], date)
+            i = int(_f(row[4]))   # 馬番
+        except Exception:
+            continue
+
+        # 単勝・複勝
+        tan = _f(row[7])
+        flo = _f(row[8])
+        fhi = _f(row[9])
+        if tan and tan > 0:
+            tansho_idx[(rid_s, i)] = tan
+        if flo and fhi and flo > 0:
+            fukusho_idx[(rid_s, i)] = (flo, fhi)
+
+        # 馬連 (cols 10-27): row's horse vs j=1..18 (self at col 10+(i-1))
+        # 対称: row i と row j の両方から書き込まれるが同値 (検証済)
+        for j in range(1, 19):
+            v = _f(row[10 + j - 1])
+            if v is None or v <= 0 or i == j:
+                continue
+            key = (rid_s, min(i, j), max(i, j))
+            umaren_idx[key] = v
+
+    return {
+        "tansho":  tansho_idx,
+        "fukusho": fukusho_idx,
+        "umaren":  umaren_idx,
+    }
+
+
 if __name__ == "__main__":
     import sys
     import io

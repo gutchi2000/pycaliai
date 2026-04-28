@@ -84,15 +84,16 @@ def build_tansho_idx_from_weekly(df: pd.DataFrame) -> dict:
 
 
 def build_odds_from_od_csv(date_str: str):
-    """data/odds/OD{YYMMDD}.CSV があれば読んで (tansho_idx, fuku_idx) を返す。
+    """data/odds/OD{YYMMDD}.CSV があれば読んで (tansho_idx, fuku_idx, umaren_idx) を返す。
 
-    OD CSV (TARGET 形式) は単勝・複勝下限/上限を含むため、
-    weekly CSV のオッズより精度が高い (複勝は weekly に存在しない)。
+    OD CSV (TARGET 形式) は単勝・複勝下限/上限・馬連 matrix を含むため、
+    weekly CSV のオッズより精度が高い (複勝・馬連は weekly に存在しない)。
 
     Returns:
-        (tansho_idx, fuku_idx) tuple, or None if file missing / parse failed.
+        (tansho_idx, fuku_idx, umaren_idx) tuple, or None if file missing / parse failed.
         - tansho_idx[(rid_s, ban)] = float
         - fuku_idx[(rid_s, ban)]   = (low, high)
+        - umaren_idx[(rid_s, i, j)] = float  (i<j 対称)
     """
     yy = date_str[2:]  # 20260426 → 260426
     candidates = [
@@ -105,33 +106,22 @@ def build_odds_from_od_csv(date_str: str):
         return None
 
     try:
-        from parse_od_csv import load_od_odds
-        odds_df = load_od_odds(od_path, date=date_str)
+        from parse_od_csv import load_od_matrix_odds
+        m = load_od_matrix_odds(od_path, date=date_str)
     except Exception as e:
         logger.warning(f"OD CSV 読み込み失敗: {od_path.name}: {e}")
         return None
 
-    tansho_idx: dict = {}
-    fuku_idx: dict = {}
-    for _, r in odds_df.iterrows():
-        try:
-            rid_s = str(r["race_id"])[:16]
-            ban = int(r["horse_num"])
-            tan = float(r["tan_odds"])
-            if tan > 0:
-                tansho_idx[(rid_s, ban)] = tan
-            flow = r["fuku_low"]
-            fhigh = r["fuku_high"]
-            if pd.notna(flow) and pd.notna(fhigh) and float(flow) > 0:
-                fuku_idx[(rid_s, ban)] = (float(flow), float(fhigh))
-        except Exception:
-            continue
-
+    tansho_idx = m["tansho"]
+    fuku_idx   = m["fukusho"]
+    umaren_idx = m["umaren"]
     logger.info(
-        f"OD CSV 取得: {od_path.name} → 単勝 {len(tansho_idx):,} 馬 / "
-        f"複勝 {len(fuku_idx):,} 馬 ({odds_df['race_id'].nunique()} race)"
+        f"OD CSV 取得: {od_path.name} → "
+        f"単勝 {len(tansho_idx):,} 馬 / "
+        f"複勝 {len(fuku_idx):,} 馬 / "
+        f"馬連 {len(umaren_idx):,} 組"
     )
-    return tansho_idx, fuku_idx
+    return tansho_idx, fuku_idx, umaren_idx
 
 
 def ensure_date_column(df: pd.DataFrame) -> pd.DataFrame:
@@ -224,12 +214,13 @@ def main() -> int:
     # オッズ: data/odds/OD{YYMMDD}.CSV (TARGET 形式) を優先、無ければ weekly CSV から
     od_result = build_odds_from_od_csv(date_str)
     if od_result is not None:
-        tansho_idx, fuku_idx = od_result
-        logger.info("オッズソース: data/odds/OD CSV (高精度・複勝あり)")
+        tansho_idx, fuku_idx, umaren_idx = od_result
+        logger.info("オッズソース: data/odds/OD CSV (単勝・複勝・馬連 matrix)")
     else:
         tansho_idx = build_tansho_idx_from_weekly(df)
         fuku_idx = {}  # 週次CSV に複勝オッズなし
-        logger.info("オッズソース: weekly CSV (単勝のみ、複勝は null)")
+        umaren_idx = {}  # 週次CSV に馬連オッズなし
+        logger.info("オッズソース: weekly CSV (単勝のみ、複勝・馬連 は null)")
 
     # ------ race ごとに JSON 出力 ------
     n_done = 0
@@ -241,7 +232,8 @@ def main() -> int:
             continue
         try:
             payload = export_race(rid, g, model, feats, encs,
-                                   tansho_idx, fuku_idx, calibrators)
+                                   tansho_idx, fuku_idx, calibrators,
+                                   umaren_idx=umaren_idx)
         except Exception as e:
             logger.error(f"  rid={rid}: {e}")
             n_skip += 1
