@@ -64,7 +64,15 @@ Write-Host "      live_results_2026.csv updated." -ForegroundColor Green
 # -- Step 3: git add --
 Write-Host "[3/4] git add ..." -ForegroundColor Cyan
 git add $kekkaPath data/results.json data/live_results_2026.csv
-Write-Host "      staged: $kekkaPath + results.json + live_results_2026.csv" -ForegroundColor Green
+
+# Cowork bets (if exists for this date) - 的中判定対象
+$coworkBetsDir = "reports\cowork_bets\$Date"
+if (Test-Path $coworkBetsDir) {
+    git add ("{0}/*" -f $coworkBetsDir.Replace('\','/'))
+    Write-Host "      staged: $kekkaPath + results.json + live_results_2026.csv + cowork_bets/$Date/" -ForegroundColor Green
+} else {
+    Write-Host "      staged: $kekkaPath + results.json + live_results_2026.csv (no cowork_bets/$Date/)" -ForegroundColor Green
+}
 
 # -- Step 4: git commit & push --
 Write-Host "[4/4] git commit & push ..." -ForegroundColor Cyan

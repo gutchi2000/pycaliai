@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import itertools
 import logging
+import subprocess
 from pathlib import Path
 
 import joblib
@@ -68,15 +69,19 @@ HOSSEI_DIR    = DATA_DIR / "hosei"
 KAKO5_DIR     = DATA_DIR / "kako5"
 LGBM_PATH     = MODEL_DIR / "lgbm_optuna_v1.pkl"
 CAT_PATH      = MODEL_DIR / "catboost_optuna_v1.pkl"
-CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v4.pkl"   # Test 2024-fit (2026-03-25更新)
-CAL_PATH_V3    = MODEL_DIR / "ensemble_calibrator_v3.pkl"   # Train-based fallback
-CAL_PATH_V2    = MODEL_DIR / "ensemble_calibrator_v2.pkl"   # Valid-based fallback
-CAL_PATH_V1    = MODEL_DIR / "ensemble_calibrator_v1.pkl"   # legacy fallback
+CAL_PATH       = MODEL_DIR / "ensemble_calibrator_v1.pkl"   # Valid=2023 fit (2026-04-20 リーク除去)
+CAL_PATH_V3    = MODEL_DIR / "ensemble_calibrator_v2.pkl"   # Valid=2023 fallback
+CAL_PATH_V2    = MODEL_DIR / "ensemble_calibrator_v2.pkl"   # (deprecated key 名維持, 実体は v2)
+CAL_PATH_V1    = MODEL_DIR / "ensemble_calibrator_v1.pkl"   # (deprecated key 名維持)
+# NOTE: v4 (fit_split=test_2024) と v3 (cal_split=train) はリークのため廃止 (2026-04-20)
 FUKU_CAL_PATH  = MODEL_DIR / "fukusho_calibrator_v1.pkl"   # Sprint 1.2 複勝専用
 FUKU_CAL_GATE  = 0.55
 WALKFORWARD_CSV = BASE_DIR / "reports" / "all_profitable_conditions.csv"
 PYCALI_HIST_CSV = BASE_DIR / "data" / "pycali_history.csv"
 PYCALI_HIST_PARQUET = BASE_DIR / "data" / "pycali_history.parquet"
+# ── Cowork (Anthropic Desktop App) 連携 ──
+COWORK_INPUT_DIR = BASE_DIR / "reports" / "cowork_input"   # PyCaLiAI → Cowork に渡す印 JSON
+COWORK_BETS_DIR  = BASE_DIR / "reports" / "cowork_bets"    # Cowork → ユーザーが入力する買い目
 WIN_MODEL_PATH = MODEL_DIR / "lgbm_win_v1.pkl"
 TORCH_PATH     = MODEL_DIR / "transformer_optuna_v1.pkl"
 META_PATH      = MODEL_DIR / "stacking_meta_v1.pkl"
@@ -976,16 +981,18 @@ def load_models() -> tuple:
 
 @st.cache_resource(show_spinner=False)
 def _load_trifecta_model():
-    """trifecta_model_v1.pkl をロード（存在しない場合は None を返す）。"""
-    path = BASE_DIR / "models" / "trifecta_model_v1.pkl"
-    if not path.exists():
-        return None, None
-    try:
-        obj = joblib.load(path)
-        return obj.get("model"), obj.get("feature_cols")
-    except Exception as e:
-        logger.warning(f"trifecta_model_v1 ロード失敗: {e}")
-        return None, None
+    """trifecta_model_v2 (リーク除去版) を優先ロード、v1 はフォールバック。"""
+    for name in ("trifecta_model_v2.pkl", "trifecta_model_v1.pkl"):
+        path = BASE_DIR / "models" / name
+        if not path.exists():
+            continue
+        try:
+            obj = joblib.load(path)
+            logger.info(f"trifecta model loaded: {name}")
+            return obj.get("model"), obj.get("feature_cols")
+        except Exception as e:
+            logger.warning(f"{name} ロード失敗: {e}")
+    return None, None
 
 
 @st.cache_data(show_spinner="戦略データ読み込み中...")
@@ -5053,6 +5060,451 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
         st.markdown("<hr style='border-color:#313244;margin:8px 0'>", unsafe_allow_html=True)
 
 
+def parse_cowork_response(text: str) -> tuple[list[dict], list[str]]:
+    """Cowork のレスポンステキストから JSON コードブロックを抽出して parse する。
+
+    返り値: (records, errors)
+      - records: [{race_id, race_label, race_nature, bets: [{馬券種,買い目,購入額}]}, ...]
+      - errors: 検証エラー文字列のリスト
+
+    Cowork の出力期待形式:
+      ```json
+      [{"race_id": "...", "bets": [{"馬券種": "複勝", "買い目": "5", "購入額": 3000}]}]
+      ```
+      (テキスト先頭に JSON コードブロック, 後続に Markdown 解説可)
+
+    フォールバック: 全文を JSON として parse 試行 → ダメなら error。
+    """
+    import re as _re
+    errors: list[str] = []
+
+    # ```json ... ``` ブロックを最初の 1 つだけ抽出
+    m = _re.search(r"```(?:json|JSON)?\s*\n([\s\S]+?)\n\s*```", text or "")
+    raw_json = m.group(1) if m else (text or "").strip()
+    if not raw_json:
+        errors.append("空入力")
+        return [], errors
+    try:
+        data = json.loads(raw_json)
+    except Exception as _e:
+        errors.append(f"JSON parse 失敗: {_e}")
+        return [], errors
+
+    # {races: [...]} ラップ or 単体 dict 許容
+    if isinstance(data, dict):
+        data = data.get("races", [data])
+    if not isinstance(data, list):
+        errors.append(f"JSON は list か {{races:[...]}} を想定 (got {type(data).__name__})")
+        return [], errors
+
+    valid_types = {"単勝", "複勝", "馬連", "馬単", "ワイド", "三連複", "三連単"}
+    records: list[dict] = []
+    for i, race in enumerate(data):
+        if not isinstance(race, dict):
+            errors.append(f"[{i}] race は dict (got {type(race).__name__})")
+            continue
+        rid = race.get("race_id") or race.get("レースID") or race.get("rid")
+        if not rid:
+            errors.append(f"[{i}] race_id が無い")
+            continue
+        rid = str(rid)[:16]
+        bets_raw = race.get("bets", race.get("買い目", []))
+        if not isinstance(bets_raw, list):
+            errors.append(f"[{i}] race={rid}: bets が list でない")
+            continue
+        bets: list[dict] = []
+        for j, b in enumerate(bets_raw):
+            if not isinstance(b, dict):
+                errors.append(f"[{i}] race={rid} bet[{j}]: dict でない")
+                continue
+            btype = b.get("馬券種") or b.get("type")
+            sel   = b.get("買い目") or b.get("selection")
+            amt   = b.get("購入額") or b.get("amount")
+            if btype not in valid_types:
+                errors.append(f"[{i}] race={rid} bet[{j}]: 馬券種が不正 (got {btype})")
+                continue
+            if not isinstance(sel, str) or not sel.strip():
+                errors.append(f"[{i}] race={rid} bet[{j}]: 買い目が不正 (got {sel})")
+                continue
+            try:
+                amt_i = int(amt)
+                if amt_i <= 0:
+                    errors.append(f"[{i}] race={rid} bet[{j}]: 購入額 <= 0")
+                    continue
+            except Exception:
+                errors.append(f"[{i}] race={rid} bet[{j}]: 購入額が数値でない (got {amt})")
+                continue
+            bets.append({"馬券種": btype, "買い目": sel.strip(), "購入額": amt_i})
+        records.append({
+            "race_id": rid,
+            "race_label": str(race.get("race_label", "")),
+            "race_nature": str(race.get("race_nature", "")),
+            "bets": bets,
+        })
+    return records, errors
+
+
+def page_cowork_import(date_yyyymmdd: str, all_df: pd.DataFrame) -> None:
+    """Cowork 一括取込ページ。
+
+    Cowork のレスポンス全文を 1 つのテキストエリアに貼り付け、
+    JSON コードブロックを自動 parse → 全レース分を一括保存 + git push。
+    手作業転記の代替。
+    """
+    from datetime import datetime as _dt
+
+    st.subheader("🤖 Cowork 一括取込")
+    st.caption(
+        f"対象日: {date_yyyymmdd[:4]}/{date_yyyymmdd[4:6]}/{date_yyyymmdd[6:]}"
+        f"  /  保存先: reports/cowork_bets/{date_yyyymmdd}/"
+    )
+
+    with st.expander("📋 Cowork 用プロンプト (docs/cowork_prompt.md から抜粋)", expanded=False):
+        prompt_path = BASE_DIR / "docs" / "cowork_prompt.md"
+        if prompt_path.exists():
+            try:
+                txt = prompt_path.read_text(encoding="utf-8")
+                st.markdown(
+                    "下記をコピーして Cowork (Anthropic Desktop App) に "
+                    "**bundle.json と一緒に** 投げると、JSON 形式で買い目が返る。"
+                )
+                st.code(txt, language="markdown")
+            except Exception as _e:
+                st.warning(f"プロンプト読込失敗: {_e}")
+        else:
+            st.info("docs/cowork_prompt.md が見つかりません")
+
+    raw_text = st.text_area(
+        "Cowork レスポンス貼り付け (Markdown 全文 or JSON のみ)",
+        height=280,
+        placeholder='```json\n[\n  {"race_id": "...", "bets": [...]},\n  ...\n]\n```',
+        key=f"cowork_paste_{date_yyyymmdd}",
+    )
+
+    col_p, col_s = st.columns([1, 1])
+    if col_p.button("🔍 解析プレビュー", use_container_width=True,
+                    key=f"cowork_parse_{date_yyyymmdd}"):
+        st.session_state[f"_cowork_parsed_{date_yyyymmdd}"] = parse_cowork_response(raw_text)
+
+    parsed = st.session_state.get(f"_cowork_parsed_{date_yyyymmdd}")
+    if parsed is None:
+        st.info("テキストを貼り付けて「🔍 解析プレビュー」を押してください。")
+        return
+
+    records, errors = parsed
+    if errors:
+        with st.expander(f"⚠️ 検証エラー {len(errors)} 件", expanded=True):
+            for e in errors[:30]:
+                st.text(f"  • {e}")
+            if len(errors) > 30:
+                st.caption(f"  ... 他 {len(errors)-30} 件")
+
+    if not records:
+        st.warning("解析できるレースがありませんでした。")
+        return
+
+    # ── レース ID と CSV 突合チェック ──
+    known_rids = set(all_df["レースID(新/馬番無)"].astype(str).str[:16].unique())
+    n_unknown = sum(1 for r in records if r["race_id"] not in known_rids)
+    if n_unknown:
+        st.warning(
+            f"⚠️ {n_unknown}/{len(records)} race が現在の CSV に存在しません。"
+            "race_id の桁ズレ or 別日付の可能性。保存は強行できます。"
+        )
+
+    # ── プレビュー表 ──
+    preview = []
+    for r in records:
+        in_csv = "✓" if r["race_id"] in known_rids else "✗"
+        preview.append({
+            "in CSV": in_csv,
+            "race_id": r["race_id"],
+            "性質": r.get("race_nature", ""),
+            "ラベル": r.get("race_label", ""),
+            "点数": len(r["bets"]),
+            "予算合計": sum(b["購入額"] for b in r["bets"]),
+        })
+    st.dataframe(pd.DataFrame(preview), use_container_width=True, height=min(400, 35 + 35 * len(preview)))
+
+    total_bets = sum(len(r["bets"]) for r in records)
+    total_yen  = sum(sum(b["購入額"] for b in r["bets"]) for r in records)
+    n_pass = sum(1 for r in records if not r["bets"])
+    st.caption(
+        f"📊 サマリ: {len(records)} race ({n_pass} 見送り)  /  "
+        f"{total_bets} 点  /  合計 {total_yen:,}円"
+    )
+
+    # ── 詳細 expander ──
+    with st.expander("各レース詳細を見る", expanded=False):
+        for r in records:
+            st.markdown(f"**{r['race_id']}**  {r.get('race_label', '')}  ({r.get('race_nature', '')})")
+            if r["bets"]:
+                st.dataframe(pd.DataFrame(r["bets"]), use_container_width=True, hide_index=True)
+            else:
+                st.caption("見送り (bets=[])")
+
+    # ── 保存 + git push ──
+    if col_s.button("💾 全レース保存 + git push", type="primary",
+                    use_container_width=True,
+                    key=f"cowork_save_{date_yyyymmdd}"):
+        save_dir = COWORK_BETS_DIR / date_yyyymmdd
+        save_dir.mkdir(parents=True, exist_ok=True)
+        saved_paths: list[Path] = []
+        for r in records:
+            p = save_dir / f"{r['race_id']}.json"
+            with open(p, "w", encoding="utf-8") as f:
+                json.dump({
+                    "race_id":    r["race_id"],
+                    "race_label": r.get("race_label", ""),
+                    "race_nature": r.get("race_nature", ""),
+                    "saved_at":   _dt.now().isoformat(timespec="seconds"),
+                    "bets":       r["bets"],
+                    "source":     "cowork_batch_import",
+                }, f, indent=2, ensure_ascii=False)
+            saved_paths.append(p)
+        st.success(f"✅ {len(saved_paths)} ファイル保存 → {save_dir.relative_to(BASE_DIR)}")
+
+        # git add + commit + push (失敗してもファイルは local に残る)
+        def _run_git(cmd: list[str]) -> tuple[int, str]:
+            try:
+                p = subprocess.run(
+                    cmd, cwd=str(BASE_DIR),
+                    capture_output=True, text=True,
+                    encoding="utf-8", errors="replace", timeout=60,
+                )
+                return p.returncode, (p.stdout or "") + (p.stderr or "")
+            except Exception as _e:
+                return 1, str(_e)
+
+        rel_glob = (save_dir.relative_to(BASE_DIR).as_posix() + "/*")
+        with st.spinner("git push 中..."):
+            rc1, out1 = _run_git(["git", "add", rel_glob])
+            if rc1 != 0:
+                st.warning(f"git add 失敗: {out1[-300:]}")
+            else:
+                rc2, out2 = _run_git([
+                    "git", "commit", "-m",
+                    f"add cowork bets {date_yyyymmdd} ({len(records)} races)",
+                ])
+                if rc2 == 0:
+                    _run_git(["git", "pull", "--rebase", "--autostash", "origin", "master"])
+                    rc4, out4 = _run_git(["git", "push", "origin", "HEAD:master"])
+                    if rc4 == 0:
+                        st.success("✅ git push 完了 (Streamlit Cloud に数秒で反映)")
+                    else:
+                        st.warning(
+                            f"git push 失敗 (保存は OK)。手動: `git push origin HEAD:master`\n"
+                            f"```\n{out4[-300:]}\n```"
+                        )
+                else:
+                    st.caption(f"git: 変更なし or 既に commit 済 ({out2[-100:].strip()})")
+
+
+def render_cowork_bets_tab(race_df: pd.DataFrame,
+                            race_id: str,
+                            date_yyyymmdd: str) -> None:
+    """Cowork (Anthropic Desktop App) との連携タブ。
+
+    1. PyCaLiAI が生成した印 JSON を表示 (Cowork に投げる材料)
+    2. Cowork が返した買い目をユーザーが手入力するフォーム
+    3. 保存済み買い目を STANDARD と同じスタイルで表示
+    """
+    from datetime import datetime as _dt
+
+    cowork_input_path = COWORK_INPUT_DIR / date_yyyymmdd / f"{race_id}.json"
+    cowork_bets_path  = COWORK_BETS_DIR  / date_yyyymmdd / f"{race_id}.json"
+
+    # ─── 1. Cowork 入力 JSON 表示 ───
+    st.markdown("##### 📤 Cowork に渡す印 JSON")
+    if cowork_input_path.exists():
+        try:
+            cowork_input = cowork_input_path.read_text(encoding="utf-8")
+        except Exception as _e:
+            cowork_input = ""
+            st.error(f"印 JSON 読込失敗: {_e}")
+        else:
+            with st.expander(f"印 JSON ({cowork_input_path.relative_to(BASE_DIR)})",
+                              expanded=False):
+                st.code(cowork_input, language="json")
+            st.caption(
+                f"このファイル `{cowork_input_path.relative_to(BASE_DIR)}` を "
+                f"Cowork (Anthropic Desktop App) に投げて買い目を受け取ってください。"
+            )
+    else:
+        st.warning(
+            f"印 JSON が未生成です。先にターミナルで\n"
+            f"```\n"
+            f"python export_weekly_marks.py --csv data/weekly/{date_yyyymmdd}.csv --model v5\n"
+            f"```\n"
+            f"を実行してください。"
+        )
+
+    st.markdown("---")
+
+    # ─── 2. 買い目入力フォーム ───
+    st.markdown("##### ✏️ Cowork からの買い目を入力")
+
+    sk = f"cowork_bets_{race_id}"
+    if sk not in st.session_state:
+        # 既存ファイルがあれば初期ロード
+        if cowork_bets_path.exists():
+            try:
+                with open(cowork_bets_path, encoding="utf-8") as f:
+                    st.session_state[sk] = json.load(f).get("bets", [])
+            except Exception:
+                st.session_state[sk] = []
+        else:
+            st.session_state[sk] = []
+
+    BET_TYPES = ["単勝", "複勝", "馬連", "馬単", "ワイド", "三連複", "三連単"]
+    with st.form(f"cowork_form_{race_id}", clear_on_submit=True):
+        c1, c2, c3, c4 = st.columns([2, 4, 2, 1])
+        bet_type = c1.selectbox("馬券種", BET_TYPES, key=f"bt_{race_id}")
+        bet_target = c2.text_input("買い目",
+                                    placeholder="例: 4 / 4-7 / 4-7,4-9",
+                                    key=f"bb_{race_id}")
+        bet_amount = c3.number_input("購入額(円)", min_value=100,
+                                      max_value=1_000_000, step=100, value=1000,
+                                      key=f"ba_{race_id}")
+        if c4.form_submit_button("➕ 追加"):
+            tgt = (bet_target or "").strip()
+            if tgt:
+                st.session_state[sk].append({
+                    "馬券種": bet_type,
+                    "買い目": tgt,
+                    "購入額": int(bet_amount),
+                })
+
+    # 入力済みリスト
+    if st.session_state[sk]:
+        st.markdown("**入力済み買い目** (保存前)")
+        del_idx = None
+        for i, row in enumerate(st.session_state[sk]):
+            cc1, cc2, cc3, cc4 = st.columns([2, 4, 2, 1])
+            cc1.write(row["馬券種"])
+            cc2.write(row["買い目"])
+            cc3.write(f"{row['購入額']:,}円")
+            if cc4.button("🗑", key=f"del_{race_id}_{i}"):
+                del_idx = i
+        if del_idx is not None:
+            st.session_state[sk].pop(del_idx)
+            st.rerun()
+        total = sum(b["購入額"] for b in st.session_state[sk])
+        st.caption(f"合計: {total:,}円  /  {len(st.session_state[sk])} 点")
+
+        col_save, col_clear = st.columns(2)
+        if col_save.button("💾 保存 + git push", key=f"save_{race_id}", type="primary",
+                            use_container_width=True):
+            cowork_bets_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(cowork_bets_path, "w", encoding="utf-8") as f:
+                json.dump({
+                    "race_id": race_id,
+                    "saved_at": _dt.now().isoformat(timespec="seconds"),
+                    "bets": st.session_state[sk],
+                }, f, indent=2, ensure_ascii=False)
+            st.success(f"保存しました: {cowork_bets_path.relative_to(BASE_DIR)}")
+
+            # ─── git add + commit + push (失敗しても保存は維持) ───
+            def _run_git(cmd: list[str]) -> tuple[int, str]:
+                try:
+                    p = subprocess.run(
+                        cmd, cwd=str(BASE_DIR),
+                        capture_output=True, text=True, encoding="utf-8",
+                        errors="replace", timeout=60,
+                    )
+                    return p.returncode, (p.stdout or "") + (p.stderr or "")
+                except Exception as _e:
+                    return 1, str(_e)
+
+            rel_path = cowork_bets_path.relative_to(BASE_DIR).as_posix()
+            with st.spinner("git push 中..."):
+                rc1, out1 = _run_git(["git", "add", rel_path])
+                if rc1 != 0:
+                    st.warning(f"git add 失敗: {out1[-300:]}")
+                else:
+                    rc2, out2 = _run_git([
+                        "git", "commit", "-m",
+                        f"add cowork bets {date_yyyymmdd} {race_id}",
+                    ])
+                    # commit は no-changes でも非 0 になるが、その場合は push 不要
+                    if rc2 == 0:
+                        rc3, out3 = _run_git([
+                            "git", "pull", "--rebase", "--autostash",
+                            "origin", "master",
+                        ])
+                        rc4, out4 = _run_git([
+                            "git", "push", "origin", "HEAD:master",
+                        ])
+                        if rc4 == 0:
+                            st.success("✅ git push 完了 (Streamlit Cloud に数秒で反映)")
+                        else:
+                            st.warning(
+                                f"git push 失敗 (保存はOK)。手動: "
+                                f"`git push origin HEAD:master`\n```\n{out4[-300:]}\n```"
+                            )
+                    else:
+                        # 差分なし or 既に commit 済 → push のみ試す
+                        rc4, out4 = _run_git([
+                            "git", "push", "origin", "HEAD:master",
+                        ])
+                        if rc4 == 0:
+                            st.info("差分なし → push のみ実行 (反映済)")
+                        else:
+                            st.caption(f"git: 変更なし or commit 済 ({out2[-100:].strip()})")
+        if col_clear.button("🗑 全クリア", key=f"clear_{race_id}",
+                             use_container_width=True):
+            st.session_state[sk] = []
+            st.rerun()
+    else:
+        st.info("買い目を上のフォームから追加してください。")
+
+    st.markdown("---")
+
+    # ─── 3. 保存済み買い目を STANDARD 同等スタイルで表示 ───
+    if cowork_bets_path.exists():
+        try:
+            with open(cowork_bets_path, encoding="utf-8") as f:
+                saved = json.load(f)
+        except Exception as _e:
+            st.error(f"保存ファイル読込失敗: {_e}")
+            return
+        bets = saved.get("bets", [])
+        saved_at = (saved.get("saved_at", "") or "")[:19]
+        st.markdown(f"##### ✅ 保存済み買い目  <span style='color:#888;font-size:12px'>"
+                    f"({saved_at})</span>", unsafe_allow_html=True)
+        if not bets:
+            st.info("保存済みファイルに買い目がありません。")
+            return
+        bets_df = pd.DataFrame(bets)
+        total_amt = int(bets_df["購入額"].sum())
+        m1, m2, m3 = st.columns(3)
+        m1.metric("合計購入額", f"{total_amt:,}円")
+        m2.metric("馬券種数",   f"{bets_df['馬券種'].nunique()}種")
+        m3.metric("総点数",     f"{len(bets_df)}点")
+        st.caption(f"Cowork 提案を採用 ({cowork_bets_path.relative_to(BASE_DIR)})")
+        for bet_type, grp_b in bets_df.groupby("馬券種"):
+            type_total = int(grp_b["購入額"].sum())
+            combos_html = "　".join([
+                f'<span style="font-size:16px;font-weight:bold;color:#cdd6f4">'
+                f'{row["買い目"]}</span>'
+                f'<span style="color:#888;font-size:12px">'
+                f'({int(row["購入額"]):,}円)</span>'
+                for _, row in grp_b.iterrows()
+            ])
+            st.markdown(
+                f'<div class="bet-card">'
+                f'<div style="display:flex;justify-content:space-between;'
+                f'margin-bottom:6px">'
+                f'<span style="color:#5865f2;font-weight:bold">{bet_type}</span>'
+                f'<span style="color:#888;font-size:12px">'
+                f'計{type_total:,}円</span>'
+                f'</div><div>{combos_html}</div></div>',
+                unsafe_allow_html=True,
+            )
+    else:
+        st.caption("（まだ保存された買い目はありません）")
+
+
 def page_race_detail(
     race_df: pd.DataFrame,
     all_df: pd.DataFrame,
@@ -5155,6 +5607,7 @@ def page_race_detail(
                         "🛡️ HAHO ◎軸流し",
                         "🎯 HALO 三連単マルチ",
                         "📋 STANDARD 単複馬連",
+                        "🤖 Cowork (Anthropic Desktop)",
                     ])
                     _no_bet_msg = {
                         "TRIPLE":   "このレースはTRIPLE対象外です（三連複or複勝がブロック）。",
@@ -5219,6 +5672,23 @@ def page_race_detail(
                                     f'</div><div>{combos_html}</div></div>',
                                     unsafe_allow_html=True,
                                 )
+
+                    # ── Cowork タブ (PyCaLiAI 自動買い目とは別系統。手動入力) ──
+                    with det_tabs[4]:
+                        try:
+                            _race_id = str(race_df["レースID(新/馬番無)"].iloc[0])[:16]
+                        except Exception:
+                            _race_id = ""
+                        try:
+                            _date_yyyymmdd = "{:04d}{:02d}{:02d}".format(
+                                *[int(x) for x in str(_rd_date).split(".")]
+                            ) if _rd_date else ""
+                        except Exception:
+                            _date_yyyymmdd = ""
+                        if _race_id and _date_yyyymmdd:
+                            render_cowork_bets_tab(race_df, _race_id, _date_yyyymmdd)
+                        else:
+                            st.warning("race_id / 日付の特定に失敗しました。")
 
         with tab2:
             render_pyca_evaluation_list(race_df)
@@ -5358,7 +5828,8 @@ def main() -> None:
     # radio ベースの擬似タブで選択中のみレンダリングする）
     _TAB_LABELS = [
         "🏇 レース予想", "🎫 今日の買い目", "🎯 プラン選択", "⭐ EV候補",
-        "💰 VALUE複勝", "📊 的中実績", "📊 ROIヒートマップ", "📋 結果フィードバック",
+        "💰 VALUE複勝", "🤖 Cowork取込",
+        "📊 的中実績", "📊 ROIヒートマップ", "📋 結果フィードバック",
     ]
     if "active_main_tab" not in st.session_state:
         st.session_state.active_main_tab = _TAB_LABELS[0]
@@ -5402,6 +5873,8 @@ def main() -> None:
         page_ev_candidates(all_df)
     elif active == "💰 VALUE複勝":
         page_value_candidates(all_df)
+    elif active == "🤖 Cowork取込":
+        page_cowork_import(selected_date, all_df)
     elif active == "📊 的中実績":
         page_results(results)
     elif active == "📊 ROIヒートマップ":
