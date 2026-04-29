@@ -5482,28 +5482,58 @@ def page_cowork_import(date_yyyymmdd: str, all_df: pd.DataFrame) -> None:
         else:
             st.info("docs/cowork_prompt.md が見つかりません")
 
-    # ── reports/cowork_output/{date}_bets.json から自動読込 (推奨) ──
+    # ── reports/cowork_output/ の全ファイル検出 ──
     cowork_output_dir = BASE_DIR / "reports" / "cowork_output"
     cowork_output_dir.mkdir(parents=True, exist_ok=True)
 
-    # 候補ファイル (見つかった最初のものを使う)
-    # メイン: {YYYYMMDD}_bets.json
-    # 代替:   {YYYYMMDD}_bets.{txt|md}, {YYYYMMDD}.{json|txt|md}
-    candidates = [
-        cowork_output_dir / f"{date_yyyymmdd}_bets.json",
-        cowork_output_dir / f"{date_yyyymmdd}_bets.txt",
-        cowork_output_dir / f"{date_yyyymmdd}_bets.md",
-        cowork_output_dir / f"{date_yyyymmdd}.json",
-        cowork_output_dir / f"{date_yyyymmdd}.txt",
-        cowork_output_dir / f"{date_yyyymmdd}.md",
-    ]
-    found_path = next((p for p in candidates if p.exists()), None)
+    import re as _re
+    # ファイル名から日付を抽出: YYYYMMDD_bets.{json,txt,md} or YYYYMMDD.{json,txt,md}
+    available: dict[str, Path] = {}  # date_str → path
+    for p in sorted(cowork_output_dir.iterdir()):
+        if not p.is_file():
+            continue
+        m = _re.match(r"^(\d{8})(?:_bets)?\.(json|txt|md)$", p.name)
+        if m:
+            d = m.group(1)
+            # 同じ日付に複数ある場合は _bets.json を優先 (上の正規表現順序で)
+            if d not in available:
+                available[d] = p
+
+    # サイドバー選択日付に一致するものをデフォルト、無ければ最新を選ぶ
+    if date_yyyymmdd in available:
+        default_date = date_yyyymmdd
+    elif available:
+        default_date = sorted(available.keys())[-1]  # 最新
+    else:
+        default_date = None
 
     raw_text = ""
+    target_date = date_yyyymmdd  # 保存先 cowork_bets/ のキー
+    found_path: Path | None = None
 
-    if found_path:
+    if available:
+        # 利用可能な日付一覧をプルダウンで選ばせる
+        date_options = sorted(available.keys(), reverse=True)
+        labels = []
+        for d in date_options:
+            mark = " ← サイドバー選択" if d == date_yyyymmdd else ""
+            labels.append(f"{d[:4]}/{d[4:6]}/{d[6:]} ({available[d].name}){mark}")
+        idx_default = date_options.index(default_date) if default_date in date_options else 0
+        sel = st.selectbox(
+            f"📂 取込元ファイル ({len(available)} 件検出)",
+            options=range(len(date_options)),
+            format_func=lambda i: labels[i],
+            index=idx_default,
+            key=f"cowork_file_select_{date_yyyymmdd}",
+            help=(
+                "reports/cowork_output/ 内の利用可能な _bets.json ファイル一覧。"
+                "サイドバー日付と一致するファイルがデフォルト選択。"
+            ),
+        )
+        target_date = date_options[sel]
+        found_path = available[target_date]
+
         try:
-            # 文字コード自動判定
             raw_bytes = found_path.read_bytes()
             for enc in ["utf-8-sig", "utf-8", "cp932", "shift_jis"]:
                 try:
@@ -5515,26 +5545,40 @@ def page_cowork_import(date_yyyymmdd: str, all_df: pd.DataFrame) -> None:
                 raw_text = raw_bytes.decode("utf-8", errors="replace")
             from datetime import datetime as _dt
             mtime = _dt.fromtimestamp(found_path.stat().st_mtime)
+            warn_diff = ""
+            if target_date != date_yyyymmdd:
+                warn_diff = (
+                    f"  ⚠️ サイドバー日付 `{date_yyyymmdd}` と異なる "
+                    f"`{target_date}` のファイルです → "
+                    f"保存先は `reports/cowork_bets/{target_date}/` になります"
+                )
             st.success(
-                f"✅ 自動読込: `{found_path.relative_to(BASE_DIR).as_posix()}`  "
-                f"({len(raw_text):,} chars, 更新: {mtime:%Y-%m-%d %H:%M:%S})"
+                f"✅ 読込: `{found_path.relative_to(BASE_DIR).as_posix()}` "
+                f"({len(raw_text):,} chars, 更新: {mtime:%Y-%m-%d %H:%M:%S}){warn_diff}"
             )
         except Exception as e:
             st.error(f"ファイル読込失敗 ({found_path.name}): {e}")
     else:
         st.warning(
-            f"📂 `reports/cowork_output/{date_yyyymmdd}_bets.json` が見つかりません。\n\n"
+            f"📂 `reports/cowork_output/` にファイルが 1 つもありません。\n\n"
             "**手順**:\n"
             "1. Cowork の返答を全選択コピー\n"
             f"2. `E:\\PyCaLiAI\\reports\\cowork_output\\{date_yyyymmdd}_bets.json` として保存\n"
-            "3. このページを再読込 (Ctrl+R) または下記「再スキャン」ボタン押す\n\n"
+            "3. 「🔄 再スキャン」を押す\n\n"
             "対応する命名 (どれでも OK):\n"
-            f"- `{date_yyyymmdd}_bets.json` (推奨)\n"
-            f"- `{date_yyyymmdd}_bets.txt` / `.md`\n"
-            f"- `{date_yyyymmdd}.json` / `.txt` / `.md` (旧形式)"
+            f"- `{{YYYYMMDD}}_bets.json` (推奨)\n"
+            f"- `{{YYYYMMDD}}_bets.txt` / `.md`\n"
+            f"- `{{YYYYMMDD}}.json` / `.txt` / `.md` (旧形式)"
         )
-        if st.button("🔄 再スキャン", key=f"cowork_rescan_{date_yyyymmdd}"):
-            st.rerun()
+
+    # 再スキャンボタンは常時表示
+    cols_scan = st.columns([1, 5])
+    if cols_scan[0].button("🔄 再スキャン", key=f"cowork_rescan_{date_yyyymmdd}"):
+        st.rerun()
+    cols_scan[1].caption(
+        f"スキャン対象: `reports/cowork_output/`  "
+        f"(検出 {len(available)} ファイル)"
+    )
 
     # ── フォールバック: 直接貼り付け (折りたたみ式) ──
     with st.expander("📋 ファイル使わずに直接貼り付け (一時用)", expanded=False):
@@ -5622,7 +5666,9 @@ def page_cowork_import(date_yyyymmdd: str, all_df: pd.DataFrame) -> None:
     if col_s.button("💾 全レース保存 + git push", type="primary",
                     use_container_width=True,
                     key=f"cowork_save_{date_yyyymmdd}"):
-        save_dir = COWORK_BETS_DIR / date_yyyymmdd
+        # target_date はファイル選択時に決まった日付。サイドバー日付と異なるケースに対応。
+        save_date = target_date if target_date else date_yyyymmdd
+        save_dir = COWORK_BETS_DIR / save_date
         save_dir.mkdir(parents=True, exist_ok=True)
         saved_paths: list[Path] = []
         for r in records:
@@ -5660,7 +5706,7 @@ def page_cowork_import(date_yyyymmdd: str, all_df: pd.DataFrame) -> None:
             else:
                 rc2, out2 = _run_git([
                     "git", "commit", "-m",
-                    f"add cowork bets {date_yyyymmdd} ({len(records)} races)",
+                    f"add cowork bets {save_date} ({len(records)} races)",
                 ])
                 if rc2 == 0:
                     _run_git(["git", "pull", "--rebase", "--autostash", "origin", "master"])
