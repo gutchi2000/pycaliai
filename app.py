@@ -5482,79 +5482,63 @@ def page_cowork_import(date_yyyymmdd: str, all_df: pd.DataFrame) -> None:
         else:
             st.info("docs/cowork_prompt.md が見つかりません")
 
-    # ── 入力方式の選択 ──
-    input_method = st.radio(
-        "入力方式",
-        ["📁 ファイルアップロード (永続・推奨)", "📋 テキスト貼り付け (一時)"],
-        horizontal=True,
-        key=f"cowork_input_method_{date_yyyymmdd}",
-        help=(
-            "ファイル方式: Cowork のレスポンスを .json/.txt/.md に保存して読み込む。"
-            "ブラウザ再読み込みで消えない。"
-            "貼り付け方式: そのまま貼ると速いが、再読み込みで消える。"
-        ),
-    )
+    # ── reports/cowork_output/{date}.json から自動読込 (推奨) ──
+    cowork_output_dir = BASE_DIR / "reports" / "cowork_output"
+    cowork_output_dir.mkdir(parents=True, exist_ok=True)
+
+    # 候補拡張子: .json, .txt, .md (見つかった最初のものを使う)
+    candidates = [
+        cowork_output_dir / f"{date_yyyymmdd}.json",
+        cowork_output_dir / f"{date_yyyymmdd}.txt",
+        cowork_output_dir / f"{date_yyyymmdd}.md",
+    ]
+    found_path = next((p for p in candidates if p.exists()), None)
 
     raw_text = ""
 
-    if input_method.startswith("📁"):
-        # 過去にアップロード済の保存ファイルがあれば自動読込
-        save_resp_dir = BASE_DIR / "reports" / "cowork_response"
-        save_resp_dir.mkdir(parents=True, exist_ok=True)
-        saved_resp_path = save_resp_dir / f"{date_yyyymmdd}.txt"
-
-        uploaded = st.file_uploader(
-            "Cowork レスポンスファイル (.json / .txt / .md)",
-            type=["json", "txt", "md"],
-            key=f"cowork_upload_{date_yyyymmdd}",
-            help="Cowork の返答を全選択コピー → メモ帳等で .txt に保存 → ここにアップロード",
-        )
-
-        if uploaded is not None:
-            try:
-                raw_bytes = uploaded.getvalue()
-                # UTF-8 / cp932 / shift_jis 自動判定
-                for enc in ["utf-8", "utf-8-sig", "cp932", "shift_jis"]:
-                    try:
-                        raw_text = raw_bytes.decode(enc)
-                        break
-                    except UnicodeDecodeError:
-                        continue
-                else:
-                    raw_text = raw_bytes.decode("utf-8", errors="replace")
-                # ファイルを reports/cowork_response/{date}.txt に永続保存
-                with open(saved_resp_path, "w", encoding="utf-8") as f:
-                    f.write(raw_text)
-                st.success(
-                    f"✅ 読込: {uploaded.name} ({len(raw_text):,} chars) "
-                    f"→ `{saved_resp_path.relative_to(BASE_DIR).as_posix()}` に保存"
-                )
-            except Exception as e:
-                st.error(f"ファイル読込失敗: {e}")
-        elif saved_resp_path.exists():
-            # 前回のアップロードが残ってれば使う
-            try:
-                raw_text = saved_resp_path.read_text(encoding="utf-8")
-                st.info(
-                    f"📂 前回保存ファイルを読込中: "
-                    f"`{saved_resp_path.relative_to(BASE_DIR).as_posix()}` "
-                    f"({len(raw_text):,} chars)"
-                )
-            except Exception as e:
-                st.warning(f"前回ファイル読込失敗: {e}")
-        else:
-            st.caption(
-                f"ファイルアップロード待ち。"
-                f"アップロードしたファイルは `{saved_resp_path.relative_to(BASE_DIR).as_posix()}` "
-                f"に永続保存され、次回もそのまま使えます。"
+    if found_path:
+        try:
+            # 文字コード自動判定
+            raw_bytes = found_path.read_bytes()
+            for enc in ["utf-8-sig", "utf-8", "cp932", "shift_jis"]:
+                try:
+                    raw_text = raw_bytes.decode(enc)
+                    break
+                except UnicodeDecodeError:
+                    continue
+            else:
+                raw_text = raw_bytes.decode("utf-8", errors="replace")
+            from datetime import datetime as _dt
+            mtime = _dt.fromtimestamp(found_path.stat().st_mtime)
+            st.success(
+                f"✅ 自動読込: `{found_path.relative_to(BASE_DIR).as_posix()}`  "
+                f"({len(raw_text):,} chars, 更新: {mtime:%Y-%m-%d %H:%M:%S})"
             )
+        except Exception as e:
+            st.error(f"ファイル読込失敗 ({found_path.name}): {e}")
     else:
-        raw_text = st.text_area(
-            "Cowork レスポンス貼り付け (Markdown 全文 or JSON のみ)",
-            height=280,
+        st.warning(
+            f"📂 `reports/cowork_output/{date_yyyymmdd}.json` (or `.txt` / `.md`) が見つかりません。\n\n"
+            "**手順**:\n"
+            "1. Cowork の返答を全選択コピー\n"
+            f"2. `E:\\PyCaLiAI\\reports\\cowork_output\\{date_yyyymmdd}.json` として保存\n"
+            "3. このページを再読込 (Ctrl+R) または下記「再スキャン」ボタン押す"
+        )
+        if st.button("🔄 再スキャン", key=f"cowork_rescan_{date_yyyymmdd}"):
+            st.rerun()
+
+    # ── フォールバック: 直接貼り付け (折りたたみ式) ──
+    with st.expander("📋 ファイル使わずに直接貼り付け (一時用)", expanded=False):
+        pasted = st.text_area(
+            "Cowork レスポンス貼り付け",
+            height=200,
             placeholder='```json\n[\n  {"race_id": "...", "bets": [...]},\n  ...\n]\n```',
             key=f"cowork_paste_{date_yyyymmdd}",
+            help="ブラウザリロードで消える。緊急時/少量編集向け。",
         )
+        if pasted and not raw_text:
+            raw_text = pasted
+            st.caption(f"📋 貼付内容を使用 ({len(raw_text):,} chars)")
 
     col_p, col_s = st.columns([1, 1])
     if col_p.button("🔍 解析プレビュー", use_container_width=True,
