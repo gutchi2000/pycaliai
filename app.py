@@ -64,6 +64,7 @@ MODEL_DIR     = BASE_DIR / "models"
 STRATEGY_JSON    = DATA_DIR / "strategy_weights.json"
 COURSE_TREND_JSON = DATA_DIR / "course_trend.json"
 RESULTS_JSON      = DATA_DIR / "results.json"
+COWORK_RESULTS_JSON = DATA_DIR / "cowork_results.json"
 TYAKU_DIR     = DATA_DIR / "tyaku"
 HOSSEI_DIR    = DATA_DIR / "hosei"
 KAKO5_DIR     = DATA_DIR / "kako5"
@@ -1017,6 +1018,21 @@ def load_results() -> dict:
     if not RESULTS_JSON.exists():
         return {}
     return _load_results_cached(RESULTS_JSON.stat().st_mtime)
+
+
+@st.cache_data(show_spinner=False, ttl=300)
+def _load_cowork_results_cached(mtime: float) -> dict:
+    if not COWORK_RESULTS_JSON.exists():
+        return {}
+    with open(COWORK_RESULTS_JSON, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_cowork_results() -> dict:
+    """Cowork 集計データ読み込み（cowork_results.json）。"""
+    if not COWORK_RESULTS_JSON.exists():
+        return {}
+    return _load_cowork_results_cached(COWORK_RESULTS_JSON.stat().st_mtime)
 
 
 @st.cache_data(show_spinner=False)
@@ -3599,6 +3615,91 @@ def _render_course_analysis(course_trend: dict, place: str, meta: pd.Series) -> 
 # =========================================================
 # 的中実績ページ
 # =========================================================
+def _render_cowork_results(data: dict) -> None:
+    """Cowork 集計結果のレンダリング (cowork_results.json から)。"""
+    total = data.get("total", {}) or {}
+
+    # サマリ
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("対象レース",
+              f"{total.get('races', 0)}R",
+              f"{total.get('settled', 0)} 確定 / {total.get('見送り', 0)} 見送り")
+    c2.metric("総投資",  f"¥{total.get('bet', 0):,}")
+    c3.metric("総払戻",  f"¥{total.get('ret', 0):,}",
+              f"収支 ¥{total.get('pnl', 0):+,}")
+    c4.metric("ROI",     f"{total.get('roi', 0)}%",
+              f"的中 {total.get('hit_count', 0)}/{total.get('bet_count', 0)} "
+              f"({total.get('hit_rate', 0)}%)")
+
+    st.caption(
+        "⚠️ ワイドの配当データは kekka.csv に含まれないため、"
+        "ワイド的中時の払戻は ¥0 で集計されます (ROI 過小評価)。"
+    )
+
+    # 馬券種別
+    by_type = data.get("by_type", {}) or {}
+    if by_type:
+        st.markdown("### 馬券種別")
+        rows = []
+        for btype, t in by_type.items():
+            rows.append({
+                "馬券種":   btype,
+                "投資":     f"¥{t.get('bet', 0):,}",
+                "払戻":     f"¥{t.get('ret', 0):,}",
+                "収支":     f"¥{t.get('pnl', 0):+,}",
+                "ROI":      f"{t.get('roi', 0)}%",
+                "的中数":   t.get("hit", 0),
+                "対象R":    t.get("races", 0),
+                "的中率":   f"{t.get('hit_rate', 0)}%",
+            })
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    # 会場別
+    by_place = data.get("by_place", []) or []
+    if by_place:
+        st.markdown("### 会場別")
+        st.dataframe(pd.DataFrame(by_place), use_container_width=True, hide_index=True)
+
+    # 個別レース (展開可能)
+    races = data.get("races", []) or []
+    with st.expander(f"📋 個別レース一覧 ({len(races)}R)", expanded=False):
+        for r in races:
+            nature = r.get("race_nature", "")
+            color = {"固い": "#a6e3a1", "中堅": "#89b4fa", "混戦": "#cba6f7",
+                     "穴推奨": "#fab387", "見送り": "#6c7086"}.get(nature, "#fab387")
+            balance = r.get("収支", 0)
+            balance_color = "#a6e3a1" if balance > 0 else "#f38ba8" if balance < 0 else "#888"
+            st.markdown(
+                f'<div style="border-bottom:1px solid #2a2a3e;padding:8px 0">'
+                f'<span style="background:#313244;color:#cdd6f4;border-radius:4px;'
+                f'padding:1px 8px;font-weight:bold">{r.get("date","")} {r.get("場所","")} {r.get("R","")}R</span>'
+                f' <span style="background:{color};color:#1e1e2e;border-radius:3px;'
+                f'padding:1px 6px;font-size:11px;margin-left:6px">{nature}</span>'
+                f' <span style="color:#888;font-size:13px;margin-left:8px">{r.get("race_label","")}</span>'
+                f' <span style="margin-left:auto;float:right">'
+                f'<span style="color:#888">¥{r.get("総投資",0):,} → ¥{r.get("総払戻",0):,}</span> '
+                f'<span style="color:{balance_color};font-weight:bold;margin-left:8px">'
+                f'¥{balance:+,}</span></span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            if r.get("race_reason"):
+                st.markdown(
+                    f'<div style="color:#a6adc8;font-size:12px;padding:4px 0 4px 16px">'
+                    f'📝 {r.get("race_reason")}</div>',
+                    unsafe_allow_html=True,
+                )
+
+    # 個別馬券 (展開可能)
+    bets = data.get("bets", []) or []
+    if bets:
+        with st.expander(f"🎫 個別馬券一覧 ({len(bets)} 点)", expanded=False):
+            df = pd.DataFrame(bets)
+            df_display = df[["date", "場所", "R", "馬券種", "買い目", "購入額", "払戻", "的中", "決着"]].copy()
+            df_display["的中"] = df_display["的中"].map({1: "✅", 0: ""})
+            st.dataframe(df_display, use_container_width=True, hide_index=True)
+
+
 def _render_plan_results(plan_data: dict, plan_key: str) -> None:
     """HAHO / HALO 共通の実績描画ロジック。"""
     total = plan_data.get("total", {})
@@ -3809,18 +3910,30 @@ def page_results(results: dict) -> None:
     # 新フォーマット（HAHO/HALO/LALO/CQC/TRIPLE キーあり）
     _plan_keys = ["HAHO", "HALO", "STANDARD", "TRIPLE"]
     if any(k in results for k in _plan_keys):
-        tab_triple, tab_haho, tab_halo, tab_std = st.tabs([
-            "🔱 TRIPLE  三連複+複勝",
-            "🛡️ HAHO  ◎軸流し",
-            "🎯 HALO  三連単マルチ",
-            "📋 STANDARD 単複馬連",
-        ])
-        _res_tab_map = [
-            (tab_triple, "TRIPLE"),
-            (tab_haho,   "HAHO"),
-            (tab_halo,   "HALO"),
-            (tab_std,    "STANDARD"),
-        ]
+        # 三連系プラン (TRIPLE/HAHO/HALO) は scope 外として一時 hide。
+        # 復活させたい場合は _SHOW_TRIPLE_PLANS = True に戻す。
+        _SHOW_TRIPLE_PLANS = False
+        if _SHOW_TRIPLE_PLANS:
+            tab_triple, tab_haho, tab_halo, tab_std, tab_cowork = st.tabs([
+                "🔱 TRIPLE  三連複+複勝",
+                "🛡️ HAHO  ◎軸流し",
+                "🎯 HALO  三連単マルチ",
+                "📋 STANDARD 単複馬連",
+                "🤖 Cowork (Anthropic Desktop)",
+            ])
+            _res_tab_map = [
+                (tab_triple, "TRIPLE"),
+                (tab_haho,   "HAHO"),
+                (tab_halo,   "HALO"),
+                (tab_std,    "STANDARD"),
+            ]
+        else:
+            tab_std, tab_cowork = st.tabs([
+                "📋 STANDARD 単複馬連",
+                "🤖 Cowork (Anthropic Desktop)",
+            ])
+            _res_tab_map = [(tab_std, "STANDARD")]
+
         for _tab, _pk in _res_tab_map:
             with _tab:
                 _pd = results.get(_pk, {})
@@ -3828,6 +3941,18 @@ def page_results(results: dict) -> None:
                     st.info(f"{_pk}のデータがありません。generate_results.py を実行してください。")
                 else:
                     _render_plan_results(_pd, _pk)
+
+        # Cowork タブ
+        with tab_cowork:
+            cowork_data = load_cowork_results()
+            if not cowork_data or not cowork_data.get("total", {}).get("races"):
+                st.info(
+                    "Cowork 集計データがありません。\n"
+                    "1. メインタブ「🤖 Cowork取込」で買い目を保存\n"
+                    "2. レース後 `.\\weekly_post.ps1` 実行で集計される\n"
+                )
+            else:
+                _render_cowork_results(cowork_data)
     else:
         # 旧フォーマット（後方互換）
         st.info("旧フォーマットのresults.jsonです。generate_results.py を再実行するとHAHO/HALO/LALO/CQCタブが表示されます。")

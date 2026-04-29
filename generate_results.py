@@ -23,6 +23,13 @@ BASE_DIR  = Path(__file__).parent
 PRED_DIR  = BASE_DIR / "reports"
 KEKKA_DIR = BASE_DIR / "data" / "kekka"
 OUT_PATH  = BASE_DIR / "data" / "results.json"
+COWORK_BETS_DIR = BASE_DIR / "reports" / "cowork_bets"
+COWORK_OUT_PATH = BASE_DIR / "data" / "cowork_results.json"
+
+PLACE_CODE_TO_NAME = {
+    "01": "札幌", "02": "函館", "03": "福島", "04": "新潟", "05": "東京",
+    "06": "中山", "07": "中京", "08": "京都", "09": "阪神", "10": "小倉",
+}
 
 
 # =========================================================
@@ -183,6 +190,149 @@ def get_payout_fukusho(race_kk: pd.DataFrame, horse_num: int) -> float:
     if v.startswith("("):
         v = v[1:-1]
     return parse_haitou(v)
+
+
+# === Cowork 集計用: 馬単 / 三連単 / ワイド の追加ヘルパー ===
+def get_top3_ordered(race_kk: pd.DataFrame) -> list[int]:
+    """確定着順 1-3 の馬番を着順 (1着, 2着, 3着) で返す。"""
+    rows = race_kk[race_kk.iloc[:, 6].astype(str).isin(["1", "2", "3"])].copy()
+    if len(rows) < 3:
+        return []
+    rows["_pos"] = rows.iloc[:, 6].astype(int)
+    rows = rows.sort_values("_pos")
+    return [to_int(x) for x in rows.iloc[:, 4].tolist() if to_int(x) is not None]
+
+
+def get_payout_umatan(race_kk: pd.DataFrame) -> float:
+    """馬単配当（per 100円）。"""
+    col = "馬単"
+    if col not in race_kk.columns:
+        return 0.0
+    vals = race_kk[col].dropna()
+    vals = vals[~vals.astype(str).str.startswith("(")]
+    return parse_haitou(vals.iloc[0]) if len(vals) > 0 else 0.0
+
+
+def get_payout_sanrentan(race_kk: pd.DataFrame) -> float:
+    """三連単配当（per 100円）。"""
+    col = "３連単"
+    if col not in race_kk.columns:
+        return 0.0
+    vals = race_kk[col].dropna()
+    vals = vals[~vals.astype(str).str.startswith("(")]
+    return parse_haitou(vals.iloc[0]) if len(vals) > 0 else 0.0
+
+
+# === Cowork bet 照合 ===
+def match_cowork_bet(bet: dict, race_kk: pd.DataFrame) -> tuple[bool, float]:
+    """Cowork bet (1 件) を kekka と照合して (hit, payout_per_100) を返す。
+
+    payout_per_100 は「100円ベース配当」÷「点数」(複数点なら平均化)。
+    ワイドは kekka に配当列が無いため、的中時も payout=0 を返す
+    (ROI 計算で正の貢献は無いが、的中 1 はカウントされる)。
+    """
+    btype = bet.get("馬券種")
+    sel = str(bet.get("買い目", "")).strip()
+    if not sel or not btype:
+        return False, 0.0
+
+    top1 = get_winner(race_kk)
+    top2 = get_top2(race_kk)
+    top3 = get_top3(race_kk)
+    top3_ordered = get_top3_ordered(race_kk)
+
+    def _split_pairs(unordered: bool):
+        out = []
+        for c in sel.split(","):
+            parts = c.strip().split("-")
+            if len(parts) == 2:
+                try:
+                    a, b = int(parts[0]), int(parts[1])
+                    out.append(frozenset((a, b)) if unordered else (a, b))
+                except ValueError:
+                    continue
+        return out
+
+    def _split_trios(unordered: bool):
+        out = []
+        for c in sel.split(","):
+            parts = c.strip().split("-")
+            if len(parts) == 3:
+                try:
+                    nums = [int(p) for p in parts]
+                    out.append(frozenset(nums) if unordered else tuple(nums))
+                except ValueError:
+                    continue
+        return out
+
+    if btype == "単勝":
+        try:
+            n = int(sel)
+        except ValueError:
+            return False, 0.0
+        hit = (n == top1) and (top1 is not None)
+        return hit, (get_payout_tansho(race_kk) if hit else 0.0)
+
+    if btype == "複勝":
+        try:
+            n = int(sel)
+        except ValueError:
+            return False, 0.0
+        hit = (n in top3) and (len(top3) >= 1)
+        return hit, (get_payout_fukusho(race_kk, n) if hit else 0.0)
+
+    if btype == "馬連":
+        pairs = _split_pairs(unordered=True)
+        if not pairs or not top2:
+            return False, 0.0
+        hits = sum(1 for p in pairs if p == top2)
+        if hits:
+            return True, get_payout_rengo(race_kk) / len(pairs)
+        return False, 0.0
+
+    if btype == "馬単":
+        pairs = _split_pairs(unordered=False)
+        if not pairs or len(top3_ordered) < 2:
+            return False, 0.0
+        target = (top3_ordered[0], top3_ordered[1])
+        hits = sum(1 for p in pairs if p == target)
+        if hits:
+            return True, get_payout_umatan(race_kk) / len(pairs)
+        return False, 0.0
+
+    if btype == "ワイド":
+        pairs = _split_pairs(unordered=True)
+        if not pairs or len(top3) < 3:
+            return False, 0.0
+        top3_set = set(top3)
+        hit_count = sum(1 for p in pairs if all(x in top3_set for x in p))
+        if hit_count:
+            # kekka に ワイド 配当列が無いため payout=0 で返す
+            # (的中フラグだけ立つ、ROI には反映されない)
+            return True, 0.0
+        return False, 0.0
+
+    if btype == "三連複":
+        trios = _split_trios(unordered=True)
+        if not trios or len(top3) < 3:
+            return False, 0.0
+        target_fs = frozenset(top3)
+        hits = sum(1 for t in trios if t == target_fs)
+        if hits:
+            return True, get_payout_sanrenpuku(race_kk) / len(trios)
+        return False, 0.0
+
+    if btype == "三連単":
+        trios = _split_trios(unordered=False)
+        if not trios or len(top3_ordered) < 3:
+            return False, 0.0
+        target = tuple(top3_ordered)
+        hits = sum(1 for t in trios if t == target)
+        if hits:
+            return True, get_payout_sanrentan(race_kk) / len(trios)
+        return False, 0.0
+
+    return False, 0.0
 
 
 # =========================================================
@@ -450,6 +600,202 @@ def build_summary(plan: str, records: list[dict]) -> dict:
 
 
 # =========================================================
+# Cowork 集計
+# =========================================================
+def parse_race_id_16(rid: str) -> dict | None:
+    """16桁 race_id を分解。例: '2026042606010109' →
+    {date_key, place_code, place_name, kai, nichi, race_no}"""
+    rid = str(rid).strip()
+    if len(rid) < 16 or not rid[:16].isdigit():
+        return None
+    return {
+        "date_key":   rid[:8],
+        "place_code": rid[8:10],
+        "place_name": PLACE_CODE_TO_NAME.get(rid[8:10], ""),
+        "kai":        rid[10:12],
+        "nichi":      rid[12:14],
+        "race_no":    str(int(rid[14:16])),  # "01" → "1" に正規化
+    }
+
+
+def aggregate_cowork_bets(kekka_cache: dict) -> dict:
+    """reports/cowork_bets/{YYYYMMDD}/{race_id}.json を全部読んで
+    kekka と突合して集計サマリを返す。
+
+    Returns:
+        {
+          "generated_at": "...",
+          "total": {"races": int, "bet_count": int, "bet": int, "ret": int,
+                    "pnl": int, "roi": float, "hit_count": int, "hit_rate": float},
+          "by_type": {"単勝": {...}, "複勝": {...}, ...},
+          "by_place": [...], "weekly": [...], "races": [...],
+        }
+    """
+    if not COWORK_BETS_DIR.exists():
+        log.info("cowork_bets/ なし、スキップ")
+        return {"generated_at": pd.Timestamp.now().isoformat(),
+                "total": {"races": 0, "bet_count": 0, "bet": 0, "ret": 0,
+                          "pnl": 0, "roi": 0, "hit_count": 0, "hit_rate": 0},
+                "by_type": {}, "by_place": [], "weekly": [], "races": []}
+
+    races_out: list[dict] = []
+    bet_records: list[dict] = []   # 馬券単位 (集計用)
+
+    for date_dir in sorted(COWORK_BETS_DIR.iterdir()):
+        if not date_dir.is_dir() or not date_dir.name.isdigit():
+            continue
+        date_key = date_dir.name
+        for jf in sorted(date_dir.glob("*.json")):
+            try:
+                with open(jf, encoding="utf-8") as f:
+                    cd = json.load(f)
+            except Exception as e:
+                log.warning(f"cowork_bets 読み込み失敗 {jf.name}: {e}")
+                continue
+
+            rid = cd.get("race_id", jf.stem)
+            parsed = parse_race_id_16(rid)
+            if not parsed:
+                log.warning(f"race_id 解析失敗: {rid}")
+                continue
+
+            place_name = parsed["place_name"]
+            r_num = parsed["race_no"]
+            race_kk = get_race_kk(kekka_cache, date_key, place_name, r_num)
+            if race_kk.empty:
+                log.info(f"kekka 未到達 (未開催 or 取得待ち): {date_key} {place_name} {r_num}R")
+                # 結果待ちレースもサマリに含めるが、bet/ret は 0
+                race_kk = pd.DataFrame()  # 空のまま下で処理
+
+            bets = cd.get("bets", []) or []
+            race_bet = 0.0
+            race_ret = 0.0
+            race_hits = 0
+            for b in bets:
+                amount = _safe_num(b.get("購入額"))
+                btype = b.get("馬券種", "?")
+                sel = str(b.get("買い目", ""))
+                hit, payout_per_100 = (False, 0.0)
+                if not race_kk.empty:
+                    try:
+                        hit, payout_per_100 = match_cowork_bet(b, race_kk)
+                    except Exception as e:
+                        log.warning(f"bet 照合失敗 {rid} {btype} {sel}: {e}")
+
+                # 100 円ベース → 購入額換算
+                ret = (amount * payout_per_100 / 100.0) if hit else 0.0
+                race_bet += amount
+                race_ret += ret
+                if hit:
+                    race_hits += 1
+
+                bet_records.append({
+                    "date":     date_key,
+                    "race_id":  rid,
+                    "場所":     place_name,
+                    "R":        r_num,
+                    "馬券種":   btype,
+                    "買い目":   sel,
+                    "購入額":   _safe_round(amount),
+                    "払戻":     _safe_round(ret),
+                    "的中":     int(hit),
+                    "決着":     "未開催" if race_kk.empty else "確定",
+                })
+
+            races_out.append({
+                "date":        date_key,
+                "race_id":     rid,
+                "場所":        place_name,
+                "R":           r_num,
+                "race_label":  cd.get("race_label", ""),
+                "race_nature": cd.get("race_nature", ""),
+                "race_reason": cd.get("race_reason", ""),
+                "総投資":      _safe_round(race_bet),
+                "総払戻":      _safe_round(race_ret),
+                "収支":        _safe_round(race_ret - race_bet),
+                "点数":        len(bets),
+                "的中点数":    race_hits,
+                "決着":        "未開催" if race_kk.empty else "確定",
+            })
+
+    # ── サマリ集計 ──
+    total_bet  = sum(r["総投資"] for r in races_out)
+    total_ret  = sum(r["総払戻"] for r in races_out)
+    n_races    = len(races_out)
+    n_pass     = sum(1 for r in races_out if r["点数"] == 0)
+    n_settled  = sum(1 for r in races_out if r["決着"] == "確定")
+    bet_count  = len(bet_records)
+    hit_count  = sum(b["的中"] for b in bet_records)
+
+    # 馬券種別
+    by_type: dict = {}
+    if bet_records:
+        bdf = pd.DataFrame(bet_records)
+        for btype, grp in bdf.groupby("馬券種"):
+            settled = grp[grp["決着"] == "確定"]
+            bet = int(grp["購入額"].sum())
+            ret = int(grp["払戻"].sum())
+            hits = int(grp["的中"].sum())
+            n = len(settled)
+            by_type[btype] = {
+                "bet": bet, "ret": ret,
+                "pnl": ret - bet,
+                "roi": round(ret / bet * 100, 1) if bet > 0 else 0,
+                "hit": hits, "races": n,
+                "hit_rate": round(hits / n * 100, 1) if n > 0 else 0,
+            }
+
+    # 会場別 / 週次 (確定レースのみ集計)
+    by_place: list = []
+    weekly: list = []
+    if races_out:
+        rdf = pd.DataFrame(races_out)
+        rdf["日付_dt"] = pd.to_datetime(rdf["date"], format="%Y%m%d", errors="coerce")
+        # 会場別
+        bpdf = rdf.groupby("場所", sort=True).agg(
+            レース数=("race_id", "count"),
+            総投資=("総投資", "sum"),
+            総払戻=("総払戻", "sum"),
+        ).reset_index()
+        bpdf["ROI"] = (bpdf["総払戻"] / bpdf["総投資"] * 100).round(1)
+        bpdf["収支"] = bpdf["総払戻"] - bpdf["総投資"]
+        by_place = bpdf.to_dict("records")
+        # 週次
+        rdf["週"] = rdf["日付_dt"].dt.to_period("W").apply(
+            lambda p: str(p.end_time.date()) if pd.notna(p) else ""
+        )
+        wdf = rdf.groupby("週", sort=True).agg(
+            レース数=("race_id", "count"),
+            総投資=("総投資", "sum"),
+            総払戻=("総払戻", "sum"),
+        ).reset_index()
+        wdf["ROI"] = (wdf["総払戻"] / wdf["総投資"] * 100).round(1)
+        weekly = wdf.to_dict("records")
+
+    return {
+        "generated_at": pd.Timestamp.now().isoformat(),
+        "total": {
+            "races":     n_races,
+            "settled":   n_settled,
+            "見送り":    n_pass,
+            "bet_count": bet_count,
+            "bet":       int(total_bet),
+            "ret":       int(total_ret),
+            "pnl":       int(total_ret - total_bet),
+            "roi":       round(total_ret / total_bet * 100, 1) if total_bet > 0 else 0,
+            "hit_count": hit_count,
+            "hit_rate":  round(hit_count / bet_count * 100, 1) if bet_count > 0 else 0,
+        },
+        "by_type":  by_type,
+        "by_place": by_place,
+        "weekly":   weekly,
+        "races":    sorted(races_out, key=lambda r: (r["date"], r["場所"], int(r["R"] or 0)),
+                           reverse=True),
+        "bets":     bet_records,
+    }
+
+
+# =========================================================
 # メイン
 # =========================================================
 def main() -> None:
@@ -472,11 +818,26 @@ def main() -> None:
     except Exception as e:
         log.warning(f"build_pycali_history 実行失敗: {e}")
 
+    # ── Cowork 集計 ──
+    try:
+        cowork_result = aggregate_cowork_bets(kekka_cache)
+        with open(COWORK_OUT_PATH, "w", encoding="utf-8") as f:
+            json.dump(cowork_result, f, ensure_ascii=False, indent=2, default=str)
+        log.info(f"cowork_results.json 保存完了: {COWORK_OUT_PATH}")
+    except Exception as e:
+        log.warning(f"Cowork 集計失敗: {e}")
+        cowork_result = None
+
     print("\n=== 集計結果 ===")
     for plan in ["HAHO", "HALO", "LALO", "CQC", "TRIPLE"]:
         t = result[plan]["total"]
         print(f"{plan}: {t['races']}R  bet={t['bet']:,}  ret={t['ret']:,}  "
               f"pnl={t['pnl']:+,}  ROI={t['roi']}%")
+    if cowork_result and cowork_result.get("total", {}).get("races", 0) > 0:
+        t = cowork_result["total"]
+        print(f"Cowork: {t['races']}R ({t.get('settled', 0)}確定/{t.get('見送り', 0)}見送り)  "
+              f"bet={t['bet']:,}  ret={t['ret']:,}  pnl={t['pnl']:+,}  "
+              f"ROI={t['roi']}%  hit={t['hit_count']}/{t['bet_count']} ({t['hit_rate']}%)")
 
 
 if __name__ == "__main__":
