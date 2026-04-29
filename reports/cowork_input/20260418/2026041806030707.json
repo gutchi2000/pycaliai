@@ -18,10 +18,10 @@
       "p_win": 0.0198,
       "p_plc": 0.0662,
       "p_sho": 0.0877,
-      "tansho_odds": 34.9,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
-      "ai_vs_market": "over"
+      "tansho_odds": 48.6,
+      "fuku_odds_low": 6.1,
+      "fuku_odds_high": 9.7,
+      "ai_vs_market": "fair"
     },
     {
       "umaban": 2,
@@ -32,10 +32,10 @@
       "p_win": 0.0233,
       "p_plc": 0.0748,
       "p_sho": 0.1051,
-      "tansho_odds": 51.4,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
-      "ai_vs_market": "fair"
+      "tansho_odds": 179.3,
+      "fuku_odds_low": 21.0,
+      "fuku_odds_high": 33.6,
+      "ai_vs_market": "under"
     },
     {
       "umaban": 3,
@@ -46,10 +46,10 @@
       "p_win": 0.2053,
       "p_plc": 0.3214,
       "p_sho": 0.4706,
-      "tansho_odds": 3.2,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
-      "ai_vs_market": "over"
+      "tansho_odds": 5.7,
+      "fuku_odds_low": 1.6,
+      "fuku_odds_high": 2.3,
+      "ai_vs_market": "fair"
     },
     {
       "umaban": 4,
@@ -60,9 +60,9 @@
       "p_win": 0.0644,
       "p_plc": 0.1508,
       "p_sho": 0.232,
-      "tansho_odds": 34.9,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
+      "tansho_odds": 39.8,
+      "fuku_odds_low": 6.1,
+      "fuku_odds_high": 9.7,
       "ai_vs_market": "under"
     },
     {
@@ -74,10 +74,10 @@
       "p_win": 0.0891,
       "p_plc": 0.1935,
       "p_sho": 0.303,
-      "tansho_odds": 11.3,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
-      "ai_vs_market": "fair"
+      "tansho_odds": 16.5,
+      "fuku_odds_low": 3.4,
+      "fuku_odds_high": 5.2,
+      "ai_vs_market": "under"
     },
     {
       "umaban": 6,
@@ -88,10 +88,10 @@
       "p_win": 0.0552,
       "p_plc": 0.1417,
       "p_sho": 0.22,
-      "tansho_odds": 12.2,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
-      "ai_vs_market": "over"
+      "tansho_odds": 16.4,
+      "fuku_odds_low": 3.2,
+      "fuku_odds_high": 4.9,
+      "ai_vs_market": "fair"
     },
     {
       "umaban": 7,
@@ -102,9 +102,9 @@
       "p_win": 0.1857,
       "p_plc": 0.3053,
       "p_sho": 0.4583,
-      "tansho_odds": 5.3,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
+      "tansho_odds": 4.7,
+      "fuku_odds_low": 1.5,
+      "fuku_odds_high": 2.2,
       "ai_vs_market": "fair"
     },
     {
@@ -116,10 +116,10 @@
       "p_win": 0.0935,
       "p_plc": 0.204,
       "p_sho": 0.3117,
-      "tansho_odds": 8.8,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
-      "ai_vs_market": "fair"
+      "tansho_odds": 6.5,
+      "fuku_odds_low": 1.8,
+      "fuku_odds_high": 2.6,
+      "ai_vs_market": "over"
     },
     {
       "umaban": 9,
@@ -130,10 +130,10 @@
       "p_win": 0.121,
       "p_plc": 0.2418,
       "p_sho": 0.3713,
-      "tansho_odds": 8.0,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
-      "ai_vs_market": "fair"
+      "tansho_odds": 3.9,
+      "fuku_odds_low": 1.4,
+      "fuku_odds_high": 2.0,
+      "ai_vs_market": "over"
     },
     {
       "umaban": 10,
@@ -144,9 +144,9 @@
       "p_win": 0.1857,
       "p_plc": 0.3005,
       "p_sho": 0.4583,
-      "tansho_odds": 3.6,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
+      "tansho_odds": 3.5,
+      "fuku_odds_low": 1.2,
+      "fuku_odds_high": 1.5,
       "ai_vs_market": "over"
     }
   ],
@@ -154,6 +154,53 @@
     "top1_dominance": 0.0196,
     "top2_concentration": 0.391,
     "field_chaos_score": 0.9113,
-    "ai_market_agreement": 0.9483
+    "ai_market_agreement": 0.8424
+  },
+  "umaren_matrix": {
+    "1-2": 901.4,
+    "1-3": 135.9,
+    "1-4": 328.5,
+    "1-5": 280.8,
+    "1-6": 345.7,
+    "1-7": 172.5,
+    "1-8": 179.2,
+    "1-9": 117.1,
+    "1-10": 85.3,
+    "2-3": 496.7,
+    "2-4": 1170.4,
+    "2-5": 808.5,
+    "2-6": 888.9,
+    "2-7": 707.4,
+    "2-8": 684.7,
+    "2-9": 388.4,
+    "2-10": 365.5,
+    "3-4": 107.1,
+    "3-5": 35.5,
+    "3-6": 35.2,
+    "3-7": 16.2,
+    "3-8": 16.6,
+    "3-9": 11.1,
+    "3-10": 9.8,
+    "4-5": 232.0,
+    "4-6": 142.6,
+    "4-7": 96.1,
+    "4-8": 100.4,
+    "4-9": 74.2,
+    "4-10": 64.4,
+    "5-6": 81.7,
+    "5-7": 61.8,
+    "5-8": 41.2,
+    "5-9": 27.6,
+    "5-10": 32.8,
+    "6-7": 51.7,
+    "6-8": 48.2,
+    "6-9": 35.9,
+    "6-10": 27.1,
+    "7-8": 21.4,
+    "7-9": 11.0,
+    "7-10": 10.8,
+    "8-9": 11.8,
+    "8-10": 10.2,
+    "9-10": 6.5
   }
 }

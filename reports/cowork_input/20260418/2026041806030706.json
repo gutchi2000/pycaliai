@@ -18,10 +18,10 @@
       "p_win": 0.1706,
       "p_plc": 0.301,
       "p_sho": 0.4734,
-      "tansho_odds": 7.3,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
-      "ai_vs_market": "under"
+      "tansho_odds": 6.0,
+      "fuku_odds_low": 2.0,
+      "fuku_odds_high": 3.4,
+      "ai_vs_market": "fair"
     },
     {
       "umaban": 2,
@@ -32,9 +32,9 @@
       "p_win": 0.2232,
       "p_plc": 0.3571,
       "p_sho": 0.6096,
-      "tansho_odds": 2.2,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
+      "tansho_odds": 2.4,
+      "fuku_odds_low": 1.3,
+      "fuku_odds_high": 2.1,
       "ai_vs_market": "over"
     },
     {
@@ -46,9 +46,9 @@
       "p_win": 0.309,
       "p_plc": 0.4307,
       "p_sho": 0.6611,
-      "tansho_odds": 7.8,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
+      "tansho_odds": 8.3,
+      "fuku_odds_low": 2.0,
+      "fuku_odds_high": 3.5,
       "ai_vs_market": "under"
     },
     {
@@ -60,9 +60,9 @@
       "p_win": 0.0376,
       "p_plc": 0.1105,
       "p_sho": 0.1827,
-      "tansho_odds": 32.7,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
+      "tansho_odds": 113.5,
+      "fuku_odds_low": 19.4,
+      "fuku_odds_high": 34.7,
       "ai_vs_market": "under"
     },
     {
@@ -74,9 +74,9 @@
       "p_win": 0.3249,
       "p_plc": 0.4628,
       "p_sho": 0.688,
-      "tansho_odds": 2.3,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
+      "tansho_odds": 1.9,
+      "fuku_odds_low": 1.1,
+      "fuku_odds_high": 1.2,
       "ai_vs_market": "over"
     },
     {
@@ -88,9 +88,9 @@
       "p_win": 0.2053,
       "p_plc": 0.338,
       "p_sho": 0.5604,
-      "tansho_odds": 10.7,
-      "fuku_odds_low": null,
-      "fuku_odds_high": null,
+      "tansho_odds": 22.2,
+      "fuku_odds_low": 6.0,
+      "fuku_odds_high": 10.8,
       "ai_vs_market": "under"
     }
   ],
@@ -98,6 +98,23 @@
     "top1_dominance": 0.0159,
     "top2_concentration": 0.6339,
     "field_chaos_score": 0.9301,
-    "ai_market_agreement": 0.6
+    "ai_market_agreement": 0.7143
+  },
+  "umaren_matrix": {
+    "1-2": 7.2,
+    "1-3": 19.3,
+    "1-4": 168.1,
+    "1-5": 5.5,
+    "1-6": 43.3,
+    "2-3": 5.8,
+    "2-4": 136.2,
+    "2-5": 2.4,
+    "2-6": 25.0,
+    "3-4": 190.0,
+    "3-5": 6.3,
+    "3-6": 37.6,
+    "4-5": 82.1,
+    "4-6": 233.5,
+    "5-6": 19.2
   }
 }
