@@ -5482,12 +5482,17 @@ def page_cowork_import(date_yyyymmdd: str, all_df: pd.DataFrame) -> None:
         else:
             st.info("docs/cowork_prompt.md が見つかりません")
 
-    # ── reports/cowork_output/{date}.json から自動読込 (推奨) ──
+    # ── reports/cowork_output/{date}_bets.json から自動読込 (推奨) ──
     cowork_output_dir = BASE_DIR / "reports" / "cowork_output"
     cowork_output_dir.mkdir(parents=True, exist_ok=True)
 
-    # 候補拡張子: .json, .txt, .md (見つかった最初のものを使う)
+    # 候補ファイル (見つかった最初のものを使う)
+    # メイン: {YYYYMMDD}_bets.json
+    # 代替:   {YYYYMMDD}_bets.{txt|md}, {YYYYMMDD}.{json|txt|md}
     candidates = [
+        cowork_output_dir / f"{date_yyyymmdd}_bets.json",
+        cowork_output_dir / f"{date_yyyymmdd}_bets.txt",
+        cowork_output_dir / f"{date_yyyymmdd}_bets.md",
         cowork_output_dir / f"{date_yyyymmdd}.json",
         cowork_output_dir / f"{date_yyyymmdd}.txt",
         cowork_output_dir / f"{date_yyyymmdd}.md",
@@ -5518,11 +5523,15 @@ def page_cowork_import(date_yyyymmdd: str, all_df: pd.DataFrame) -> None:
             st.error(f"ファイル読込失敗 ({found_path.name}): {e}")
     else:
         st.warning(
-            f"📂 `reports/cowork_output/{date_yyyymmdd}.json` (or `.txt` / `.md`) が見つかりません。\n\n"
+            f"📂 `reports/cowork_output/{date_yyyymmdd}_bets.json` が見つかりません。\n\n"
             "**手順**:\n"
             "1. Cowork の返答を全選択コピー\n"
-            f"2. `E:\\PyCaLiAI\\reports\\cowork_output\\{date_yyyymmdd}.json` として保存\n"
-            "3. このページを再読込 (Ctrl+R) または下記「再スキャン」ボタン押す"
+            f"2. `E:\\PyCaLiAI\\reports\\cowork_output\\{date_yyyymmdd}_bets.json` として保存\n"
+            "3. このページを再読込 (Ctrl+R) または下記「再スキャン」ボタン押す\n\n"
+            "対応する命名 (どれでも OK):\n"
+            f"- `{date_yyyymmdd}_bets.json` (推奨)\n"
+            f"- `{date_yyyymmdd}_bets.txt` / `.md`\n"
+            f"- `{date_yyyymmdd}.json` / `.txt` / `.md` (旧形式)"
         )
         if st.button("🔄 再スキャン", key=f"cowork_rescan_{date_yyyymmdd}"):
             st.rerun()
