@@ -116,7 +116,7 @@ def _get_cached(path: Path, key: str):
 MIN_UNIT = 100
 MARKS    = ["◎", "◯", "▲", "△", "×"]
 
-EXCLUDE_PLACES  = {"東京", "小倉"}  # Phase 5: 阪神・京都の全面除外解除 (2026-04-05)
+EXCLUDE_PLACES: set[str] = set()   # Phase 6: 全会場対応 (東京・小倉の除外解除、2026-04-29)
 EXCLUDE_CLASSES = {"新馬", "障害"}
 
 # Phase 5+: SegmentBetFilter — ROI<80% の (距離セグメント, 券種) を購入対象から除外
@@ -6124,7 +6124,10 @@ def main() -> None:
         budget = st.number_input("1レース予算（円）", min_value=1_000,
                                  max_value=1_000_000, value=10_000, step=1_000)
         st.divider()
-        st.caption(f"除外会場: {', '.join(EXCLUDE_PLACES)}")
+        if EXCLUDE_PLACES:
+            st.caption(f"除外会場: {', '.join(EXCLUDE_PLACES)}")
+        else:
+            st.caption("除外会場: なし (全会場対象)")
         st.caption(f"除外クラス: {', '.join(EXCLUDE_CLASSES)}")
 
     if selected_date is None:
