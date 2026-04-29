@@ -5699,8 +5699,16 @@ def page_cowork_import(date_yyyymmdd: str, all_df: pd.DataFrame) -> None:
                 return 1, str(_e)
 
         rel_glob = (save_dir.relative_to(BASE_DIR).as_posix() + "/*")
+        # ソースの cowork_output ファイルも同時に push (Streamlit Cloud から見えるように)
+        cowork_output_rel = (
+            found_path.relative_to(BASE_DIR).as_posix()
+            if found_path else None
+        )
         with st.spinner("git push 中..."):
-            rc1, out1 = _run_git(["git", "add", rel_glob])
+            paths_to_add = [rel_glob]
+            if cowork_output_rel:
+                paths_to_add.append(cowork_output_rel)
+            rc1, out1 = _run_git(["git", "add", *paths_to_add])
             if rc1 != 0:
                 st.warning(f"git add 失敗: {out1[-300:]}")
             else:
