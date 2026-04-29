@@ -5482,21 +5482,92 @@ def page_cowork_import(date_yyyymmdd: str, all_df: pd.DataFrame) -> None:
         else:
             st.info("docs/cowork_prompt.md が見つかりません")
 
-    raw_text = st.text_area(
-        "Cowork レスポンス貼り付け (Markdown 全文 or JSON のみ)",
-        height=280,
-        placeholder='```json\n[\n  {"race_id": "...", "bets": [...]},\n  ...\n]\n```',
-        key=f"cowork_paste_{date_yyyymmdd}",
+    # ── 入力方式の選択 ──
+    input_method = st.radio(
+        "入力方式",
+        ["📁 ファイルアップロード (永続・推奨)", "📋 テキスト貼り付け (一時)"],
+        horizontal=True,
+        key=f"cowork_input_method_{date_yyyymmdd}",
+        help=(
+            "ファイル方式: Cowork のレスポンスを .json/.txt/.md に保存して読み込む。"
+            "ブラウザ再読み込みで消えない。"
+            "貼り付け方式: そのまま貼ると速いが、再読み込みで消える。"
+        ),
     )
+
+    raw_text = ""
+
+    if input_method.startswith("📁"):
+        # 過去にアップロード済の保存ファイルがあれば自動読込
+        save_resp_dir = BASE_DIR / "reports" / "cowork_response"
+        save_resp_dir.mkdir(parents=True, exist_ok=True)
+        saved_resp_path = save_resp_dir / f"{date_yyyymmdd}.txt"
+
+        uploaded = st.file_uploader(
+            "Cowork レスポンスファイル (.json / .txt / .md)",
+            type=["json", "txt", "md"],
+            key=f"cowork_upload_{date_yyyymmdd}",
+            help="Cowork の返答を全選択コピー → メモ帳等で .txt に保存 → ここにアップロード",
+        )
+
+        if uploaded is not None:
+            try:
+                raw_bytes = uploaded.getvalue()
+                # UTF-8 / cp932 / shift_jis 自動判定
+                for enc in ["utf-8", "utf-8-sig", "cp932", "shift_jis"]:
+                    try:
+                        raw_text = raw_bytes.decode(enc)
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                else:
+                    raw_text = raw_bytes.decode("utf-8", errors="replace")
+                # ファイルを reports/cowork_response/{date}.txt に永続保存
+                with open(saved_resp_path, "w", encoding="utf-8") as f:
+                    f.write(raw_text)
+                st.success(
+                    f"✅ 読込: {uploaded.name} ({len(raw_text):,} chars) "
+                    f"→ `{saved_resp_path.relative_to(BASE_DIR).as_posix()}` に保存"
+                )
+            except Exception as e:
+                st.error(f"ファイル読込失敗: {e}")
+        elif saved_resp_path.exists():
+            # 前回のアップロードが残ってれば使う
+            try:
+                raw_text = saved_resp_path.read_text(encoding="utf-8")
+                st.info(
+                    f"📂 前回保存ファイルを読込中: "
+                    f"`{saved_resp_path.relative_to(BASE_DIR).as_posix()}` "
+                    f"({len(raw_text):,} chars)"
+                )
+            except Exception as e:
+                st.warning(f"前回ファイル読込失敗: {e}")
+        else:
+            st.caption(
+                f"ファイルアップロード待ち。"
+                f"アップロードしたファイルは `{saved_resp_path.relative_to(BASE_DIR).as_posix()}` "
+                f"に永続保存され、次回もそのまま使えます。"
+            )
+    else:
+        raw_text = st.text_area(
+            "Cowork レスポンス貼り付け (Markdown 全文 or JSON のみ)",
+            height=280,
+            placeholder='```json\n[\n  {"race_id": "...", "bets": [...]},\n  ...\n]\n```',
+            key=f"cowork_paste_{date_yyyymmdd}",
+        )
 
     col_p, col_s = st.columns([1, 1])
     if col_p.button("🔍 解析プレビュー", use_container_width=True,
-                    key=f"cowork_parse_{date_yyyymmdd}"):
+                    key=f"cowork_parse_{date_yyyymmdd}",
+                    disabled=not raw_text):
         st.session_state[f"_cowork_parsed_{date_yyyymmdd}"] = parse_cowork_response(raw_text)
 
     parsed = st.session_state.get(f"_cowork_parsed_{date_yyyymmdd}")
     if parsed is None:
-        st.info("テキストを貼り付けて「🔍 解析プレビュー」を押してください。")
+        st.info(
+            "1. ファイルアップロード または テキスト貼り付け\n"
+            "2. 「🔍 解析プレビュー」を押す"
+        )
         return
 
     records, errors = parsed
