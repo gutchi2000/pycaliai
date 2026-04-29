@@ -47,6 +47,31 @@ def parse_haitou(v) -> float:
         return 0.0
 
 
+def _safe_num(v, default: float = 0.0) -> float:
+    """NaN / None / 変換失敗を default に変換した float を返す。
+
+    `float(x or 0)` は x=NaN のとき NaN を返してしまう (NaN は truthy)。
+    pred CSV に NaN が混じると round() が ValueError で死ぬので、
+    すべての金額系フィールドはこの関数で読む。
+    """
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return default
+    return default if pd.isna(f) else f
+
+
+def _safe_round(v, default: int = 0) -> int:
+    """NaN セーフな round + int キャスト。"""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return default
+    if pd.isna(f):
+        return default
+    return int(round(f))
+
+
 def split_combos(bet_str: str) -> list[frozenset]:
     """'1-2 / 3-4' → [{1,2}, {3,4}]"""
     result = []
@@ -228,7 +253,7 @@ def calc_plan_races(pred: pd.DataFrame, kekka_cache: dict,
 
         if plan == "HAHO":
             # 馬連
-            ren_inv  = float(hon.get("HAHO_馬連_購入額", 0) or 0)
+            ren_inv  = _safe_num(hon.get("HAHO_馬連_購入額"))
             ren_bets = split_combos(str(hon.get("HAHO_馬連_買い目", "")))
             top2     = get_top2(race_kk)
             ren_hit  = any(c == top2 for c in ren_bets) if top2 and ren_bets else False
@@ -239,7 +264,7 @@ def calc_plan_races(pred: pd.DataFrame, kekka_cache: dict,
                 ren_ret = per * odds / 100
 
             # 三連複
-            san_inv  = float(hon.get("HAHO_三連複_購入額", 0) or 0)
+            san_inv  = _safe_num(hon.get("HAHO_三連複_購入額"))
             san_bets = split_combos(str(hon.get("HAHO_三連複_買い目", "")))
             top3_fs  = frozenset(top3) if len(top3) == 3 else frozenset()
             san_hit  = any(c == top3_fs for c in san_bets) if top3_fs and san_bets else False
@@ -250,15 +275,15 @@ def calc_plan_races(pred: pd.DataFrame, kekka_cache: dict,
                 san_ret = per * odds / 100
 
             rec.update({
-                "馬連_投資": ren_inv, "馬連_払戻": round(ren_ret), "馬連_的中": int(ren_hit),
-                "三連複_投資": san_inv, "三連複_払戻": round(san_ret), "三連複_的中": int(san_hit),
+                "馬連_投資": ren_inv, "馬連_払戻": _safe_round(ren_ret), "馬連_的中": int(ren_hit),
+                "三連複_投資": san_inv, "三連複_払戻": _safe_round(san_ret), "三連複_的中": int(san_hit),
                 "総投資": ren_inv + san_inv,
-                "総払戻": round(ren_ret + san_ret),
-                "収支":   round(ren_ret + san_ret - ren_inv - san_inv),
+                "総払戻": _safe_round(ren_ret + san_ret),
+                "収支":   _safe_round(ren_ret + san_ret - ren_inv - san_inv),
             })
 
         elif plan == "HALO":
-            san_inv  = float(hon.get("HALO_三連複_購入額", 0) or 0)
+            san_inv  = _safe_num(hon.get("HALO_三連複_購入額"))
             san_bets = split_combos(str(hon.get("HALO_三連複_買い目", "")))
             top3_fs  = frozenset(top3) if len(top3) == 3 else frozenset()
             san_hit  = any(c == top3_fs for c in san_bets) if top3_fs and san_bets else False
@@ -269,14 +294,14 @@ def calc_plan_races(pred: pd.DataFrame, kekka_cache: dict,
                 san_ret = per * odds / 100
 
             rec.update({
-                "三連複_投資": san_inv, "三連複_払戻": round(san_ret), "三連複_的中": int(san_hit),
+                "三連複_投資": san_inv, "三連複_払戻": _safe_round(san_ret), "三連複_的中": int(san_hit),
                 "総投資": san_inv,
-                "総払戻": round(san_ret),
-                "収支":   round(san_ret - san_inv),
+                "総払戻": _safe_round(san_ret),
+                "収支":   _safe_round(san_ret - san_inv),
             })
 
         elif plan == "LALO":
-            fuku_inv = float(hon.get("LALO_複勝_購入額", 0) or 0)
+            fuku_inv = _safe_num(hon.get("LALO_複勝_購入額"))
             bet_horse = to_int(hon.get("LALO_複勝_買い目"))
             fuku_hit  = (bet_horse in top3) if bet_horse and top3 else False
             fuku_ret  = 0.0
@@ -285,14 +310,14 @@ def calc_plan_races(pred: pd.DataFrame, kekka_cache: dict,
                 fuku_ret = fuku_inv * odds / 100
 
             rec.update({
-                "複勝_投資": fuku_inv, "複勝_払戻": round(fuku_ret), "複勝_的中": int(fuku_hit),
+                "複勝_投資": fuku_inv, "複勝_払戻": _safe_round(fuku_ret), "複勝_的中": int(fuku_hit),
                 "総投資": fuku_inv,
-                "総払戻": round(fuku_ret),
-                "収支":   round(fuku_ret - fuku_inv),
+                "総払戻": _safe_round(fuku_ret),
+                "収支":   _safe_round(fuku_ret - fuku_inv),
             })
 
         elif plan == "CQC":
-            tan_inv   = float(hon.get("CQC_単勝_購入額", 0) or 0)
+            tan_inv   = _safe_num(hon.get("CQC_単勝_購入額"))
             bet_horse = to_int(hon.get("CQC_単勝_買い目"))
             tan_hit   = (bet_horse == winner) if bet_horse and winner else False
             tan_ret   = 0.0
@@ -301,15 +326,15 @@ def calc_plan_races(pred: pd.DataFrame, kekka_cache: dict,
                 tan_ret = tan_inv * odds / 100
 
             rec.update({
-                "単勝_投資": tan_inv, "単勝_払戻": round(tan_ret), "単勝_的中": int(tan_hit),
+                "単勝_投資": tan_inv, "単勝_払戻": _safe_round(tan_ret), "単勝_的中": int(tan_hit),
                 "総投資": tan_inv,
-                "総払戻": round(tan_ret),
-                "収支":   round(tan_ret - tan_inv),
+                "総払戻": _safe_round(tan_ret),
+                "収支":   _safe_round(tan_ret - tan_inv),
             })
 
         elif plan == "TRIPLE":
             # 三連複◎◯▲
-            san_inv  = float(hon.get("TRIPLE_三連複_購入額", 0) or 0)
+            san_inv  = _safe_num(hon.get("TRIPLE_三連複_購入額"))
             san_bets = split_combos(str(hon.get("TRIPLE_三連複_買い目", "")))
             san_hit  = (any(c <= set(top3) for c in san_bets)) if san_bets and top3 else False
             san_ret  = 0.0
@@ -317,7 +342,7 @@ def calc_plan_races(pred: pd.DataFrame, kekka_cache: dict,
                 odds    = get_payout_sanrenpuku(race_kk)
                 san_ret = san_inv * odds / 100
             # 複勝◎
-            fuku_inv  = float(hon.get("TRIPLE_複勝_購入額", 0) or 0)
+            fuku_inv  = _safe_num(hon.get("TRIPLE_複勝_購入額"))
             bet_horse = to_int(hon.get("TRIPLE_複勝_買い目"))
             fuku_hit  = (bet_horse in top3) if bet_horse and top3 else False
             fuku_ret  = 0.0
@@ -326,11 +351,11 @@ def calc_plan_races(pred: pd.DataFrame, kekka_cache: dict,
                 fuku_ret = fuku_inv * odds / 100
 
             rec.update({
-                "三連複_投資": san_inv,  "三連複_払戻": round(san_ret),  "三連複_的中": int(san_hit),
-                "複勝_投資":   fuku_inv, "複勝_払戻":   round(fuku_ret), "複勝_的中":   int(fuku_hit),
+                "三連複_投資": san_inv,  "三連複_払戻": _safe_round(san_ret),  "三連複_的中": int(san_hit),
+                "複勝_投資":   fuku_inv, "複勝_払戻":   _safe_round(fuku_ret), "複勝_的中":   int(fuku_hit),
                 "総投資": san_inv + fuku_inv,
-                "総払戻": round(san_ret + fuku_ret),
-                "収支":   round(san_ret + fuku_ret - san_inv - fuku_inv),
+                "総払戻": _safe_round(san_ret + fuku_ret),
+                "収支":   _safe_round(san_ret + fuku_ret - san_inv - fuku_inv),
             })
 
         records.append(rec)
