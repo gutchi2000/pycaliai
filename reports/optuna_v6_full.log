@@ -1,0 +1,68 @@
+================================================================================
+optuna_v6_marks.py  (n_trials=40, n_folds=5, seed=42)
+  objective = composite_v5 - 0.5 × ECE_high_p
+    composite_v5 = NDCG@5 (0.3) + ◎top3 (0.25) + top3⊂top5 (0.2)
+                + win∈top5 (0.15) + ◎top2 (0.1)
+    ECE_high_p = |mean(p_pred) - mean(actual)| where p_pred >= 0.10
+  alpha 範囲: [0.0, 1.5]  (v5 は [0.0, 2.0])
+  ラベル: clip(6 - 着順, 0, 5)
+================================================================================
+[load] E:\PyCaLiAI\data\master_v2_20130105-20251228.csv
+  train=485,252  valid=47,273
+  feats: 120
+  trial  0: composite=53.332  ndcg5=0.5842  ◎top3=59.35%  ECE=0.0205  alpha=0.56  iter=106
+  trial  1: composite=53.376  ndcg5=0.5914  ◎top3=59.61%  ECE=0.0295  alpha=1.06  iter=723
+  trial  2: composite=53.827  ndcg5=0.5927  ◎top3=60.50%  ECE=0.0263  alpha=0.65  iter=662
+  trial  3: composite=53.666  ndcg5=0.5904  ◎top3=59.93%  ECE=0.0261  alpha=0.77  iter=464
+  trial  4: composite=53.530  ndcg5=0.5889  ◎top3=59.92%  ECE=0.0246  alpha=0.46  iter=1124
+  trial  5: composite=53.856  ndcg5=0.5931  ◎top3=59.92%  ECE=0.0272  alpha=0.99  iter=968
+  trial  6: composite=51.791  ndcg5=0.5748  ◎top3=57.61%  ECE=0.0257  alpha=0.90  iter=866
+  trial  7: composite=53.776  ndcg5=0.5913  ◎top3=59.78%  ECE=0.0234  alpha=0.54  iter=722
+  trial  8: composite=54.241  ndcg5=0.5877  ◎top3=59.78%  ECE=0.0127  alpha=0.01  iter=154
+  trial  9: composite=53.057  ndcg5=0.5860  ◎top3=59.75%  ECE=0.0274  alpha=0.93  iter=1346
+  trial 10: composite=54.895  ndcg5=0.5938  ◎top3=60.56%  ECE=0.0112  alpha=0.03  iter=469
+  trial 11: composite=53.833  ndcg5=0.5871  ◎top3=59.46%  ECE=0.0129  alpha=0.01  iter=223
+  trial 12: composite=53.791  ndcg5=0.5881  ◎top3=59.00%  ECE=0.0132  alpha=0.01  iter=217
+  trial 13: composite=53.366  ndcg5=0.5884  ◎top3=59.81%  ECE=0.0289  alpha=1.49  iter=221
+  trial 14: composite=53.855  ndcg5=0.5894  ◎top3=59.14%  ECE=0.0208  alpha=0.24  iter=408
+  trial 15: composite=54.270  ndcg5=0.5911  ◎top3=60.47%  ECE=0.0191  alpha=0.28  iter=199
+  trial 16: composite=53.513  ndcg5=0.5877  ◎top3=59.11%  ECE=0.0194  alpha=0.26  iter=322
+  trial 17: composite=54.377  ndcg5=0.5933  ◎top3=60.53%  ECE=0.0188  alpha=0.27  iter=596
+  trial 18: composite=53.602  ndcg5=0.5892  ◎top3=59.61%  ECE=0.0217  alpha=0.37  iter=585
+  trial 19: composite=54.472  ndcg5=0.5926  ◎top3=60.10%  ECE=0.0145  alpha=0.16  iter=1447
+  trial 20: composite=53.690  ndcg5=0.5905  ◎top3=59.84%  ECE=0.0253  alpha=1.23  iter=1093
+  trial 21: composite=53.675  ndcg5=0.5869  ◎top3=59.84%  ECE=0.0164  alpha=0.17  iter=1304
+  trial 22: composite=54.366  ndcg5=0.5920  ◎top3=59.35%  ECE=0.0150  alpha=0.16  iter=453
+  trial 23: composite=53.037  ndcg5=0.5811  ◎top3=59.23%  ECE=0.0182  alpha=0.14  iter=1865
+  trial 24: composite=53.617  ndcg5=0.5903  ◎top3=59.81%  ECE=0.0240  alpha=0.40  iter=350
+  trial 25: composite=54.074  ndcg5=0.5906  ◎top3=59.75%  ECE=0.0152  alpha=0.09  iter=728
+  trial 26: composite=53.611  ndcg5=0.5891  ◎top3=60.10%  ECE=0.0236  alpha=0.31  iter=642
+  trial 27: composite=53.562  ndcg5=0.5889  ◎top3=59.95%  ECE=0.0256  alpha=0.47  iter=236
+  trial 28: composite=54.024  ndcg5=0.5908  ◎top3=59.64%  ECE=0.0193  alpha=0.68  iter=1195
+  trial 29: composite=53.803  ndcg5=0.5864  ◎top3=59.58%  ECE=0.0130  alpha=0.17  iter=185
+  trial 30: composite=53.989  ndcg5=0.5897  ◎top3=59.61%  ECE=0.0163  alpha=0.09  iter=363
+  trial 31: composite=54.091  ndcg5=0.5900  ◎top3=60.36%  ECE=0.0195  alpha=0.20  iter=264
+  trial 32: composite=54.273  ndcg5=0.5907  ◎top3=59.49%  ECE=0.0138  alpha=0.09  iter=377
+  trial 33: composite=53.345  ndcg5=0.5862  ◎top3=58.71%  ECE=0.0192  alpha=0.29  iter=194
+  trial 34: composite=53.903  ndcg5=0.5897  ◎top3=59.98%  ECE=0.0202  alpha=0.37  iter=410
+  trial 35: composite=53.984  ndcg5=0.5916  ◎top3=59.95%  ECE=0.0229  alpha=0.64  iter=764
+  trial 36: composite=53.860  ndcg5=0.5892  ◎top3=59.26%  ECE=0.0167  alpha=0.50  iter=549
+  trial 37: composite=54.005  ndcg5=0.5895  ◎top3=59.66%  ECE=0.0153  alpha=0.12  iter=753
+  trial 38: composite=53.278  ndcg5=0.5878  ◎top3=59.23%  ECE=0.0248  alpha=0.76  iter=257
+  trial 39: composite=52.833  ndcg5=0.5850  ◎top3=59.23%  ECE=0.0281  alpha=0.58  iter=514
+
+[best] composite = 54.895
+  best_iter = 469
+  alpha     = 0.031
+  ndcg5                    = 0.5938
+  hon_top3_rate            = 60.56%
+  hon_top2_rate            = 47.83%
+  top3_subset_top5_rate    = 30.79%
+  winner_in_top5_rate      = 77.08%
+  ece_high_p               = 0.0112
+
+[retrain] best params on train (alpha=0.031)
+[200]	valid_0's ndcg@1: 0.413344	valid_0's ndcg@3: 0.506352	valid_0's ndcg@5: 0.587272
+[400]	valid_0's ndcg@1: 0.418487	valid_0's ndcg@3: 0.513816	valid_0's ndcg@5: 0.591595
+[saved] E:\PyCaLiAI\models\unified_rank_v6.pkl
+[saved] E:\PyCaLiAI\reports\optuna_v6_marks.json
