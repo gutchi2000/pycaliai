@@ -4984,13 +4984,86 @@ CSS = """
 .sbar-wrap{display:flex;align-items:center;gap:6px;font-size:12px;}
 .sbar{height:10px;border-radius:4px;background:#5865f2;}
 .main-race-banner {
-    background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);
-    border:1px solid #e74c3c; border-radius:12px;
-    padding:18px 24px; margin-bottom:16px; position:relative; overflow:hidden;
+    background:linear-gradient(135deg,#0d1421 0%,#16213e 45%,#1a2845 100%);
+    border:1px solid #f39c12; border-radius:14px;
+    padding:24px 28px; margin-bottom:20px; position:relative; overflow:hidden;
+    box-shadow:0 4px 20px rgba(243,156,18,0.15);
 }
 .main-race-banner::before {
-    content:''; position:absolute; top:0; left:0; right:0; height:3px;
-    background:linear-gradient(90deg,#e74c3c,#f39c12,#e74c3c);
+    content:''; position:absolute; top:0; left:0; right:0; height:4px;
+    background:linear-gradient(90deg,#e74c3c 0%,#f39c12 50%,#e74c3c 100%);
+}
+.main-race-banner::after {
+    content:''; position:absolute; top:0; right:-50px; width:200px; height:100%;
+    background:radial-gradient(circle at 50% 50%, rgba(243,156,18,0.08), transparent 60%);
+    pointer-events:none;
+}
+.banner-top { margin-bottom:18px; }
+.banner-meta-line {
+    display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;
+}
+.banner-meta-text { color:#a6adc8; font-size:13px; }
+.banner-meta-divider { color:#45475a; }
+.banner-title {
+    font-size:34px !important; font-weight:900 !important;
+    color:#cdd6f4 !important;
+    margin:8px 0 0 !important; padding:0 !important;
+    letter-spacing:2px;
+    text-shadow:0 2px 6px rgba(0,0,0,0.4);
+    line-height:1.1 !important;
+}
+.banner-chips-row {
+    display:grid; grid-template-columns:repeat(4, 1fr);
+    gap:10px; margin-bottom:18px;
+}
+.banner-chip {
+    background:rgba(255,255,255,0.04);
+    border:1px solid #313244;
+    border-radius:8px; padding:10px 12px;
+    text-align:center;
+}
+.chip-label { color:#6c7086; font-size:11px; margin-bottom:4px; }
+.chip-value { color:#f5c2e7; font-size:16px; font-weight:bold; }
+.banner-marks-section {
+    background:rgba(0,0,0,0.2);
+    border-left:3px solid #f39c12;
+    padding:10px 16px; border-radius:6px;
+}
+.banner-mark-row {
+    display:flex; align-items:center; gap:12px; padding:4px 0;
+}
+.banner-mark-row .mk-honmei {
+    background:#e74c3c; color:#fff;
+    font-size:18px; font-weight:bold;
+    width:30px; height:30px; line-height:30px;
+    text-align:center; border-radius:50%;
+    flex-shrink:0;
+}
+.banner-mark-row .mk-taikou {
+    background:#3498db; color:#fff;
+    font-size:18px; font-weight:bold;
+    width:30px; height:30px; line-height:30px;
+    text-align:center; border-radius:50%;
+    flex-shrink:0;
+}
+.banner-mark-row .mk-tanana {
+    background:#9b59b6; color:#fff;
+    font-size:18px; font-weight:bold;
+    width:30px; height:30px; line-height:30px;
+    text-align:center; border-radius:50%;
+    flex-shrink:0;
+}
+.banner-name {
+    color:#cdd6f4; font-size:16px; font-weight:600;
+    flex-grow:1;
+}
+.banner-score {
+    color:#a6e3a1; font-size:18px; font-weight:bold;
+    background:rgba(166,227,161,0.1); padding:2px 12px; border-radius:12px;
+}
+.banner-score-sub {
+    color:#94a3b8; font-size:14px; font-weight:600;
+    background:rgba(148,163,184,0.08); padding:2px 12px; border-radius:12px;
 }
 .grade-g1{display:inline-block;background:#e74c3c;color:#fff;padding:2px 10px;border-radius:4px;font-size:12px;font-weight:bold;margin-right:8px;}
 .grade-g2{display:inline-block;background:#9b59b6;color:#fff;padding:2px 10px;border-radius:4px;font-size:12px;font-weight:bold;margin-right:8px;}
@@ -5033,8 +5106,14 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
         place   = str(meta.get("場所",""))
         cls_raw = str(meta.get("クラス名",""))
         hon_row = grp[grp["mark"] == "◎"]
+        tai_row = grp[grp["mark"] == "◯"]
+        san_row = grp[grp["mark"] == "▲"]
         hon_name  = str(hon_row.iloc[0]["馬名"])  if not hon_row.empty else "-"
         hon_score = float(hon_row.iloc[0]["score"]) if not hon_row.empty else 0.0
+        tai_name  = str(tai_row.iloc[0]["馬名"])  if not tai_row.empty else "-"
+        tai_score = float(tai_row.iloc[0]["score"]) if not tai_row.empty else 0.0
+        san_name  = str(san_row.iloc[0]["馬名"])  if not san_row.empty else "-"
+        san_score = float(san_row.iloc[0]["score"]) if not san_row.empty else 0.0
         race_metas.append({
             "race_id":  race_id,
             "場所":     place,
@@ -5048,28 +5127,68 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
             "頭数":     len(grp),
             "◎":        hon_name,
             "◎スコア":  hon_score,
+            "〇":        tai_name,
+            "〇スコア":  tai_score,
+            "▲":        san_name,
+            "▲スコア":  san_score,
             "戦略":     is_in_strategy(place, cls_raw, strategy),
             "グレード":  GRADE_ORDER.get(CLASS_NORMALIZE.get(cls_raw, cls_raw), 99),
         })
 
-    # 重賞バナー
+    # 重賞バナー (SPAIA 風デザイン)
     graded = sorted([r for r in race_metas if r["グレード"] <= 3], key=lambda x: x["グレード"])
     if graded:
         mr = graded[0]
         grade_label = CLASS_NORMALIZE.get(mr["クラス"], mr["クラス"])
         grade_cls   = {"Ｇ１":"grade-g1","Ｇ２":"grade-g2","Ｇ３":"grade-g3"}.get(grade_label,"grade-op")
-        _banner_cd = countdown_html(selected_date, mr["発走"], size="13px")
+        _banner_cd = countdown_html(selected_date, mr["発走"], size="14px")
+        race_title = mr["レース名"] or mr["クラス"]
+
+        # 4 つの info chip (距離 / 頭数 / 馬場 / 天気)
+        info_chips = (
+            f'<div class="banner-chip"><div class="chip-label">距離</div>'
+            f'<div class="chip-value">{mr["距離"]}</div></div>'
+            f'<div class="banner-chip"><div class="chip-label">頭数</div>'
+            f'<div class="chip-value">{mr["頭数"]}頭</div></div>'
+            f'<div class="banner-chip"><div class="chip-label">馬場</div>'
+            f'<div class="chip-value">{mr["馬場"] or "-"}</div></div>'
+            f'<div class="banner-chip"><div class="chip-label">天気</div>'
+            f'<div class="chip-value">{mr["天気"] or "-"}</div></div>'
+        )
+
+        # 印 馬名 + score (◎/〇/▲)
+        marks_html = (
+            f'<div class="banner-mark-row"><span class="mk-honmei">◎</span>'
+            f'<span class="banner-name">{mr["◎"]}</span>'
+            f'<span class="banner-score">{mr["◎スコア"]:.1f}%</span></div>'
+        )
+        if mr.get("〇") and mr["〇"] != "-":
+            marks_html += (
+                f'<div class="banner-mark-row"><span class="mk-taikou">〇</span>'
+                f'<span class="banner-name">{mr["〇"]}</span>'
+                f'<span class="banner-score-sub">{mr.get("〇スコア",0):.1f}%</span></div>'
+            )
+        if mr.get("▲") and mr["▲"] != "-":
+            marks_html += (
+                f'<div class="banner-mark-row"><span class="mk-tanana">▲</span>'
+                f'<span class="banner-name">{mr["▲"]}</span>'
+                f'<span class="banner-score-sub">{mr.get("▲スコア",0):.1f}%</span></div>'
+            )
+
         st.markdown(
             f'<div class="main-race-banner">'
-            f'<div style="margin-bottom:6px">'
-            f'<span class="{grade_cls}">{grade_label}</span>'
-            f'<span style="color:#888;font-size:13px">{mr["場所"]} {mr["R"]}R　{mr["発走"]}発走{_banner_cd}</span></div>'
-            f'<div style="font-size:22px;font-weight:bold;color:#cdd6f4;margin-bottom:4px">'
-            f'{mr["レース名"] or mr["クラス"]}</div>'
-            f'<div style="color:#888;font-size:14px">{mr["距離"]}　{mr["頭数"]}頭立て'
-            f'　天気:{mr["天気"]}　馬場:{mr["馬場"]}</div>'
-            f'<div style="margin-top:8px;font-size:14px;color:#a6e3a1">'
-            f'◎ <b>{mr["◎"]}</b>　スコア {mr["◎スコア"]:.1f}%</div>'
+            f'  <div class="banner-top">'
+            f'    <div class="banner-meta-line">'
+            f'      <span class="{grade_cls}">{grade_label}</span>'
+            f'      <span class="banner-meta-text">{mr["場所"]} {mr["R"]}R</span>'
+            f'      <span class="banner-meta-divider">•</span>'
+            f'      <span class="banner-meta-text">{mr["発走"]} 発走</span>'
+            f'      {_banner_cd}'
+            f'    </div>'
+            f'    <h2 class="banner-title">{race_title}</h2>'
+            f'  </div>'
+            f'  <div class="banner-chips-row">{info_chips}</div>'
+            f'  <div class="banner-marks-section">{marks_html}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
