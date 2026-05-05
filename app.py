@@ -5499,6 +5499,75 @@ def page_cowork_import(date_yyyymmdd: str, all_df: pd.DataFrame) -> None:
             if d not in available:
                 available[d] = p
 
+    # ── 未 push (untracked) ファイルの検出 + 一括 push ボタン ──
+    untracked_files: list[Path] = []
+    try:
+        import subprocess as _sub
+        rel_dir = cowork_output_dir.relative_to(BASE_DIR).as_posix()
+        # git ls-files で track 済リストを取得
+        proc = _sub.run(
+            ["git", "ls-files", rel_dir],
+            cwd=str(BASE_DIR), capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=10,
+        )
+        if proc.returncode == 0:
+            tracked = set(proc.stdout.strip().splitlines())
+            for p in cowork_output_dir.iterdir():
+                if not p.is_file():
+                    continue
+                rel = p.relative_to(BASE_DIR).as_posix()
+                if rel not in tracked:
+                    untracked_files.append(p)
+    except Exception as _e:
+        # git 取得失敗時は untracked 検出スキップ (致命的ではない)
+        pass
+
+    if untracked_files:
+        names = ", ".join(p.name for p in untracked_files[:5])
+        more = f" 他 {len(untracked_files)-5} 件" if len(untracked_files) > 5 else ""
+        st.warning(
+            f"⚠️ 未 push の cowork_output ファイルが **{len(untracked_files)} 件** あります: "
+            f"`{names}`{more}\n\n"
+            f"Streamlit Cloud から見えるようにするには下記ボタンで push してください。"
+        )
+        if st.button(f"📤 {len(untracked_files)} 件を git add + push",
+                     key=f"cowork_push_untracked_{date_yyyymmdd}"):
+            def _git(cmd: list[str]) -> tuple[int, str]:
+                try:
+                    r = _sub.run(cmd, cwd=str(BASE_DIR),
+                                  capture_output=True, text=True,
+                                  encoding="utf-8", errors="replace", timeout=60)
+                    return r.returncode, (r.stdout or "") + (r.stderr or "")
+                except Exception as _e:
+                    return 1, str(_e)
+            with st.spinner("git push 中..."):
+                rels = [p.relative_to(BASE_DIR).as_posix() for p in untracked_files]
+                rc1, out1 = _git(["git", "add", *rels])
+                if rc1 != 0:
+                    st.error(f"git add 失敗: {out1[-300:]}")
+                else:
+                    rc2, out2 = _git([
+                        "git", "commit", "-m",
+                        f"data: track {len(rels)} cowork_output files via Streamlit",
+                    ])
+                    if rc2 == 0:
+                        _git(["git", "pull", "--rebase", "--autostash", "origin", "master"])
+                        rc3, out3 = _git(["git", "push", "origin", "HEAD:master"])
+                        if rc3 == 0:
+                            st.success(
+                                f"✅ {len(rels)} 件 push 完了。"
+                                f"Streamlit Cloud に数秒で反映。"
+                            )
+                            st.rerun()
+                        else:
+                            st.warning(
+                                f"git push 失敗 (commit は OK)。\n"
+                                f"手動: `git push origin HEAD:master`\n"
+                                f"```\n{out3[-300:]}\n```"
+                            )
+                    else:
+                        st.caption(f"git commit: {out2[-100:].strip()}")
+
     # サイドバー選択日付に一致するものをデフォルト、無ければ最新を選ぶ
     if date_yyyymmdd in available:
         default_date = date_yyyymmdd
