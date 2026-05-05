@@ -5373,8 +5373,11 @@ def _pyca_radar_fig_impl(values: list[float], labels: list[str], name: str):
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def _load_training_csvs():
+def _load_training_csvs(_cache_key: str = ""):
     """data/training/H-*.csv (坂路) と W-*.csv (WC) を全部読み込んでキャッシュ。
+
+    _cache_key: ファイル数 + 最新 mtime をハッシュ化した文字列。
+                ファイル追加/更新で cache が自動 invalidate される。
 
     H 列構成: 場所, 年月日, 馬名, Time1, Time2, Time3, Time4, Lap4, Lap3, Lap2, Lap1
       Time1 = 4F 全体, Time4 = ラスト 1F, Lap1 = 最終 1F (終い時計)
@@ -5431,7 +5434,16 @@ def _attach_latest_training(race_df: pd.DataFrame) -> pd.DataFrame:
       trn_wc_3f       (WC 3F 累計, 秒)
       trn_wc_days
     """
-    h_all, w_all = _load_training_csvs()
+    # cache key: 訓練ファイル群の mtime をベースに毎回計算
+    # → ファイルが追加/更新されたら自動で cache invalidate
+    train_dir = BASE_DIR / "data" / "training"
+    if train_dir.exists():
+        files = sorted(train_dir.glob("*.csv"))
+        ck = f"n={len(files)}|mt={max((p.stat().st_mtime for p in files), default=0):.0f}"
+    else:
+        ck = "no-dir"
+    h_all, w_all = _load_training_csvs(ck)
+
     df = race_df.copy()
     for c in ["trn_hanro_time1", "trn_hanro_lap1", "trn_hanro_days",
               "trn_wc_5f", "trn_wc_3f", "trn_wc_days"]:
