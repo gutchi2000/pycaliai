@@ -5290,12 +5290,33 @@ def page_race_list(all_df: pd.DataFrame, strategy: dict, budget: int) -> None:
 # PyCa 出走馬評価リスト (全頭分析タブ用)
 # =========================================================
 PYCA_INDICATORS = [
-    ("a", "総合力",   ["score"],                                            True),
-    ("b", "スピード",  ["前走補正", "前走走破タイム"],                        True),
-    ("c", "末脚",     ["前走補9", "前走上り3F"],                             True),
-    ("d", "前走成績", ["前走確定着順"],                                      False),  # 小さい=良い
-    ("e", "市場評価", ["前走人気", "前走単勝オッズ"],                         False),  # 小さい=良い
-    ("f", "ペース適性", ["前走RPCI", "前走PCI3", "前走Ave-3F"],              True),
+    # (key, label, [(列名, higher_is_better), ...], legacy_higher)
+    # higher_is_better=True  → 値が大きいほど良い (補正タイム/PCI など)
+    # higher_is_better=False → 値が小さいほど良い (秒・着順・人気・オッズ)
+    ("a", "総合力",   [
+        ("score", True),
+    ], True),
+    ("b", "スピード",  [
+        ("前走補正",      True),    # TARGET 補正タイム指数: 100 基準、高い=速い
+        ("前走Ave-3F",    False),   # 秒: 低い=速い
+        ("前走走破タイム", False),  # 秒: 低い=速い
+    ], True),
+    ("c", "末脚",     [
+        ("前走補9",     True),     # 補正タイム (上り 9F): 高い=良い
+        ("前走上り3F",  False),    # 秒: 低い=速い
+    ], True),
+    ("d", "前走成績", [
+        ("前走確定着順", False),   # 小さい=良い
+    ], False),
+    ("e", "市場評価", [
+        ("前走人気",       False),
+        ("前走単勝オッズ", False),
+    ], False),
+    ("f", "ペース適性", [
+        ("前走RPCI",     True),
+        ("前走PCI3",     True),
+        ("前走Ave-3F",   False),  # 秒: 低い=速い
+    ], True),
 ]
 
 
@@ -5357,16 +5378,25 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
 
     # 指標値を 0〜10 正規化して DF に追加 (valid フラグも保持)
     # 各指標は候補カラムを順に試し、レース内で分散がある最初のカラムを採用
+    # 各カラムごとに「高い=良い」フラグを持つ (秒の列と補正タイム指数の列を混在させるため)
     norm_cols: dict[str, str] = {}
     valid_map: dict[str, bool] = {}
-    for key, label, col_candidates, higher in PYCA_INDICATORS:
+    for key, label, col_candidates, _legacy_higher in PYCA_INDICATORS:
         nkey = f"_pyca_{key}"
         used_norm, used_valid = None, False
-        for col in col_candidates:
+        for col_spec in col_candidates:
+            # 後方互換: タプルでなく文字列だった場合は higher=True とみなす
+            if isinstance(col_spec, tuple):
+                col, col_higher = col_spec
+            else:
+                col, col_higher = col_spec, True
             if col not in df.columns:
                 continue
             norm, valid = _norm_0_10(df[col])
             if valid:
+                # この列の方向性に応じて反転
+                if not col_higher:
+                    norm = 10.0 - norm
                 used_norm, used_valid = norm, True
                 break
             if used_norm is None:
@@ -5374,8 +5404,6 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
         if used_norm is None:
             used_norm = pd.Series([5.0] * len(df), index=df.index)
         df[nkey] = used_norm
-        if used_valid and not higher:
-            df[nkey] = 10.0 - df[nkey]
         valid_map[key] = used_valid
         norm_cols[key] = nkey
 
