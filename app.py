@@ -5317,6 +5317,12 @@ PYCA_INDICATORS = [
         ("前走PCI3",     True),
         ("前走Ave-3F",   False),  # 秒: 低い=速い
     ], True),
+    ("g", "調教",     [
+        ("trn_hanro_lap1",  False),  # 坂路ラスト 1F (秒): 終い時計、低い=好調
+        ("trn_hanro_time1", False),  # 坂路 4F 全体 (秒)
+        ("trn_wc_3f",       False),  # WC 3F (秒)
+        ("trn_wc_5f",       False),  # WC 5F (秒)
+    ], False),
 ]
 
 
@@ -5366,6 +5372,121 @@ def _pyca_radar_fig_impl(values: list[float], labels: list[str], name: str):
     return fig
 
 
+@st.cache_data(show_spinner=False, ttl=3600)
+def _load_training_csvs():
+    """data/training/H-*.csv (坂路) と W-*.csv (WC) を全部読み込んでキャッシュ。
+
+    H 列構成: 場所, 年月日, 馬名, Time1, Time2, Time3, Time4, Lap4, Lap3, Lap2, Lap1
+      Time1 = 4F 全体, Time4 = ラスト 1F, Lap1 = 最終 1F (終い時計)
+    W 列構成: 場所, 年月日, 馬名, 5F, 4F, 3F, Lap1, Lap2, Lap3
+      5F/4F/3F = 累積タイム, Lap1 = 最終 1F
+    """
+    import glob
+    train_dir = BASE_DIR / "data" / "training"
+    if not train_dir.exists():
+        return None, None
+
+    h_dfs = []
+    for fp in sorted(train_dir.glob("H-*.csv")):
+        try:
+            d = pd.read_csv(fp, encoding="cp932", dtype=str, on_bad_lines="skip")
+            if "年月日" not in d.columns or "馬名" not in d.columns:
+                continue
+            d["年月日"] = pd.to_numeric(d["年月日"], errors="coerce").astype("Int64")
+            for c in ["Time1", "Time2", "Time3", "Time4",
+                      "Lap1", "Lap2", "Lap3", "Lap4"]:
+                if c in d.columns:
+                    d[c] = pd.to_numeric(d[c], errors="coerce")
+            h_dfs.append(d)
+        except Exception:
+            continue
+
+    w_dfs = []
+    for fp in sorted(train_dir.glob("W-*.csv")):
+        try:
+            d = pd.read_csv(fp, encoding="cp932", dtype=str, on_bad_lines="skip")
+            if "年月日" not in d.columns or "馬名" not in d.columns:
+                continue
+            d["年月日"] = pd.to_numeric(d["年月日"], errors="coerce").astype("Int64")
+            for c in ["5F", "4F", "3F", "Lap1", "Lap2", "Lap3"]:
+                if c in d.columns:
+                    d[c] = pd.to_numeric(d[c], errors="coerce")
+            w_dfs.append(d)
+        except Exception:
+            continue
+
+    h_all = pd.concat(h_dfs, ignore_index=True) if h_dfs else None
+    w_all = pd.concat(w_dfs, ignore_index=True) if w_dfs else None
+    return h_all, w_all
+
+
+def _attach_latest_training(race_df: pd.DataFrame) -> pd.DataFrame:
+    """race_df の各馬に最新調教セッションをアタッチ。
+
+    追加列:
+      trn_hanro_time1 (4F 全体, 秒)
+      trn_hanro_lap1  (ラスト 1F, 秒)  ← 終い時計
+      trn_hanro_days  (調教からレースまでの日数)
+      trn_wc_5f       (WC 5F 累計, 秒)
+      trn_wc_3f       (WC 3F 累計, 秒)
+      trn_wc_days
+    """
+    h_all, w_all = _load_training_csvs()
+    df = race_df.copy()
+    for c in ["trn_hanro_time1", "trn_hanro_lap1", "trn_hanro_days",
+              "trn_wc_5f", "trn_wc_3f", "trn_wc_days"]:
+        df[c] = float("nan")
+
+    if h_all is None and w_all is None:
+        return df
+    if "馬名" not in df.columns or "日付S" not in df.columns:
+        return df
+    try:
+        date_s = str(df["日付S"].iloc[0])
+        race_date_int = int("{:04d}{:02d}{:02d}".format(
+            *[int(x) for x in date_s.split(".")]))
+    except Exception:
+        return df
+
+    from datetime import datetime
+    try:
+        race_dt = datetime.strptime(str(race_date_int), "%Y%m%d")
+    except Exception:
+        return df
+
+    # 馬ごとに最新調教取得
+    for idx, row in df.iterrows():
+        name = str(row.get("馬名", "")).strip()
+        if not name:
+            continue
+        # 坂路
+        if h_all is not None:
+            sub = h_all[(h_all["馬名"] == name) & (h_all["年月日"] < race_date_int)]
+            if not sub.empty:
+                latest = sub.sort_values("年月日").iloc[-1]
+                df.at[idx, "trn_hanro_time1"] = latest.get("Time1")
+                df.at[idx, "trn_hanro_lap1"]  = latest.get("Lap1")
+                try:
+                    trn_dt = datetime.strptime(str(int(latest["年月日"])), "%Y%m%d")
+                    df.at[idx, "trn_hanro_days"] = float((race_dt - trn_dt).days)
+                except Exception:
+                    pass
+        # WC
+        if w_all is not None:
+            sub = w_all[(w_all["馬名"] == name) & (w_all["年月日"] < race_date_int)]
+            if not sub.empty:
+                latest = sub.sort_values("年月日").iloc[-1]
+                df.at[idx, "trn_wc_5f"] = latest.get("5F")
+                df.at[idx, "trn_wc_3f"] = latest.get("3F")
+                try:
+                    trn_dt = datetime.strptime(str(int(latest["年月日"])), "%Y%m%d")
+                    df.at[idx, "trn_wc_days"] = float((race_dt - trn_dt).days)
+                except Exception:
+                    pass
+
+    return df
+
+
 def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
     """全頭分析タブ: スコア＋指標内訳の評価リスト。"""
     st.markdown("### 🔍 出走馬評価リスト（PyCaLi指数）")
@@ -5374,7 +5495,8 @@ def render_pyca_evaluation_list(race_df: pd.DataFrame) -> None:
         "右側の a〜f は指数算出に使われた特徴量の内訳（レース内 0〜10 正規化）。"
     )
 
-    df = race_df.sort_values("馬番").reset_index(drop=True).copy()
+    # 調教データを最新セッションから取得 (data/training/H-*.csv, W-*.csv)
+    df = _attach_latest_training(race_df).sort_values("馬番").reset_index(drop=True).copy()
 
     # 指標値を 0〜10 正規化して DF に追加 (valid フラグも保持)
     # 各指標は候補カラムを順に試し、レース内で分散がある最初のカラムを採用
