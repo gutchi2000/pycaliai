@@ -1,7 +1,15 @@
 """
 nicegui_app.py
 ==============
-NiceGUI 版 PyCaLiAI (実験 MVP v5)
+NiceGUI 版 PyCaLiAI (実験 MVP v6)
+
+v5 → v6 変更点:
+  1. 4 chip (◎独走度/上位2頭集中/混戦度/市場一致) を素人向けに刷新:
+     状態バッジ (固い/混戦/独走 等) と「→ 何をすべきか」の 1 行アクションを表示
+  2. 全頭分析タブに Streamlit 版互換の「PyCaLi指数 出走馬評価リスト」追加:
+     左 (印 + 馬名 + PyCaLi指数) / 中央 (6 軸レーダー) / 右 (a〜f 内訳バー)
+     bundle.json データのみで完結する 6 軸 (総合力/連対力/圏内力/人気度/単勝妙味/複勝妙味)
+  3. 旧 5 軸ミニレーダー grid は削除 (情報量重複のため)
 
 v4 → v5 変更点:
   1. AI 評価コメント: 右パネル → 左パネル (印 ◎/〇/▲ の下) に移動
@@ -467,6 +475,71 @@ def make_left_panel_html(race: dict) -> str:
 
 
 # ============================================================
+# 4 chip 診断 (素人向け: 数値 → 状態ラベル + アクション提案)
+# ============================================================
+def _diag_top1(v: float) -> tuple[str, str, str]:
+    """◎独走度 → (badge, color, action)"""
+    if v >= 0.10:
+        return ("◎独走", "#a6e3a1", "本命を信頼。単勝・複勝で勝負可")
+    if v >= 0.05:
+        return ("◎やや優位", "#89b4fa", "本命有力だが油断不可。複勝で安全に")
+    if v >= 0:
+        return ("拮抗", "#f9e2af", "本命の優位性は薄い。馬連で広めに")
+    return ("逆転濃厚", "#f38ba8", "◎より上位がいる可能性。買い直し検討")
+
+
+def _diag_top2(v: float) -> tuple[str, str, str]:
+    """上位2頭集中 → (badge, color, action)"""
+    if v >= 0.50:
+        return ("本線濃厚", "#a6e3a1", "◎-〇 で決まる確率高。馬連本線が有効")
+    if v >= 0.35:
+        return ("やや本線", "#89b4fa", "馬連 ◎-〇 + 流し相手数頭が無難")
+    return ("分散", "#f9e2af", "上位2頭以外も来る。流しか box で広めに")
+
+
+def _diag_chaos(v: float) -> tuple[str, str, str]:
+    """混戦度 → (badge, color, action)"""
+    if v <= 0.65:
+        return ("固い", "#a6e3a1", "上位馬の優位明確。素直に印通りで")
+    if v <= 0.85:
+        return ("やや固め", "#89b4fa", "標準的な信頼度。基本路線で OK")
+    if v <= 0.92:
+        return ("混戦", "#f9e2af", "力差小さい。box やワイドで広めに")
+    return ("カオス", "#f38ba8", "確率分布フラット。見送り推奨")
+
+
+def _diag_market(v: float) -> tuple[str, str, str]:
+    """市場一致 → (badge, color, action)"""
+    if v >= 0.7:
+        return ("市場と一致", "#89b4fa", "AI ≒ 市場。妙味は薄い、見送りも視野")
+    if v >= 0.3:
+        return ("やや一致", "#a6e3a1", "AI と市場ほぼ同方向。素直に買える")
+    if v >= 0:
+        return ("ややズレ", "#f9e2af", "AI が穴推し気味。妙味あり、慎重に")
+    return ("逆方向", "#f38ba8", "AI と市場が逆。波乱の可能性大、穴狙い")
+
+
+def _chip_html(title: str, value_str: str, diag: tuple[str, str, str]) -> str:
+    label, color, action = diag
+    return f"""
+    <div style="background:#1e1e2e;border:1px solid #313244;border-left:4px solid {color};
+                border-radius:8px;padding:12px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;
+                  margin-bottom:6px">
+        <span style="color:#6c7086;font-size:13px">{title}</span>
+        <span style="background:{color};color:#1e1e2e;padding:2px 10px;
+                     border-radius:10px;font-size:12px;font-weight:bold">{label}</span>
+      </div>
+      <div style="color:#cdd6f4;font-size:28px;font-weight:bold;line-height:1.0;
+                  margin-bottom:6px">{value_str}</div>
+      <div style="color:#a6adc8;font-size:12px;line-height:1.4">
+        → {action}
+      </div>
+    </div>
+    """
+
+
+# ============================================================
 # 右パネル: メトリクス chip (大きめ) + 過去成績 + 馬場バイアス
 # ============================================================
 def make_right_panel_html(race: dict) -> str:
@@ -553,43 +626,23 @@ def make_right_panel_html(race: dict) -> str:
         """
         baba_html = ""
 
+    chip_top1   = _chip_html("◎独走度",     f"{top1:.3f}",   _diag_top1(top1))
+    chip_top2   = _chip_html("上位2頭集中", f"{top2:.3f}",   _diag_top2(top2))
+    chip_chaos  = _chip_html("混戦度",       f"{chaos:.3f}",  _diag_chaos(chaos))
+    chip_market = _chip_html("市場一致",     f"{market:+.3f}",_diag_market(market))
+
     return f"""
     <div style="display:flex;flex-direction:column;gap:10px;height:100%">
-
-      <!-- 信頼度メトリクス 4 chip (大きめ) -->
+      <div style="color:#6c7086;font-size:11px;margin-bottom:-4px;
+                  padding:0 4px;letter-spacing:0.5px">
+        ※ 各カードの色付きバッジは「いま何をすべきか」を一言でまとめたもの。
+      </div>
+      <!-- 信頼度メトリクス 4 chip (素人向け: 状態ラベル + アクション付き) -->
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
-        <div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;
-                    padding:14px 18px">
-          <div style="color:#6c7086;font-size:14px;margin-bottom:6px">◎独走度</div>
-          <div style="color:#cdd6f4;font-size:32px;font-weight:bold;margin-bottom:6px">
-            {top1:.3f}</div>
-          <div style="color:#888;font-size:12px;line-height:1.4">
-            0.10+で独走<br>0.05-で拮抗</div>
-        </div>
-        <div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;
-                    padding:14px 18px">
-          <div style="color:#6c7086;font-size:14px;margin-bottom:6px">上位2頭集中</div>
-          <div style="color:#cdd6f4;font-size:32px;font-weight:bold;margin-bottom:6px">
-            {top2:.3f}</div>
-          <div style="color:#888;font-size:12px;line-height:1.4">
-            0.5+で<br>馬連本線が有効</div>
-        </div>
-        <div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;
-                    padding:14px 18px">
-          <div style="color:#6c7086;font-size:14px;margin-bottom:6px">混戦度</div>
-          <div style="color:#cdd6f4;font-size:32px;font-weight:bold;margin-bottom:6px">
-            {chaos:.3f}</div>
-          <div style="color:#888;font-size:12px;line-height:1.4">
-            0.92+で見送り<br>0.65-で固い</div>
-        </div>
-        <div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;
-                    padding:14px 18px">
-          <div style="color:#6c7086;font-size:14px;margin-bottom:6px">市場一致</div>
-          <div style="color:#cdd6f4;font-size:32px;font-weight:bold;margin-bottom:6px">
-            {market:+.3f}</div>
-          <div style="color:#888;font-size:12px;line-height:1.4">
-            +1=完全一致<br>-1=完全逆</div>
-        </div>
+        {chip_top1}
+        {chip_top2}
+        {chip_chaos}
+        {chip_market}
       </div>
 
       {kako_html}
@@ -731,6 +784,245 @@ def race_scatter_option(horses: list) -> dict:
     }
 
 
+# ============================================================
+# PyCaLi 出走馬評価リスト (Streamlit 互換、bundle.json データから構築)
+# ============================================================
+# 注: Streamlit 版は前走補正タイム / 調教 / 過去5走履歴を持つが、HF 版の
+#     bundle.json には p_win/p_plc/p_sho/odds しか入っていないため、
+#     ここでは「6 軸を bundle.json 内で完結する形」に再設計した。
+#     (data/master_v2 や data/training の依存を排除して HF にも載せる)
+PYCA_AXES = [
+    # (key, label, 説明)
+    ("a", "総合力",   "AI が予測する勝率"),
+    ("b", "連対力",   "AI が予測する 2 着以内率"),
+    ("c", "圏内力",   "AI が予測する 3 着以内率"),
+    ("d", "人気度",   "市場の評価 (1/単勝オッズ)"),
+    ("e", "単勝妙味", "AI 予測 × 単勝オッズ (≥1.0 が妙味)"),
+    ("f", "複勝妙味", "AI 予測 × 複勝オッズ中央値"),
+]
+
+
+def _norm_0_10_list(values: list[float]) -> tuple[list[float], bool]:
+    """値リストを 0〜10 に min-max 正規化。全同値や全欠損なら全 5.0 + valid=False"""
+    nums = [v for v in values if v is not None]
+    if not nums:
+        return [5.0] * len(values), False
+    vmin, vmax = min(nums), max(nums)
+    if vmax - vmin < 1e-9:
+        return [5.0] * len(values), False
+    out = [
+        (v - vmin) / (vmax - vmin) * 10.0 if v is not None else 5.0
+        for v in values
+    ]
+    return out, True
+
+
+def _rank_list(values: list[float]) -> list[int]:
+    """高い順に 1, 2, ... ranking (同値は同位 = min ランク)"""
+    sorted_unique = sorted(set(values), reverse=True)
+    rank_map = {v: i + 1 for i, v in enumerate(sorted_unique)}
+    return [rank_map[v] for v in values]
+
+
+def compute_pyca_features(horses: list[dict]) -> dict:
+    """各馬の指標値を計算してレース内 0〜10 に正規化。
+
+    返り値: {
+      'norm':  {key -> [v0, v1, ...]},      # 0-10 正規化値
+      'rank':  {key -> [r0, r1, ...]},      # レース内順位 (1=最良)
+      'valid': {key -> bool},               # その軸が有効サンプルを持つか
+      'pyca':  [s0, s1, ...],               # PyCaLi 指数 (0-100)
+      'pyca_rank': [r0, r1, ...],
+    }
+    """
+    p_win = [(h.get("p_win") or 0) for h in horses]
+    p_plc = [(h.get("p_plc") or 0) for h in horses]
+    p_sho = [(h.get("p_sho") or 0) for h in horses]
+    tan   = [(h.get("tansho_odds") or 0) or 99 for h in horses]
+    flow  = [(h.get("fuku_odds_low")  or 0) for h in horses]
+    fhi   = [(h.get("fuku_odds_high") or 0) for h in horses]
+    fmid  = [(a + b) / 2 if (a and b) else 0 for a, b in zip(flow, fhi)]
+    pop   = [(1.0 / t) if t > 0 else 0 for t in tan]
+    ev_t  = [pw * t for pw, t in zip(p_win, tan)]
+    ev_f  = [ps * fm for ps, fm in zip(p_sho, fmid)]
+
+    raw = {
+        "a": p_win, "b": p_plc, "c": p_sho,
+        "d": pop,   "e": ev_t,  "f": ev_f,
+    }
+    norm: dict[str, list[float]] = {}
+    rank: dict[str, list[int]] = {}
+    valid: dict[str, bool] = {}
+    for k, vs in raw.items():
+        n, ok = _norm_0_10_list(vs)
+        norm[k] = n
+        rank[k] = _rank_list(vs)
+        valid[k] = ok
+
+    # PyCaLi 指数: 勝率 * 100 をベースに、連対率/複勝率/妙味の正規化平均で微調整
+    n = len(horses)
+    pyca = []
+    for i in range(n):
+        base = p_win[i] * 100.0
+        boost_avg = (norm["b"][i] + norm["c"][i] + norm["e"][i]) / 3.0
+        boost = boost_avg - 5.0      # -5..+5
+        score = max(0.0, min(100.0, base + boost * 0.6))
+        pyca.append(score)
+    pyca_rank = _rank_list(pyca)
+
+    return {
+        "norm": norm, "rank": rank, "valid": valid,
+        "pyca": pyca, "pyca_rank": pyca_rank,
+    }
+
+
+def _pyca_radar_option(values: list[float], labels: list[str],
+                        name: str, color: str) -> dict:
+    return {
+        "tooltip": {"backgroundColor": "#1e1e2e",
+                     "textStyle": {"color": "#cdd6f4"}},
+        "title": {"text": name,
+                   "textStyle": {"color": "#f5e0dc", "fontSize": 14},
+                   "left": "center", "top": 6},
+        "radar": {
+            "shape": "polygon",
+            "indicator": [{"name": lbl, "max": 10} for lbl in labels],
+            "splitArea": {"show": True,
+                "areaStyle": {"color": ["rgba(255,255,255,0.02)",
+                                          "rgba(255,255,255,0.04)"]}},
+            "splitLine": {"lineStyle": {"color": "#313244"}},
+            "axisLine":  {"lineStyle": {"color": "#313244"}},
+            "axisName":  {"color": "#a6adc8", "fontSize": 11},
+            "center": ["50%", "58%"], "radius": "62%",
+        },
+        "series": [{
+            "type": "radar",
+            "data": [{
+                "value": [round(v, 2) for v in values],
+                "name": name,
+                "lineStyle": {"color": color, "width": 2},
+                "areaStyle": {"color": color, "opacity": 0.3},
+                "symbol": "circle", "symbolSize": 5,
+                "itemStyle": {"color": color},
+            }],
+        }],
+        "backgroundColor": "transparent",
+    }
+
+
+def _eval_left_html(h: dict, pyca: float, prank: int) -> str:
+    name = h.get("horse_name", "?")
+    uma = h.get("umaban", "?")
+    mark = h.get("mark") or ""
+    mark_color = MARK_COLORS.get(mark, "#6c7086")
+    mark_html = (
+        f'<span style="background:{mark_color};color:#fff;font-size:18px;'
+        f'font-weight:bold;width:32px;height:32px;line-height:32px;'
+        f'text-align:center;border-radius:50%;display:inline-block;'
+        f'margin-right:8px">{mark}</span>'
+    ) if mark else ''
+    odds = h.get("tansho_odds") or 0
+    p_sho_pct = (h.get("p_sho") or 0) * 100
+    rank_color = "#a6e3a1" if prank == 1 else (
+        "#89b4fa" if prank <= 3 else "#cdd6f4")
+    return f"""
+    <div style="padding:6px 0">
+      <div style="color:#888;font-size:14px;margin-bottom:4px">{uma}番</div>
+      <div style="color:#cdd6f4;font-size:22px;font-weight:bold;line-height:1.2;
+                  margin-bottom:8px">
+        {mark_html}{name}
+      </div>
+      <div style="color:#a6adc8;font-size:13px;margin-bottom:14px">
+        単勝 {odds:.1f}倍 / 複勝予測 {p_sho_pct:.1f}%
+      </div>
+      <div>
+        <div style="color:#6c7086;font-size:13px;margin-bottom:2px">PyCaLi指数</div>
+        <div style="line-height:1.0">
+          <span style="font-size:42px;font-weight:bold;color:{rank_color}">
+            {pyca:.1f}</span>
+          <span style="font-size:18px;color:#cdd6f4;margin-left:6px">
+            ({prank}位)</span>
+        </div>
+      </div>
+    </div>
+    """
+
+
+def _eval_bars_html(feats: dict, idx: int) -> str:
+    rows = ['<div style="font-size:13px;color:#6c7086;margin-bottom:6px">'
+             '指数内訳 / 値 / レース内順位</div>']
+    for key, label, _desc in PYCA_AXES:
+        v = feats["norm"][key][idx]
+        rk = feats["rank"][key][idx]
+        valid = feats["valid"][key]
+        bar = max(0, min(100, int(round(v * 10))))
+        if not valid:
+            color = "#6c7086"
+            rank_txt = "−"
+            star = ""
+        else:
+            color = "#a6e3a1" if rk == 1 else (
+                "#89b4fa" if rk <= 3 else "#cdd6f4")
+            rank_txt = f"{rk}位"
+            star = "★" if rk <= 3 else ""
+        rows.append(f"""
+        <div style="display:flex;align-items:center;gap:8px;margin:5px 0;
+                    font-size:14px">
+          <div style="width:84px;color:#a6adc8;flex-shrink:0">
+            {key}. {label}</div>
+          <div style="flex:1;height:9px;background:#313244;border-radius:4px;
+                      overflow:hidden;min-width:60px">
+            <div style="height:100%;width:{bar}%;background:{color}"></div>
+          </div>
+          <div style="width:42px;text-align:right;color:{color};
+                      font-weight:bold">{v:.1f}</div>
+          <div style="width:54px;text-align:right;color:#6c7086">
+            {rank_txt}{star}</div>
+        </div>
+        """)
+    return "".join(rows)
+
+
+def render_pyca_eval_list(race: dict) -> None:
+    """Streamlit 版互換の評価リスト (前提: ui コンテナの中で呼ばれる)。"""
+    horses = list(race.get("horses", []))
+    if not horses:
+        return
+    feats = compute_pyca_features(horses)
+    order = sorted(range(len(horses)), key=lambda i: -feats["pyca"][i])
+    labels = [lbl for _, lbl, _ in PYCA_AXES]
+
+    ui.label("🔍 出走馬評価リスト (PyCaLi指数)").classes(
+        "text-xl font-bold mt-6 mb-1")
+    ui.label(
+        "PyCaLi指数 = AI 予測勝率を基準に、連対率/複勝率/妙味の補正を加えた"
+        "総合スコア (0-100)。右側 a〜f は指数算出に使われた特徴量"
+        "(レース内 0〜10 正規化、★は上位 3 位以内)。"
+    ).classes("text-sm text-slate-400 mb-3")
+
+    for i in order:
+        h = horses[i]
+        pyca = feats["pyca"][i]
+        prank = feats["pyca_rank"][i]
+        mark = h.get("mark") or ""
+        color = MARK_COLORS.get(mark, "#89b4fa")
+        name = h.get("horse_name", "?")
+        radar_vals = [feats["norm"][k][i] for k, _, _ in PYCA_AXES]
+
+        with ui.element("div").classes(
+            "p-3 bg-slate-900 rounded-lg border border-slate-700 mb-2"
+        ):
+            with ui.row().classes("w-full no-wrap items-stretch gap-3"):
+                with ui.column().classes("flex-shrink-0").style("width:240px"):
+                    ui.html(_eval_left_html(h, pyca, prank))
+                with ui.column().classes("flex-shrink-0").style("width:300px"):
+                    ui.echart(
+                        _pyca_radar_option(radar_vals, labels, name, color)
+                    ).classes("w-full").style("height:280px")
+                with ui.column().classes("flex-grow"):
+                    ui.html(_eval_bars_html(feats, i))
+
+
 def horse_radar_option(h: dict) -> dict:
     p_win = (h.get("p_win") or 0) * 100
     p_sho = (h.get("p_sho") or 0) * 100
@@ -798,7 +1090,7 @@ def main_page():
     with ui.header(elevated=True).classes("bg-slate-900"):
         ui.label("🏇 PyCaLiAI").classes("text-3xl font-bold text-white")
         ui.space()
-        ui.label("NiceGUI 版 (実験 MVP v5)").classes("text-base text-slate-400")
+        ui.label("NiceGUI 版 (実験 MVP v6)").classes("text-base text-slate-400")
 
     state = {"date": None, "race": None, "bundle": None}
 
@@ -852,50 +1144,16 @@ def main_page():
         with bunseki_box:
             horses_sorted = sorted(race.get("horses", []),
                                     key=lambda h: -(h.get("p_win") or 0))
-            ui.label("📍 全頭ポジショニング (AI vs 市場)").classes("text-xl font-bold mt-2 mb-1")
+            ui.label("📍 全頭ポジショニング (AI vs 市場)").classes(
+                "text-xl font-bold mt-2 mb-1")
             ui.label("対角線より上 = AI 高評価。下 = AI 低評価。" +
-                     "点が大きい順 ◎ > 〇 > ▲ > △.").classes("text-sm text-slate-400 mb-3")
+                     "点が大きい順 ◎ > 〇 > ▲ > △.").classes(
+                "text-sm text-slate-400 mb-3")
             ui.echart(race_scatter_option(horses_sorted)).classes(
                 "w-full").style("height: 480px")
 
-            ui.label("🎯 出走馬レーダーチャート (勝率順)").classes(
-                "text-xl font-bold mt-6 mb-1")
-            ui.label("5 軸: 勝率 / 複勝率 / 単勝EV / 複勝EV / 人気度").classes(
-                "text-sm text-slate-400 mb-3")
-            with ui.grid(columns=3).classes("w-full gap-3"):
-                for h in horses_sorted:
-                    name = h.get("horse_name", "?")
-                    umaban = h.get("umaban", "?")
-                    mark = h.get("mark") or ""
-                    p_win = (h.get("p_win") or 0) * 100
-                    tan = h.get("tansho_odds") or 0
-                    mark_color = MARK_COLORS.get(mark, "#6c7086")
-                    mark_html = (
-                        f'<span style="background:{mark_color};color:#fff;font-size:18px;'
-                        f'font-weight:bold;width:32px;height:32px;line-height:32px;'
-                        f'text-align:center;border-radius:50%;display:inline-block;'
-                        f'margin-right:8px">{mark}</span>'
-                    ) if mark else '<span style="display:inline-block;width:40px"></span>'
-
-                    with ui.element("div").classes(
-                        "p-3 bg-slate-900 rounded-lg border border-slate-700"
-                    ):
-                        ui.html(f"""
-                        <div style="display:flex;align-items:center;margin-bottom:6px">
-                          {mark_html}
-                          <span style="color:#888;font-size:14px;margin-right:8px">
-                            {umaban}番</span>
-                          <span style="color:#cdd6f4;font-size:17px;font-weight:bold;
-                                       flex-grow:1">{name}</span>
-                          <span style="color:#a6e3a1;font-size:14px;font-weight:bold">
-                            {p_win:.1f}%</span>
-                        </div>
-                        <div style="color:#888;font-size:12px;margin-bottom:4px">
-                          単勝 {tan:.1f}倍
-                        </div>
-                        """)
-                        ui.echart(horse_radar_option(h)).classes(
-                            "w-full").style("height: 240px")
+            # Streamlit 版互換の評価リスト
+            render_pyca_eval_list(race)
 
         bets_box.clear()
         with bets_box:
