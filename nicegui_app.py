@@ -20,10 +20,11 @@ import pandas as pd
 from nicegui import ui
 
 BASE = Path(__file__).parent
-COWORK_INPUT_DIR = BASE / "reports" / "cowork_input"
-COWORK_BETS_DIR  = BASE / "reports" / "cowork_bets"
-WEEKLY_DIR       = BASE / "data" / "weekly"
-MASTER_CSV       = BASE / "data" / "master_v2_20130105-20251228.csv"
+COWORK_INPUT_DIR  = BASE / "reports" / "cowork_input"
+COWORK_BETS_DIR   = BASE / "reports" / "cowork_bets"
+COWORK_OUTPUT_DIR = BASE / "reports" / "cowork_output"
+WEEKLY_DIR        = BASE / "data" / "weekly"
+MASTER_CSV        = BASE / "data" / "master_v2_20130105-20251228.csv"
 
 
 # ============================================================
@@ -48,6 +49,7 @@ def load_bundle(date_str: str) -> dict | None:
 
 
 def load_cowork_bets(date_str: str, race_id: str) -> dict | None:
+    """Streamlit 経由で保存された個別 race ファイル (旧経路)"""
     p = COWORK_BETS_DIR / date_str / f"{race_id}.json"
     if not p.exists():
         return None
@@ -56,6 +58,109 @@ def load_cowork_bets(date_str: str, race_id: str) -> dict | None:
             return json.load(f)
     except Exception:
         return None
+
+
+@functools.lru_cache(maxsize=32)
+def _load_cowork_output_raw(date_str: str) -> dict | None:
+    """reports/cowork_output/{date}_bets.json を読んで race_id 別 dict 化。
+
+    ファイルは:
+      - 純 JSON 配列 [{race_id, bets, ...}, ...]
+      - or Markdown 内に ```json ブロック
+      - or {races: [...]} ラップ
+    のいずれでも OK (parse_cowork_response 互換)。
+
+    エンコーディング: UTF-8 / UTF-8 BOM / cp932 / shift_jis 自動判定。
+    """
+    # ファイル名の候補 (_bets.json 推奨、旧形式も対応)
+    candidates = [
+        COWORK_OUTPUT_DIR / f"{date_str}_bets.json",
+        COWORK_OUTPUT_DIR / f"{date_str}_bets.txt",
+        COWORK_OUTPUT_DIR / f"{date_str}_bets.md",
+        COWORK_OUTPUT_DIR / f"{date_str}.json",
+        COWORK_OUTPUT_DIR / f"{date_str}.txt",
+        COWORK_OUTPUT_DIR / f"{date_str}.md",
+    ]
+    p = next((q for q in candidates if q.exists()), None)
+    if p is None:
+        return None
+
+    # 文字コード自動判定で読み込み
+    try:
+        raw_bytes = p.read_bytes()
+        text = ""
+        for enc in ["utf-8-sig", "utf-8", "cp932", "shift_jis"]:
+            try:
+                text = raw_bytes.decode(enc)
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            text = raw_bytes.decode("utf-8", errors="replace")
+    except Exception:
+        return None
+
+    # JSON コードブロック抽出 (Markdown 内 or 直接)
+    m = re.search(r"```(?:json|JSON)?\s*\n([\s\S]+?)\n\s*```", text)
+    raw_json = m.group(1) if m else text.strip()
+
+    try:
+        data = json.loads(raw_json)
+    except Exception:
+        return None
+
+    # {races: [...]} ラップ対応
+    if isinstance(data, dict):
+        data = data.get("races", [data])
+    if not isinstance(data, list):
+        return None
+
+    # race_id 別 dict 化
+    out: dict[str, dict] = {}
+    for entry in data:
+        if not isinstance(entry, dict):
+            continue
+        rid_raw = entry.get("race_id") or entry.get("レースID") or entry.get("rid")
+        if not rid_raw:
+            continue
+        rid = str(rid_raw)[:16]
+        # 馬券データ正規化 (英語/日本語キー両対応)
+        bets_raw = entry.get("bets", entry.get("買い目", []))
+        bets = []
+        if isinstance(bets_raw, list):
+            for b in bets_raw:
+                if not isinstance(b, dict):
+                    continue
+                bets.append({
+                    "馬券種": b.get("馬券種") or b.get("type", ""),
+                    "買い目": b.get("買い目") or b.get("selection", ""),
+                    "購入額": b.get("購入額") or b.get("amount", 0),
+                    "理由":   b.get("理由")   or b.get("reason", ""),
+                })
+        out[rid] = {
+            "race_id":     rid,
+            "race_label":  str(entry.get("race_label", "")),
+            "race_nature": str(entry.get("race_nature", "")),
+            "race_reason": str(entry.get("race_reason", "")),
+            "bets":        bets,
+            "source":      "cowork_output_bets",
+        }
+    return out
+
+
+def load_cowork_bets_unified(date_str: str, race_id: str) -> dict | None:
+    """個別ファイル (cowork_bets/) → 一括ファイル (cowork_output/_bets.json) の順で取得。
+
+    Streamlit で保存された個別ファイルが優先 (人間が編集した可能性あり)、
+    無ければ Cowork から直接保存された一括ファイルから race_id で引く。
+    """
+    individual = load_cowork_bets(date_str, race_id)
+    if individual:
+        return individual
+    bundle = _load_cowork_output_raw(date_str)
+    if not bundle:
+        return None
+    return bundle.get(race_id)
 
 
 # ============================================================
@@ -792,10 +897,13 @@ def main_page():
 
         bets_box.clear()
         with bets_box:
-            cowork = load_cowork_bets(state["date"], race["race_id"])
+            cowork = load_cowork_bets_unified(state["date"], race["race_id"])
             if not cowork:
-                ui.label("Cowork 買い目はまだ保存されていません。") \
-                  .classes("text-slate-400 p-4 text-base")
+                ui.label(
+                    f"Cowork 買い目データがありません。\n"
+                    f"reports/cowork_output/{state['date']}_bets.json を配置するか、"
+                    f"Streamlit の Cowork取込で保存してください。"
+                ).classes("text-slate-400 p-4 text-base whitespace-pre-line")
             else:
                 race_nature_str = cowork.get("race_nature", "")
                 race_reason = cowork.get("race_reason", "")
