@@ -62,9 +62,10 @@ foreach ($f in $SyncFiles) {
 }
 Write-Step "Verified $($SyncFiles.Count) sync target(s)"
 
-# 4. switch to hf-spaces
+# 4. switch to hf-spaces (--force discards stale LFS pointer junk that
+#    sometimes shows up as 'modified' on master but is not actually edited)
 Write-Step "Switching to hf-spaces"
-git checkout hf-spaces
+git checkout --force hf-spaces
 if ($LASTEXITCODE -ne 0) { Fail "checkout hf-spaces failed" }
 
 # 5. checkout files from master
