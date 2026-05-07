@@ -1,19 +1,19 @@
 # =====================================================================
-# sync-hf.ps1 - master → hf-spaces 同期 + HuggingFace Spaces デプロイ
+# sync-hf.ps1 - sync master to hf-spaces orphan branch and push to HF
 # =====================================================================
-# 使い方:
-#   .\sync-hf.ps1            # master の HF 関連ファイルを hf-spaces に
-#                            # コピーして commit + hf/main へ push
-#   .\sync-hf.ps1 -DryRun    # commit/push せず差分のみ表示
+# Usage:
+#   .\sync-hf.ps1            # copy HF files from master to hf-spaces,
+#                            # commit, push to hf/main
+#   .\sync-hf.ps1 -DryRun    # show diff only, no commit/push
 #
-# 前提:
-#   - hf-spaces ブランチが orphan で既に存在 (作成済み)
-#   - hf remote が https://huggingface.co/spaces/USERNAME/pycaliAI 設定済み
+# Prerequisites:
+#   - hf-spaces orphan branch exists locally
+#   - hf remote is configured (https://huggingface.co/spaces/USER/SPACE)
 #
-# 仕組み:
-#   hf-spaces は orphan branch (master と履歴が独立)。
-#   そのため git merge では同期不可。代わりに「HF に必要なファイルだけ」
-#   master からチェックアウトして hf-spaces 上で再コミットする。
+# Why this script:
+#   hf-spaces is an orphan branch (independent history from master),
+#   so git merge cannot be used. Instead, we checkout the HF-relevant
+#   files from master onto hf-spaces and re-commit.
 # =====================================================================
 
 [CmdletBinding()]
@@ -23,9 +23,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# HF Spaces にデプロイするファイル一覧
-# (data/, reports/ は中身が大きいため Dockerfile の COPY で事前 .dockerignore
-#  済み。ここでは小さいファイルのみリポジトリに含める)
+# Files that actually need to be deployed to HF Spaces.
+# (data/, reports/, models/ are excluded via .dockerignore at build time)
 $SyncFiles = @(
     "Dockerfile",
     "README.md",
@@ -43,76 +42,76 @@ function Fail($msg) {
     exit 1
 }
 
-# 1. 現在のブランチを記録
+# 1. record current branch
 $origBranch = (git rev-parse --abbrev-ref HEAD).Trim()
-Write-Step "現在のブランチ: $origBranch"
+Write-Step "Current branch: $origBranch"
 
 if ($origBranch -ne "master") {
-    Fail "master ブランチで実行してください (現在: $origBranch)"
+    Fail "Run this from master branch (current: $origBranch)"
 }
 
-# 2. master の最新 commit を取得
+# 2. record master HEAD
 $masterSha = (git rev-parse HEAD).Trim()
 Write-Step "master HEAD: $masterSha"
 
-# 3. 同期対象ファイルが master に存在するか検証
+# 3. verify sync targets exist
 foreach ($f in $SyncFiles) {
     if (-not (Test-Path $f)) {
-        Fail "同期対象ファイルが存在しません: $f"
+        Fail "Sync target missing: $f"
     }
 }
-Write-Step "同期対象 $($SyncFiles.Count) ファイル確認 OK"
+Write-Step "Verified $($SyncFiles.Count) sync target(s)"
 
-# 4. hf-spaces ブランチに切替
-Write-Step "hf-spaces ブランチに切替"
+# 4. switch to hf-spaces
+Write-Step "Switching to hf-spaces"
 git checkout hf-spaces
-if ($LASTEXITCODE -ne 0) { Fail "hf-spaces 切替失敗" }
+if ($LASTEXITCODE -ne 0) { Fail "checkout hf-spaces failed" }
 
-# 5. master から HF 用ファイルをチェックアウト
-Write-Step "master からファイル取得"
+# 5. checkout files from master
+Write-Step "Checking out files from master"
 foreach ($f in $SyncFiles) {
     git checkout master -- $f
     if ($LASTEXITCODE -ne 0) {
         git checkout $origBranch
-        Fail "$f のチェックアウトに失敗"
+        Fail "checkout failed for $f"
     }
 }
 
-# 6. 差分確認
-Write-Step "hf-spaces 上の差分:"
+# 6. show status
+Write-Step "Status on hf-spaces:"
 git status --short
 
 $hasDiff = (git status --porcelain).Length -gt 0
 if (-not $hasDiff) {
-    Write-Step "差分なし。同期はスキップして元のブランチに戻ります"
+    Write-Step "No diff. Switching back to original branch."
     git checkout $origBranch
     exit 0
 }
 
 if ($DryRun) {
-    Write-Step "DryRun: ここで終了。変更は staged のまま。手動で commit/reset してください"
-    Write-Host "  commit  → git commit -m 'sync from master'"
-    Write-Host "  push    → git push hf hf-spaces:main"
-    Write-Host "  rollback→ git checkout . ; git checkout $origBranch"
+    Write-Step "DryRun: stopping here. Changes are staged."
+    Write-Host "  commit  -> git commit -m 'sync from master'"
+    Write-Host "  push    -> git push hf hf-spaces:main"
+    Write-Host "  rollback-> git checkout . ; git checkout $origBranch"
     exit 0
 }
 
 # 7. commit
-Write-Step "commit"
+Write-Step "Committing"
 git add $SyncFiles
-$msg = "sync: master $($masterSha.Substring(0,7)) からの更新を反映"
+$msg = "sync: master $($masterSha.Substring(0,7))"
 git commit -m $msg
-if ($LASTEXITCODE -ne 0) { Fail "commit 失敗" }
+if ($LASTEXITCODE -ne 0) { Fail "commit failed" }
 
-# 8. push to HF (HF のデフォルトブランチは main)
-Write-Step "HuggingFace Spaces (hf/main) へ push"
+# 8. push to HF (HF default branch is main)
+Write-Step "Pushing to HuggingFace Spaces (hf/main)"
 git push hf hf-spaces:main
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "push 失敗。手動で再試行: git push hf hf-spaces:main" -ForegroundColor Yellow
+    Write-Host "push failed; retry manually: git push hf hf-spaces:main" -ForegroundColor Yellow
 }
 
-# 9. 元ブランチに戻る
-Write-Step "$origBranch に戻る"
+# 9. switch back
+Write-Step "Switching back to $origBranch"
 git checkout $origBranch
 
-Write-Step "完了。https://huggingface.co/spaces/gutchi15300/pycaliAI でビルド状況を確認"
+Write-Step "Done. Check build at https://huggingface.co/spaces/gutchi15300/pycaliAI"
