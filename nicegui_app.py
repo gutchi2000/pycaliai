@@ -1023,6 +1023,8 @@ def main_page():
 
 
 if __name__ in {"__main__", "__mp_main__"}:
+    import os
+
     # 起動時に master を 1 回読み込んでキャッシュ (5-10 秒程度)
     print("master_v2 読み込み中... (5-10 秒)")
     df = get_master_df()
@@ -1031,8 +1033,17 @@ if __name__ in {"__main__", "__mp_main__"}:
     else:
         print("  master_v2 が見つかりません (過去成績は表示されません)")
 
+    # HF Spaces / Docker / Cloud 対応:
+    # 環境変数 PORT があればそれを使う (HF Spaces は 7860)
+    # host=0.0.0.0 でコンテナ外からアクセス可能に
+    port = int(os.environ.get("PORT", 8080))
+    host = os.environ.get("HOST", "0.0.0.0" if "HF_SPACE_ID" in os.environ
+                                           or "DOCKER_CONTAINER" in os.environ
+                                           else "127.0.0.1")
+
     ui.run(
-        port=8080,
+        port=port,
+        host=host,
         title="🏇 PyCaLiAI (NiceGUI)",
         favicon="🏇",
         dark=True,

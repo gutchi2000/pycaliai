@@ -1,0 +1,35 @@
+# Docker / HF Spaces ビルド時に除外するファイル
+
+# 巨大なマスター CSV (NiceGUI で使うが Cloud では graceful degradation)
+data/master_*.csv
+data/kekka_*.csv
+data/lgbm_*.csv
+data/cat_*.csv
+data/torch_*.csv
+data/add_*.csv
+data/training/H-2015*.csv
+data/training/W-2015*.csv
+
+# 仮想環境
+venv*/
+__pycache__/
+*.pyc
+.git/
+.github/
+
+# Streamlit 用の重い依存
+catboost_info/
+
+# モデルファイル (NiceGUI 版では不要)
+models/
+
+# Streamlit のシークレット
+.streamlit/secrets.toml
+
+# Claude / 開発用
+.claude/
+.idea/
+.vscode/
+
+# ドキュメント (HF にも欲しいなら除外しない)
+# docs/

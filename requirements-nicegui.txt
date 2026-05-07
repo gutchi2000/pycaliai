@@ -1,0 +1,5 @@
+# NiceGUI 版 PyCaLiAI 用の最小依存
+# HuggingFace Spaces / Docker でデプロイするときに使う
+# (Streamlit 版には ML モデル等が必要だが、NiceGUI 版は表示専用なので軽量)
+nicegui>=2.0,<4.0
+pandas>=2.0
