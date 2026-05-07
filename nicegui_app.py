@@ -1,24 +1,29 @@
 """
 nicegui_app.py
 ==============
-NiceGUI 版 PyCaLiAI (実験 MVP v4)
+NiceGUI 版 PyCaLiAI (実験 MVP v5)
 
-v3 → v4 変更点:
-  1. 出走表 AGGrid 内部スクロール問題 → ピュア HTML <table> に置換 (スクロール不要)
-  2. ヘッダ部 横分割: 左=バナー (◎/〇/▲), 右=AI 評価 + 信頼度メトリクス + コース分析
-  3. レイアウト: 2 カラム構成で横長空白解消
+v4 → v5 変更点:
+  1. AI 評価コメント: 右パネル → 左パネル (印 ◎/〇/▲ の下) に移動
+  2. 信頼度メトリクス chip: フォント拡大 (22→32px、14→17px)
+  3. 右パネルに「📊 過去同コース成績」「🎯 馬場バイアス」を追加
+     (master_v2.csv から計算、起動時に 1 回読み込んでキャッシュ)
 """
 from __future__ import annotations
 
+import functools
 import json
+import re
 from pathlib import Path
 
+import pandas as pd
 from nicegui import ui
 
 BASE = Path(__file__).parent
 COWORK_INPUT_DIR = BASE / "reports" / "cowork_input"
 COWORK_BETS_DIR  = BASE / "reports" / "cowork_bets"
 WEEKLY_DIR       = BASE / "data" / "weekly"
+MASTER_CSV       = BASE / "data" / "master_v2_20130105-20251228.csv"
 
 
 # ============================================================
@@ -51,6 +56,108 @@ def load_cowork_bets(date_str: str, race_id: str) -> dict | None:
             return json.load(f)
     except Exception:
         return None
+
+
+# ============================================================
+# Master CSV 読み込み (起動時 1 回、コース統計用)
+# ============================================================
+@functools.lru_cache(maxsize=1)
+def get_master_df() -> pd.DataFrame | None:
+    """master_v2 から必要列だけ読み込み、メモリ最適化してキャッシュ。"""
+    if not MASTER_CSV.exists():
+        return None
+    try:
+        # 必要列のみ + 型最適化
+        usecols = ["日付", "場所", "Ｒ", "枠番", "馬番", "着順",
+                    "芝・ダ", "距離", "馬場状態"]
+        df = pd.read_csv(
+            MASTER_CSV, encoding="utf-8-sig",
+            usecols=usecols, dtype=str, low_memory=False, on_bad_lines="skip",
+        )
+        df["日付"] = pd.to_numeric(df["日付"], errors="coerce")
+        df["枠番"] = pd.to_numeric(df["枠番"], errors="coerce")
+        df["馬番"] = pd.to_numeric(df["馬番"], errors="coerce")
+        df["着順"] = pd.to_numeric(df["着順"], errors="coerce")
+        df["距離"] = pd.to_numeric(df["距離"], errors="coerce")
+        df = df.dropna(subset=["着順", "距離"]).copy()
+        return df
+    except Exception as e:
+        print(f"[master 読込失敗] {e}")
+        return None
+
+
+def parse_course_str(course_str: str) -> tuple[str | None, int | None]:
+    """'ダート1200' → ('ダ', 1200)、'芝2000' → ('芝', 2000)"""
+    if not course_str:
+        return None, None
+    if "ダート" in course_str or "ダ" in course_str:
+        surface = "ダ"
+    elif "芝" in course_str:
+        surface = "芝"
+    else:
+        return None, None
+    m = re.search(r"\d+", course_str)
+    if not m:
+        return surface, None
+    return surface, int(m.group())
+
+
+@functools.lru_cache(maxsize=128)
+def compute_course_stats(place: str, course_str: str) -> dict | None:
+    """同コース過去成績 + 馬場バイアス"""
+    df = get_master_df()
+    if df is None or not place or not course_str:
+        return None
+    surface, dist = parse_course_str(course_str)
+    if not surface or not dist:
+        return None
+
+    sub = df[(df["場所"] == place) &
+             (df["芝・ダ"] == surface) &
+             (df["距離"] == dist)]
+    if len(sub) < 100:
+        return None
+
+    n_races = sub["日付"].nunique() if "日付" in sub.columns else len(sub) // 14
+    n_starts = len(sub)
+    win_rate = (sub["着順"] == 1).mean() * 100  # 全馬で見たトリビア値だが、人気1のは別計算
+
+    # 枠別 (内 1-2, 中 3-6, 外 7-8 の 3 段)
+    def waku_band(w):
+        if w <= 2:
+            return "内枠"
+        if w <= 6:
+            return "中枠"
+        return "外枠"
+    sub = sub.copy()
+    sub["_waku_band"] = sub["枠番"].apply(waku_band)
+    waku_stats = {}
+    for band in ["内枠", "中枠", "外枠"]:
+        wb = sub[sub["_waku_band"] == band]
+        if len(wb) > 0:
+            waku_stats[band] = {
+                "starts": len(wb),
+                "wins": int((wb["着順"] == 1).sum()),
+                "win_rate": (wb["着順"] == 1).mean() * 100,
+                "top3_rate": (wb["着順"] <= 3).mean() * 100,
+            }
+
+    # 馬場状態 別 race 数
+    baba_dist = {}
+    if "馬場状態" in sub.columns:
+        for baba, grp in sub.groupby("馬場状態"):
+            baba_dist[str(baba)] = grp["日付"].nunique() if "日付" in grp.columns else len(grp)
+
+    # 馬番 1 着の平均 (単勝何番が来やすいか)
+    first_uma_avg = sub[sub["着順"] == 1]["馬番"].mean()
+
+    return {
+        "n_races": n_races,
+        "n_starts": n_starts,
+        "waku": waku_stats,
+        "baba_dist": baba_dist,
+        "first_uma_avg": first_uma_avg,
+    }
 
 
 # ============================================================
@@ -131,9 +238,9 @@ def ai_comment(race: dict) -> str:
 
 
 # ============================================================
-# 左パネル: バナー
+# 左パネル: バナー + AI 評価 + コース概況
 # ============================================================
-def make_banner_html(race: dict) -> str:
+def make_left_panel_html(race: dict) -> str:
     meta = race.get("race_meta", {}) or {}
     horses = race.get("horses", []) or []
     rc = race.get("race_confidence", {}) or {}
@@ -174,6 +281,14 @@ def make_banner_html(race: dict) -> str:
         </div>
         """
 
+    # コース概況統計 (オッズ系)
+    odds_list = [h.get("tansho_odds") for h in horses if h.get("tansho_odds")]
+    avg_odds = sum(odds_list) / len(odds_list) if odds_list else 0
+    min_odds = min(odds_list) if odds_list else 0
+    max_odds = max(odds_list) if odds_list else 0
+    top3_p = sum(((horses[i].get("p_win") or 0) for i in range(min(3, len(horses)))))
+    top3_p = top3_p * 100
+
     return f"""
     <div style="
       background:linear-gradient(135deg,#0d1421 0%,#16213e 50%,#1a2845 100%);
@@ -183,6 +298,7 @@ def make_banner_html(race: dict) -> str:
       <div style="position:absolute;top:0;left:0;right:0;height:4px;
                   background:linear-gradient(90deg,#e74c3c,#f39c12,#e74c3c)"></div>
 
+      <!-- メタ情報 -->
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;
                   margin-bottom:10px;font-size:15px">
         <span style="background:{grade_color};color:#fff;padding:4px 12px;
@@ -196,121 +312,187 @@ def make_banner_html(race: dict) -> str:
         <span style="color:#f5c2e7">{field_size}頭</span>
       </div>
 
+      <!-- レース名 -->
       <h2 style="font-size:30px;font-weight:900;color:#cdd6f4;margin:0 0 12px 0;
                  letter-spacing:1.5px;line-height:1.1">{race_name}</h2>
 
+      <!-- 印 (◎/〇/▲) -->
       <div style="background:rgba(0,0,0,0.25);border-left:3px solid #f39c12;
                   padding:6px 16px;border-radius:6px">
         {mark_row("◎", "#e74c3c", hon)}
         {mark_row("〇", "#3498db", tai)}
         {mark_row("▲", "#9b59b6", san)}
       </div>
+
+      <!-- AI 評価 (印の下に移動) -->
+      <div style="background:rgba(137,180,250,0.05);border-left:3px solid #89b4fa;
+                  padding:14px 18px;margin-top:14px;border-radius:8px">
+        <div style="color:#89b4fa;font-size:14px;font-weight:bold;margin-bottom:8px">
+          🤖 AI 評価
+        </div>
+        <div style="color:#cdd6f4;font-size:15px;line-height:1.7">
+          {ai_comment(race)}
+        </div>
+      </div>
+
+      <!-- コース概況 (オッズ統計) -->
+      <div style="background:rgba(245,194,231,0.04);border-left:3px solid #f5c2e7;
+                  padding:14px 18px;margin-top:10px;border-radius:8px">
+        <div style="color:#f5c2e7;font-size:14px;font-weight:bold;margin-bottom:8px">
+          🏁 オッズ概況
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+                    color:#cdd6f4;font-size:14px">
+          <div><span style="color:#6c7086">1番人気:</span>
+               <b style="color:#f5c2e7">{min_odds:.1f}倍</b></div>
+          <div><span style="color:#6c7086">最高:</span>
+               <b style="color:#f5c2e7">{max_odds:.1f}倍</b></div>
+          <div><span style="color:#6c7086">平均:</span>
+               <b style="color:#f5c2e7">{avg_odds:.1f}倍</b></div>
+          <div style="grid-column:1/-1">
+            <span style="color:#6c7086">上位3頭合計勝率:</span>
+            <b style="color:#a6e3a1;font-size:15px">{top3_p:.1f}%</b>
+          </div>
+        </div>
+      </div>
     </div>
     """
 
 
 # ============================================================
-# 右パネル: AI 評価 + 信頼度 + コース分析
+# 右パネル: メトリクス chip (大きめ) + 過去成績 + 馬場バイアス
 # ============================================================
 def make_right_panel_html(race: dict) -> str:
     rc = race.get("race_confidence", {}) or {}
     meta = race.get("race_meta", {}) or {}
-    horses = race.get("horses", []) or []
 
     top1 = rc.get("top1_dominance") or 0
     top2 = rc.get("top2_concentration") or 0
     chaos = rc.get("field_chaos_score") or 0
     market = rc.get("ai_market_agreement") or 0
 
-    # コース統計
-    odds_list = [h.get("tansho_odds") for h in horses if h.get("tansho_odds")]
-    avg_odds = sum(odds_list) / len(odds_list) if odds_list else 0
-    min_odds = min(odds_list) if odds_list else 0
-    max_odds = max(odds_list) if odds_list else 0
-    top3_p = sum(((horses[i].get("p_win") or 0) for i in range(min(3, len(horses)))))
-    top3_p = top3_p * 100
+    # 過去成績
+    place = meta.get("place", "")
+    course_str = meta.get("course", "")
+    cstats = compute_course_stats(place, course_str)
 
-    course = meta.get("course", "")
-    field_size = meta.get("field_size", 0)
+    if cstats:
+        n_races = cstats["n_races"]
+        n_starts = cstats["n_starts"]
+        waku = cstats.get("waku", {})
+
+        # 枠別表示
+        waku_html = ""
+        if waku:
+            for band, color in [("内枠", "#a6e3a1"), ("中枠", "#89b4fa"),
+                                  ("外枠", "#fab387")]:
+                if band in waku:
+                    w = waku[band]
+                    waku_html += f"""
+                    <div style="display:flex;justify-content:space-between;
+                                padding:4px 0;font-size:14px">
+                      <span style="color:#a6adc8">{band}</span>
+                      <span><b style="color:{color}">{w['win_rate']:.1f}%</b>
+                            <span style="color:#6c7086;font-size:12px;margin-left:6px">
+                              (top3 {w['top3_rate']:.1f}%)</span></span>
+                    </div>
+                    """
+
+        # 枠バイアス判定
+        if waku and len(waku) >= 3:
+            best_band = max(waku.keys(), key=lambda k: waku[k]["win_rate"])
+            best_rate = waku[best_band]["win_rate"]
+            bias_msg = f"<b style='color:#fab387'>{best_band}有利</b> (勝率 {best_rate:.1f}%)"
+        else:
+            bias_msg = "<span style='color:#888'>データ不足</span>"
+
+        kako_html = f"""
+        <div style="background:#1e1e2e;border-left:3px solid #fab387;
+                    padding:14px 16px;border-radius:8px">
+          <div style="color:#fab387;font-size:14px;font-weight:bold;margin-bottom:8px">
+            📊 過去同コース成績
+          </div>
+          <div style="color:#a6adc8;font-size:13px;margin-bottom:6px">
+            {place} {course_str}: {n_races:,}R / {n_starts:,} 出走 (2013-2025)
+          </div>
+          <div style="color:#cdd6f4;font-size:13px;margin-top:6px">
+            <b>1着馬の平均馬番:</b>
+            <span style="color:#f5c2e7;font-size:15px;font-weight:bold">
+              {cstats.get('first_uma_avg', 0):.1f}番</span>
+          </div>
+        </div>
+        """
+
+        baba_html = f"""
+        <div style="background:#1e1e2e;border-left:3px solid #cba6f7;
+                    padding:14px 16px;border-radius:8px">
+          <div style="color:#cba6f7;font-size:14px;font-weight:bold;margin-bottom:10px">
+            🎯 枠バイアス
+          </div>
+          {waku_html}
+          <div style="color:#cdd6f4;font-size:13px;margin-top:10px;
+                      padding-top:8px;border-top:1px solid #313244">
+            判定: {bias_msg}
+          </div>
+        </div>
+        """
+    else:
+        kako_html = """
+        <div style="background:#1e1e2e;border-left:3px solid #6c7086;
+                    padding:14px 16px;border-radius:8px;color:#6c7086;font-size:13px">
+          📊 過去成績データ無し<br>
+          (master_v2 が無いか、サンプル数 100 未満)
+        </div>
+        """
+        baba_html = ""
 
     return f"""
-    <div style="display:flex;flex-direction:column;gap:12px;height:100%">
+    <div style="display:flex;flex-direction:column;gap:10px;height:100%">
 
-      <!-- AI 評価コメント -->
-      <div style="background:#1e1e2e;border-left:3px solid #89b4fa;
-                  padding:14px 16px;border-radius:8px;flex-shrink:0">
-        <div style="color:#89b4fa;font-size:13px;font-weight:bold;margin-bottom:6px">
-          🤖 AI 評価
-        </div>
-        <div style="color:#cdd6f4;font-size:14px;line-height:1.7">
-          {ai_comment(race)}
-        </div>
-      </div>
-
-      <!-- 信頼度メトリクス (2x2 grid) -->
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;flex-shrink:0">
+      <!-- 信頼度メトリクス 4 chip (大きめ) -->
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
         <div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;
-                    padding:10px 14px">
-          <div style="color:#6c7086;font-size:12px">◎独走度</div>
-          <div style="color:#cdd6f4;font-size:22px;font-weight:bold;margin:4px 0">
+                    padding:14px 18px">
+          <div style="color:#6c7086;font-size:14px;margin-bottom:6px">◎独走度</div>
+          <div style="color:#cdd6f4;font-size:32px;font-weight:bold;margin-bottom:6px">
             {top1:.3f}</div>
-          <div style="color:#888;font-size:11px;line-height:1.3">
-            0.10+で独走、0.05-で拮抗</div>
+          <div style="color:#888;font-size:12px;line-height:1.4">
+            0.10+で独走<br>0.05-で拮抗</div>
         </div>
         <div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;
-                    padding:10px 14px">
-          <div style="color:#6c7086;font-size:12px">上位2頭集中</div>
-          <div style="color:#cdd6f4;font-size:22px;font-weight:bold;margin:4px 0">
+                    padding:14px 18px">
+          <div style="color:#6c7086;font-size:14px;margin-bottom:6px">上位2頭集中</div>
+          <div style="color:#cdd6f4;font-size:32px;font-weight:bold;margin-bottom:6px">
             {top2:.3f}</div>
-          <div style="color:#888;font-size:11px;line-height:1.3">
-            0.5+で馬連本線が有効</div>
+          <div style="color:#888;font-size:12px;line-height:1.4">
+            0.5+で<br>馬連本線が有効</div>
         </div>
         <div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;
-                    padding:10px 14px">
-          <div style="color:#6c7086;font-size:12px">混戦度</div>
-          <div style="color:#cdd6f4;font-size:22px;font-weight:bold;margin:4px 0">
+                    padding:14px 18px">
+          <div style="color:#6c7086;font-size:14px;margin-bottom:6px">混戦度</div>
+          <div style="color:#cdd6f4;font-size:32px;font-weight:bold;margin-bottom:6px">
             {chaos:.3f}</div>
-          <div style="color:#888;font-size:11px;line-height:1.3">
-            0.92+で見送り、0.65-で固い</div>
+          <div style="color:#888;font-size:12px;line-height:1.4">
+            0.92+で見送り<br>0.65-で固い</div>
         </div>
         <div style="background:#1e1e2e;border:1px solid #313244;border-radius:8px;
-                    padding:10px 14px">
-          <div style="color:#6c7086;font-size:12px">市場一致</div>
-          <div style="color:#cdd6f4;font-size:22px;font-weight:bold;margin:4px 0">
+                    padding:14px 18px">
+          <div style="color:#6c7086;font-size:14px;margin-bottom:6px">市場一致</div>
+          <div style="color:#cdd6f4;font-size:32px;font-weight:bold;margin-bottom:6px">
             {market:+.3f}</div>
-          <div style="color:#888;font-size:11px;line-height:1.3">
-            +1=完全一致、-1=完全逆</div>
+          <div style="color:#888;font-size:12px;line-height:1.4">
+            +1=完全一致<br>-1=完全逆</div>
         </div>
       </div>
 
-      <!-- コース分析 -->
-      <div style="background:#1e1e2e;border-left:3px solid #f5c2e7;
-                  padding:14px 16px;border-radius:8px;flex-grow:1">
-        <div style="color:#f5c2e7;font-size:13px;font-weight:bold;margin-bottom:8px">
-          🏁 コース概況
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;
-                    color:#cdd6f4;font-size:13px">
-          <div><span style="color:#6c7086">コース:</span>
-               <b style="color:#f5c2e7">{course}</b></div>
-          <div><span style="color:#6c7086">頭数:</span>
-               <b style="color:#f5c2e7">{field_size}頭</b></div>
-          <div><span style="color:#6c7086">単勝1番人気:</span>
-               <b style="color:#f5c2e7">{min_odds:.1f}倍</b></div>
-          <div><span style="color:#6c7086">単勝最高:</span>
-               <b style="color:#f5c2e7">{max_odds:.1f}倍</b></div>
-          <div><span style="color:#6c7086">単勝平均:</span>
-               <b style="color:#f5c2e7">{avg_odds:.1f}倍</b></div>
-          <div><span style="color:#6c7086">上位3頭合計勝率:</span>
-               <b style="color:#a6e3a1">{top3_p:.1f}%</b></div>
-        </div>
-      </div>
+      {kako_html}
+      {baba_html}
     </div>
     """
 
 
 # ============================================================
-# 出走表: ピュア HTML テーブル (AGGrid のスクロール問題回避)
+# 出走表 (ピュア HTML テーブル)
 # ============================================================
 def make_shutsuba_table_html(race: dict) -> str:
     horses = race.get("horses", [])
@@ -337,7 +519,6 @@ def make_shutsuba_table_html(race: dict) -> str:
             f'text-align:center;border-radius:50%;display:inline-block">{mark}</span>'
         ) if mark else ""
 
-        # 行ハイライト (◎/〇/▲)
         bg = ""
         if mark == "◎":
             bg = "background:rgba(231,76,60,0.06);"
@@ -346,25 +527,18 @@ def make_shutsuba_table_html(race: dict) -> str:
         elif mark == "▲":
             bg = "background:rgba(155,89,182,0.06);"
 
-        # EV color (高い=金、低い=灰)
         ev_color = "#f9e2af" if ev_tan >= 1.0 else "#a6adc8"
 
         rows.append(f"""
         <tr style="{bg}border-bottom:1px solid #313244;height:42px">
-          <td style="padding:6px 12px;color:#cdd6f4;font-weight:bold;text-align:center">
-            {umaban}</td>
+          <td style="padding:6px 12px;color:#cdd6f4;font-weight:bold;text-align:center">{umaban}</td>
           <td style="padding:6px 8px;text-align:center">{mark_html}</td>
           <td style="padding:6px 12px;color:#cdd6f4;font-size:16px;font-weight:600">{name}</td>
-          <td style="padding:6px 12px;text-align:right;color:#a6e3a1;font-weight:bold">
-            {p_win:.1f}%</td>
-          <td style="padding:6px 12px;text-align:right;color:#89b4fa">
-            {p_sho:.1f}%</td>
-          <td style="padding:6px 12px;text-align:right;color:#f5c2e7">
-            {tan:.1f}</td>
-          <td style="padding:6px 12px;text-align:right;color:{ev_color};font-weight:bold">
-            {ev_tan:.2f}</td>
-          <td style="padding:6px 12px;text-align:right;color:#a6adc8">
-            {fuku_low:.1f}-{fuku_high:.1f}</td>
+          <td style="padding:6px 12px;text-align:right;color:#a6e3a1;font-weight:bold">{p_win:.1f}%</td>
+          <td style="padding:6px 12px;text-align:right;color:#89b4fa">{p_sho:.1f}%</td>
+          <td style="padding:6px 12px;text-align:right;color:#f5c2e7">{tan:.1f}</td>
+          <td style="padding:6px 12px;text-align:right;color:{ev_color};font-weight:bold">{ev_tan:.2f}</td>
+          <td style="padding:6px 12px;text-align:right;color:#a6adc8">{fuku_low:.1f}-{fuku_high:.1f}</td>
           <td style="padding:6px 12px;text-align:center">
             <span style="background:{market_color};color:#1e1e2e;padding:2px 10px;
                          border-radius:10px;font-size:12px;font-weight:bold">{market}</span>
@@ -410,9 +584,7 @@ def race_scatter_option(horses: list) -> dict:
         name = h.get("horse_name", "")
         data.append({
             "value": [round(market, 2), round(p_win, 2)],
-            "name": name,
-            "symbol": "circle",
-            "symbolSize": size,
+            "name": name, "symbol": "circle", "symbolSize": size,
             "itemStyle": {"color": color,
                            "borderColor": "#fff" if mark in ["◎", "〇", "▲"] else "transparent",
                            "borderWidth": 1},
@@ -426,8 +598,7 @@ def race_scatter_option(horses: list) -> dict:
     max_val = max(max_val, max((d["value"][1] for d in data), default=50) * 1.1)
     return {
         "title": {"text": "AI 評価 vs 市場評価",
-                   "textStyle": {"color": "#cdd6f4", "fontSize": 16},
-                   "left": "center"},
+                   "textStyle": {"color": "#cdd6f4", "fontSize": 16}, "left": "center"},
         "xAxis": {"name": "市場評価 (1/単勝オッズ × 100)",
                    "type": "value", "min": 0, "max": round(max_val, 1),
                    "splitLine": {"lineStyle": {"color": "#313244"}},
@@ -514,20 +685,18 @@ def main_page():
       .q-tab__label { font-size: 17px !important; }
       .q-field__native { font-size: 17px !important; }
       .q-expansion-item__container { font-size: 16px; }
-      /* Cowork bets table のみ AGGrid 利用 */
-      .ag-theme-balham-dark { font-size: 15px !important; }
     </style>
     """)
 
     with ui.header(elevated=True).classes("bg-slate-900"):
         ui.label("🏇 PyCaLiAI").classes("text-3xl font-bold text-white")
         ui.space()
-        ui.label("NiceGUI 版 (実験 MVP v4)").classes("text-base text-slate-400")
+        ui.label("NiceGUI 版 (実験 MVP v5)").classes("text-base text-slate-400")
 
     state = {"date": None, "race": None, "bundle": None}
 
     with ui.row().classes("w-full no-wrap gap-4 p-4"):
-        # ===== サイドバー =====
+        # サイドバー
         with ui.column().classes("w-72 gap-2 flex-shrink-0"):
             ui.label("📅 開催日").classes("text-xl font-bold text-slate-200")
             dates = list_dates()
@@ -538,14 +707,12 @@ def main_page():
             ui.label("🏇 場所").classes("text-xl font-bold text-slate-200 mt-3")
             race_list_box = ui.column().classes("w-full gap-1")
 
-        # ===== メイン =====
+        # メイン
         with ui.column().classes("flex-grow gap-3"):
-            # ヘッダ行: 左=バナー / 右=AI評価+メトリクス+コース
             with ui.row().classes("w-full no-wrap gap-3"):
                 left_box = ui.element("div").classes("flex-grow").style("flex: 3")
                 right_box = ui.element("div").classes("flex-grow").style("flex: 2")
 
-            # タブ
             with ui.tabs().classes("w-full") as tabs:
                 tab_shutsuba = ui.tab("📋 出走表")
                 tab_bunseki = ui.tab("🔍 全頭分析")
@@ -562,31 +729,25 @@ def main_page():
     def render_race(race: dict):
         state["race"] = race
 
-        # 左パネル: バナー
         left_box.clear()
         with left_box:
-            ui.html(make_banner_html(race))
+            ui.html(make_left_panel_html(race))
 
-        # 右パネル: AI 評価 + メトリクス + コース
         right_box.clear()
         with right_box:
             ui.html(make_right_panel_html(race))
 
-        # 出走表 (HTML テーブル、スクロール無し)
         shutsuba_box.clear()
         with shutsuba_box:
             ui.html(make_shutsuba_table_html(race))
 
-        # 全頭分析
         bunseki_box.clear()
         with bunseki_box:
             horses_sorted = sorted(race.get("horses", []),
                                     key=lambda h: -(h.get("p_win") or 0))
-            ui.label("📍 全頭ポジショニング (AI vs 市場)").classes(
-                "text-xl font-bold mt-2 mb-1")
-            ui.label("対角線より上 = AI 高評価 (穴推奨)。下 = AI 低評価 (危険)。" +
-                     "点が大きい順 ◎ > 〇 > ▲ > △.").classes(
-                "text-sm text-slate-400 mb-3")
+            ui.label("📍 全頭ポジショニング (AI vs 市場)").classes("text-xl font-bold mt-2 mb-1")
+            ui.label("対角線より上 = AI 高評価。下 = AI 低評価。" +
+                     "点が大きい順 ◎ > 〇 > ▲ > △.").classes("text-sm text-slate-400 mb-3")
             ui.echart(race_scatter_option(horses_sorted)).classes(
                 "w-full").style("height: 480px")
 
@@ -629,7 +790,6 @@ def main_page():
                         ui.echart(horse_radar_option(h)).classes(
                             "w-full").style("height: 240px")
 
-        # Cowork 買い目
         bets_box.clear()
         with bets_box:
             cowork = load_cowork_bets(state["date"], race["race_id"])
@@ -640,7 +800,6 @@ def main_page():
                 race_nature_str = cowork.get("race_nature", "")
                 race_reason = cowork.get("race_reason", "")
                 bets = cowork.get("bets", [])
-
                 if race_nature_str:
                     nat_color = NATURE_COLORS.get(race_nature_str, "#89b4fa")
                     ui.html(f"""
@@ -657,8 +816,7 @@ def main_page():
                     </div>
                     """)
                 if not bets:
-                    ui.label("→ 見送り (購入なし)") \
-                      .classes("text-slate-400 mt-3 text-lg")
+                    ui.label("→ 見送り (購入なし)").classes("text-slate-400 mt-3 text-lg")
                 else:
                     rows = []
                     for b in bets:
@@ -669,8 +827,7 @@ def main_page():
                           <td style="padding:10px 14px;color:#cdd6f4;font-size:15px;
                                      font-weight:bold">{b.get("買い目","")}</td>
                           <td style="padding:10px 14px;color:#a6e3a1;text-align:right;
-                                     font-size:15px;font-weight:bold">
-                            ¥{b.get("購入額",0):,}</td>
+                                     font-size:15px;font-weight:bold">¥{b.get("購入額",0):,}</td>
                           <td style="padding:10px 14px;color:#a6adc8;font-size:13px;
                                      line-height:1.6">{b.get("理由","")}</td>
                         </tr>
@@ -680,19 +837,13 @@ def main_page():
                                   background:#0a0a14;border-radius:8px;overflow:hidden">
                       <thead>
                         <tr style="background:#1e1e2e;border-bottom:2px solid #fab387">
-                          <th style="padding:12px;color:#fab387;text-align:left;width:110px">
-                            馬券種</th>
-                          <th style="padding:12px;color:#fab387;text-align:left;width:180px">
-                            買い目</th>
-                          <th style="padding:12px;color:#fab387;text-align:right;width:120px">
-                            購入額</th>
-                          <th style="padding:12px;color:#fab387;text-align:left">
-                            理由</th>
+                          <th style="padding:12px;color:#fab387;text-align:left;width:110px">馬券種</th>
+                          <th style="padding:12px;color:#fab387;text-align:left;width:180px">買い目</th>
+                          <th style="padding:12px;color:#fab387;text-align:right;width:120px">購入額</th>
+                          <th style="padding:12px;color:#fab387;text-align:left">理由</th>
                         </tr>
                       </thead>
-                      <tbody>
-                        {"".join(rows)}
-                      </tbody>
+                      <tbody>{"".join(rows)}</tbody>
                     </table>
                     """)
                     total = sum(b.get("購入額", 0) for b in bets)
@@ -710,20 +861,15 @@ def main_page():
                 ui.label(f".\\weekly_cowork.ps1 {date} v5") \
                   .classes("font-mono text-sm text-slate-400")
             return
-
         races = bundle.get("races", [])
         by_place: dict[str, list] = {}
         for r in races:
             place = r.get("race_meta", {}).get("place", "?")
             by_place.setdefault(place, []).append(r)
-
         with race_list_box:
             for i, (place, race_list) in enumerate(by_place.items()):
-                with ui.expansion(
-                    f"{place} ({len(race_list)}R)",
-                    icon="place",
-                    value=(i == 0),
-                ).classes("w-full"):
+                with ui.expansion(f"{place} ({len(race_list)}R)", icon="place",
+                                   value=(i == 0)).classes("w-full"):
                     for r in race_list:
                         rid = r.get("race_id", "")
                         r_num = rid[-2:].lstrip("0") if len(rid) >= 16 else "?"
@@ -732,7 +878,6 @@ def main_page():
                         hon = next((h for h in r.get("horses", [])
                                     if h.get("mark") == "◎"), None)
                         hon_name = hon.get("horse_name", "-") if hon else "-"
-
                         item = ui.element("div").classes(
                             "w-full px-3 py-2 cursor-pointer rounded "
                             "hover:bg-slate-800 transition-colors"
@@ -757,6 +902,14 @@ def main_page():
 
 
 if __name__ in {"__main__", "__mp_main__"}:
+    # 起動時に master を 1 回読み込んでキャッシュ (5-10 秒程度)
+    print("master_v2 読み込み中... (5-10 秒)")
+    df = get_master_df()
+    if df is not None:
+        print(f"  完了: {len(df):,} 行")
+    else:
+        print("  master_v2 が見つかりません (過去成績は表示されません)")
+
     ui.run(
         port=8080,
         title="🏇 PyCaLiAI (NiceGUI)",
