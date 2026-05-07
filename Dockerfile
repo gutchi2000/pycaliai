@@ -37,6 +37,8 @@ EXPOSE 7860
 # Docker 環境フラグ (host=0.0.0.0 にするため)
 ENV DOCKER_CONTAINER=1
 
-# HF Spaces は PORT を 7860 に設定するが、ローカル動作時は app.py が
-# PORT 未設定なら 8080 を使うよう実装してある
+# HF Spaces は app_port=7860 を期待するため、明示的に PORT=7860 を設定
+# (HF が自動注入しないケースに備える)
+ENV PORT=7860
+
 CMD ["python", "nicegui_app.py"]
