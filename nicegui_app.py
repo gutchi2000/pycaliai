@@ -60,34 +60,10 @@ def load_cowork_bets(date_str: str, race_id: str) -> dict | None:
         return None
 
 
-@functools.lru_cache(maxsize=32)
-def _load_cowork_output_raw(date_str: str) -> dict | None:
-    """reports/cowork_output/{date}_bets.json を読んで race_id 別 dict 化。
-
-    ファイルは:
-      - 純 JSON 配列 [{race_id, bets, ...}, ...]
-      - or Markdown 内に ```json ブロック
-      - or {races: [...]} ラップ
-    のいずれでも OK (parse_cowork_response 互換)。
-
-    エンコーディング: UTF-8 / UTF-8 BOM / cp932 / shift_jis 自動判定。
-    """
-    # ファイル名の候補 (_bets.json 推奨、旧形式も対応)
-    candidates = [
-        COWORK_OUTPUT_DIR / f"{date_str}_bets.json",
-        COWORK_OUTPUT_DIR / f"{date_str}_bets.txt",
-        COWORK_OUTPUT_DIR / f"{date_str}_bets.md",
-        COWORK_OUTPUT_DIR / f"{date_str}.json",
-        COWORK_OUTPUT_DIR / f"{date_str}.txt",
-        COWORK_OUTPUT_DIR / f"{date_str}.md",
-    ]
-    p = next((q for q in candidates if q.exists()), None)
-    if p is None:
-        return None
-
-    # 文字コード自動判定で読み込み
+def _parse_one_cowork_file(path: Path) -> dict[str, dict]:
+    """1 ファイルを読んで race_id → race_data 辞書を返す。"""
     try:
-        raw_bytes = p.read_bytes()
+        raw_bytes = path.read_bytes()
         text = ""
         for enc in ["utf-8-sig", "utf-8", "cp932", "shift_jis"]:
             try:
@@ -98,7 +74,7 @@ def _load_cowork_output_raw(date_str: str) -> dict | None:
         else:
             text = raw_bytes.decode("utf-8", errors="replace")
     except Exception:
-        return None
+        return {}
 
     # JSON コードブロック抽出 (Markdown 内 or 直接)
     m = re.search(r"```(?:json|JSON)?\s*\n([\s\S]+?)\n\s*```", text)
@@ -107,15 +83,13 @@ def _load_cowork_output_raw(date_str: str) -> dict | None:
     try:
         data = json.loads(raw_json)
     except Exception:
-        return None
+        return {}
 
-    # {races: [...]} ラップ対応
     if isinstance(data, dict):
         data = data.get("races", [data])
     if not isinstance(data, list):
-        return None
+        return {}
 
-    # race_id 別 dict 化
     out: dict[str, dict] = {}
     for entry in data:
         if not isinstance(entry, dict):
@@ -124,7 +98,6 @@ def _load_cowork_output_raw(date_str: str) -> dict | None:
         if not rid_raw:
             continue
         rid = str(rid_raw)[:16]
-        # 馬券データ正規化 (英語/日本語キー両対応)
         bets_raw = entry.get("bets", entry.get("買い目", []))
         bets = []
         if isinstance(bets_raw, list):
@@ -143,24 +116,53 @@ def _load_cowork_output_raw(date_str: str) -> dict | None:
             "race_nature": str(entry.get("race_nature", "")),
             "race_reason": str(entry.get("race_reason", "")),
             "bets":        bets,
-            "source":      "cowork_output_bets",
+            "source":      f"cowork_output:{path.name}",
         }
     return out
 
 
+def _cowork_output_cache_key() -> str:
+    """全ファイルの mtime ハッシュ (ファイル追加/更新で cache 自動 invalidate)"""
+    if not COWORK_OUTPUT_DIR.exists():
+        return "no-dir"
+    files = sorted(COWORK_OUTPUT_DIR.iterdir())
+    return "|".join(f"{p.name}:{p.stat().st_mtime:.0f}" for p in files if p.is_file())
+
+
+@functools.lru_cache(maxsize=4)
+def _load_all_cowork_output(_cache_key: str) -> dict[str, dict]:
+    """reports/cowork_output/ 全ファイルをスキャンして race_id 別 dict にマージ。
+
+    複数日まとめた 1 ファイル / 日別ファイル / どちらでも OK。
+    同じ race_id が複数ファイルにあれば 最新 mtime のファイルが勝つ。
+    """
+    if not COWORK_OUTPUT_DIR.exists():
+        return {}
+
+    out: dict[str, dict] = {}
+    # mtime 古い順で読む → 後勝ち (新しいファイルが上書き)
+    files = sorted(
+        [p for p in COWORK_OUTPUT_DIR.iterdir() if p.is_file()
+         and p.suffix.lower() in (".json", ".txt", ".md")],
+        key=lambda x: x.stat().st_mtime,
+    )
+    for p in files:
+        out.update(_parse_one_cowork_file(p))
+    return out
+
+
 def load_cowork_bets_unified(date_str: str, race_id: str) -> dict | None:
-    """個別ファイル (cowork_bets/) → 一括ファイル (cowork_output/_bets.json) の順で取得。
+    """個別ファイル (cowork_bets/) → 全 _bets.json 横断検索 の順で取得。
 
     Streamlit で保存された個別ファイルが優先 (人間が編集した可能性あり)、
-    無ければ Cowork から直接保存された一括ファイルから race_id で引く。
+    無ければ cowork_output/ 内の **全ファイル** をスキャンして race_id で引く。
+    日付ファイル名に縛られないので、複数日まとめた 1 ファイルでも OK。
     """
     individual = load_cowork_bets(date_str, race_id)
     if individual:
         return individual
-    bundle = _load_cowork_output_raw(date_str)
-    if not bundle:
-        return None
-    return bundle.get(race_id)
+    all_bets = _load_all_cowork_output(_cowork_output_cache_key())
+    return all_bets.get(race_id)
 
 
 # ============================================================
@@ -899,11 +901,22 @@ def main_page():
         with bets_box:
             cowork = load_cowork_bets_unified(state["date"], race["race_id"])
             if not cowork:
-                ui.label(
-                    f"Cowork 買い目データがありません。\n"
-                    f"reports/cowork_output/{state['date']}_bets.json を配置するか、"
-                    f"Streamlit の Cowork取込で保存してください。"
-                ).classes("text-slate-400 p-4 text-base whitespace-pre-line")
+                # 何が見つかってないかを明示
+                all_bets = _load_all_cowork_output(_cowork_output_cache_key())
+                n_files = sum(1 for p in COWORK_OUTPUT_DIR.iterdir()
+                                if p.is_file()) if COWORK_OUTPUT_DIR.exists() else 0
+                msg = (
+                    f"このレース ({race['race_id']}) の Cowork 買い目データが見つかりません。\n\n"
+                    f"検索結果:\n"
+                    f"  reports/cowork_output/ 内 {n_files} ファイル中、"
+                    f"race_id 一致 {len(all_bets)} race 検出済 (このレースは含まれず)\n"
+                    f"  reports/cowork_bets/{state['date']}/{race['race_id']}.json: 存在せず\n\n"
+                    f"対応:\n"
+                    f"  • {state['date']}_bets.json を作成して reports/cowork_output/ に配置\n"
+                    f"  • または既存ファイルにこのレースの bets を追加\n"
+                    f"  • または Streamlit の '🤖 Cowork取込' で個別保存"
+                )
+                ui.label(msg).classes("text-slate-400 p-4 text-sm whitespace-pre-line")
             else:
                 race_nature_str = cowork.get("race_nature", "")
                 race_reason = cowork.get("race_reason", "")
