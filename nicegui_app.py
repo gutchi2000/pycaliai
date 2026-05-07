@@ -1,7 +1,16 @@
 """
 nicegui_app.py
 ==============
-NiceGUI 版 PyCaLiAI (実験 MVP v6)
+NiceGUI 版 PyCaLiAI (実験 MVP v7)
+
+v6 → v7 変更点:
+  1. サイドバー (縦型 expansion) を廃止 → 上部の水平タブ + ボタン UI に刷新:
+     - 開催日 select → 1 行目
+     - 場所タブ (東京/京都/新潟…) → 2 行目 (Streamlit 風 q-tabs スタイル)
+     - レース番号ボタン (1R/2R/…/12R) → 3 行目
+     - メイン (左右パネル + 出走表/全頭分析/Cowork) → 全幅で大きく表示
+  2. 場所/レース選択時に該当ボタンをハイライト (青塗り)、状態は state で管理
+  3. 場所切替で 1R を自動選択、日付切替で最初の場所の 1R を自動選択
 
 v5 → v6 変更点:
   1. 4 chip (◎独走度/上位2頭集中/混戦度/市場一致) を素人向けに刷新:
@@ -1090,40 +1099,57 @@ def main_page():
     with ui.header(elevated=True).classes("bg-slate-900"):
         ui.label("🏇 PyCaLiAI").classes("text-3xl font-bold text-white")
         ui.space()
-        ui.label("NiceGUI 版 (実験 MVP v6)").classes("text-base text-slate-400")
+        ui.label("NiceGUI 版 (実験 MVP v7)").classes("text-base text-slate-400")
 
-    state = {"date": None, "race": None, "bundle": None}
+    state = {
+        "date": None, "race": None, "bundle": None,
+        "by_place": {}, "current_place": None,
+    }
 
-    with ui.row().classes("w-full no-wrap gap-4 p-4"):
-        # サイドバー
-        with ui.column().classes("w-72 gap-2 flex-shrink-0"):
-            ui.label("📅 開催日").classes("text-xl font-bold text-slate-200")
-            dates = list_dates()
-            if not dates:
-                ui.label("⚠️ data/weekly/ に CSV がありません").classes("text-orange-400")
-                return
-            date_dd = ui.select(dates, value=dates[0]).classes("w-full")
-            ui.label("🏇 場所").classes("text-xl font-bold text-slate-200 mt-3")
-            race_list_box = ui.column().classes("w-full gap-1")
+    dates = list_dates()
+    if not dates:
+        with ui.column().classes("w-full p-4"):
+            ui.label("⚠️ data/weekly/ に CSV がありません") \
+                .classes("text-orange-400")
+        return
 
-        # メイン
-        with ui.column().classes("flex-grow gap-3"):
-            with ui.row().classes("w-full no-wrap gap-3"):
-                left_box = ui.element("div").classes("flex-grow").style("flex: 3")
-                right_box = ui.element("div").classes("flex-grow").style("flex: 2")
+    # =================================================================
+    # サイドバー廃止 → ヘッダー直下に水平レイアウト
+    #   1 行目: 開催日 select
+    #   2 行目: 場所タブ (東京 / 京都 / 新潟 …)
+    #   3 行目: レース番号ボタン (1R / 2R / 3R …)
+    #   メイン: 左右パネル + 出走表/全頭分析/Cowork タブ
+    # =================================================================
+    with ui.column().classes("w-full p-4 gap-3"):
+        # ── 1 行目: 開催日 ──
+        with ui.row().classes("items-center gap-3"):
+            ui.label("📅 開催日").classes("text-lg font-bold text-slate-200")
+            date_dd = ui.select(dates, value=dates[0]).classes("w-52")
 
-            with ui.tabs().classes("w-full") as tabs:
-                tab_shutsuba = ui.tab("📋 出走表")
-                tab_bunseki = ui.tab("🔍 全頭分析")
-                tab_bets = ui.tab("🎫 Cowork 買い目")
+        # ── 2 行目: 場所タブ ──
+        place_tabs_container = ui.element("div").classes("w-full")
 
-            with ui.tab_panels(tabs, value=tab_shutsuba).classes("w-full"):
-                with ui.tab_panel(tab_shutsuba):
-                    shutsuba_box = ui.element("div").classes("w-full")
-                with ui.tab_panel(tab_bunseki):
-                    bunseki_box = ui.element("div").classes("w-full")
-                with ui.tab_panel(tab_bets):
-                    bets_box = ui.element("div").classes("w-full")
+        # ── 3 行目: レース番号ボタン ──
+        race_buttons_container = ui.element("div").classes("w-full mb-1")
+
+        # ── メイン: 左右パネル ──
+        with ui.row().classes("w-full no-wrap gap-3"):
+            left_box = ui.element("div").classes("flex-grow").style("flex: 3")
+            right_box = ui.element("div").classes("flex-grow").style("flex: 2")
+
+        # ── メイン: タブ (出走表 / 全頭分析 / Cowork) ──
+        with ui.tabs().classes("w-full") as tabs:
+            tab_shutsuba = ui.tab("📋 出走表")
+            tab_bunseki = ui.tab("🔍 全頭分析")
+            tab_bets = ui.tab("🎫 Cowork 買い目")
+
+        with ui.tab_panels(tabs, value=tab_shutsuba).classes("w-full"):
+            with ui.tab_panel(tab_shutsuba):
+                shutsuba_box = ui.element("div").classes("w-full")
+            with ui.tab_panel(tab_bunseki):
+                bunseki_box = ui.element("div").classes("w-full")
+            with ui.tab_panel(tab_bets):
+                bets_box = ui.element("div").classes("w-full")
 
     def render_race(race: dict):
         state["race"] = race
@@ -1229,55 +1255,123 @@ def main_page():
                     ui.label(f"合計予算: ¥{total:,}") \
                       .classes("text-2xl font-bold mt-3 text-amber-300")
 
-    def update_race_list(date: str):
+    # =================================================================
+    # 場所タブ + レース番号ボタンの動的描画
+    # =================================================================
+    def _race_num(r: dict) -> int:
+        rid = r.get("race_id", "")
+        try:
+            return int(rid[-2:])
+        except ValueError:
+            return 0
+
+    def render_place_tabs():
+        """場所タブを描画 (東京/京都/新潟 …)。選択中はハイライト。"""
+        place_tabs_container.clear()
+        if not state["by_place"]:
+            with place_tabs_container:
+                ui.label("⚠️ bundle.json がありません") \
+                    .classes("text-orange-400 text-sm")
+            return
+
+        places = list(state["by_place"].keys())
+        current = state.get("current_place") or places[0]
+        with place_tabs_container:
+            with ui.row().classes("w-full no-wrap gap-1 items-end"):
+                for p in places:
+                    n_races = len(state["by_place"][p])
+                    is_active = (p == current)
+                    cls = (
+                        "px-6 py-3 cursor-pointer text-center font-bold "
+                        "rounded-t-lg flex-grow text-base transition-colors "
+                    )
+                    cls += ("bg-blue-600 text-white shadow-md"
+                            if is_active else
+                            "bg-slate-700 text-slate-300 hover:bg-slate-600")
+                    tab = ui.element("div").classes(cls)
+                    tab.on("click", lambda p=p: select_place(p))
+                    with tab:
+                        ui.html(
+                            f'<span>{p}</span> '
+                            f'<span style="font-size:13px;opacity:0.75;'
+                            f'margin-left:6px">({n_races}R)</span>'
+                        )
+
+    def render_race_buttons():
+        """レース番号ボタンを描画 (1R / 2R / …)。選択中はハイライト。"""
+        race_buttons_container.clear()
+        place = state.get("current_place")
+        if not place:
+            return
+        races = state["by_place"].get(place, [])
+        races_sorted = sorted(races, key=_race_num)
+        current_rid = (state.get("race") or {}).get("race_id")
+        with race_buttons_container:
+            with ui.row().classes("w-full gap-1 flex-wrap"):
+                for r in races_sorted:
+                    rid = r.get("race_id", "")
+                    r_num = rid[-2:].lstrip("0") if len(rid) >= 16 else "?"
+                    is_active = (rid == current_rid)
+                    cls = (
+                        "min-w-[60px] px-3 py-2 cursor-pointer text-center "
+                        "rounded font-bold text-base transition-colors "
+                    )
+                    cls += ("bg-blue-600 text-white shadow-md"
+                            if is_active else
+                            "bg-slate-800 text-slate-200 hover:bg-slate-700 "
+                            "border border-slate-700")
+                    btn = ui.element("div").classes(cls)
+                    btn.on("click", lambda r=r: select_race(r))
+                    with btn:
+                        ui.label(f"{r_num}R")
+
+    def select_place(p: str):
+        """場所タブクリック → 場所切替 → 1R を自動選択"""
+        if state.get("current_place") == p:
+            return
+        state["current_place"] = p
+        render_place_tabs()
+        # 場所が変わったら最初のレースに自動切替
+        races = sorted(state["by_place"].get(p, []), key=_race_num)
+        if races:
+            select_race(races[0])
+        else:
+            state["race"] = None
+            render_race_buttons()
+
+    def select_race(r: dict):
+        """レース番号ボタンクリック → render_race + ハイライト更新"""
+        state["race"] = r
+        render_race_buttons()
+        render_race(r)
+
+    def update_for_date(date: str):
+        """開催日 select 変更 → 場所タブ群を再構築 → 最初の場所/レースを自動表示"""
         state["date"] = date
         bundle = load_bundle(date)
         state["bundle"] = bundle
-        race_list_box.clear()
-        if not bundle:
-            with race_list_box:
-                ui.label("⚠️ bundle.json がありません").classes("text-orange-400 text-sm")
-                ui.label(f".\\weekly_cowork.ps1 {date} v5") \
-                  .classes("font-mono text-sm text-slate-400")
-            return
-        races = bundle.get("races", [])
-        by_place: dict[str, list] = {}
-        for r in races:
-            place = r.get("race_meta", {}).get("place", "?")
-            by_place.setdefault(place, []).append(r)
-        with race_list_box:
-            for i, (place, race_list) in enumerate(by_place.items()):
-                with ui.expansion(f"{place} ({len(race_list)}R)", icon="place",
-                                   value=(i == 0)).classes("w-full"):
-                    for r in race_list:
-                        rid = r.get("race_id", "")
-                        r_num = rid[-2:].lstrip("0") if len(rid) >= 16 else "?"
-                        meta = r.get("race_meta", {})
-                        cls = meta.get("class", "") or "-"
-                        hon = next((h for h in r.get("horses", [])
-                                    if h.get("mark") == "◎"), None)
-                        hon_name = hon.get("horse_name", "-") if hon else "-"
-                        item = ui.element("div").classes(
-                            "w-full px-3 py-2 cursor-pointer rounded "
-                            "hover:bg-slate-800 transition-colors"
-                        )
-                        item.on("click", lambda r=r: render_race(r))
-                        with item:
-                            ui.html(f"""
-                            <div style="display:flex;flex-direction:column;gap:3px">
-                              <div style="display:flex;align-items:baseline;gap:8px">
-                                <span style="color:#cdd6f4;font-size:16px;font-weight:bold;
-                                             min-width:42px">{r_num}R</span>
-                                <span style="color:#a6adc8;font-size:14px">{cls}</span>
-                              </div>
-                              <div style="color:#a6e3a1;font-size:14px;padding-left:50px">
-                                ◎ {hon_name}
-                              </div>
-                            </div>
-                            """)
 
-    date_dd.on_value_change(lambda e: update_race_list(e.value))
-    update_race_list(dates[0])
+        by_place: dict[str, list] = {}
+        if bundle:
+            for r in bundle.get("races", []):
+                place = r.get("race_meta", {}).get("place", "?")
+                by_place.setdefault(place, []).append(r)
+        state["by_place"] = by_place
+        state["current_place"] = (next(iter(by_place.keys()))
+                                    if by_place else None)
+        state["race"] = None
+
+        render_place_tabs()
+        render_race_buttons()
+
+        if state["current_place"]:
+            races = sorted(by_place.get(state["current_place"], []),
+                            key=_race_num)
+            if races:
+                select_race(races[0])
+
+    date_dd.on_value_change(lambda e: update_for_date(e.value))
+    update_for_date(dates[0])
 
 
 if __name__ in {"__main__", "__mp_main__"}:
