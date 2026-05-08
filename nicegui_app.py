@@ -1203,20 +1203,30 @@ def compute_pyca_features(horses: list[dict],
         rank[key] = (_rank_list(used) if used_valid else [0] * n)
         valid[key] = used_valid
 
-    # --- PyCaLi 指数: 勝率 * 100 をベースに各軸の平均で微調整 ---
+    # --- PyCaLi 指数 ---
+    # base   = p_sho × 100 (3 着以内率、Streamlit の `score` と同等のレンジ 30-50)
+    # boost  = 補正特徴量 (b〜f) 平均 - 5 を ×0.5 (元 1.0)。係数を抑えたのは
+    #          base のわずかな差を boost が打ち消して印 (ai_rank) と PyCaLi 順位が
+    #          逆転するのを防ぐため
+    p_sho_list = [(h.get("p_sho") or 0) for h in horses]
     pyca: list[float] = []
     for i in range(n):
-        base = p_win_list[i] * 100.0
-        # b,c,d,e,f の有効軸の平均で微調整
+        base = p_sho_list[i] * 100.0
         booster_keys = [k for k in ["b", "c", "d", "e", "f"] if valid[k]]
         if booster_keys:
             avg = sum(norm[k][i] for k in booster_keys) / len(booster_keys)
             boost = avg - 5.0       # -5..+5
         else:
             boost = 0.0
-        score = max(0.0, min(100.0, base + boost * 1.0))
+        score = max(0.0, min(100.0, base + boost * 0.5))
         pyca.append(score)
-    pyca_rank = _rank_list(pyca)
+    # 表示順位は ai_rank (印 順) を踏襲して印と PyCaLi 指数の順位ズレをなくす。
+    # ai_rank 不在時は PyCaLi 値の降順でフォールバック。
+    if all(h.get("ai_rank") for h in horses):
+        ai_rank_list = [h.get("ai_rank") for h in horses]
+        pyca_rank = ai_rank_list
+    else:
+        pyca_rank = _rank_list(pyca)
 
     return {
         "norm": norm, "rank": rank, "valid": valid,
@@ -1343,16 +1353,21 @@ def render_pyca_eval_list(race: dict, date_str: str | None = None) -> None:
         return
     race_id = race.get("race_id")
     feats = compute_pyca_features(horses, date_str=date_str, race_id=race_id)
-    order = sorted(range(len(horses)), key=lambda i: -feats["pyca"][i])
+    # 並び順は ai_rank (印 順) を優先、なければ PyCaLi 降順
+    if all(h.get("ai_rank") for h in horses):
+        order = sorted(range(len(horses)),
+                        key=lambda i: horses[i].get("ai_rank", 99))
+    else:
+        order = sorted(range(len(horses)), key=lambda i: -feats["pyca"][i])
     labels = [lbl for _, lbl, _ in PYCA_AXES]
 
     ui.label("🔍 出走馬評価リスト (PyCaLi指数)").classes(
         "text-xl font-bold mt-6 mb-1")
     ui.label(
-        "PyCaLi指数 = AI 予測勝率を基準に、a〜g の 7 軸 (前走補正 / 前走Ave-3F /"
-        "前走確定着順 等) で補正した総合スコア (0-100)。右側のバーは"
-        "レース内 0〜10 正規化値。★は上位 3 位以内。"
-        " データが無い軸は「−」表示。"
+        "並び順は AI モデルの最終評価 (◎〇▲△ の印) 順。"
+        "PyCaLi指数 = AI 3 着以内率 (p_sho) を基準に、a〜g の 7 軸 (前走補正 / 前走Ave-3F /"
+        "前走確定着順 等) で微調整した総合スコア (0-100)。右側のバーは"
+        "レース内 0〜10 正規化値。★は上位 3 位以内。データが無い軸は「−」表示。"
     ).classes("text-sm text-slate-400 mb-3")
 
     for i in order:

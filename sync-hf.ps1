@@ -24,13 +24,28 @@ param(
 $ErrorActionPreference = "Stop"
 
 # Files that actually need to be deployed to HF Spaces.
-# (data/, reports/, models/ are excluded via .dockerignore at build time)
+# (large files in data/, reports/, models/ are excluded via .dockerignore at
+# build time; here we list the small data subsets that NiceGUI actually reads)
 $SyncFiles = @(
     "Dockerfile",
     "README.md",
     ".dockerignore",
     "requirements-nicegui.txt",
     "nicegui_app.py"
+)
+
+# Data file glob patterns to sync (relative to repo root). Each entry is
+# matched against `git ls-files master -- <pattern>` and all results checked
+# out. Large multi-year files (H_2013-2025, H-2015*-2026*) are intentionally
+# omitted to keep the hf-spaces repo under 1 GB.
+$SyncDataPatterns = @(
+    "data/weekly/*.csv",
+    "data/hosei/H_2026*.csv",
+    "data/training/H-2026*.csv",
+    "data/training/W-2026*.csv",
+    "data/kako5/*.csv",
+    "reports/cowork_input/*.json",
+    "reports/cowork_output/*"
 )
 
 function Write-Step($msg) {
@@ -78,6 +93,18 @@ foreach ($f in $SyncFiles) {
     }
 }
 
+# 5b. checkout data files matching glob patterns
+Write-Step "Checking out data files (weekly / hosei / training 2026 / kako5)"
+foreach ($pat in $SyncDataPatterns) {
+    $files = git ls-tree -r --name-only master -- $pat 2>$null
+    if (-not $files) { continue }
+    foreach ($f in $files) {
+        git checkout master -- $f
+    }
+    $count = ($files | Measure-Object).Count
+    Write-Host "    $pat -> $count files" -ForegroundColor DarkGray
+}
+
 # 6. show status
 Write-Step "Status on hf-spaces:"
 git status --short
@@ -100,6 +127,9 @@ if ($DryRun) {
 # 7. commit
 Write-Step "Committing"
 git add $SyncFiles
+foreach ($pat in $SyncDataPatterns) {
+    git add $pat 2>$null
+}
 $msg = "sync: master $($masterSha.Substring(0,7))"
 git commit -m $msg
 if ($LASTEXITCODE -ne 0) { Fail "commit failed" }
