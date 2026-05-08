@@ -1,7 +1,21 @@
 """
 nicegui_app.py
 ==============
-NiceGUI 版 PyCaLiAI (実験 MVP v7)
+NiceGUI 版 PyCaLiAI (実験 MVP v8)
+
+v7 → v8 変更点:
+  1. PyCaLi 評価リストの軸を Streamlit と同じ a〜g 7 軸に統一:
+     a 総合力 (AI 勝率) / b スピード (前走補正/Ave-3F/走破タイム) /
+     c 末脚 (前走補9/上り3F) / d 前走成績 (前走確定着順) /
+     e 市場評価 (前走人気/単勝オッズ) / f ペース適性 (RPCI/PCI3/Ave-3F) /
+     g 調教 (坂路/WC、HF Spaces には training CSV 未配置のため「−」表示)
+  2. 新規 loader 追加:
+     - load_weekly_horses(date) — weekly/{date}.csv の多行フォーマットを
+       Streamlit と同一パーサで horse-level DataFrame に変換
+     - load_hosei_all() — data/hosei/H_*.csv を glob して 前走補正/前走補9 取得
+     - get_horse_features(date,race_id,umaban) — 1 馬分の Streamlit 互換特徴量
+  3. compute_pyca_features を multi-column candidate + valid/direction
+     フラグ対応に拡張 (Streamlit の PYCA_INDICATORS と同じ評価ロジック)
 
 v6 → v7 変更点:
   1. サイドバー (縦型 expansion) を廃止 → 上部の水平タブ + ボタン UI に刷新:
@@ -41,7 +55,54 @@ COWORK_INPUT_DIR  = BASE / "reports" / "cowork_input"
 COWORK_BETS_DIR   = BASE / "reports" / "cowork_bets"
 COWORK_OUTPUT_DIR = BASE / "reports" / "cowork_output"
 WEEKLY_DIR        = BASE / "data" / "weekly"
+HOSSEI_DIR        = BASE / "data" / "hosei"
+TRAINING_DIR      = BASE / "data" / "training"
 MASTER_CSV        = BASE / "data" / "master_v2_20130105-20251228.csv"
+
+
+# ============================================================
+# weekly CSV 列定義 (app.py から最低限ポート、Streamlit 互換)
+# ============================================================
+RACE_COLS = [
+    "レースID(新)","日付S","曜日","場所","開催","R","レース名","クラス名",
+    "芝・ダート","距離","コース区分","コーナー回数","馬場状態(暫定)","天候(暫定)",
+    "フルゲート頭数","発走時刻","性別限定","重量種別","年齢限定",
+]
+HORSE_COLS_46 = [
+    "枠番","B","馬番","馬名S","性別","年齢","人気_今走","単勝","ZI印","ZI","ZI順",
+    "斤量","減M","替","騎手","所属","調教師","父","母父","父タイプ","母父タイプ",
+    "前走月","前走日","前走開催","前走間隔","前走レース名","前走TD","前走距離","前走馬場状態",
+    "前走B","前走騎手","前走斤量","前走減","前走人気","前走単勝オッズ","前走着順","前走着差",
+    "マイニング順位","前走通過1","前走通過2","前走通過3","前走通過4","前走Ave3F",
+    "前走上り3F","前走上り3F順位","前走1_2着馬",
+]
+HORSE_COLS_48 = HORSE_COLS_46 + ["騎手コード","調教師コード"]
+HORSE_COLS_49 = [
+    "枠番","B","馬番","馬名S","性別","年齢","馬体重","馬体重増減_raw","馬体重増減",
+    "人気_今走","単勝","ZI印","ZI","ZI順","斤量","減M","替","騎手","所属","調教師",
+    "父","母父","父タイプ","母父タイプ",
+    "前走月","前走日","前走開催","前走間隔","前走レース名","前走TD","前走距離","前走馬場状態",
+    "前走B","前走騎手","前走斤量","前走減","前走人気","前走単勝オッズ","前走着順","前走着差",
+    "マイニング順位","前走通過1","前走通過2","前走通過3","前走通過4","前走Ave3F",
+    "前走上り3F","前走上り3F順位","前走1_2着馬",
+]
+HORSE_COLS_99 = HORSE_COLS_49 + [
+    "二走前月","二走前日","二走前開催","二走前間隔","二走前レース名","二走前TD",
+    "二走前距離","二走前馬場状態","二走前B","二走前騎手","二走前斤量","二走前減",
+    "二走前人気","二走前単勝オッズ","二走前着順","二走前着差","二走前マイニング順位",
+    "二走前通過1","二走前通過2","二走前通過3","二走前通過4","二走前Ave3F",
+    "二走前上り3F","二走前上り3F順位","二走前1_2着馬",
+    "三走前月","三走前日","三走前開催","三走前間隔","三走前レース名","三走前TD",
+    "三走前距離","三走前馬場状態","三走前B","三走前騎手","三走前斤量","三走前減",
+    "三走前人気","三走前単勝オッズ","三走前着順","三走前着差","三走前マイニング順位",
+    "三走前通過1","三走前通過2","三走前通過3","三走前通過4","三走前Ave3F",
+    "三走前上り3F","三走前上り3F順位","三走前1_2着馬",
+]
+COLUMN_MAP = {
+    "前走Ave3F":      "前走Ave-3F",
+    "前走着順":        "前走確定着順",
+    "前走上り3F順位":  "前走上り3F順",
+}
 
 
 # ============================================================
@@ -180,6 +241,239 @@ def load_cowork_bets_unified(date_str: str, race_id: str) -> dict | None:
         return individual
     all_bets = _load_all_cowork_output(_cowork_output_cache_key())
     return all_bets.get(race_id)
+
+
+# ============================================================
+# weekly/{date}.csv パーサ (Streamlit と同じ多行フォーマット対応)
+#   - 19列 = race 行 (RACE_COLS)
+#   - 46/48/49/99列 = horse 行 (HORSE_COLS_*)
+#   bundle.json に無い 前走 系特徴量 (前走Ave-3F, 前走人気, 前走単勝オッズ,
+#   前走確定着順, 前走上り3F) をここから抽出して PyCaLi 評価に使う
+# ============================================================
+@functools.lru_cache(maxsize=8)
+def load_weekly_horses(date_str: str) -> pd.DataFrame | None:
+    """weekly/{date}.csv を読んで horse-level DataFrame を返す。
+
+    返り値の各行は 1 馬。列に race_id_16, 馬番, 前走Ave-3F, 前走人気,
+    前走単勝オッズ, 前走確定着順, 前走上り3F などが含まれる。
+    """
+    p = WEEKLY_DIR / f"{date_str}.csv"
+    if not p.exists():
+        return None
+    raw = p.read_bytes()
+    text = ""
+    for enc in ["cp932", "utf-8-sig", "utf-8"]:
+        try:
+            text = raw.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    if not text:
+        return None
+
+    races: list[dict] = []
+    current_race: dict | None = None
+    for line in text.splitlines():
+        cols = line.split(",")
+        if not cols or cols[0] in ("レースID(新)", "枠番", "番", ""):
+            continue
+        if len(cols) == 19:
+            current_race = dict(zip(RACE_COLS, cols))
+        elif len(cols) == 46 and current_race:
+            h = dict(zip(HORSE_COLS_46, cols)); h.update(current_race)
+            races.append(h)
+        elif len(cols) == 48 and current_race:
+            h = dict(zip(HORSE_COLS_48, cols)); h.update(current_race)
+            races.append(h)
+        elif len(cols) == 49 and current_race:
+            h = dict(zip(HORSE_COLS_49, cols)); h.update(current_race)
+            races.append(h)
+        elif len(cols) == 99 and current_race:
+            h = dict(zip(HORSE_COLS_99, cols)); h.update(current_race)
+            races.append(h)
+    if not races:
+        return None
+
+    df = pd.DataFrame(races).rename(columns=COLUMN_MAP)
+    df["race_id_16"] = df["レースID(新)"].astype(str).str[:16]
+    df["馬番"] = pd.to_numeric(df["馬番"], errors="coerce")
+    for col in ["前走確定着順", "前走人気", "前走単勝オッズ",
+                "前走Ave-3F", "前走上り3F", "前走上り3F順"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df
+
+
+@functools.lru_cache(maxsize=1)
+def load_hosei_all() -> pd.DataFrame | None:
+    """data/hosei/H_*.csv を全 glob して 前走補正/前走補9 を返す (Streamlit と同手順)"""
+    if not HOSSEI_DIR.exists():
+        return None
+    files = sorted(HOSSEI_DIR.glob("H_*.csv"))
+    if not files:
+        return None
+    dfs = []
+    for path in files:
+        for enc in ["cp932", "utf-8-sig", "utf-8"]:
+            try:
+                d = pd.read_csv(
+                    path, encoding=enc,
+                    usecols=["レースID(新)", "馬番", "前走補9", "前走補正"],
+                )
+                dfs.append(d)
+                break
+            except Exception:
+                continue
+    if not dfs:
+        return None
+    res = pd.concat(dfs, ignore_index=True).drop_duplicates()
+    res["race_id_16"] = res["レースID(新)"].astype(str).str[:16]
+    res["馬番"] = pd.to_numeric(res["馬番"], errors="coerce")
+    for col in ["前走補9", "前走補正"]:
+        res[col] = pd.to_numeric(res[col], errors="coerce")
+    return res[["race_id_16", "馬番", "前走補9", "前走補正"]]
+
+
+@functools.lru_cache(maxsize=1)
+def load_training_all() -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
+    """data/training/H-*.csv (坂路) と W-*.csv (WC) を全 glob して結合。
+
+    H 列: 場所,年月日,馬名,Time1(4F全体),Time2,Time3,Time4(ラスト1F),Lap1...
+    W 列: 場所,年月日,馬名,5F,4F,3F,Lap1,Lap2,Lap3
+    """
+    if not TRAINING_DIR.exists():
+        return None, None
+    h_dfs, w_dfs = [], []
+    for fp in sorted(TRAINING_DIR.glob("H-*.csv")):
+        for enc in ["cp932", "utf-8-sig", "utf-8"]:
+            try:
+                d = pd.read_csv(fp, encoding=enc, dtype=str,
+                                  on_bad_lines="skip")
+                if "年月日" not in d.columns or "馬名" not in d.columns:
+                    break
+                d["年月日"] = pd.to_numeric(d["年月日"], errors="coerce")
+                for c in ["Time1", "Time4", "Lap1"]:
+                    if c in d.columns:
+                        d[c] = pd.to_numeric(d[c], errors="coerce")
+                h_dfs.append(d)
+                break
+            except Exception:
+                continue
+    for fp in sorted(TRAINING_DIR.glob("W-*.csv")):
+        for enc in ["cp932", "utf-8-sig", "utf-8"]:
+            try:
+                d = pd.read_csv(fp, encoding=enc, dtype=str,
+                                  on_bad_lines="skip")
+                if "年月日" not in d.columns or "馬名" not in d.columns:
+                    break
+                d["年月日"] = pd.to_numeric(d["年月日"], errors="coerce")
+                for c in ["5F", "3F"]:
+                    if c in d.columns:
+                        d[c] = pd.to_numeric(d[c], errors="coerce")
+                w_dfs.append(d)
+                break
+            except Exception:
+                continue
+    h_all = pd.concat(h_dfs, ignore_index=True) if h_dfs else None
+    w_all = pd.concat(w_dfs, ignore_index=True) if w_dfs else None
+    return h_all, w_all
+
+
+def _latest_training(name: str, race_date_int: int) -> dict[str, float | None]:
+    """1 頭の最新調教 (race 日以前) を取得。Streamlit の _attach_latest_training と同じ。"""
+    out: dict[str, float | None] = {
+        "trn_hanro_lap1": None, "trn_hanro_time1": None,
+        "trn_wc_3f": None, "trn_wc_5f": None,
+    }
+    if not name:
+        return out
+    h_all, w_all = load_training_all()
+    if h_all is not None:
+        sub = h_all[(h_all["馬名"] == name) &
+                     (h_all["年月日"] < race_date_int)]
+        if not sub.empty:
+            latest = sub.sort_values("年月日").iloc[-1]
+            t1 = latest.get("Time1")
+            l1 = latest.get("Lap1")
+            if pd.notna(t1):
+                out["trn_hanro_time1"] = float(t1)
+            if pd.notna(l1):
+                out["trn_hanro_lap1"] = float(l1)
+    if w_all is not None:
+        sub = w_all[(w_all["馬名"] == name) &
+                     (w_all["年月日"] < race_date_int)]
+        if not sub.empty:
+            latest = sub.sort_values("年月日").iloc[-1]
+            f5 = latest.get("5F")
+            f3 = latest.get("3F")
+            if pd.notna(f5):
+                out["trn_wc_5f"] = float(f5)
+            if pd.notna(f3):
+                out["trn_wc_3f"] = float(f3)
+    return out
+
+
+def get_horse_features(date_str: str, race_id: str,
+                        umaban: int) -> dict[str, float | None]:
+    """1 頭分の Streamlit 互換特徴量を辞書で返す。
+
+    weekly CSV (前走Ave-3F, 前走人気 等) と hosei (前走補正, 前走補9) を merge。
+    存在しない or 該当なし → None
+    """
+    rid_16 = str(race_id)[:16]
+    out: dict[str, float | None] = {}
+    keys = [
+        "前走補正", "前走Ave-3F", "前走走破タイム",
+        "前走補9", "前走上り3F",
+        "前走確定着順", "前走人気", "前走単勝オッズ",
+        "前走RPCI", "前走PCI3",
+        "trn_hanro_lap1", "trn_hanro_time1",
+        "trn_wc_3f", "trn_wc_5f",
+    ]
+    for k in keys:
+        out[k] = None
+
+    horse_name = ""
+    weekly = load_weekly_horses(date_str)
+    if weekly is not None:
+        sub = weekly[(weekly["race_id_16"] == rid_16) &
+                       (weekly["馬番"] == int(umaban))]
+        if not sub.empty:
+            row = sub.iloc[0]
+            for k in keys:
+                if k in row.index:
+                    v = row[k]
+                    if pd.notna(v):
+                        try:
+                            out[k] = float(v)
+                        except (TypeError, ValueError):
+                            pass
+            if "馬名S" in row.index:
+                horse_name = str(row["馬名S"]).strip()
+
+    hosei = load_hosei_all()
+    if hosei is not None:
+        sub = hosei[(hosei["race_id_16"] == rid_16) &
+                     (hosei["馬番"] == int(umaban))]
+        if not sub.empty:
+            row = sub.iloc[0]
+            for k in ["前走補正", "前走補9"]:
+                v = row.get(k)
+                if pd.notna(v):
+                    out[k] = float(v)
+
+    # 調教 (g 軸): data/training/ が存在すれば 馬名 + race 日付 で検索
+    if horse_name and len(date_str) == 8 and date_str.isdigit():
+        try:
+            race_date_int = int(date_str)
+            trn = _latest_training(horse_name, race_date_int)
+            for k, v in trn.items():
+                if v is not None:
+                    out[k] = v
+        except Exception:
+            pass
+
+    return out
 
 
 # ============================================================
@@ -794,24 +1088,36 @@ def race_scatter_option(horses: list) -> dict:
 
 
 # ============================================================
-# PyCaLi 出走馬評価リスト (Streamlit 互換、bundle.json データから構築)
+# PyCaLi 出走馬評価リスト (Streamlit と同じ a〜g 7 軸)
+#   各軸は複数の候補列をもち「higher_is_better=False」なら反転後 0-10 化。
+#   複数候補は分散がある最初の列を採用 (フォールバック)。
+#   - 前走補正系       data/hosei/H_*.csv
+#   - 前走Ave-3F 等   data/weekly/{date}.csv (本ファイルは Streamlit と同一パーサ)
+#   - 調教 (g)        data/training/H-*.csv, W-*.csv (HF Spaces には未配置のため
+#                     g は valid=False となり「−」表示。ローカルでは表示される)
 # ============================================================
-# 注: Streamlit 版は前走補正タイム / 調教 / 過去5走履歴を持つが、HF 版の
-#     bundle.json には p_win/p_plc/p_sho/odds しか入っていないため、
-#     ここでは「6 軸を bundle.json 内で完結する形」に再設計した。
-#     (data/master_v2 や data/training の依存を排除して HF にも載せる)
 PYCA_AXES = [
-    # (key, label, 説明)
-    ("a", "総合力",   "AI が予測する勝率"),
-    ("b", "連対力",   "AI が予測する 2 着以内率"),
-    ("c", "圏内力",   "AI が予測する 3 着以内率"),
-    ("d", "人気度",   "市場の評価 (1/単勝オッズ)"),
-    ("e", "単勝妙味", "AI 予測 × 単勝オッズ (≥1.0 が妙味)"),
-    ("f", "複勝妙味", "AI 予測 × 複勝オッズ中央値"),
+    # (key, label, [(列名, higher_is_better), ...])
+    ("a", "総合力",   [("__ai_win__", True)]),
+    ("b", "スピード", [("前走補正",      True),
+                       ("前走Ave-3F",    False),
+                       ("前走走破タイム", False)]),
+    ("c", "末脚",     [("前走補9",       True),
+                       ("前走上り3F",    False)]),
+    ("d", "前走成績", [("前走確定着順",  False)]),
+    ("e", "市場評価", [("前走人気",       False),
+                       ("前走単勝オッズ", False)]),
+    ("f", "ペース適性", [("前走RPCI",     True),
+                          ("前走PCI3",     True),
+                          ("前走Ave-3F",   False)]),
+    ("g", "調教",     [("trn_hanro_lap1",  False),
+                       ("trn_hanro_time1", False),
+                       ("trn_wc_3f",       False),
+                       ("trn_wc_5f",       False)]),
 ]
 
 
-def _norm_0_10_list(values: list[float]) -> tuple[list[float], bool]:
+def _norm_0_10_list(values: list[float | None]) -> tuple[list[float], bool]:
     """値リストを 0〜10 に min-max 正規化。全同値や全欠損なら全 5.0 + valid=False"""
     nums = [v for v in values if v is not None]
     if not nums:
@@ -833,49 +1139,82 @@ def _rank_list(values: list[float]) -> list[int]:
     return [rank_map[v] for v in values]
 
 
-def compute_pyca_features(horses: list[dict]) -> dict:
-    """各馬の指標値を計算してレース内 0〜10 に正規化。
+def compute_pyca_features(horses: list[dict],
+                            date_str: str | None = None,
+                            race_id: str | None = None) -> dict:
+    """Streamlit と同じ a〜g を計算。
 
-    返り値: {
-      'norm':  {key -> [v0, v1, ...]},      # 0-10 正規化値
-      'rank':  {key -> [r0, r1, ...]},      # レース内順位 (1=最良)
-      'valid': {key -> bool},               # その軸が有効サンプルを持つか
-      'pyca':  [s0, s1, ...],               # PyCaLi 指数 (0-100)
-      'pyca_rank': [r0, r1, ...],
-    }
+    bundle.json (p_win 等) + weekly CSV (前走 系) + hosei (前走補正/補9) を
+    merge し、各軸を 0-10 正規化 + レース内順位を付与。
+
+    返り値:
+      'norm'  : {axis_key -> [v0, v1, ...]}    (0-10)
+      'rank'  : {axis_key -> [r0, r1, ...]}    (1=最良)
+      'valid' : {axis_key -> bool}             (有効サンプルあり)
+      'pyca'  : [s0, s1, ...]                  (PyCaLi 指数 0-100)
+      'pyca_rank': [r0, r1, ...]
     """
-    p_win = [(h.get("p_win") or 0) for h in horses]
-    p_plc = [(h.get("p_plc") or 0) for h in horses]
-    p_sho = [(h.get("p_sho") or 0) for h in horses]
-    tan   = [(h.get("tansho_odds") or 0) or 99 for h in horses]
-    flow  = [(h.get("fuku_odds_low")  or 0) for h in horses]
-    fhi   = [(h.get("fuku_odds_high") or 0) for h in horses]
-    fmid  = [(a + b) / 2 if (a and b) else 0 for a, b in zip(flow, fhi)]
-    pop   = [(1.0 / t) if t > 0 else 0 for t in tan]
-    ev_t  = [pw * t for pw, t in zip(p_win, tan)]
-    ev_f  = [ps * fm for ps, fm in zip(p_sho, fmid)]
+    n = len(horses)
+    if n == 0:
+        return {"norm": {}, "rank": {}, "valid": {},
+                "pyca": [], "pyca_rank": []}
 
-    raw = {
-        "a": p_win, "b": p_plc, "c": p_sho,
-        "d": pop,   "e": ev_t,  "f": ev_f,
-    }
+    # --- 各馬の生値テーブル: feature_dict[馬index][列名] = 値 ---
+    p_win_list = [(h.get("p_win") or 0) for h in horses]
+
+    feature_dict: list[dict[str, float | None]] = []
+    for h in horses:
+        row: dict[str, float | None] = {}
+        # bundle.json 由来 (a 軸)
+        row["__ai_win__"] = h.get("p_win") or 0
+        # weekly + hosei から取得
+        if date_str and race_id:
+            try:
+                feats = get_horse_features(date_str, race_id,
+                                              h.get("umaban") or 0)
+                row.update(feats)
+            except Exception:
+                pass
+        feature_dict.append(row)
+
+    # --- 各軸を 0-10 正規化 ---
     norm: dict[str, list[float]] = {}
     rank: dict[str, list[int]] = {}
     valid: dict[str, bool] = {}
-    for k, vs in raw.items():
-        n, ok = _norm_0_10_list(vs)
-        norm[k] = n
-        rank[k] = _rank_list(vs)
-        valid[k] = ok
 
-    # PyCaLi 指数: 勝率 * 100 をベースに、連対率/複勝率/妙味の正規化平均で微調整
-    n = len(horses)
-    pyca = []
+    for key, _label, candidates in PYCA_AXES:
+        used: list[float] | None = None
+        used_valid = False
+        for col, higher_is_better in candidates:
+            vals = [feature_dict[i].get(col) for i in range(n)]
+            if all(v is None for v in vals):
+                continue
+            normed, ok = _norm_0_10_list(vals)
+            if ok:
+                if not higher_is_better:
+                    normed = [10.0 - v for v in normed]
+                used, used_valid = normed, True
+                break
+            if used is None:
+                used = normed
+        if used is None:
+            used = [5.0] * n
+        norm[key] = used
+        rank[key] = (_rank_list(used) if used_valid else [0] * n)
+        valid[key] = used_valid
+
+    # --- PyCaLi 指数: 勝率 * 100 をベースに各軸の平均で微調整 ---
+    pyca: list[float] = []
     for i in range(n):
-        base = p_win[i] * 100.0
-        boost_avg = (norm["b"][i] + norm["c"][i] + norm["e"][i]) / 3.0
-        boost = boost_avg - 5.0      # -5..+5
-        score = max(0.0, min(100.0, base + boost * 0.6))
+        base = p_win_list[i] * 100.0
+        # b,c,d,e,f の有効軸の平均で微調整
+        booster_keys = [k for k in ["b", "c", "d", "e", "f"] if valid[k]]
+        if booster_keys:
+            avg = sum(norm[k][i] for k in booster_keys) / len(booster_keys)
+            boost = avg - 5.0       # -5..+5
+        else:
+            boost = 0.0
+        score = max(0.0, min(100.0, base + boost * 1.0))
         pyca.append(score)
     pyca_rank = _rank_list(pyca)
 
@@ -992,21 +1331,28 @@ def _eval_bars_html(feats: dict, idx: int) -> str:
     return "".join(rows)
 
 
-def render_pyca_eval_list(race: dict) -> None:
-    """Streamlit 版互換の評価リスト (前提: ui コンテナの中で呼ばれる)。"""
+def render_pyca_eval_list(race: dict, date_str: str | None = None) -> None:
+    """Streamlit 版互換の評価リスト (前提: ui コンテナの中で呼ばれる)。
+
+    a〜g 7 軸 (Streamlit と同一定義):
+      a 総合力 / b スピード / c 末脚 / d 前走成績 / e 市場評価 /
+      f ペース適性 / g 調教 (HF Spaces には training CSV がないため g は「−」)
+    """
     horses = list(race.get("horses", []))
     if not horses:
         return
-    feats = compute_pyca_features(horses)
+    race_id = race.get("race_id")
+    feats = compute_pyca_features(horses, date_str=date_str, race_id=race_id)
     order = sorted(range(len(horses)), key=lambda i: -feats["pyca"][i])
     labels = [lbl for _, lbl, _ in PYCA_AXES]
 
     ui.label("🔍 出走馬評価リスト (PyCaLi指数)").classes(
         "text-xl font-bold mt-6 mb-1")
     ui.label(
-        "PyCaLi指数 = AI 予測勝率を基準に、連対率/複勝率/妙味の補正を加えた"
-        "総合スコア (0-100)。右側 a〜f は指数算出に使われた特徴量"
-        "(レース内 0〜10 正規化、★は上位 3 位以内)。"
+        "PyCaLi指数 = AI 予測勝率を基準に、a〜g の 7 軸 (前走補正 / 前走Ave-3F /"
+        "前走確定着順 等) で補正した総合スコア (0-100)。右側のバーは"
+        "レース内 0〜10 正規化値。★は上位 3 位以内。"
+        " データが無い軸は「−」表示。"
     ).classes("text-sm text-slate-400 mb-3")
 
     for i in order:
@@ -1099,7 +1445,7 @@ def main_page():
     with ui.header(elevated=True).classes("bg-slate-900"):
         ui.label("🏇 PyCaLiAI").classes("text-3xl font-bold text-white")
         ui.space()
-        ui.label("NiceGUI 版 (実験 MVP v7)").classes("text-base text-slate-400")
+        ui.label("NiceGUI 版 (実験 MVP v8)").classes("text-base text-slate-400")
 
     state = {
         "date": None, "race": None, "bundle": None,
@@ -1178,8 +1524,8 @@ def main_page():
             ui.echart(race_scatter_option(horses_sorted)).classes(
                 "w-full").style("height: 480px")
 
-            # Streamlit 版互換の評価リスト
-            render_pyca_eval_list(race)
+            # Streamlit 版互換の評価リスト (a〜g 7 軸、weekly/hosei を merge)
+            render_pyca_eval_list(race, date_str=state.get("date"))
 
         bets_box.clear()
         with bets_box:
