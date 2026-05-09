@@ -46,14 +46,17 @@ $SyncFiles = @(
 # Large multi-year files (H_2013-2025, H-2015*-...) are NOT in the regex
 # to keep the hf-spaces repo under 1 GB.
 $SyncDataPatterns = @(
-    '^data/weekly/.*\.csv$',
-    '^data/hosei/H_2026.*\.csv$',
-    '^data/training/H-2026.*\.csv$',
-    '^data/training/W-2026.*\.csv$',
-    '^data/kako5/.*\.csv$',
-    '^reports/cowork_input/.+\.json$',
-    '^reports/cowork_input/[0-9]{8}/.+\.json$',
-    '^reports/cowork_output/.+'
+    # 8-digit YYYYMMDD basename only (rejects test.csv etc)
+    '^data/weekly/[0-9]{8}\.csv$',
+    '^data/hosei/H_2026[0-9]+(-[0-9]+)?\.csv$',
+    '^data/training/H-2026[0-9]+(-[0-9]+)?\.csv$',
+    '^data/training/W-2026[0-9]+(-[0-9]+)?\.csv$',
+    '^data/kako5/[0-9]{8}\.csv$',
+    # cowork_input: top-level YYYYMMDD_bundle.json + per-race subfolder
+    '^reports/cowork_input/[0-9]{8}_bundle\.json$',
+    '^reports/cowork_input/[0-9]{8}/[^/]+\.json$',
+    # cowork_output: any file with date in name
+    '^reports/cowork_output/[0-9]{8}.*$'
 )
 
 function Write-Step($msg) {
