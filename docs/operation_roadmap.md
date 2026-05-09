@@ -1,276 +1,353 @@
-# PyCaLiAI 運用ロードマップ (2026-04-27 更新版)
+# PyCaLiAI 運用ロードマップ (2026-05-09 更新版・NiceGUI 主軸)
 
-v5 モデル GATE PASS + **Cowork (Anthropic Desktop App) 連携** 追加に伴う最新版。
-旧 `weekly_pre.ps1` (LGBM v1 系の自動買い目生成) と並行して、
-新 `weekly_cowork.ps1` (v5 印 JSON → Cowork → 手入力) を運用する 2 系統構成。
+NiceGUI 版 (`nicegui_app.py`) を **主 UI** として HuggingFace Spaces にデプロイする
+構成に切り替え。Streamlit 版 (`app.py`) は **手元/ローカル運用の補助** として並行維持。
 
 ---
 
-## 1. システム全体図
+## 1. システム全体図 (NiceGUI 主軸)
 
 ```
-[週次CSV  data/weekly/YYYYMMDD.csv]
+[週次CSV  data/weekly/YYYYMMDD.csv]    ← TARGET エクスポート
                 │
-        ┌───────┴───────┐
-        │               │
-        ▼               ▼
-weekly_pre.ps1      weekly_cowork.ps1   ← NEW
-(LGBM v1 自動)      (v5 印 JSON 生成)
-        │               │
-        │               ▼
-        │       reports/cowork_input/{YYYYMMDD}_bundle.json
-        │               │
-        │               ▼
-        │       [Cowork (Anthropic Desktop App)]
-        │               │
-        │               ▼
-        │       [Cowork が買い目を返す]
-        │               │
-        ▼               ▼
-   reports/pred_     streamlit run app.py
-   YYYYMMDD.csv     →「🤖 Cowork」タブで手入力 → 保存
-        │               │
-        │               ▼
-        │       reports/cowork_bets/{YYYYMMDD}/{race_id}.json
-        │
-        ▼
-   Streamlit 上で
-   従来 4 戦略表示
-   (TRIPLE/HAHO/HALO/STANDARD)
+                ▼
+        weekly_nicegui.ps1     ← NEW: pre 用一括スクリプト
+                │
+       ┌────────┼────────────┐
+       │        │            │
+       ▼        ▼            ▼
+  hosei /   bundle.json   git push
+  kako5    生成 (v5 印)   origin/master
+  生成
+       │        │            │
+       └────────┴────────────┘
+                │
+                ▼
+      sync-hf.ps1 ──→ HuggingFace Spaces (NiceGUI)
+                          https://gutchi15300-pycaliai.hf.space
+                │
+                │ (任意/オプション)
+                ▼
+        Streamlit Cloud (app.py)  ← 補助 UI、必要に応じて
 ```
 
-**両系統を併用**: 自動派 (TRIPLE/HAHO/HALO/STANDARD) と Cowork 提案派 (手入力) を
-同じ画面で見比べて検討できる。
+**運用パターン**
+- **メイン**: NiceGUI on HF Spaces (PC / スマホ / 出先からアクセス)
+- **サブ**: Streamlit ローカル (`streamlit run app.py`) — Cowork 連携入力やバックテスト確認
 
 ---
 
-## 2. 週次ワークフロー (NEW)
+## 2. データファイル配置
 
-### 2-A. 従来フロー (LGBM v1 自動買い目)
+### 毎週 土曜朝に置くもの (TARGET から取得)
 
-そのまま継続:
-```powershell
-.\weekly_pre.ps1 20260426    # 自動: 印 + 4 戦略の買い目を pred CSV へ
-```
+| ファイル | 置き場所 | 用途 (NiceGUI で使う？) | 必須/任意 |
+|---|---|---|---|
+| 出走表CSV | `data/weekly/YYYYMMDD.csv` | ✅ a〜f 軸 (前走系特徴量) | **必須** |
+| 着度数CSV | `data/tyaku/YYYYMMDD.csv` | (Streamlit のみ) | 任意 |
+| 過去5走CSV | `data/kako5/YYYYMMDD.csv` | 将来拡張 (現状未使用) | 任意 |
+| 坂路調教CSV | `data/training/H-YYYYMMDD-YYYYMMDD.csv` | ✅ g 軸 (調教) | **任意 (g 軸が欲しいなら必須)** |
+| WC調教CSV | `data/training/W-YYYYMMDD-YYYYMMDD.csv` | ✅ g 軸 (調教) | **任意 (g 軸が欲しいなら必須)** |
 
-### 2-B. Cowork フロー (v5 印 → Cowork → 手入力)  ← NEW
+### 毎週 日曜夜に置くもの
 
-```powershell
-# Step 1: v5 印 JSON を生成 + git push
-.\weekly_cowork.ps1 20260426 v5
+| ファイル | 置き場所 | 用途 |
+|---|---|---|
+| レース結果CSV | `data/kekka/YYYYMMDD.csv` | results.json 集計、NiceGUI 表示には未使用 |
 
-# 出力 (local):
-#   reports/cowork_input/20260426_bundle.json   (Cowork 投入用、35 races なら ~216 KB)
-#   reports/cowork_input/20260426/{race_id}.json (個別、Streamlit から expander で見る用)
-#
-# git: 上記ファイル + data/weekly/20260426.csv を origin/master に自動 push
-#      → Streamlit Cloud に数秒で反映 (出先からも閲覧可)
-```
+---
 
-```text
-# Step 2: Cowork (Anthropic Desktop App) を開く
-# Step 3: bundle JSON を Cowork のチャットに投げる
-#    プロンプト例:
-#      「この JSON は PyCaLiAI 競馬予測モデル (v5) の印データです。
-#       docs/marks_schema.md の役割分担に従い、馬券構築 (単複馬連馬単ワイド) と
-#       予算配分・見送り判断を出してください。
-#       1R = 10,000円基準。レース性質 (固い/中堅/混戦/穴推奨/見送り) を判定して。
-#       期待値計算には p_win × tansho_odds を使う。」
-#
-# Step 4: Cowork が race ごとに買い目を提案する
-```
+## 3. 週次コマンド (NiceGUI 主軸)
+
+### 【土曜朝】レース前 — `weekly_nicegui.ps1`
 
 ```powershell
-# Step 5: Streamlit で買い目を入力・保存 + git push
-streamlit run app.py
-#   1. サイドバーで日付を選択
-#   2. 会場・レースを選択
-#   3. 「🤖 Cowork (Anthropic Desktop)」タブを開く
-#   4. Cowork の提案を見ながらフォームに入力
-#       - 馬券種 (単/複/馬連/馬単/ワイド/三連複/三連単)
-#       - 買い目 (例: "4" / "4-7" / "4-7,4-9")
-#       - 購入額
-#   5. ➕追加 → 入力済み一覧に積む → 💾 保存 + git push
-#
-# 保存先 (local):
-#   reports/cowork_bets/20260426/{race_id}.json
-#
-# git: 保存ボタン押下時に subprocess で
-#      git add → commit → pull --rebase → push origin HEAD:master
-#      失敗してもファイル保存は維持される (warning 表示のみ)
+.\weekly_nicegui.ps1                 # 当日自動判定
+.\weekly_nicegui.ps1 20260502        # 日付指定
+.\weekly_nicegui.ps1 20260502 -SkipHF  # HF push せず生成だけ
 ```
 
+自動実行:
+1. `make_weekly_hosei.py` → `data/hosei/H_YYYYMMDD.csv` (前走補正/前走補9)
+2. `predict_weekly.py` → `reports/pred_YYYYMMDD.csv` (Streamlit 用、optional)
+3. `export_weekly_marks.py --model v5` → `reports/cowork_input/{date}_bundle.json`
+4. `git add` 関連ファイル → `git push origin HEAD:master`
+5. `sync-hf.ps1` で HuggingFace Spaces (NiceGUI) に push
+
+### 【日曜夜】レース後 — `weekly_post.ps1` + `sync-hf.ps1`
+
 ```powershell
-# Step 6: レース後に従来通り weekly_post.ps1 で結果集計 + 全 push
-.\weekly_post.ps1 20260426
-# - data/kekka/20260426.csv, results.json, live_results_2026.csv を git add
-# - 当日 reports/cowork_bets/20260426/ がある場合はそれも git add (的中判定対象)
-# - git commit + pull --rebase + push origin HEAD:master
+.\weekly_post.ps1 20260502     # 既存 (results.json + git push)
+.\sync-hf.ps1                  # HF にも反映 (任意)
+```
+
+NiceGUI は当面結果を表示しないので post 工程は最小。Streamlit 側で確認。
+
+### Cowork 買い目連携 (オプション)
+
+NiceGUI でも `🎫 Cowork 買い目` タブで cowork_output JSON を表示できる:
+
+```powershell
+# 1. bundle.json を Cowork (Anthropic Desktop) に投げる
+# 2. Cowork が JSON で買い目を返す
+# 3. その JSON を reports/cowork_output/{date}_bets.json として保存
+# 4. .\sync-hf.ps1 で HF に反映 (NiceGUI 上で表示される)
 ```
 
 ---
 
-## 3. コマンドリファレンス
+## 4. データフロー図
 
-| コマンド | 役割 | 系統 |
-|---------|------|------|
-| `.\weekly_pre.ps1 [DATE]` | LGBM v1 自動買い目 (pred CSV 生成) → push | 従来 |
-| `.\weekly_cowork.ps1 [DATE] [MODEL]` | v5 印 JSON 生成 + cowork_input/ を git push | NEW |
-| `python export_weekly_marks.py --csv <CSV> --model v5` | 印 JSON 生成 (PowerShell ラッパー無し) | NEW |
-| `streamlit run app.py` | UI: 4 戦略表示 + 🤖 Cowork タブで手入力 | 拡張 |
-| `.\weekly_post.ps1 [DATE]` | レース結果取得 + 集計 | 従来 |
-| `python export_marks_json.py --year 2025 --out-dir reports/marks_v5/` | バッチ出力 (年単位、過去データから) | 既存 |
-| `python verify_marks_batch.py --dir reports/marks_v5/` | バッチ JSON 検証 | 既存 |
+```
+【土曜朝】
+TARGET
+  ├── 出走表CSV    → data/weekly/YYYYMMDD.csv         必須
+  ├── 着度数CSV    → data/tyaku/YYYYMMDD.csv          任意
+  ├── 過去5走CSV   → data/kako5/YYYYMMDD.csv          任意
+  ├── 坂路調教CSV  → data/training/H-*.csv            任意 (NiceGUI g 軸用)
+  └── WC調教CSV    → data/training/W-*.csv            任意 (NiceGUI g 軸用)
+
+.\weekly_nicegui.ps1
+  ├─ make_weekly_hosei.py    → data/hosei/H_YYYYMMDD.csv
+  ├─ predict_weekly.py       → reports/pred_YYYYMMDD.csv (Streamlit 用)
+  ├─ export_weekly_marks.py  → reports/cowork_input/{date}_bundle.json
+  ├─ git push origin master  → Streamlit Cloud
+  └─ sync-hf.ps1             → HuggingFace Spaces (NiceGUI)
+
+【日曜夜】
+TARGET
+  └── 成績CSV      → data/kekka/YYYYMMDD.csv          必須
+
+.\weekly_post.ps1
+  ├─ generate_results.py     → data/results.json
+  ├─ build_pycali_history.py → data/pycali_history.parquet
+  └─ git push origin master  → Streamlit Cloud
+.\sync-hf.ps1 (任意)         → HuggingFace Spaces (NiceGUI)
+```
 
 ---
 
-## 4. ファイル配置
+## 5. NiceGUI 機能一覧 (v8.1, 2026-05-09 時点)
+
+### UI 構造 (上から下に水平レイアウト)
+
+| 行 | 内容 | 備考 |
+|---|---|---|
+| 1 行目 | 📅 開催日 select | dropdown |
+| 2 行目 | 場所タブ (東京 / 京都 / 新潟 …) | 選択中ハイライト (青塗り) |
+| 3 行目 | レース番号ボタン (1R 〜 12R) | 選択中ハイライト |
+| メイン | 左パネル + 右パネル + タブ群 | 全幅、サイドバーなし |
+
+### メインパネル
+
+**左パネル** (印 + AI 評価 + オッズ概況)
+- レース名 / クラス / レース性質バッジ (固い/混戦/穴推奨/見送り)
+- ◎ ◯ ▲ の馬名・勝率・単勝オッズ
+- 🤖 AI 評価コメント (本命の独走度、馬連本線、混戦判定 等)
+- 🏁 オッズ概況 (1番人気/最高/平均/上位3頭合計勝率)
+
+**右パネル** (4 chip + 過去成績 + 馬場バイアス)
+- ◎独走度 / 上位2頭集中 / 混戦度 / 市場一致 の 4 chip
+  状態バッジ (固い/混戦/独走 等) + 「→ 何をすべきか」 1 行アクション
+- 📊 過去同コース成績 (master_v2 がある場合のみ、HF にはなし)
+- 🎯 枠バイアス (内枠/中枠/外枠の勝率)
+
+### タブ
+
+| タブ | 内容 |
+|---|---|
+| 📋 出走表 | 馬番/印/馬名/勝率/複勝率/単勝/単勝EV/複勝/vs市場 |
+| 🔍 全頭分析 | AI vs 市場 散布図 + **PyCaLi 出走馬評価リスト** (a〜g 7 軸レーダー、Streamlit 互換) |
+| 🎫 Cowork 買い目 | reports/cowork_output からその race の買い目を表示 |
+
+### PyCaLi 評価リスト (Streamlit 互換 a〜g 7 軸)
+
+| 軸 | ラベル | データソース | 候補列 |
+|---|---|---|---|
+| a | 総合力 | bundle.json | p_win |
+| b | スピード | weekly + hosei | 前走補正 / 前走Ave-3F / 前走走破タイム |
+| c | 末脚 | weekly + hosei | 前走補9 / 前走上り3F |
+| d | 前走成績 | weekly | 前走確定着順 |
+| e | 市場評価 | weekly | 前走人気 / 前走単勝オッズ |
+| f | ペース適性 | weekly | 前走RPCI / 前走PCI3 / 前走Ave-3F |
+| g | 調教 | training | trn_hanro_lap1 / trn_hanro_time1 / trn_wc_3f / trn_wc_5f |
+
+**PyCaLi 指数** = `p_sho × 100 + (補正特徴量 b〜f 平均 - 5) × 0.5` (0-100 にクランプ)
+表示順位は `ai_rank` (印 順) を採用 → **「1位 = ◎」が常に成立**。
+PyCaLi 値が ◎ < ◯ となるレアケースは「補正特徴量では◯が前走実績で勝るが、AI モデルは
+今走条件込みで◎」というシグナルとして読む (バグではない)。
+
+---
+
+## 6. デプロイ系コマンド
+
+| コマンド | 役割 |
+|---------|------|
+| `.\weekly_nicegui.ps1 [DATE]` | 週次データ生成 + GitHub push + HF Spaces push (NEW) |
+| `.\weekly_pre.ps1 [DATE]` | 旧: 予測 + GitHub push のみ (Streamlit 単独運用時) |
+| `.\weekly_cowork.ps1 [DATE]` | 旧: bundle.json 生成 + GitHub push (HF push なし) |
+| `.\weekly_post.ps1 [DATE]` | レース結果取得 + 集計 + GitHub push |
+| `.\sync-hf.ps1` | master の最新を hf-spaces orphan branch に同期 + HF push |
+| `.\sync-hf.ps1 -DryRun` | 差分確認のみ (commit/push しない) |
+| `streamlit run app.py` | Streamlit ローカル起動 (補助 UI) |
+| `python nicegui_app.py` | NiceGUI ローカル起動 (port 8080) |
+
+---
+
+## 7. ファイル配置 (NiceGUI 関連)
 
 ```
 E:\PyCaLiAI\
-├─ data/
-│   ├─ weekly/{YYYYMMDD}.csv          ... 週次出走表 (TARGET エクスポート)
-│   ├─ tyaku/{YYYYMMDD}.csv           ... 着度数CSV (任意)
-│   ├─ kako5/{YYYYMMDD}.csv           ... 過去5走CSV (任意)
-│   └─ hosei/H_{YYYYMMDD}.csv         ... 補正タイム
+├─ nicegui_app.py                ... NiceGUI 主アプリ (HF/ローカル共通)
+├─ Dockerfile                    ... HF Spaces ビルド用
+├─ requirements-nicegui.txt      ... NiceGUI 用最小依存
+├─ .dockerignore                 ... HF ビルド除外 (大物 CSV 等)
+├─ README.md                     ... HF Spaces YAML フロントマター入り
 │
-├─ models/
-│   ├─ unified_rank_v5.pkl            ... v5 LightGBM (採用、payout-weighted, alpha=1.325)
-│   ├─ unified_rank_v4.pkl            ... v4 (バックアップ)
-│   ├─ pl_calibrators_v5.pkl          ... isotonic キャリブレータ
-│   └─ ...                              (既存 LGBM v1 系も保持)
+├─ weekly_nicegui.ps1            ... NEW: 週次 pre 一括 (NiceGUI 主)
+├─ sync-hf.ps1                   ... NEW: master → hf-spaces orphan + HF push
+│
+├─ weekly_pre.ps1                ... 旧 (LGBM v1 予測のみ)
+├─ weekly_cowork.ps1             ... 旧 (bundle 生成 + GitHub push のみ)
+├─ weekly_post.ps1               ... 結果集計 (現役)
 │
 ├─ data/
-│   └─ pl_payout_curve_v5.pkl         ... Kelly payout curve
+│   ├─ weekly/{YYYYMMDD}.csv         ... 週次出走表 (HF 必須)
+│   ├─ hosei/H_{YYYYMMDD}.csv        ... 補正タイム (HF 必須、~600KB/週)
+│   ├─ training/H-*.csv W-*.csv      ... 調教 (HF g 軸用、2026 系のみ ~7MB)
+│   ├─ kako5/{YYYYMMDD}.csv          ... 過去5走 (HF 任意)
+│   └─ master_v2_*.csv               ... 過去成績 390MB (HF 除外、ローカル限定)
 │
 ├─ reports/
-│   ├─ marks_v5/{race_id}.json        ... バックテスト用 (2024-2025 OOS = 6,908 races)
-│   ├─ cowork_input/{YYYYMMDD}/{race_id}.json   ... NEW: Cowork に渡す印 JSON (個別)
-│   ├─ cowork_input/{YYYYMMDD}_bundle.json      ... NEW: Cowork に渡す印 JSON (集約)
-│   ├─ cowork_bets/{YYYYMMDD}/{race_id}.json    ... NEW: Cowork からの買い目 (手入力)
-│   └─ pred_{YYYYMMDD}.csv            ... 従来 LGBM v1 系の自動買い目
+│   ├─ cowork_input/{date}_bundle.json    ... HF 必須
+│   ├─ cowork_output/*.json               ... 買い目 (HF 任意)
+│   └─ pred_{date}.csv                    ... Streamlit 用
 │
-├─ docs/
-│   ├─ marks_schema.md                ... 印 JSON スキーマ仕様
-│   ├─ operation_roadmap.md           ... THIS FILE
-│   └─ hypothesis_registry.md
-│
-├─ weekly_pre.ps1                     ... 従来 (LGBM v1 自動)
-├─ weekly_cowork.ps1                  ... NEW (v5 印 JSON → Cowork)
-├─ weekly_post.ps1                    ... 従来 (結果集計)
-├─ export_weekly_marks.py             ... NEW (CSV → 印 JSON)
-├─ export_marks_json.py               ... 既存 (年単位バッチ)
-├─ verify_marks_batch.py              ... 既存 (バッチ検証)
-└─ app.py                             ... Streamlit UI (Cowork タブ追加済)
+└─ docs/
+    ├─ operation_roadmap.md      ... THIS FILE
+    ├─ marks_schema.md
+    └─ ...
 ```
 
 ---
 
-## 5. v5 モデル品質 (真OOS 2024-2025, R=6,878)
+## 8. HuggingFace Spaces 構成
 
-| 指標 | v5 | v4 | 差分 |
-|------|----|----|------|
-| NDCG@5 | **0.6027** | 0.5790 | +0.024 |
-| ◎ 1着率 | **30.28%** | 27.39% | +2.89pt |
-| ◎ 連対率 | **49.04%** | 45.81% | +3.23pt |
-| ◎ 複勝圏率 | **61.66%** | 58.61% | +3.05pt |
-| 1着∈top-3 | **60.88%** | 58.74% | +2.14pt |
-| 1着∈top-5 | **78.03%** | 75.41% | +2.62pt |
-| {1,2}⊂top-5 | **54.32%** | 50.99% | +3.33pt |
-| ECE 単勝(◎) | 0.0186 | 0.0186 | ≈tie |
-| ECE 複勝(◎) | **0.0173** | 0.0193 | -0.002 (改善) |
-| ECE 馬連(◎-〇) | 0.0218 | 0.0154 | +0.006 (劣化、絶対値は実用範囲) |
+### URL
 
-**学習設定** (再現可能):
-- `clip(6 - 着順, 0, 5)` 連続ラベル
-- `sample_weight = 1 + 1.325 * log1p(tansho_pay/100)` (穴馬好走を重視)
-- LambdaRank, truncation_level=5
-- Optuna TPE, 30 trials, 5-fold race split
-- `seed=42`, `deterministic=True`, `force_col_wise=True`, `feature_pre_filter=False`
+- Space: https://huggingface.co/spaces/gutchi15300/pycaliAI
+- 直接: https://gutchi15300-pycaliai.hf.space
 
----
+### ブランチ運用
 
-## 6. JSON スキーマ (Cowork 連携)
+| ブランチ | 用途 | 内容 |
+|---------|------|------|
+| `master` | GitHub 開発本流 | 全コード + 全データ |
+| `hf-spaces` | HF Spaces orphan | NiceGUI 関連だけの最小構成 (大物データ除外) |
 
-詳細: `docs/marks_schema.md`
+`hf-spaces` は orphan branch で master とは履歴独立。同期は `sync-hf.ps1` のみで行う。
 
-主要フィールド:
-- `race_meta`: date, place, course, field_size, class, race_name
-- `horses[]`: umaban, horse_name, mark (◎/〇/▲/△/""), p_win, p_plc, p_sho,
-              tansho_odds, fuku_odds_low/high, ai_vs_market (under/fair/over/unknown)
-- `race_confidence`: top1_dominance, top2_concentration, field_chaos_score, ai_market_agreement
+### sync-hf.ps1 の動き
 
-**バックテスト用 (年単位)** と **週次 (Cowork 入力用)** で同一スキーマ。
+1. master ブランチで実行
+2. hf-spaces に切替
+3. master から指定ファイル群を checkout:
+   - `Dockerfile` `README.md` `.dockerignore` `requirements-nicegui.txt` `nicegui_app.py`
+   - `data/weekly/*.csv` (全週)
+   - `data/hosei/H_2026*.csv` (大物 H_2013-2025 は除外)
+   - `data/training/[HW]-2026*.csv` (大物 2015 系は除外)
+   - `data/kako5/*.csv`
+   - `reports/cowork_input/*.json`
+   - `reports/cowork_output/*`
+4. `git commit` → `git push hf hf-spaces:main`
+5. master に戻る
 
 ---
 
-## 7. トラブルシューティング
+## 9. NiceGUI v5〜v8.1 主要変更履歴
 
-### 7-1. `weekly_cowork.ps1` で印 JSON が 0 races になる
+| バージョン | 日付 | 変更点 |
+|---|---|---|
+| v8.1 | 2026-05-09 | PyCaLi 指数の逆転現象緩和 (p_sho × 100 base、boost ×0.5、ai_rank 順) + sync-hf.ps1 が data subdir を一括同期 |
+| v8 | 2026-05-09 | PyCaLi 評価軸を Streamlit と同じ a〜g 7 軸に統一 (weekly + hosei + training を merge) |
+| v7 | 2026-05-08 | サイドバー廃止、場所タブ + レース番号ボタン UI |
+| v6 | 2026-05-07 | 4 chip 素人向け刷新 (状態バッジ + アクション)、PyCaLi 評価リスト初版 (独自 6 軸) |
+| v5 | 2026-05-06 | AI 評価を印の下に移動、過去同コース成績 + 枠バイアス追加 |
+| v4 以前 | 2026-05-05 | MVP (Streamlit 互換 banner、HTML テーブル、左右分割) |
+
+---
+
+## 10. 既知の制約
+
+1. **g 軸 (調教) は HF では 2026 系のみ**: 2015-2025 の H-20150401-20260313.csv (364MB) は
+   .dockerignore で除外。よって 2025 年以前の馬で初出走の場合は g が「−」表示。
+2. **過去成績 / 枠バイアス**: master_v2_*.csv (390MB) は HF 除外。HF では「データ無し」表示
+   になり、ローカル (`python nicegui_app.py`) でのみ表示。
+3. **オッズ取得タイミング**: 週次CSVの `単勝` 列は当日 5 分前スナップショット相当。
+   リアルタイム反映なし。
+4. **複勝オッズ**: 週次CSVに含まれないため null。bundle.json に推定値を入れている。
+5. **PyCaLi history (スパークライン)**: NiceGUI 版では未実装。Streamlit 版は実装済。
+6. **戦略外レース** (新馬・障害): NiceGUI でも参考表示。フィルタは適用しない。
+
+---
+
+## 11. トラブルシューティング (NiceGUI / HF 関連)
+
+### 11-1. HF Spaces で "Stopped" / "Error"
+
+```
+NiceGUI ready to go on http://localhost:8080
+```
+
+→ HF は port 7860 を期待。Dockerfile の `ENV PORT=7860` が反映されているか確認。
+   `git -C E:\PyCaLiAI show hf-spaces:Dockerfile | grep PORT` で確認。
+
+### 11-2. HF push で YAML エラー
+
+```
+"colorTo" must be one of [red, yellow, green, blue, indigo, purple, pink, gray]
+```
+
+→ `README.md` の YAML フロントマターの `colorTo` を許可値に修正。
+
+### 11-3. HF Spaces で a〜g の値がすべて 5.0 (valid=False)
+
+→ `data/weekly/{date}.csv` か `data/hosei/H_{date}.csv` が hf-spaces ブランチに存在しない。
+   `.\sync-hf.ps1` を再実行して同期。
+
+### 11-4. HF Spaces で g 軸だけ「−」
+
+→ `data/training/[HW]-{date 周辺}.csv` が hf-spaces にない。
+   `.\sync-hf.ps1` を実行 (master の 2026 系 training ファイルが自動同期される)。
+
+### 11-5. `sync-hf.ps1` が「checkout hf-spaces failed」
+
+→ `models/transformer_optuna_v1.pkl` の壊れた LFS pointer が原因のことが多い。
+   スクリプトは `git checkout --force hf-spaces` で対応済。
+   それでも失敗するなら手動: `git stash && git checkout hf-spaces`。
+
+### 11-6. `weekly_cowork.ps1` で印 JSON が 0 races
 
 ```
 [ERROR] rid=...: "['Ｒ', '芝(内・外)', ...] not in index"
 ```
 
-→ `export_weekly_marks.py` 内で v5 feature_cols に対する不足列を NaN/`__NaN__` で補完済み。
-   このメッセージが出続ける場合は v5 model の feature_cols が変わった可能性。
-   `bundle["feature_cols"]` を確認して `_ROLLING_COLS` / `cat_cols` 区別を見直す。
+→ v5 feature_cols に対する不足列。`export_weekly_marks.py` 内で NaN 補完済み。
+   それでも続く場合は `bundle["feature_cols"]` を確認。
 
-### 7-2. Streamlit で「印 JSON が未生成です」と表示される
+### 11-7. 逆転現象 (PyCaLi 1位 ≠ ◎)
 
-→ `weekly_cowork.ps1 YYYYMMDD` を先に実行すること。
-   `reports/cowork_input/YYYYMMDD/` がそのまま空でないかも確認。
-
-### 7-3. Cowork が JSON を読まない / 文字化け
-
-→ JSON 自体は UTF-8。bundle ファイルは `_bundle.json` の方が race 数が多い場合
-   コピペ困難。代替: 個別 race の JSON を 1 つずつ投げる。
-
-### 7-4. Streamlit 上で日付や race_id 取得失敗
-
-→ `_rd_date` (例: "2026.4.26") を YYYYMMDD に変換するロジックが
-   Cowork タブの先頭にある。CSV ファイル名と日付列が一致しているか確認。
-
-### 7-5. 保存先のパーミッション
-
-→ `reports/cowork_bets/{YYYYMMDD}/` は streamlit プロセスが書き込み可能であること。
-   本番運用ではディレクトリ存在チェックを `mkdir(parents=True)` で行う。
-
-### 7-6. Streamlit の保存ボタンで git push が失敗する
-
-→ 保存自体は完了しているので慌てずに。エラーメッセージで原因を確認:
-   - `Authentication failed`: GitHub credential helper が未設定。
-     `git config --global credential.helper manager-core` 等で設定後、手動で
-     `cd E:\PyCaLiAI; git push origin HEAD:master` を実行。
-   - `Updates were rejected`: remote に未取得の commit あり。
-     `git pull --rebase --autostash origin master` してから再 push。
-   - 「差分なし or commit 済」と caption が出る: 既に同内容で push 済 / 別 commit に含まれた可能性。
-     `git status` で確認。
-
-### 7-7. weekly_cowork.ps1 が「no changes to commit」で終わる
-
-→ 既に同じ bundle.json を生成 + push 済の場合は正常動作。
-   再生成したい場合は `git rm --cached reports/cowork_input/{YYYYMMDD}_bundle.json`
-   してから再実行。
+→ 表示順位は ai_rank なので 1位 ラベルは常に ◎。値が ◎ < ◯ になるのは仕様
+   (補正特徴量シグナル)。詳細は §5 末尾参照。
 
 ---
 
-## 8. 既知の制約
+## 12. 今後の拡張候補
 
-1. **オッズ取得タイミング**: 週次CSVの `単勝` 列 = 当日 5 分前スナップショット相当。
-   リアルタイム反映なし (再生成すれば最新化)。
-2. **複勝オッズ**: 週次CSVに含まれないため `null`。Cowork 側では `p_sho × 推定` を使う。
-3. **`p_plc` キャリブレータ**: 現在 raw PL のみ。`p_win` / `p_sho` は適用済。
-4. **`ai_market_agreement`**: 出走馬 3 頭以上にオッズが揃わないと `null`。
-5. **戦略外レース** (東京・小倉・新馬・障害): Streamlit でも参考予想として表示。
-   Cowork タブはこれらのレースでも入力可能 (PyCaLiAI フィルタとは独立)。
-
----
-
-## 9. 今後の拡張候補 (未着手)
-
-- [ ] `app.py` から `weekly_cowork.ps1` 相当を内部実行する「印 JSON 再生成」ボタン
-- [ ] Cowork 出力テキストの自動 parse (Markdown テーブル / 行形式の自動認識)
-- [ ] 複勝オッズの別ソース取得と週次 JSON への混入
-- [ ] Cowork 提案と従来 4 戦略の **同一画面比較** (Streamlit に diff ビューを追加)
-- [ ] レース後の `cowork_bets` 的中判定 → ROI 集計を `weekly_post.ps1` に組み込み
+- [ ] NiceGUI に PyCaLi history (スパークライン) を移植
+- [ ] NiceGUI に EV 単勝候補 / VALUE 複勝タブを追加
+- [ ] NiceGUI 上で Cowork 買い目を **編集** (現状は表示のみ)
+- [ ] HF Spaces で master_v2 の軽量化版 (場所×コース統計だけ) を別ファイルとして配置
+  → 過去成績/枠バイアスを HF でも表示できるように
+- [ ] `weekly_nicegui.ps1` に post 用モード追加 (`-Post` スイッチで weekly_post + sync-hf を 1 発)
+- [ ] HF Spaces 起動時間短縮 (現状 master_v2 ロード ~5-10 秒、HF にはないのでスキップ)
