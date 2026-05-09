@@ -21,7 +21,13 @@ param(
     [switch]$DryRun
 )
 
-$ErrorActionPreference = "Stop"
+# Note: $ErrorActionPreference="Stop" is intentionally NOT set here.
+# Windows PowerShell 5.1 wraps every native-stderr line as ErrorRecord
+# (e.g. `git checkout` writes "Switched to branch 'X'" via a path that
+# triggers NativeCommandError). With Stop that would abort the script
+# mid-flight even on successful operations. We let each step decide
+# success via $LASTEXITCODE.
+$ErrorActionPreference = "Continue"
 
 # Files that actually need to be deployed to HF Spaces.
 # (large files in data/, reports/, models/ are excluded via .dockerignore at
@@ -34,18 +40,20 @@ $SyncFiles = @(
     "nicegui_app.py"
 )
 
-# Data file glob patterns to sync (relative to repo root). Each entry is
-# matched against `git ls-files master -- <pattern>` and all results checked
-# out. Large multi-year files (H_2013-2025, H-2015*-2026*) are intentionally
-# omitted to keep the hf-spaces repo under 1 GB.
+# Regex patterns matched against `git ls-tree -r --name-only master`.
+# git ls-tree's pathspec does NOT expand globs, so we list ALL master files
+# once and filter in PowerShell with -match.
+# Large multi-year files (H_2013-2025, H-2015*-...) are NOT in the regex
+# to keep the hf-spaces repo under 1 GB.
 $SyncDataPatterns = @(
-    "data/weekly/*.csv",
-    "data/hosei/H_2026*.csv",
-    "data/training/H-2026*.csv",
-    "data/training/W-2026*.csv",
-    "data/kako5/*.csv",
-    "reports/cowork_input/*.json",
-    "reports/cowork_output/*"
+    '^data/weekly/.*\.csv$',
+    '^data/hosei/H_2026.*\.csv$',
+    '^data/training/H-2026.*\.csv$',
+    '^data/training/W-2026.*\.csv$',
+    '^data/kako5/.*\.csv$',
+    '^reports/cowork_input/.+\.json$',
+    '^reports/cowork_input/[0-9]{8}/.+\.json$',
+    '^reports/cowork_output/.+'
 )
 
 function Write-Step($msg) {
@@ -93,11 +101,16 @@ foreach ($f in $SyncFiles) {
     }
 }
 
-# 5b. checkout data files matching glob patterns
-Write-Step "Checking out data files (weekly / hosei / training 2026 / kako5)"
+# 5b. checkout data files matching regex patterns. We pull the ENTIRE
+#     master tree's filename list once, then filter via -match.
+Write-Step "Checking out data files (weekly / hosei / training / kako5 / cowork)"
+$allMasterFiles = git ls-tree -r --name-only master
 foreach ($pat in $SyncDataPatterns) {
-    $files = git ls-tree -r --name-only master -- $pat 2>$null
-    if (-not $files) { continue }
+    $files = $allMasterFiles | Where-Object { $_ -match $pat }
+    if (-not $files) {
+        Write-Host "    $pat -> 0 files" -ForegroundColor DarkGray
+        continue
+    }
     foreach ($f in $files) {
         git checkout master -- $f
     }
@@ -124,15 +137,26 @@ if ($DryRun) {
     exit 0
 }
 
-# 7. commit
+# 7. commit. We rely on the staging done by `git checkout master -- <file>`
+#    above (it auto-stages new files). For modified files we re-add them by
+#    walking `git status --porcelain` and matching the regex patterns.
 Write-Step "Committing"
 git add $SyncFiles
-foreach ($pat in $SyncDataPatterns) {
-    git add $pat 2>$null
+$workingChanges = git status --porcelain | ForEach-Object { ($_ -replace '^...', '').Trim() }
+foreach ($f in $workingChanges) {
+    $pathOk = $false
+    foreach ($pat in $SyncDataPatterns) {
+        if ($f -match $pat) { $pathOk = $true; break }
+    }
+    if ($pathOk) { git add $f 2>$null }
 }
 $msg = "sync: master $($masterSha.Substring(0,7))"
 git commit -m $msg
-if ($LASTEXITCODE -ne 0) { Fail "commit failed" }
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: commit failed (likely no changes)." -ForegroundColor Red
+    git checkout $origBranch
+    exit 1
+}
 
 # 8. push to HF (HF default branch is main)
 Write-Step "Pushing to HuggingFace Spaces (hf/main)"
