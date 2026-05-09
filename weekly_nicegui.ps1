@@ -58,27 +58,36 @@ function Fail($msg) {
     exit 1
 }
 
-# -- Determine date --
-if ($Date -eq "") {
-    $untracked = git status --short data/weekly/ 2>$null |
-                 Where-Object { $_ -match '^\?\?' -or $_ -match '^ M' -or $_ -match '^A' } |
-                 ForEach-Object { ($_ -replace '^\s*\S+\s+', '').Trim() } |
-                 Where-Object { $_ -match 'data.weekly.\d{8}\.csv$' }
+# -- Determine date (mode-aware) --
+# BetsOnly mode -> auto-detect from reports/cowork_output/YYYYMMDD_bets.json
+# Other modes   -> auto-detect from data/weekly/YYYYMMDD.csv
+# Both insist on exact 8-digit basename so test.csv etc are rejected.
+$re8Digit = '^[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]$'
+$re8DigitBets = '^[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_bets$'
 
-    if ($untracked) {
-        $Date = [System.IO.Path]::GetFileNameWithoutExtension(
-            ($untracked | Select-Object -Last 1))
-        Write-Host "Auto-detect (uncommitted): $Date" -ForegroundColor Cyan
+if (($Date -eq "") -and $BetsOnly) {
+    $allBets = Get-ChildItem 'reports\cowork_output' -Filter '*_bets.json' -ErrorAction SilentlyContinue
+    $betsFile = $allBets | Where-Object { $_.BaseName -match $re8DigitBets } | Sort-Object Name -Descending | Select-Object -First 1
+    if ($betsFile) {
+        $Date = $betsFile.BaseName -replace '_bets$',''
+        Write-Host "Auto-detect from cowork_output: $Date" -ForegroundColor Yellow
+    }
+}
+
+if (($Date -eq "") -and (-not $BetsOnly)) {
+    $allWeekly = Get-ChildItem 'data\weekly' -Filter '*.csv' -ErrorAction SilentlyContinue
+    $latestCsv = $allWeekly | Where-Object { $_.BaseName -match $re8Digit } | Sort-Object Name -Descending | Select-Object -First 1
+    if ($latestCsv) {
+        $Date = $latestCsv.BaseName
+        Write-Host "Auto-detect (latest weekly): $Date" -ForegroundColor Yellow
+    }
+}
+
+if ($Date -eq "") {
+    if ($BetsOnly) {
+        Fail "No date given and no YYYYMMDD_bets.json in reports/cowork_output/. Save Cowork response or pass date."
     } else {
-        $latest = Get-ChildItem 'data\weekly' -Filter '????????.csv' |
-                  Sort-Object Name -Descending |
-                  Select-Object -First 1
-        if ($latest) {
-            $Date = $latest.BaseName
-            Write-Host "Auto-detect (latest): $Date" -ForegroundColor Yellow
-        } else {
-            Fail "No CSV found in data\weekly\"
-        }
+        Fail "No date given and no 8-digit YYYYMMDD.csv in data/weekly/."
     }
 }
 
