@@ -1,7 +1,18 @@
 """
 nicegui_app.py
 ==============
-NiceGUI 版 PyCaLiAI (実験 MVP v8)
+NiceGUI 版 PyCaLiAI (実験 MVP v9)
+
+v8 → v9 変更点:
+  1. 出走表に「騎手」列を追加 (weekly CSV の 騎手 列から merge)
+  2. 新タブ「📊 コース分析」を 全頭分析 と Cowork 買い目 の間に追加:
+     上段: 🏇 展開予想 — 上位 5 頭の前4角通過位置から脚質を推定し、
+            ハイ/スロー/平均ペースを判定 + 1 行アクション
+     下段: 📊 過去成績 — 場所×芝/ダ×距離 の master_v2 統計を 4 軸で出力
+            (枠順 1-8 / 年齢 3歳-8歳~ / 性別 牡牝セ / 馬番 1-18)
+            画像と同じ「1着 / 2着 / 3着 / 着外 / 勝率 / 連対率 / 複勝率」表
+  3. master_v2 読込列に「年齢」「性別」を追加
+  4. compute_course_stats_v2 / render_course_analysis / render_tenkai_yoso 新設
 
 v7 → v8 変更点:
   1. PyCaLi 評価リストの軸を Streamlit と同じ a〜g 7 軸に統一:
@@ -485,9 +496,9 @@ def get_master_df() -> pd.DataFrame | None:
     if not MASTER_CSV.exists():
         return None
     try:
-        # 必要列のみ + 型最適化
+        # 必要列のみ + 型最適化 (コース分析タブで年齢/性別を使うため拡張)
         usecols = ["日付", "場所", "Ｒ", "枠番", "馬番", "着順",
-                    "芝・ダ", "距離", "馬場状態"]
+                    "芝・ダ", "距離", "馬場状態", "年齢", "性別"]
         df = pd.read_csv(
             MASTER_CSV, encoding="utf-8-sig",
             usecols=usecols, dtype=str, low_memory=False, on_bad_lines="skip",
@@ -497,6 +508,7 @@ def get_master_df() -> pd.DataFrame | None:
         df["馬番"] = pd.to_numeric(df["馬番"], errors="coerce")
         df["着順"] = pd.to_numeric(df["着順"], errors="coerce")
         df["距離"] = pd.to_numeric(df["距離"], errors="coerce")
+        df["年齢"] = pd.to_numeric(df["年齢"], errors="coerce")
         df = df.dropna(subset=["着順", "距離"]).copy()
         return df
     except Exception as e:
@@ -518,6 +530,95 @@ def parse_course_str(course_str: str) -> tuple[str | None, int | None]:
     if not m:
         return surface, None
     return surface, int(m.group())
+
+
+def _stats_breakdown(sub: pd.DataFrame, col: str,
+                       values: list, label_fn=None) -> list[dict]:
+    """sub DataFrame を col 別に集計し、1着/2着/3着/着外 + 各率を返す。"""
+    out: list[dict] = []
+    for v in values:
+        grp = sub[sub[col] == v]
+        total = len(grp)
+        if total == 0:
+            continue
+        wins = int((grp["着順"] == 1).sum())
+        top2 = int((grp["着順"] <= 2).sum())
+        top3 = int((grp["着順"] <= 3).sum())
+        label = label_fn(v) if label_fn else str(v)
+        out.append({
+            "label": label,
+            "n_1": wins,
+            "n_2": top2 - wins,
+            "n_3": top3 - top2,
+            "n_out": total - top3,
+            "n_total": total,
+            "win_rate":    wins / total * 100,
+            "rentai_rate": top2 / total * 100,
+            "fuku_rate":   top3 / total * 100,
+        })
+    return out
+
+
+@functools.lru_cache(maxsize=128)
+def compute_course_stats_v2(place: str, course_str: str) -> dict | None:
+    """同コース過去成績の全条件別統計 (枠 / 馬番 / 年齢 / 性別)。
+
+    返り値: { "n_races", "n_starts", "waku", "uma", "age", "sex" }
+    各 dimension は [{"label","n_1","n_2","n_3","n_out","n_total",
+                     "win_rate","rentai_rate","fuku_rate"}, ...]
+    """
+    df = get_master_df()
+    if df is None or not place or not course_str:
+        return None
+    surface, dist = parse_course_str(course_str)
+    if not surface or not dist:
+        return None
+    sub = df[(df["場所"] == place) &
+             (df["芝・ダ"] == surface) &
+             (df["距離"] == dist)]
+    if len(sub) < 100:
+        return None
+
+    sub = sub.copy()
+    n_races = sub["日付"].nunique() if "日付" in sub.columns else len(sub) // 14
+    n_starts = len(sub)
+
+    # 枠順別 (1-8)
+    waku = _stats_breakdown(sub, "枠番", list(range(1, 9)),
+                              label_fn=lambda v: str(v))
+    # 馬番別 (1-18, 出現したものだけ)
+    uma_values = sorted(sub["馬番"].dropna().unique().astype(int))
+    uma_values = [v for v in uma_values if 1 <= v <= 18]
+    uma = _stats_breakdown(sub, "馬番", uma_values,
+                             label_fn=lambda v: str(v))
+
+    # 年齢別 (3-7歳、8歳以上はまとめる)
+    age = _stats_breakdown(sub, "年齢", [3, 4, 5, 6, 7],
+                             label_fn=lambda v: f"{v}歳")
+    grp_8 = sub[sub["年齢"] >= 8]
+    total = len(grp_8)
+    if total > 0:
+        wins = int((grp_8["着順"] == 1).sum())
+        top2 = int((grp_8["着順"] <= 2).sum())
+        top3 = int((grp_8["着順"] <= 3).sum())
+        age.append({
+            "label": "8歳~",
+            "n_1": wins, "n_2": top2 - wins, "n_3": top3 - top2,
+            "n_out": total - top3, "n_total": total,
+            "win_rate":    wins / total * 100,
+            "rentai_rate": top2 / total * 100,
+            "fuku_rate":   top3 / total * 100,
+        })
+
+    # 性別 (牡/牝/セ)
+    sex = _stats_breakdown(sub, "性別", ["牡", "牝", "セ"],
+                             label_fn=lambda v: {"牡":"牡馬","牝":"牝馬","セ":"セン馬"}.get(v, v))
+
+    return {
+        "place": place, "course": course_str,
+        "n_races": n_races, "n_starts": n_starts,
+        "waku": waku, "uma": uma, "age": age, "sex": sex,
+    }
 
 
 @functools.lru_cache(maxsize=128)
@@ -957,15 +1058,32 @@ def make_right_panel_html(race: dict) -> str:
 # ============================================================
 # 出走表 (ピュア HTML テーブル)
 # ============================================================
-def make_shutsuba_table_html(race: dict) -> str:
+def make_shutsuba_table_html(race: dict, date_str: str | None = None) -> str:
     horses = race.get("horses", [])
     horses_sorted = sorted(horses, key=lambda h: h.get("umaban") or 0)
+
+    # 騎手列用に weekly CSV を取得 (race_id_16 + 馬番 で参照)
+    rid_16 = str(race.get("race_id", ""))[:16]
+    weekly_df = load_weekly_horses(date_str) if date_str else None
+    jockey_lookup: dict[int, str] = {}
+    if weekly_df is not None:
+        sub = weekly_df[weekly_df["race_id_16"] == rid_16]
+        for _, row in sub.iterrows():
+            try:
+                u = int(row["馬番"])
+                jockey_lookup[u] = str(row.get("騎手", "")).strip()
+            except (TypeError, ValueError):
+                continue
 
     rows = []
     for h in horses_sorted:
         mark = h.get("mark") or ""
         umaban = h.get("umaban") or "?"
         name = h.get("horse_name") or "-"
+        try:
+            jockey = jockey_lookup.get(int(umaban), "")
+        except (TypeError, ValueError):
+            jockey = ""
         p_win = (h.get("p_win") or 0) * 100
         p_sho = (h.get("p_sho") or 0) * 100
         tan = h.get("tansho_odds") or 0
@@ -997,6 +1115,7 @@ def make_shutsuba_table_html(race: dict) -> str:
           <td style="padding:6px 12px;color:#cdd6f4;font-weight:bold;text-align:center">{umaban}</td>
           <td style="padding:6px 8px;text-align:center">{mark_html}</td>
           <td style="padding:6px 12px;color:#cdd6f4;font-size:16px;font-weight:600">{name}</td>
+          <td style="padding:6px 10px;color:#a6adc8;font-size:13px">{jockey}</td>
           <td style="padding:6px 12px;text-align:right;color:#a6e3a1;font-weight:bold">{p_win:.1f}%</td>
           <td style="padding:6px 12px;text-align:right;color:#89b4fa">{p_sho:.1f}%</td>
           <td style="padding:6px 12px;text-align:right;color:#f5c2e7">{tan:.1f}</td>
@@ -1017,6 +1136,7 @@ def make_shutsuba_table_html(race: dict) -> str:
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:center">番</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:center">印</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:left">馬名</th>
+          <th style="padding:12px;color:#f39c12;font-size:14px;text-align:left">騎手</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">勝率</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">複勝率</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">単勝</th>
@@ -1030,6 +1150,244 @@ def make_shutsuba_table_html(race: dict) -> str:
       </tbody>
     </table>
     """
+
+
+# ============================================================
+# コース分析タブ (条件別成績 + 展開予想)
+# ============================================================
+def _stats_table_html(title: str, rows: list[dict],
+                        emoji: str = "", min_width: str = "100%") -> str:
+    """1 つの条件別成績テーブル (枠順/馬番/年齢/性別 共通)。
+    画像のスタイルに合わせて 1着/2着/3着/着外 + 勝率/連対率/複勝率 を出す。
+    """
+    if not rows:
+        return ""
+    body = []
+    for r in rows:
+        body.append(f"""
+        <tr style="border-bottom:1px solid #313244">
+          <td style="padding:6px 10px;color:#cdd6f4;font-weight:bold">{r['label']}</td>
+          <td style="padding:6px 10px;text-align:right;color:#a6e3a1">{r['n_1']}</td>
+          <td style="padding:6px 10px;text-align:right;color:#89b4fa">{r['n_2']}</td>
+          <td style="padding:6px 10px;text-align:right;color:#f9e2af">{r['n_3']}</td>
+          <td style="padding:6px 10px;text-align:right;color:#6c7086">{r['n_out']}</td>
+          <td style="padding:6px 10px;text-align:right;color:#a6e3a1;font-weight:bold">
+            {r['win_rate']:.1f}</td>
+          <td style="padding:6px 10px;text-align:right;color:#89b4fa">
+            {r['rentai_rate']:.1f}</td>
+          <td style="padding:6px 10px;text-align:right;color:#fab387;font-weight:bold">
+            {r['fuku_rate']:.1f}</td>
+        </tr>
+        """)
+    return f"""
+    <div style="margin-bottom:18px;min-width:{min_width}">
+      <h3 style="color:#f5e0dc;margin:0 0 8px 0;font-size:15px;font-weight:bold">
+        {emoji} {title}</h3>
+      <table style="width:100%;border-collapse:collapse;background:#0a0a14;
+                    border-radius:8px;overflow:hidden;font-size:13px">
+        <thead>
+          <tr style="background:#1e1e2e;border-bottom:2px solid #f39c12">
+            <th style="padding:8px 6px;color:#f39c12;text-align:left">条件</th>
+            <th style="padding:8px 6px;color:#f39c12;text-align:right">1着</th>
+            <th style="padding:8px 6px;color:#f39c12;text-align:right">2着</th>
+            <th style="padding:8px 6px;color:#f39c12;text-align:right">3着</th>
+            <th style="padding:8px 6px;color:#f39c12;text-align:right">着外</th>
+            <th style="padding:8px 6px;color:#f39c12;text-align:right">勝率</th>
+            <th style="padding:8px 6px;color:#f39c12;text-align:right">連対率</th>
+            <th style="padding:8px 6px;color:#f39c12;text-align:right">複勝率</th>
+          </tr>
+        </thead>
+        <tbody>{"".join(body)}</tbody>
+      </table>
+    </div>
+    """
+
+
+def _classify_kyakushitsu(pos1: float | None,
+                            pos4: float | None,
+                            field_size: int = 16) -> str:
+    """前1角・前4角の通過位置から脚質を推定。
+    field_size に対する相対位置で 逃げ/先行/差し/追込 を判定。
+    """
+    pos = pos4 if pos4 is not None else pos1
+    if pos is None or pd.isna(pos):
+        return "不明"
+    p = float(pos) / max(field_size, 1)
+    if p <= 0.20:
+        return "逃げ"
+    if p <= 0.45:
+        return "先行"
+    if p <= 0.70:
+        return "差し"
+    return "追込"
+
+
+def render_tenkai_yoso(race: dict, date_str: str | None = None) -> None:
+    """展開予想 (脚質分布 + pace + 一言)。Cowork の買い目スタイル風の文章で。"""
+    horses = list(race.get("horses", []))
+    if not horses:
+        return
+    meta = race.get("race_meta", {}) or {}
+    field_size = meta.get("field_size", 16) or 16
+
+    # 上位 5 頭 (p_win 順) で脚質を集計
+    top5 = sorted(horses, key=lambda h: -(h.get("p_win") or 0))[:5]
+
+    kyaku_records: list[dict] = []
+    weekly_df = load_weekly_horses(date_str) if date_str else None
+    rid_16 = str(race.get("race_id", ""))[:16]
+
+    for h in top5:
+        umaban = h.get("umaban")
+        pos1 = pos4 = None
+        if weekly_df is not None and umaban is not None:
+            sub = weekly_df[(weekly_df["race_id_16"] == rid_16) &
+                              (weekly_df["馬番"] == int(umaban))]
+            if not sub.empty:
+                row = sub.iloc[0]
+                for c in ["前1角", "前走通過1"]:
+                    if c in row.index and pd.notna(row[c]):
+                        try: pos1 = float(row[c])
+                        except (TypeError, ValueError): pass
+                        break
+                for c in ["前4角", "前走通過4"]:
+                    if c in row.index and pd.notna(row[c]):
+                        try: pos4 = float(row[c])
+                        except (TypeError, ValueError): pass
+                        break
+        kyaku = _classify_kyakushitsu(pos1, pos4, field_size)
+        kyaku_records.append({"horse": h, "kyaku": kyaku})
+
+    # 集計
+    counts: dict[str, int] = {"逃げ":0, "先行":0, "差し":0, "追込":0, "不明":0}
+    for r in kyaku_records:
+        counts[r["kyaku"]] = counts.get(r["kyaku"], 0) + 1
+
+    # ペース判定 (簡易)
+    n_nige = counts.get("逃げ", 0)
+    n_sen  = counts.get("先行", 0)
+    n_sashi = counts.get("差し", 0) + counts.get("追込", 0)
+    if n_nige >= 2:
+        pace = "ハイペース"
+        pace_color = "#f38ba8"
+        pace_msg = "逃げ馬複数 → 前崩れ気配、差し・追込有利"
+    elif n_nige == 0 and n_sen >= 3:
+        pace = "スローペース"
+        pace_color = "#89b4fa"
+        pace_msg = "明確な逃げ馬不在 + 先行多 → スロー濃厚、上り勝負・先行有利"
+    elif n_sashi >= 3:
+        pace = "差し決着"
+        pace_color = "#cba6f7"
+        pace_msg = "上位に差し型多数 → 上り3F が決まる末脚勝負"
+    else:
+        pace = "平均ペース"
+        pace_color = "#a6e3a1"
+        pace_msg = "脚質バランス均等 → 標準的な流れ、ポジション戦"
+
+    # 主要馬の一言コメント
+    horse_lines = []
+    for rec in kyaku_records:
+        h = rec["horse"]
+        k = rec["kyaku"]
+        mark = h.get("mark") or "△"
+        name = h.get("horse_name", "?")
+        umaban = h.get("umaban", "?")
+        pwin = (h.get("p_win") or 0) * 100
+        mark_color = MARK_COLORS.get(mark, "#6c7086")
+        horse_lines.append(f"""
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+          <span style="background:{mark_color};color:#fff;width:24px;height:24px;
+                       line-height:24px;text-align:center;border-radius:50%;
+                       font-size:13px;font-weight:bold;flex-shrink:0">{mark}</span>
+          <span style="color:#6c7086;font-size:13px;width:32px">{umaban}番</span>
+          <span style="color:#cdd6f4;font-size:14px;flex-grow:1;font-weight:600">
+            {name}</span>
+          <span style="color:#fab387;font-size:13px;
+                       background:rgba(250,179,135,0.12);padding:2px 10px;
+                       border-radius:10px">{k}</span>
+          <span style="color:#a6e3a1;font-size:13px;font-weight:bold;
+                       width:60px;text-align:right">{pwin:.1f}%</span>
+        </div>
+        """)
+
+    ui.html(f"""
+    <div style="background:linear-gradient(135deg,#0d1421 0%,#16213e 100%);
+                border:1px solid {pace_color};border-radius:14px;padding:18px 22px;
+                margin-bottom:14px">
+      <h2 style="margin:0 0 6px 0;color:#cdd6f4;font-size:18px;font-weight:bold">
+        🏇 展開予想
+      </h2>
+      <div style="margin-bottom:14px">
+        <span style="background:{pace_color};color:#1e1e2e;padding:5px 14px;
+                     border-radius:14px;font-weight:bold;font-size:14px">{pace}</span>
+        <span style="color:#cdd6f4;font-size:14px;margin-left:10px">{pace_msg}</span>
+      </div>
+      <div style="background:rgba(0,0,0,0.25);border-left:3px solid {pace_color};
+                  padding:8px 14px;border-radius:6px">
+        <div style="color:#6c7086;font-size:12px;margin-bottom:4px">
+          上位 5 頭の想定脚質 (前4角通過位置ベース)
+        </div>
+        {"".join(horse_lines)}
+      </div>
+      <div style="margin-top:10px;color:#a6adc8;font-size:12px;line-height:1.5">
+        脚質分布: 逃げ {counts['逃げ']} / 先行 {counts['先行']} /
+        差し {counts['差し']} / 追込 {counts['追込']}
+        {'(不明 ' + str(counts['不明']) + ')' if counts['不明'] > 0 else ''}
+      </div>
+    </div>
+    """)
+
+
+def render_course_analysis(race: dict) -> None:
+    """コース分析タブのメイン描画。
+    上段: 展開予想 (bundle + weekly コーナー位置から)
+    下段: 過去成績テーブル (master_v2、HF では unavailable)
+    """
+    meta = race.get("race_meta", {}) or {}
+    place = meta.get("place", "")
+    course_str = meta.get("course", "")
+
+    stats = compute_course_stats_v2(place, course_str)
+    if not stats:
+        ui.html(f"""
+        <div style="background:#1e1e2e;border-left:3px solid #6c7086;
+                    padding:14px 16px;border-radius:8px;color:#a6adc8;
+                    font-size:14px;margin-bottom:14px">
+          📊 <b style="color:#cdd6f4">{place} {course_str}</b> の過去成績データなし<br>
+          <span style="color:#6c7086;font-size:12px">
+            (master_v2_*.csv が無い、またはサンプル数 100 未満。
+            HF Spaces では大物 CSV は除外しているのでローカル限定の表示です。)
+          </span>
+        </div>
+        """)
+        return
+
+    # Header
+    ui.html(f"""
+    <div style="background:linear-gradient(135deg,#0d1421 0%,#16213e 100%);
+                border:1px solid #f39c12;border-radius:14px;padding:14px 18px;
+                margin-bottom:14px">
+      <h2 style="margin:0;color:#cdd6f4;font-size:20px;font-weight:bold">
+        📊 {place} {course_str} 過去成績
+      </h2>
+      <div style="color:#a6adc8;font-size:13px;margin-top:4px">
+        対象: {stats['n_races']:,} レース / {stats['n_starts']:,} 出走 (2013-2025)
+        — 単位 [%]
+      </div>
+    </div>
+    """)
+
+    # 条件別成績 (画像と同じ並び: 枠順 / 年齢 / 性別 を 3 カラム)
+    with ui.row().classes("w-full no-wrap gap-3 items-start"):
+        with ui.column().classes("flex-1"):
+            ui.html(_stats_table_html("枠順", stats["waku"], "🎫"))
+        with ui.column().classes("flex-1"):
+            ui.html(_stats_table_html("年齢", stats["age"], "🎂"))
+        with ui.column().classes("flex-1"):
+            ui.html(_stats_table_html("性別", stats["sex"], "♂♀"))
+
+    # 馬番別は横に長いので単独行
+    ui.html(_stats_table_html("馬番", stats["uma"], "🏇"))
 
 
 # ============================================================
@@ -1460,7 +1818,7 @@ def main_page():
     with ui.header(elevated=True).classes("bg-slate-900"):
         ui.label("🏇 PyCaLiAI").classes("text-3xl font-bold text-white")
         ui.space()
-        ui.label("NiceGUI 版 (実験 MVP v8)").classes("text-base text-slate-400")
+        ui.label("NiceGUI 版 (実験 MVP v9)").classes("text-base text-slate-400")
 
     state = {
         "date": None, "race": None, "bundle": None,
@@ -1498,10 +1856,11 @@ def main_page():
             left_box = ui.element("div").classes("flex-grow").style("flex: 3")
             right_box = ui.element("div").classes("flex-grow").style("flex: 2")
 
-        # ── メイン: タブ (出走表 / 全頭分析 / Cowork) ──
+        # ── メイン: タブ (出走表 / 全頭分析 / コース分析 / Cowork) ──
         with ui.tabs().classes("w-full") as tabs:
             tab_shutsuba = ui.tab("📋 出走表")
             tab_bunseki = ui.tab("🔍 全頭分析")
+            tab_course = ui.tab("📊 コース分析")
             tab_bets = ui.tab("🎫 Cowork 買い目")
 
         with ui.tab_panels(tabs, value=tab_shutsuba).classes("w-full"):
@@ -1509,6 +1868,8 @@ def main_page():
                 shutsuba_box = ui.element("div").classes("w-full")
             with ui.tab_panel(tab_bunseki):
                 bunseki_box = ui.element("div").classes("w-full")
+            with ui.tab_panel(tab_course):
+                course_box = ui.element("div").classes("w-full")
             with ui.tab_panel(tab_bets):
                 bets_box = ui.element("div").classes("w-full")
 
@@ -1525,7 +1886,7 @@ def main_page():
 
         shutsuba_box.clear()
         with shutsuba_box:
-            ui.html(make_shutsuba_table_html(race))
+            ui.html(make_shutsuba_table_html(race, date_str=state.get("date")))
 
         bunseki_box.clear()
         with bunseki_box:
@@ -1541,6 +1902,12 @@ def main_page():
 
             # Streamlit 版互換の評価リスト (a〜g 7 軸、weekly/hosei を merge)
             render_pyca_eval_list(race, date_str=state.get("date"))
+
+        # ── コース分析タブ (展開予想 + 条件別成績) ──
+        course_box.clear()
+        with course_box:
+            render_tenkai_yoso(race, date_str=state.get("date"))
+            render_course_analysis(race)
 
         bets_box.clear()
         with bets_box:
