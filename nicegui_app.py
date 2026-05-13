@@ -1,7 +1,21 @@
 """
 nicegui_app.py
 ==============
-NiceGUI 版 PyCaLiAI (実験 MVP v9.1)
+NiceGUI 版 PyCaLiAI (実験 MVP v10)
+
+v9.1 → v10 変更点:
+  1. 🏃 コース別好走脚質 セクションをコース分析タブに追加:
+     - 場所×芝/ダ×距離 ごとに 逃げ/先行/差し/追込 の勝率/連対率/複勝率
+     - master_v2 の 前4角通過位置 × 出走頭数 で脚質推定
+     - 事前生成 course_stats.json にも組み込み (HF でも動く)
+  2. 🏇 展開予想セクションに「適性 A/B/C/D」バッジ追加:
+     - 各馬の想定脚質 vs コース好走脚質を照合
+     - そのコースで一番勝つ脚質 = A、最下位 = D
+  3. 🐴 馬個別モーダル (出走表タブ下部のボタンで開く):
+     - 馬名/印/騎手/斤量/性齢/AI 指標 (勝率/連対/複勝/EV/vs市場)
+     - 過去 5 走テーブル (kako5 CSV から抽出)
+     - 同コース脚質別勝率
+  4. load_kako5_horses パーサ追加 (parse_kako5.py の解析ロジックを軽量移植)
 
 v9 → v9.1 変更点:
   1. ⚡「直近 1 週間の好調教 Best 5」セクション追加 (collapsible expansion):
@@ -433,6 +447,94 @@ def _latest_training(name: str, race_date_int: int) -> dict[str, float | None]:
     return out
 
 
+def _safe_int(s) -> int | None:
+    try:
+        v = int(float(s)) if s not in ("", None) else None
+        return v
+    except (ValueError, TypeError):
+        return None
+
+
+def _safe_float(s) -> float | None:
+    try:
+        v = float(s) if s not in ("", None) else None
+        return v
+    except (ValueError, TypeError):
+        return None
+
+
+@functools.lru_cache(maxsize=8)
+def load_kako5_horses(date_str: str) -> dict | None:
+    """kako5/{date}.csv を読んで (race_id_16, umaban) → 過去5走 dict を作る。
+
+    kako5 ファイル構造:
+      - 19 列の race header 行 (race ID 先頭)
+      - 72 列の horse data 行 (馬番 col 2、馬名S col 7、5 走 × 12 列が後続)
+
+    各 past race block (12 cols): 月, 日, 場所, TD, 距離, 馬場, 着順, 人気,
+                                    レース名, 上り3F, 決手, 間隔
+    """
+    p = BASE / "data" / "kako5" / f"{date_str}.csv"
+    if not p.exists():
+        return None
+    import csv as _csv
+    out: dict = {}
+    current_rid_16 = None
+
+    try:
+        with open(p, encoding="cp932", errors="replace") as f:
+            reader = _csv.reader(f)
+            for row in reader:
+                if len(row) <= 1:
+                    continue
+                # Race header (19 cols, race ID starts with year digits)
+                if (len(row) == 19 and row[0]
+                        and len(row[0]) >= 10 and row[0][:4].isdigit()):
+                    current_rid_16 = row[0][:16]
+                    continue
+                # Column header
+                if len(row) == 72 and row[0] in ("枠番",):
+                    continue
+                # Data row
+                if (len(row) == 72 and row[0] and row[0].isdigit()
+                        and current_rid_16):
+                    umaban = _safe_int(row[2])
+                    if umaban is None:
+                        continue
+                    name = str(row[7]).strip() if len(row) > 7 else ""
+
+                    past_races: list[dict] = []
+                    # 5 race blocks at offsets 12, 24, 36, 48, 60 (12 cols each)
+                    for i in range(5):
+                        base = 12 + i * 12
+                        if base + 11 >= len(row):
+                            break
+                        chakujun = _safe_int(row[base + 6])
+                        if chakujun is None or chakujun == 0:
+                            continue
+                        past_races.append({
+                            "month":    str(row[base + 0]),
+                            "day":      str(row[base + 1]),
+                            "place":    str(row[base + 2]),
+                            "td":       str(row[base + 3]),
+                            "dist":     _safe_int(row[base + 4]),
+                            "baba":     str(row[base + 5]),
+                            "chakujun": chakujun,
+                            "ninki":    _safe_int(row[base + 7]),
+                            "race_name": str(row[base + 8]),
+                            "agari3f":  _safe_float(row[base + 9]),
+                            "kimete":   str(row[base + 10]),
+                        })
+                    out[(current_rid_16, umaban)] = {
+                        "name": name,
+                        "past_races": past_races,
+                    }
+    except Exception as e:
+        print(f"[load_kako5_horses error] {e}")
+        return None
+    return out
+
+
 @functools.lru_cache(maxsize=8)
 def compute_training_top5(date_str: str, days_back: int = 7) -> dict:
     """直近 days_back 日間の調教ベストタイム 上位 5 頭 (坂路 + WC)。
@@ -622,9 +724,10 @@ def get_master_df() -> pd.DataFrame | None:
     if not MASTER_CSV.exists():
         return None
     try:
-        # 必要列のみ + 型最適化 (コース分析タブで年齢/性別を使うため拡張)
+        # 必要列のみ + 型最適化 (コース分析タブで年齢/性別/脚質を使うため拡張)
         usecols = ["日付", "場所", "Ｒ", "枠番", "馬番", "着順",
-                    "芝・ダ", "距離", "馬場状態", "年齢", "性別"]
+                    "芝・ダ", "距離", "馬場状態", "年齢", "性別",
+                    "前4角", "出走頭数"]
         df = pd.read_csv(
             MASTER_CSV, encoding="utf-8-sig",
             usecols=usecols, dtype=str, low_memory=False, on_bad_lines="skip",
@@ -635,6 +738,10 @@ def get_master_df() -> pd.DataFrame | None:
         df["着順"] = pd.to_numeric(df["着順"], errors="coerce")
         df["距離"] = pd.to_numeric(df["距離"], errors="coerce")
         df["年齢"] = pd.to_numeric(df["年齢"], errors="coerce")
+        if "前4角" in df.columns:
+            df["前4角"] = pd.to_numeric(df["前4角"], errors="coerce")
+        if "出走頭数" in df.columns:
+            df["出走頭数"] = pd.to_numeric(df["出走頭数"], errors="coerce")
         df = df.dropna(subset=["着順", "距離"]).copy()
         return df
     except Exception as e:
@@ -762,10 +869,22 @@ def compute_course_stats_v2(place: str, course_str: str) -> dict | None:
         sex = _stats_breakdown(sub, "性別", ["牡", "牝", "セ"],
                                  label_fn=lambda v: {"牡":"牡馬","牝":"牝馬","セ":"セン馬"}.get(v, v))
 
+        # 脚質別好走 (前4角 + 出走頭数 から各馬の脚質を推定)
+        kyaku: list[dict] = []
+        if {"前4角", "出走頭数"}.issubset(sub.columns):
+            sub2 = sub.copy()
+            sub2["_kyaku"] = [
+                _classify_kyakushitsu(None, p, int(f) if pd.notna(f) else 16)
+                for p, f in zip(sub2["前4角"], sub2["出走頭数"])
+            ]
+            kyaku = _stats_breakdown(sub2, "_kyaku",
+                                       ["逃げ", "先行", "差し", "追込"])
+
         return {
             "place": place, "course": course_str,
             "n_races": n_races, "n_starts": n_starts,
             "waku": waku, "uma": uma, "age": age, "sex": sex,
+            "kyaku": kyaku,
         }
 
     # 2. master_v2 が無い場合 (HF) → 事前生成 JSON にフォールバック
@@ -781,10 +900,11 @@ def compute_course_stats_v2(place: str, course_str: str) -> dict | None:
         "course": course_str,
         "n_races":  entry.get("n_races", 0),
         "n_starts": entry.get("n_starts", 0),
-        "waku": entry.get("waku", []),
-        "uma":  entry.get("uma",  []),
-        "age":  entry.get("age",  []),
-        "sex":  entry.get("sex",  []),
+        "waku":  entry.get("waku",  []),
+        "uma":   entry.get("uma",   []),
+        "age":   entry.get("age",   []),
+        "sex":   entry.get("sex",   []),
+        "kyaku": entry.get("kyaku", []),
     }
 
 
@@ -1389,6 +1509,192 @@ def _classify_kyakushitsu(pos1: float | None,
     return "追込"
 
 
+def make_horse_detail_html(horse: dict, race: dict,
+                              date_str: str | None) -> str:
+    """馬個別モーダルの中身を HTML 文字列で構築。
+    出走表 / 評価リストの「詳細」ボタン押下時に呼ばれる。
+    """
+    name   = horse.get("horse_name", "?")
+    umaban = horse.get("umaban", "?")
+    mark   = horse.get("mark") or ""
+    p_win  = (horse.get("p_win") or 0) * 100
+    p_plc  = (horse.get("p_plc") or 0) * 100
+    p_sho  = (horse.get("p_sho") or 0) * 100
+    tan    = horse.get("tansho_odds") or 0
+    fuku_lo = horse.get("fuku_odds_low") or 0
+    fuku_hi = horse.get("fuku_odds_high") or 0
+    ev_tan = (horse.get("p_win") or 0) * tan
+    market = horse.get("ai_vs_market") or "unknown"
+    mk_color = MARK_COLORS.get(mark, "#6c7086")
+    mkt_color = MARKET_COLORS.get(market, "#6c7086")
+
+    # weekly CSV から騎手・斤量・性齢
+    jockey = sex_age = kin = ""
+    if date_str:
+        weekly_df = load_weekly_horses(date_str)
+        if weekly_df is not None:
+            rid_16 = str(race.get("race_id", ""))[:16]
+            try:
+                sub = weekly_df[(weekly_df["race_id_16"] == rid_16) &
+                                  (weekly_df["馬番"] == int(umaban))]
+                if not sub.empty:
+                    row = sub.iloc[0]
+                    jockey  = str(row.get("騎手", "")).strip()
+                    kin     = str(row.get("斤量", "")).strip()
+                    sex     = str(row.get("性別", "")).strip()
+                    age     = str(row.get("年齢", "")).strip()
+                    sex_age = f"{sex}{age}"
+            except (TypeError, ValueError):
+                pass
+
+    # Header
+    header_html = f"""
+    <div style="background:linear-gradient(135deg,#0d1421 0%,#16213e 100%);
+                border:1px solid {mk_color};border-radius:12px;
+                padding:16px 20px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:8px">
+        <span style="background:{mk_color};color:#fff;width:42px;height:42px;
+                     line-height:42px;text-align:center;border-radius:50%;
+                     font-size:22px;font-weight:bold">{mark or '−'}</span>
+        <span style="color:#a6adc8;font-size:15px">{umaban}番</span>
+        <h2 style="margin:0;color:#cdd6f4;font-size:24px;font-weight:bold;flex:1">
+          {name}</h2>
+      </div>
+      <div style="color:#a6adc8;font-size:14px;margin-bottom:10px">
+        {sex_age} / 斤量 {kin}kg / 騎手 {jockey}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+                  font-size:14px">
+        <div style="background:rgba(0,0,0,0.25);padding:8px 12px;border-radius:6px">
+          <div style="color:#6c7086;font-size:12px">勝率 / 連対率 / 複勝率</div>
+          <div style="color:#cdd6f4;font-size:15px;font-weight:bold">
+            <span style="color:#a6e3a1">{p_win:.1f}%</span> /
+            <span style="color:#89b4fa">{p_plc:.1f}%</span> /
+            <span style="color:#fab387">{p_sho:.1f}%</span>
+          </div>
+        </div>
+        <div style="background:rgba(0,0,0,0.25);padding:8px 12px;border-radius:6px">
+          <div style="color:#6c7086;font-size:12px">単勝オッズ</div>
+          <div style="color:#f5c2e7;font-size:18px;font-weight:bold">{tan:.1f}倍</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.25);padding:8px 12px;border-radius:6px">
+          <div style="color:#6c7086;font-size:12px">複勝オッズ</div>
+          <div style="color:#cdd6f4;font-size:15px">{fuku_lo:.1f}〜{fuku_hi:.1f}倍</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.25);padding:8px 12px;border-radius:6px">
+          <div style="color:#6c7086;font-size:12px">単勝EV / vs市場</div>
+          <div style="color:#cdd6f4;font-size:15px">
+            <span style="color:{('#a6e3a1' if ev_tan >= 1.0 else '#f9e2af')};font-weight:bold">
+              {ev_tan:.2f}</span> /
+            <span style="background:{mkt_color};color:#1e1e2e;padding:1px 8px;
+                         border-radius:8px;font-size:12px;font-weight:bold">{market}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+
+    # 過去 5 走
+    rid_16 = str(race.get("race_id", ""))[:16]
+    kako5 = load_kako5_horses(date_str) if date_str else None
+    past_races: list[dict] = []
+    if kako5:
+        try:
+            entry = kako5.get((rid_16, int(umaban)))
+            if entry:
+                past_races = entry.get("past_races", [])
+        except (TypeError, ValueError):
+            past_races = []
+
+    if past_races:
+        rows = []
+        for i, pr in enumerate(past_races, 1):
+            chk = pr["chakujun"]
+            chk_color = ("#a6e3a1" if chk == 1 else
+                          "#89b4fa" if chk <= 3 else
+                          "#cdd6f4" if chk <= 5 else "#6c7086")
+            ninki = pr.get("ninki") or "-"
+            agari = pr.get("agari3f")
+            agari_s = f"{agari:.1f}" if agari is not None else "-"
+            rows.append(f"""
+            <tr style="border-bottom:1px solid #313244">
+              <td style="padding:8px 10px;color:#6c7086">{i}走前</td>
+              <td style="padding:8px 10px;color:#a6adc8">{pr['month']}/{pr['day']}</td>
+              <td style="padding:8px 10px;color:#cdd6f4">{pr['place']}</td>
+              <td style="padding:8px 10px;color:#cdd6f4">
+                {pr['td']}{pr.get('dist') or ''}</td>
+              <td style="padding:8px 10px;color:#a6adc8">{pr.get('baba','')}</td>
+              <td style="padding:8px 10px;color:#cdd6f4;font-weight:600;
+                         max-width:200px;overflow:hidden;text-overflow:ellipsis">
+                {pr.get('race_name','')}</td>
+              <td style="padding:8px 10px;text-align:right;color:{chk_color};
+                         font-weight:bold;font-size:16px">{chk}着</td>
+              <td style="padding:8px 10px;text-align:right;color:#fab387">{ninki}人気</td>
+              <td style="padding:8px 10px;text-align:right;color:#cba6f7">{agari_s}</td>
+              <td style="padding:8px 10px;color:#a6adc8;font-size:13px">
+                {pr.get('kimete','')}</td>
+            </tr>
+            """)
+        past_html = f"""
+        <div style="margin-bottom:14px">
+          <h3 style="color:#f5e0dc;font-size:18px;font-weight:bold;margin:0 0 8px 0">
+            📜 過去 5 走
+          </h3>
+          <table style="width:100%;border-collapse:collapse;background:#0a0a14;
+                        border-radius:8px;overflow:hidden">
+            <thead>
+              <tr style="background:#1e1e2e;border-bottom:2px solid #f39c12">
+                <th style="padding:10px;color:#f39c12;text-align:left">時期</th>
+                <th style="padding:10px;color:#f39c12;text-align:left">月/日</th>
+                <th style="padding:10px;color:#f39c12;text-align:left">場所</th>
+                <th style="padding:10px;color:#f39c12;text-align:left">コース</th>
+                <th style="padding:10px;color:#f39c12;text-align:left">馬場</th>
+                <th style="padding:10px;color:#f39c12;text-align:left">レース名</th>
+                <th style="padding:10px;color:#f39c12;text-align:right">着順</th>
+                <th style="padding:10px;color:#f39c12;text-align:right">人気</th>
+                <th style="padding:10px;color:#f39c12;text-align:right">上り3F</th>
+                <th style="padding:10px;color:#f39c12;text-align:left">決手</th>
+              </tr>
+            </thead>
+            <tbody>{"".join(rows)}</tbody>
+          </table>
+        </div>
+        """
+    else:
+        past_html = """
+        <div style="background:#1e1e2e;border-left:3px solid #6c7086;
+                    padding:12px 16px;border-radius:6px;color:#6c7086;
+                    margin-bottom:14px">
+          📜 過去 5 走データなし
+          <span style="font-size:12px">(data/kako5/{date}.csv が無いか、馬未掲載)</span>
+        </div>
+        """
+
+    # 同コース過去成績 (場所×芝/ダ×距離 の全体傾向、馬個別ではない)
+    meta = race.get("race_meta", {}) or {}
+    course_stats = compute_course_stats_v2(
+        meta.get("place", ""), meta.get("course", ""))
+    course_html = ""
+    if course_stats and course_stats.get("kyaku"):
+        ky_html = "".join(
+            f'<span style="color:#cdd6f4;margin-right:14px">'
+            f'<b>{k["label"]}</b>: 勝率 <b style="color:#a6e3a1">'
+            f'{k["win_rate"]:.1f}%</b></span>'
+            for k in course_stats["kyaku"]
+        )
+        course_html = f"""
+        <div style="background:#1e1e2e;border-left:3px solid #cba6f7;
+                    padding:12px 18px;border-radius:6px">
+          <h3 style="color:#cba6f7;font-size:16px;font-weight:bold;margin:0 0 8px 0">
+            🏃 {meta.get('place','')} {meta.get('course','')} の脚質別勝率
+          </h3>
+          <div>{ky_html}</div>
+        </div>
+        """
+
+    return header_html + past_html + course_html
+
+
 def render_training_top5(date_str: str | None) -> None:
     """直近 1 週間の好調教 Top5 (坂路 + WC) と各馬の出走予定を表示。
     weekly_nicegui.ps1 の date を引いて呼ぶ。
@@ -1483,12 +1789,40 @@ def render_training_top5(date_str: str | None) -> None:
 
 
 def render_tenkai_yoso(race: dict, date_str: str | None = None) -> None:
-    """展開予想 (脚質分布 + pace + 一言)。Cowork の買い目スタイル風の文章で。"""
+    """展開予想 (脚質分布 + pace + 一言)。Cowork の買い目スタイル風の文章で。
+    各馬にコース適性 (A/B/C/D) も付与。
+    """
     horses = list(race.get("horses", []))
     if not horses:
         return
     meta = race.get("race_meta", {}) or {}
     field_size = meta.get("field_size", 16) or 16
+    place = meta.get("place", "")
+    course_str = meta.get("course", "")
+
+    # コース別好走脚質をロード (適性スコア計算用)
+    course_stats = compute_course_stats_v2(place, course_str)
+    kyaku_winrate: dict[str, float] = {}
+    if course_stats and course_stats.get("kyaku"):
+        for entry in course_stats["kyaku"]:
+            kyaku_winrate[entry["label"]] = entry.get("win_rate", 0.0)
+
+    def aptitude_grade(kyaku: str) -> tuple[str, str, str]:
+        """コースのその脚質の勝率を相対化して A/B/C/D 評価を返す"""
+        if kyaku == "不明" or not kyaku_winrate:
+            return ("-", "#6c7086", "")
+        rates = sorted(kyaku_winrate.values(), reverse=True)
+        rate = kyaku_winrate.get(kyaku, 0.0)
+        if not rates or rate == 0:
+            return ("-", "#6c7086", "")
+        # 4 段階 (rank 0 が最良)
+        if rate >= rates[0] - 0.5:
+            return ("A", "#a6e3a1", "(好相性)")
+        if rate >= rates[min(1, len(rates)-1)] - 0.5:
+            return ("B", "#89b4fa", "")
+        if rate >= rates[min(2, len(rates)-1)] - 0.5:
+            return ("C", "#f9e2af", "")
+        return ("D", "#f38ba8", "(苦戦)")
 
     # 上位 5 頭 (p_win 順) で脚質を集計
     top5 = sorted(horses, key=lambda h: -(h.get("p_win") or 0))[:5]
@@ -1516,7 +1850,10 @@ def render_tenkai_yoso(race: dict, date_str: str | None = None) -> None:
                         except (TypeError, ValueError): pass
                         break
         kyaku = _classify_kyakushitsu(pos1, pos4, field_size)
-        kyaku_records.append({"horse": h, "kyaku": kyaku})
+        grade, grade_color, grade_note = aptitude_grade(kyaku)
+        kyaku_records.append({"horse": h, "kyaku": kyaku,
+                                "grade": grade, "grade_color": grade_color,
+                                "grade_note": grade_note})
 
     # 集計
     counts: dict[str, int] = {"逃げ":0, "先行":0, "差し":0, "追込":0, "不明":0}
@@ -1544,16 +1881,27 @@ def render_tenkai_yoso(race: dict, date_str: str | None = None) -> None:
         pace_color = "#a6e3a1"
         pace_msg = "脚質バランス均等 → 標準的な流れ、ポジション戦"
 
-    # 主要馬の一言コメント
+    # 主要馬の一言コメント (各馬: 印 / 馬番 / 馬名 / 脚質 / 適性 / 勝率)
     horse_lines = []
     for rec in kyaku_records:
         h = rec["horse"]
         k = rec["kyaku"]
+        grade = rec.get("grade", "-")
+        gcol = rec.get("grade_color", "#6c7086")
+        gnote = rec.get("grade_note", "")
         mark = h.get("mark") or "△"
         name = h.get("horse_name", "?")
         umaban = h.get("umaban", "?")
         pwin = (h.get("p_win") or 0) * 100
         mark_color = MARK_COLORS.get(mark, "#6c7086")
+        grade_html = (
+            f'<span style="background:{gcol};color:#1e1e2e;padding:3px 10px;'
+            f'border-radius:10px;font-weight:bold;font-size:14px;'
+            f'min-width:28px;text-align:center">適性 {grade}</span>'
+            f'<span style="color:{gcol};font-size:12px;margin-left:4px">{gnote}</span>'
+            if grade != "-" else
+            '<span style="color:#6c7086;font-size:12px">適性 −</span>'
+        )
         horse_lines.append(f"""
         <div style="display:flex;align-items:center;gap:10px;padding:8px 0">
           <span style="background:{mark_color};color:#fff;width:32px;height:32px;
@@ -1565,6 +1913,7 @@ def render_tenkai_yoso(race: dict, date_str: str | None = None) -> None:
           <span style="color:#fab387;font-size:15px;font-weight:bold;
                        background:rgba(250,179,135,0.15);padding:4px 14px;
                        border-radius:12px">{k}</span>
+          {grade_html}
           <span style="color:#a6e3a1;font-size:16px;font-weight:bold;
                        width:72px;text-align:right">{pwin:.1f}%</span>
         </div>
@@ -1636,6 +1985,21 @@ def render_course_analysis(race: dict) -> None:
       </div>
     </div>
     """)
+
+    # コース別好走脚質 (どの脚質が勝ちやすいコースか)
+    kyaku_rows = stats.get("kyaku") or []
+    if kyaku_rows:
+        # 勝率の高い脚質を強調 (▲ marker)
+        max_rate = max(r["win_rate"] for r in kyaku_rows)
+        annotated_rows = []
+        for r in kyaku_rows:
+            label = r["label"]
+            if r["win_rate"] >= max_rate - 0.3:
+                label = f"{label} ★"
+            annotated_rows.append({**r, "label": label})
+        ui.html(_stats_table_html(
+            "コース別好走脚質 (★ = 最も勝率が高い脚質)",
+            annotated_rows, "🏃"))
 
     # 条件別成績の 2x2 グリッド:
     #   Row 1: 枠順   | 馬番
@@ -2082,7 +2446,7 @@ def main_page():
     with ui.header(elevated=True).classes("bg-slate-900"):
         ui.label("🏇 PyCaLiAI").classes("text-3xl font-bold text-white")
         ui.space()
-        ui.label("NiceGUI 版 (実験 MVP v9.1)").classes("text-base text-slate-400")
+        ui.label("NiceGUI 版 (実験 MVP v10)").classes("text-base text-slate-400")
 
     state = {
         "date": None, "race": None, "bundle": None,
@@ -2145,6 +2509,20 @@ def main_page():
             with ui.tab_panel(tab_bets):
                 bets_box = ui.element("div").classes("w-full")
 
+    # 馬個別モーダル (出走表タブの「🐴 詳細」ボタンで開く)
+    horse_dialog = ui.dialog()
+
+    def open_horse_detail(h: dict, race: dict):
+        horse_dialog.clear()
+        with horse_dialog, ui.card().classes("max-w-[1100px]") \
+                .style("width:90vw;max-height:85vh;overflow:auto"):
+            ui.html(make_horse_detail_html(
+                h, race, state.get("date")))
+            with ui.row().classes("w-full justify-end"):
+                ui.button("閉じる", on_click=horse_dialog.close) \
+                    .props("color=primary")
+        horse_dialog.open()
+
     def render_race(race: dict):
         state["race"] = race
 
@@ -2159,6 +2537,22 @@ def main_page():
         shutsuba_box.clear()
         with shutsuba_box:
             ui.html(make_shutsuba_table_html(race, date_str=state.get("date")))
+
+            # 🐴 馬個別深掘りボタン (各馬名 → モーダルで過去5走 + コース傾向)
+            horses_sorted = sorted(race.get("horses", []),
+                                    key=lambda h: h.get("umaban") or 0)
+            ui.label("🐴 馬個別深掘り (馬名をクリック)").classes(
+                "text-lg font-bold text-slate-200 mt-4 mb-2")
+            with ui.row().classes("w-full gap-1 flex-wrap"):
+                for h in horses_sorted:
+                    name = h.get("horse_name", "?")
+                    uma = h.get("umaban", "?")
+                    mark = h.get("mark") or ""
+                    mark_color = MARK_COLORS.get(mark, "#475569")
+                    btn = ui.button(f"{uma}番 {name}",
+                                      on_click=lambda h=h: open_horse_detail(h, race)) \
+                        .classes("text-white").props("dense no-caps")
+                    btn.style(f"background:{mark_color}")
 
         bunseki_box.clear()
         with bunseki_box:

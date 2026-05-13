@@ -66,6 +66,20 @@ def stats_breakdown(sub: pd.DataFrame, col: str, values: list,
     return out
 
 
+def classify_kyaku(pos4: float, field_size: float) -> str:
+    """前走 4 角通過位置から脚質を推定 (field_size 相対)。"""
+    if pd.isna(pos4) or pd.isna(field_size) or field_size < 1:
+        return "不明"
+    p = float(pos4) / float(field_size)
+    if p <= 0.20:
+        return "逃げ"
+    if p <= 0.45:
+        return "先行"
+    if p <= 0.70:
+        return "差し"
+    return "追込"
+
+
 def compute_stats_for_group(sub: pd.DataFrame, place: str,
                               surface: str, distance: int) -> dict:
     """(place, surface, distance) の sub df から全条件別統計を算出。"""
@@ -97,6 +111,20 @@ def compute_stats_for_group(sub: pd.DataFrame, place: str,
     sex = stats_breakdown(sub, "性別", ["牡", "牝", "セ"],
                             label_fn=lambda v: {"牡":"牡馬","牝":"牝馬","セ":"セン馬"}.get(v, v))
 
+    # 脚質別好走 (前走 4 角通過位置から各馬の脚質を推定)
+    # master_v2 の 前4角 は「前走の 4 角通過位置」なので、馬の脚質を直接示す
+    # (この race の通過位置ではないが、馬の脚質はレース間で大体一貫しているので
+    #  近似として有効)
+    kyaku: list[dict] = []
+    if {"前4角", "出走頭数"}.issubset(sub.columns):
+        sub2 = sub.copy()
+        sub2["_kyaku"] = [
+            classify_kyaku(p, f)
+            for p, f in zip(sub2["前4角"], sub2["出走頭数"])
+        ]
+        kyaku = stats_breakdown(sub2, "_kyaku",
+                                  ["逃げ", "先行", "差し", "追込"])
+
     return {
         "place": place,
         "surface": surface,
@@ -107,6 +135,7 @@ def compute_stats_for_group(sub: pd.DataFrame, place: str,
         "uma": uma,
         "age": age,
         "sex": sex,
+        "kyaku": kyaku,
     }
 
 
@@ -134,7 +163,8 @@ def main():
     print(f"reading {master_path} ...")
 
     usecols = ["日付", "場所", "枠番", "馬番", "着順",
-                "芝・ダ", "距離", "年齢", "性別"]
+                "芝・ダ", "距離", "年齢", "性別",
+                "前4角", "出走頭数"]
     df = pd.read_csv(master_path, encoding="utf-8-sig",
                       usecols=usecols, dtype=str,
                       low_memory=False, on_bad_lines="skip")
@@ -144,6 +174,10 @@ def main():
     df["着順"] = pd.to_numeric(df["着順"], errors="coerce")
     df["距離"] = pd.to_numeric(df["距離"], errors="coerce")
     df["年齢"] = pd.to_numeric(df["年齢"], errors="coerce")
+    if "前4角" in df.columns:
+        df["前4角"] = pd.to_numeric(df["前4角"], errors="coerce")
+    if "出走頭数" in df.columns:
+        df["出走頭数"] = pd.to_numeric(df["出走頭数"], errors="coerce")
     df = df.dropna(subset=["着順", "距離"]).copy()
     print(f"  rows: {len(df):,}")
 
