@@ -1206,36 +1206,36 @@ def _stats_table_html(title: str, rows: list[dict],
     body = []
     for r in rows:
         body.append(f"""
-        <tr style="border-bottom:1px solid #313244">
-          <td style="padding:6px 10px;color:#cdd6f4;font-weight:bold">{r['label']}</td>
-          <td style="padding:6px 10px;text-align:right;color:#a6e3a1">{r['n_1']}</td>
-          <td style="padding:6px 10px;text-align:right;color:#89b4fa">{r['n_2']}</td>
-          <td style="padding:6px 10px;text-align:right;color:#f9e2af">{r['n_3']}</td>
-          <td style="padding:6px 10px;text-align:right;color:#6c7086">{r['n_out']}</td>
-          <td style="padding:6px 10px;text-align:right;color:#a6e3a1;font-weight:bold">
+        <tr style="border-bottom:1px solid #313244;height:36px">
+          <td style="padding:10px 14px;color:#cdd6f4;font-weight:bold;font-size:16px">{r['label']}</td>
+          <td style="padding:10px 14px;text-align:right;color:#a6e3a1;font-size:16px">{r['n_1']}</td>
+          <td style="padding:10px 14px;text-align:right;color:#89b4fa;font-size:16px">{r['n_2']}</td>
+          <td style="padding:10px 14px;text-align:right;color:#f9e2af;font-size:16px">{r['n_3']}</td>
+          <td style="padding:10px 14px;text-align:right;color:#6c7086;font-size:16px">{r['n_out']}</td>
+          <td style="padding:10px 14px;text-align:right;color:#a6e3a1;font-weight:bold;font-size:17px">
             {r['win_rate']:.1f}</td>
-          <td style="padding:6px 10px;text-align:right;color:#89b4fa">
+          <td style="padding:10px 14px;text-align:right;color:#89b4fa;font-size:17px">
             {r['rentai_rate']:.1f}</td>
-          <td style="padding:6px 10px;text-align:right;color:#fab387;font-weight:bold">
+          <td style="padding:10px 14px;text-align:right;color:#fab387;font-weight:bold;font-size:17px">
             {r['fuku_rate']:.1f}</td>
         </tr>
         """)
     return f"""
-    <div style="margin-bottom:18px;min-width:{min_width}">
-      <h3 style="color:#f5e0dc;margin:0 0 8px 0;font-size:15px;font-weight:bold">
+    <div style="margin-bottom:22px;min-width:{min_width}">
+      <h3 style="color:#f5e0dc;margin:0 0 12px 0;font-size:20px;font-weight:bold">
         {emoji} {title}</h3>
       <table style="width:100%;border-collapse:collapse;background:#0a0a14;
-                    border-radius:8px;overflow:hidden;font-size:13px">
+                    border-radius:8px;overflow:hidden">
         <thead>
           <tr style="background:#1e1e2e;border-bottom:2px solid #f39c12">
-            <th style="padding:8px 6px;color:#f39c12;text-align:left">条件</th>
-            <th style="padding:8px 6px;color:#f39c12;text-align:right">1着</th>
-            <th style="padding:8px 6px;color:#f39c12;text-align:right">2着</th>
-            <th style="padding:8px 6px;color:#f39c12;text-align:right">3着</th>
-            <th style="padding:8px 6px;color:#f39c12;text-align:right">着外</th>
-            <th style="padding:8px 6px;color:#f39c12;text-align:right">勝率</th>
-            <th style="padding:8px 6px;color:#f39c12;text-align:right">連対率</th>
-            <th style="padding:8px 6px;color:#f39c12;text-align:right">複勝率</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:left;font-size:15px">条件</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:right;font-size:15px">1着</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:right;font-size:15px">2着</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:right;font-size:15px">3着</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:right;font-size:15px">着外</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:right;font-size:15px">勝率</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:right;font-size:15px">連対率</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:right;font-size:15px">複勝率</th>
           </tr>
         </thead>
         <tbody>{"".join(body)}</tbody>
@@ -1336,41 +1336,41 @@ def render_tenkai_yoso(race: dict, date_str: str | None = None) -> None:
         pwin = (h.get("p_win") or 0) * 100
         mark_color = MARK_COLORS.get(mark, "#6c7086")
         horse_lines.append(f"""
-        <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
-          <span style="background:{mark_color};color:#fff;width:24px;height:24px;
-                       line-height:24px;text-align:center;border-radius:50%;
-                       font-size:13px;font-weight:bold;flex-shrink:0">{mark}</span>
-          <span style="color:#6c7086;font-size:13px;width:32px">{umaban}番</span>
-          <span style="color:#cdd6f4;font-size:14px;flex-grow:1;font-weight:600">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0">
+          <span style="background:{mark_color};color:#fff;width:32px;height:32px;
+                       line-height:32px;text-align:center;border-radius:50%;
+                       font-size:16px;font-weight:bold;flex-shrink:0">{mark}</span>
+          <span style="color:#6c7086;font-size:15px;width:42px">{umaban}番</span>
+          <span style="color:#cdd6f4;font-size:17px;flex-grow:1;font-weight:600">
             {name}</span>
-          <span style="color:#fab387;font-size:13px;
-                       background:rgba(250,179,135,0.12);padding:2px 10px;
-                       border-radius:10px">{k}</span>
-          <span style="color:#a6e3a1;font-size:13px;font-weight:bold;
-                       width:60px;text-align:right">{pwin:.1f}%</span>
+          <span style="color:#fab387;font-size:15px;font-weight:bold;
+                       background:rgba(250,179,135,0.15);padding:4px 14px;
+                       border-radius:12px">{k}</span>
+          <span style="color:#a6e3a1;font-size:16px;font-weight:bold;
+                       width:72px;text-align:right">{pwin:.1f}%</span>
         </div>
         """)
 
     ui.html(f"""
     <div style="background:linear-gradient(135deg,#0d1421 0%,#16213e 100%);
-                border:1px solid {pace_color};border-radius:14px;padding:18px 22px;
-                margin-bottom:14px">
-      <h2 style="margin:0 0 6px 0;color:#cdd6f4;font-size:18px;font-weight:bold">
+                border:1px solid {pace_color};border-radius:14px;padding:22px 26px;
+                margin-bottom:18px">
+      <h2 style="margin:0 0 10px 0;color:#cdd6f4;font-size:24px;font-weight:bold">
         🏇 展開予想
       </h2>
-      <div style="margin-bottom:14px">
-        <span style="background:{pace_color};color:#1e1e2e;padding:5px 14px;
-                     border-radius:14px;font-weight:bold;font-size:14px">{pace}</span>
-        <span style="color:#cdd6f4;font-size:14px;margin-left:10px">{pace_msg}</span>
+      <div style="margin-bottom:18px">
+        <span style="background:{pace_color};color:#1e1e2e;padding:8px 18px;
+                     border-radius:14px;font-weight:bold;font-size:18px">{pace}</span>
+        <span style="color:#cdd6f4;font-size:16px;margin-left:14px">{pace_msg}</span>
       </div>
       <div style="background:rgba(0,0,0,0.25);border-left:3px solid {pace_color};
-                  padding:8px 14px;border-radius:6px">
-        <div style="color:#6c7086;font-size:12px;margin-bottom:4px">
+                  padding:12px 18px;border-radius:6px">
+        <div style="color:#6c7086;font-size:14px;margin-bottom:8px">
           上位 5 頭の想定脚質 (前4角通過位置ベース)
         </div>
         {"".join(horse_lines)}
       </div>
-      <div style="margin-top:10px;color:#a6adc8;font-size:12px;line-height:1.5">
+      <div style="margin-top:14px;color:#a6adc8;font-size:14px;line-height:1.5">
         脚質分布: 逃げ {counts['逃げ']} / 先行 {counts['先行']} /
         差し {counts['差し']} / 追込 {counts['追込']}
         {'(不明 ' + str(counts['不明']) + ')' if counts['不明'] > 0 else ''}
@@ -1406,12 +1406,12 @@ def render_course_analysis(race: dict) -> None:
     # Header
     ui.html(f"""
     <div style="background:linear-gradient(135deg,#0d1421 0%,#16213e 100%);
-                border:1px solid #f39c12;border-radius:14px;padding:14px 18px;
-                margin-bottom:14px">
-      <h2 style="margin:0;color:#cdd6f4;font-size:20px;font-weight:bold">
+                border:1px solid #f39c12;border-radius:14px;padding:18px 24px;
+                margin-bottom:18px">
+      <h2 style="margin:0;color:#cdd6f4;font-size:26px;font-weight:bold">
         📊 {place} {course_str} 過去成績
       </h2>
-      <div style="color:#a6adc8;font-size:13px;margin-top:4px">
+      <div style="color:#a6adc8;font-size:15px;margin-top:6px">
         対象: {stats['n_races']:,} レース / {stats['n_starts']:,} 出走 (2013-2025)
         — 単位 [%]
       </div>
