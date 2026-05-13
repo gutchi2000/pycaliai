@@ -1,7 +1,16 @@
 """
 nicegui_app.py
 ==============
-NiceGUI 版 PyCaLiAI (実験 MVP v9)
+NiceGUI 版 PyCaLiAI (実験 MVP v9.1)
+
+v9 → v9.1 変更点:
+  1. ⚡「直近 1 週間の好調教 Best 5」セクション追加 (collapsible expansion):
+     - 坂路 終い1F (data/training/H-*.csv の Lap1 最小値)
+     - WC 3F     (data/training/W-*.csv の 3F  最小値)
+     - 各 5 頭、**当週末出走馬のみ** に絞る
+     - その馬のレース情報 (場所/R/印/AI 勝率) を併記
+  2. コース分析タブの 馬番テーブルを「2x2 グリッド (枠|馬番 / 年齢|性別)」化
+  3. コース分析テーブルのフォント拡大 (13->17px)
 
 v8 → v9 変更点:
   1. 出走表に「騎手」列を追加 (weekly CSV の 騎手 列から merge)
@@ -421,6 +430,123 @@ def _latest_training(name: str, race_date_int: int) -> dict[str, float | None]:
                 out["trn_wc_5f"] = float(f5)
             if pd.notna(f3):
                 out["trn_wc_3f"] = float(f3)
+    return out
+
+
+@functools.lru_cache(maxsize=8)
+def compute_training_top5(date_str: str, days_back: int = 7) -> dict:
+    """直近 days_back 日間の調教ベストタイム 上位 5 頭 (坂路 + WC)。
+
+    **当週末 (bundle.json) に出走する馬のみ** を対象とする。
+    調教は速くても出走しない馬を出しても役に立たないため。
+
+    坂路 (data/training/H-*.csv):
+      - Lap1 (ラスト 1F、終い時計) が小さい順 (速い)
+    WC (data/training/W-*.csv):
+      - 3F (3F 合計タイム) が小さい順 (速い)
+
+    返り値: {"hanro": [...], "wc": [...]}
+    各 item: {"name", "lap1"/"f3", "time1"/"f5", "date", "place", "race"}
+    """
+    out: dict[str, list[dict]] = {"hanro": [], "wc": []}
+    if not date_str or len(date_str) != 8 or not date_str.isdigit():
+        return out
+
+    h_all, w_all = load_training_all()
+    if h_all is None and w_all is None:
+        return out
+
+    try:
+        race_date_int = int(date_str)
+    except ValueError:
+        return out
+
+    from datetime import datetime, timedelta
+    race_dt = datetime.strptime(date_str, "%Y%m%d")
+    cutoff_dt = race_dt - timedelta(days=days_back)
+    cutoff_int = int(cutoff_dt.strftime("%Y%m%d"))
+
+    # 当週末出走馬の名前セットを bundle.json から取得 (Top5 のフィルタ)
+    bundle = load_bundle(date_str)
+    entering_names: set[str] = set()
+    if bundle:
+        for race in bundle.get("races", []):
+            for h in race.get("horses", []):
+                nm = (h.get("horse_name") or "").strip()
+                if nm:
+                    entering_names.add(nm)
+
+    # 坂路 best 5 (馬ごとに最良 Lap1 をとる、Lap1 = 終い1F 秒、低いほど速い)
+    # 注: 0 や NaN 等の不完全行を除外 (Lap1 は典型的に 12-17 秒)
+    # H CSV のヘッダ: 年月日, 馬名, Time1, Time2, Time3, Time4, Lap4, Lap3, Lap2, Lap1
+    #               場所列は無いので "" を出す
+    if h_all is not None and {"Lap1", "馬名", "年月日"}.issubset(h_all.columns):
+        recent_h = h_all[(h_all["年月日"] >= cutoff_int) &
+                          (h_all["年月日"] < race_date_int)].copy()
+        recent_h = recent_h.dropna(subset=["Lap1", "馬名"])
+        recent_h = recent_h[recent_h["Lap1"] >= 10.0]   # ノイズ行除外
+        # 当週末出走馬に絞る (entering_names が空なら filter スキップ)
+        if entering_names:
+            recent_h = recent_h[recent_h["馬名"].astype(str).str.strip()
+                                  .isin(entering_names)]
+        if not recent_h.empty:
+            best_idx = recent_h.groupby("馬名")["Lap1"].idxmin()
+            best = recent_h.loc[best_idx].sort_values("Lap1").head(5)
+            for _, r in best.iterrows():
+                out["hanro"].append({
+                    "name": str(r["馬名"]).strip(),
+                    "lap1": float(r["Lap1"]),
+                    "time1": float(r["Time1"]) if "Time1" in r.index and pd.notna(r["Time1"]) else None,
+                    "date":  int(r["年月日"]),
+                    "place": str(r.get("場所", "")) if "場所" in r.index else "",
+                })
+
+    # WC best 5 (3F = 3 ハロン合計秒、低いほど速い、典型 33-40 秒)
+    if w_all is not None and {"3F", "馬名", "年月日"}.issubset(w_all.columns):
+        recent_w = w_all[(w_all["年月日"] >= cutoff_int) &
+                          (w_all["年月日"] < race_date_int)].copy()
+        recent_w = recent_w.dropna(subset=["3F", "馬名"])
+        recent_w = recent_w[recent_w["3F"] >= 20.0]   # ノイズ除外
+        if entering_names:
+            recent_w = recent_w[recent_w["馬名"].astype(str).str.strip()
+                                  .isin(entering_names)]
+        if not recent_w.empty:
+            best_idx = recent_w.groupby("馬名")["3F"].idxmin()
+            best = recent_w.loc[best_idx].sort_values("3F").head(5)
+            for _, r in best.iterrows():
+                out["wc"].append({
+                    "name": str(r["馬名"]).strip(),
+                    "f3":   float(r["3F"]),
+                    "f5":   float(r["5F"]) if "5F" in r.index and pd.notna(r["5F"]) else None,
+                    "date": int(r["年月日"]),
+                    "place": str(r.get("場所", "")) if "場所" in r.index else "",
+                })
+
+    # 出走レース照合 (bundle.json から 馬名 で引く)
+    bundle = load_bundle(date_str)
+    name_to_race: dict[str, dict] = {}
+    if bundle:
+        for race in bundle.get("races", []):
+            rid = race.get("race_id", "")
+            meta = race.get("race_meta", {}) or {}
+            place = meta.get("place", "")
+            r_num = rid[-2:].lstrip("0") if len(rid) >= 16 else "?"
+            course = meta.get("course", "")
+            for h in race.get("horses", []):
+                hname = (h.get("horse_name") or "").strip()
+                if hname:
+                    name_to_race[hname] = {
+                        "place": place,
+                        "race_num": r_num,
+                        "race_id": rid,
+                        "course": course,
+                        "mark": h.get("mark") or "",
+                        "p_win": h.get("p_win") or 0,
+                    }
+
+    for item in out["hanro"] + out["wc"]:
+        item["race"] = name_to_race.get(item["name"])
+
     return out
 
 
@@ -1263,6 +1389,99 @@ def _classify_kyakushitsu(pos1: float | None,
     return "追込"
 
 
+def render_training_top5(date_str: str | None) -> None:
+    """直近 1 週間の好調教 Top5 (坂路 + WC) と各馬の出走予定を表示。
+    weekly_nicegui.ps1 の date を引いて呼ぶ。
+    """
+    if not date_str:
+        return
+    data = compute_training_top5(date_str)
+    has_hanro = bool(data.get("hanro"))
+    has_wc = bool(data.get("wc"))
+    if not has_hanro and not has_wc:
+        return  # 訓練 CSV 無し or 該当馬無し → 何も出さない
+
+    def _item_html(item: dict, time_label: str, time_key: str,
+                     time_unit: str = "秒") -> str:
+        name = item.get("name", "?")
+        date_str_ = str(item.get("date", ""))
+        date_fmt = (f"{date_str_[4:6]}/{date_str_[6:8]}"
+                      if len(date_str_) == 8 else "?")
+        place = item.get("place") or ""
+        if place.lower() == "nan":
+            place = ""
+        time_val = item.get(time_key)
+        time_str = f"{time_val:.1f} {time_unit}" if time_val is not None else "-"
+        race = item.get("race")
+        if race:
+            mark = race.get("mark") or ""
+            mark_color = MARK_COLORS.get(mark, "#6c7086")
+            mark_html = (f'<span style="background:{mark_color};color:#fff;'
+                          f'padding:2px 7px;border-radius:10px;font-size:12px;'
+                          f'font-weight:bold;margin-right:6px">{mark}</span>'
+                          if mark else "")
+            p_win = (race.get("p_win") or 0) * 100
+            race_html = (
+                f'{mark_html}'
+                f'<span style="color:#a6e3a1;font-weight:bold">'
+                f'{race["place"]} {race["race_num"]}R</span>'
+                f'<span style="color:#a6adc8;font-size:13px;margin-left:6px">'
+                f'({race.get("course","")})</span>'
+                f'<span style="color:#fab387;font-size:13px;margin-left:6px">'
+                f'AI勝率 {p_win:.1f}%</span>'
+            )
+        else:
+            race_html = '<span style="color:#6c7086;font-size:13px">出走予定なし</span>'
+
+        return f"""
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+                    border-bottom:1px solid #313244">
+          <span style="color:#cdd6f4;font-size:16px;font-weight:bold;min-width:140px">
+            {name}</span>
+          <span style="color:#fab387;font-size:16px;font-weight:bold;min-width:110px;
+                       text-align:right">{time_label}: {time_str}</span>
+          <span style="color:#6c7086;font-size:13px;min-width:90px">
+            {place} {date_fmt}</span>
+          <span style="font-size:14px;flex:1">{race_html}</span>
+        </div>
+        """
+
+    hanro_html = "".join(
+        _item_html(it, "終い1F", "lap1") for it in data["hanro"]
+    ) or '<div style="color:#6c7086;padding:10px">該当データなし</div>'
+    wc_html = "".join(
+        _item_html(it, "3F", "f3") for it in data["wc"]
+    ) or '<div style="color:#6c7086;padding:10px">該当データなし</div>'
+
+    ui.html(f"""
+    <div style="background:#1e1e2e;border:1px solid #f39c12;border-radius:12px;
+                padding:18px 22px;margin-bottom:14px">
+      <h2 style="margin:0 0 12px 0;color:#f39c12;font-size:22px;font-weight:bold">
+        ⚡ 直近 1 週間の好調教 Best 5
+      </h2>
+      <div style="color:#a6adc8;font-size:13px;margin-bottom:10px">
+        race 日 ({date_str[:4]}-{date_str[4:6]}-{date_str[6:8]}) の前 7 日間で
+        馬ごとに最良タイムを採り、坂路は終い1F、WC は 3F が速い順。
+        その馬が当週末に出走するなら場所/レース番号/印/AI 勝率を併記。
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div>
+          <h3 style="color:#a6e3a1;font-size:18px;margin:0 0 6px 0;font-weight:bold">
+            🏔️ 坂路 終い1F Best 5
+          </h3>
+          {hanro_html}
+        </div>
+        <div>
+          <h3 style="color:#89b4fa;font-size:18px;margin:0 0 6px 0;font-weight:bold">
+            🌲 WC 3F Best 5
+          </h3>
+          {wc_html}
+        </div>
+      </div>
+    </div>
+    """)
+
+
 def render_tenkai_yoso(race: dict, date_str: str | None = None) -> None:
     """展開予想 (脚質分布 + pace + 一言)。Cowork の買い目スタイル風の文章で。"""
     horses = list(race.get("horses", []))
@@ -1863,7 +2082,7 @@ def main_page():
     with ui.header(elevated=True).classes("bg-slate-900"):
         ui.label("🏇 PyCaLiAI").classes("text-3xl font-bold text-white")
         ui.space()
-        ui.label("NiceGUI 版 (実験 MVP v9)").classes("text-base text-slate-400")
+        ui.label("NiceGUI 版 (実験 MVP v9.1)").classes("text-base text-slate-400")
 
     state = {
         "date": None, "race": None, "bundle": None,
@@ -1895,6 +2114,14 @@ def main_page():
 
         # ── 3 行目: レース番号ボタン ──
         race_buttons_container = ui.element("div").classes("w-full mb-1")
+
+        # ── 4 行目: 直近 1 週間の好調教 Top 5 (折りたたみ) ──
+        with ui.expansion("⚡ 直近 1 週間の好調教 Best 5",
+                            icon="bolt", value=False) \
+                .classes("w-full") \
+                .style("background:rgba(243,156,18,0.05);"
+                        "border:1px solid #f39c12;border-radius:12px"):
+            training_top5_box = ui.element("div").classes("w-full")
 
         # ── メイン: 左右パネル ──
         with ui.row().classes("w-full no-wrap gap-3"):
@@ -2136,6 +2363,11 @@ def main_page():
 
         render_place_tabs()
         render_race_buttons()
+
+        # 直近 1 週間の好調教 Top 5 (date が変わった時のみ再計算)
+        training_top5_box.clear()
+        with training_top5_box:
+            render_training_top5(date)
 
         if state["current_place"]:
             races = sorted(by_place.get(state["current_place"], []),
