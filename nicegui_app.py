@@ -1418,17 +1418,21 @@ def render_course_analysis(race: dict) -> None:
     </div>
     """)
 
-    # 条件別成績 (画像と同じ並び: 枠順 / 年齢 / 性別 を 3 カラム)
+    # 条件別成績の 2x2 グリッド:
+    #   Row 1: 枠順   | 馬番
+    #   Row 2: 年齢   | 性別
+    # 各 cell は flex-1 (画面幅の半分) なので密度が同じ。
+    # 馬番は行数多いので Row 1 が縦に長くなり、年齢/性別は下に流れる。
     with ui.row().classes("w-full no-wrap gap-3 items-start"):
         with ui.column().classes("flex-1"):
             ui.html(_stats_table_html("枠順", stats["waku"], "🎫"))
         with ui.column().classes("flex-1"):
+            ui.html(_stats_table_html("馬番", stats["uma"], "🏇"))
+    with ui.row().classes("w-full no-wrap gap-3 items-start"):
+        with ui.column().classes("flex-1"):
             ui.html(_stats_table_html("年齢", stats["age"], "🎂"))
         with ui.column().classes("flex-1"):
             ui.html(_stats_table_html("性別", stats["sex"], "♂♀"))
-
-    # 馬番別は横に長いので単独行
-    ui.html(_stats_table_html("馬番", stats["uma"], "🏇"))
 
 
 # ============================================================
