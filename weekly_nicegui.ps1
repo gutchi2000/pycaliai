@@ -225,6 +225,23 @@ if (Test-Path $bundlePath) {
     Fail "bundle.json not created at $bundlePath"
 }
 
+# -- Step 3b: course_stats.json (NiceGUI コース分析タブ用、master_v2 から
+#             集計、HF にも同期される ~600KB の事前計算ファイル) --
+$masterCsv = Get-ChildItem 'data' -Filter 'master_v2_*.csv' -ErrorAction SilentlyContinue |
+             Sort-Object Name -Descending | Select-Object -First 1
+if ($masterCsv) {
+    Step "[3b/5] build_course_stats.py -> data/course_stats.json"
+    python build_course_stats.py --master $masterCsv.FullName
+    if ($LASTEXITCODE -ne 0) {
+        Warn "build_course_stats failed (continuing; existing JSON is used)"
+    } else {
+        $statsSize = [math]::Round((Get-Item 'data\course_stats.json').Length / 1024, 1)
+        OK ("data\course_stats.json ({0} KB)" -f $statsSize)
+    }
+} else {
+    Write-Host "    master_v2_*.csv not found -> skipping course_stats rebuild" -ForegroundColor Yellow
+}
+
 # -- Step 4: git add + commit + push origin --
 if ($SkipGit) {
     Step "[4/5] git push SKIPPED (-SkipGit)"
@@ -237,6 +254,10 @@ if ($SkipGit) {
     if (Test-Path $hoseiPath) { git add $hoseiPath 2>$null }
 
     if (Test-Path $bundlePath) { git add $bundlePath 2>$null }
+
+    if (Test-Path 'data\course_stats.json') {
+        git add 'data\course_stats.json' 2>$null
+    }
 
     $predPath = "reports\pred_$Date.csv"
     if (Test-Path $predPath) { git add -f $predPath 2>$null }

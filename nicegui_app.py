@@ -559,65 +559,106 @@ def _stats_breakdown(sub: pd.DataFrame, col: str,
     return out
 
 
+COURSE_STATS_JSON = BASE / "data" / "course_stats.json"
+
+
+@functools.lru_cache(maxsize=1)
+def load_precomputed_course_stats() -> dict | None:
+    """build_course_stats.py が生成した data/course_stats.json をロード。
+    master_v2 が無い HF 環境でもコース分析が出るためのフォールバック。
+    """
+    if not COURSE_STATS_JSON.exists():
+        return None
+    try:
+        with open(COURSE_STATS_JSON, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"[course_stats.json 読込失敗] {e}")
+        return None
+
+
 @functools.lru_cache(maxsize=128)
 def compute_course_stats_v2(place: str, course_str: str) -> dict | None:
     """同コース過去成績の全条件別統計 (枠 / 馬番 / 年齢 / 性別)。
+
+    優先度:
+      1. master_v2_*.csv があれば実時間集計 (常に最新)
+      2. data/course_stats.json (build_course_stats.py で事前生成) を参照
+      3. どちらも無ければ None
 
     返り値: { "n_races", "n_starts", "waku", "uma", "age", "sex" }
     各 dimension は [{"label","n_1","n_2","n_3","n_out","n_total",
                      "win_rate","rentai_rate","fuku_rate"}, ...]
     """
+    if not place or not course_str:
+        return None
+
+    # 1. master_v2 ある場合 (ローカル)
     df = get_master_df()
-    if df is None or not place or not course_str:
+    if df is not None:
+        surface, dist = parse_course_str(course_str)
+        if not surface or not dist:
+            return None
+        sub = df[(df["場所"] == place) &
+                 (df["芝・ダ"] == surface) &
+                 (df["距離"] == dist)]
+        if len(sub) < 100:
+            return None
+
+        sub = sub.copy()
+        n_races = sub["日付"].nunique() if "日付" in sub.columns else len(sub) // 14
+        n_starts = len(sub)
+
+        waku = _stats_breakdown(sub, "枠番", list(range(1, 9)),
+                                  label_fn=lambda v: str(v))
+        uma_values = sorted(sub["馬番"].dropna().unique().astype(int))
+        uma_values = [v for v in uma_values if 1 <= v <= 18]
+        uma = _stats_breakdown(sub, "馬番", uma_values,
+                                 label_fn=lambda v: str(v))
+
+        age = _stats_breakdown(sub, "年齢", [3, 4, 5, 6, 7],
+                                 label_fn=lambda v: f"{v}歳")
+        grp_8 = sub[sub["年齢"] >= 8]
+        total = len(grp_8)
+        if total > 0:
+            wins = int((grp_8["着順"] == 1).sum())
+            top2 = int((grp_8["着順"] <= 2).sum())
+            top3 = int((grp_8["着順"] <= 3).sum())
+            age.append({
+                "label": "8歳~",
+                "n_1": wins, "n_2": top2 - wins, "n_3": top3 - top2,
+                "n_out": total - top3, "n_total": total,
+                "win_rate":    wins / total * 100,
+                "rentai_rate": top2 / total * 100,
+                "fuku_rate":   top3 / total * 100,
+            })
+
+        sex = _stats_breakdown(sub, "性別", ["牡", "牝", "セ"],
+                                 label_fn=lambda v: {"牡":"牡馬","牝":"牝馬","セ":"セン馬"}.get(v, v))
+
+        return {
+            "place": place, "course": course_str,
+            "n_races": n_races, "n_starts": n_starts,
+            "waku": waku, "uma": uma, "age": age, "sex": sex,
+        }
+
+    # 2. master_v2 が無い場合 (HF) → 事前生成 JSON にフォールバック
+    cache = load_precomputed_course_stats()
+    if cache is None:
         return None
-    surface, dist = parse_course_str(course_str)
-    if not surface or not dist:
+    key = f"{place}|{course_str}"
+    entry = cache.get(key)
+    if not entry:
         return None
-    sub = df[(df["場所"] == place) &
-             (df["芝・ダ"] == surface) &
-             (df["距離"] == dist)]
-    if len(sub) < 100:
-        return None
-
-    sub = sub.copy()
-    n_races = sub["日付"].nunique() if "日付" in sub.columns else len(sub) // 14
-    n_starts = len(sub)
-
-    # 枠順別 (1-8)
-    waku = _stats_breakdown(sub, "枠番", list(range(1, 9)),
-                              label_fn=lambda v: str(v))
-    # 馬番別 (1-18, 出現したものだけ)
-    uma_values = sorted(sub["馬番"].dropna().unique().astype(int))
-    uma_values = [v for v in uma_values if 1 <= v <= 18]
-    uma = _stats_breakdown(sub, "馬番", uma_values,
-                             label_fn=lambda v: str(v))
-
-    # 年齢別 (3-7歳、8歳以上はまとめる)
-    age = _stats_breakdown(sub, "年齢", [3, 4, 5, 6, 7],
-                             label_fn=lambda v: f"{v}歳")
-    grp_8 = sub[sub["年齢"] >= 8]
-    total = len(grp_8)
-    if total > 0:
-        wins = int((grp_8["着順"] == 1).sum())
-        top2 = int((grp_8["着順"] <= 2).sum())
-        top3 = int((grp_8["着順"] <= 3).sum())
-        age.append({
-            "label": "8歳~",
-            "n_1": wins, "n_2": top2 - wins, "n_3": top3 - top2,
-            "n_out": total - top3, "n_total": total,
-            "win_rate":    wins / total * 100,
-            "rentai_rate": top2 / total * 100,
-            "fuku_rate":   top3 / total * 100,
-        })
-
-    # 性別 (牡/牝/セ)
-    sex = _stats_breakdown(sub, "性別", ["牡", "牝", "セ"],
-                             label_fn=lambda v: {"牡":"牡馬","牝":"牝馬","セ":"セン馬"}.get(v, v))
-
     return {
-        "place": place, "course": course_str,
-        "n_races": n_races, "n_starts": n_starts,
-        "waku": waku, "uma": uma, "age": age, "sex": sex,
+        "place": place,
+        "course": course_str,
+        "n_races":  entry.get("n_races", 0),
+        "n_starts": entry.get("n_starts", 0),
+        "waku": entry.get("waku", []),
+        "uma":  entry.get("uma",  []),
+        "age":  entry.get("age",  []),
+        "sex":  entry.get("sex",  []),
     }
 
 
