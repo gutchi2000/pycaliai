@@ -53,6 +53,7 @@ $SyncDataPatterns = @(
     '^data/training/H-2026[0-9]+(-[0-9]+)?\.csv$',
     '^data/training/W-2026[0-9]+(-[0-9]+)?\.csv$',
     '^data/kako5/[0-9]{8}\.csv$',
+    '^data/kekka/[0-9]{8}\.csv$',
     # cowork_input: top-level YYYYMMDD_bundle.json + per-race subfolder
     '^reports/cowork_input/[0-9]{8}_bundle\.json$',
     '^reports/cowork_input/[0-9]{8}/[^/]+\.json$',

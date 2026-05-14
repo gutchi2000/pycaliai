@@ -1,7 +1,17 @@
 """
 nicegui_app.py
 ==============
-NiceGUI 版 PyCaLiAI (実験 MVP v10)
+NiceGUI 版 PyCaLiAI (実験 MVP v11)
+
+v10 → v11 変更点:
+  1. 📈 Cowork 累計収支 (シーズン P/L) セクション追加 (collapsible):
+     - 累計投資 / 累計収支 / 回収率 / 的中率 の 4 chip
+     - 日別累計収支ラインチャート (ECharts) + 日別収支バー
+     - 馬券種別 (単/複/馬連/馬単/三連複/三連単) 別 P/L テーブル
+  2. parse_kekka / compute_bet_pl / load_all_cowork_outcomes 新設:
+     - data/kekka/{date}.csv をパース → race 結果 dict
+     - cowork_output/{date}_bets.json と JOIN して bet 単位の収支算出
+     - ワイドは kekka に payout 無いため -cost 計上 (将来 wide_payouts で対応)
 
 v9.1 → v10 変更点:
   1. 🏃 コース別好走脚質 セクションをコース分析タブに追加:
@@ -461,6 +471,301 @@ def _safe_float(s) -> float | None:
         return v
     except (ValueError, TypeError):
         return None
+
+
+# ============================================================
+# Cowork 累計 P/L 計算用: kekka パース + 払戻判定
+# ============================================================
+@functools.lru_cache(maxsize=64)
+def parse_kekka(date_str: str) -> dict[str, dict] | None:
+    """data/kekka/{date}.csv をパースして race_id_16 → 結果 dict を返す。
+
+    kekka 列構成 (15 cols):
+      日付, 場所, Ｒ, 枠番, 馬番, 馬名, 確定着順, レースID(新, 18 桁),
+      単勝配当, 複勝配当, 枠連, 馬連, 馬単, ３連複, ３連単
+
+    返り値 dict 各 race:
+      winner: 1着 馬番
+      top3:   [1着, 2着, 3着] (存在する分のみ)
+      tansho: 1着の単勝配当 (¥)
+      fukusho_by_uma: {馬番: 複勝配当}
+      umaren / umatan / wakuren / sanrenpuku / sanrentan: 各払戻金 (¥)
+    """
+    p = BASE / "data" / "kekka" / f"{date_str}.csv"
+    if not p.exists():
+        return None
+    import csv as _csv
+    races: dict[str, dict] = {}
+
+    try:
+        with open(p, encoding="cp932", errors="replace") as f:
+            reader = _csv.reader(f)
+            header = next(reader, None)
+            for row in reader:
+                if len(row) < 15:
+                    continue
+                rid_18 = str(row[7]).strip()
+                if len(rid_18) < 16:
+                    continue
+                rid_16 = rid_18[:16]
+                try:
+                    umaban = int(row[4])
+                    chakujun = int(row[6])
+                except (ValueError, TypeError):
+                    continue
+                if rid_16 not in races:
+                    races[rid_16] = {
+                        "date": row[0],
+                        "place": row[1],
+                        "R": row[2],
+                        "_horses_raw": [],
+                        "umaren": None, "umatan": None,
+                        "wakuren": None,
+                        "sanrenpuku": None, "sanrentan": None,
+                    }
+                # 単勝配当: 1 着のみ実数値、他着は () 付きの参考値
+                tansho_raw = str(row[8]).strip()
+                tansho = None
+                if tansho_raw and not tansho_raw.startswith("("):
+                    try: tansho = int(tansho_raw)
+                    except ValueError: pass
+                fukusho = _safe_int(row[9])
+                races[rid_16]["_horses_raw"].append({
+                    "umaban": umaban,
+                    "chakujun": chakujun,
+                    "tansho": tansho,
+                    "fukusho": fukusho,
+                })
+                # Compound payouts: 1 着行のみ実値、2-3 着行は空。
+                # None で既存値を上書きしないよう注意。
+                for key, idx in [("wakuren", 10), ("umaren", 11),
+                                  ("umatan", 12), ("sanrenpuku", 13),
+                                  ("sanrentan", 14)]:
+                    v = _safe_int(row[idx]) if idx < len(row) else None
+                    if v is not None and races[rid_16].get(key) is None:
+                        races[rid_16][key] = v
+    except Exception as e:
+        print(f"[parse_kekka error {date_str}] {e}")
+        return None
+
+    # Post-process: extract winner / top3 / payouts
+    for rid_16, r in races.items():
+        horses = sorted(r["_horses_raw"], key=lambda h: h["chakujun"])
+        r["winner"] = horses[0]["umaban"] if horses else None
+        r["tansho"] = horses[0]["tansho"] if horses else None
+        r["top3"] = [h["umaban"] for h in horses if h["chakujun"] <= 3]
+        r["fukusho_by_uma"] = {h["umaban"]: h["fukusho"]
+                                  for h in horses if h["chakujun"] <= 3}
+        del r["_horses_raw"]
+    return races
+
+
+def _parse_combos(selection: str, n_parts: int,
+                    ordered: bool) -> list[tuple]:
+    """買い目文字列 '4-7,4-9' のような表記を combo タプルのリストにする。
+    n_parts: 2 (馬連/馬単/ワイド) or 3 (三連複/三連単)
+    ordered: True なら順序を保つ (馬単/三連単)、False なら sorted
+    """
+    out: list[tuple] = []
+    for c in str(selection).split(","):
+        parts = c.strip().split("-")
+        if len(parts) != n_parts:
+            continue
+        try:
+            nums = [int(x) for x in parts]
+        except (ValueError, TypeError):
+            continue
+        out.append(tuple(nums) if ordered else tuple(sorted(nums)))
+    return out
+
+
+def compute_bet_pl(bet: dict, race: dict) -> tuple[float, bool]:
+    """1 つの Cowork bet (馬券種/買い目/購入額) と race 結果 dict から
+    (利益¥, 的中フラグ) を返す。利益 = (受取 - 支払)。
+    複数 combo 指定時は 購入額を均等分配して計算 (JRA 標準慣行)。
+    """
+    btype = (bet.get("馬券種") or bet.get("type") or "").strip()
+    selection = str(bet.get("買い目") or bet.get("selection") or "").strip()
+    try:
+        cost = float(bet.get("購入額") or bet.get("amount") or 0)
+    except (TypeError, ValueError):
+        cost = 0.0
+    if cost <= 0:
+        return (0.0, False)
+
+    if btype == "単勝":
+        try:
+            uma = int(selection)
+        except ValueError:
+            return (-cost, False)
+        if uma == race.get("winner"):
+            pay = race.get("tansho") or 0
+            return (cost * pay / 100.0 - cost, True)
+        return (-cost, False)
+
+    if btype == "複勝":
+        try:
+            uma = int(selection)
+        except ValueError:
+            return (-cost, False)
+        if uma in race.get("top3", []):
+            pay = race.get("fukusho_by_uma", {}).get(uma) or 0
+            return (cost * pay / 100.0 - cost, True)
+        return (-cost, False)
+
+    if btype == "馬連":
+        combos = _parse_combos(selection, 2, ordered=False)
+        if not combos:
+            return (-cost, False)
+        top3 = race.get("top3", [])
+        if len(top3) < 2:
+            return (-cost, False)
+        winning = tuple(sorted([top3[0], top3[1]]))
+        unit = cost / len(combos)
+        if winning in combos:
+            pay = race.get("umaren") or 0
+            return (unit * pay / 100.0 - cost, True)
+        return (-cost, False)
+
+    if btype == "馬単":
+        combos = _parse_combos(selection, 2, ordered=True)
+        if not combos:
+            return (-cost, False)
+        top3 = race.get("top3", [])
+        if len(top3) < 2:
+            return (-cost, False)
+        winning = (top3[0], top3[1])
+        unit = cost / len(combos)
+        if winning in combos:
+            pay = race.get("umatan") or 0
+            return (unit * pay / 100.0 - cost, True)
+        return (-cost, False)
+
+    if btype == "ワイド":
+        # ワイドは kekka に payout が無いため評価不可
+        # 一旦 -cost (損失扱い) として記録。将来 wide_payouts parquet で対応可
+        return (-cost, False)
+
+    if btype == "三連複":
+        combos = _parse_combos(selection, 3, ordered=False)
+        if not combos:
+            return (-cost, False)
+        top3 = race.get("top3", [])
+        if len(top3) < 3:
+            return (-cost, False)
+        winning = tuple(sorted(top3[:3]))
+        unit = cost / len(combos)
+        if winning in combos:
+            pay = race.get("sanrenpuku") or 0
+            return (unit * pay / 100.0 - cost, True)
+        return (-cost, False)
+
+    if btype == "三連単":
+        combos = _parse_combos(selection, 3, ordered=True)
+        if not combos:
+            return (-cost, False)
+        top3 = race.get("top3", [])
+        if len(top3) < 3:
+            return (-cost, False)
+        winning = tuple(top3[:3])
+        unit = cost / len(combos)
+        if winning in combos:
+            pay = race.get("sanrentan") or 0
+            return (unit * pay / 100.0 - cost, True)
+        return (-cost, False)
+
+    # unknown bet type
+    return (-cost, False)
+
+
+def _kekka_files_cache_key() -> str:
+    """kekka/ 内の全ファイルの mtime ハッシュ (ファイル追加で auto invalidate)"""
+    kdir = BASE / "data" / "kekka"
+    if not kdir.exists():
+        return "no-dir"
+    files = sorted(kdir.glob("*.csv"))
+    return "|".join(f"{p.name}:{p.stat().st_mtime:.0f}" for p in files)
+
+
+@functools.lru_cache(maxsize=4)
+def load_all_cowork_outcomes(_cache_key: str = "") -> list[dict]:
+    """全 reports/cowork_output/*_bets.json × data/kekka/*.csv を JOIN して
+    bet 単位の収支リストを返す。
+    各行: {date, race_id, race_label, btype, selection, cost, profit, is_win}
+    """
+    rows: list[dict] = []
+    if not COWORK_OUTPUT_DIR.exists():
+        return rows
+
+    for bets_file in sorted(COWORK_OUTPUT_DIR.iterdir()):
+        if not bets_file.is_file():
+            continue
+        if bets_file.suffix.lower() not in (".json", ".txt", ".md"):
+            continue
+        # date は filename から抽出 (YYYYMMDD_bets.json or 同類)
+        stem = bets_file.stem
+        date_str = ""
+        # まず先頭 8 桁数字を試す
+        for i in range(min(8, len(stem)), 7, -1):
+            if stem[:i].isdigit() and len(stem[:i]) == 8:
+                date_str = stem[:8]
+                break
+        if not date_str:
+            continue
+        kekka = parse_kekka(date_str)
+        if not kekka:
+            continue
+
+        # bets file パース
+        try:
+            raw_bytes = bets_file.read_bytes()
+            text = ""
+            for enc in ["utf-8-sig", "utf-8", "cp932", "shift_jis"]:
+                try:
+                    text = raw_bytes.decode(enc); break
+                except UnicodeDecodeError:
+                    continue
+            else:
+                text = raw_bytes.decode("utf-8", errors="replace")
+            m = re.search(r"```(?:json|JSON)?\s*\n([\s\S]+?)\n\s*```", text)
+            raw_json = m.group(1) if m else text.strip()
+            data = json.loads(raw_json)
+        except Exception:
+            continue
+
+        if isinstance(data, dict):
+            data = data.get("races", [data])
+        if not isinstance(data, list):
+            continue
+
+        for race_entry in data:
+            if not isinstance(race_entry, dict):
+                continue
+            rid = race_entry.get("race_id") or race_entry.get("レースID") or ""
+            rid_16 = str(rid)[:16]
+            result = kekka.get(rid_16)
+            if not result:
+                continue
+            bets_raw = race_entry.get("bets") or race_entry.get("買い目", [])
+            if not isinstance(bets_raw, list):
+                continue
+            for bet in bets_raw:
+                if not isinstance(bet, dict):
+                    continue
+                profit, is_win = compute_bet_pl(bet, result)
+                rows.append({
+                    "date": date_str,
+                    "race_id": rid_16,
+                    "race_label": race_entry.get("race_label", ""),
+                    "btype": (bet.get("馬券種") or bet.get("type") or ""),
+                    "selection": str(bet.get("買い目")
+                                       or bet.get("selection") or ""),
+                    "cost": float(bet.get("購入額")
+                                    or bet.get("amount") or 0),
+                    "profit": profit,
+                    "is_win": is_win,
+                })
+    return rows
 
 
 @functools.lru_cache(maxsize=8)
@@ -1695,6 +2000,183 @@ def make_horse_detail_html(horse: dict, race: dict,
     return header_html + past_html + course_html
 
 
+def render_cowork_pl_chart() -> None:
+    """全 cowork_output × kekka からシーズン累計 P/L チャートを描画。
+    上段: 4 chip サマリ (累計投資 / 累計収支 / 回収率 / 的中率)
+    中段: 累計収支ライン (ECharts)
+    下段: 馬券種別収支テーブル
+    """
+    rows = load_all_cowork_outcomes(_kekka_files_cache_key())
+    if not rows:
+        ui.html("""
+        <div style="background:#1e1e2e;border-left:3px solid #6c7086;
+                    padding:14px 18px;border-radius:8px;color:#6c7086;
+                    font-size:14px">
+          📈 Cowork 累計収支データなし<br>
+          <span style="font-size:12px">
+            reports/cowork_output/{date}_bets.json と
+            data/kekka/{date}.csv の両方が揃った日付がまだありません。
+          </span>
+        </div>
+        """)
+        return
+
+    df = pd.DataFrame(rows).sort_values("date")
+    daily = df.groupby("date").agg(
+        cost=("cost", "sum"),
+        profit=("profit", "sum"),
+        n_bets=("date", "size"),
+        n_wins=("is_win", "sum"),
+    ).reset_index()
+    daily["cum_cost"] = daily["cost"].cumsum()
+    daily["cum_profit"] = daily["profit"].cumsum()
+
+    total_cost = float(daily["cost"].sum())
+    total_profit = float(daily["profit"].sum())
+    total_bets = int(df.shape[0])
+    total_wins = int(df["is_win"].sum())
+    hit_rate = total_wins / total_bets * 100.0 if total_bets > 0 else 0.0
+    roi = ((total_cost + total_profit) / total_cost * 100.0
+           if total_cost > 0 else 100.0)
+    profit_color = "#a6e3a1" if total_profit >= 0 else "#f38ba8"
+
+    ui.html(f"""
+    <div style="background:linear-gradient(135deg,#0d1421 0%,#16213e 100%);
+                border:1px solid {profit_color};border-radius:12px;
+                padding:20px 24px;margin-bottom:14px">
+      <h2 style="margin:0 0 14px 0;color:{profit_color};font-size:24px;
+                 font-weight:bold">📈 Cowork 累計収支</h2>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+        <div style="background:rgba(0,0,0,0.3);padding:14px 18px;border-radius:8px">
+          <div style="color:#6c7086;font-size:13px">累計投資</div>
+          <div style="color:#cdd6f4;font-size:26px;font-weight:bold">
+            ¥{total_cost:,.0f}</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.3);padding:14px 18px;border-radius:8px">
+          <div style="color:#6c7086;font-size:13px">累計収支</div>
+          <div style="color:{profit_color};font-size:26px;font-weight:bold">
+            ¥{total_profit:+,.0f}</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.3);padding:14px 18px;border-radius:8px">
+          <div style="color:#6c7086;font-size:13px">回収率 (ROI)</div>
+          <div style="color:{profit_color};font-size:26px;font-weight:bold">
+            {roi:.1f}%</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.3);padding:14px 18px;border-radius:8px">
+          <div style="color:#6c7086;font-size:13px">的中率</div>
+          <div style="color:#cdd6f4;font-size:26px;font-weight:bold">
+            {hit_rate:.1f}%
+            <span style="font-size:14px;color:#6c7086">
+              ({total_wins}/{total_bets})</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    """)
+
+    # ECharts ライン: 累計収支推移
+    dates_disp = [f"{d[4:6]}/{d[6:8]}" for d in daily["date"].tolist()]
+    cum_profit = [round(x, 0) for x in daily["cum_profit"].tolist()]
+    daily_profit = [round(x, 0) for x in daily["profit"].tolist()]
+    line_color = "#a6e3a1" if total_profit >= 0 else "#f38ba8"
+
+    chart_opt = {
+        "title": {"text": "累計収支推移 (Cowork)",
+                   "textStyle": {"color": "#cdd6f4", "fontSize": 16}},
+        "tooltip": {"trigger": "axis",
+                     "backgroundColor": "#1e1e2e",
+                     "borderColor": "#313244",
+                     "textStyle": {"color": "#cdd6f4"}},
+        "legend": {"data": ["累計収支", "日別収支"],
+                    "textStyle": {"color": "#a6adc8"}},
+        "xAxis": {"type": "category", "data": dates_disp,
+                   "axisLabel": {"color": "#a6adc8"},
+                   "axisLine": {"lineStyle": {"color": "#313244"}}},
+        "yAxis": {"type": "value",
+                   "axisLabel": {"color": "#a6adc8", "formatter": "¥{value}"},
+                   "splitLine": {"lineStyle": {"color": "#313244"}}},
+        "series": [
+            {"name": "累計収支", "type": "line", "data": cum_profit,
+             "smooth": True,
+             "lineStyle": {"color": line_color, "width": 3},
+             "itemStyle": {"color": line_color},
+             "areaStyle": {"opacity": 0.18, "color": line_color},
+             "markLine": {
+                 "data": [{"yAxis": 0,
+                            "lineStyle": {"color": "#6c7086", "type": "dashed"}}],
+                 "symbol": "none", "label": {"show": False}}},
+            {"name": "日別収支", "type": "bar", "data": daily_profit,
+             "itemStyle": {"color": "#89b4fa", "opacity": 0.6}},
+        ],
+        "grid": {"left": 80, "right": 30, "top": 60, "bottom": 50},
+        "backgroundColor": "transparent",
+    }
+    ui.echart(chart_opt).classes("w-full").style("height: 360px")
+
+    # 馬券種別収支テーブル
+    by_b = df.groupby("btype").agg(
+        n=("date", "size"),
+        wins=("is_win", "sum"),
+        cost=("cost", "sum"),
+        profit=("profit", "sum"),
+    ).reset_index().sort_values("cost", ascending=False)
+
+    body_rows = []
+    for _, r in by_b.iterrows():
+        c = float(r["cost"])
+        p = float(r["profit"])
+        n = int(r["n"])
+        w = int(r["wins"])
+        roi_b = (c + p) / c * 100.0 if c > 0 else 100.0
+        hit_b = w / n * 100.0 if n > 0 else 0.0
+        pc = "#a6e3a1" if p >= 0 else "#f38ba8"
+        body_rows.append(f"""
+        <tr style="border-bottom:1px solid #313244">
+          <td style="padding:10px 14px;color:#cdd6f4;font-weight:bold;font-size:16px">
+            {r['btype']}</td>
+          <td style="padding:10px 14px;text-align:right;color:#a6adc8">{n}</td>
+          <td style="padding:10px 14px;text-align:right;color:#a6e3a1">{w}</td>
+          <td style="padding:10px 14px;text-align:right;color:#cdd6f4">
+            {hit_b:.1f}%</td>
+          <td style="padding:10px 14px;text-align:right;color:#cdd6f4">
+            ¥{c:,.0f}</td>
+          <td style="padding:10px 14px;text-align:right;color:{pc};
+                     font-weight:bold">¥{p:+,.0f}</td>
+          <td style="padding:10px 14px;text-align:right;color:{pc};
+                     font-weight:bold">{roi_b:.1f}%</td>
+        </tr>
+        """)
+    ui.html(f"""
+    <div style="margin-top:14px">
+      <h3 style="color:#f5e0dc;font-size:18px;margin:0 0 8px 0;font-weight:bold">
+        📊 馬券種別収支
+      </h3>
+      <table style="width:100%;border-collapse:collapse;background:#0a0a14;
+                    border-radius:8px;overflow:hidden">
+        <thead>
+          <tr style="background:#1e1e2e;border-bottom:2px solid #f39c12">
+            <th style="padding:12px 14px;color:#f39c12;text-align:left;font-size:14px">
+              馬券種</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:right;font-size:14px">
+              買い目数</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:right;font-size:14px">
+              的中</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:right;font-size:14px">
+              的中率</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:right;font-size:14px">
+              投資</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:right;font-size:14px">
+              収支</th>
+            <th style="padding:12px 14px;color:#f39c12;text-align:right;font-size:14px">
+              回収率</th>
+          </tr>
+        </thead>
+        <tbody>{"".join(body_rows)}</tbody>
+      </table>
+    </div>
+    """)
+
+
 def render_training_top5(date_str: str | None) -> None:
     """直近 1 週間の好調教 Top5 (坂路 + WC) と各馬の出走予定を表示。
     weekly_nicegui.ps1 の date を引いて呼ぶ。
@@ -2446,7 +2928,7 @@ def main_page():
     with ui.header(elevated=True).classes("bg-slate-900"):
         ui.label("🏇 PyCaLiAI").classes("text-3xl font-bold text-white")
         ui.space()
-        ui.label("NiceGUI 版 (実験 MVP v10)").classes("text-base text-slate-400")
+        ui.label("NiceGUI 版 (実験 MVP v11)").classes("text-base text-slate-400")
 
     state = {
         "date": None, "race": None, "bundle": None,
@@ -2486,6 +2968,14 @@ def main_page():
                 .style("background:rgba(243,156,18,0.05);"
                         "border:1px solid #f39c12;border-radius:12px"):
             training_top5_box = ui.element("div").classes("w-full")
+
+        # ── 5 行目: Cowork シーズン累計 P/L (折りたたみ) ──
+        with ui.expansion("📈 Cowork 累計収支 (シーズン P/L)",
+                            icon="trending_up", value=False) \
+                .classes("w-full") \
+                .style("background:rgba(166,227,161,0.05);"
+                        "border:1px solid #a6e3a1;border-radius:12px"):
+            cowork_pl_box = ui.element("div").classes("w-full")
 
         # ── メイン: 左右パネル ──
         with ui.row().classes("w-full no-wrap gap-3"):
@@ -2762,6 +3252,11 @@ def main_page():
         training_top5_box.clear()
         with training_top5_box:
             render_training_top5(date)
+
+        # Cowork 累計 P/L (date には依存しないが、開催日切替時に都度更新)
+        cowork_pl_box.clear()
+        with cowork_pl_box:
+            render_cowork_pl_chart()
 
         if state["current_place"]:
             races = sorted(by_place.get(state["current_place"], []),
