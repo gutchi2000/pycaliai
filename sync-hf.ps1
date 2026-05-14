@@ -38,7 +38,8 @@ $SyncFiles = @(
     ".dockerignore",
     "requirements-nicegui.txt",
     "nicegui_app.py",
-    "data/course_stats.json"
+    "data/course_stats.json",
+    "data/kekka/wide_kekka.csv"
 )
 
 # Regex patterns matched against `git ls-tree -r --name-only master`.

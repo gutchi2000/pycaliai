@@ -476,6 +476,64 @@ def _safe_float(s) -> float | None:
 # ============================================================
 # Cowork 累計 P/L 計算用: kekka パース + 払戻判定
 # ============================================================
+@functools.lru_cache(maxsize=1)
+def parse_wide_kekka() -> dict[tuple, dict[tuple[int, int], int]] | None:
+    """data/kekka/wide_kekka.csv をパース。
+
+    フォーマット (cp932, no header):
+      年,月,日,場所,R,クラス,芝・ダ,距離,頭数,"01-03 \220 (1)/ 04-11 \870 (12)/ ..."
+
+    返り値: {(year, month, day, place, R): {(ban_low, ban_high): payout, ...}}
+    """
+    p = BASE / "data" / "kekka" / "wide_kekka.csv"
+    if not p.exists():
+        return None
+    import csv as _csv
+    pair_pat = re.compile(r"(\d+)\s*[-―]\s*(\d+)\s*[\\¥￥]\s*(\d+)")
+    out: dict = {}
+    try:
+        text = ""
+        raw = p.read_bytes()
+        for enc in ["cp932", "utf-8-sig", "utf-8"]:
+            try:
+                text = raw.decode(enc); break
+            except UnicodeDecodeError:
+                continue
+        else:
+            text = raw.decode("utf-8", errors="replace")
+
+        import io as _io
+        reader = _csv.reader(_io.StringIO(text))
+        for row in reader:
+            if len(row) < 10:
+                continue
+            try:
+                year  = int(row[0])
+                month = int(row[1])
+                day   = int(row[2])
+                place = str(row[3]).strip()
+                r_num = int(row[4])
+            except (ValueError, TypeError):
+                continue
+            wide_str = row[9] or ""
+            pairs: dict[tuple[int, int], int] = {}
+            for chunk in wide_str.split("/"):
+                m = pair_pat.search(chunk)
+                if not m:
+                    continue
+                try:
+                    a, b, pay = int(m.group(1)), int(m.group(2)), int(m.group(3))
+                except (ValueError, TypeError):
+                    continue
+                pairs[(min(a, b), max(a, b))] = pay
+            if pairs:
+                out[(year, month, day, place, r_num)] = pairs
+    except Exception as e:
+        print(f"[parse_wide_kekka error] {e}")
+        return None
+    return out
+
+
 @functools.lru_cache(maxsize=64)
 def parse_kekka(date_str: str) -> dict[str, dict] | None:
     """data/kekka/{date}.csv をパースして race_id_16 → 結果 dict を返す。
@@ -549,6 +607,7 @@ def parse_kekka(date_str: str) -> dict[str, dict] | None:
         return None
 
     # Post-process: extract winner / top3 / payouts
+    wide_data = parse_wide_kekka()
     for rid_16, r in races.items():
         horses = sorted(r["_horses_raw"], key=lambda h: h["chakujun"])
         r["winner"] = horses[0]["umaban"] if horses else None
@@ -556,6 +615,20 @@ def parse_kekka(date_str: str) -> dict[str, dict] | None:
         r["top3"] = [h["umaban"] for h in horses if h["chakujun"] <= 3]
         r["fukusho_by_uma"] = {h["umaban"]: h["fukusho"]
                                   for h in horses if h["chakujun"] <= 3}
+        # ワイド払戻 (wide_kekka.csv から JOIN)
+        r["wide_pays"] = {}
+        if wide_data:
+            try:
+                year  = int(rid_16[:4])
+                month = int(rid_16[4:6])
+                day   = int(rid_16[6:8])
+                r_num = int(r.get("R") or 0)
+                key = (year, month, day, r.get("place", ""), r_num)
+                wide_pays = wide_data.get(key)
+                if wide_pays:
+                    r["wide_pays"] = wide_pays
+            except (ValueError, TypeError):
+                pass
         del r["_horses_raw"]
     return races
 
@@ -642,8 +715,22 @@ def compute_bet_pl(bet: dict, race: dict) -> tuple[float, bool]:
         return (-cost, False)
 
     if btype == "ワイド":
-        # ワイドは kekka に payout が無いため評価不可
-        # 一旦 -cost (損失扱い) として記録。将来 wide_payouts parquet で対応可
+        combos = _parse_combos(selection, 2, ordered=False)
+        if not combos:
+            return (-cost, False)
+        wide_pays = race.get("wide_pays") or {}
+        if not wide_pays:
+            # データ無し → 損失計上 (wide_kekka.csv が未配置の date 等)
+            return (-cost, False)
+        unit = cost / len(combos)
+        total_payout = 0.0
+        n_hit = 0
+        for combo in combos:
+            if combo in wide_pays:
+                total_payout += unit * (wide_pays[combo] or 0) / 100.0
+                n_hit += 1
+        if n_hit > 0:
+            return (total_payout - cost, True)
         return (-cost, False)
 
     if btype == "三連複":
