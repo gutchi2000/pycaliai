@@ -133,7 +133,23 @@ git status --short
 # 真の差分 (M=modified / A=added / D=deleted) のみで判定する。
 $realDiff = git status --porcelain --untracked-files=no
 if (-not $realDiff) {
-    Write-Step "No diff between master and hf-spaces. Already in sync."
+    Write-Step "No diff between master and hf-spaces."
+    # ローカル hf-spaces が remote main より進んでいるかチェック (前回の sync
+    # で commit したが push に失敗したケースのリカバリ)
+    git fetch hf main 2>$null
+    $localSha = (git rev-parse hf-spaces).Trim()
+    $remoteSha = (git rev-parse hf/main 2>$null).Trim()
+    if ($localSha -ne $remoteSha) {
+        Write-Step "Local hf-spaces ahead of hf/main. Pushing pending commits."
+        git push hf hf-spaces:main
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "push failed; retry manually: git push hf hf-spaces:main" -ForegroundColor Yellow
+        } else {
+            Write-Host "    pushed pending commits to hf/main" -ForegroundColor Green
+        }
+    } else {
+        Write-Step "Already in sync with hf/main."
+    }
     git checkout $origBranch
     exit 0
 }
