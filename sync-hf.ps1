@@ -128,9 +128,12 @@ foreach ($pat in $SyncDataPatterns) {
 Write-Step "Status on hf-spaces:"
 git status --short
 
-$hasDiff = (git status --porcelain).Length -gt 0
-if (-not $hasDiff) {
-    Write-Step "No diff. Switching back to original branch."
+# Untracked files (??) は master の追跡ファイルが orphan branch では tracked
+# 扱いされないだけで「同期すべき差分」ではない。
+# 真の差分 (M=modified / A=added / D=deleted) のみで判定する。
+$realDiff = git status --porcelain --untracked-files=no
+if (-not $realDiff) {
+    Write-Step "No diff between master and hf-spaces. Already in sync."
     git checkout $origBranch
     exit 0
 }
@@ -159,9 +162,10 @@ foreach ($f in $workingChanges) {
 $msg = "sync: master $($masterSha.Substring(0,7))"
 git commit -m $msg
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: commit failed (likely no changes)." -ForegroundColor Red
+    # commit が「nothing to commit」で失敗 = 既に同期済の合図
+    Write-Host "Nothing to commit. Already in sync." -ForegroundColor Yellow
     git checkout $origBranch
-    exit 1
+    exit 0
 }
 
 # 8. push to HF (HF default branch is main)
