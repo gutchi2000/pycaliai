@@ -32,7 +32,7 @@
 ##############################################################
 param(
     [string]$Date = "",
-    [string]$Model = "v5",
+    [string]$Model = "v6",
     [switch]$SkipHF,
     [switch]$SkipPredict,
     [switch]$SkipGit,

@@ -23,7 +23,7 @@
 ##############################################################
 param(
     [string]$Date  = "",
-    [string]$Model = "v5"
+    [string]$Model = "v6"
 )
 
 Set-Location 'E:\PyCaLiAI'

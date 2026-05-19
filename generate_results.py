@@ -27,6 +27,8 @@ OUT_PATH  = BASE_DIR / "data" / "results.json"
 COWORK_BETS_DIR   = BASE_DIR / "reports" / "cowork_bets"     # 個別レース形式: {date}/{race_id}.json
 COWORK_OUTPUT_DIR = BASE_DIR / "reports" / "cowork_output"   # bundle 形式: {date}_bets.json
 COWORK_OUT_PATH = BASE_DIR / "data" / "cowork_results.json"
+WIDE_PARQUET    = BASE_DIR / "data" / "wide_payouts_2016-2025.parquet"  # 2016-2025
+WIDE_WEEKLY_CSV = BASE_DIR / "data" / "kekka" / "wide_kekka.csv"        # 2026〜 (週次配置)
 
 PLACE_CODE_TO_NAME = {
     "01": "札幌", "02": "函館", "03": "福島", "04": "新潟", "05": "東京",
@@ -104,15 +106,53 @@ def to_int(v) -> int | None:
 # kekka 読み込み
 # =========================================================
 def load_kekka_all() -> dict[str, pd.DataFrame]:
-    """date_key → kekka DataFrame のキャッシュを返す。"""
+    """date_key → kekka DataFrame のキャッシュを返す。
+
+    対応フォーマット:
+      1. 個別ファイル形式: data/kekka/{YYYYMMDD}.csv (週次)
+      2. 統合ファイル形式: data/kekka/kekka_{YYYYMMDD}-{YYYYMMDD}.csv
+         (日付列が yymmdd 形式で複数日付を 1 ファイルに保持)
+
+    個別ファイルが優先 (週次運用で新しい方を反映するため)。
+    """
     cache: dict[str, pd.DataFrame] = {}
+
+    # 1. 個別 8 桁ファイル
     for f in sorted(KEKKA_DIR.glob("????????.csv")):
         try:
             df = pd.read_csv(f, encoding="cp932")
             cache[f.stem] = df
         except Exception as e:
             log.warning(f"kekka 読み込みスキップ {f.name}: {e}")
-    log.info(f"kekka {len(cache)} ファイル読み込み完了")
+    n_indiv = len(cache)
+
+    # 2. 統合ファイル kekka_*.csv
+    n_aggr = 0
+    for f in sorted(KEKKA_DIR.glob("kekka_*.csv")):
+        try:
+            df = pd.read_csv(f, encoding="cp932")
+            if df.shape[1] < 8:
+                continue
+            date_col = df.columns[0]
+            # 日付列を yymmdd → YYYYMMDD に正規化
+            for raw_dk, sub in df.groupby(date_col):
+                raw = str(raw_dk).strip()
+                if not raw.isdigit():
+                    continue
+                if len(raw) == 6:
+                    date_key = f"20{raw}"
+                elif len(raw) == 8:
+                    date_key = raw
+                else:
+                    continue
+                if date_key in cache:
+                    continue  # 個別ファイル優先
+                cache[date_key] = sub.reset_index(drop=True)
+                n_aggr += 1
+        except Exception as e:
+            log.warning(f"kekka 統合ファイル読み込みスキップ {f.name}: {e}")
+
+    log.info(f"kekka 読み込み完了 (個別 {n_indiv}, 統合 {n_aggr}, 計 {len(cache)})")
     return cache
 
 
@@ -225,8 +265,129 @@ def get_payout_sanrentan(race_kk: pd.DataFrame) -> float:
     return parse_haitou(vals.iloc[0]) if len(vals) > 0 else 0.0
 
 
+# =========================================================
+# ワイド配当キャッシュ
+# =========================================================
+#   key   : (date_key:str8, place_name:str, race_no:str)
+#   value : dict[frozenset({i,j}) -> payout_per_100:int]
+# =========================================================
+_WIDE_CACHE: dict[tuple[str, str, str], dict] | None = None
+
+
+def _parse_wide_combos(combo_str: str) -> dict:
+    """'11-14 \\220 (1)/ 04-11 \\870 (12)/ 04-14 \\400 (4)' を
+    {frozenset({11,14}): 220, ...} に変換。"""
+    out: dict = {}
+    if pd.isna(combo_str):
+        return out
+    for chunk in str(combo_str).split("/"):
+        s = chunk.strip()
+        if not s:
+            continue
+        # フォーマット: "{i}-{j} \\{payout} ({pop})" or "{i}-{j} \\{payout}"
+        # 円記号は \\ or ¥ や全角の可能性あり
+        s2 = s.replace("\\", " ").replace("¥", " ").replace("￥", " ")
+        # 括弧 () 内の人気を除去
+        if "(" in s2:
+            s2 = s2[: s2.index("(")]
+        parts = s2.split()
+        if len(parts) < 2:
+            continue
+        pair_str = parts[0]
+        try:
+            i_s, j_s = pair_str.split("-")
+            i, j = int(i_s), int(j_s)
+        except ValueError:
+            continue
+        try:
+            payout = int(parts[1].replace(",", ""))
+        except ValueError:
+            continue
+        out[frozenset((i, j))] = payout
+    return out
+
+
+def load_wide_payouts() -> dict[tuple[str, str, str], dict]:
+    """全期間のワイド配当を統合キャッシュとして返す。
+
+    ソース:
+      - data/wide_payouts_2016-2025.parquet  (race_id ベース、2016-2025)
+      - data/kekka/wide_kekka.csv            (年月日 + 場所 + R ベース、2026〜週次)
+    """
+    cache: dict[tuple[str, str, str], dict] = {}
+
+    # 1. parquet (2016-2025)
+    if WIDE_PARQUET.exists():
+        try:
+            wp = pd.read_parquet(WIDE_PARQUET)
+            for _, row in wp.iterrows():
+                date_key = str(row["date"]).zfill(8)
+                place    = str(row["place"]).strip()
+                race_no  = str(int(row["race_no"]))
+                d: dict = {}
+                for i_col, j_col, p_col in [
+                    ("w1_i", "w1_j", "w1_pay"),
+                    ("w2_i", "w2_j", "w2_pay"),
+                    ("w3_i", "w3_j", "w3_pay"),
+                ]:
+                    try:
+                        i, j, p = int(row[i_col]), int(row[j_col]), int(row[p_col])
+                    except (ValueError, TypeError):
+                        continue
+                    d[frozenset((i, j))] = p
+                if d:
+                    cache[(date_key, place, race_no)] = d
+            log.info(f"wide_payouts.parquet: {sum(1 for k in cache if k[0].startswith('20'))} races loaded")
+        except Exception as e:
+            log.warning(f"wide_payouts.parquet 読み込み失敗: {e}")
+
+    # 2. wide_kekka.csv (2026〜週次)
+    if WIDE_WEEKLY_CSV.exists():
+        try:
+            wk = pd.read_csv(WIDE_WEEKLY_CSV, encoding="cp932", header=None)
+            # 列: 0=year 1=month 2=day 3=place 4=race_no 5=class 6=芝ダ 7=距離 8=頭数 9=combo
+            n_added = 0
+            for _, row in wk.iterrows():
+                try:
+                    y = int(row[0]); m = int(row[1]); d = int(row[2])
+                except (ValueError, TypeError):
+                    continue
+                date_key = f"{y:04d}{m:02d}{d:02d}"
+                place    = str(row[3]).strip()
+                race_no  = str(int(row[4]))
+                combos   = _parse_wide_combos(row[9])
+                if combos:
+                    cache[(date_key, place, race_no)] = combos
+                    n_added += 1
+            log.info(f"wide_kekka.csv (weekly): {n_added} races loaded")
+        except Exception as e:
+            log.warning(f"wide_kekka.csv 読み込み失敗: {e}")
+
+    return cache
+
+
+def get_wide_cache() -> dict[tuple[str, str, str], dict]:
+    """グローバルキャッシュをレイジロード。"""
+    global _WIDE_CACHE
+    if _WIDE_CACHE is None:
+        _WIDE_CACHE = load_wide_payouts()
+    return _WIDE_CACHE
+
+
+def get_payout_wide(date_key: str, place: str, race_no: str,
+                    pair: frozenset) -> float:
+    """ワイド (i, j) の配当 (per 100 円) を返す。無ければ 0。"""
+    cache = get_wide_cache()
+    d = cache.get((date_key, place, race_no))
+    if not d:
+        return 0.0
+    return float(d.get(pair, 0))
+
+
 # === Cowork bet 照合 ===
-def match_cowork_bet(bet: dict, race_kk: pd.DataFrame) -> tuple[bool, float]:
+def match_cowork_bet(bet: dict, race_kk: pd.DataFrame,
+                     date_key: str = "", place: str = "",
+                     race_no: str = "") -> tuple[bool, float]:
     """Cowork bet (1 件) を kekka と照合して (hit, payout_per_100) を返す。
 
     payout_per_100 は「100円ベース配当」÷「点数」(複数点なら平均化)。
@@ -307,12 +468,14 @@ def match_cowork_bet(bet: dict, race_kk: pd.DataFrame) -> tuple[bool, float]:
         if not pairs or len(top3) < 3:
             return False, 0.0
         top3_set = set(top3)
-        hit_count = sum(1 for p in pairs if all(x in top3_set for x in p))
-        if hit_count:
-            # kekka に ワイド 配当列が無いため payout=0 で返す
-            # (的中フラグだけ立つ、ROI には反映されない)
-            return True, 0.0
-        return False, 0.0
+        hit_pairs = [p for p in pairs if all(x in top3_set for x in p)]
+        if not hit_pairs:
+            return False, 0.0
+        # ワイド配当を wide_payouts キャッシュから取得
+        # (2016-2025: parquet, 2026〜: wide_kekka.csv)
+        total_payout = sum(get_payout_wide(date_key, place, race_no, p) for p in hit_pairs)
+        # 点数で割って per-100 円配当として返す (match_cowork_bet の他種と同じ流儀)
+        return True, total_payout / len(pairs)
 
     if btype == "三連複":
         trios = _split_trios(unordered=True)
@@ -734,7 +897,10 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
             hit, payout_per_100 = (False, 0.0)
             if not race_kk.empty:
                 try:
-                    hit, payout_per_100 = match_cowork_bet(b, race_kk)
+                    hit, payout_per_100 = match_cowork_bet(
+                        b, race_kk,
+                        date_key=date_key, place=place_name, race_no=str(r_num),
+                    )
                 except Exception as e:
                     log.warning(f"bet 照合失敗 {rid} {btype} {sel}: {e}")
 

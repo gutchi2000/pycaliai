@@ -3,7 +3,7 @@
 > **このファイルの位置づけ**: 次に触る人（含む将来の自分）が 5 分で全体像を掴めるようにする。
 > 詳細仕様は `docs/` 配下、運用フローは `WORKFLOW.md` を参照。
 >
-> 最終更新: 2026-05-20（NiceGUI + Cowork パラダイムに全面改訂）
+> 最終更新: 2026-05-20（NiceGUI + Cowork パラダイムに全面改訂、**v6 本番投入**、cowork_results 集計修復）
 
 ---
 
@@ -74,16 +74,23 @@
 
 ---
 
-## 現役モデル（**v5 marks stack が本番**）
+## 現役モデル（**v6 marks stack が本番**）
 
-### NiceGUI / Cowork 主導の本番ライン（unified_rank_v5）
+### NiceGUI / Cowork 主導の本番ライン（unified_rank_v6）
 
 | ファイル | 役割 |
 |---|---|
-| `models/unified_rank_v5.pkl` | ✅ **本番**: LGBM LambdaRank（Optuna 目的関数 = 印精度 composite）。`export_weekly_marks.py` がこれだけをロード |
-| `models/pl_calibrators_v5.pkl` | ✅ **本番**: PL スコア → 実勝率 の Isotonic（valid=2023 で fit） |
-| `data/pl_payout_curve_v5.pkl` | ✅ **本番**: 期待払戻カーブ |
-| `models/unified_rank_v6.pkl` | ⚠️ **候補**: ECE penalty 入りで v5 の高 EV 帯 calibration を抑制。`pl_calibrators_v6` 未生成のため本番未投入 |
+| `models/unified_rank_v6.pkl` | ✅ **本番**: LGBM LambdaRank（Optuna 目的関数 = mark composite - 0.5 × ECE_high_p）。v5 比で複勝/馬連 ECE -32〜34% |
+| `models/pl_calibrators_v6.pkl` | ✅ **本番**: PL スコア → 実勝率 の Isotonic（valid=2023 で fit） |
+| `data/pl_payout_curve_v6.pkl` | ✅ **本番**: 期待払戻カーブ |
+| `models/unified_rank_v5.pkl` | 🗄️ **退役**: 旧本番。比較・rollback 用に保持 |
+| `models/pl_calibrators_v5.pkl` | 🗄️ **退役**: 旧本番 calibrator |
+
+**v6 本番化の根拠（2026-05-20）**:
+- 印精度: ◎ 連対率 +0.48pt、▲ 複勝圏率 +1.22pt（微改善）
+- Calibration: ECE 複勝(◎) **-32%**、ECE 馬連(◎-〇) **-34%**（大幅改善）
+- 機械買い ROI は v5 と同等（±0.01）だが、Cowork (LLM) の判断材料として calibration の質が効くと判断
+- Cowork 実績（4/18-5/17、292 bets、ROI 78.0%）の弱点である複勝/馬連の判断改善を期待
 
 ### Streamlit 版 predict_weekly.py が使う旧アンサンブル
 
@@ -151,12 +158,18 @@ python run_v5_pipeline.py
 # → audit_marks v5 ログ + backtest_fixed v5 ROI
 ```
 
-### v6 系を本番化したい場合（次回タスク候補）
+### v6 系の再構築（calibrator/curve のみ）
 ```bash
-python optuna_v6_marks.py            # 1. unified_rank_v6.pkl 生成（既存）
-# python run_v6_pipeline.py          # 2. ★未作成★ run_v5_pipeline をコピーして v6 用に
-python audit_v6_vs_v5.py             # 3. v5 との比較
-# 良ければ export_weekly_marks.py --model v6 に切替
+python run_v6_pipeline.py
+# → pl_calibrators_v6.pkl / pl_payout_curve_v6.pkl 更新
+# → audit_marks v6 / backtest_fixed v6 / audit_v6_vs_v5 ログ
+```
+
+### v7 等の新版を試したい場合
+```bash
+python optuna_v6_marks.py            # 1. v6 と同等の Optuna スクリプトを派生作成
+python run_v6_pipeline.py            # 2. calibrator/curve 生成 + audit
+# 良ければ weekly_nicegui.ps1 のデフォルト Model を更新
 ```
 
 ### 旧アンサンブル（Streamlit 用）の再学習
@@ -180,13 +193,13 @@ python build_strategy_stable.py       # strict: valid+test 両方黒字のみ
 
 ## アーキテクチャ
 
-### v5 marks stack（本番、NiceGUI/Cowork 経路）
+### v6 marks stack（本番、NiceGUI/Cowork 経路）
 ```
 出走表 CSV
     ↓
-export_weekly_marks.py
-    ↓ unified_rank_v5.pkl → 生スコア
-    ↓ pl_calibrators_v5.pkl → 実勝率
+export_weekly_marks.py --model v6
+    ↓ unified_rank_v6.pkl → 生スコア
+    ↓ pl_calibrators_v6.pkl → 実勝率（calibration 改善版）
     ↓ Plackett-Luce → 全馬の P(着順)
     ↓ 印付け（◎〇▲△△）+ race_confidence
 reports/cowork_input/{date}_bundle.json   ← Cowork 投入
@@ -326,26 +339,36 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 
 ---
 
+## Cowork 実績（2026-04-18〜05-17、9 開催 / 292 bets / v5 期間）
+
+| 馬券種 | 件数 | 的中 | hit 率 | 投資 | 払戻 | 収支 | **ROI** |
+|---|---|---|---|---|---|---|---|
+| 単勝 | 30 | 5 | 16.7% | 118,000 | 142,580 | **+24,580** | **120.8% ⭐** |
+| ワイド | 95 | 29 | 30.5% | 398,200 | 389,431 | -8,769 | 97.8% |
+| 複勝 | 48 | 26 | 54.2% | 238,100 | 170,100 | -68,000 | 71.4% |
+| 馬連 | 119 | 14 | 11.8% | 525,700 | 295,657 | -230,043 | 56.2% |
+| **合計** | 292 | 74 | 25.3% | 1,280,000 | 997,767 | -282,233 | **78.0%** |
+
+控除率 80% に対し総合 78.0% で **ほぼ期待値中立**。単勝・ワイドは強み、複勝・馬連は要改善。
+v6 + cowork_prompt 改修（節 11）でこの弱点改善を狙う。
+
+---
+
 ## 既知の問題
 
-### 🔴 P0
-1. **`data/cowork_results.json` が全フィールド 0**
-   - `live_results_2026.csv` が 5,000 行以上あるのに集計が走っていない
-   - 集計トリガと書き出しコードを特定して直す必要あり
-2. **モデル 2 系統並走**: v5 marks stack と 旧アンサンブル両方を `weekly_nicegui.ps1` で生成中
-   - `predict_weekly.py` は重く、`-SkipPredict` 推奨
-   - 中長期は v5 統一して旧側を `legacy/` に隔離
-
 ### 🟡 P1
-3. **v6 が宙ぶらりん**: `optuna_v6_marks.py` で生成済みだが `run_v6_pipeline.py` が存在せず本番投入できない
-4. **`models/` ディレクトリ肥大化**: 70+ pkl、日付付きアーカイブ混在、合計数 GB
-5. **ルート Python 140+ 本**: `sim_*` `backtest_*` `check_*` `sweep_*` 重複多数、要整理
+1. **モデル 2 系統並走**: v6 marks stack と 旧アンサンブル両方を `weekly_nicegui.ps1` で生成中
+   - `predict_weekly.py` は重く、`-SkipPredict` 推奨
+   - 中長期は v6 統一して旧側を `legacy/` に隔離
+2. **`models/` ディレクトリ肥大化**: 41 ファイル (dated pkl 退避済み)、まだ整理余地あり
+3. **ルート Python 93 本**: 整理進めたが `backtest_*` `train_*` の重複版残あり
+4. **wide_kekka.csv 週次更新の運用化**: 現状ユーザー手動配置、weekly_post.ps1 への組込み検討
 
 ### 🟢 P2
-6. **`strategy_weights.json` の位置づけ曖昧**: Streamlit 用なのか、廃止予定なのか書面化されていない
-7. **`PHASE5_PROGRESS.md` / `TODO_phase5.md` が 2026-04-08 で停止**: 完了 or 廃止を docs に明記して archive
-8. **`catboost_info/` を `.gitignore` に追加**
-9. **`docs/` 配下のドキュメント間で記述が重複**: ROADMAP / WORKFLOW / PROJECT_OVERVIEW の役割分離
+5. **`strategy_weights.json` の位置づけ曖昧**: Streamlit 用なのか、廃止予定なのか書面化されていない
+6. **`catboost_info/` を `.gitignore` に追加**
+7. **`docs/` 配下のドキュメント間で記述が重複**: ROADMAP / WORKFLOW / PROJECT_OVERVIEW の役割分離
+8. **v6 効果検証**: 2〜4 週運用後、v5 期間 (4/18-5/17) と v6 期間で Cowork ROI を比較
 
 ---
 
@@ -377,7 +400,7 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 ## クイックリファレンス
 
 ```powershell
-# 週次 Phase A（土曜朝）
+# 週次 Phase A（土曜朝、default Model=v6）
 .\weekly_nicegui.ps1
 
 # 週次 Phase B（Cowork 返答後）
@@ -392,9 +415,15 @@ python nicegui_app.py
 # Streamlit 起動
 streamlit run app.py
 
-# v5 系再構築
+# v6 系再構築 (本番)
+python run_v6_pipeline.py
+
+# v5 系再構築 (rollback 用)
 python run_v5_pipeline.py
 
-# 印監査（v5 vs v4）
-python audit_marks.py --model v5
+# 印監査（v6 vs v5）
+python audit_marks.py --model v6
+
+# Cowork 集計再生成 (kekka 追加後)
+python generate_results.py
 ```
