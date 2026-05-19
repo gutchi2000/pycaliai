@@ -13,6 +13,7 @@ import json
 import logging
 from collections import defaultdict
 from pathlib import Path
+from typing import Iterator  # noqa: F401  (used by aggregate_cowork_bets type hints)
 
 import pandas as pd
 
@@ -23,7 +24,8 @@ BASE_DIR  = Path(__file__).parent
 PRED_DIR  = BASE_DIR / "reports"
 KEKKA_DIR = BASE_DIR / "data" / "kekka"
 OUT_PATH  = BASE_DIR / "data" / "results.json"
-COWORK_BETS_DIR = BASE_DIR / "reports" / "cowork_bets"
+COWORK_BETS_DIR   = BASE_DIR / "reports" / "cowork_bets"     # 個別レース形式: {date}/{race_id}.json
+COWORK_OUTPUT_DIR = BASE_DIR / "reports" / "cowork_output"   # bundle 形式: {date}_bets.json
 COWORK_OUT_PATH = BASE_DIR / "data" / "cowork_results.json"
 
 PLACE_CODE_TO_NAME = {
@@ -618,9 +620,75 @@ def parse_race_id_16(rid: str) -> dict | None:
     }
 
 
+def _iter_cowork_race_dicts() -> "Iterator[tuple[str, dict, str]]":
+    """全 Cowork 入力ソースから (date_key, race_dict, source_label) を順に yield する。
+
+    対応フォーマット:
+      1. 個別レース形式: reports/cowork_bets/{date}/{race_id}.json  (旧)
+      2. bundle 形式:    reports/cowork_output/{date}_bets.json    (Cowork Anthropic Desktop 現行)
+
+    同じ (date, race_id) が両ソースに存在する場合は bundle を優先。
+    """
+    seen: set[tuple[str, str]] = set()
+
+    # --- bundle 形式 (現行) を先に処理して優先 ---
+    if COWORK_OUTPUT_DIR.exists():
+        for jf in sorted(COWORK_OUTPUT_DIR.glob("*_bets.json")):
+            stem = jf.stem
+            if not stem.endswith("_bets"):
+                continue
+            date_key = stem[:-len("_bets")]
+            if not (date_key.isdigit() and len(date_key) == 8):
+                continue
+            try:
+                with open(jf, encoding="utf-8") as f:
+                    bundle = json.load(f)
+            except Exception as e:
+                log.warning(f"cowork_output 読み込み失敗 {jf.name}: {e}")
+                continue
+            if not isinstance(bundle, list):
+                log.warning(f"cowork_output 形式不正 (list 期待) {jf.name}")
+                continue
+            for race in bundle:
+                if not isinstance(race, dict):
+                    continue
+                rid = str(race.get("race_id", "")).strip()
+                if not rid:
+                    continue
+                key = (date_key, rid)
+                if key in seen:
+                    continue
+                seen.add(key)
+                yield date_key, race, f"cowork_output/{jf.name}"
+
+    # --- 個別レース形式 (旧) を後追い ---
+    if COWORK_BETS_DIR.exists():
+        for date_dir in sorted(COWORK_BETS_DIR.iterdir()):
+            if not date_dir.is_dir() or not date_dir.name.isdigit():
+                continue
+            date_key = date_dir.name
+            for jf in sorted(date_dir.glob("*.json")):
+                try:
+                    with open(jf, encoding="utf-8") as f:
+                        cd = json.load(f)
+                except Exception as e:
+                    log.warning(f"cowork_bets 読み込み失敗 {jf.name}: {e}")
+                    continue
+                rid = str(cd.get("race_id", jf.stem)).strip()
+                key = (date_key, rid)
+                if key in seen:
+                    continue
+                seen.add(key)
+                yield date_key, cd, f"cowork_bets/{date_key}/{jf.name}"
+
+
 def aggregate_cowork_bets(kekka_cache: dict) -> dict:
-    """reports/cowork_bets/{YYYYMMDD}/{race_id}.json を全部読んで
+    """Cowork 由来の買い目 (per-race ファイル + bundle ファイル) を全部読んで
     kekka と突合して集計サマリを返す。
+
+    入力ソース:
+      - reports/cowork_bets/{YYYYMMDD}/{race_id}.json (旧形式)
+      - reports/cowork_output/{YYYYMMDD}_bets.json    (Cowork Anthropic Desktop bundle)
 
     Returns:
         {
@@ -631,8 +699,8 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
           "by_place": [...], "weekly": [...], "races": [...],
         }
     """
-    if not COWORK_BETS_DIR.exists():
-        log.info("cowork_bets/ なし、スキップ")
+    if not COWORK_BETS_DIR.exists() and not COWORK_OUTPUT_DIR.exists():
+        log.info("cowork_bets/ / cowork_output/ どちらも無し、スキップ")
         return {"generated_at": pd.Timestamp.now().isoformat(),
                 "total": {"races": 0, "bet_count": 0, "bet": 0, "ret": 0,
                           "pnl": 0, "roi": 0, "hit_count": 0, "hit_rate": 0},
@@ -641,82 +709,69 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
     races_out: list[dict] = []
     bet_records: list[dict] = []   # 馬券単位 (集計用)
 
-    for date_dir in sorted(COWORK_BETS_DIR.iterdir()):
-        if not date_dir.is_dir() or not date_dir.name.isdigit():
+    for date_key, cd, _source in _iter_cowork_race_dicts():
+        rid = cd.get("race_id", "")
+        parsed = parse_race_id_16(rid)
+        if not parsed:
+            log.warning(f"race_id 解析失敗: {rid}")
             continue
-        date_key = date_dir.name
-        for jf in sorted(date_dir.glob("*.json")):
-            try:
-                with open(jf, encoding="utf-8") as f:
-                    cd = json.load(f)
-            except Exception as e:
-                log.warning(f"cowork_bets 読み込み失敗 {jf.name}: {e}")
-                continue
 
-            rid = cd.get("race_id", jf.stem)
-            parsed = parse_race_id_16(rid)
-            if not parsed:
-                log.warning(f"race_id 解析失敗: {rid}")
-                continue
+        place_name = parsed["place_name"]
+        r_num = parsed["race_no"]
+        race_kk = get_race_kk(kekka_cache, date_key, place_name, r_num)
+        if race_kk.empty:
+            log.info(f"kekka 未到達 (未開催 or 取得待ち): {date_key} {place_name} {r_num}R")
+            race_kk = pd.DataFrame()
 
-            place_name = parsed["place_name"]
-            r_num = parsed["race_no"]
-            race_kk = get_race_kk(kekka_cache, date_key, place_name, r_num)
-            if race_kk.empty:
-                log.info(f"kekka 未到達 (未開催 or 取得待ち): {date_key} {place_name} {r_num}R")
-                # 結果待ちレースもサマリに含めるが、bet/ret は 0
-                race_kk = pd.DataFrame()  # 空のまま下で処理
+        bets = cd.get("bets", []) or []
+        race_bet = 0.0
+        race_ret = 0.0
+        race_hits = 0
+        for b in bets:
+            amount = _safe_num(b.get("購入額"))
+            btype = b.get("馬券種", "?")
+            sel = str(b.get("買い目", ""))
+            hit, payout_per_100 = (False, 0.0)
+            if not race_kk.empty:
+                try:
+                    hit, payout_per_100 = match_cowork_bet(b, race_kk)
+                except Exception as e:
+                    log.warning(f"bet 照合失敗 {rid} {btype} {sel}: {e}")
 
-            bets = cd.get("bets", []) or []
-            race_bet = 0.0
-            race_ret = 0.0
-            race_hits = 0
-            for b in bets:
-                amount = _safe_num(b.get("購入額"))
-                btype = b.get("馬券種", "?")
-                sel = str(b.get("買い目", ""))
-                hit, payout_per_100 = (False, 0.0)
-                if not race_kk.empty:
-                    try:
-                        hit, payout_per_100 = match_cowork_bet(b, race_kk)
-                    except Exception as e:
-                        log.warning(f"bet 照合失敗 {rid} {btype} {sel}: {e}")
+            ret = (amount * payout_per_100 / 100.0) if hit else 0.0
+            race_bet += amount
+            race_ret += ret
+            if hit:
+                race_hits += 1
 
-                # 100 円ベース → 購入額換算
-                ret = (amount * payout_per_100 / 100.0) if hit else 0.0
-                race_bet += amount
-                race_ret += ret
-                if hit:
-                    race_hits += 1
-
-                bet_records.append({
-                    "date":     date_key,
-                    "race_id":  rid,
-                    "場所":     place_name,
-                    "R":        r_num,
-                    "馬券種":   btype,
-                    "買い目":   sel,
-                    "購入額":   _safe_round(amount),
-                    "払戻":     _safe_round(ret),
-                    "的中":     int(hit),
-                    "決着":     "未開催" if race_kk.empty else "確定",
-                })
-
-            races_out.append({
-                "date":        date_key,
-                "race_id":     rid,
-                "場所":        place_name,
-                "R":           r_num,
-                "race_label":  cd.get("race_label", ""),
-                "race_nature": cd.get("race_nature", ""),
-                "race_reason": cd.get("race_reason", ""),
-                "総投資":      _safe_round(race_bet),
-                "総払戻":      _safe_round(race_ret),
-                "収支":        _safe_round(race_ret - race_bet),
-                "点数":        len(bets),
-                "的中点数":    race_hits,
-                "決着":        "未開催" if race_kk.empty else "確定",
+            bet_records.append({
+                "date":     date_key,
+                "race_id":  rid,
+                "場所":     place_name,
+                "R":        r_num,
+                "馬券種":   btype,
+                "買い目":   sel,
+                "購入額":   _safe_round(amount),
+                "払戻":     _safe_round(ret),
+                "的中":     int(hit),
+                "決着":     "未開催" if race_kk.empty else "確定",
             })
+
+        races_out.append({
+            "date":        date_key,
+            "race_id":     rid,
+            "場所":        place_name,
+            "R":           r_num,
+            "race_label":  cd.get("race_label", ""),
+            "race_nature": cd.get("race_nature", ""),
+            "race_reason": cd.get("race_reason", ""),
+            "総投資":      _safe_round(race_bet),
+            "総払戻":      _safe_round(race_ret),
+            "収支":        _safe_round(race_ret - race_bet),
+            "点数":        len(bets),
+            "的中点数":    race_hits,
+            "決着":        "未開催" if race_kk.empty else "確定",
+        })
 
     # ── サマリ集計 ──
     total_bet  = sum(r["総投資"] for r in races_out)
