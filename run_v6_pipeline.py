@@ -94,6 +94,23 @@ def step6_backtest():
     bk.main()
 
 
+def step7_class_prior():
+    """クラス別 印信頼度マトリクスを生成して data/class_prior_v6.json に書き出す。
+    export_weekly_marks.py がこれを読んで bundle.json の race_meta.class_prior に
+    埋め込み、Cowork が race ごとに経験 prior を参照できるようにする。
+    """
+    print("\n" + "=" * 70)
+    print("[STEP 7] class_prior (◎〇▲△△ 信頼度マトリクス、v6 OOS)")
+    print("=" * 70)
+    script = BASE / "scripts" / "audit_marks_by_class.py"
+    if not script.exists():
+        print(f"  SKIP: {script} not found")
+        return
+    cmd = [sys.executable, str(script), "--model", "v6"]
+    subprocess.run(cmd, check=True)
+    print(f"  → data/class_prior_v6.json を更新 (export_weekly_marks.py で読まれる)")
+
+
 def main():
     print("=" * 70)
     print("run_v6_pipeline.py")
@@ -107,12 +124,13 @@ def main():
     step4_fixed_backtest()     # 馬連 7 点流し ROI (参考値)
     step5_audit_v6_vs_v5()     # 高 EV 帯 calibration 比較 (採用判定の本命 2)
     step6_backtest()           # backtest_pl_kelly (参考値)
+    step7_class_prior()        # クラス別 印信頼度 → bundle.json 埋込用
     print("\n" + "=" * 70)
     print("DONE")
     print("  → reports/audit_marks_v6.log で印精度 (v5 比較) を確認")
     print("  → reports/backtest_fixed_v6.log で 7 点流し ROI 推移を確認")
     print("  → reports/audit_v6_vs_v5_<date>.md で高 EV 帯 calibration 比較を確認")
-    print("  → 採用なら export_weekly_marks.py --model v6 に切り替え (CLAUDE.md 更新)")
+    print("  → data/class_prior_v6.json が bundle.json の race_meta.class_prior に埋込まれる")
     print("=" * 70)
 
 
