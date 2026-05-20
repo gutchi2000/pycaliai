@@ -188,6 +188,28 @@ def main() -> int:
     else:
         logger.warning(f"calibrator 未存在: {be.CAL_PKL} → raw PL 確率で出力")
 
+    # ------ class prior (経験 ◎〇▲△△ 信頼度) ------
+    class_prior_path = BASE / "data" / f"class_prior_{tag}.json"
+    class_prior_map: dict | None = None
+    if class_prior_path.exists():
+        try:
+            with open(class_prior_path, encoding="utf-8") as f:
+                prior_data = json.load(f)
+            class_prior_map = prior_data.get("classes", {}) or None
+            if class_prior_map:
+                logger.info(
+                    f"class_prior: {class_prior_path.name} "
+                    f"({len(class_prior_map)} クラス、generated {prior_data.get('generated_at', '?')[:10]})"
+                )
+        except Exception as e:
+            logger.warning(f"class_prior 読み込み失敗: {e}")
+    else:
+        logger.info(
+            f"class_prior 未配置: {class_prior_path.name} "
+            "→ bundle に prior 埋め込みなし "
+            "(scripts/audit_marks_by_class.py を先に実行)"
+        )
+
     # ------ CSV パース ------
     logger.info(f"weekly CSV パース: {csv_path}")
     df = parse_csv(csv_path)
@@ -233,7 +255,8 @@ def main() -> int:
         try:
             payload = export_race(rid, g, model, feats, encs,
                                    tansho_idx, fuku_idx, calibrators,
-                                   umaren_idx=umaren_idx)
+                                   umaren_idx=umaren_idx,
+                                   class_prior_map=class_prior_map)
         except Exception as e:
             logger.error(f"  rid={rid}: {e}")
             n_skip += 1

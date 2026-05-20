@@ -158,11 +158,19 @@ python run_v5_pipeline.py
 # → audit_marks v5 ログ + backtest_fixed v5 ROI
 ```
 
-### v6 系の再構築（calibrator/curve のみ）
+### v6 系の再構築（calibrator/curve + class_prior）
 ```bash
 python run_v6_pipeline.py
 # → pl_calibrators_v6.pkl / pl_payout_curve_v6.pkl 更新
 # → audit_marks v6 / backtest_fixed v6 / audit_v6_vs_v5 ログ
+# → data/class_prior_v6.json (bundle.json 埋込用、クラス×印 経験率)
+```
+
+### class_prior 単体再生成
+```bash
+python scripts/audit_marks_by_class.py --model v6
+# → reports/audit_marks_by_class_v6.{json,log}
+# → data/class_prior_v6.json (export_weekly_marks.py が読む)
 ```
 
 ### v7 等の新版を試したい場合
@@ -202,8 +210,10 @@ export_weekly_marks.py --model v6
     ↓ pl_calibrators_v6.pkl → 実勝率（calibration 改善版）
     ↓ Plackett-Luce → 全馬の P(着順)
     ↓ 印付け（◎〇▲△△）+ race_confidence
+    ↓ data/class_prior_v6.json → race_meta.class_prior 埋込
+        (◎〇▲△△ のクラス別経験的中率を Cowork に与える)
 reports/cowork_input/{date}_bundle.json   ← Cowork 投入
-    ↓ （Cowork が race ごとに馬券を組む）
+    ↓ （Cowork が race ごとに馬券を組む、class_prior を判断材料に）
 reports/cowork_output/{date}_bets.json    ← NiceGUI が読む
 ```
 

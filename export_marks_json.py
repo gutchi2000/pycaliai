@@ -180,28 +180,38 @@ def horse_record(g_row, ban, mark, ai_rank, ai_score, p_win, p_plc, p_sho,
     return rec
 
 
-def race_meta(g):
-    """レースメタ情報."""
+def race_meta(g, class_prior_map: dict | None = None):
+    """レースメタ情報. class_prior_map={class_name: prior_dict} を渡すと
+    そのレースの class に対応する経験 prior (◎〇▲△△ の複勝圏率等) を埋め込む。
+    """
     row = g.iloc[0]
     def _g(k, default=""):
         v = row.get(k, default)
         return "" if pd.isna(v) else str(v)
-    return {
+    cls = _g("クラス名")
+    meta = {
         "date": _g("日付"),
         "place": _g("場所"),
         "course": f"{_g('芝・ダ')}{_g('距離')}",
         "field_size": int(len(g)),
-        "class": _g("クラス名"),
+        "class": cls,
         "race_name": _g("レース名"),
     }
+    if class_prior_map and cls:
+        prior = class_prior_map.get(cls)
+        if prior:
+            meta["class_prior"] = prior
+    return meta
 
 
 def export_race(rid, g_orig, model, feats, encs, tansho_idx, fuku_idx,
-                calibrators=None, umaren_idx=None):
+                calibrators=None, umaren_idx=None, class_prior_map=None):
     """1 レース分の JSON を返す.
 
     umaren_idx: optional dict {(rid_s, i, j): float} (i<j 対称) — bundle に
                  'umaren_matrix': {"i-j": odds} を埋め込む。
+    class_prior_map: optional dict {class_name: prior_dict} → race_meta に
+                 class_prior フィールドを埋め込み (Cowork が prior 参照可能に)。
     """
     rid_s = str(rid).split(".")[0]  # remove .0 if float
     if isinstance(rid, float) and rid.is_integer():
@@ -284,7 +294,7 @@ def export_race(rid, g_orig, model, feats, encs, tansho_idx, fuku_idx,
 
     payload = {
         "race_id": rid_s,
-        "race_meta": race_meta(g),
+        "race_meta": race_meta(g, class_prior_map=class_prior_map),
         "horses": horses,
         "race_confidence": conf,
     }
