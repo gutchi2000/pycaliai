@@ -14,6 +14,14 @@
 #   hf-spaces is an orphan branch (independent history from master),
 #   so git merge cannot be used. Instead, we checkout the HF-relevant
 #   files from master onto hf-spaces and re-commit.
+#
+# Bug-fix history:
+#   2026-05-17: $realDiff = git status --porcelain --untracked-files=no が
+#               PS 5.1 で空配列扱いされる事例 → `git diff --cached/diff` に変更
+#   2026-05-23: 大量 git checkout 後の diff 検出が依然不安定 →
+#               diff 判定 自体を放棄、commit を素直に試みる方式に変更。
+#               また 246 件以上の per-file checkout が原因らしいので、
+#               全 file path を 1 回の `git checkout master -- $batch` で渡す。
 # =====================================================================
 
 [CmdletBinding()]
@@ -30,8 +38,6 @@ param(
 $ErrorActionPreference = "Continue"
 
 # Files that actually need to be deployed to HF Spaces.
-# (large files in data/, reports/, models/ are excluded via .dockerignore at
-# build time; here we list the small data subsets that NiceGUI actually reads)
 $SyncFiles = @(
     "Dockerfile",
     "README.md",
@@ -44,22 +50,15 @@ $SyncFiles = @(
 )
 
 # Regex patterns matched against `git ls-tree -r --name-only master`.
-# git ls-tree's pathspec does NOT expand globs, so we list ALL master files
-# once and filter in PowerShell with -match.
-# Large multi-year files (H_2013-2025, H-2015*-...) are NOT in the regex
-# to keep the hf-spaces repo under 1 GB.
 $SyncDataPatterns = @(
-    # 8-digit YYYYMMDD basename only (rejects test.csv etc)
     '^data/weekly/[0-9]{8}\.csv$',
     '^data/hosei/H_2026[0-9]+(-[0-9]+)?\.csv$',
     '^data/training/H-2026[0-9]+(-[0-9]+)?\.csv$',
     '^data/training/W-2026[0-9]+(-[0-9]+)?\.csv$',
     '^data/kako5/[0-9]{8}\.csv$',
     '^data/kekka/[0-9]{8}\.csv$',
-    # cowork_input: top-level YYYYMMDD_bundle.json + per-race subfolder
     '^reports/cowork_input/[0-9]{8}_bundle\.json$',
     '^reports/cowork_input/[0-9]{8}/[^/]+\.json$',
-    # cowork_output: any file with date in name
     '^reports/cowork_output/[0-9]{8}.*$'
 )
 
@@ -98,8 +97,8 @@ Write-Step "Switching to hf-spaces"
 git checkout --force hf-spaces
 if ($LASTEXITCODE -ne 0) { Fail "checkout hf-spaces failed" }
 
-# 5. checkout files from master
-Write-Step "Checking out files from master"
+# 5. checkout SyncFiles from master (small list, 1 file = 1 call OK)
+Write-Step "Checking out fixed sync files from master"
 foreach ($f in $SyncFiles) {
     git checkout master -- $f
     if ($LASTEXITCODE -ne 0) {
@@ -108,61 +107,30 @@ foreach ($f in $SyncFiles) {
     }
 }
 
-# 5b. checkout data files matching regex patterns. We pull the ENTIRE
-#     master tree's filename list once, then filter via -match.
+# 5b. checkout data files matching regex patterns.
+# Bug fix (2026-05-23): per-file checkout を 246+ 回繰り返すと、後段の
+# git diff/status コマンドが空配列を返すバグが PS 5.1 で発生。
+# → 全 file path を集めて 1 回の `git checkout master -- $batch` で一括 checkout。
 Write-Step "Checking out data files (weekly / hosei / training / kako5 / cowork)"
 $allMasterFiles = git ls-tree -r --name-only master
+$batchFiles = @()
 foreach ($pat in $SyncDataPatterns) {
-    $files = $allMasterFiles | Where-Object { $_ -match $pat }
-    if (-not $files) {
+    $files = @($allMasterFiles | Where-Object { $_ -match $pat })
+    if ($files.Count -eq 0) {
         Write-Host "    $pat -> 0 files" -ForegroundColor DarkGray
         continue
     }
-    foreach ($f in $files) {
-        git checkout master -- $f
-    }
-    $count = ($files | Measure-Object).Count
-    Write-Host "    $pat -> $count files" -ForegroundColor DarkGray
+    $batchFiles += $files
+    Write-Host "    $pat -> $($files.Count) files" -ForegroundColor DarkGray
+}
+if ($batchFiles.Count -gt 0) {
+    git checkout master -- $batchFiles
+    Write-Host "    total batched: $($batchFiles.Count) files" -ForegroundColor DarkGray
 }
 
-# 6. show status
+# 6. show status (display only, never used for diff judgment after 5/23)
 Write-Step "Status on hf-spaces:"
 git status --short
-
-# Untracked files (??) は master の追跡ファイルが orphan branch では tracked
-# 扱いされないだけで「同期すべき差分」ではない。
-# 真の差分 (M=modified / A=added / D=deleted) のみで判定する。
-#
-# Bug fix (2026-05-23): Windows PowerShell 5.1 で
-#   $var = git status --porcelain --untracked-files=no
-# は staged 変更があっても空配列扱いされる事例が確認された
-# (5/17 advisor sync, 5/23 weekly sync で「No diff」誤判定 → HF push 漏れ)。
-# 確実な `git diff --cached` (staged) + `git diff` (unstaged) の組合せに切替。
-$stagedFiles   = @(git diff --cached --name-only)
-$unstagedFiles = @(git diff --name-only)
-$realDiff = @($stagedFiles + $unstagedFiles) | Where-Object { $_ -and $_.Trim() }
-Write-Host "    staged=$($stagedFiles.Count)  unstaged=$($unstagedFiles.Count)  total_diff=$($realDiff.Count)" -ForegroundColor DarkGray
-if (-not $realDiff -or $realDiff.Count -eq 0) {
-    Write-Step "No diff between master and hf-spaces."
-    # ローカル hf-spaces が remote main より進んでいるかチェック (前回の sync
-    # で commit したが push に失敗したケースのリカバリ)
-    git fetch hf main 2>$null
-    $localSha = (git rev-parse hf-spaces).Trim()
-    $remoteSha = (git rev-parse hf/main 2>$null).Trim()
-    if ($localSha -ne $remoteSha) {
-        Write-Step "Local hf-spaces ahead of hf/main. Pushing pending commits."
-        git push hf hf-spaces:main
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "push failed; retry manually: git push hf hf-spaces:main" -ForegroundColor Yellow
-        } else {
-            Write-Host "    pushed pending commits to hf/main" -ForegroundColor Green
-        }
-    } else {
-        Write-Step "Already in sync with hf/main."
-    }
-    git checkout $origBranch
-    exit 0
-}
 
 if ($DryRun) {
     Write-Step "DryRun: stopping here. Changes are staged."
@@ -172,33 +140,35 @@ if ($DryRun) {
     exit 0
 }
 
-# 7. commit. We rely on the staging done by `git checkout master -- <file>`
-#    above (it auto-stages new files). For modified files we re-add them by
-#    walking `git status --porcelain` and matching the regex patterns.
+# 7. commit. Bug fix (2026-05-23): diff 検出に依存せず、ガンガン add して
+#    commit を試みる。"nothing to commit" でも graceful に push 段階に進む。
 Write-Step "Committing"
 git add $SyncFiles
-$workingChanges = git status --porcelain | ForEach-Object { ($_ -replace '^...', '').Trim() }
-foreach ($f in $workingChanges) {
-    $pathOk = $false
-    foreach ($pat in $SyncDataPatterns) {
-        if ($f -match $pat) { $pathOk = $true; break }
-    }
-    if ($pathOk) { git add $f 2>$null }
+if ($batchFiles.Count -gt 0) {
+    git add $batchFiles
 }
+
 $msg = "sync: master $($masterSha.Substring(0,7))"
 git commit -m $msg
 if ($LASTEXITCODE -ne 0) {
-    # commit が「nothing to commit」で失敗 = 既に同期済の合図
-    Write-Host "Nothing to commit. Already in sync." -ForegroundColor Yellow
-    git checkout $origBranch
-    exit 0
+    Write-Host "    nothing to commit (working tree clean vs hf-spaces HEAD)" -ForegroundColor Yellow
 }
 
 # 8. push to HF (HF default branch is main)
-Write-Step "Pushing to HuggingFace Spaces (hf/main)"
-git push hf hf-spaces:main
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "push failed; retry manually: git push hf hf-spaces:main" -ForegroundColor Yellow
+# commit が成功 or 失敗どちらでも、local hf-spaces が remote hf/main より進んでる
+# 場合はそれを push する (前回の push 失敗を必ずリカバリ)。
+git fetch hf main 2>$null
+$localSha  = (git rev-parse hf-spaces).Trim()
+$remoteSha = (git rev-parse hf/main 2>$null).Trim()
+if ($localSha -ne $remoteSha) {
+    Write-Step "Pushing to HuggingFace Spaces (hf/main)"
+    Write-Host "    local hf-spaces=$($localSha.Substring(0,7)) vs hf/main=$($remoteSha.Substring(0,7))" -ForegroundColor DarkGray
+    git push hf hf-spaces:main
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "push failed; retry manually: git push hf hf-spaces:main" -ForegroundColor Yellow
+    }
+} else {
+    Write-Step "Already in sync with hf/main (no push needed)."
 }
 
 # 9. switch back
