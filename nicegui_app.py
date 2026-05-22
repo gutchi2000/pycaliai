@@ -232,12 +232,27 @@ def _parse_one_cowork_file(path: Path) -> dict[str, dict]:
                     "購入額": b.get("購入額") or b.get("amount", 0),
                     "理由":   b.get("理由")   or b.get("reason", ""),
                 })
+        # advisor (Cowork narrative 論評): 任意フィールド、原形で通す
+        advisor_raw = entry.get("advisor", [])
+        advisor = []
+        if isinstance(advisor_raw, list):
+            for a in advisor_raw:
+                if not isinstance(a, dict):
+                    continue
+                advisor.append({
+                    "umaban":     a.get("umaban") or a.get("馬番"),
+                    "horse_name": str(a.get("horse_name") or a.get("馬名", "")),
+                    "grade":      str(a.get("grade") or ""),
+                    "tag":        a.get("tag") or None,
+                    "comment":    str(a.get("comment") or a.get("コメント", "")),
+                })
         out[rid] = {
             "race_id":     rid,
             "race_label":  str(entry.get("race_label", "")),
             "race_nature": str(entry.get("race_nature", "")),
             "race_reason": str(entry.get("race_reason", "")),
             "bets":        bets,
+            "advisor":     advisor,
             "source":      f"cowork_output:{path.name}",
         }
     return out
@@ -1376,6 +1391,22 @@ MARK_COLORS = {
 MARKET_COLORS = {
     "under": "#a6e3a1", "fair": "#89b4fa",
     "over": "#f38ba8", "unknown": "#6c7086",
+}
+
+# Advisor 用 grade/tag 配色 (Cowork 出力の grade/tag フィールド)
+ADVISOR_GRADE_COLORS = {
+    "SS": "#ffd700",  # gold
+    "S":  "#fab387",  # amber
+    "A":  "#a6e3a1",  # green
+    "B":  "#89b4fa",  # blue
+    "C":  "#6c7086",  # gray
+}
+ADVISOR_TAG_COLORS = {
+    "軸":   "#5865f2",  # indigo
+    "妙味": "#a6e3a1",  # green
+    "穴":   "#cba6f7",  # purple
+    "罠":   "#f38ba8",  # red
+    "消":   "#45475a",  # dark gray
 }
 
 
@@ -3194,6 +3225,14 @@ def main_page():
                 if not bets:
                     ui.label("→ 見送り (購入なし)").classes("text-slate-400 mt-3 text-lg")
                 else:
+                    # 表示順: 単勝 → 複勝 → 馬連 → ワイド → 馬単 → 三連複 → 三連単
+                    # 同じ馬券種内は購入額が大きい順 (本線が上)
+                    btype_order = {"単勝": 0, "複勝": 1, "馬連": 2, "ワイド": 3,
+                                    "馬単": 4, "三連複": 5, "三連単": 6}
+                    bets = sorted(bets, key=lambda b: (
+                        btype_order.get(b.get("馬券種", ""), 99),
+                        -int(b.get("購入額", 0) or 0),
+                    ))
                     rows = []
                     for b in bets:
                         rows.append(f"""
@@ -3225,6 +3264,60 @@ def main_page():
                     total = sum(b.get("購入額", 0) for b in bets)
                     ui.label(f"合計予算: ¥{total:,}") \
                       .classes("text-2xl font-bold mt-3 text-amber-300")
+
+                # ── advisor (Cowork narrative 論評) ──
+                advisor = cowork.get("advisor", []) or []
+                if advisor:
+                    ui.label("🧠 Advisor (自由日本語論評)").classes(
+                        "text-xl font-bold mt-6 mb-2 text-slate-100")
+                    ui.label(
+                        "Cowork による各馬の narrative 評価。"
+                        "grade = 地力 (SS/S/A/B/C)、tag = 役割 (軸/妙味/罠/穴/消)。"
+                    ).classes("text-sm text-slate-400 mb-3")
+                    cards = []
+                    for adv in advisor:
+                        uma = adv.get("umaban", "")
+                        name = adv.get("horse_name", "?")
+                        grade = adv.get("grade", "")
+                        tag = adv.get("tag") or ""
+                        comment = adv.get("comment", "")
+                        g_color = ADVISOR_GRADE_COLORS.get(grade, "#6c7086")
+                        t_color = ADVISOR_TAG_COLORS.get(tag, "#6c7086")
+                        # 印 (bundle.json) を参照
+                        mark = ""
+                        for h in race.get("horses", []):
+                            if h.get("umaban") == uma:
+                                mark = h.get("mark", "") or ""
+                                break
+                        mark_color = MARK_COLORS.get(mark, "#475569") if mark else "transparent"
+                        mark_badge = (f'<span style="display:inline-block;background:{mark_color};'
+                                       f'color:#fff;font-weight:bold;padding:2px 8px;border-radius:4px;'
+                                       f'margin-right:8px;font-size:14px">{mark}</span>'
+                                       if mark else "")
+                        grade_badge = (f'<span style="display:inline-block;background:{g_color};'
+                                        f'color:#1e1e2e;font-weight:bold;padding:3px 10px;border-radius:4px;'
+                                        f'margin-right:6px;font-size:13px;min-width:34px;text-align:center">'
+                                        f'{grade}</span>' if grade else "")
+                        tag_badge = (f'<span style="display:inline-block;background:{t_color};'
+                                      f'color:#1e1e2e;font-weight:bold;padding:3px 10px;border-radius:4px;'
+                                      f'margin-right:6px;font-size:13px">{tag}</span>'
+                                      if tag else "")
+                        cards.append(f"""
+                        <div style="background:#1e1e2e;border-left:4px solid {g_color};
+                                    padding:12px 16px;margin:8px 0;border-radius:6px">
+                          <div style="display:flex;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+                            {mark_badge}
+                            {grade_badge}
+                            {tag_badge}
+                            <span style="color:#cdd6f4;font-weight:bold;font-size:16px;margin-left:4px">
+                              {uma}番 {name}
+                            </span>
+                          </div>
+                          <div style="color:#cdd6f4;font-size:15px;line-height:1.7;
+                                      padding-left:4px">{comment}</div>
+                        </div>
+                        """)
+                    ui.html("".join(cards))
 
     # =================================================================
     # 場所タブ + レース番号ボタンの動的描画

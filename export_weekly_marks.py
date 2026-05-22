@@ -233,6 +233,16 @@ def main() -> int:
             else:
                 df[c] = np.nan
 
+    # ------ kako5 history (advisor 用 narrative-ready 過去走) ------
+    from kako5_summary import build_histories
+    kako5_path = BASE / "data" / "kako5" / f"{date_str}.csv"
+    histories = build_histories(kako5_path) if kako5_path.exists() else {}
+    if not histories:
+        logger.warning(
+            f"kako5 履歴未取得: {kako5_path.name} "
+            "→ bundle に history 埋め込みなし (advisor 用材料減)"
+        )
+
     # オッズ: data/odds/OD{YYMMDD}.CSV (TARGET 形式) を優先、無ければ weekly CSV から
     od_result = build_odds_from_od_csv(date_str)
     if od_result is not None:
@@ -262,6 +272,13 @@ def main() -> int:
             n_skip += 1
             continue
         rid_s = payload["race_id"]
+        # kako5 history を horse ごとに注入 (Cowork advisor 用)
+        if histories:
+            for h in payload.get("horses", []):
+                key = (rid_s, int(h.get("umaban", 0)))
+                hist = histories.get(key)
+                if hist:
+                    h["history"] = hist
         out_path = out_dir / f"{rid_s}.json"
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, ensure_ascii=False)
