@@ -131,8 +131,17 @@ git status --short
 # Untracked files (??) は master の追跡ファイルが orphan branch では tracked
 # 扱いされないだけで「同期すべき差分」ではない。
 # 真の差分 (M=modified / A=added / D=deleted) のみで判定する。
-$realDiff = git status --porcelain --untracked-files=no
-if (-not $realDiff) {
+#
+# Bug fix (2026-05-23): Windows PowerShell 5.1 で
+#   $var = git status --porcelain --untracked-files=no
+# は staged 変更があっても空配列扱いされる事例が確認された
+# (5/17 advisor sync, 5/23 weekly sync で「No diff」誤判定 → HF push 漏れ)。
+# 確実な `git diff --cached` (staged) + `git diff` (unstaged) の組合せに切替。
+$stagedFiles   = @(git diff --cached --name-only)
+$unstagedFiles = @(git diff --name-only)
+$realDiff = @($stagedFiles + $unstagedFiles) | Where-Object { $_ -and $_.Trim() }
+Write-Host "    staged=$($stagedFiles.Count)  unstaged=$($unstagedFiles.Count)  total_diff=$($realDiff.Count)" -ForegroundColor DarkGray
+if (-not $realDiff -or $realDiff.Count -eq 0) {
     Write-Step "No diff between master and hf-spaces."
     # ローカル hf-spaces が remote main より進んでいるかチェック (前回の sync
     # で commit したが push に失敗したケースのリカバリ)
