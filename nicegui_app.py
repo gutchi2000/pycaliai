@@ -2429,49 +2429,32 @@ def render_training_top5(date_str: str | None) -> None:
 
 
 def render_tenkai_yoso(race: dict, date_str: str | None = None) -> None:
-    """展開予想 (脚質分布 + pace + 一言)。Cowork の買い目スタイル風の文章で。
-    各馬にコース適性 (A/B/C/D) も付与。
+    """展開予想 — SPAIA 風の視覚的隊列図 (全頭表示)。
+
+    Layout:
+      [逃げ] 1 ナスノソナタ
+        ↓ (約 N 馬身)
+      [先行] 5 リールフォート ── 9 ハリーバローズ ── ...
+        ↓
+      [中団] 6 シャドウメテオ ── ...
+        ↓
+      [後方] 14 サンダーバード ── ...
+
+      想定ペース: H / M / S + 解説
+      有利な脚質
     """
     horses = list(race.get("horses", []))
     if not horses:
         return
     meta = race.get("race_meta", {}) or {}
-    field_size = meta.get("field_size", 16) or 16
-    place = meta.get("place", "")
-    course_str = meta.get("course", "")
+    field_size = meta.get("field_size", len(horses)) or len(horses)
 
-    # コース別好走脚質をロード (適性スコア計算用)
-    course_stats = compute_course_stats_v2(place, course_str)
-    kyaku_winrate: dict[str, float] = {}
-    if course_stats and course_stats.get("kyaku"):
-        for entry in course_stats["kyaku"]:
-            kyaku_winrate[entry["label"]] = entry.get("win_rate", 0.0)
-
-    def aptitude_grade(kyaku: str) -> tuple[str, str, str]:
-        """コースのその脚質の勝率を相対化して A/B/C/D 評価を返す"""
-        if kyaku == "不明" or not kyaku_winrate:
-            return ("-", "#6c7086", "")
-        rates = sorted(kyaku_winrate.values(), reverse=True)
-        rate = kyaku_winrate.get(kyaku, 0.0)
-        if not rates or rate == 0:
-            return ("-", "#6c7086", "")
-        # 4 段階 (rank 0 が最良)
-        if rate >= rates[0] - 0.5:
-            return ("A", "#a6e3a1", "(好相性)")
-        if rate >= rates[min(1, len(rates)-1)] - 0.5:
-            return ("B", "#89b4fa", "")
-        if rate >= rates[min(2, len(rates)-1)] - 0.5:
-            return ("C", "#f9e2af", "")
-        return ("D", "#f38ba8", "(苦戦)")
-
-    # 上位 5 頭 (p_win 順) で脚質を集計
-    top5 = sorted(horses, key=lambda h: -(h.get("p_win") or 0))[:5]
-
-    kyaku_records: list[dict] = []
+    # 全頭の脚質を分類
     weekly_df = load_weekly_horses(date_str) if date_str else None
     rid_16 = str(race.get("race_id", ""))[:16]
 
-    for h in top5:
+    kyaku_records: list[dict] = []
+    for h in horses:
         umaban = h.get("umaban")
         pos1 = pos4 = None
         if weekly_df is not None and umaban is not None:
@@ -2490,98 +2473,151 @@ def render_tenkai_yoso(race: dict, date_str: str | None = None) -> None:
                         except (TypeError, ValueError): pass
                         break
         kyaku = _classify_kyakushitsu(pos1, pos4, field_size)
-        grade, grade_color, grade_note = aptitude_grade(kyaku)
-        kyaku_records.append({"horse": h, "kyaku": kyaku,
-                                "grade": grade, "grade_color": grade_color,
-                                "grade_note": grade_note})
+        kyaku_records.append({"horse": h, "kyaku": kyaku, "pos4": pos4})
 
-    # 集計
-    counts: dict[str, int] = {"逃げ":0, "先行":0, "差し":0, "追込":0, "不明":0}
+    # 脚質別 group: 逃げ / 先行 / 差し / 追込 / 不明
+    groups: dict[str, list[dict]] = {"逃げ": [], "先行": [], "差し": [], "追込": [], "不明": []}
     for r in kyaku_records:
-        counts[r["kyaku"]] = counts.get(r["kyaku"], 0) + 1
+        groups[r["kyaku"]].append(r)
+    counts = {k: len(v) for k, v in groups.items()}
 
-    # ペース判定 (簡易)
-    n_nige = counts.get("逃げ", 0)
-    n_sen  = counts.get("先行", 0)
-    n_sashi = counts.get("差し", 0) + counts.get("追込", 0)
+    # 各 group 内は前4角通過位置順 (前にいる順) で sort、無ければ馬番順
+    for k in groups:
+        groups[k].sort(key=lambda r: (
+            r["pos4"] if r["pos4"] is not None else 99,
+            r["horse"].get("umaban") or 99,
+        ))
+
+    # ペース判定
+    n_nige = counts["逃げ"]
+    n_sen  = counts["先行"]
+    n_sashi = counts["差し"] + counts["追込"]
     if n_nige >= 2:
-        pace = "ハイペース"
-        pace_color = "#f38ba8"
+        pace = "Hペース"; pace_color = "#f38ba8"
         pace_msg = "逃げ馬複数 → 前崩れ気配、差し・追込有利"
     elif n_nige == 0 and n_sen >= 3:
-        pace = "スローペース"
-        pace_color = "#89b4fa"
+        pace = "Sペース"; pace_color = "#89b4fa"
         pace_msg = "明確な逃げ馬不在 + 先行多 → スロー濃厚、上り勝負・先行有利"
-    elif n_sashi >= 3:
-        pace = "差し決着"
-        pace_color = "#cba6f7"
-        pace_msg = "上位に差し型多数 → 上り3F が決まる末脚勝負"
+    elif n_sashi >= n_sen + n_nige:
+        pace = "Mペース (差し決着)"; pace_color = "#cba6f7"
+        pace_msg = "差し型多数 → 上り3F が決まる末脚勝負"
     else:
-        pace = "平均ペース"
-        pace_color = "#a6e3a1"
+        pace = "Mペース"; pace_color = "#a6e3a1"
         pace_msg = "脚質バランス均等 → 標準的な流れ、ポジション戦"
 
-    # 主要馬の一言コメント (各馬: 印 / 馬番 / 馬名 / 脚質 / 適性 / 勝率)
-    horse_lines = []
-    for rec in kyaku_records:
+    # 有利脚質判定
+    if pace == "Hペース":
+        advantage = "差し・追込"
+    elif pace == "Sペース":
+        advantage = "逃げ・先行"
+    elif "差し決着" in pace:
+        advantage = "差し"
+    else:
+        advantage = "先行〜差し"
+
+    # 各馬の chip HTML 生成
+    def _chip(rec: dict) -> str:
         h = rec["horse"]
-        k = rec["kyaku"]
-        grade = rec.get("grade", "-")
-        gcol = rec.get("grade_color", "#6c7086")
-        gnote = rec.get("grade_note", "")
-        mark = h.get("mark") or "△"
+        mark = h.get("mark") or ""
         name = h.get("horse_name", "?")
         umaban = h.get("umaban", "?")
         pwin = (h.get("p_win") or 0) * 100
-        mark_color = MARK_COLORS.get(mark, "#6c7086")
-        grade_html = (
-            f'<span style="background:{gcol};color:#1e1e2e;padding:3px 10px;'
-            f'border-radius:10px;font-weight:bold;font-size:14px;'
-            f'min-width:28px;text-align:center">適性 {grade}</span>'
-            f'<span style="color:{gcol};font-size:12px;margin-left:4px">{gnote}</span>'
-            if grade != "-" else
-            '<span style="color:#6c7086;font-size:12px">適性 −</span>'
+        mark_color = MARK_COLORS.get(mark, "#475569") if mark else "#475569"
+        # 馬の chip: 馬番 + 名前 + 印
+        # 印がある馬は枠を太く強調
+        border = f"2px solid {mark_color}" if mark else "1px solid #313244"
+        return (
+            f'<div style="display:inline-flex;align-items:center;gap:6px;'
+            f'background:#181825;border:{border};padding:6px 12px;'
+            f'border-radius:8px;margin:3px 4px;min-width:120px">'
+            f'<span style="background:{mark_color};color:#fff;width:24px;height:24px;'
+            f'line-height:24px;text-align:center;border-radius:50%;font-size:12px;'
+            f'font-weight:bold">{mark or umaban}</span>'
+            f'<span style="color:#cdd6f4;font-size:13px;font-weight:600;'
+            f'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'
+            f'max-width:100px">{umaban}{(" " + name) if not mark else " " + name}</span>'
+            f'<span style="color:#a6adc8;font-size:11px;margin-left:auto">{pwin:.0f}%</span>'
+            f'</div>'
         )
-        horse_lines.append(f"""
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 0">
-          <span style="background:{mark_color};color:#fff;width:32px;height:32px;
-                       line-height:32px;text-align:center;border-radius:50%;
-                       font-size:16px;font-weight:bold;flex-shrink:0">{mark}</span>
-          <span style="color:#6c7086;font-size:15px;width:42px">{umaban}番</span>
-          <span style="color:#cdd6f4;font-size:17px;flex-grow:1;font-weight:600">
-            {name}</span>
-          <span style="color:#fab387;font-size:15px;font-weight:bold;
-                       background:rgba(250,179,135,0.15);padding:4px 14px;
-                       border-radius:12px">{k}</span>
-          {grade_html}
-          <span style="color:#a6e3a1;font-size:16px;font-weight:bold;
-                       width:72px;text-align:right">{pwin:.1f}%</span>
+
+    # 隊列図のセクション (逃げ → 先行 → 差し → 追込)
+    section_meta = [
+        ("逃げ", "#f38ba8", "🏃"),
+        ("先行", "#fab387", "→"),
+        ("差し", "#a6e3a1", "←"),
+        ("追込", "#89b4fa", "←←"),
+    ]
+    lineup_html_parts = []
+    prev_filled = False
+    for k, color, icon in section_meta:
+        recs = groups.get(k, [])
+        if not recs:
+            continue
+        # セクション間の "↓" arrow
+        if prev_filled:
+            lineup_html_parts.append(
+                f'<div style="text-align:center;color:#6c7086;font-size:14px;'
+                f'margin:6px 0;letter-spacing:4px">↓</div>'
+            )
+        chips = "".join(_chip(r) for r in recs)
+        lineup_html_parts.append(f"""
+        <div style="display:flex;align-items:flex-start;gap:14px;padding:10px 4px;
+                    border-left:3px solid {color};background:rgba(0,0,0,0.25);
+                    border-radius:6px;margin:2px 0">
+          <div style="min-width:80px;color:{color};font-size:16px;font-weight:bold;
+                      padding-top:8px;text-align:center">
+            <div style="font-size:20px">{icon}</div>
+            <div>{k} ({len(recs)})</div>
+          </div>
+          <div style="flex-grow:1;display:flex;flex-wrap:wrap;align-items:center">
+            {chips}
+          </div>
         </div>
         """)
+        prev_filled = True
+
+    # 不明セクション (あれば最後に灰色で)
+    unknown = groups.get("不明", [])
+    unknown_section = ""
+    if unknown:
+        chips = "".join(_chip(r) for r in unknown)
+        unknown_section = f"""
+        <div style="margin-top:14px;padding:8px 12px;background:rgba(108,112,134,0.1);
+                    border-radius:6px;border:1px dashed #45475a">
+          <div style="color:#6c7086;font-size:12px;margin-bottom:6px">
+            脚質不明 ({len(unknown)} 頭、過去走情報不足)
+          </div>
+          <div style="display:flex;flex-wrap:wrap">{chips}</div>
+        </div>
+        """
 
     ui.html(f"""
     <div style="background:linear-gradient(135deg,#0d1421 0%,#16213e 100%);
                 border:1px solid {pace_color};border-radius:14px;padding:22px 26px;
                 margin-bottom:18px">
-      <h2 style="margin:0 0 10px 0;color:#cdd6f4;font-size:24px;font-weight:bold">
-        🏇 展開予想
+      <h2 style="margin:0 0 14px 0;color:#cdd6f4;font-size:24px;font-weight:bold">
+        🏇 想定隊列
       </h2>
-      <div style="margin-bottom:18px">
-        <span style="background:{pace_color};color:#1e1e2e;padding:8px 18px;
-                     border-radius:14px;font-weight:bold;font-size:18px">{pace}</span>
-        <span style="color:#cdd6f4;font-size:16px;margin-left:14px">{pace_msg}</span>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;
+                  flex-wrap:wrap">
+        <span style="background:{pace_color};color:#1e1e2e;padding:6px 16px;
+                     border-radius:12px;font-weight:bold;font-size:16px">{pace}</span>
+        <span style="color:#cdd6f4;font-size:14px">{pace_msg}</span>
       </div>
-      <div style="background:rgba(0,0,0,0.25);border-left:3px solid {pace_color};
-                  padding:12px 18px;border-radius:6px">
-        <div style="color:#6c7086;font-size:14px;margin-bottom:8px">
-          上位 5 頭の想定脚質 (前4角通過位置ベース)
+      <div style="background:rgba(0,0,0,0.18);padding:12px 14px;border-radius:8px">
+        {"".join(lineup_html_parts)}
+      </div>
+      {unknown_section}
+      <div style="margin-top:14px;display:flex;justify-content:space-between;
+                  align-items:center;color:#a6adc8;font-size:13px;flex-wrap:wrap;gap:10px">
+        <div>
+          脚質分布: 逃げ {counts['逃げ']} / 先行 {counts['先行']} /
+          差し {counts['差し']} / 追込 {counts['追込']}
+          {' (不明 ' + str(counts['不明']) + ')' if counts['不明'] > 0 else ''}
         </div>
-        {"".join(horse_lines)}
-      </div>
-      <div style="margin-top:14px;color:#a6adc8;font-size:14px;line-height:1.5">
-        脚質分布: 逃げ {counts['逃げ']} / 先行 {counts['先行']} /
-        差し {counts['差し']} / 追込 {counts['追込']}
-        {'(不明 ' + str(counts['不明']) + ')' if counts['不明'] > 0 else ''}
+        <div style="color:#fab387;font-weight:bold;font-size:14px">
+          有利脚質: {advantage}
+        </div>
       </div>
     </div>
     """)
