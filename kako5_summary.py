@@ -193,6 +193,34 @@ def build_histories(kako5_path: Path) -> dict[tuple[str, int], dict]:
     return histories
 
 
+def build_horse_facts(kako5_path: Path) -> dict[tuple[str, int], dict]:
+    """kako5 CSV から (race_id, umaban) → {sex, age} の static fact map を返す。
+
+    kako5 列 layout (build_histories と同じ): col9=性別, col10=年齢
+    """
+    if not kako5_path.exists():
+        return {}
+    facts: dict[tuple[str, int], dict] = {}
+    current_rid: Optional[str] = None
+    with open(kako5_path, encoding="cp932", errors="replace") as f:
+        reader = csv.reader(f)
+        for row in reader:
+            if len(row) <= 1:
+                continue
+            if len(row) == 19 and row[0] and len(row[0]) >= 10 and row[0][:4].isdigit():
+                current_rid = row[0]
+                continue
+            if len(row) == 72 and row[0].isdigit() and current_rid:
+                uma_ban = _safe_int(row[2])
+                if uma_ban is None:
+                    continue
+                sex = (row[9] or "").strip() or None
+                age = _safe_int(row[10])
+                if sex or age is not None:
+                    facts[(current_rid, uma_ban)] = {"sex": sex, "age": age}
+    return facts
+
+
 if __name__ == "__main__":
     import argparse
     import json

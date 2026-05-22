@@ -233,14 +233,37 @@ def main() -> int:
             else:
                 df[c] = np.nan
 
-    # ------ kako5 history (advisor 用 narrative-ready 過去走) ------
-    from kako5_summary import build_histories
+    # ------ kako5 history + horse facts (advisor + 出走表 表示用) ------
+    from kako5_summary import build_histories, build_horse_facts
     kako5_path = BASE / "data" / "kako5" / f"{date_str}.csv"
     histories = build_histories(kako5_path) if kako5_path.exists() else {}
+    horse_facts = build_horse_facts(kako5_path) if kako5_path.exists() else {}
     if not histories:
         logger.warning(
             f"kako5 履歴未取得: {kako5_path.name} "
             "→ bundle に history 埋め込みなし (advisor 用材料減)"
+        )
+    if horse_facts:
+        logger.info(f"horse facts (sex/age): {len(horse_facts)} 頭分")
+
+    # ------ 血統 lookup (build_pedigree_data.py が生成、馬名 → sire/...) ------
+    horse_pedigree_path = BASE / "data" / "horse_pedigree.json"
+    pedigree_map: dict[str, dict] = {}
+    if horse_pedigree_path.exists():
+        try:
+            with open(horse_pedigree_path, encoding="utf-8") as f:
+                pedigree_data = json.load(f)
+            pedigree_map = pedigree_data.get("horses", {})
+            logger.info(
+                f"horse_pedigree: {horse_pedigree_path.name} "
+                f"({len(pedigree_map):,} 頭, generated {pedigree_data.get('generated_at','?')[:10]})"
+            )
+        except Exception as e:
+            logger.warning(f"horse_pedigree 読み込み失敗: {e}")
+    else:
+        logger.info(
+            "horse_pedigree 未配置: 血統分析タブが「該当馬不明」表示になる "
+            "(python build_pedigree_data.py を先に実行)"
         )
 
     # オッズ: data/odds/OD{YYMMDD}.CSV (TARGET 形式) を優先、無ければ weekly CSV から
@@ -273,12 +296,25 @@ def main() -> int:
             continue
         rid_s = payload["race_id"]
         # kako5 history を horse ごとに注入 (Cowork advisor 用)
-        if histories:
-            for h in payload.get("horses", []):
-                key = (rid_s, int(h.get("umaban", 0)))
+        # + horse_facts (sex/age) も同タイミングで注入 (出走表 表示用)
+        # + 血統 (sire/sire_type/broodmare_sire/broodmare_sire_type) 注入 (血統分析用)
+        for h in payload.get("horses", []):
+            key = (rid_s, int(h.get("umaban", 0)))
+            if histories:
                 hist = histories.get(key)
                 if hist:
                     h["history"] = hist
+            if horse_facts:
+                fact = horse_facts.get(key)
+                if fact:
+                    if fact.get("sex"):
+                        h["sex"] = fact["sex"]
+                    if fact.get("age") is not None:
+                        h["age"] = fact["age"]
+            if pedigree_map:
+                name = (h.get("horse_name") or "").strip()
+                if name and name in pedigree_map:
+                    h["pedigree"] = pedigree_map[name]
         out_path = out_dir / f"{rid_s}.json"
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, ensure_ascii=False)

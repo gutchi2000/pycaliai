@@ -39,7 +39,8 @@ $SyncFiles = @(
     "requirements-nicegui.txt",
     "nicegui_app.py",
     "data/course_stats.json",
-    "data/kekka/wide_kekka.csv"
+    "data/kekka/wide_kekka.csv",
+    "data/pedigree_stats.json"
 )
 
 # Regex patterns matched against `git ls-tree -r --name-only master`.

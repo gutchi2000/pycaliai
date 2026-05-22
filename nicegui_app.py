@@ -1200,6 +1200,7 @@ def _stats_breakdown(sub: pd.DataFrame, col: str,
 
 
 COURSE_STATS_JSON = BASE / "data" / "course_stats.json"
+PEDIGREE_STATS_JSON = BASE / "data" / "pedigree_stats.json"
 
 
 @functools.lru_cache(maxsize=1)
@@ -1215,6 +1216,39 @@ def load_precomputed_course_stats() -> dict | None:
     except Exception as e:
         print(f"[course_stats.json 読込失敗] {e}")
         return None
+
+
+@functools.lru_cache(maxsize=1)
+def load_pedigree_stats() -> dict | None:
+    """build_pedigree_data.py が生成した data/pedigree_stats.json をロード。"""
+    if not PEDIGREE_STATS_JSON.exists():
+        return None
+    try:
+        with open(PEDIGREE_STATS_JSON, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"[pedigree_stats.json 読込失敗] {e}")
+        return None
+
+
+def lookup_pedigree_course(place: str, td: str, dist: int) -> dict | None:
+    """コース key を生成して pedigree_stats から該当エントリを返す。
+    厳密一致が無ければ ±200m / ±400m 帯で探索。"""
+    data = load_pedigree_stats()
+    if not data:
+        return None
+    courses = data.get("courses", {}) or {}
+    # 距離 bucket は 200m 単位 + 100 中央値 (build 側と整合)
+    primary_bucket = (dist // 200) * 200 + 100
+    candidates = [primary_bucket]
+    # 隣接 bucket も候補に
+    candidates += [primary_bucket - 200, primary_bucket + 200,
+                    primary_bucket - 400, primary_bucket + 400]
+    for b in candidates:
+        key = f"{place}_{td}_{b}"
+        if key in courses:
+            return courses[key]
+    return None
 
 
 @functools.lru_cache(maxsize=128)
@@ -1790,6 +1824,10 @@ def make_shutsuba_table_html(race: dict, date_str: str | None = None) -> str:
         mark = h.get("mark") or ""
         umaban = h.get("umaban") or "?"
         name = h.get("horse_name") or "-"
+        sex = h.get("sex") or ""
+        age = h.get("age")
+        # 性別年齢を 1 列に詰める: "牡4" / "牝3" / セ表記もあり
+        sex_age = f"{sex}{age}" if (sex and age is not None) else ""
         try:
             jockey = jockey_lookup.get(int(umaban), "")
         except (TypeError, ValueError):
@@ -1825,6 +1863,7 @@ def make_shutsuba_table_html(race: dict, date_str: str | None = None) -> str:
           <td style="padding:6px 12px;color:#cdd6f4;font-weight:bold;text-align:center">{umaban}</td>
           <td style="padding:6px 8px;text-align:center">{mark_html}</td>
           <td style="padding:6px 12px;color:#cdd6f4;font-size:16px;font-weight:600">{name}</td>
+          <td style="padding:6px 8px;color:#cba6f7;font-size:14px;font-weight:600;text-align:center">{sex_age}</td>
           <td style="padding:6px 10px;color:#a6adc8;font-size:13px">{jockey}</td>
           <td style="padding:6px 12px;text-align:right;color:#a6e3a1;font-weight:bold">{p_win:.1f}%</td>
           <td style="padding:6px 12px;text-align:right;color:#89b4fa">{p_sho:.1f}%</td>
@@ -1846,6 +1885,7 @@ def make_shutsuba_table_html(race: dict, date_str: str | None = None) -> str:
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:center">番</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:center">印</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:left">馬名</th>
+          <th style="padding:12px;color:#f39c12;font-size:14px;text-align:center">性齢</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:left">騎手</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">勝率</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">複勝率</th>
@@ -2547,6 +2587,227 @@ def render_tenkai_yoso(race: dict, date_str: str | None = None) -> None:
     """)
 
 
+def render_pedigree_analysis(race: dict) -> None:
+    """血統分析タブのメイン描画。
+
+    上段: 父・母父のコース別ランキング (pedigree_stats.json)
+    下段: 今回の合致馬リスト (bundle.json 内の各馬の sire を rank と JOIN)
+    """
+    meta = race.get("race_meta", {}) or {}
+    place = meta.get("place", "")
+    course_str = meta.get("course", "")
+    surface, dist = parse_course_str(course_str)
+
+    if not (place and surface and dist):
+        ui.html(f"""
+        <div style="background:#1e1e2e;border-left:3px solid #6c7086;
+                    padding:14px 16px;border-radius:8px;color:#a6adc8;margin-bottom:14px">
+          🧬 コース情報を解析できませんでした ({place} / {course_str})
+        </div>
+        """)
+        return
+
+    course_stats = lookup_pedigree_course(place, surface, dist)
+    if not course_stats:
+        ui.html(f"""
+        <div style="background:#1e1e2e;border-left:3px solid #6c7086;
+                    padding:14px 16px;border-radius:8px;color:#a6adc8;margin-bottom:14px">
+          🧬 <b style="color:#cdd6f4">{place} {surface}{dist}m</b> の血統データなし<br>
+          <span style="color:#6c7086;font-size:12px">
+            (data/pedigree_stats.json 未配置、または距離帯がサンプル不足。
+             ローカルでは <code>python build_pedigree_data.py</code> で生成)
+          </span>
+        </div>
+        """)
+        return
+
+    band = course_stats.get("dist_band", [dist, dist])
+    n_total = course_stats.get("n_total_runs", 0)
+    base_fuku = course_stats.get("baseline_fuku_rate", 0)
+    sire_stats = course_stats.get("sire", []) or []
+    bms_stats = course_stats.get("broodmare_sire", []) or []
+
+    # ヘッダ
+    ui.html(f"""
+    <div style="background:linear-gradient(135deg,#1e1e2e,#181825);
+                border:1px solid #f9e2af;border-radius:8px;
+                padding:14px 18px;margin-bottom:14px">
+      <div style="color:#f9e2af;font-size:18px;font-weight:bold;margin-bottom:6px">
+        🧬 血統分析: {place} {surface}{dist}m
+      </div>
+      <div style="color:#a6adc8;font-size:13px;line-height:1.5">
+        過去 10 年集計 / 距離帯 {band[0]}-{band[1]}m /
+        サンプル {n_total:,} 走 / 全体複勝率 {base_fuku:.1f}%
+      </div>
+    </div>
+    """)
+
+    rank_color = {
+        "SS": "#ffd700", "S": "#fab387", "A": "#a6e3a1",
+        "B": "#89b4fa", "C": "#94a3b8", "D": "#f38ba8",
+    }
+
+    def _stats_table(title: str, stats: list[dict], emoji: str) -> str:
+        if not stats:
+            return f"""
+            <div style="color:#6c7086;padding:10px 16px">
+              {emoji} {title}: サンプル不足 (出走 15 回以上の {title} 無し)
+            </div>"""
+        body = []
+        for s in stats[:15]:  # top 15 表示 (全 30 のうち)
+            rk = s.get("rank", "")
+            rc = rank_color.get(rk, "#6c7086")
+            unfit = s.get("unfit_reason", "")
+            body.append(f"""
+            <tr style="border-bottom:1px solid #313244">
+              <td style="padding:8px 12px;text-align:center;
+                         background:{rc};color:#1e1e2e;font-weight:bold;
+                         font-size:13px;width:48px">{rk}</td>
+              <td style="padding:8px 14px;color:#cdd6f4;font-weight:600;font-size:14px">{s['name']}</td>
+              <td style="padding:8px 12px;text-align:right;color:#a6adc8;font-size:13px">{s['n_runs']}</td>
+              <td style="padding:8px 12px;text-align:right;color:#a6adc8;font-size:13px">
+                {s['n_1']}-{s['n_2']}-{s['n_3']}-{s['n_out']}
+              </td>
+              <td style="padding:8px 12px;text-align:right;color:#a6e3a1;font-weight:bold">{s['win_rate']:.1f}%</td>
+              <td style="padding:8px 12px;text-align:right;color:#fab387;font-weight:bold">{s['fuku_rate']:.1f}%</td>
+              <td style="padding:8px 14px;color:#f38ba8;font-size:12px;line-height:1.4">
+                {unfit if rk == "D" else ""}
+              </td>
+            </tr>""")
+        return f"""
+        <div style="background:#0a0a14;border-radius:8px;padding:12px;margin-bottom:14px">
+          <div style="color:#fab387;font-weight:bold;font-size:15px;margin-bottom:10px">
+            {emoji} {title}別成績 (出走 15 回以上、上位 15)
+          </div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="background:#1e1e2e;border-bottom:2px solid #fab387">
+                <th style="padding:8px;color:#fab387;font-size:12px;text-align:center">ランク</th>
+                <th style="padding:8px;color:#fab387;font-size:12px;text-align:left">{title}</th>
+                <th style="padding:8px;color:#fab387;font-size:12px;text-align:right">出走</th>
+                <th style="padding:8px;color:#fab387;font-size:12px;text-align:right">成績</th>
+                <th style="padding:8px;color:#fab387;font-size:12px;text-align:right">勝率</th>
+                <th style="padding:8px;color:#fab387;font-size:12px;text-align:right">複勝率</th>
+                <th style="padding:8px;color:#fab387;font-size:12px;text-align:left">不向き理由</th>
+              </tr>
+            </thead>
+            <tbody>{"".join(body)}</tbody>
+          </table>
+        </div>"""
+
+    ui.html(_stats_table("父", sire_stats, "★"))
+    ui.html(_stats_table("母父", bms_stats, "★"))
+
+    # ── 今回の合致馬 ──
+    # 各馬の sire / broodmare_sire を rank と JOIN
+    sire_rank_map = {s["name"]: s for s in sire_stats}
+    bms_rank_map = {s["name"]: s for s in bms_stats}
+
+    # 馬を rank 強度 (SS=6 .. D=1) で sort
+    rank_order = {"SS": 6, "S": 5, "A": 4, "B": 3, "C": 2, "D": 1, "": 0}
+
+    horses = race.get("horses", []) or []
+    match_rows = []
+    for h in horses:
+        umaban = h.get("umaban") or "?"
+        name = h.get("horse_name") or "-"
+        mark = h.get("mark") or ""
+        ped = h.get("pedigree") or {}
+        sire = ped.get("sire", "")
+        bms = ped.get("broodmare_sire", "")
+        s_entry = sire_rank_map.get(sire) if sire else None
+        b_entry = bms_rank_map.get(bms) if bms else None
+        if not s_entry and not b_entry:
+            continue  # 該当無しは表示しない
+        # 父・母父の中で高い方を表示ランクに採用
+        best_rank = ""
+        best_score = 0
+        for ent in (s_entry, b_entry):
+            if ent and rank_order.get(ent.get("rank", ""), 0) > best_score:
+                best_score = rank_order.get(ent.get("rank", ""), 0)
+                best_rank = ent.get("rank", "")
+        match_rows.append({
+            "umaban": umaban, "name": name, "mark": mark,
+            "sire": sire, "sire_rank": s_entry.get("rank") if s_entry else "",
+            "sire_fuku": s_entry.get("fuku_rate") if s_entry else None,
+            "sire_unfit": s_entry.get("unfit_reason") if s_entry else "",
+            "bms": bms, "bms_rank": b_entry.get("rank") if b_entry else "",
+            "bms_fuku": b_entry.get("fuku_rate") if b_entry else None,
+            "bms_unfit": b_entry.get("unfit_reason") if b_entry else "",
+            "best_score": best_score, "best_rank": best_rank,
+        })
+
+    match_rows.sort(key=lambda r: -r["best_score"])
+
+    if not match_rows:
+        ui.html("""
+        <div style="background:#1e1e2e;border-left:3px solid #6c7086;
+                    padding:12px 16px;border-radius:8px;color:#a6adc8">
+          ✨ 今回の合致馬: なし (どの馬の父・母父も上位ランクにヒットしませんでした)
+        </div>""")
+        return
+
+    body = []
+    for m in match_rows:
+        rk = m["best_rank"]
+        rc = rank_color.get(rk, "#6c7086")
+        mark = m["mark"]
+        mark_color = MARK_COLORS.get(mark, "#475569") if mark else "transparent"
+        mark_html = (
+            f'<span style="background:{mark_color};color:#fff;font-weight:bold;'
+            f'padding:2px 8px;border-radius:4px;font-size:13px">{mark}</span>'
+            if mark else ""
+        )
+        def _cell(name, rank, fuku, unfit):
+            if not name:
+                return '<td style="padding:8px 10px;color:#6c7086;font-size:12px">—</td>'
+            color = rank_color.get(rank, "#6c7086")
+            icon = ""
+            if rank in ("SS", "S"):
+                icon = "★"
+            elif rank == "D":
+                icon = "⚠"
+            badge = (f'<span style="background:{color};color:#1e1e2e;font-weight:bold;'
+                     f'padding:1px 6px;border-radius:3px;font-size:11px;margin-right:6px">{rank}</span>'
+                     if rank else "")
+            note = ""
+            if rank == "D" and unfit:
+                note = f'<div style="color:#f38ba8;font-size:11px;margin-top:3px">{unfit}</div>'
+            return f"""<td style="padding:8px 10px;color:#cdd6f4;font-size:13px">
+              {badge}{name}{icon} {f'<span style="color:#6c7086;font-size:11px">({fuku:.1f}%)</span>' if fuku is not None else ''}
+              {note}
+            </td>"""
+        body.append(f"""
+        <tr style="border-bottom:1px solid #313244">
+          <td style="padding:10px;text-align:center;background:{rc};color:#1e1e2e;
+                     font-weight:bold;width:48px">{rk}</td>
+          <td style="padding:8px 10px;text-align:center;width:60px">{mark_html}</td>
+          <td style="padding:8px 10px;color:#cdd6f4;font-weight:bold;width:50px">{m['umaban']}</td>
+          <td style="padding:8px 14px;color:#cdd6f4;font-weight:600">{m['name']}</td>
+          {_cell(m['sire'], m['sire_rank'], m['sire_fuku'], m['sire_unfit'])}
+          {_cell(m['bms'], m['bms_rank'], m['bms_fuku'], m['bms_unfit'])}
+        </tr>""")
+    ui.html(f"""
+    <div style="background:#0a0a14;border-radius:8px;padding:12px">
+      <div style="color:#a6e3a1;font-weight:bold;font-size:15px;margin-bottom:10px">
+        ✨ 今回の合致馬 (このコースで父・母父が上位/下位ランクの馬)
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:#1e1e2e;border-bottom:2px solid #a6e3a1">
+            <th style="padding:8px;color:#a6e3a1;font-size:12px;text-align:center">最大ランク</th>
+            <th style="padding:8px;color:#a6e3a1;font-size:12px;text-align:center">印</th>
+            <th style="padding:8px;color:#a6e3a1;font-size:12px;text-align:left">馬番</th>
+            <th style="padding:8px;color:#a6e3a1;font-size:12px;text-align:left">馬名</th>
+            <th style="padding:8px;color:#a6e3a1;font-size:12px;text-align:left">父</th>
+            <th style="padding:8px;color:#a6e3a1;font-size:12px;text-align:left">母父</th>
+          </tr>
+        </thead>
+        <tbody>{"".join(body)}</tbody>
+      </table>
+    </div>""")
+
+
 def render_course_analysis(race: dict) -> None:
     """コース分析タブのメイン描画。
     上段: 展開予想 (bundle + weekly コーナー位置から)
@@ -3100,11 +3361,12 @@ def main_page():
             left_box = ui.element("div").classes("flex-grow").style("flex: 3")
             right_box = ui.element("div").classes("flex-grow").style("flex: 2")
 
-        # ── メイン: タブ (出走表 / 全頭分析 / コース分析 / Cowork) ──
+        # ── メイン: タブ (出走表 / 全頭分析 / コース分析 / 血統分析 / Cowork) ──
         with ui.tabs().classes("w-full") as tabs:
             tab_shutsuba = ui.tab("📋 出走表")
             tab_bunseki = ui.tab("🔍 全頭分析")
             tab_course = ui.tab("📊 コース分析")
+            tab_pedigree = ui.tab("🧬 血統分析")
             tab_bets = ui.tab("🎫 Cowork 買い目")
 
         with ui.tab_panels(tabs, value=tab_shutsuba).classes("w-full"):
@@ -3114,6 +3376,8 @@ def main_page():
                 bunseki_box = ui.element("div").classes("w-full")
             with ui.tab_panel(tab_course):
                 course_box = ui.element("div").classes("w-full")
+            with ui.tab_panel(tab_pedigree):
+                pedigree_box = ui.element("div").classes("w-full")
             with ui.tab_panel(tab_bets):
                 bets_box = ui.element("div").classes("w-full")
 
@@ -3182,6 +3446,11 @@ def main_page():
         with course_box:
             render_tenkai_yoso(race, date_str=state.get("date"))
             render_course_analysis(race)
+
+        # ── 血統分析タブ (父・母父ランキング + 合致馬) ──
+        pedigree_box.clear()
+        with pedigree_box:
+            render_pedigree_analysis(race)
 
         bets_box.clear()
         with bets_box:
