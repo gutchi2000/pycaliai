@@ -29,13 +29,18 @@ from pathlib import Path
 
 
 def parse_od_race_key(od_race_id_str: str) -> dict:
-    """OD形式の10桁レースIDをパースする。"""
+    """OD形式の10桁レースIDをパースする。
+
+    kai/nichi は JRA-VAN 仕様で 1〜9 を超える場合に 16 進 1 桁 (A=10, B=11, …) で
+    エンコードされる。例: 2回東京10日目 → "05262A.." (nichi 'A')。
+    int(x, 16) でパースしないと 10 日目以降が silently drop される。
+    """
     s = od_race_id_str.zfill(10)
     return {
         "place": s[:2],
         "year": s[2:4],
-        "kai": int(s[4]) if len(s) > 4 else 0,    # 回
-        "nichi": int(s[5]) if len(s) > 5 else 0,   # 日
+        "kai": int(s[4], 16) if len(s) > 4 else 0,    # 回
+        "nichi": int(s[5], 16) if len(s) > 5 else 0,   # 日
         "race_num": s[6:8],
         "horse_num": int(s[8:10]),
     }
@@ -134,6 +139,7 @@ def load_od_matrix_odds(od_csv_path: str | Path, date: str | None = None) -> dic
     tansho_idx: dict = {}
     fukusho_idx: dict = {}
     umaren_idx: dict = {}
+    skipped = 0
 
     def _f(s):
         try:
@@ -146,6 +152,7 @@ def load_od_matrix_odds(od_csv_path: str | Path, date: str | None = None) -> dic
             rid_s = od_to_weekly_race_id(row[0], date)
             i = int(_f(row[4]))   # 馬番
         except Exception:
+            skipped += 1
             continue
 
         # 単勝・複勝
@@ -165,6 +172,14 @@ def load_od_matrix_odds(od_csv_path: str | Path, date: str | None = None) -> dic
                 continue
             key = (rid_s, min(i, j), max(i, j))
             umaren_idx[key] = v
+
+    if skipped > 0:
+        import warnings
+        warnings.warn(
+            f"load_od_matrix_odds: {skipped}/{len(od)} rows skipped "
+            f"(race_id parse failure). Check OD format.",
+            stacklevel=2,
+        )
 
     return {
         "tansho":  tansho_idx,
