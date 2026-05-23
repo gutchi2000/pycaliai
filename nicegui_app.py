@@ -207,8 +207,13 @@ def _parse_one_cowork_file(path: Path) -> dict[str, dict]:
     except Exception:
         return {}
 
+    # 受け入れる top-level 形式:
+    #   - list (レガシー): そのまま使う
+    #   - {"races": [...]}: 旧 wrapper、races を使う
+    #   - {"bets": [...], "grade_scope": [...]}: 新 wrapper (Grade Scope 対応)
+    #     → ここでは bets だけ抽出 (grade_scope は _load_all_grade_scope で別途処理)
     if isinstance(data, dict):
-        data = data.get("races", [data])
+        data = data.get("bets") or data.get("races", [data])
     if not isinstance(data, list):
         return {}
 
@@ -300,6 +305,90 @@ def load_cowork_bets_unified(date_str: str, race_id: str) -> dict | None:
         return individual
     all_bets = _load_all_cowork_output(_cowork_output_cache_key())
     return all_bets.get(race_id)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Grade Scope (重賞 LLM 詳細見解) ローダー
+#
+# Cowork が wrapper 形式 ({"bets": [...], "grade_scope": [...]}) で出力する
+# G1/G2/G3 詳細見解を cowork_output/ から抽出する。
+# scope[].race_id をキーに dict 化して返す。
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _parse_one_grade_scope_file(path: Path) -> dict[str, dict]:
+    """1 ファイルから grade_scope[] を抽出 → race_id 別 dict。"""
+    try:
+        raw_bytes = path.read_bytes()
+        text = ""
+        for enc in ["utf-8-sig", "utf-8", "cp932", "shift_jis"]:
+            try:
+                text = raw_bytes.decode(enc)
+                break
+            except UnicodeDecodeError:
+                continue
+        else:
+            text = raw_bytes.decode("utf-8", errors="replace")
+    except Exception:
+        return {}
+
+    m = re.search(r"```(?:json|JSON)?\s*\n([\s\S]+?)\n\s*```", text)
+    raw_json = m.group(1) if m else text.strip()
+
+    try:
+        data = json.loads(raw_json)
+    except Exception:
+        return {}
+
+    # wrapper 形式のみ grade_scope を含む。レガシー (top-level list) には無い
+    if not isinstance(data, dict):
+        return {}
+    scope_list = data.get("grade_scope") or []
+    if not isinstance(scope_list, list):
+        return {}
+
+    out: dict[str, dict] = {}
+    for entry in scope_list:
+        if not isinstance(entry, dict):
+            continue
+        rid_raw = entry.get("race_id")
+        if not rid_raw:
+            continue
+        rid = str(rid_raw)[:16]
+        out[rid] = {
+            "race_id":    rid,
+            "race_label": str(entry.get("race_label", "")),
+            "class":      str(entry.get("class", "")),
+            "markdown":   str(entry.get("markdown", "")),
+            "source":     f"cowork_output:{path.name}",
+        }
+    return out
+
+
+@functools.lru_cache(maxsize=4)
+def _load_all_grade_scope(_cache_key: str) -> dict[str, dict]:
+    """cowork_output/ 全ファイルから grade_scope を集約 → race_id 別 dict。
+    後勝ち (新しい mtime のファイルが優先)。
+    """
+    if not COWORK_OUTPUT_DIR.exists():
+        return {}
+    out: dict[str, dict] = {}
+    files = sorted(
+        [p for p in COWORK_OUTPUT_DIR.iterdir() if p.is_file()
+         and p.suffix.lower() in (".json", ".txt", ".md")],
+        key=lambda x: x.stat().st_mtime,
+    )
+    for p in files:
+        out.update(_parse_one_grade_scope_file(p))
+    return out
+
+
+def load_grade_scope_for_date(date_str: str) -> list[dict]:
+    """指定日付の重賞詳細見解を取得 (race_id 先頭 8 桁が date_str に一致するもの)。
+    出力は race_id 順にソート済みリスト。
+    """
+    all_scope = _load_all_grade_scope(_cowork_output_cache_key())
+    matched = [v for rid, v in all_scope.items() if rid.startswith(date_str)]
+    return sorted(matched, key=lambda x: x["race_id"])
 
 
 # ============================================================
@@ -2335,6 +2424,84 @@ def render_cowork_pl_chart() -> None:
     """)
 
 
+def render_grade_scope(date_str: str | None) -> None:
+    """指定日付の重賞詳細見解 (Grade Scope) を pulldown + markdown で表示。
+
+    Cowork 出力の wrapper 形式 ({"bets":..., "grade_scope":...}) から
+    G1/G2/G3 の markdown 見解を抽出。該当週に重賞が無ければ案内表示のみ。
+    """
+    if not date_str:
+        ui.html('<div style="color:#6c7086;padding:12px">日付未選択</div>')
+        return
+
+    scopes = load_grade_scope_for_date(date_str)
+    if not scopes:
+        ui.html(f"""
+        <div style="background:#1e1e2e;border-left:3px solid #6c7086;
+                    padding:14px 18px;border-radius:8px;color:#6c7086;
+                    font-size:13px">
+          🏆 {date_str} の重賞詳細見解はまだありません<br>
+          <span style="font-size:12px">
+            該当週に G1/G2/G3 レースがあり、Cowork が
+            <code>{{"grade_scope": [...]}}</code> 形式で出力済みのときに表示されます。
+          </span>
+        </div>
+        """)
+        return
+
+    # ヘッダ: 何件あるか
+    ui.html(f"""
+    <div style="color:#cdd6f4;font-size:13px;margin-bottom:10px">
+      {len(scopes)} 件の重賞詳細見解 ({date_str})
+    </div>
+    """)
+
+    # レース選択 dropdown (race_label を表示)
+    options = {s["race_id"]: s.get("race_label") or s["race_id"]
+               for s in scopes}
+    scope_map = {s["race_id"]: s for s in scopes}
+
+    md_container = ui.element("div").classes("w-full") \
+        .style("background:#11111b;border-radius:10px;"
+               "padding:16px 22px;margin-top:8px;color:#cdd6f4;"
+               "line-height:1.7;font-size:14px")
+
+    def _render(rid: str) -> None:
+        md_container.clear()
+        s = scope_map.get(rid)
+        if not s:
+            return
+        with md_container:
+            # クラスバッジ + ラベル
+            cls = s.get("class", "")
+            label = s.get("race_label", rid)
+            ui.html(f"""
+            <div style="display:flex;align-items:center;gap:10px;
+                        margin-bottom:14px;padding-bottom:10px;
+                        border-bottom:1px solid #313244">
+              <span style="background:#f5c2e7;color:#11111b;
+                           padding:3px 10px;border-radius:6px;
+                           font-weight:bold;font-size:12px">{cls}</span>
+              <span style="color:#cdd6f4;font-size:15px;font-weight:bold">{label}</span>
+            </div>
+            """)
+            # markdown 本文
+            md = s.get("markdown", "")
+            if md:
+                ui.markdown(md)
+            else:
+                ui.html('<div style="color:#6c7086">本文がありません</div>')
+
+    select_el = ui.select(
+        options=options,
+        value=scopes[0]["race_id"],
+        on_change=lambda e: _render(e.value),
+    ).classes("w-full").style("max-width:520px")
+
+    # 初期描画
+    _render(scopes[0]["race_id"])
+
+
 def render_training_top5(date_str: str | None) -> None:
     """直近 1 週間の好調教 Top5 (坂路 + WC) と各馬の出走予定を表示。
     weekly_nicegui.ps1 の date を引いて呼ぶ。
@@ -3392,6 +3559,14 @@ def main_page():
                         "border:1px solid #a6e3a1;border-radius:12px"):
             cowork_pl_box = ui.element("div").classes("w-full")
 
+        # ── 6 行目: Grade Scope (重賞 LLM 詳細見解、折りたたみ) ──
+        with ui.expansion("🏆 Grade Scope (重賞詳細見解)",
+                            icon="emoji_events", value=False) \
+                .classes("w-full") \
+                .style("background:rgba(245,194,231,0.05);"
+                        "border:1px solid #f5c2e7;border-radius:12px"):
+            grade_scope_box = ui.element("div").classes("w-full")
+
         # ── メイン: 左右パネル ──
         with ui.row().classes("w-full no-wrap gap-3"):
             left_box = ui.element("div").classes("flex-grow").style("flex: 3")
@@ -3742,6 +3917,11 @@ def main_page():
         cowork_pl_box.clear()
         with cowork_pl_box:
             render_cowork_pl_chart()
+
+        # Grade Scope (日付別: 重賞 LLM 詳細見解)
+        grade_scope_box.clear()
+        with grade_scope_box:
+            render_grade_scope(date)
 
         if state["current_place"]:
             races = sorted(by_place.get(state["current_place"], []),

@@ -5674,11 +5674,15 @@ def parse_cowork_response(text: str) -> tuple[list[dict], list[str]]:
         errors.append(f"JSON parse 失敗: {_e}")
         return [], errors
 
-    # {races: [...]} ラップ or 単体 dict 許容
+    # 受け入れる top-level:
+    #   - list (レガシー)
+    #   - {"races": [...]} (旧 wrapper)
+    #   - {"bets": [...], "grade_scope": [...]} (新 wrapper、Grade Scope 対応)
+    # grade_scope は Streamlit では使わない (NiceGUI 専用)、bets のみ抽出
     if isinstance(data, dict):
-        data = data.get("races", [data])
+        data = data.get("bets") or data.get("races", [data])
     if not isinstance(data, list):
-        errors.append(f"JSON は list か {{races:[...]}} を想定 (got {type(data).__name__})")
+        errors.append(f"JSON は list か {{bets:[...]}} を想定 (got {type(data).__name__})")
         return [], errors
 
     valid_types = {"単勝", "複勝", "馬連", "馬単", "ワイド", "三連複", "三連単"}
