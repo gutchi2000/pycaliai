@@ -809,8 +809,12 @@ def _iter_cowork_race_dicts() -> "Iterator[tuple[str, dict, str]]":
             except Exception as e:
                 log.warning(f"cowork_output 読み込み失敗 {jf.name}: {e}")
                 continue
+            # wrapper 形式 ({"bets": [...], "grade_scope": [...]}) と
+            # レガシー (top-level array) の両対応
+            if isinstance(bundle, dict) and "bets" in bundle:
+                bundle = bundle["bets"]
             if not isinstance(bundle, list):
-                log.warning(f"cowork_output 形式不正 (list 期待) {jf.name}")
+                log.warning(f"cowork_output 形式不正 (list/wrapper 期待) {jf.name}")
                 continue
             for race in bundle:
                 if not isinstance(race, dict):
