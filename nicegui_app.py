@@ -925,7 +925,10 @@ def load_all_cowork_outcomes(_cache_key: str = "") -> list[dict]:
             continue
 
         if isinstance(data, dict):
-            data = data.get("races", [data])
+            # wrapper 形式に両対応:
+            #   - {"races": [...]}: 旧
+            #   - {"bets": [...], "grade_scope": [...]}: 新 (Grade Scope 対応)
+            data = data.get("bets") or data.get("races", [data])
         if not isinstance(data, list):
             continue
 
