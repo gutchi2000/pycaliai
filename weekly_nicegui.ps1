@@ -266,7 +266,10 @@ if ($SkipGit) {
     if (Test-Path $kako5Path) { git add $kako5Path 2>$null }
 
     # 直近の training CSV があればそれも (週次更新)
-    Get-ChildItem 'data\training' -Filter "[HW]-*$Date*.csv" -ErrorAction SilentlyContinue |
+    # 注: -Filter は [HW] のような文字クラスを解釈しない (FS ワイルドカードのみ)。
+    #     *$Date*.csv で拾い、H-/W- 前置を -match で絞る。
+    Get-ChildItem 'data\training' -Filter "*$Date*.csv" -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match '^[HW]-' } |
         ForEach-Object { git add $_.FullName 2>$null }
 
     $staged = git diff --cached --name-only 2>$null
