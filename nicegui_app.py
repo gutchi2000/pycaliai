@@ -86,6 +86,7 @@ v4 → v5 変更点:
 """
 from __future__ import annotations
 
+import bisect
 import functools
 import json
 import re
@@ -1292,6 +1293,37 @@ def _stats_breakdown(sub: pd.DataFrame, col: str,
 
 
 COURSE_STATS_JSON = BASE / "data" / "course_stats.json"
+CHAOS_Q_JSON = BASE / "data" / "chaos_quantiles.json"
+
+
+@functools.lru_cache(maxsize=1)
+def _load_quantile_tables() -> dict:
+    """build_chaos_quantiles.py が生成した分位テーブルをロード。"""
+    if not CHAOS_Q_JSON.exists():
+        return {}
+    try:
+        return json.loads(CHAOS_Q_JSON.read_text(encoding="utf-8")).get("quantiles", {})
+    except Exception:
+        return {}
+
+
+def _to_pct(raw: float, key: str = "field_chaos_score") -> float:
+    """生値を過去分布のパーセンタイル(0-1)に変換。
+
+    正規化エントロピー等は値域が狭く(混戦度は 0.80-1.0)生値では判別力が無いため、
+    過去レース分布での相対順位に変換して 0-1 に均等化する。テーブル欠如時は生値返し。
+    """
+    t = _load_quantile_tables().get(key)
+    if not t or len(t) < 2:
+        return float(raw)
+    if raw <= t[0]:
+        return 0.0
+    if raw >= t[-1]:
+        return 1.0
+    i = bisect.bisect_right(t, raw)
+    lo, hi = t[i - 1], t[i]
+    frac = 0.0 if hi == lo else (raw - lo) / (hi - lo)
+    return (i - 1 + frac) / (len(t) - 1)
 PEDIGREE_STATS_JSON = BASE / "data" / "pedigree_stats.json"
 
 
@@ -1538,12 +1570,12 @@ ADVISOR_TAG_COLORS = {
 
 def race_nature(rc: dict) -> str:
     top1 = rc.get("top1_dominance") or 0
-    chaos = rc.get("field_chaos_score") or 0
-    if chaos >= 0.92:
+    chaos = _to_pct(rc.get("field_chaos_score") or 0)  # パーセンタイル(0-1)
+    if chaos >= 0.85:
         return "見送り"
-    if top1 >= 0.10 and chaos < 0.70:
+    if top1 >= 0.10 and chaos < 0.30:
         return "固い"
-    if top1 < 0.05 and chaos >= 0.85:
+    if top1 < 0.05 and chaos >= 0.70:
         return "混戦"
     return "中堅"
 
@@ -1552,33 +1584,33 @@ def ai_comment(race: dict) -> str:
     rc = race.get("race_confidence", {}) or {}
     horses = race.get("horses", []) or []
     nature = race_nature(rc)
-    top1 = rc.get("top1_dominance") or 0
-    top2 = rc.get("top2_concentration") or 0
-    chaos = rc.get("field_chaos_score") or 0
+    top1 = _to_pct(rc.get("top1_dominance") or 0, "top1_dominance")
+    top2 = _to_pct(rc.get("top2_concentration") or 0, "top2_concentration")
+    chaos = _to_pct(rc.get("field_chaos_score") or 0)
     market = rc.get("ai_market_agreement") or 0
     hon = next((h for h in horses if h.get("mark") == "◎"), None)
     parts = []
 
     if hon:
         p_win = (hon.get("p_win") or 0) * 100
-        if top1 >= 0.10:
+        if top1 >= 0.75:
             parts.append(f"本命 {hon.get('horse_name','◎')} は他馬と明確な確率差を持つ独走候補 (勝率 {p_win:.1f}%)")
-        elif top1 >= 0.05:
+        elif top1 >= 0.50:
             parts.append(f"本命 {hon.get('horse_name','◎')} (勝率 {p_win:.1f}%) は対抗との力差はあるが油断できない")
         else:
-            parts.append(f"本命 {hon.get('horse_name','◎')} と対抗の力差は紙一重 (top1_dom={top1:.3f})")
+            parts.append(f"本命 {hon.get('horse_name','◎')} と対抗の力差は紙一重 (独走度は過去比 下位)")
 
-    if top2 >= 0.50:
+    if top2 >= 0.75:
         parts.append("上位 2 頭で決まる確率が高く、馬連狙いの好レース")
-    elif top2 < 0.30:
+    elif top2 <= 0.25:
         parts.append("上位馬の確率も分散しており、本命単独の安定には欠ける")
 
-    if chaos >= 0.92:
-        parts.append("確率分布が極めてフラットなカオス、見送り推奨")
-    elif chaos >= 0.85:
-        parts.append("出走馬の力差が小さい混戦模様、box やワイドが有効")
-    elif chaos < 0.65:
-        parts.append("上位馬の優位が明確、堅い決着が予想される")
+    if chaos >= 0.75:
+        parts.append("過去比で上位の荒れレース、box やワイドで広めに / 見送りも検討")
+    elif chaos >= 0.50:
+        parts.append("やや混戦寄り、box やワイドが有効")
+    elif chaos <= 0.25:
+        parts.append("過去比で堅い部類、上位馬の優位が明確で堅い決着が予想される")
 
     if market > 0.7:
         parts.append("AI 予想と市場オッズ順がほぼ一致、配当妙味は控えめ")
@@ -1718,34 +1750,34 @@ def make_left_panel_html(race: dict) -> str:
 # 4 chip 診断 (素人向け: 数値 → 状態ラベル + アクション提案)
 # ============================================================
 def _diag_top1(v: float) -> tuple[str, str, str]:
-    """◎独走度 → (badge, color, action)"""
-    if v >= 0.10:
+    """◎独走度(パーセンタイル 0-1: 過去レース中で本命がどれだけ抜けているか) → (badge, color, action)"""
+    if v >= 0.75:
         return ("◎独走", "#a6e3a1", "本命を信頼。単勝・複勝で勝負可")
-    if v >= 0.05:
+    if v >= 0.50:
         return ("◎やや優位", "#89b4fa", "本命有力だが油断不可。複勝で安全に")
-    if v >= 0:
+    if v >= 0.25:
         return ("拮抗", "#f9e2af", "本命の優位性は薄い。馬連で広めに")
-    return ("逆転濃厚", "#f38ba8", "◎より上位がいる可能性。買い直し検討")
+    return ("混戦本命", "#f38ba8", "本命の抜けは下位。馬連・ワイドで広めに")
 
 
 def _diag_top2(v: float) -> tuple[str, str, str]:
-    """上位2頭集中 → (badge, color, action)"""
-    if v >= 0.50:
+    """上位2頭集中(パーセンタイル 0-1: 過去レース中で上位2頭にどれだけ集中しているか) → (badge, color, action)"""
+    if v >= 0.75:
         return ("本線濃厚", "#a6e3a1", "◎-〇 で決まる確率高。馬連本線が有効")
-    if v >= 0.35:
+    if v >= 0.50:
         return ("やや本線", "#89b4fa", "馬連 ◎-〇 + 流し相手数頭が無難")
     return ("分散", "#f9e2af", "上位2頭以外も来る。流しか box で広めに")
 
 
 def _diag_chaos(v: float) -> tuple[str, str, str]:
-    """混戦度 → (badge, color, action)"""
-    if v <= 0.65:
+    """混戦度(パーセンタイル 0-1: 過去レース中で相対的にどれだけ荒れているか) → (badge, color, action)"""
+    if v <= 0.25:
         return ("固い", "#a6e3a1", "上位馬の優位明確。素直に印通りで")
-    if v <= 0.85:
+    if v <= 0.50:
         return ("やや固め", "#89b4fa", "標準的な信頼度。基本路線で OK")
-    if v <= 0.92:
+    if v <= 0.75:
         return ("混戦", "#f9e2af", "力差小さい。box やワイドで広めに")
-    return ("カオス", "#f38ba8", "確率分布フラット。見送り推奨")
+    return ("カオス", "#f38ba8", "上位25%の荒れレース。見送り推奨")
 
 
 def _diag_market(v: float) -> tuple[str, str, str]:
@@ -1786,9 +1818,9 @@ def make_right_panel_html(race: dict) -> str:
     rc = race.get("race_confidence", {}) or {}
     meta = race.get("race_meta", {}) or {}
 
-    top1 = rc.get("top1_dominance") or 0
-    top2 = rc.get("top2_concentration") or 0
-    chaos = rc.get("field_chaos_score") or 0
+    top1 = _to_pct(rc.get("top1_dominance") or 0, "top1_dominance")
+    top2 = _to_pct(rc.get("top2_concentration") or 0, "top2_concentration")
+    chaos = _to_pct(rc.get("field_chaos_score") or 0)  # 生値→パーセンタイル(0-1)
     market = rc.get("ai_market_agreement") or 0
 
     # 過去成績
@@ -2503,6 +2535,222 @@ def render_grade_scope(date_str: str | None) -> None:
 
     # 初期描画
     _render(scopes[0]["race_id"])
+
+
+# ===== 複勝1点ピック (havoc bin × ◎fuku_lo 閾値マトリクスベース) =====
+# 各セルは (ROI%, n_test_2024_2025). ROI > 85% のセルのみ買う。
+# Strict greater-than: fuku_lo > threshold で判定。
+# rows: p_havoc bin lower_inclusive, columns: fuku_lo threshold
+FUKUSHO_MATRIX = {
+    # (p_lo, p_hi): { fuku_thr: (roi_pct, n) } -- 全部 ROI > 85% のセルのみ
+    (0.20, 0.30): {
+        1.0: (95.4, 550), 1.1: (104.0, 95),  1.2: (105.4, 41),
+        1.3: (92.5, 24),  1.4: (114.2, 12),  1.5: (94.4, 9),
+        1.6: (115.0, 6),  1.7: (160.0, 3),   1.8: (100.0, 2),
+        1.9: (100.0, 2),
+    },
+    (0.30, 0.40): {
+        1.0: (89.5, 860), 1.1: (89.2, 270),  1.5: (107.6, 21),
+    },
+    (0.40, 0.50): {
+        1.1: (85.2, 1930),
+        1.7: (87.6, 124), 1.8: (97.1, 86),
+        1.9: (104.4, 62), 2.0: (113.9, 44),
+    },
+    (0.50, 0.60): {},
+    (0.60, 0.70): {
+        1.0: (86.9, 655), 1.1: (87.2, 621),  1.2: (87.5, 592),
+        1.3: (88.4, 521), 1.4: (88.0, 449),  1.5: (93.2, 363),
+        1.6: (97.0, 290), 1.7: (103.8, 228), 1.8: (104.0, 199),
+        1.9: (104.8, 160), 2.0: (114.4, 131),
+    },
+    (0.70, 1.00): {
+        1.5: (87.8, 112), 1.6: (95.0, 94), 1.7: (97.4, 82),
+        1.8: (88.6, 63),  1.9: (98.8, 50), 2.0: (87.6, 46),
+    },
+}
+
+
+def _fukusho_pick_eval(p_havoc: float, fuku_lo: float) -> tuple[float, float, int] | None:
+    """1 レースが複勝1点 picks に該当するか判定。
+    該当するなら (ROI%, used_threshold, n_cell) を返し、 そうでなければ None。
+    複数閾値に該当する場合は最も厳しい (= 最大の threshold) セルの ROI を採用。
+    """
+    if p_havoc is None or fuku_lo is None: return None
+    # bin
+    bin_key = None
+    for (lo, hi) in FUKUSHO_MATRIX:
+        if lo <= p_havoc < hi:
+            bin_key = (lo, hi); break
+    if bin_key is None: return None
+    cells = FUKUSHO_MATRIX[bin_key]
+    if not cells: return None
+    # 最大 threshold で fuku_lo > thr を満たすセル
+    best = None
+    for thr in sorted(cells.keys(), reverse=True):
+        if fuku_lo > thr:
+            roi, n = cells[thr]
+            return (roi, thr, n)
+    return None
+
+
+def collect_fukusho_picks(date_str: str | None) -> list[dict]:
+    """指定日の bundle.json から複勝1点 ピック対象レースを抽出。
+
+    Returns:
+      list of {race_id, place, race_no, race_name, hon_umaban, hon_name,
+               p_havoc, havoc_class, fuku_lo, roi, threshold, n_cell}
+    """
+    if not date_str:
+        return []
+    bundle = load_bundle(date_str)
+    if not bundle: return []
+    out = []
+    for race in bundle.get("races", []):
+        rm = race.get("race_meta", {})
+        p_h = rm.get("p_havoc")
+        if p_h is None: continue
+        # ◎ horse
+        hon = None
+        for h in race.get("horses", []):
+            if (h.get("mark") or "").strip() == "◎":
+                hon = h; break
+        if hon is None: continue
+        fuku_lo = hon.get("fuku_odds_low")
+        eval_ = _fukusho_pick_eval(float(p_h), float(fuku_lo) if fuku_lo else None)
+        if eval_ is None: continue
+        roi, thr, n_cell = eval_
+        rid = race.get("race_id", "")
+        # rid 形式: YYYYMMDD(8) + 開催回(2) + 開催日(2) + 場所コード(2) + R番号(2) = 16
+        # ただし race_meta.place が分かりやすい
+        place = rm.get("place", "?")
+        race_no = ""
+        if len(rid) >= 16:
+            try:
+                race_no = str(int(rid[14:16]))
+            except Exception:
+                race_no = rid[14:16]
+        race_name = rm.get("race_name") or ""
+        out.append({
+            "race_id":    rid,
+            "place":      place,
+            "race_no":    race_no,
+            "race_name":  race_name,
+            "hon_umaban": hon.get("umaban"),
+            "hon_name":   hon.get("horse_name", ""),
+            "hon_p_win":  hon.get("p_win"),
+            "hon_p_sho":  hon.get("p_sho"),
+            "hon_ai_vs_market": hon.get("ai_vs_market"),
+            "p_havoc":    float(p_h),
+            "havoc_class": rm.get("havoc_class", ""),
+            "fuku_lo":    float(fuku_lo) if fuku_lo else None,
+            "roi":        roi,
+            "threshold":  thr,
+            "n_cell":     n_cell,
+        })
+    # 場所 → R 番号順
+    out.sort(key=lambda x: (x["place"], int(x["race_no"]) if x["race_no"].isdigit() else 99))
+    return out
+
+
+def render_fukusho_picks(date_str: str | None) -> None:
+    """指定日の複勝1点ピック (havoc × fuku_lo マトリクス) を一覧表示。"""
+    if not date_str:
+        ui.html('<div style="color:#6c7086;padding:12px">日付未選択</div>')
+        return
+    picks = collect_fukusho_picks(date_str)
+    if not picks:
+        ui.html(f"""
+        <div style="background:#1e1e2e;border-left:3px solid #6c7086;
+                    padding:14px 18px;border-radius:8px;color:#6c7086;
+                    font-size:13px">
+          🎯 {date_str} は複勝1点ピック該当レースなし<br>
+          <span style="font-size:12px">
+            havoc class × ◎ 複勝オッズ下限 マトリクス (ROI > 85%) を通過するレースが
+            この日には存在しません。 bundle.json に p_havoc が未埋込の場合も同様。
+          </span>
+        </div>
+        """)
+        return
+
+    # ヘッダ
+    total_n = len(picks)
+    avg_roi = sum(p["roi"] for p in picks) / total_n
+    total_stake = total_n * 10000
+    exp_ret = sum(p["roi"]/100 * 10000 for p in picks)
+    exp_pl = exp_ret - total_stake
+    ui.html(f"""
+    <div style="color:#cdd6f4;font-size:16px;margin-bottom:6px;
+                padding:8px 14px;background:#1e1e2e;border-radius:8px;
+                border-left:3px solid #94e2d5">
+      🎯 <b>{total_n} レース</b> 該当 (1万/R × {total_n} = {total_stake:,}円投資)
+      &nbsp;|&nbsp; 期待 ROI 平均 <b>{avg_roi:.1f}%</b>
+      &nbsp;|&nbsp; 期待収支 <b style="color:{'#a6e3a1' if exp_pl>=0 else '#f38ba8'}">
+        {'+' if exp_pl>=0 else ''}{exp_pl:,.0f}円</b>
+    </div>
+    """)
+
+    # 行リスト (場所〇R 馬番 馬名 + 予測 + 補助情報) — 1.2倍フォント, 間隔詰め
+    def _pct(v):
+        try: return f"{float(v)*100:.1f}%"
+        except Exception: return "—"
+
+    def _vs_market(v):
+        """ai_vs_market: 'under' = AI割安 (買い), 'fair' = 互角, 'over' = AI割高."""
+        if v is None: return ("—", "#6c7086")
+        s = str(v).lower()
+        if s == "under": return ("AI割安 (買)", "#a6e3a1")
+        if s == "over":  return ("AI割高 (売)", "#fab387")
+        if s == "fair":  return ("市場と互角", "#cdd6f4")
+        return (str(v), "#6c7086")
+
+    rows_html = []
+    for p in picks:
+        roi = p["roi"]
+        roi_color = "#a6e3a1" if roi >= 100 else "#f9e2af" if roi >= 90 else "#fab387"
+        p_win_str = _pct(p.get("hon_p_win"))
+        p_sho_str = _pct(p.get("hon_p_sho"))
+        vs_txt, vs_col = _vs_market(p.get("hon_ai_vs_market"))
+        rows_html.append(f"""
+        <div style="display:flex;gap:14px;align-items:center;padding:3px 14px;
+                    background:#181825;border-radius:4px;margin-bottom:1px;
+                    font-size:16px;line-height:1.3">
+          <span style="color:#cdd6f4;font-weight:bold;min-width:108px">
+            {p['place']} {p['race_no']}R
+          </span>
+          <span style="color:#94e2d5;font-weight:bold;font-size:18px;min-width:43px;text-align:center">
+            {p['hon_umaban']}
+          </span>
+          <span style="color:#cdd6f4;min-width:160px">
+            {p['hon_name']}
+          </span>
+          <span style="color:#89b4fa;font-size:14px;min-width:160px">
+            予測 勝率<b>{p_win_str}</b> / 複勝率<b>{p_sho_str}</b>
+          </span>
+          <span style="color:{vs_col};font-size:13px;min-width:120px">
+            {vs_txt}
+          </span>
+          <span style="flex-grow:1"></span>
+          <span style="color:#6c7086;font-size:13px">
+            波乱度={p['p_havoc']:.2f} ({p['havoc_class']})
+          </span>
+          <span style="color:#6c7086;font-size:13px">
+            複オッズ={p['fuku_lo']:.1f}倍
+          </span>
+          <span style="color:{roi_color};font-size:14px;font-weight:bold;min-width:96px;text-align:right">
+            ROI {roi:.1f}% (n={p['n_cell']})
+          </span>
+        </div>
+        """)
+    ui.html("".join(rows_html))
+
+    # 注釈
+    ui.html("""
+    <div style="color:#6c7086;font-size:13px;padding:6px 14px;margin-top:4px">
+      ※ ROI は test 2024-25 (108週) 実測値 (◎ の波乱度クラス × ◎ 複勝下限オッズ閾値で分類).
+      n は該当セルのサンプルサイズ. 必ず実オッズを直前にチェックして判定してください.
+    </div>
+    """)
 
 
 def render_training_top5(date_str: str | None) -> None:
@@ -3570,6 +3818,14 @@ def main_page():
                         "border:1px solid #f5c2e7;border-radius:12px"):
             grade_scope_box = ui.element("div").classes("w-full")
 
+        # ── 7 行目: 複勝1点ピック (havoc × ◎fuku_lo マトリクスベース) ──
+        with ui.expansion("🎯 本日の複勝1点レース (波乱度× ◎ マトリクス)",
+                            icon="emoji_events", value=True) \
+                .classes("w-full") \
+                .style("background:rgba(148,226,213,0.05);"
+                        "border:1px solid #94e2d5;border-radius:12px"):
+            fukusho_picks_box = ui.element("div").classes("w-full")
+
         # ── メイン: 左右パネル ──
         with ui.row().classes("w-full no-wrap gap-3"):
             left_box = ui.element("div").classes("flex-grow").style("flex: 3")
@@ -3925,6 +4181,11 @@ def main_page():
         grade_scope_box.clear()
         with grade_scope_box:
             render_grade_scope(date)
+
+        # 複勝1点ピック (havoc × fuku_lo マトリクス)
+        fukusho_picks_box.clear()
+        with fukusho_picks_box:
+            render_fukusho_picks(date)
 
         if state["current_place"]:
             races = sorted(by_place.get(state["current_place"], []),
