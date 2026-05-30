@@ -1,4 +1,4 @@
-##############################################################
+﻿##############################################################
 # weekly_nicegui.ps1  --- weekly workflow for NiceGUI on HF Spaces
 #
 # Purpose:
@@ -120,6 +120,17 @@ if ($BetsOnly) {
     Write-Host ""
     Write-Host "Bets file(s):" -ForegroundColor Cyan
     foreach ($p in $betsFound) { Write-Host "    $p" -ForegroundColor Gray }
+
+    # -- Guard: 見送り条件 (絶対禁則 2 の 4 条件) をコードで強制 --
+    #    Cowork が見送りすべき race に買い目を付けても、ここで bets:[] に矯正する。
+    #    (2026-05-30: Cowork が全 23 R に買い目を付けた事故への恒久対策)
+    Step "[guard] validate_cowork_bets.py --apply (見送り条件チェック)"
+    python validate_cowork_bets.py --date $Date --apply
+    if ($LASTEXITCODE -eq 1) {
+        Warn "見送りガードを実行できず (bundle 不在等)。手動確認してください。"
+    } else {
+        OK "見送りガード通過"
+    }
 
     if (-not $SkipGit) {
         Step "[1/2] git add / commit / push origin master"
