@@ -156,8 +156,11 @@ COLUMN_MAP = {
 def list_dates() -> list[str]:
     if not WEEKLY_DIR.exists():
         return []
-    return sorted([p.stem for p in WEEKLY_DIR.glob("????????.csv")
-                    if p.stem.isdigit() and len(p.stem) == 8], reverse=True)
+    # 拡張子の大小文字を区別しない (TARGET が .CSV で出力する事があり、
+    # Linux の HF Spaces では .csv glob にマッチせず日付が欠落するため)
+    return sorted({p.stem for p in WEEKLY_DIR.glob("????????.*")
+                    if p.suffix.lower() == ".csv"
+                    and p.stem.isdigit() and len(p.stem) == 8}, reverse=True)
 
 
 def load_bundle(date_str: str) -> dict | None:
@@ -407,6 +410,8 @@ def load_weekly_horses(date_str: str) -> pd.DataFrame | None:
     前走単勝オッズ, 前走確定着順, 前走上り3F などが含まれる。
     """
     p = WEEKLY_DIR / f"{date_str}.csv"
+    if not p.exists():
+        p = WEEKLY_DIR / f"{date_str}.CSV"   # 大文字拡張子フォールバック
     if not p.exists():
         return None
     raw = p.read_bytes()

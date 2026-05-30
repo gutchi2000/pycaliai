@@ -52,7 +52,7 @@ $SyncFiles = @(
 
 # Regex patterns matched against `git ls-tree -r --name-only master`.
 $SyncDataPatterns = @(
-    '^data/weekly/[0-9]{8}\.csv$',
+    '^data/weekly/[0-9]{8}\.[cC][sS][vV]$',   # 大小文字非依存 (TARGET が .CSV 出力する事あり)
     '^data/hosei/H_2026[0-9]+(-[0-9]+)?\.csv$',
     '^data/training/H-2026[0-9]+(-[0-9]+)?\.csv$',
     '^data/training/W-2026[0-9]+(-[0-9]+)?\.csv$',
