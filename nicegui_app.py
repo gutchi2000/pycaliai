@@ -2090,6 +2090,10 @@ def make_shutsuba_table_html(race: dict, date_str: str | None = None) -> str:
         ev_tan = (h.get("p_win") or 0) * tan
         fuku_low = h.get("fuku_odds_low") or 0
         fuku_high = h.get("fuku_odds_high") or 0
+        # 複勝EV = 複勝率(p_sho) × 複勝オッズ。オッズはレンジなので中央値で 1 値化
+        # (単勝EV = p_win × 単勝odds と同じ考え方)
+        fuku_mid = (fuku_low + fuku_high) / 2
+        ev_fuku = (h.get("p_sho") or 0) * fuku_mid
         market = h.get("ai_vs_market") or "unknown"
         market_color = MARKET_COLORS.get(market, "#6c7086")
 
@@ -2109,6 +2113,8 @@ def make_shutsuba_table_html(race: dict, date_str: str | None = None) -> str:
             bg = "background:rgba(155,89,182,0.06);"
 
         ev_color = "#f9e2af" if ev_tan >= 1.0 else "#a6adc8"
+        ev_fuku_color = "#f9e2af" if ev_fuku >= 1.0 else "#a6adc8"
+        ev_fuku_str = f"{ev_fuku:.2f}" if fuku_mid > 0 else "-"
 
         rows.append(f"""
         <tr style="{bg}border-bottom:1px solid #313244;height:42px">
@@ -2122,6 +2128,7 @@ def make_shutsuba_table_html(race: dict, date_str: str | None = None) -> str:
           <td style="padding:6px 12px;text-align:right;color:#f5c2e7">{tan:.1f}</td>
           <td style="padding:6px 12px;text-align:right;color:{ev_color};font-weight:bold">{ev_tan:.2f}</td>
           <td style="padding:6px 12px;text-align:right;color:#a6adc8">{fuku_low:.1f}-{fuku_high:.1f}</td>
+          <td style="padding:6px 12px;text-align:right;color:{ev_fuku_color};font-weight:bold">{ev_fuku_str}</td>
           <td style="padding:6px 12px;text-align:center">
             <span style="background:{market_color};color:#1e1e2e;padding:2px 10px;
                          border-radius:10px;font-size:12px;font-weight:bold">{market}</span>
@@ -2144,6 +2151,7 @@ def make_shutsuba_table_html(race: dict, date_str: str | None = None) -> str:
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">単勝</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">単勝EV</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">複勝</th>
+          <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">複勝EV</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:center">vs市場</th>
         </tr>
       </thead>
