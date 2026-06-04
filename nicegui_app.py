@@ -1559,8 +1559,13 @@ MARK_COLORS = {
     "◎": "#e74c3c", "〇": "#3498db", "▲": "#9b59b6", "△": "#f39c12",
 }
 MARKET_COLORS = {
-    "under": "#a6e3a1", "fair": "#89b4fa",
-    "over": "#f38ba8", "unknown": "#6c7086",
+    # 色弱対応で深め: 割安=緑 / 適正=青 / 割高=赤
+    "under": "#37b24d", "fair": "#748ffc",
+    "over": "#f03e3e", "unknown": "#788293",
+}
+# under/over/fair を「市場オッズに対して買い得か割高か」= 株の割安/割高に言い換え
+MARKET_LABELS = {
+    "under": "割安", "fair": "適正", "over": "割高", "unknown": "-",
 }
 
 # Advisor 用 grade/tag 配色 (Cowork 出力の grade/tag フィールド)
@@ -2054,6 +2059,28 @@ def make_right_panel_html(race: dict) -> str:
 # ============================================================
 # 出走表 (ピュア HTML テーブル)
 # ============================================================
+def _vs_market_status(model_p: float | None, odds: float | None) -> str:
+    """モデル確率 vs 市場オッズ(implied=1/odds) を ±20% バンドで判定。
+    単勝も複勝も同じロジック (複勝は odds=複勝オッズ中央値)。
+    → 'under'(割安/妙味) / 'over'(割高) / 'fair'(適正) / 'unknown'。"""
+    if not odds or odds <= 0 or not model_p:
+        return "unknown"
+    market_p = 1.0 / odds
+    if model_p >= market_p * 1.20:
+        return "under"   # AI > 市場 = 過小評価 = 割安(妙味)
+    if model_p <= market_p * 0.80:
+        return "over"    # AI < 市場 = 過大評価 = 割高
+    return "fair"
+
+
+def _market_badge_html(status: str) -> str:
+    """割安/適正/割高 のピル型バッジ。"""
+    color = MARKET_COLORS.get(status, "#788293")
+    label = MARKET_LABELS.get(status, "-")
+    return (f'<span style="background:{color};color:#11111b;padding:2px 10px;'
+            f'border-radius:10px;font-size:12px;font-weight:bold">{label}</span>')
+
+
 def make_shutsuba_table_html(race: dict, date_str: str | None = None) -> str:
     horses = race.get("horses", [])
     horses_sorted = sorted(horses, key=lambda h: h.get("umaban") or 0)
@@ -2094,8 +2121,11 @@ def make_shutsuba_table_html(race: dict, date_str: str | None = None) -> str:
         # (単勝EV = p_win × 単勝odds と同じ考え方)
         fuku_mid = (fuku_low + fuku_high) / 2
         ev_fuku = (h.get("p_sho") or 0) * fuku_mid
-        market = h.get("ai_vs_market") or "unknown"
-        market_color = MARKET_COLORS.get(market, "#6c7086")
+        # 単勝妙味: bundle 既存の ai_vs_market (p_win vs 1/単勝odds)
+        market_tan = h.get("ai_vs_market") or "unknown"
+        # 複勝妙味: 同じ ±20% ロジックを p_sho vs 1/複勝odds(中央値) で算出
+        market_fuku = _vs_market_status(h.get("p_sho"),
+                                        fuku_mid if fuku_mid > 0 else None)
 
         mark_color = MARK_COLORS.get(mark, "#6c7086")
         mark_html = (
@@ -2127,12 +2157,10 @@ def make_shutsuba_table_html(race: dict, date_str: str | None = None) -> str:
           <td style="padding:6px 12px;text-align:right;color:#89b4fa">{p_sho:.1f}%</td>
           <td style="padding:6px 12px;text-align:right;color:#f5c2e7">{tan:.1f}</td>
           <td style="padding:6px 12px;text-align:right;color:{ev_color};font-weight:bold">{ev_tan:.2f}</td>
+          <td style="padding:6px 12px;text-align:center">{_market_badge_html(market_tan)}</td>
           <td style="padding:6px 12px;text-align:right;color:#a6adc8">{fuku_low:.1f}-{fuku_high:.1f}</td>
           <td style="padding:6px 12px;text-align:right;color:{ev_fuku_color};font-weight:bold">{ev_fuku_str}</td>
-          <td style="padding:6px 12px;text-align:center">
-            <span style="background:{market_color};color:#1e1e2e;padding:2px 10px;
-                         border-radius:10px;font-size:12px;font-weight:bold">{market}</span>
-          </td>
+          <td style="padding:6px 12px;text-align:center">{_market_badge_html(market_fuku)}</td>
         </tr>
         """)
 
@@ -2150,9 +2178,10 @@ def make_shutsuba_table_html(race: dict, date_str: str | None = None) -> str:
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">複勝率</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">単勝</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">単勝EV</th>
+          <th style="padding:12px;color:#f39c12;font-size:14px;text-align:center">単勝妙味</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">複勝</th>
           <th style="padding:12px;color:#f39c12;font-size:14px;text-align:right">複勝EV</th>
-          <th style="padding:12px;color:#f39c12;font-size:14px;text-align:center">vs市場</th>
+          <th style="padding:12px;color:#f39c12;font-size:14px;text-align:center">複勝妙味</th>
         </tr>
       </thead>
       <tbody>
