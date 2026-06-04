@@ -44,6 +44,7 @@ $SyncFiles = @(
     ".dockerignore",
     "requirements-nicegui.txt",
     "nicegui_app.py",
+    "betting_judgment.py",
     "data/course_stats.json",
     "data/chaos_quantiles.json",
     "data/kekka/wide_kekka.csv",

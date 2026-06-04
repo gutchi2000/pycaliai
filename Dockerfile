@@ -26,8 +26,9 @@ COPY requirements-nicegui.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements-nicegui.txt
 
-# アプリ本体 + 表示用データ
+# アプリ本体 + 依存モジュール + 表示用データ
 COPY nicegui_app.py .
+COPY betting_judgment.py .
 COPY data data
 COPY reports reports
 
