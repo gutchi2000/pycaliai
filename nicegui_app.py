@@ -1900,7 +1900,7 @@ def _chip_html(title: str, value_str: str, diag: tuple[str, str, str],
       <div style="color:#cdd6f4;font-size:28px;font-weight:bold;line-height:1.0;
                   margin-bottom:2px">{value_str}</div>
       {gauge}
-      <div style="color:#a6adc8;font-size:12px;line-height:1.4;margin-top:6px">
+      <div style="color:#a6adc8;font-size:14.4px;line-height:1.4;margin-top:6px">
         → {action}
       </div>
     </div>
