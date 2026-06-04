@@ -1773,10 +1773,10 @@ def make_left_panel_html(race: dict) -> str:
 
 # --- 行動カテゴリ → 色 ---
 _CAT_COLOR = {
-    "go":      "#a6e3a1",  # 緑
-    "caution": "#f9e2af",  # 黄
-    "avoid":   "#9399b2",  # グレー
-    "danger":  "#f38ba8",  # 赤
+    "go":      "#37b24d",  # 緑 (濃いめ・色弱でも判別しやすい高彩度)
+    "caution": "#f0a500",  # 黄→琥珀 (濃いめ。淡黄は背景に埋もれるため彩度UP)
+    "avoid":   "#788293",  # グレー (濃いめ)
+    "danger":  "#f03e3e",  # 赤 (濃いめ・高彩度)
 }
 
 # --- 総合判定の閾値 (仮。実データで調整) ---
@@ -1874,7 +1874,7 @@ def _gauge_html(frac: float, color: str, center: bool = False) -> str:
                 margin-top:8px;overflow:visible">
       {center_tick}
       <div style="position:absolute;top:0;left:0;height:100%;width:{pct:.1f}%;
-                  background:{color};border-radius:3px;opacity:0.85"></div>
+                  background:{color};border-radius:3px"></div>
       <div style="position:absolute;top:-2px;left:calc({pct:.1f}% - 4px);width:8px;
                   height:10px;background:{color};border-radius:2px;
                   box-shadow:0 0 0 1px #11111b"></div>
@@ -2033,7 +2033,9 @@ def make_right_panel_html(race: dict) -> str:
       {verdict_html}
       <div style="color:#6c7086;font-size:11px;margin-bottom:-4px;
                   padding:0 4px;letter-spacing:0.5px">
-        ※ 緑=狙う方向 / 黄=標準・注意 / 赤・グレー=見送り寄り。横ゲージは値のレンジ上の位置。
+        ※ <b style="color:{_CAT_COLOR['go']}">緑=狙う方向</b> /
+        <b style="color:{_CAT_COLOR['caution']}">黄=標準・注意</b> /
+        <b style="color:{_CAT_COLOR['danger']}">赤</b>・<b style="color:{_CAT_COLOR['avoid']}">グレー</b>=見送り寄り。横ゲージは値のレンジ上の位置。
       </div>
       <!-- 信頼度メトリクス 4 chip (重要度順: 市場一致→独走度→上位2頭集中→混戦度) -->
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
