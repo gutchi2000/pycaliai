@@ -92,8 +92,15 @@ import json
 import re
 from pathlib import Path
 
+import os
+
 import pandas as pd
-from nicegui import ui
+from nicegui import ui, run
+
+try:
+    from assistant import chat as soudan  # 対話相談AI (ローカル Ollama)
+except Exception:
+    soudan = None  # 読み込めなくても本体は動かす (HF/本番を保護)
 
 BASE = Path(__file__).parent
 COWORK_INPUT_DIR  = BASE / "reports" / "cowork_input"
@@ -1753,51 +1760,134 @@ def make_left_panel_html(race: dict) -> str:
 
 # ============================================================
 # 4 chip 診断 (素人向け: 数値 → 状態ラベル + アクション提案)
+# ------------------------------------------------------------
+# 色は「値が示す行動」に紐づける (値の絶対水準ではなく、何をすべきか):
+#   go      = 緑   : 狙う方向 (本命軸・本線で勝負できる / 妙味あり)
+#   caution = 黄   : 標準・注意 (基本路線で OK / 相手を広げる)
+#   avoid   = グレー: 見送り寄り (妙味薄・様子見)
+#   danger  = 赤   : 荒れ・危険 (信頼度低、広めか見送り)
+# go/caution/avoid/danger の 4 カテゴリだが、見せ方は「緑/黄/赤かグレー」の 3 系統。
+#
+# 総合判定・各カードの閾値は【仮】。実データ(audit_marks / cowork_results)で調整可。
 # ============================================================
+
+# --- 行動カテゴリ → 色 ---
+_CAT_COLOR = {
+    "go":      "#a6e3a1",  # 緑
+    "caution": "#f9e2af",  # 黄
+    "avoid":   "#9399b2",  # グレー
+    "danger":  "#f38ba8",  # 赤
+}
+
+# --- 総合判定の閾値 (仮。実データで調整) ---
+TH_MARKET_HIGH = 0.8    # 市場一致がこれ以上 → 妙味薄 (見送り寄り)
+TH_MARKET_LOW  = 0.3    # 市場一致がこれ未満 (マイナス含む) → 乖離 (妙味)
+TH_TOP1_HIGH   = 0.60   # 独走度がこれ以上 → 本命が抜けている
+TH_TOP2_LOW    = 0.40   # 上位2頭集中がこれ未満 → 分散 (広く流す)
+TH_CHAOS_HIGH  = 0.75   # 混戦度がこれ以上 → 荒れ (信頼度低)
+
+
+def _overall_verdict(top1: float, top2: float, chaos: float,
+                     market: float) -> tuple[str, str, str]:
+    """4 指標から 1 行の結論を出す。優先順位:
+       市場一致 → 独走度 → 上位2頭集中 → 混戦度
+       → (headline, category, detail)。閾値は上の TH_* (仮値)。"""
+    # 1. 市場一致が高い → 妙味薄
+    if market >= TH_MARKET_HIGH:
+        return ("見送り寄り（妙味薄）", "avoid",
+                f"AI ≒ 市場 (一致 {market:+.2f})。期待値の上澄みが薄く、無理に買う旨味が小さい。")
+    # 2. 市場と乖離 かつ 独走度が高い → 本命軸で妙味勝負
+    if market < TH_MARKET_LOW and top1 >= TH_TOP1_HIGH:
+        return ("本命軸で妙味勝負", "go",
+                f"市場と乖離 (一致 {market:+.2f}) しつつ本命が抜けている (独走 {top1:.2f})。◎軸で攻めたい。")
+    # 3. 上位2頭集中が低い → 広く流す / box
+    if top2 < TH_TOP2_LOW:
+        return ("広く流す／box", "caution",
+                f"上位2頭が分散 (集中 {top2:.2f})。相手を絞らず box・流しで面を取る。")
+    # 4. 混戦度が高い → 信頼度低、広め or 見送り
+    if chaos >= TH_CHAOS_HIGH:
+        return ("信頼度低・広め or 見送り", "danger",
+                f"混戦度が高い (荒れ {chaos:.2f})。広く取るか、妙味が無ければ見送り。")
+    # 該当なし → 標準
+    return ("標準（印通りで OK）", "caution",
+            "突出した警戒シグナルなし。基本路線 (印通り) で組み立てて OK。")
+
+
 def _diag_top1(v: float) -> tuple[str, str, str]:
-    """◎独走度(パーセンタイル 0-1: 過去レース中で本命がどれだけ抜けているか) → (badge, color, action)"""
+    """◎独走度(0-1: 過去レース中で本命がどれだけ抜けているか) → (badge, category, action)
+       高い=本命が抜けている=狙える方向。"""
     if v >= 0.75:
-        return ("◎独走", "#a6e3a1", "本命を信頼。単勝・複勝で勝負可")
+        return ("◎独走", "go", "本命を信頼。単勝・複勝で勝負可")
     if v >= 0.50:
-        return ("◎やや優位", "#89b4fa", "本命有力だが油断不可。複勝で安全に")
+        return ("◎やや優位", "caution", "本命有力だが油断不可。複勝で安全に")
     if v >= 0.25:
-        return ("拮抗", "#f9e2af", "本命の優位性は薄い。馬連で広めに")
-    return ("混戦本命", "#f38ba8", "本命の抜けは下位。馬連・ワイドで広めに")
+        return ("拮抗", "caution", "本命の優位性は薄い。馬連で広めに")
+    return ("混戦本命", "avoid", "本命の抜けは下位。馬連・ワイドで広めに")
 
 
 def _diag_top2(v: float) -> tuple[str, str, str]:
-    """上位2頭集中(パーセンタイル 0-1: 過去レース中で上位2頭にどれだけ集中しているか) → (badge, color, action)"""
+    """上位2頭集中(0-1) → (badge, category, action)
+       高い=本線濃厚=狙える方向。低い=分散=相手を広げる(注意)。"""
     if v >= 0.75:
-        return ("本線濃厚", "#a6e3a1", "◎-〇 で決まる確率高。馬連本線が有効")
+        return ("本線濃厚", "go", "◎-〇 で決まる確率高。馬連本線が有効")
     if v >= 0.50:
-        return ("やや本線", "#89b4fa", "馬連 ◎-〇 + 流し相手数頭が無難")
-    return ("分散", "#f9e2af", "上位2頭以外も来る。流しか box で広めに")
+        return ("やや本線", "caution", "馬連 ◎-〇 + 流し相手数頭が無難")
+    return ("分散", "caution", "上位2頭以外も来る。流しか box で広めに")
 
 
 def _diag_chaos(v: float) -> tuple[str, str, str]:
-    """混戦度(パーセンタイル 0-1: 過去レース中で相対的にどれだけ荒れているか) → (badge, color, action)"""
+    """混戦度(0-1) → (badge, category, action)
+       低い=固い=狙える方向。高い=荒れ=危険。"""
     if v <= 0.25:
-        return ("固い", "#a6e3a1", "上位馬の優位明確。素直に印通りで")
+        return ("固い", "go", "上位馬の優位明確。素直に印通りで")
     if v <= 0.50:
-        return ("やや固め", "#89b4fa", "標準的な信頼度。基本路線で OK")
+        return ("やや固め", "caution", "標準的な信頼度。基本路線で OK")
     if v <= 0.75:
-        return ("混戦", "#f9e2af", "力差小さい。box やワイドで広めに")
-    return ("カオス", "#f38ba8", "上位25%の荒れレース。見送り推奨")
+        return ("混戦", "caution", "力差小さい。box やワイドで広めに")
+    return ("カオス", "danger", "上位25%の荒れレース。見送り推奨")
 
 
 def _diag_market(v: float) -> tuple[str, str, str]:
-    """市場一致 → (badge, color, action)"""
-    if v >= 0.7:
-        return ("市場と一致", "#89b4fa", "AI ≒ 市場。妙味は薄い、見送りも視野")
-    if v >= 0.3:
-        return ("やや一致", "#a6e3a1", "AI と市場ほぼ同方向。素直に買える")
+    """市場一致(-1..+1) → (badge, category, action)
+       高い=AIと市場が一致=妙味薄(見送り寄り)。低い/負=乖離=妙味(狙える)。"""
+    if v >= TH_MARKET_HIGH:
+        return ("市場と一致", "avoid", "AI ≒ 市場。妙味は薄い、見送りも視野")
+    if v >= TH_MARKET_LOW:
+        return ("やや一致", "caution", "AI と市場ほぼ同方向。素直に買えるが妙味は中")
     if v >= 0:
-        return ("ややズレ", "#f9e2af", "AI が穴推し気味。妙味あり、慎重に")
-    return ("逆方向", "#f38ba8", "AI と市場が逆。波乱の可能性大、穴狙い")
+        return ("ややズレ", "go", "AI が穴推し気味。妙味あり、慎重に")
+    return ("逆方向", "go", "AI と市場が逆。波乱・穴の妙味、リスクは高め")
 
 
-def _chip_html(title: str, value_str: str, diag: tuple[str, str, str]) -> str:
-    label, color, action = diag
+def _gauge_html(frac: float, color: str, center: bool = False) -> str:
+    """値のレンジ上の位置を示す横ゲージ。
+       frac=0-1 (レンジ内での位置)。center=True で中央(0.5)に基準線を引く
+       (市場一致のように 0 が意味を持つ指標用)。"""
+    frac = max(0.0, min(1.0, frac))
+    pct = frac * 100
+    center_tick = (
+        '<div style="position:absolute;top:-1px;bottom:-1px;left:50%;width:1px;'
+        'background:#585b70"></div>' if center else ""
+    )
+    return f"""
+    <div style="position:relative;height:6px;background:#313244;border-radius:3px;
+                margin-top:8px;overflow:visible">
+      {center_tick}
+      <div style="position:absolute;top:0;left:0;height:100%;width:{pct:.1f}%;
+                  background:{color};border-radius:3px;opacity:0.85"></div>
+      <div style="position:absolute;top:-2px;left:calc({pct:.1f}% - 4px);width:8px;
+                  height:10px;background:{color};border-radius:2px;
+                  box-shadow:0 0 0 1px #11111b"></div>
+    </div>
+    """
+
+
+def _chip_html(title: str, value_str: str, diag: tuple[str, str, str],
+               gauge_frac: float | None = None, gauge_center: bool = False) -> str:
+    label, category, action = diag
+    color = _CAT_COLOR.get(category, "#9399b2")
+    gauge = (_gauge_html(gauge_frac, color, gauge_center)
+             if gauge_frac is not None else "")
     return f"""
     <div style="background:#1e1e2e;border:1px solid #313244;border-left:4px solid {color};
                 border-radius:8px;padding:12px 16px">
@@ -1808,9 +1898,30 @@ def _chip_html(title: str, value_str: str, diag: tuple[str, str, str]) -> str:
                      border-radius:10px;font-size:12px;font-weight:bold">{label}</span>
       </div>
       <div style="color:#cdd6f4;font-size:28px;font-weight:bold;line-height:1.0;
-                  margin-bottom:6px">{value_str}</div>
-      <div style="color:#a6adc8;font-size:12px;line-height:1.4">
+                  margin-bottom:2px">{value_str}</div>
+      {gauge}
+      <div style="color:#a6adc8;font-size:12px;line-height:1.4;margin-top:6px">
         → {action}
+      </div>
+    </div>
+    """
+
+
+def _verdict_html(verdict: tuple[str, str, str]) -> str:
+    """4 指標の総合判定バッジ (4 カードの上に置く 1 行の結論)。"""
+    headline, category, detail = verdict
+    color = _CAT_COLOR.get(category, "#9399b2")
+    return f"""
+    <div style="background:linear-gradient(90deg,{color}22,#1e1e2e 60%);
+                border:1px solid #313244;border-left:5px solid {color};
+                border-radius:10px;padding:12px 16px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="color:#6c7086;font-size:11px;letter-spacing:1px">総合判定</span>
+        <span style="background:{color};color:#11111b;padding:4px 14px;
+                     border-radius:14px;font-size:16px;font-weight:bold">{headline}</span>
+      </div>
+      <div style="color:#bac2de;font-size:12px;line-height:1.5;margin-top:7px">
+        {detail}
       </div>
     </div>
     """
@@ -1903,23 +2014,33 @@ def make_right_panel_html(race: dict) -> str:
         """
         baba_html = ""
 
-    chip_top1   = _chip_html("◎独走度",     f"{top1:.3f}",   _diag_top1(top1))
-    chip_top2   = _chip_html("上位2頭集中", f"{top2:.3f}",   _diag_top2(top2))
-    chip_chaos  = _chip_html("混戦度",       f"{chaos:.3f}",  _diag_chaos(chaos))
-    chip_market = _chip_html("市場一致",     f"{market:+.3f}",_diag_market(market))
+    # 総合判定 (4 指標 → 1 行の結論。優先順位: 市場一致→独走度→上位2頭集中→混戦度)
+    verdict_html = _verdict_html(_overall_verdict(top1, top2, chaos, market))
+
+    # カードは重要度順 (go/no-go の市場一致を先頭に)。各カードに横ゲージ付き。
+    # ゲージの frac はレンジ内の位置: top1/top2/chaos は 0-1、market は -1..+1。
+    chip_market = _chip_html("市場一致",     f"{market:+.3f}", _diag_market(market),
+                             gauge_frac=(market + 1) / 2, gauge_center=True)
+    chip_top1   = _chip_html("◎独走度",     f"{top1:.3f}",    _diag_top1(top1),
+                             gauge_frac=top1)
+    chip_top2   = _chip_html("上位2頭集中", f"{top2:.3f}",    _diag_top2(top2),
+                             gauge_frac=top2)
+    chip_chaos  = _chip_html("混戦度",       f"{chaos:.3f}",   _diag_chaos(chaos),
+                             gauge_frac=chaos)
 
     return f"""
     <div style="display:flex;flex-direction:column;gap:10px;height:100%">
+      {verdict_html}
       <div style="color:#6c7086;font-size:11px;margin-bottom:-4px;
                   padding:0 4px;letter-spacing:0.5px">
-        ※ 各カードの色付きバッジは「いま何をすべきか」を一言でまとめたもの。
+        ※ 緑=狙う方向 / 黄=標準・注意 / 赤・グレー=見送り寄り。横ゲージは値のレンジ上の位置。
       </div>
-      <!-- 信頼度メトリクス 4 chip (素人向け: 状態ラベル + アクション付き) -->
+      <!-- 信頼度メトリクス 4 chip (重要度順: 市場一致→独走度→上位2頭集中→混戦度) -->
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+        {chip_market}
         {chip_top1}
         {chip_top2}
         {chip_chaos}
-        {chip_market}
       </div>
 
       {kako_html}
@@ -3533,6 +3654,109 @@ def horse_radar_option(h: dict) -> dict:
 # ============================================================
 # UI 構築
 # ============================================================
+def _ollama_up() -> bool:
+    import urllib.request
+    try:
+        urllib.request.urlopen("http://localhost:11434/api/tags", timeout=2)
+        return True
+    except Exception:
+        return False
+
+
+def _soudan_status():
+    """(利用可能か, 理由テキスト) を返す。"""
+    if soudan is None:
+        return False, "⚠️ 相談AIモジュール (assistant/) を読み込めませんでした。"
+    if "HF_SPACE_ID" in os.environ or "DOCKER_CONTAINER" in os.environ:
+        return False, ("💡 相談AIは『ローカル起動』専用です（公開版にはLLMが居ません）。\n"
+                       "PCで  python nicegui_app.py  を起動し、Ollama を立ち上げてください。")
+    if not _ollama_up():
+        return False, ("⚠️ Ollama に接続できません (localhost:11434)。\n"
+                       "スタートメニューから Ollama を起動 → 🔄 再確認 を押してください。")
+    return True, ""
+
+
+def build_soudan_tab(box, state):
+    """相談AI チャットタブを構築。ローカル + Ollama 稼働時のみ有効。"""
+    box.clear()
+    with box:
+        ok, reason = _soudan_status()
+        if not ok:
+            with ui.column().classes("w-full p-4 gap-3"):
+                ui.label(reason).classes("text-orange-300 whitespace-pre-line text-base")
+                ui.button("🔄 再確認", on_click=lambda: build_soudan_tab(box, state)) \
+                    .props("outline color=orange")
+            return
+
+        ui.label("💬 表示中のレースについて自然文で。例:「エフハリストは?」「9番どう?」"
+                 "「5番と12番どっち軸?」「このレース見送るべき?」") \
+            .classes("text-slate-300 text-base p-2")
+        msg_area = ui.scroll_area().classes("w-full") \
+            .style("height:55vh;border:1px solid #334155;border-radius:10px")
+        sess = {"messages": None, "bundle": None, "date": None, "idx": None}
+
+        async def send():
+            q = (inp.value or "").strip()
+            if not q:
+                return
+            date = state.get("date")
+            if not date:
+                ui.notify("先に開催日を選んでください", type="warning")
+                return
+            bundle = state.get("bundle")
+            if not bundle:
+                try:
+                    bundle = soudan.tools.load_bundle(date)
+                except Exception as e:
+                    ui.notify(f"bundle 読込失敗: {e}", type="negative")
+                    return
+            # 今表示中レースの index を特定（無ければ 0）
+            idx = 0
+            r = state.get("race")
+            if r:
+                for i, x in enumerate(bundle["races"]):
+                    if x.get("race_id") == r.get("race_id"):
+                        idx = i
+                        break
+            inp.value = ""
+            # 日付 or 対象レースが変わったらセッション作り直し（名簿を入れ直す）
+            if (sess["messages"] is None or sess["date"] != date
+                    or sess["idx"] != idx):
+                try:
+                    _, msgs = soudan._init_messages(date, focus_idx=idx)
+                except Exception as e:
+                    ui.notify(f"bundle 読込失敗: {e}", type="negative")
+                    return
+                sess.update(messages=msgs, bundle=bundle, date=date, idx=idx)
+                rm = bundle["races"][idx]["race_meta"]
+                with msg_area:
+                    ui.label(f"📍 レース[{idx}] {rm.get('place')} {rm.get('course')} "
+                             f"{rm.get('class')} を対象に回答します") \
+                        .classes("text-xs text-slate-400")
+            with msg_area:
+                ui.chat_message(q, name="あなた", sent=True)
+                spinner = ui.spinner("dots", size="lg", color="primary")
+            sess["messages"].append({"role": "user", "content": q})
+            try:
+                answer = await run.io_bound(
+                    soudan._complete, sess["messages"], sess["bundle"])
+            except Exception as e:
+                answer = f"[エラー] {e}"
+            spinner.delete()
+            with msg_area:
+                ui.chat_message(answer, name="🏇 PyCaLiAI", sent=False)
+            try:
+                msg_area.scroll_to(percent=1.0)
+            except Exception:
+                pass
+
+        with ui.row().classes("w-full no-wrap items-center gap-2 mt-2"):
+            inp = ui.input(placeholder="質問を入力 (Enter で送信)…") \
+                .classes("flex-grow").props("outlined")
+            inp.on("keydown.enter", send)
+            ui.button("送信", on_click=send).props("color=primary")
+
+
 @ui.page("/")
 def main_page():
     ui.dark_mode().enable()
@@ -3619,6 +3843,7 @@ def main_page():
             tab_course = ui.tab("📊 コース分析")
             tab_pedigree = ui.tab("🧬 血統分析")
             tab_bets = ui.tab("🎫 Cowork 買い目")
+            tab_soudan = ui.tab("💬 相談AI")
 
         with ui.tab_panels(tabs, value=tab_shutsuba).classes("w-full"):
             with ui.tab_panel(tab_shutsuba):
@@ -3631,6 +3856,9 @@ def main_page():
                 pedigree_box = ui.element("div").classes("w-full")
             with ui.tab_panel(tab_bets):
                 bets_box = ui.element("div").classes("w-full")
+            with ui.tab_panel(tab_soudan):
+                soudan_box = ui.element("div").classes("w-full")
+                build_soudan_tab(soudan_box, state)
 
     # 馬個別モーダル (出走表タブの「🐴 詳細」ボタンで開く)
     horse_dialog = ui.dialog()
