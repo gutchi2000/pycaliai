@@ -97,6 +97,8 @@ import os
 import pandas as pd
 from nicegui import ui, run
 
+import betting_judgment as bj  # 買い方判定 (堅さ×妙味→買い方) の共有ロジック
+
 try:
     from assistant import chat as soudan  # 対話相談AI (ローカル Ollama)
 except Exception:
@@ -1932,6 +1934,87 @@ def _verdict_html(verdict: tuple[str, str, str]) -> str:
     """
 
 
+def _buy_judgment_html(race: dict) -> str:
+    """買い方判定 (堅さ × 妙味馬の有無 → 買い方) バッジ + 妙味馬リスト。
+    総合判定 4 指標パネルの「下」に置く。bundle に buy_judgment があれば読み、
+    無ければ betting_judgment で計算 (旧 bundle 互換)。"""
+    j = race.get("buy_judgment")
+    if not j:
+        j = bj.build_judgment(race.get("race_confidence"), race.get("horses"))
+
+    color = _CAT_COLOR.get(j.get("category"), "#9399b2")
+    headline = j.get("headline", "-")
+    detail = j.get("detail", "")
+    hint = j.get("kenshu_hint", "")
+    waku = j.get("waku_tag")
+    hardness = j.get("hardness", "")
+    waku_pill = (
+        f'<span style="background:#313244;color:#bac2de;padding:2px 8px;'
+        f'border-radius:8px;font-size:10px;margin-left:6px">{waku}</span>'
+        if waku else ""
+    )
+
+    # 妙味馬リスト
+    vhs = j.get("value_horses") or []
+    if vhs:
+        rows = []
+        for v in vhs:
+            sides = v.get("sides") or []
+            side_pills = ""
+            if v.get("tan_value"):
+                side_pills += (
+                    f'<span style="background:{_CAT_COLOR["go"]};color:#11111b;'
+                    f'padding:1px 7px;border-radius:8px;font-size:11px;font-weight:bold;'
+                    f'margin-right:4px">単勝割安 EV{v.get("ev_tan",0):.2f}</span>'
+                )
+            if v.get("fuku_value"):
+                side_pills += (
+                    f'<span style="background:{_CAT_COLOR["go"]};color:#11111b;'
+                    f'padding:1px 7px;border-radius:8px;font-size:11px;font-weight:bold;'
+                    f'margin-right:4px">複勝割安 EV{v.get("ev_fuku",0):.2f}</span>'
+                )
+            rows.append(f"""
+            <div style="display:flex;align-items:center;gap:8px;padding:5px 0;
+                        border-bottom:1px solid #313244">
+              <span style="color:#cdd6f4;font-weight:bold;min-width:26px;
+                           text-align:center">{v.get("umaban","?")}</span>
+              <span style="color:#cdd6f4;font-size:14px;min-width:120px">{v.get("horse_name","-")}</span>
+              <span style="flex:1">{side_pills}</span>
+              <span style="color:#a6e3a1;font-size:12px">勝率 {(v.get("p_win",0)*100):.1f}%</span>
+            </div>
+            """)
+        horses_block = "".join(rows)
+    else:
+        horses_block = (
+            '<div style="color:#9399b2;font-size:13px;padding:6px 2px">'
+            '該当馬なし（妙味馬の条件を満たす馬はいません）</div>'
+        )
+
+    return f"""
+    <div style="background:linear-gradient(90deg,{color}1c,#1e1e2e 60%);
+                border:1px solid #313244;border-left:5px solid {color};
+                border-radius:10px;padding:12px 16px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="color:#6c7086;font-size:11px;letter-spacing:1px">買い方判定</span>
+        <span style="background:{color};color:#11111b;padding:4px 14px;
+                     border-radius:14px;font-size:16px;font-weight:bold">{headline}</span>
+        <span style="color:#6c7086;font-size:11px">堅さ: <b style="color:#bac2de">{hardness}</b></span>
+        {waku_pill}
+      </div>
+      <div style="color:#bac2de;font-size:12px;line-height:1.5;margin-top:7px">
+        {detail}　<span style="color:#6c7086">／ 券種ヒント: {hint}</span>
+      </div>
+      <div style="margin-top:10px">
+        <div style="color:#6c7086;font-size:11px;margin-bottom:4px">妙味馬（買い候補）</div>
+        {horses_block}
+      </div>
+      <div style="color:#585b70;font-size:10px;margin-top:8px;line-height:1.4">
+        ※ 妙味馬リストの提示まで。最終取捨（券種/点数/金額）はコース分析タブ＋当日馬場で人間が判断。
+      </div>
+    </div>
+    """
+
+
 # ============================================================
 # 右パネル: メトリクス chip (大きめ) + 過去成績 + 馬場バイアス
 # ============================================================
@@ -2021,6 +2104,8 @@ def make_right_panel_html(race: dict) -> str:
 
     # 総合判定 (4 指標 → 1 行の結論。優先順位: 市場一致→独走度→上位2頭集中→混戦度)
     verdict_html = _verdict_html(_overall_verdict(top1, top2, chaos, market))
+    # 買い方判定 (堅さ × 妙味馬 → 買い方 + 妙味馬リスト。4指標パネルの下に置く)
+    buy_judgment_html = _buy_judgment_html(race)
 
     # カードは重要度順 (go/no-go の市場一致を先頭に)。各カードに横ゲージ付き。
     # ゲージの frac はレンジ内の位置: top1/top2/chaos は 0-1、market は -1..+1。
@@ -2049,6 +2134,9 @@ def make_right_panel_html(race: dict) -> str:
         {chip_top2}
         {chip_chaos}
       </div>
+
+      <!-- 買い方判定 (4指標パネルの下: 堅さ×妙味→買い方 + 妙味馬リスト) -->
+      {buy_judgment_html}
 
       {kako_html}
       {baba_html}

@@ -67,6 +67,7 @@ from backtest_pl_ev import (
     COL_RID, COL_BAN,
 )
 import backtest_pl_ev as be
+import betting_judgment as bj
 
 warnings.filterwarnings("ignore")
 try:
@@ -297,6 +298,9 @@ def export_race(rid, g_orig, model, feats, encs, tansho_idx, fuku_idx,
         "race_meta": race_meta(g, class_prior_map=class_prior_map),
         "horses": horses,
         "race_confidence": conf,
+        # 買い方判定 (堅さ × 妙味馬の有無 → 買い方 + 妙味馬リスト)。
+        # Cowork が方針/券種ヒント/妙味馬の判断材料に使う。閾値は betting_judgment.py。
+        "buy_judgment": bj.build_judgment(conf, horses),
     }
 
     # 馬連オッズ matrix (OD CSV 由来)

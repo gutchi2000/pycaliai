@@ -16,7 +16,8 @@ Cowork 側はこの JSON を受け取り、**馬券種・点数・予算配分�
   "race_id":          "2025122806050811",
   "race_meta":        { ... },
   "horses":           [ { ... }, ... ],
-  "race_confidence":  { ... }
+  "race_confidence":  { ... },
+  "buy_judgment":     { ... }
 }
 ```
 
@@ -26,6 +27,7 @@ Cowork 側はこの JSON を受け取り、**馬券種・点数・予算配分�
 | `race_meta` | object | レース基本情報 |
 | `horses` | array | 出走馬の配列 (umaban 昇順) |
 | `race_confidence` | object | レース全体の信頼度メタ |
+| `buy_judgment` | object | 買い方判定 (堅さ×妙味→買い方 + 妙味馬リスト)。`betting_judgment.py` が計算 |
 
 ---
 
@@ -151,6 +153,42 @@ else:
 ```
 
 これは一例。Cowork 側で自由にロジックを組める。
+
+---
+
+## `buy_judgment`
+
+```json
+{
+  "hardness": "固い",
+  "chaos_pct": 0.226,
+  "has_value": true,
+  "headline": "妙味本線（絞って厚く）",
+  "category": "go",
+  "detail": "妙味馬を本線に。固いレースなので少点数で厚く。",
+  "kenshu_hint": "単勝/複勝/馬連で少点数（絞って厚く）",
+  "waku_tag": "妙味枠",
+  "value_horses": [
+    {"umaban": 3, "horse_name": "...", "p_win": 0.173,
+     "ev_tan": 16.78, "ev_fuku": 4.86,
+     "tan_value": true, "fuku_value": true, "sides": ["単勝", "複勝"]}
+  ]
+}
+```
+
+| フィールド | 型 | 説明 |
+|----------|-----|------|
+| `hardness` | string | `固い` / `標準` / `荒れ` (混戦度パーセンタイルで判定) |
+| `chaos_pct` | float | 混戦度パーセンタイル (0-1) |
+| `has_value` | bool | 妙味馬が 1 頭以上いるか |
+| `headline` / `detail` | string | 買い方の結論文 |
+| `category` | string | `go`/`caution`/`avoid`/`danger` (NiceGUI 配色用) |
+| `kenshu_hint` | string | 券種の方向ヒント (拘束ではない) |
+| `waku_tag` | string \| null | `妙味枠` / `参加枠` / null (回顧用タグ) |
+| `value_horses` | array | 妙味馬 (買い候補)。EV 降順 |
+
+判定ロジック・閾値は `betting_judgment.py` に集約 (NiceGUI 表示と bundle 埋込で共有)。
+妙味馬の定義: 「単勝妙味=割安 or 複勝妙味=割安」かつ「該当側 EV>=1.10」かつ「勝率>=5%」。
 
 ---
 
