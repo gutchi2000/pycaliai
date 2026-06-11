@@ -98,6 +98,52 @@ def skip_reasons(race_meta: dict, race_conf: dict, hon: dict | None) -> list[str
     return reasons
 
 
+# --- content バリデーション (馬番実在・券種・金額。LLM/人為ミスの購入指示化を防ぐ) ---
+ALLOWED_KINDS = {"単勝", "複勝", "ワイド", "馬連", "馬単", "三連複"}
+REJECTED_KINDS = {"三連単"}     # CLAUDE.md: 三連単は廃止済み
+BET_UNIT = 100
+MAX_BET_PER = 10000             # 1 点あたり上限 (Cowork 手動なので compute_bets の 7000 より緩め)
+
+
+def _parse_umaban(sel) -> list[int]:
+    """買い目文字列から馬番を抽出 ('3-7'→[3,7] / '16→1'→[16,1] / '7'→[7])。"""
+    return [int(x) for x in re.findall(r"\d+", str(sel))]
+
+
+def content_issues(bet: dict, valid_umaban: set[int]) -> list[str]:
+    """1 bet の内容違反理由リスト (空なら OK)。券種・馬番実在・金額を検査。"""
+    issues: list[str] = []
+    kind = str(bet.get("馬券種", "")).strip()
+    sel = bet.get("買い目", "")
+    amt = bet.get("購入額", 0)
+
+    if kind in REJECTED_KINDS:
+        issues.append(f"廃止券種({kind})")
+    elif kind not in ALLOWED_KINDS:
+        issues.append(f"未知券種('{kind}')")
+
+    bans = _parse_umaban(sel)
+    if not bans:
+        issues.append(f"買い目から馬番抽出不可('{sel}')")
+    else:
+        bad = [b for b in bans if b not in valid_umaban]
+        if bad:
+            issues.append(f"存在しない馬番{bad}")
+
+    try:
+        a = int(amt)
+        if a <= 0:
+            issues.append(f"金額が非正({amt})")
+        elif a % BET_UNIT != 0:
+            issues.append(f"100円単位でない({amt})")
+        elif a > MAX_BET_PER:
+            issues.append(f"1点上限超({amt}>{MAX_BET_PER})")
+    except (TypeError, ValueError):
+        issues.append(f"金額が数値でない({amt})")
+
+    return issues
+
+
 def race_bet_total(race: dict) -> int:
     """race 内の購入額合計。"""
     total = 0
@@ -178,6 +224,7 @@ def main() -> int:
     under_skips: list[dict] = []  # 買えるのに見送っていた (警告のみ)
     bought_ok = 0                 # 正しく買い
     missing_bundle: list[str] = []  # bundle に無い race_id
+    content_violations: list[dict] = []  # 馬番不在/不正券種/金額異常/重複 (見送り条件とは別軸)
 
     for race in bet_races:
         rid = str(race.get("race_id"))
@@ -189,6 +236,23 @@ def main() -> int:
         reasons = skip_reasons(brace.get("race_meta", {}),
                                brace.get("race_confidence", {}), hon)
         has_bets = bool(race.get("bets"))
+
+        # --- content 検査: 買い目の中身 (馬番実在・券種・金額・重複) ---
+        if has_bets:
+            valid_umaban = {int(h["umaban"]) for h in brace.get("horses", [])
+                            if str(h.get("umaban", "")).strip().isdigit()}
+            seen_keys: set = set()
+            for bet in race.get("bets", []):
+                iss = content_issues(bet, valid_umaban)
+                key = (str(bet.get("馬券種", "")), str(bet.get("買い目", "")))
+                if key in seen_keys:
+                    iss = iss + ["重複買い目"]
+                seen_keys.add(key)
+                if iss:
+                    content_violations.append({
+                        "race_id": rid, "label": race.get("race_label", ""),
+                        "bet": bet, "issues": iss,
+                    })
 
         if reasons and has_bets:
             violations.append({
@@ -236,17 +300,30 @@ def main() -> int:
         for u in under_skips:
             print(f"    - {u['race_id']} {u['label']}")
         print("    ※ これらは強制買いはしません (買い目を捏造しない)。Cowork 再実行で対応。")
+    if content_violations:
+        print("-" * 64)
+        print(f"  ★ 買い目の内容違反 {len(content_violations)} 件 (馬番不在/不正券種/金額/重複):")
+        for cv in content_violations:
+            b = cv["bet"]
+            print(f"    - {cv['race_id']} {cv['label']}: "
+                  f"{b.get('馬券種','?')} {b.get('買い目','?')} ¥{b.get('購入額','?')} "
+                  f"← {' , '.join(cv['issues'])}")
     print("=" * 64)
 
-    if not violations:
+    if not violations and not content_violations:
         return 0
 
     if not args.apply:
-        print(f"\n--apply を付けると違反 {len(violations)} race の bets を "
-              f"強制的に [] (見送り) に書き換えます。")
+        todo = []
+        if violations:
+            todo.append(f"見送り違反 {len(violations)} race の bets を []")
+        if content_violations:
+            todo.append("内容違反/重複 bet を除去")
+        print(f"\n--apply を付けると {' / '.join(todo)} に書き換えます。")
         return 2
 
     # ---------- 強制適用 ----------
+    # (1) 見送り違反 race → bets: []
     for v in violations:
         race = v["_race"]
         cond = " / ".join(v["reasons"])
@@ -258,12 +335,42 @@ def main() -> int:
         ).strip()
         # advisor / grade_scope はそのまま残す (narrative は有用)
 
+    # (2) content 違反/重複 bet を除去 (見送り矯正で [] になった race は自然に対象外)
+    #     内容違反(馬番不在/不正券種/金額) → 全除去 / 重複 → 1 個目を残し 2 個目以降を除去
+    n_removed = 0
+    bad_content: dict[str, set] = {}
+    for cv in content_violations:
+        real = [i for i in cv["issues"] if i != "重複買い目"]
+        if real:
+            b = cv["bet"]
+            bad_content.setdefault(cv["race_id"], set()).add(
+                (str(b.get("馬券種", "")), str(b.get("買い目", ""))))
+    for race in bet_races:
+        rid = str(race.get("race_id"))
+        bets = race.get("bets") or []
+        if not bets:
+            continue
+        keep, seen = [], set()
+        for b in bets:
+            k = (str(b.get("馬券種", "")), str(b.get("買い目", "")))
+            if rid in bad_content and k in bad_content[rid]:   # 実質的内容違反 → 除去
+                n_removed += 1
+                continue
+            if k in seen:                                       # 重複の 2 個目以降 → 除去
+                n_removed += 1
+                continue
+            seen.add(k)
+            keep.append(b)
+        if len(keep) != len(bets):
+            race["bets"] = keep
+
     bak = backup_path(bets_path)
     bak.write_text(bets_path.read_text(encoding="utf-8"), encoding="utf-8")
     bets_path.write_text(
         json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    print(f"\n[APPLIED] {len(violations)} race を見送りに修正しました。")
+    print(f"\n[APPLIED] 見送り違反 {len(violations)} race を [] に / "
+          f"内容違反・重複 {n_removed} bet を除去しました。")
     print(f"  元ファイル退避 : {bak.name}")
     print(f"  修正後保存     : {bets_path.name}")
     return 0
