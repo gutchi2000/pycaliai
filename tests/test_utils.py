@@ -56,12 +56,14 @@ class TestParseTimeStr:
         assert math.isclose(result[2], 120.0)
 
     def test_mixed_valid_invalid(self):
-        """有効値と無効値が混在するSeries"""
+        """有効値と無効値が混在するSeries。
+        _convert は None を返すが、float dtype 列では pandas が NaN に
+        昇格させるため、欠損判定は pd.isna で行う (is None は誤り)。"""
         s = pd.Series(["1.34.5", "bad", None, "0.58.0"])
         result = parse_time_str(s)
         assert math.isclose(result[0], 94.5)
-        assert result[1] is None
-        assert result[2] is None
+        assert pd.isna(result[1])
+        assert pd.isna(result[2])
         assert math.isclose(result[3], 58.0)
 
     def test_whitespace_stripped(self):
