@@ -234,6 +234,19 @@ def main() -> int:
     logger.info(f"パース結果: {len(df):,} 馬 / "
                 f"{df[COL_RID].nunique():,} レース")
 
+    # ------ serve skew 対策: 補正タイムの列名リネーム ------
+    # parse_csv は補正を旧名 (前走補正/前走補9) で作るが、v6 モデルは
+    # build_master_v2.py:70 のリネーム後の名前 prev_hosei/prev_hosei9 を要求する
+    # (同一 hosei CSV の同一列なので定義は完全一致)。列名を合わせないと下の
+    # 「不足列補完」で -9999 に潰れて死ぬ。serve_skew_eval.py で test2024-25
+    # ◎複勝圏率 +2.97pt の回収を確認 (docs/audit_20260611.md)。
+    _serve_rename = {k: v for k, v in {"前走補正": "prev_hosei", "前走補9": "prev_hosei9"}.items()
+                     if k in df.columns and v in feats and v not in df.columns}
+    if _serve_rename:
+        df = df.rename(columns=_serve_rename)
+        for v in _serve_rename.values():
+            logger.info(f"[serve skew fix] {v} 復活 (旧名→新名, カバレッジ={df[v].notna().mean()*100:.1f}%)")
+
     # ------ feats に含まれるが週次CSVにない列を NaN/空で補完 ------
     # 例: 騎手コード, hist_same_cond_*, trnH_*, trnW_*, course_*, jockey_*
     # export_race() 内で encoder 適用 + pd.to_numeric → NaN → -9999 fillna されるので
