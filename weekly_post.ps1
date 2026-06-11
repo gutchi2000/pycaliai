@@ -63,15 +63,18 @@ Write-Host "      live_results_2026.csv updated." -ForegroundColor Green
 
 # -- Step 3: git add --
 Write-Host "[3/4] git add ..." -ForegroundColor Cyan
-git add $kekkaPath data/results.json data/live_results_2026.csv
+# data/cowork_results.json は generate_results.py が更新する Cowork 集計。
+# これを add し忘れると HF/master に反映されず、ダッシュボードの累計 P/L が凍結する
+# (2026-05-26 凍結事故の原因)。必ず含める。
+git add $kekkaPath data/results.json data/live_results_2026.csv data/cowork_results.json
 
 # Cowork bets (if exists for this date) - 的中判定対象
 $coworkBetsDir = "reports\cowork_bets\$Date"
 if (Test-Path $coworkBetsDir) {
     git add ("{0}/*" -f $coworkBetsDir.Replace('\','/'))
-    Write-Host "      staged: $kekkaPath + results.json + live_results_2026.csv + cowork_bets/$Date/" -ForegroundColor Green
+    Write-Host "      staged: $kekkaPath + results.json + cowork_results.json + live_results_2026.csv + cowork_bets/$Date/" -ForegroundColor Green
 } else {
-    Write-Host "      staged: $kekkaPath + results.json + live_results_2026.csv (no cowork_bets/$Date/)" -ForegroundColor Green
+    Write-Host "      staged: $kekkaPath + results.json + cowork_results.json + live_results_2026.csv (no cowork_bets/$Date/)" -ForegroundColor Green
 }
 
 # -- Step 4: git commit & push --

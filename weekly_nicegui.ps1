@@ -37,7 +37,8 @@ param(
     [switch]$SkipPredict,
     [switch]$SkipGit,
     [switch]$BetsOnly,
-    [switch]$Post
+    [switch]$Post,
+    [switch]$Force   # 見送りガードが実行できなくても続行する明示バイパス (fail-closed の解除)
 )
 
 $ErrorActionPreference = "Continue"
@@ -126,10 +127,16 @@ if ($BetsOnly) {
     #    (2026-05-30: Cowork が全 23 R に買い目を付けた事故への恒久対策)
     Step "[guard] validate_cowork_bets.py --apply (見送り条件チェック)"
     python validate_cowork_bets.py --date $Date --apply
+    # exit 1 = ガードが実行できなかった (bundle/bets 不在・JSON 破損・例外)。
+    # 無検証の bets を HF に push しないため fail-closed で停止する (2026-05-30 全23R 事故の再発防止)。
     if ($LASTEXITCODE -eq 1) {
-        Warn "見送りガードを実行できず (bundle 不在等)。手動確認してください。"
+        if ($Force) {
+            Warn "見送りガードを実行できませんでした (bundle/bets 不在等) が、-Force 指定のため続行します。未検証の bets が HF に出ます。"
+        } else {
+            Fail "見送りガードを実行できませんでした (bundle/bets 不在・破損)。未検証の bets を push しないため停止します。原因確認後、どうしても push するなら -Force を付けて再実行してください。"
+        }
     } else {
-        OK "見送りガード通過"
+        OK "見送りガード通過 (exit $LASTEXITCODE)"
     }
 
     if (-not $SkipGit) {
@@ -172,6 +179,9 @@ if ($Post) {
     }
     Step "[1/2] weekly_post.ps1 $Date"
     & .\weekly_post.ps1 $Date
+    # weekly_post の失敗 (generate_results / git push 等) を握りつぶして HF 同期に
+    # 進むと、結果更新漏れのまま緑の Done が出て翌週まで気付けない。失敗は伝搬させる。
+    if ($LASTEXITCODE -ne 0) { Fail "weekly_post.ps1 failed (exit $LASTEXITCODE)。HF 同期を中止します。" }
 
     if (-not $SkipHF) {
         Step "[2/2] sync-hf.ps1"

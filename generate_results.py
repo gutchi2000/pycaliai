@@ -1050,7 +1050,11 @@ def main() -> None:
             json.dump(cowork_result, f, ensure_ascii=False, indent=2, default=str)
         log.info(f"cowork_results.json 保存完了: {COWORK_OUT_PATH}")
     except Exception as e:
-        log.warning(f"Cowork 集計失敗: {e}")
+        import traceback
+        # 黙殺すると cowork_results.json が古いまま凍結し、後段の git add も
+        # 「変更なし」で素通りする (2026-05-26 凍結事故)。error + traceback で必ず可視化。
+        log.error(f"Cowork 集計失敗 (cowork_results.json は更新されません): {e}")
+        log.error(traceback.format_exc())
         cowork_result = None
 
     print("\n=== 集計結果 ===")

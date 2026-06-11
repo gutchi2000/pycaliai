@@ -144,11 +144,15 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", required=True,
                     help="週次CSV (例: data/weekly/20260426.csv)")
-    ap.add_argument("--model", default="v5",
-                    help="モデル tag (default: v5)")
+    ap.add_argument("--model", default="v6",
+                    help="モデル tag (default: v6 = 本番)。手動実行で誤って退役 v5 の "
+                         "bundle を生成しないよう本番モデルを既定にする")
     ap.add_argument("--out-dir", default=None,
                     help="出力ディレクトリ "
                          "(default: reports/cowork_input/{YYYYMMDD}/)")
+    ap.add_argument("--shap-topk", type=int, default=6,
+                    help="印馬 (◎〇▲△△) に付与する SHAP 寄与の数 "
+                         "(0 で無効化, default 6)")
     args = ap.parse_args()
 
     csv_path = Path(args.csv)
@@ -187,6 +191,19 @@ def main() -> int:
         logger.info(f"calibrator: {be.CAL_PKL.name}")
     else:
         logger.warning(f"calibrator 未存在: {be.CAL_PKL} → raw PL 確率で出力")
+
+    # ------ SHAP explainer (印の根拠を bundle に埋込) ------
+    # レース毎に作り直すと重いので 1 回だけ構築して使い回す。
+    shap_explainer = None
+    shap_topk = args.shap_topk
+    if shap_topk > 0:
+        try:
+            from marks_shap import build_explainer
+            shap_explainer = build_explainer(model)
+            logger.info(f"SHAP explainer 構築 → 印馬に top-{shap_topk} 寄与 (why) を付与")
+        except Exception as e:
+            logger.warning(f"SHAP 無効化 (explainer 構築失敗: {e}) → why 埋込なし")
+            shap_explainer = None
 
     # ------ class prior (経験 ◎〇▲△△ 信頼度) ------
     class_prior_path = BASE / "data" / f"class_prior_{tag}.json"
@@ -289,7 +306,9 @@ def main() -> int:
             payload = export_race(rid, g, model, feats, encs,
                                    tansho_idx, fuku_idx, calibrators,
                                    umaren_idx=umaren_idx,
-                                   class_prior_map=class_prior_map)
+                                   class_prior_map=class_prior_map,
+                                   shap_explainer=shap_explainer,
+                                   shap_topk=shap_topk)
         except Exception as e:
             logger.error(f"  rid={rid}: {e}")
             n_skip += 1

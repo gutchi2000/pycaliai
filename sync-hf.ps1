@@ -54,9 +54,9 @@ $SyncFiles = @(
 # Regex patterns matched against `git ls-tree -r --name-only master`.
 $SyncDataPatterns = @(
     '^data/weekly/[0-9]{8}\.[cC][sS][vV]$',   # 大小文字非依存 (TARGET が .CSV 出力する事あり)
-    '^data/hosei/H_2026[0-9]+(-[0-9]+)?\.csv$',
-    '^data/training/H-2026[0-9]+(-[0-9]+)?\.csv$',
-    '^data/training/W-2026[0-9]+(-[0-9]+)?\.csv$',
+    '^data/hosei/H_20[0-9]{2}[0-9]+(-[0-9]+)?\.csv$',    # 年非依存 (2027 以降も同期継続)
+    '^data/training/H-20[0-9]{2}[0-9]+(-[0-9]+)?\.csv$',
+    '^data/training/W-20[0-9]{2}[0-9]+(-[0-9]+)?\.csv$',
     '^data/kako5/[0-9]{8}\.csv$',
     '^data/kekka/[0-9]{8}\.csv$',
     '^reports/cowork_input/[0-9]{8}_bundle\.json$',
@@ -84,6 +84,20 @@ if ($origBranch -ne "master") {
 # 2. record master HEAD
 $masterSha = (git rev-parse HEAD).Trim()
 Write-Step "master HEAD: $masterSha"
+
+# 2b. stash uncommitted tracked changes before the `git checkout --force` in
+#     step 4. Without this, --force silently destroys any unstaged edit to a
+#     tracked file (e.g. work-in-progress docs/*.md or *.py) every time this
+#     script runs — and it runs from every weekly_nicegui phase. We restore
+#     the stash after switching back to $origBranch.
+$autoStashed = $false
+$dirty = git status --porcelain --untracked-files=no
+if ($dirty) {
+    Write-Step "Uncommitted tracked changes detected -> stashing before checkout --force"
+    git stash push --quiet -m "sync-hf auto-stash $masterSha"
+    if ($LASTEXITCODE -ne 0) { Fail "git stash failed; commit or stash manually before running sync-hf" }
+    $autoStashed = $true
+}
 
 # 3. verify sync targets exist
 foreach ($f in $SyncFiles) {
@@ -135,10 +149,12 @@ Write-Step "Status on hf-spaces:"
 git status --short
 
 if ($DryRun) {
-    Write-Step "DryRun: stopping here. Changes are staged."
-    Write-Host "  commit  -> git commit -m 'sync from master'"
-    Write-Host "  push    -> git push hf hf-spaces:main"
-    Write-Host "  rollback-> git checkout . ; git checkout $origBranch"
+    Write-Step "DryRun: status shown above. Reverting working tree and switching back to $origBranch (no commit/push)."
+    git checkout --force $origBranch
+    if ($autoStashed) {
+        Write-Step "Restoring stashed changes"
+        git stash pop
+    }
     exit 0
 }
 
@@ -176,5 +192,12 @@ if ($localSha -ne $remoteSha) {
 # 9. switch back
 Write-Step "Switching back to $origBranch"
 git checkout $origBranch
+if ($autoStashed) {
+    Write-Step "Restoring stashed changes"
+    git stash pop
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "    stash pop conflicted; resolve manually (your changes are in 'git stash list')" -ForegroundColor Yellow
+    }
+}
 
 Write-Step "Done. Check build at https://huggingface.co/spaces/gutchi15300/pycaliAI"
