@@ -179,7 +179,10 @@ def load_bundle(date_str: str) -> dict | None:
     try:
         with open(p, encoding="utf-8") as f:
             return json.load(f)
-    except Exception:
+    except Exception as e:
+        # 黙殺すると「ファイルは存在するのにパース失敗」が「不在」と同じ表示になり
+        # 原因究明できない (audit 2026-06-11)。ログには必ず残す。
+        print(f"[load_bundle parse error] {p}: {e}")
         return None
 
 
@@ -217,7 +220,8 @@ def _parse_one_cowork_file(path: Path) -> dict[str, dict]:
 
     try:
         data = json.loads(raw_json)
-    except Exception:
+    except Exception as e:
+        print(f"[cowork bets parse error] {path}: {e}")
         return {}
 
     # 受け入れる top-level 形式:
@@ -349,7 +353,8 @@ def _parse_one_grade_scope_file(path: Path) -> dict[str, dict]:
 
     try:
         data = json.loads(raw_json)
-    except Exception:
+    except Exception as e:
+        print(f"[cowork bets parse error] {path}: {e}")
         return {}
 
     # wrapper 形式のみ grade_scope を含む。レガシー (top-level list) には無い
