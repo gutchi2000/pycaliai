@@ -164,6 +164,9 @@ def main():
         print(f"  {name:12s}  n={len(p):>9,}  raw={raw_mean:.5f}  cal={cal_mean:.5f}  emp={emp_mean:.5f}")
 
     OUT_PKL.parent.mkdir(exist_ok=True)
+    # 本番 calibrator の無退避上書き防止 (audit 2026-06-11): 日付付きで退避してから書く
+    from utils import backup_model
+    backup_model(OUT_PKL)
     joblib.dump({
         "calibrators": calibrators,
         "source_model": MODEL_PKL.name,

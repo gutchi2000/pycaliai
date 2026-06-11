@@ -55,10 +55,15 @@ def _qtab():
     return _QT
 
 def pct(raw, key):
-    """生値→過去分布パーセンタイル(0-1)。テーブル欠如時は生値（nicegui _to_pct と同一）。"""
+    """生値→過去分布パーセンタイル(0-1)。テーブル欠如時は None (fail-safe)。
+
+    旧実装は生値をそのまま返したが、chaos 生値域は [0.80,1.0] に圧縮されている
+    ため「テーブル破損 → 全レース chaos_pct>0.75 → カオス薄に倒れる」事故になる
+    (audit 2026-06-11)。None を返して呼び出し側で見送りに倒す。
+    """
     t = _qtab().get(key)
     if not t or len(t) < 2:
-        return float(raw or 0)
+        return None
     raw = float(raw or 0)
     if raw <= t[0]: return 0.0
     if raw >= t[-1]: return 1.0
@@ -198,6 +203,11 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     top1 = pct(rc.get("top1_dominance"), "top1_dominance")
     top2 = pct(rc.get("top2_concentration"), "top2_concentration")
     chaos = pct(rc.get("field_chaos_score"), "field_chaos_score")
+    if top1 is None or top2 is None or chaos is None:
+        # 分位テーブル欠如/破損 → shape 判定不能。fail-safe 見送り
+        return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                "race_reason": "chaos_quantiles.json 欠如/破損で指標変換不能のため見送り (fail-safe)。",
+                "bets": []}
     market = _num(rc.get("ai_market_agreement")) or 0.0
     anaba = market < TH_MARKET_ANABA
     value_bans = [int(v["umaban"]) for v in bj.get("value_horses", []) if _num(v.get("umaban")) is not None]
@@ -324,9 +334,15 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
                 if r: c_wide(hon, r, 1.1)
 
     # ---- 穴 overlay: おいしい馬（value_horses）を上乗せ ----
+    # 単勝は 30 倍キャップ: audit_ev_bin_roi で単勝 50+ オッズ帯は ROI 30-61% /
+    # CLV -54〜-67% の最悪セグメント (◎大穴帯勝率0%の構造弱点 [[longshot-weakness]])。
+    ANA_TAN_ODDS_CAP = 30.0
     if anaba:
         for vb in value_bans:
-            c_tan(vb, 1.3); c_wide(vb, hon, 1.2) if hon and vb != hon else None
+            if (fld(vb, "tansho_odds") or 999) <= ANA_TAN_ODDS_CAP:
+                c_tan(vb, 1.3)
+            if hon and vb != hon:
+                c_wide(vb, hon, 1.2)
             c_fuku(vb, 1.1)
 
     # ---- ソフトEVフロア（明確な-EVのみ除外。本命勝負の馬単は formation 全採用）----

@@ -34,7 +34,8 @@ param(
     [string]$Date = "",
     [string]$Model = "v6",
     [switch]$SkipHF,
-    [switch]$SkipPredict,
+    [switch]$SkipPredict,   # 旧互換 (現在はデフォルトで skip)
+    [switch]$WithPredict,   # 旧8モデルアンサンブル (Streamlit 用) を回したい週だけ opt-in
     [switch]$SkipGit,
     [switch]$BetsOnly,
     [switch]$Post,
@@ -183,6 +184,17 @@ if ($Post) {
     # 進むと、結果更新漏れのまま緑の Done が出て翌週まで気付けない。失敗は伝搬させる。
     if ($LASTEXITCODE -ne 0) { Fail "weekly_post.ps1 failed (exit $LASTEXITCODE)。HF 同期を中止します。" }
 
+    # generated_at が当日に更新されたか確認 (cowork_results 凍結事故 5/26 の再発検知)
+    try {
+        $cw = Get-Content data\cowork_results.json -Encoding UTF8 -TotalCount 3 | Out-String
+        if ($cw -match '"generated_at":\s*"(\d{4}-\d{2}-\d{2})') {
+            $genDate = $Matches[1]
+            $today = Get-Date -Format "yyyy-MM-dd"
+            if ($genDate -eq $today) { OK "cowork_results.json generated_at=$genDate (当日)" }
+            else { Warn "cowork_results.json generated_at=$genDate が当日でない! 集計凍結の可能性。generate_results.py のログを確認" }
+        }
+    } catch { Warn "cowork_results.json の generated_at 確認に失敗 (非致命)" }
+
     if (-not $SkipHF) {
         Step "[2/2] sync-hf.ps1"
         & .\sync-hf.ps1
@@ -220,16 +232,18 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # -- Step 2: predict (Streamlit only, optional) --
-if ($SkipPredict) {
-    Step "[2/5] predict_weekly.py SKIPPED (-SkipPredict)"
-} else {
-    Step "[2/5] predict_weekly.py (for Streamlit)"
+# 2026-06-11: デフォルトを SKIP に反転 (audit P1-1)。旧8モデルアンサンブルは重く
+# NiceGUI/Cowork ラインには不要。Streamlit 用に欲しい週だけ -WithPredict を付ける。
+if ($WithPredict -and -not $SkipPredict) {
+    Step "[2/5] predict_weekly.py (for Streamlit, -WithPredict)"
     python predict_weekly.py --csv $csvPath
     if ($LASTEXITCODE -ne 0) {
         Warn "predict_weekly failed (NiceGUI doesn't need this, continuing)"
     } else {
         OK "reports\pred_$Date.csv"
     }
+} else {
+    Step "[2/5] predict_weekly.py SKIPPED (default; opt-in は -WithPredict)"
 }
 
 # -- Step 3: bundle.json (NiceGUI required) --

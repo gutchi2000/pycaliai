@@ -156,10 +156,13 @@ def main():
         print(f"  {name:12s} n={len(p):>10,} raw={p.mean():.5f} "
               f"cal={iso.predict(p).mean():.5f} emp={y.mean():.5f}")
 
+    # 本番 calibrator の無退避上書き防止 (audit 2026-06-11)
+    from utils import backup_model
+    backup_model(OUT_PKL)
     joblib.dump({
         "calibrators": calibrators,
         "source_model": MODEL_PKL.name,
-        "fit_split": "valid=2023 (serve28 マスクスコア)",
+        "fit_split": "valid=2023 (serve マスクスコア)",
         "serve_mask_numeric": dead_num,
         "serve_mask_cat": dead_cat,
         "n_races": n_race,

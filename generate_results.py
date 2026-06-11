@@ -1120,8 +1120,12 @@ def main() -> None:
         records = calc_plan_races(pred, kekka_cache, plan)
         result[plan] = build_summary(plan, records)
 
-    with open(OUT_PATH, "w", encoding="utf-8") as f:
+    # アトミック書込 (tmp→replace)。クラッシュ時に破損 JSON が残って
+    # そのまま commit/HF 同期される事故を防ぐ (audit 2026-06-11)
+    _tmp = OUT_PATH.with_suffix(".tmp")
+    with open(_tmp, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2, default=str)
+    _tmp.replace(OUT_PATH)
     log.info(f"results.json 保存完了: {OUT_PATH}")
 
     # PyCaLi 履歴DBも更新
@@ -1134,8 +1138,10 @@ def main() -> None:
     # ── Cowork 集計 ──
     try:
         cowork_result = aggregate_cowork_bets(kekka_cache)
-        with open(COWORK_OUT_PATH, "w", encoding="utf-8") as f:
+        _tmp2 = COWORK_OUT_PATH.with_suffix(".tmp")
+        with open(_tmp2, "w", encoding="utf-8") as f:
             json.dump(cowork_result, f, ensure_ascii=False, indent=2, default=str)
+        _tmp2.replace(COWORK_OUT_PATH)
         log.info(f"cowork_results.json 保存完了: {COWORK_OUT_PATH}")
     except Exception as e:
         import traceback
