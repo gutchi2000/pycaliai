@@ -184,6 +184,18 @@ def get_winner(race_kk: pd.DataFrame) -> int | None:
     return to_int(rows.iloc[0]) if len(rows) > 0 else None
 
 
+def get_cancelled(race_kk: pd.DataFrame) -> set[int]:
+    """出走取消・競走除外・競走中止の馬番セット。
+
+    TARGET の kekka CSV は取消・除外・中止馬を着順 "0" で出力する
+    (2026 年全 kekka で 138 行確認、文字列マーカーは存在しない)。
+    現実の JRA では取消馬絡みの馬券は返還されるため、これを全額損失と
+    計上すると券種別 ROI が系統的に過小になる (audit 2026-06-11)。
+    """
+    rows = race_kk[race_kk.iloc[:, 6].astype(str).str.strip() == "0"]
+    return {to_int(x) for x in rows.iloc[:, 4].tolist() if to_int(x) is not None}
+
+
 def get_payout_rengo(race_kk: pd.DataFrame) -> float:
     """馬連配当（per 100円）。"""
     col = "馬連"
@@ -387,22 +399,27 @@ def get_payout_wide(date_key: str, place: str, race_no: str,
 # === Cowork bet 照合 ===
 def match_cowork_bet(bet: dict, race_kk: pd.DataFrame,
                      date_key: str = "", place: str = "",
-                     race_no: str = "") -> tuple[bool, float]:
-    """Cowork bet (1 件) を kekka と照合して (hit, payout_per_100) を返す。
+                     race_no: str = "") -> tuple[bool, float, float]:
+    """Cowork bet (1 件) を kekka と照合して (hit, payout_per_100, refund_ratio) を返す。
 
     payout_per_100 は「100円ベース配当」÷「点数」(複数点なら平均化)。
     ワイドは kekka に配当列が無いため、的中時も payout=0 を返す
     (ROI 計算で正の貢献は無いが、的中 1 はカウントされる)。
+
+    refund_ratio: 取消・除外馬 (着順=0) を含む組の点数比率 (0.0〜1.0)。
+    現実の JRA では該当組は返還されるので、集計側で
+    実効投資 = 購入額 × (1 - refund_ratio) として扱う。
     """
     btype = bet.get("馬券種")
     sel = str(bet.get("買い目", "")).strip()
     if not sel or not btype:
-        return False, 0.0
+        return False, 0.0, 0.0
 
     top1 = get_winner(race_kk)
     top2 = get_top2(race_kk)
     top3 = get_top3(race_kk)
     top3_ordered = get_top3_ordered(race_kk)
+    cancelled = get_cancelled(race_kk)
 
     def _split_pairs(unordered: bool):
         out = []
@@ -428,76 +445,92 @@ def match_cowork_bet(bet: dict, race_kk: pd.DataFrame,
                     continue
         return out
 
+    def _refund_ratio(combos) -> float:
+        """組リストのうち取消馬を含む組の比率 (= 返還される投資比率)。"""
+        if not combos or not cancelled:
+            return 0.0
+        n_ref = sum(1 for c in combos if any(x in cancelled for x in c))
+        return n_ref / len(combos)
+
     if btype == "単勝":
         try:
             n = int(sel)
         except ValueError:
-            return False, 0.0
+            return False, 0.0, 0.0
+        if n in cancelled:
+            return False, 0.0, 1.0   # 全額返還
         hit = (n == top1) and (top1 is not None)
-        return hit, (get_payout_tansho(race_kk) if hit else 0.0)
+        return hit, (get_payout_tansho(race_kk) if hit else 0.0), 0.0
 
     if btype == "複勝":
         try:
             n = int(sel)
         except ValueError:
-            return False, 0.0
+            return False, 0.0, 0.0
+        if n in cancelled:
+            return False, 0.0, 1.0   # 全額返還
         hit = (n in top3) and (len(top3) >= 1)
-        return hit, (get_payout_fukusho(race_kk, n) if hit else 0.0)
+        return hit, (get_payout_fukusho(race_kk, n) if hit else 0.0), 0.0
 
     if btype == "馬連":
         pairs = _split_pairs(unordered=True)
         if not pairs or not top2:
-            return False, 0.0
+            return False, 0.0, 0.0
+        rr = _refund_ratio(pairs)
         hits = sum(1 for p in pairs if p == top2)
         if hits:
-            return True, get_payout_rengo(race_kk) / len(pairs)
-        return False, 0.0
+            return True, get_payout_rengo(race_kk) / len(pairs), rr
+        return False, 0.0, rr
 
     if btype == "馬単":
         pairs = _split_pairs(unordered=False)
         if not pairs or len(top3_ordered) < 2:
-            return False, 0.0
+            return False, 0.0, 0.0
+        rr = _refund_ratio(pairs)
         target = (top3_ordered[0], top3_ordered[1])
         hits = sum(1 for p in pairs if p == target)
         if hits:
-            return True, get_payout_umatan(race_kk) / len(pairs)
-        return False, 0.0
+            return True, get_payout_umatan(race_kk) / len(pairs), rr
+        return False, 0.0, rr
 
     if btype == "ワイド":
         pairs = _split_pairs(unordered=True)
         if not pairs or len(top3) < 3:
-            return False, 0.0
+            return False, 0.0, 0.0
+        rr = _refund_ratio(pairs)
         top3_set = set(top3)
         hit_pairs = [p for p in pairs if all(x in top3_set for x in p)]
         if not hit_pairs:
-            return False, 0.0
+            return False, 0.0, rr
         # ワイド配当を wide_payouts キャッシュから取得
         # (2016-2025: parquet, 2026〜: wide_kekka.csv)
         total_payout = sum(get_payout_wide(date_key, place, race_no, p) for p in hit_pairs)
         # 点数で割って per-100 円配当として返す (match_cowork_bet の他種と同じ流儀)
-        return True, total_payout / len(pairs)
+        return True, total_payout / len(pairs), rr
 
     if btype == "三連複":
         trios = _split_trios(unordered=True)
         if not trios or len(top3) < 3:
-            return False, 0.0
+            return False, 0.0, 0.0
+        rr = _refund_ratio(trios)
         target_fs = frozenset(top3)
         hits = sum(1 for t in trios if t == target_fs)
         if hits:
-            return True, get_payout_sanrenpuku(race_kk) / len(trios)
-        return False, 0.0
+            return True, get_payout_sanrenpuku(race_kk) / len(trios), rr
+        return False, 0.0, rr
 
     if btype == "三連単":
         trios = _split_trios(unordered=False)
         if not trios or len(top3_ordered) < 3:
-            return False, 0.0
+            return False, 0.0, 0.0
+        rr = _refund_ratio(trios)
         target = tuple(top3_ordered)
         hits = sum(1 for t in trios if t == target)
         if hits:
-            return True, get_payout_sanrentan(race_kk) / len(trios)
-        return False, 0.0
+            return True, get_payout_sanrentan(race_kk) / len(trios), rr
+        return False, 0.0, rr
 
-    return False, 0.0
+    return False, 0.0, 0.0
 
 
 # =========================================================
@@ -898,18 +931,22 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
             amount = _safe_num(b.get("購入額"))
             btype = b.get("馬券種", "?")
             sel = str(b.get("買い目", ""))
-            hit, payout_per_100 = (False, 0.0)
+            hit, payout_per_100, refund_ratio = (False, 0.0, 0.0)
             if not race_kk.empty:
                 try:
-                    hit, payout_per_100 = match_cowork_bet(
+                    hit, payout_per_100, refund_ratio = match_cowork_bet(
                         b, race_kk,
                         date_key=date_key, place=place_name, race_no=str(r_num),
                     )
                 except Exception as e:
                     log.warning(f"bet 照合失敗 {rid} {btype} {sel}: {e}")
 
+            # 取消・除外馬を含む組は返還 (実効投資から除く)。全額損失計上だと
+            # 券種別 ROI が系統的に過小になる (audit 2026-06-11)
+            refund = amount * refund_ratio
+            eff_amount = amount - refund
             ret = (amount * payout_per_100 / 100.0) if hit else 0.0
-            race_bet += amount
+            race_bet += eff_amount
             race_ret += ret
             if hit:
                 race_hits += 1
@@ -922,6 +959,7 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
                 "馬券種":   btype,
                 "買い目":   sel,
                 "購入額":   _safe_round(amount),
+                "返還":     _safe_round(refund),
                 "払戻":     _safe_round(ret),
                 "的中":     int(hit),
                 "決着":     "未開催" if race_kk.empty else "確定",
@@ -958,7 +996,8 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
         bdf = pd.DataFrame(bet_records)
         for btype, grp in bdf.groupby("馬券種"):
             settled = grp[grp["決着"] == "確定"]
-            bet = int(grp["購入額"].sum())
+            # 実効投資 = 購入額 − 返還 (取消馬絡みの組は投資から除外)
+            bet = int(grp["購入額"].sum() - grp["返還"].sum())
             ret = int(grp["払戻"].sum())
             hits = int(grp["的中"].sum())
             n = len(settled)
