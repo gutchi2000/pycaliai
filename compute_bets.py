@@ -19,15 +19,15 @@ NiceGUI の 4 カード（市場一致 / ◎独走度 / 上位2頭集中 / 混�
 
 実行: PYTHONUTF8=1 python compute_bets.py --bundle reports/cowork_input/20260607_bundle.json --dry
 
-⚠️ 未実装 (2026-06-11 監査時点 / docs/audit_20260611.md 参照):
-  - 出力は stdout print のみ。spec §書込契約 (cowork_output/{date}_bets.json への in-place merge) は未実装。
-  - --dry は引数定義のみで未参照 (print のみなので dry/本実行の区別が無い)。
-  - 入力2 (JV-Link T-10 ライブオッズ / jvlink_odds.py の reports/live_odds/) は未配線。
-    EV は bundle 埋込オッズ (= 土曜朝 TARGET スナップ) で計算しており、T-10 時点とはズレる。
-  - ✅解消済(2026-06-11): ワイド/馬連/馬単の確率は bundle 埋込の pair_probs
-    (calibrated PL joint, export_marks_json が印馬10ペアに付与) を優先使用。
-    pair_probs の無い旧 bundle のみ独立積近似 (+21〜27% 過大) にフォールバック。
-  T-10 運用に投入する前に残りの配線 (ライブオッズ/書込/--dry) が必要。
+実装状況 (2026-06-11 / docs/audit_20260611.md):
+  ✅ pair_probs: ワイド/馬連/馬単の確率は bundle 埋込の calibrated PL joint を優先。
+     旧 bundle のみ独立積近似 (+21〜27% 過大) にフォールバック。
+  ✅ T-10 ライブオッズ: --live-odds-dir reports/live_odds でライブ必須モード。
+     単勝/複勝を 0B31 実値に差替。欠損/ok=false/鮮度NG (--max-age-min) は fail-safe 見送り。
+  ✅ 書込契約: --apply で cowork_output/{date}_bets.json へ in-place merge (.bak退避+アトミック置換)。
+     書込後は validate_cowork_bets.py --apply を必ず通す。デフォルト(--dry)は表示のみ。
+  ⏳ ワイド/馬単のライブ実値 (0B33/0B34): パーサ未検証 (土曜ライブで確認予定)。
+     それまで umaren_matrix (土曜朝スナップ) 由来の推定オッズを使用。
 """
 from __future__ import annotations
 import argparse, bisect, io, json, sys
@@ -102,7 +102,36 @@ def allocate(weights, budget=BUDGET, mn=MIN_BET, mx=MAX_BET):
     return amts
 
 
-def compute_race_bets(race: dict) -> dict:
+def load_live_odds(live_dir: Path, rid16: str, max_age_min: float):
+    """reports/live_odds/{rid16}.json (jvlink_odds.py 出力) を読む。
+    返値 (data, "") か (None, 見送り理由)。fail-safe: 欠損/破損/ok=false/鮮度NG は None。
+    """
+    from datetime import datetime
+    p = Path(live_dir) / f"{rid16}.json"
+    if not p.exists():
+        return None, "ライブオッズ未取得"
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return None, "ライブオッズJSON破損"
+    if not d.get("ok"):
+        return None, f"ライブオッズ ok=false ({d.get('reason', '')})"
+    ts = None
+    if d.get("fetched"):
+        try:
+            ts = datetime.fromisoformat(str(d["fetched"]))
+        except ValueError:
+            ts = None
+    if ts is None:  # 旧形式 (fetched なし) はファイル mtime で代用
+        ts = datetime.fromtimestamp(p.stat().st_mtime)
+    age_min = (datetime.now() - ts).total_seconds() / 60.0
+    if age_min > max_age_min:
+        return None, f"ライブオッズ鮮度NG ({age_min:.0f}分前 > {max_age_min:.0f}分)"
+    return d, ""
+
+
+def compute_race_bets(race: dict, live_dir: Path | None = None,
+                      max_age_min: float = 20.0) -> dict:
     rm = race.get("race_meta", {})
     rc = race.get("race_confidence", {})
     bj = race.get("buy_judgment", {})
@@ -110,6 +139,33 @@ def compute_race_bets(race: dict) -> dict:
     field = _num(rm.get("field_size")) or len(horses)
     rid = str(race.get("race_id") or rm.get("race_id") or "")
     label = f"{rm.get('place','')}{rm.get('course','')} {rm.get('race_name','')}".strip()
+
+    # ---- T-10 ライブオッズ (spec §入力2): 指定時は必須 = 読めなければ fail-safe 見送り ----
+    live_note = ""
+    if live_dir is not None:
+        live, why = load_live_odds(live_dir, rid[:16], max_age_min)
+        if live is None:
+            return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                    "race_reason": f"{why} のため見送り (fail-safe)。", "bets": []}
+        # 単勝/複勝を T-10 実値に差し替え (horses は bundle 入力を破壊しないようコピー)
+        live_tan = {int(k): v for k, v in (live.get("tansho") or {}).items()}
+        live_fuku = {int(k): v for k, v in (live.get("fukusho") or {}).items()}
+        horses = [dict(h) for h in horses]
+        n_tan = 0
+        for h in horses:
+            b = _num(h.get("umaban"))
+            if b is None:
+                continue
+            b = int(b)
+            if b in live_tan:
+                h["tansho_odds"] = live_tan[b]
+                n_tan += 1
+            if b in live_fuku:
+                h["fuku_odds_low"], h["fuku_odds_high"] = live_fuku[b]
+        live_note = f" [T-10オッズ {n_tan}頭]"
+        # ワイド/馬単は 0B33/0B34 パーサ未検証のため bundle 由来の umaren_matrix 推定のまま
+        # (jvlink_odds.py docstring: 土曜ライブで最終検証予定)
+
     by_ban = {int(h["umaban"]): h for h in horses if _num(h.get("umaban")) is not None}
 
     def fld(b, k):
@@ -298,22 +354,73 @@ def compute_race_bets(race: dict) -> dict:
                      "理由": f"{role}（{kind} {odds:.1f}倍）"})
 
     hon_name = by_ban.get(hon, {}).get("horse_name", "本命")
-    rr = f"◎{hon_name}。{shape}（独走{top1:.2f}/集中{top2:.2f}/混戦{chaos:.2f}/市場{market:+.2f}）で {len(bets)}点。"
+    rr = (f"◎{hon_name}。{shape}（独走{top1:.2f}/集中{top2:.2f}/混戦{chaos:.2f}/"
+          f"市場{market:+.2f}）で {len(bets)}点。{live_note}").rstrip()
     return {"race_id": rid, "race_label": label, "race_nature": shape, "race_reason": rr,
             "confidence": {"top1_pct": round(top1, 3), "top2_pct": round(top2, 3),
                            "chaos_pct": round(chaos, 3), "market": round(market, 3)},
             "bets": bets}
 
 
+def apply_to_bets_json(date_str: str, computed: list[dict]) -> Path:
+    """spec §書込契約: reports/cowork_output/{date}_bets.json へ in-place merge。
+    race_id 一致は置換・無ければ追加。書込前に既存を .bak へ退避 (validate と同方式)。
+    """
+    out_dir = BASE / "reports" / "cowork_output"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"{date_str}_bets.json"
+    if path.exists():
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        races_list = raw["bets"] if isinstance(raw, dict) and "bets" in raw else raw
+        # ユニーク .bak 退避
+        bak = path.with_suffix(path.suffix + ".bak")
+        n = 2
+        while bak.exists():
+            bak = path.with_suffix(path.suffix + f".bak{n}")
+            n += 1
+        bak.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+        print(f"[apply] 既存 bets を退避: {bak.name}")
+    else:
+        raw = {"bets": []}
+        races_list = raw["bets"]
+    by_rid = {str(r.get("race_id")): i for i, r in enumerate(races_list)}
+    n_rep = n_add = 0
+    for e in computed:
+        i = by_rid.get(e["race_id"])
+        if i is not None:
+            races_list[i] = e
+            n_rep += 1
+        else:
+            races_list.append(e)
+            n_add += 1
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(path)  # アトミック置換
+    print(f"[apply] {path.name}: 置換{n_rep} / 追加{n_add}")
+    return path
+
+
 def main():
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     ap = argparse.ArgumentParser()
     ap.add_argument("--bundle", required=True)
-    ap.add_argument("--dry", action="store_true")
+    ap.add_argument("--dry", action="store_true",
+                    help="表示のみ (デフォルト挙動と同じ。--apply の対義として明示用)")
+    ap.add_argument("--apply", action="store_true",
+                    help="reports/cowork_output/{date}_bets.json へ書込 (in-place merge, .bak退避)")
+    ap.add_argument("--live-odds-dir", default=None,
+                    help="T-10 ライブオッズ dir (例 reports/live_odds)。指定時は"
+                         "ライブ必須モード: 欠損/ok=false/鮮度NG のレースは fail-safe 見送り")
+    ap.add_argument("--max-age-min", type=float, default=20.0,
+                    help="ライブオッズの許容鮮度 (分, default 20)")
     args = ap.parse_args()
     d = json.load(open(args.bundle, encoding="utf-8"))
     races = d.get("races", d if isinstance(d, list) else [])
-    out = [compute_race_bets(r) for r in races]
+    live_dir = Path(args.live_odds_dir) if args.live_odds_dir else None
+    if live_dir is not None:
+        print(f"[live] T-10 モード: {live_dir} (鮮度 {args.max_age_min:.0f}分)")
+    out = [compute_race_bets(r, live_dir=live_dir, max_age_min=args.max_age_min)
+           for r in races]
     n_bet = sum(1 for e in out if e["bets"]); tot = sum(b["購入額"] for e in out for b in e["bets"])
     shapes = {}
     for e in out: shapes[e["race_nature"]] = shapes.get(e["race_nature"], 0) + 1
@@ -327,6 +434,18 @@ def main():
                 print(f"   {b['馬券種']:3s} {b['買い目']:8s} ¥{b['購入額']:>5,}  {b['理由']}")
         else:
             print(f"\n— {e['race_label']} [見送り] {e['race_reason']}")
+
+    if args.apply:
+        m = None
+        import re as _re
+        mm = _re.search(r"(\d{8})", Path(args.bundle).name)
+        if not mm:
+            print("[ERROR] bundle 名から日付 (YYYYMMDD) を特定できず --apply 中止", file=sys.stderr)
+            return 1
+        apply_to_bets_json(mm.group(1), out)
+        print("※ 書込後は validate_cowork_bets.py --apply で見送り/内容ガードを必ず通すこと")
+    else:
+        print("\n(dry: 書込なし。--apply で reports/cowork_output/{date}_bets.json へ反映)")
     return 0
 
 

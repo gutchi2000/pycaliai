@@ -38,7 +38,8 @@ from sklearn.isotonic import IsotonicRegression
 import pl_probs as PL
 import backtest_pl_ev as be
 from backtest_pl_ev import apply_encoders, load_payouts
-from serve_skew_eval import DEAD_PREFIX, DEAD_EXACT_NUM, DEAD_CAT, evaluate
+from serve_skew_eval import (SERVE_DEAD_NOW_PREFIX, SERVE_DEAD_NOW_EXACT,
+                             SERVE_DEAD_NOW_CAT, evaluate)
 
 warnings.filterwarnings("ignore")
 # 注意: serve_skew_eval が import 時に sys.stdout を TextIOWrapper でラップ済み。
@@ -64,13 +65,12 @@ def main():
     bundle = joblib.load(MODEL_PKL)
     model, feats, encs = bundle["model"], bundle["feature_cols"], bundle["encoders"]
 
-    # serve マスク (補正 prev_hosei* はリネーム修正済 → 生かす)
+    # serve マスク (補正 prev_hosei* と調教 trnH_/trnW_ はリネーム修正済 → 生かす)
     dead_num = [c for c in feats
-                if (c.startswith(DEAD_PREFIX) or c in DEAD_EXACT_NUM)
-                and not c.startswith("prev_hosei")]
-    dead_cat = [c for c in feats if c in DEAD_CAT]
+                if c.startswith(SERVE_DEAD_NOW_PREFIX) or c in SERVE_DEAD_NOW_EXACT]
+    dead_cat = [c for c in feats if c in SERVE_DEAD_NOW_CAT]
     print(f"[mask] numeric={len(dead_num)} + cat={len(dead_cat)} "
-          f"(prev_hosei は生かす)")
+          f"(補正・調教は生かす)")
 
     print(f"[load] {be.MASTER_CSV.name}")
     df = pd.read_csv(be.MASTER_CSV, encoding="utf-8-sig", low_memory=False)

@@ -243,18 +243,37 @@ def main() -> int:
     logger.info(f"パース結果: {len(df):,} 馬 / "
                 f"{df[COL_RID].nunique():,} レース")
 
-    # ------ serve skew 対策: 補正タイムの列名リネーム ------
-    # parse_csv は補正を旧名 (前走補正/前走補9) で作るが、v6 モデルは
-    # build_master_v2.py:70 のリネーム後の名前 prev_hosei/prev_hosei9 を要求する
-    # (同一 hosei CSV の同一列なので定義は完全一致)。列名を合わせないと下の
-    # 「不足列補完」で -9999 に潰れて死ぬ。serve_skew_eval.py で test2024-25
-    # ◎複勝圏率 +2.97pt の回収を確認 (docs/audit_20260611.md)。
-    _serve_rename = {k: v for k, v in {"前走補正": "prev_hosei", "前走補9": "prev_hosei9"}.items()
+    # ------ serve skew 対策: 補正タイム + 調教の列名リネーム ------
+    # parse_csv は補正を旧名 (前走補正/前走補9)、調教を旧名 (trn_hanro_*/trn_wc_*)
+    # で作るが、v6 モデルは build_master_v2.py のリネーム後の名前
+    # (prev_hosei*/trnH_*/trnW_*) を要求する。元データ・元列は同一
+    # (補正=hosei CSV、調教=H/W CSV の Time1..Lap4 そのまま) なので定義は一致。
+    # 列名を合わせないと下の「不足列補完」で -9999 に潰れて死ぬ。
+    # serve_skew_eval.py: 補正 +2.97pt / 調教 +0.33pt 回収 (docs/audit_20260611.md)。
+    # 既知の残差: 推論の調教 JOIN には 14 日カットオフがある (学習は無制限) ため
+    # 14 日超の調教だけ欠損になる。坂路カバレッジ 93.9% で実害は小さく、
+    # 欠損分布の差は serve 条件 fit calibrator が吸収する。
+    _SERVE_RENAME = {
+        "前走補正": "prev_hosei", "前走補9": "prev_hosei9",
+        # 坂路 (H CSV: Time1=4F合計, Time2=3F, Time3=2F, Time4=1F)
+        "trn_hanro_4f": "trnH_Time1", "trn_hanro_3f": "trnH_Time2",
+        "trn_hanro_2f": "trnH_Time3", "trn_hanro_1f": "trnH_Time4",
+        "trn_hanro_lap1": "trnH_Lap1", "trn_hanro_lap2": "trnH_Lap2",
+        "trn_hanro_lap3": "trnH_Lap3", "trn_hanro_lap4": "trnH_Lap4",
+        "trn_hanro_days": "trnH_days_ago",
+        # WC (W CSV: 5F/4F/3F/Lap1-3)
+        "trn_wc_5f": "trnW_5F", "trn_wc_4f": "trnW_4F", "trn_wc_3f": "trnW_3F",
+        "trn_wc_lap1": "trnW_Lap1", "trn_wc_lap2": "trnW_Lap2",
+        "trn_wc_lap3": "trnW_Lap3", "trn_wc_days": "trnW_days_ago",
+    }
+    _serve_rename = {k: v for k, v in _SERVE_RENAME.items()
                      if k in df.columns and v in feats and v not in df.columns}
     if _serve_rename:
         df = df.rename(columns=_serve_rename)
-        for v in _serve_rename.values():
-            logger.info(f"[serve skew fix] {v} 復活 (旧名→新名, カバレッジ={df[v].notna().mean()*100:.1f}%)")
+        revived = {v: df[v].notna().mean() * 100 for v in _serve_rename.values()}
+        logger.info(f"[serve skew fix] {len(revived)} 列復活: " +
+                    ", ".join(f"{k}={v:.0f}%" for k, v in sorted(revived.items())[:6]) +
+                    (" ..." if len(revived) > 6 else ""))
 
     # ------ feats に含まれるが週次CSVにない列を NaN/空で補完 ------
     # 例: 騎手コード, hist_same_cond_*, trnH_*, trnW_*, course_*, jockey_*

@@ -46,6 +46,7 @@ be.MODEL_PKL = BASE / "models/unified_rank_v6.pkl"
 be.CAL_PKL = BASE / "models/pl_calibrators_v6.pkl"
 
 # 本番 parse_csv で作られない (= -9999/'__NaN__' 固定になる) 特徴
+# ※ 監査時点 (2026-06-11 朝) の全30列。定量化の再現用に保持。
 DEAD_PREFIX = ("trnH_", "trnW_", "hist_same_")
 DEAD_EXACT_NUM = {
     "course_n_prev", "course_win_rate", "course_top3_rate",
@@ -53,6 +54,15 @@ DEAD_EXACT_NUM = {
     "prev_hosei", "prev_hosei9",
 }
 DEAD_CAT = {"騎手コード", "調教師コード"}
+
+# リネーム修正後 (補正 2026-06-11 午前 / 調教 同日午後) も本番で作れない列。
+# build_pl_calibrators_serve.py はこちらを使う (serve 特徴を増やしたら必ず更新+再fit)。
+SERVE_DEAD_NOW_PREFIX = ("hist_same_",)
+SERVE_DEAD_NOW_EXACT = {
+    "course_n_prev", "course_win_rate", "course_top3_rate",
+    "jockey_n_prev", "jockey_win_rate", "jockey_top3_rate",
+}
+SERVE_DEAD_NOW_CAT = {"騎手コード", "調教師コード"}
 
 
 def evaluate(te: pd.DataFrame, payouts: dict, cals: dict | None) -> dict:
