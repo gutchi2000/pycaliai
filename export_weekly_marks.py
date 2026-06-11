@@ -174,6 +174,15 @@ def main() -> int:
     tag = args.model
     be.MODEL_PKL = BASE / f"models/unified_rank_{tag}.pkl"
     be.CAL_PKL   = BASE / f"models/pl_calibrators_{tag}.pkl"
+    # serve 条件 fit の calibrator があれば優先する (serve skew 対策)。
+    # 本番のスコアは特徴欠損分布なので、フル特徴で fit した {tag}.pkl だと
+    # ECE が複勝2.3倍/馬連1.8倍悪化する (reports/calibrators_v6_serve_eval.json:
+    # serve fit で 複勝 -36% / 馬連 -29%)。offline 監査 (audit_marks 等) は
+    # フル特徴スコアなので従来の {tag}.pkl を使い続けること。
+    # 注意: serve で作れる特徴が変わったら build_pl_calibrators_serve.py で再 fit。
+    serve_cal = BASE / f"models/pl_calibrators_{tag}_serve.pkl"
+    if serve_cal.exists():
+        be.CAL_PKL = serve_cal
     if not be.MODEL_PKL.exists():
         logger.error(f"モデル未存在: {be.MODEL_PKL}")
         return 1
@@ -368,7 +377,59 @@ def main() -> int:
     logger.info(f"[bundle] {bundle_path}  ({len(races):,} races, "
                 f"{bundle_path.stat().st_size/1024:.1f} KB)")
 
+    # ------ 品質ゲート (audit 2026-06-11: 空・激減バンドルの無言 push 防止) ------
+    # bundle は書き出した上で (デバッグ用に成果物は残す)、閾値割れなら非0 exit して
+    # weekly_nicegui.ps1 側の git push / sync-hf を止める。
+    gate_errors: list[str] = []
+    # 分母はパース後 df でなく「生CSVのレースヘッダ行数 (19列行)」。
+    # parse_csv が行を無言で捨てるケース (TARGET 形式変更) を検出するため。
+    n_raw_races = 0
+    try:
+        for enc in ("cp932", "shift_jis", "utf-8"):
+            try:
+                raw_text = csv_path.read_bytes().decode(enc)
+                break
+            except Exception:
+                continue
+        else:
+            raw_text = ""
+        for line in raw_text.splitlines():
+            cols = line.split(",")
+            if len(cols) == 19 and cols[0] not in ("レースID(新)", ""):
+                n_raw_races += 1
+    except Exception:
+        pass
+    n_csv_races = max(n_raw_races, int(df[COL_RID].nunique()))
+    if len(races) == 0:
+        gate_errors.append("bundle の race 数が 0 (parse_csv が全行を捨てた可能性)")
+    elif n_csv_races > 0 and len(races) / n_csv_races < 0.5:
+        gate_errors.append(
+            f"bundle race 数が生CSVレース数の半分未満 ({len(races)}/{n_csv_races}) "
+            f"(TARGET 出力形式変更や列ズレで馬・レースが無言で捨てられた可能性。"
+            f"障害/新馬の除外は正常でも比率を下げるが 0.5 未満は異常)")
+    if races:
+        all_horses = [h for r in races for h in r.get("horses", [])]
+        if all_horses:
+            odds_cov = sum(1 for h in all_horses
+                           if h.get("tansho_odds") is not None) / len(all_horses)
+            pwin_cov = sum(1 for h in all_horses
+                           if h.get("p_win") is not None) / len(all_horses)
+            if odds_cov < 0.5:
+                gate_errors.append(
+                    f"単勝オッズ被覆率 {odds_cov*100:.0f}% < 50% "
+                    f"(週次CSVの単勝列欠落? EV判断が全滅する)")
+            if pwin_cov < 0.9:
+                gate_errors.append(
+                    f"p_win 非null率 {pwin_cov*100:.0f}% < 90% (モデル予測の大量失敗)")
+
     print()
+    if gate_errors:
+        for ge in gate_errors:
+            logger.error(f"[品質ゲート] {ge}")
+        print("=== ⚠ 品質ゲート不合格: bundle は生成済みだが push しないこと ===")
+        print(f"  集約: {bundle_path}")
+        return 2
+
     print(f"=== Cowork 入力 JSON 出力完了 ===")
     print(f"  個別: {out_dir}/")
     print(f"  集約: {bundle_path}")
