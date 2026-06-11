@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-11T20:05:00.675191",
+  "generated_at": "2026-06-11T21:08:21.859611",
   "total": {
     "races": 479,
     "settled": 479,
@@ -20,7 +20,16 @@
       "roi": 62.4,
       "hit": 40,
       "races": 220,
-      "hit_rate": 18.2
+      "hit_rate": 18.2,
+      "hit_ci95": [
+        13.6,
+        23.8
+      ],
+      "roi_ci95": [
+        39.6,
+        87.6
+      ],
+      "roi_verdict": "inconclusive"
     },
     "単勝": {
       "bet": 239700,
@@ -29,7 +38,16 @@
       "roi": 89.8,
       "hit": 14,
       "races": 98,
-      "hit_rate": 14.3
+      "hit_rate": 14.3,
+      "hit_ci95": [
+        8.7,
+        22.6
+      ],
+      "roi_ci95": [
+        34.4,
+        149.5
+      ],
+      "roi_verdict": "inconclusive"
     },
     "複勝": {
       "bet": 351300,
@@ -38,7 +56,16 @@
       "roi": 67.1,
       "hit": 54,
       "races": 111,
-      "hit_rate": 48.6
+      "hit_rate": 48.6,
+      "hit_ci95": [
+        39.6,
+        57.8
+      ],
+      "roi_ci95": [
+        50.4,
+        82.4
+      ],
+      "roi_verdict": "inconclusive"
     },
     "馬連": {
       "bet": 617500,
@@ -47,7 +74,16 @@
       "roi": 67.5,
       "hit": 15,
       "races": 171,
-      "hit_rate": 8.8
+      "hit_rate": 8.8,
+      "hit_ci95": [
+        5.4,
+        14.0
+      ],
+      "roi_ci95": [
+        22.9,
+        125.6
+      ],
+      "roi_verdict": "inconclusive"
     }
   },
   "by_place": [

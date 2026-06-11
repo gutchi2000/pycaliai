@@ -184,6 +184,49 @@ def get_winner(race_kk: pd.DataFrame) -> int | None:
     return to_int(rows.iloc[0]) if len(rows) > 0 else None
 
 
+def _bet_cis(settled: pd.DataFrame, n_boot: int = 2000, seed: int = 42) -> dict:
+    """券種別の信頼区間。hit_ci95=Wilson (的中率), roi_ci95=bootstrap (実効投資加重 ROI)。
+
+    roi_verdict: 95%CI と控除率 80% の位置関係。
+      above_takeout  = CI 下限 > 80  (真に控除率超の証拠)
+      below_takeout  = CI 上限 < 80  (真に控除率未満の証拠)
+      inconclusive   = CI が 80 を跨ぐ (点推定での増減判断は禁止)
+    """
+    import numpy as np
+    n = len(settled)
+    hits = int(settled["的中"].sum())
+    cost = (settled["購入額"] - settled["返還"]).to_numpy(dtype=float)
+    ret = settled["払戻"].to_numpy(dtype=float)
+
+    # Wilson score interval (的中率)
+    z = 1.96
+    p = hits / n
+    denom = 1 + z * z / n
+    center = (p + z * z / (2 * n)) / denom
+    half = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
+    hit_ci = [round(max(0.0, center - half) * 100, 1),
+              round(min(1.0, center + half) * 100, 1)]
+
+    # bootstrap ROI (bet 単位リサンプル、投資加重。seed 固定で決定的)
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, n, size=(n_boot, n))
+    boot_cost = cost[idx].sum(axis=1)
+    boot_ret = ret[idx].sum(axis=1)
+    valid = boot_cost > 0
+    rois = np.full(n_boot, np.nan)
+    rois[valid] = boot_ret[valid] / boot_cost[valid] * 100
+    lo, hi = (float(np.nanpercentile(rois, 2.5)),
+              float(np.nanpercentile(rois, 97.5)))
+    verdict = ("above_takeout" if lo > 80.0
+               else "below_takeout" if hi < 80.0
+               else "inconclusive")
+    return {
+        "hit_ci95": hit_ci,
+        "roi_ci95": [round(lo, 1), round(hi, 1)],
+        "roi_verdict": verdict,
+    }
+
+
 def get_cancelled(race_kk: pd.DataFrame) -> set[int]:
     """出走取消・競走除外・競走中止の馬番セット。
 
@@ -1008,6 +1051,12 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
                 "hit": hits, "races": n,
                 "hit_rate": round(hits / n * 100, 1) if n > 0 else 0,
             }
+            # --- 信頼区間 (audit 2026-06-11: 小標本での券種ポリシーフリップ防止) ---
+            # 単勝 30bets ROI120.8% → 445bets で 96.3% に回帰した事故の構造対策。
+            # 規律: boost/全廃などのポリシー変更は「roi_ci95 が控除率 (≈80%) を
+            # 片側に外れたときだけ」行う。点推定での判断は禁止。
+            if n >= 10:
+                by_type[btype].update(_bet_cis(settled))
 
     # 会場別 / 週次 (確定レースのみ集計)
     by_place: list = []

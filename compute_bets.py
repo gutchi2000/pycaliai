@@ -233,6 +233,10 @@ def compute_race_bets(race: dict) -> dict:
 
     # ---- 形ごとに候補生成（おいしい馬 boost）----
     # ★馬連は全廃（実績ROI最弱56%）。◎独走系は 馬単＋単勝、◎弱は ワイド流し。
+    # ⚠ ポリシー変更の規律 (2026-06-11): ここの boost/全廃の根拠だった実績は
+    # 小標本の点推定で、data/cowork_results.json の by_type.roi_ci95 は全券種
+    # 「控除率80%と区別不能 (inconclusive)」。今後の変更は roi_verdict が
+    # above/below_takeout になったときだけ行うこと (単勝120%→96%回帰の再発防止)。
     if shape == "本命勝負" and hon and tai:
         tgt = [b for b in (hon, tai, san, *osae) if b]    # ◎〇▲△△
         for a in (hon, tai):
