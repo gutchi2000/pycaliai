@@ -151,3 +151,74 @@ def umami_for_horse(h: dict) -> dict:
         "tan": umami("tansho", h.get("p_win"), tan_odds, tansho_odds=tan_odds),
         "fuku": umami("fukusho", h.get("p_sho"), fmid, tansho_odds=tan_odds),
     }
+
+
+def umami_total(h: dict, um: dict | None = None) -> dict:
+    """UMAMI総合 = 単勝/複勝のうちゲートを通った側の最良 xROI
+    (= この馬で一番マシな買い方をしたときの実測期待回収率)。
+
+    返り値: {"xroi": float|None, "side": "単勝"/"複勝"/None,
+             "grade": str, "um": umami_for_horse の生 dict}
+    両側 gated → xroi=None, grade="罠"。
+    """
+    um = um or umami_for_horse(h)
+    cands = []
+    if not um["tan"]["gated"] and um["tan"]["xroi"] is not None:
+        cands.append((um["tan"]["xroi"], "単勝", um["tan"]["grade"]))
+    if not um["fuku"]["gated"] and um["fuku"]["xroi"] is not None:
+        cands.append((um["fuku"]["xroi"], "複勝", um["fuku"]["grade"]))
+    if not cands:
+        return {"xroi": None, "side": None, "grade": "罠", "um": um}
+    xroi, side, grade = max(cands, key=lambda c: c[0])
+    return {"xroi": xroi, "side": side, "grade": grade, "um": um}
+
+
+_GRADE_NOTE = {
+    "S": "控除率(80%)を超える数少ない帯",
+    "A": "控除率相当で負けにくい帯",
+    "B": "平凡な帯 (控除率未満)",
+    "C": "実測の悪い帯。見送り寄り",
+}
+
+
+def explain(h: dict, total: dict | None = None) -> str:
+    """UMAMI 判定の理由を 1〜2 文の自然な日本語で返す (テーブルの「理由」列用)。
+
+    構成: なぜその判定か = ①ゲート理由 (罠) または
+          ②人気帯×AI評価の市場乖離 + 同条件帯の実測回収率 + グレード注釈。
+    """
+    total = total or umami_total(h)
+    um = total["um"]
+    tan_odds = h.get("tansho_odds")
+
+    # 罠: ゲート理由をそのまま (単勝側優先)
+    if total["side"] is None:
+        reason = um["tan"]["gate_reason"] or um["fuku"]["gate_reason"]
+        return reason or "確率/オッズ欠損で評価不能"
+
+    side = total["side"]
+    cell = um["tan"] if side == "単勝" else um["fuku"]
+    p = (h.get("p_win") if side == "単勝" else h.get("p_sho")) or 0
+
+    # 市場との乖離 (単勝オッズの implied 確率と AI の比較)
+    mk = ""
+    if side == "単勝" and tan_odds:
+        imp = 1.0 / float(tan_odds)
+        if p >= imp * 1.2:
+            mk = f"AI勝率{p*100:.0f}%は市場({imp*100:.0f}%)より割安。"
+        elif p <= imp * 0.8:
+            mk = f"AI勝率{p*100:.0f}%は市場({imp*100:.0f}%)より割高。"
+        else:
+            mk = f"AI勝率{p*100:.0f}%は市場とほぼ一致。"
+    elif side == "複勝":
+        mk = f"AI複勝率{p*100:.0f}%。"
+
+    band = ""
+    if tan_odds:
+        o = float(tan_odds)
+        band = ("本命級" if o < 3 else "中人気" if o < 7 else
+                "やや人気薄" if o < 15 else "人気薄") + f"({o:.1f}倍)の{side}。"
+
+    note = _GRADE_NOTE.get(total["grade"], "")
+    return (f"{band}{mk}同条件帯の実測回収{cell['xroi']*100:.0f}%"
+            f"＝{note}" if cell["xroi"] is not None else f"{band}{mk}実測データ不足")

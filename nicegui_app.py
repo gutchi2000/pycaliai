@@ -105,7 +105,8 @@ import pandas as pd
 from nicegui import ui, run
 
 import betting_judgment as bj  # 買い方判定 (堅さ×妙味→買い方) の共有ロジック
-from umami import umami_for_horse  # UMAMI(馬味)=実測補正後の期待回収率 + 来ない馬ゲート
+from umami import (umami_for_horse, umami_total,  # UMAMI(馬味)=実測補正後の期待回収率
+                   explain as umami_explain)       # + 来ない馬ゲート + 判定理由の自然文
 
 try:
     from assistant import chat as soudan  # 対話相談AI (ローカル Ollama)
@@ -3751,6 +3752,76 @@ def _eval_bars_html(feats: dict, idx: int) -> str:
     return "".join(rows)
 
 
+def _pyca_eval_text_html(h: dict, feats: dict, i: int) -> str:
+    """各馬の評価を自然な日本語 2〜3 文で生成 (評価カードの冒頭に表示)。
+
+    構成: ①AI の位置づけ (印/評価順位) ②7 軸の強み・弱み (レース内相対)
+          ③市場との乖離 ④馬券妙味 (UMAMI 判定と理由)。
+    テンプレート生成 (LLM 不使用) なので毎週ゼロコスト・即時。"""
+    mark = h.get("mark") or ""
+    rank = h.get("ai_rank")
+    p_win = h.get("p_win") or 0
+    tan = h.get("tansho_odds")
+
+    # ① 位置づけ
+    if mark:
+        s1 = f"AI 総合 {rank} 番手（{mark}）。" if rank else f"AI の印は {mark}。"
+    else:
+        s1 = f"AI 総合 {rank} 番手（無印）。" if rank else "AI 評価は無印。"
+
+    # ② 軸の強み/弱み (norm 0-10: >=7 強み / <=3 弱み。有効軸のみ)
+    strengths, weaknesses = [], []
+    for k, lbl, _ in PYCA_AXES:
+        if not feats["valid"].get(k):
+            continue
+        v = feats["norm"][k][i]
+        if v is None:
+            continue
+        if v >= 7:
+            strengths.append(lbl)
+        elif v <= 3:
+            weaknesses.append(lbl)
+    if strengths and weaknesses:
+        s2 = f"強みは{('・'.join(strengths[:3]))}、弱みは{('・'.join(weaknesses[:3]))}。"
+    elif strengths:
+        s2 = f"{('・'.join(strengths[:3]))}がこのレースでは上位。目立つ弱点なし。"
+    elif weaknesses:
+        s2 = f"目立つ強みがなく、{('・'.join(weaknesses[:3]))}は下位。"
+    else:
+        s2 = "どの軸もレース内では平均的。"
+
+    # ③ 市場との乖離
+    s3 = ""
+    if tan and p_win:
+        imp = 1.0 / float(tan)
+        if p_win >= imp * 1.2:
+            s3 = (f"市場（単勝{tan:.1f}倍＝勝率{imp*100:.0f}%換算）より "
+                  f"AI（{p_win*100:.0f}%）が高く見ており妙味側。")
+        elif p_win <= imp * 0.8:
+            s3 = (f"市場（単勝{tan:.1f}倍）の評価より AI（勝率{p_win*100:.0f}%）"
+                  f"は低く、人気ほど信頼していない。")
+        else:
+            s3 = f"AI と市場（単勝{tan:.1f}倍）の評価はほぼ一致。"
+
+    # ④ UMAMI (馬券としての妙味判定 + 理由)
+    total = umami_total(h)
+    if total["xroi"] is not None:
+        s4 = (f"馬券妙味: UMAMI総合 {total['xroi']:.2f}（{total['grade']}・"
+              f"{total['side']}側）— {umami_explain(h, total)}")
+    else:
+        s4 = f"馬券妙味: 🚫 {umami_explain(h, total)}"
+
+    color = MARK_COLORS.get(mark, "#475569")
+    return f"""
+    <div style="border-left:4px solid {color};background:#11111b;
+                padding:10px 14px;border-radius:6px;margin-bottom:10px;
+                color:#cdd6f4;font-size:14px;line-height:1.8">
+      {esc(s1)}{esc(s2)}{esc(s3)}<br>
+      <span style="color:#f9e2af">{esc(s4)}</span>
+    </div>
+    """
+
+
 def render_pyca_eval_list(race: dict, date_str: str | None = None) -> None:
     """Streamlit 版互換の評価リスト (前提: ui コンテナの中で呼ばれる)。
 
@@ -3774,10 +3845,13 @@ def render_pyca_eval_list(race: dict, date_str: str | None = None) -> None:
     ui.label("🔍 出走馬評価リスト (PyCaLi指数)").classes(
         "text-xl font-bold mt-6 mb-1")
     ui.label(
-        "並び順は AI モデルの最終評価 (◎〇▲△ の印) 順。"
-        "PyCaLi指数 = AI 3 着以内率 (p_sho) を基準に、a〜g の 7 軸 (前走補正 / 前走Ave-3F /"
-        "前走確定着順 等) で微調整した総合スコア (0-100)。右側のバーは"
-        "レース内 0〜10 正規化値。★は上位 3 位以内。データが無い軸は「−」表示。"
+        "PyCaLi指数 = AI の3着以内率を土台に、下の 7 軸で加減した総合点 (0-100)。"
+        "数字が大きいほど「能力面で買える」。レーダーとバーは同レース内での"
+        "相対位置 (0〜10、右に伸びる/外に広がるほどそのレースで上位)。"
+        "各軸の意味 — 総合力: AI の勝率 / スピード: 前走の補正タイム / "
+        "末脚: 前走の上がり3F / 前走成績: 着順 / 市場評価: 前走の人気 / "
+        "ペース適性: 前走のペース指数 / 調教: 直前の坂路・CW の時計。"
+        "データが無い軸は「−」。並び順は印 (◎〇▲△) 順。"
     ).classes("text-sm text-slate-400 mb-3")
 
     for i in order:
@@ -3792,6 +3866,8 @@ def render_pyca_eval_list(race: dict, date_str: str | None = None) -> None:
         with ui.element("div").classes(
             "p-3 bg-slate-900 rounded-lg border border-slate-700 mb-2"
         ):
+            # ── この馬をどう評価したかの自然文 (軸の強弱 + 市場乖離 + UMAMI) ──
+            ui.html(_pyca_eval_text_html(h, feats, i))
             with ui.row().classes("w-full no-wrap items-stretch gap-3"):
                 with ui.column().classes("flex-shrink-0").style("width:240px"):
                     ui.html(_eval_left_html(h, pyca, prank))
@@ -4123,29 +4199,16 @@ def main_page():
             t_rows = []
             for h in race.get("horses", []):
                 um = umami_for_horse(h)
-                ut, uf = um["tan"], um["fuku"]
-                # 判定 = 単勝/複勝の良い方 (両方 gated なら罠)
-                if ut["gated"] and uf["gated"]:
-                    judge, j_order = "罠", -1
-                else:
-                    grades = [g["grade"] for g in (ut, uf) if not g["gated"]]
-                    order = {"S": 3, "A": 2, "B": 1, "C": 0}
-                    best = max(grades, key=lambda g: order.get(g, 0))
-                    judge, j_order = best, order.get(best, 0)
-                gate_note = ut["gate_reason"] if ut["gated"] else (
-                    uf["gate_reason"] if uf["gated"] else "")
+                total = umami_total(h, um)
                 t_rows.append({
                     "mark": h.get("mark") or "",
                     "umaban": int(h.get("umaban") or 0),
                     "name": h.get("horse_name", "?"),
-                    "odds": h.get("tansho_odds"),
-                    "p_win": round((h.get("p_win") or 0) * 100, 1),
-                    "p_sho": round((h.get("p_sho") or 0) * 100, 1),
-                    "umami_tan": ut["xroi"],
-                    "umami_fuku": uf["xroi"],
-                    "judge": JUDGE_DISP.get(judge, judge),
-                    "j_order": j_order,
-                    "note": gate_note,
+                    "umami_tan": um["tan"]["xroi"],
+                    "umami_fuku": um["fuku"]["xroi"],
+                    "umami_sogo": total["xroi"],
+                    "judge": JUDGE_DISP.get(total["grade"], total["grade"]),
+                    "reason": umami_explain(h, total),
                 })
             t_cols = [
                 {"name": "mark", "label": "印", "field": "mark", "align": "center"},
@@ -4153,35 +4216,27 @@ def main_page():
                  "sortable": True, "align": "center"},
                 {"name": "name", "label": "馬名", "field": "name",
                  "sortable": True, "align": "left"},
-                {"name": "odds", "label": "単勝", "field": "odds",
-                 "sortable": True, "align": "right"},
-                {"name": "p_win", "label": "勝率%", "field": "p_win",
-                 "sortable": True, "align": "right"},
-                {"name": "p_sho", "label": "複勝率%", "field": "p_sho",
-                 "sortable": True, "align": "right"},
                 {"name": "umami_tan", "label": "UMAMI単", "field": "umami_tan",
                  "sortable": True, "align": "right"},
                 {"name": "umami_fuku", "label": "UMAMI複", "field": "umami_fuku",
                  "sortable": True, "align": "right"},
+                {"name": "umami_sogo", "label": "UMAMI総合", "field": "umami_sogo",
+                 "sortable": True, "align": "right"},
                 {"name": "judge", "label": "判定", "field": "judge",
                  "sortable": True, "align": "left"},
-                {"name": "note", "label": "ゲート理由", "field": "note",
+                {"name": "reason", "label": "理由", "field": "reason",
                  "align": "left"},
             ]
             ui.table(columns=t_cols, rows=t_rows, row_key="umaban") \
                 .props('dense flat dark wrap-cells '
-                       ':pagination="{rowsPerPage: 0, sortBy: \'umami_fuku\', descending: true}"') \
+                       ':pagination="{rowsPerPage: 0, sortBy: \'umami_sogo\', descending: true}"') \
                 .classes("w-full mb-4")
+            ui.label(
+                "UMAMI総合 = 単勝/複勝のうちゲートを通った側の最良値"
+                "（= この馬で一番マシな買い方をした場合の実測期待回収率）。"
+            ).classes("text-xs text-slate-500 mb-4")
 
-            ui.label("📍 全頭ポジショニング (AI vs 市場)").classes(
-                "text-xl font-bold mt-2 mb-1")
-            ui.label("対角線より上 = AI 高評価。下 = AI 低評価。" +
-                     "点が大きい順 ◎ > 〇 > ▲ > △.").classes(
-                "text-sm text-slate-400 mb-3")
-            ui.echart(race_scatter_option(horses_sorted)).classes(
-                "w-full").style("height: 480px")
-
-            # Streamlit 版互換の評価リスト (a〜g 7 軸、weekly/hosei を merge)
+            # 各馬の評価を自然な日本語で (a〜g 7軸 + UMAMI + 市場乖離)
             render_pyca_eval_list(race, date_str=state.get("date"))
 
         # ── コース分析タブ (展開予想 + 条件別成績) ──
