@@ -7,6 +7,7 @@ nicegui_app.py がこれで生値→パーセンタイル(0-1)変換し、相対
 
 top1_dominance / top2_concentration も同様に圧縮しているので分位テーブルを作る。
 """
+import argparse
 import json, glob
 from pathlib import Path
 import numpy as np
@@ -25,9 +26,18 @@ def walk(o, key, out):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--bundle-dir", default=None,
+                    help="bundle 走査ディレクトリ (default: reports/cowork_input)。"
+                         "補正復活後の分布で再生成する場合は rebuild_quantile_bundles.py "
+                         "の出力 reports/_requant_bundles を指定")
+    args = ap.parse_args()
+    bundle_dir = Path(args.bundle_dir) if args.bundle_dir else (BASE / "reports/cowork_input")
+
     keys = ["field_chaos_score", "top1_dominance", "top2_concentration"]
     coll = {k: [] for k in keys}
-    files = glob.glob(str(BASE / "reports/cowork_input/*_bundle.json"))
+    files = glob.glob(str(bundle_dir / "*_bundle.json"))
+    print(f"[scan] {bundle_dir} -> {len(files)} bundles")
     for f in files:
         try: d = json.load(open(f, encoding="utf-8"))
         except Exception: continue
