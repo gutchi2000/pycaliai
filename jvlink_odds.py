@@ -26,7 +26,11 @@ from pathlib import Path
 
 BASE = Path(__file__).parent
 OUT_DIR = BASE / "reports" / "live_odds"
-SID = "UNKNOWN"  # ※継続運用は JRA-VAN に sid 登録推奨
+# sid 登録は見送り (2026-06-12 判断): 登録制度は公開ソフト向けで、個人利用のみの
+# 本ツールには形式が合わない。登録フォームのホームページ欄に公開ページを書くこと
+# 自体が再配信の自己申告になる藪蛇リスクもある。公開・配布する場合は要登録
+# (Sid 形式: 作者ID/ソフトウェアID/ソフト名/Ver — developer.jra-van.jp/t/topic/30)。
+SID = "UNKNOWN"
 
 
 def _digits(s):
