@@ -2956,6 +2956,292 @@ def render_training_top5(date_str: str | None) -> None:
     """)
 
 
+def render_training_tab(race: dict, date_str: str | None = None) -> None:
+    """⏱ 調教タブ (2026-06-12 ユーザー要望): 馬番/印/馬名/日付/コース/タイム/AI評価。
+
+    各馬のレース前 14 日以内の最終追切 (最新の坂路 or CW) を 1 行で表示。
+    AI評価 = 終い (ラスト1F) と全体時計の絶対水準 + 出走馬内の終い順位から
+    A〜C + 一言コメントを生成 (テンプレート、目安として表示)。
+    """
+    horses = list(race.get("horses", []))
+    if not horses or not date_str:
+        ui.label("データなし").classes("text-slate-500")
+        return
+    h_all, w_all = load_training_all()
+    if h_all is None and w_all is None:
+        ui.label("data/training/ に調教 CSV がありません (HF Spaces では未配置)").classes(
+            "text-slate-500")
+        return
+
+    try:
+        race_int = int(date_str)
+        from datetime import datetime, timedelta
+        cutoff_int = int((datetime.strptime(date_str, "%Y%m%d")
+                          - timedelta(days=14)).strftime("%Y%m%d"))
+    except ValueError:
+        return
+
+    def _num(row, col):
+        try:
+            v = pd.to_numeric(row.get(col), errors="coerce")
+            return float(v) if pd.notna(v) else None
+        except Exception:
+            return None
+
+    # ★性能: マスターは数百万行。馬ごとに全行 .str 比較すると 16頭×2種で
+    # 分単位ブロックする (2026-06-12 に実際にイベントループが固まった)。
+    # 先に「14日窓 × 出走馬」へ 1 回で絞り、以降は小さな DF だけ触る。
+    names_set = {(h.get("horse_name") or "").strip() for h in horses}
+
+    def _window(df):
+        if df is None or "馬名" not in df.columns or "年月日" not in df.columns:
+            return None
+        d = df[(df["年月日"] >= cutoff_int) & (df["年月日"] < race_int)]
+        if d.empty:
+            return None
+        d = d.copy()
+        d["_nm"] = d["馬名"].astype(str).str.strip()
+        d = d[d["_nm"].isin(names_set)]
+        return d if not d.empty else None
+
+    h_win = _window(h_all)
+    w_win = _window(w_all)
+
+    def _latest(dwin, name):
+        if dwin is None:
+            return None
+        sub = dwin[dwin["_nm"] == name]
+        if sub.empty:
+            return None
+        return sub.sort_values("年月日").iloc[-1]
+
+    recs = []
+    for h in horses:
+        name = (h.get("horse_name") or "").strip()
+        hr = _latest(h_win, name)
+        wr = _latest(w_win, name)
+        # 最終追切 = より新しい方 (同日は坂路優先 = 主流の最終追い)
+        def _place(row):
+            s = str(row.get("場所") or "").strip()
+            return "" if s.lower() in ("nan", "none") else s
+
+        rec = None
+        if hr is not None and (wr is None or int(hr["年月日"]) >= int(wr["年月日"])):
+            t1, t2 = _num(hr, "Time1"), _num(hr, "Time2")
+            t3, t4 = _num(hr, "Time3"), _num(hr, "Time4")
+            lap1 = _num(hr, "Lap1") or t4
+            times = "-".join(f"{x:.1f}" for x in (t1, t2, t3, t4) if x is not None)
+            rec = {"kind": "坂路", "place": _place(hr),
+                   "date": int(hr["年月日"]), "times": times,
+                   "lap1": lap1, "zentai": t1}
+        elif wr is not None:
+            f5, f4, f3 = _num(wr, "5F"), _num(wr, "4F"), _num(wr, "3F")
+            lap1 = _num(wr, "Lap1")
+            times = "-".join(f"{x:.1f}" for x in (f5, f4, f3) if x is not None)
+            if lap1:
+                times += f" (終い{lap1:.1f})"
+            rec = {"kind": "CW", "place": _place(wr),
+                   "date": int(wr["年月日"]), "times": times,
+                   "lap1": lap1, "zentai": f5 or f4}
+        recs.append({"h": h, "rec": rec})
+
+    # 終い (lap1) の出走馬内順位 (種別を問わず参考順位)
+    laps = sorted([r["rec"]["lap1"] for r in recs
+                   if r["rec"] and r["rec"]["lap1"]], key=float)
+
+    def _grade(rec) -> tuple[str, str]:
+        """(グレード, 一言) を返す。閾値は坂路/CW の一般的な目安。"""
+        if rec is None:
+            return "—", "直前 14 日の追切記録なし"
+        lap1, zentai, kind = rec["lap1"], rec["zentai"], rec["kind"]
+        notes = []
+        sharp = False
+        if lap1:
+            rank = laps.index(lap1) + 1 if lap1 in laps else None
+            rk = f"(出走馬{rank}位)" if rank else ""
+            if kind == "坂路":
+                if lap1 <= 12.0:
+                    notes.append(f"終い{lap1:.1f}{rk} 抜群"); sharp = True
+                elif lap1 <= 12.7:
+                    notes.append(f"終い{lap1:.1f}{rk} 鋭い"); sharp = True
+                elif lap1 <= 13.5:
+                    notes.append(f"終い{lap1:.1f}{rk} まずまず")
+                else:
+                    notes.append(f"終い{lap1:.1f}{rk} 平凡")
+            else:
+                if lap1 <= 11.8:
+                    notes.append(f"終い{lap1:.1f}{rk} 抜群"); sharp = True
+                elif lap1 <= 12.4:
+                    notes.append(f"終い{lap1:.1f}{rk} 鋭い"); sharp = True
+                else:
+                    notes.append(f"終い{lap1:.1f}{rk}")
+        strong = False
+        if zentai:
+            if kind == "坂路":
+                if zentai <= 52.5:
+                    notes.append(f"全体{zentai:.1f} 猛時計"); strong = True
+                elif zentai <= 54.0:
+                    notes.append(f"全体{zentai:.1f} 好時計"); strong = True
+                else:
+                    notes.append(f"全体{zentai:.1f}")
+            else:
+                strong = zentai <= 67.0
+                notes.append(f"全体{zentai:.1f}" + (" 好時計" if strong else ""))
+        grade = "A" if (sharp and strong) else ("B" if (sharp or strong) else "C")
+        return grade, "・".join(notes)
+
+    GRADE_ICON = {"A": "🟢 A", "B": "🟡 B", "C": "⚪ C", "—": "—"}
+    rows = []
+    for r in recs:
+        h, rec = r["h"], r["rec"]
+        grade, note = _grade(rec)
+        d = str(rec["date"]) if rec else ""
+        rows.append({
+            "umaban": int(h.get("umaban") or 0),
+            "mark": h.get("mark") or "",
+            "name": h.get("horse_name", "?"),
+            "date": f"{d[4:6]}/{d[6:8]}" if len(d) == 8 else "—",
+            "course": (f"{rec['place']}{rec['kind']}" if rec else "—"),
+            "times": rec["times"] if rec else "—",
+            "eval": f"{GRADE_ICON[grade]} {note}",
+            "_rank": h.get("ai_rank") or 99,
+        })
+    rows.sort(key=lambda x: x["_rank"])
+
+    ui.label("⏱ 最終追切タイム (レース前14日以内の最新)").classes(
+        "text-xl font-bold mt-2 mb-1")
+    ui.label(
+        "タイム表記 — 坂路: 4F-3F-2F-1F (累計)。CW: 5F-4F-3F と終い1F。"
+        "AI評価は終い (ラスト1F) と全体時計の目安: 🟢A=終い鋭い×全体好時計 / "
+        "🟡B=どちらか片方 / ⚪C=平凡。終いの鋭さは好調のサイン。"
+    ).classes("text-sm text-slate-400 mb-2")
+    cols = [
+        {"name": "umaban", "label": "番", "field": "umaban", "sortable": True,
+         "align": "center"},
+        {"name": "mark", "label": "印", "field": "mark", "align": "center"},
+        {"name": "name", "label": "馬名", "field": "name", "sortable": True,
+         "align": "left"},
+        {"name": "date", "label": "日付", "field": "date", "sortable": True,
+         "align": "center"},
+        {"name": "course", "label": "コース", "field": "course", "align": "center"},
+        {"name": "times", "label": "タイム", "field": "times", "align": "left"},
+        {"name": "eval", "label": "AI評価", "field": "eval", "sortable": True,
+         "align": "left"},
+    ]
+    ui.table(columns=cols, rows=rows, row_key="umaban") \
+        .props('dense flat dark wrap-cells :pagination="{rowsPerPage: 0}"') \
+        .classes("w-full")
+
+
+def render_tenkai_corner(race: dict, date_str: str | None = None) -> None:
+    """AI展開予測 (TARGET 風コーナー別隊列図、2026-06-12 ユーザー要望)。
+
+    スタート後 / 3コーナー / 4コーナー の 3 段トラックに、前走の通過順位
+    (前走通過1/前走通過4、頭数で正規化) から推定した各馬の位置をチップ表示。
+    右が先頭。3コーナーは通過1と通過4の補間 (1:2)。
+    データの無い馬 (新馬・地方前走等) は下に列挙。
+    """
+    horses = list(race.get("horses", []))
+    if not horses:
+        return
+    meta = race.get("race_meta", {}) or {}
+    field_size = float(meta.get("field_size") or len(horses) or 1)
+
+    weekly_df = load_weekly_horses(date_str) if date_str else None
+    rid_16 = str(race.get("race_id", ""))[:16]
+
+    placed, missing = [], []
+    for h in horses:
+        umaban = h.get("umaban")
+        pos1 = pos4 = None
+        if weekly_df is not None and umaban is not None:
+            sub = weekly_df[(weekly_df["race_id_16"] == rid_16) &
+                              (weekly_df["馬番"] == int(umaban))]
+            if not sub.empty:
+                row = sub.iloc[0]
+                for c in ["前1角", "前走通過1"]:
+                    if c in row.index and pd.notna(row[c]):
+                        try:
+                            pos1 = float(row[c])
+                        except (TypeError, ValueError):
+                            pass
+                        break
+                for c in ["前4角", "前走通過4"]:
+                    if c in row.index and pd.notna(row[c]):
+                        try:
+                            pos4 = float(row[c])
+                        except (TypeError, ValueError):
+                            pass
+                        break
+        if pos1 is None and pos4 is None:
+            missing.append(h)
+            continue
+        p1 = pos1 if pos1 is not None else pos4
+        p4 = pos4 if pos4 is not None else pos1
+        r1 = min(max(p1 / field_size, 0.02), 1.0)   # 0=先頭, 1=最後方
+        r4 = min(max(p4 / field_size, 0.02), 1.0)
+        r3 = r1 * (1 / 3) + r4 * (2 / 3)
+        placed.append({"h": h, "r": {"スタート後": r1, "3コーナー": r3,
+                                      "4コーナー": r4}})
+
+    ui.label("🏇 AI展開予測 (コーナー別の想定隊列)").classes(
+        "text-xl font-bold mt-2 mb-1")
+    ui.label(
+        "前走の通過順位から推定した各馬の位置。右が先頭。"
+        "スタート後 → 4コーナーの並び変化で「どこから競馬をする馬か」が分かる。"
+        "印の色 = ◎赤 / 〇青 / ▲緑 / △橙。"
+    ).classes("text-sm text-slate-400 mb-2")
+
+    if not placed:
+        ui.label("通過順位データのある馬がいません (新馬戦など)").classes(
+            "text-slate-500 text-sm mb-3")
+        return
+
+    for phase in ["スタート後", "3コーナー", "4コーナー"]:
+        chips = []
+        # 前にいる順に並べ、縦4段ローテーションで重なり回避
+        order = sorted(placed, key=lambda x: x["r"][phase])
+        for i, item in enumerate(order):
+            h = item["h"]
+            r = item["r"][phase]
+            mark = h.get("mark") or ""
+            color = MARK_COLORS.get(mark, "#6c7086")
+            left = 4 + (1.0 - r) * 88           # 右=先頭
+            top = 6 + (i % 4) * 27
+            name4 = esc(str(h.get("horse_name", ""))[:4])
+            chips.append(f"""
+            <div style="position:absolute;left:{left:.1f}%;top:{top}px;
+                        text-align:center;width:46px;margin-left:-23px">
+              <div style="width:24px;height:24px;border-radius:50%;margin:0 auto;
+                          background:{color};color:#fff;font-weight:bold;
+                          font-size:12px;line-height:24px;
+                          border:2px solid rgba(255,255,255,.55)">{h.get("umaban","")}</div>
+              <div style="color:#e6d9b8;font-size:9px;white-space:nowrap;
+                          overflow:hidden;text-overflow:ellipsis">{name4}</div>
+            </div>""")
+        ui.html(f"""
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="background:#1e1e2e;color:#f9e2af;padding:2px 12px;
+                         border-radius:10px;font-size:12px;font-weight:bold">{phase}</span>
+            <span style="color:#6c7086;font-size:10px">→ 進行方向 (右が先頭)</span>
+          </div>
+          <div style="position:relative;height:122px;border-radius:8px;margin-top:4px;
+                      background:#9c7a45;border:1px solid #6e5630;overflow:hidden">
+            <div style="position:absolute;inset:0;background:
+                 repeating-linear-gradient(90deg,transparent,transparent 60px,
+                 rgba(255,255,255,.07) 60px,rgba(255,255,255,.07) 61px)"></div>
+            {''.join(chips)}
+          </div>
+        </div>""")
+
+    if missing:
+        names = "、".join(f"{m.get('umaban','?')} {esc(str(m.get('horse_name',''))[:8])}"
+                           for m in missing)
+        ui.label(f"※ 通過順位データなし (位置不明): {names}").classes(
+            "text-xs text-slate-500 mb-3")
+
+
 def render_tenkai_yoso(race: dict, date_str: str | None = None) -> None:
     """展開予想 — SPAIA 風の視覚的隊列図 (全頭表示)。
 
@@ -3447,42 +3733,59 @@ def render_course_analysis(race: dict) -> None:
 # 全頭分析: 散布図 + レーダーチャート
 # ============================================================
 def race_scatter_option(horses: list) -> dict:
+    """AI vs 市場の意見の違いマップ (2026-06-12 改善版)。
+
+    旧版は「印の色の点 + 無言の対角線」で何が言いたいのか読めなかった。
+    改善: 点の色 = 乖離方向 (緑=AIが市場より強気=妙味候補 / 赤=市場が過熱 /
+    グレー=ほぼ一致) に変更し、対角線の意味・ゾーンの読み方を図中に明記。
+    """
     data = []
     for h in horses:
         p_win = (h.get("p_win") or 0) * 100
         tan = h.get("tansho_odds") or 0
         market = (1 / tan) * 100 if tan else 0
         mark = h.get("mark") or ""
-        color = MARK_COLORS.get(mark, "#6c7086")
-        size = 22 if mark == "◎" else 18 if mark == "〇" else 14 if mark == "▲" else 9
         name = h.get("horse_name", "")
+        # 乖離方向で色分け (±20% バンドは betting_judgment と同じ)
+        if market > 0 and p_win >= market * 1.2:
+            color, zone = "#a6e3a1", "AIが市場より強気 (妙味候補)"
+        elif market > 0 and p_win <= market * 0.8:
+            color, zone = "#f38ba8", "市場が過熱 (AIは懐疑的)"
+        else:
+            color, zone = "#9399b2", "AIと市場がほぼ一致"
+        size = 24 if mark == "◎" else 20 if mark == "〇" else 16 if mark == "▲" else 11
         data.append({
             "value": [round(market, 2), round(p_win, 2)],
             "name": name, "symbol": "circle", "symbolSize": size,
             "itemStyle": {"color": color,
                            "borderColor": "#fff" if mark in ["◎", "〇", "▲"] else "transparent",
-                           "borderWidth": 1},
+                           "borderWidth": 1.5 if mark else 0},
             "label": {"show": True,
                        "position": "top" if mark in ["◎", "〇", "▲"] else "right",
                        "color": "#cdd6f4",
                        "fontSize": 12 if mark in ["◎", "〇", "▲"] else 10,
                        "formatter": (mark + " " + name) if mark else name},
+            "_zone": zone, "_odds": tan,
         })
-    max_val = max((d["value"][0] for d in data), default=50) * 1.1
-    max_val = max(max_val, max((d["value"][1] for d in data), default=50) * 1.1)
+    max_val = max((d["value"][0] for d in data), default=50) * 1.15
+    max_val = max(max_val, max((d["value"][1] for d in data), default=50) * 1.15)
     return {
-        "title": {"text": "AI 評価 vs 市場評価",
-                   "textStyle": {"color": "#cdd6f4", "fontSize": 16}, "left": "center"},
-        "xAxis": {"name": "市場評価 (1/単勝オッズ × 100)",
+        "title": {"text": "AIと市場の意見の違い",
+                   "subtext": "対角線の上 = AIのほうが勝てると見ている馬 (緑=妙味候補)。"
+                              "下 = 人気ほどAIは評価していない馬 (赤)。線上 = 意見一致。",
+                   "textStyle": {"color": "#cdd6f4", "fontSize": 16},
+                   "subtextStyle": {"color": "#a6adc8", "fontSize": 12},
+                   "left": "center"},
+        "xAxis": {"name": "市場の評価 (単勝オッズを勝率%に換算)",
                    "type": "value", "min": 0, "max": round(max_val, 1),
                    "splitLine": {"lineStyle": {"color": "#313244"}},
-                   "axisLabel": {"color": "#a6adc8"},
+                   "axisLabel": {"color": "#a6adc8", "formatter": "{value}%"},
                    "nameTextStyle": {"color": "#cdd6f4", "fontSize": 13},
                    "nameLocation": "middle", "nameGap": 35},
-        "yAxis": {"name": "AI 予想 (勝率 %)",
+        "yAxis": {"name": "AIの予想勝率",
                    "type": "value", "min": 0, "max": round(max_val, 1),
                    "splitLine": {"lineStyle": {"color": "#313244"}},
-                   "axisLabel": {"color": "#a6adc8"},
+                   "axisLabel": {"color": "#a6adc8", "formatter": "{value}%"},
                    "nameTextStyle": {"color": "#cdd6f4", "fontSize": 13},
                    "nameLocation": "middle", "nameGap": 50},
         "tooltip": {"trigger": "item", "backgroundColor": "#1e1e2e",
@@ -3490,10 +3793,17 @@ def race_scatter_option(horses: list) -> dict:
         "series": [
             {"type": "scatter", "data": data, "z": 2},
             {"type": "line", "data": [[0, 0], [max_val, max_val]],
-             "lineStyle": {"type": "dashed", "color": "#555", "width": 1},
-             "symbol": "none", "tooltip": {"show": False}, "z": 1, "silent": True},
+             "lineStyle": {"type": "dashed", "color": "#7f849c", "width": 1.5},
+             "symbol": "none", "tooltip": {"show": False}, "z": 1, "silent": True,
+             "label": {"show": False},
+             "markPoint": {"data": [
+                 {"coord": [max_val * 0.86, max_val * 0.86], "symbol": "rect",
+                  "symbolSize": 1,
+                  "label": {"show": True, "formatter": "← この線上＝AIと市場が同意見",
+                             "color": "#7f849c", "fontSize": 11,
+                             "position": "insideEndTop"}}]}},
         ],
-        "grid": {"left": 70, "right": 30, "top": 50, "bottom": 60},
+        "grid": {"left": 70, "right": 30, "top": 80, "bottom": 60},
         "backgroundColor": "transparent",
     }
 
@@ -4116,6 +4426,7 @@ def main_page():
             tab_shutsuba = ui.tab("📋 出走表")
             tab_bunseki = ui.tab("🔍 全頭分析")
             tab_course = ui.tab("📊 コース分析")
+            tab_training = ui.tab("⏱ 調教")
             tab_pedigree = ui.tab("🧬 血統分析")
             tab_bets = ui.tab("🎫 Cowork 買い目")
             tab_soudan = ui.tab("💬 相談AI")
@@ -4127,6 +4438,8 @@ def main_page():
                 bunseki_box = ui.element("div").classes("w-full")
             with ui.tab_panel(tab_course):
                 course_box = ui.element("div").classes("w-full")
+            with ui.tab_panel(tab_training):
+                training_box = ui.element("div").classes("w-full")
             with ui.tab_panel(tab_pedigree):
                 pedigree_box = ui.element("div").classes("w-full")
             with ui.tab_panel(tab_bets):
@@ -4236,14 +4549,31 @@ def main_page():
                 "（= この馬で一番マシな買い方をした場合の実測期待回収率）。"
             ).classes("text-xs text-slate-500 mb-4")
 
+            # AI vs 市場の意見マップ (2026-06-12 改善版: 点の色=乖離方向)
+            ui.label("📍 全頭ポジショニング (AIと市場の意見の違い)").classes(
+                "text-xl font-bold mt-2 mb-1")
+            ui.label(
+                "見方: 右にある馬ほど人気、上にある馬ほど AI が勝てると予想。"
+                "🟢緑 = AIの評価が人気より高い (買う価値を検討)、"
+                "🔴赤 = 人気だけ先行 (AIは疑っている)、⚪グレー = 妥当な人気。"
+            ).classes("text-sm text-slate-400 mb-2")
+            ui.echart(race_scatter_option(horses_sorted)).classes(
+                "w-full").style("height: 480px")
+
             # 各馬の評価を自然な日本語で (a〜g 7軸 + UMAMI + 市場乖離)
             render_pyca_eval_list(race, date_str=state.get("date"))
 
         # ── コース分析タブ (展開予想 + 条件別成績) ──
         course_box.clear()
         with course_box:
+            render_tenkai_corner(race, date_str=state.get("date"))
             render_tenkai_yoso(race, date_str=state.get("date"))
             render_course_analysis(race)
+
+        # ── ⏱ 調教タブ (最終追切 + AI評価) ──
+        training_box.clear()
+        with training_box:
+            render_training_tab(race, date_str=state.get("date"))
 
         # ── 血統分析タブ (父・母父ランキング + 合致馬) ──
         pedigree_box.clear()
@@ -4526,7 +4856,7 @@ def main_page():
             # パネルが残留して誤読を招く (audit 2026-06-11)。全 box をクリアして
             # プレースホルダを出す。
             for box in (left_box, right_box, shutsuba_box, bunseki_box,
-                        course_box, pedigree_box, bets_box):
+                        course_box, training_box, pedigree_box, bets_box):
                 box.clear()
             with shutsuba_box:
                 ui.html(f"""
