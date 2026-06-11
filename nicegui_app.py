@@ -771,7 +771,7 @@ def _parse_combos(selection: str, n_parts: int,
     return out
 
 
-def compute_bet_pl(bet: dict, race: dict) -> tuple[float, bool]:
+def compute_bet_pl(bet: dict, race: dict) -> tuple[float | None, bool]:
     """1 つの Cowork bet (馬券種/買い目/購入額) と race 結果 dict から
     (利益¥, 的中フラグ) を返す。利益 = (受取 - 支払)。
     複数 combo 指定時は 購入額を均等分配して計算 (JRA 標準慣行)。
@@ -839,8 +839,11 @@ def compute_bet_pl(bet: dict, race: dict) -> tuple[float, bool]:
             return (-cost, False)
         wide_pays = race.get("wide_pays") or {}
         if not wide_pays:
-            # データ無し → 損失計上 (wide_kekka.csv が未配置の date 等)
-            return (-cost, False)
+            # 払戻データ未取込 (wide_kekka.csv が未配置の date 等)。
+            # 全敗扱いにすると実的中まで損失計上され P/L が過小に歪むため
+            # (2026-05-23/24 で実的中 10 件が全敗表示になった実害あり)、
+            # profit=None で「決済不能 = 集計外」として返し、表示側で注記する。
+            return (None, False)
         unit = cost / len(combos)
         total_payout = 0.0
         n_hit = 0
@@ -971,8 +974,10 @@ def load_all_cowork_outcomes(_cache_key: str = "") -> list[dict]:
                                        or bet.get("selection") or ""),
                     "cost": float(bet.get("購入額")
                                     or bet.get("amount") or 0),
-                    "profit": profit,
+                    # profit=None は決済不能 (払戻データ未取込)。集計から除外する
+                    "profit": 0.0 if profit is None else profit,
                     "is_win": is_win,
+                    "unsettled": profit is None,
                 })
     return rows
 
@@ -2557,6 +2562,27 @@ def render_cowork_pl_chart() -> None:
         return
 
     df = pd.DataFrame(rows).sort_values("date")
+    # 決済不能 bet (wide_kekka.csv 未取込のワイド等) は投資・収支・的中率の
+    # 全集計から除外し、件数を注記する (全敗扱いで P/L を歪めるより誠実)。
+    if "unsettled" in df.columns:
+        df_unset = df[df["unsettled"]]
+        df = df[~df["unsettled"]]
+    else:
+        df_unset = df.iloc[0:0]
+    n_unsettled = int(len(df_unset))
+    unsettled_cost = float(df_unset["cost"].sum()) if n_unsettled else 0.0
+    if n_unsettled:
+        ui.html(f"""
+        <div style="background:#2a1e1e;border-left:3px solid #f9e2af;
+                    padding:10px 16px;border-radius:8px;color:#f9e2af;
+                    font-size:13px;margin-bottom:10px">
+          ⚠ ワイド {n_unsettled} 件 (¥{unsettled_cost:,.0f}) は払戻データ
+          (data/kekka/wide_kekka.csv) 未取込のため集計外。
+          wide_kekka.csv を最新化すると自動で集計に入ります。
+        </div>
+        """)
+    if df.empty:
+        return
     daily = df.groupby("date").agg(
         cost=("cost", "sum"),
         profit=("profit", "sum"),
