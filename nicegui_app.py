@@ -556,37 +556,68 @@ def load_training_all() -> tuple[pd.DataFrame | None, pd.DataFrame | None]:
     return h_all, w_all
 
 
+@functools.lru_cache(maxsize=1)
+def _training_name_index() -> tuple[dict, dict]:
+    """馬名 → 年月日昇順の調教レコード配列、のインデックス。
+
+    ★性能 (2026-06-12): 旧 _latest_training は馬名ごとに H 全行 (数百万行) を
+    boolean スキャンしており、1 レース描画で 16 頭 × 2 種 = 30〜60 秒
+    イベントループを塞いでいた (タブ切替が死ぬ実害)。groupby で 1 回だけ
+    インデックス化し、以降は dict lookup O(1) にする。
+    返り値: (h_idx, w_idx)
+      h_idx[馬名] = [(年月日, Time1, Lap1), ...] 昇順
+      w_idx[馬名] = [(年月日, 5F, 3F), ...] 昇順
+    """
+    h_all, w_all = load_training_all()
+    h_idx: dict = {}
+    w_idx: dict = {}
+    if h_all is not None and {"馬名", "年月日"}.issubset(h_all.columns):
+        d = h_all.dropna(subset=["年月日"]).sort_values("年月日")
+        names = d["馬名"].astype(str).str.strip()
+        for nm, g in d.groupby(names, sort=False):
+            h_idx[nm] = list(zip(
+                g["年月日"].astype(int).tolist(),
+                pd.to_numeric(g.get("Time1"), errors="coerce").tolist(),
+                pd.to_numeric(g.get("Lap1"), errors="coerce").tolist(),
+            ))
+    if w_all is not None and {"馬名", "年月日"}.issubset(w_all.columns):
+        d = w_all.dropna(subset=["年月日"]).sort_values("年月日")
+        names = d["馬名"].astype(str).str.strip()
+        for nm, g in d.groupby(names, sort=False):
+            w_idx[nm] = list(zip(
+                g["年月日"].astype(int).tolist(),
+                pd.to_numeric(g.get("5F"), errors="coerce").tolist(),
+                pd.to_numeric(g.get("3F"), errors="coerce").tolist(),
+            ))
+    return h_idx, w_idx
+
+
 def _latest_training(name: str, race_date_int: int) -> dict[str, float | None]:
-    """1 頭の最新調教 (race 日以前) を取得。Streamlit の _attach_latest_training と同じ。"""
+    """1 頭の最新調教 (race 日以前) を取得。Streamlit の _attach_latest_training と同じ。
+    実装は _training_name_index の dict lookup (旧フルスキャンは性能事故のため廃止)。"""
     out: dict[str, float | None] = {
         "trn_hanro_lap1": None, "trn_hanro_time1": None,
         "trn_wc_3f": None, "trn_wc_5f": None,
     }
     if not name:
         return out
-    h_all, w_all = load_training_all()
-    if h_all is not None:
-        sub = h_all[(h_all["馬名"] == name) &
-                     (h_all["年月日"] < race_date_int)]
-        if not sub.empty:
-            latest = sub.sort_values("年月日").iloc[-1]
-            t1 = latest.get("Time1")
-            l1 = latest.get("Lap1")
-            if pd.notna(t1):
+    h_idx, w_idx = _training_name_index()
+    for rec in reversed(h_idx.get(name, [])):
+        if rec[0] < race_date_int:
+            t1, l1 = rec[1], rec[2]
+            if t1 == t1 and t1 is not None:   # NaN ガード
                 out["trn_hanro_time1"] = float(t1)
-            if pd.notna(l1):
+            if l1 == l1 and l1 is not None:
                 out["trn_hanro_lap1"] = float(l1)
-    if w_all is not None:
-        sub = w_all[(w_all["馬名"] == name) &
-                     (w_all["年月日"] < race_date_int)]
-        if not sub.empty:
-            latest = sub.sort_values("年月日").iloc[-1]
-            f5 = latest.get("5F")
-            f3 = latest.get("3F")
-            if pd.notna(f5):
+            break
+    for rec in reversed(w_idx.get(name, [])):
+        if rec[0] < race_date_int:
+            f5, f3 = rec[1], rec[2]
+            if f5 == f5 and f5 is not None:
                 out["trn_wc_5f"] = float(f5)
-            if pd.notna(f3):
+            if f3 == f3 and f3 is not None:
                 out["trn_wc_3f"] = float(f3)
+            break
     return out
 
 
@@ -2956,6 +2987,25 @@ def render_training_top5(date_str: str | None) -> None:
     """)
 
 
+@functools.lru_cache(maxsize=4)
+def _training_window_cached(cutoff_int: int, race_int: int):
+    """調教マスターの「日付窓」抽出 (日付キーで lru)。
+    同じ週末の全レースで共有されるので、レース切替ごとの数百万行 mask を回避。"""
+    h_all, w_all = load_training_all()
+
+    def _window(df):
+        if df is None or "馬名" not in df.columns or "年月日" not in df.columns:
+            return None
+        d = df[(df["年月日"] >= cutoff_int) & (df["年月日"] < race_int)]
+        if d.empty:
+            return None
+        d = d.copy()
+        d["_nm"] = d["馬名"].astype(str).str.strip()
+        return d
+
+    return _window(h_all), _window(w_all)
+
+
 def render_training_tab(race: dict, date_str: str | None = None) -> None:
     """⏱ 調教タブ (2026-06-12 ユーザー要望): 馬番/印/馬名/日付/コース/タイム/AI評価。
 
@@ -2990,22 +3040,8 @@ def render_training_tab(race: dict, date_str: str | None = None) -> None:
 
     # ★性能: マスターは数百万行。馬ごとに全行 .str 比較すると 16頭×2種で
     # 分単位ブロックする (2026-06-12 に実際にイベントループが固まった)。
-    # 先に「14日窓 × 出走馬」へ 1 回で絞り、以降は小さな DF だけ触る。
-    names_set = {(h.get("horse_name") or "").strip() for h in horses}
-
-    def _window(df):
-        if df is None or "馬名" not in df.columns or "年月日" not in df.columns:
-            return None
-        d = df[(df["年月日"] >= cutoff_int) & (df["年月日"] < race_int)]
-        if d.empty:
-            return None
-        d = d.copy()
-        d["_nm"] = d["馬名"].astype(str).str.strip()
-        d = d[d["_nm"].isin(names_set)]
-        return d if not d.empty else None
-
-    h_win = _window(h_all)
-    w_win = _window(w_all)
+    # 「14日窓」は日付キーで lru キャッシュ (レース切替ごとの全行 mask も回避)。
+    h_win, w_win = _training_window_cached(cutoff_int, race_int)
 
     def _latest(dwin, name):
         if dwin is None:
