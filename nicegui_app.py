@@ -105,6 +105,7 @@ import pandas as pd
 from nicegui import ui, run
 
 import betting_judgment as bj  # 買い方判定 (堅さ×妙味→買い方) の共有ロジック
+from umami import umami_for_horse  # UMAMI(馬味)=実測補正後の期待回収率 + 来ない馬ゲート
 
 try:
     from assistant import chat as soudan  # 対話相談AI (ローカル Ollama)
@@ -1977,11 +1978,12 @@ def _verdict_html(verdict: tuple[str, str, str]) -> str:
 
 def _buy_judgment_html(race: dict) -> str:
     """買い方判定 (堅さ × 妙味馬の有無 → 買い方) バッジ + 妙味馬リスト。
-    総合判定 4 指標パネルの「下」に置く。bundle に buy_judgment があれば読み、
-    無ければ betting_judgment で計算 (旧 bundle 互換)。"""
-    j = race.get("buy_judgment")
-    if not j:
-        j = bj.build_judgment(race.get("race_confidence"), race.get("horses"))
+    総合判定 4 指標パネルの「下」に置く。
+
+    2026-06-12: bundle 埋込値でなく常にライブ計算に変更。bundle の旧スキーマには
+    UMAMI ゲート (来ない馬除外) 前の妙味馬リストが入っており、罠馬 (例: 単勝107倍
+    EV7.31) が筆頭表示される問題があった。表示は常に最新ロジックで。"""
+    j = bj.build_judgment(race.get("race_confidence"), race.get("horses"))
 
     color = _CAT_COLOR.get(j.get("category"), "#9399b2")
     headline = j.get("headline", "-")
@@ -2002,17 +2004,25 @@ def _buy_judgment_html(race: dict) -> str:
         for v in vhs:
             sides = v.get("sides") or []
             side_pills = ""
+            # UMAMI (補正後期待回収率) を主表示に。生 EV は参考の小書き
+            # (生 EV の大きさは「美味しさ」でなく「市場との喧嘩度」で罠だった)
             if v.get("tan_value"):
+                ut = v.get("umami_tan")
+                main = f"UMAMI {ut:.2f}" if ut is not None else f"EV{v.get('ev_tan', 0):.2f}"
                 side_pills += (
                     f'<span style="background:{_CAT_COLOR["go"]};color:#11111b;'
                     f'padding:1px 7px;border-radius:8px;font-size:11px;font-weight:bold;'
-                    f'margin-right:4px">単勝割安 EV{v.get("ev_tan",0):.2f}</span>'
+                    f'margin-right:4px">単勝 {main}'
+                    f'<span style="opacity:.65;font-weight:normal"> (EV{v.get("ev_tan",0):.2f})</span></span>'
                 )
             if v.get("fuku_value"):
+                uf = v.get("umami_fuku")
+                main = f"UMAMI {uf:.2f}" if uf is not None else f"EV{v.get('ev_fuku', 0):.2f}"
                 side_pills += (
                     f'<span style="background:{_CAT_COLOR["go"]};color:#11111b;'
                     f'padding:1px 7px;border-radius:8px;font-size:11px;font-weight:bold;'
-                    f'margin-right:4px">複勝割安 EV{v.get("ev_fuku",0):.2f}</span>'
+                    f'margin-right:4px">複勝 {main}'
+                    f'<span style="opacity:.65;font-weight:normal"> (EV{v.get("ev_fuku",0):.2f})</span></span>'
                 )
             rows.append(f"""
             <div style="display:flex;align-items:center;gap:8px;padding:5px 0;
@@ -4098,6 +4108,71 @@ def main_page():
         with bunseki_box:
             horses_sorted = sorted(race.get("horses", []),
                                     key=lambda h: -(h.get("p_win") or 0))
+
+            # ── 🍣 全頭 UMAMI テーブル (このサイトだけで馬を選べる意思決定表) ──
+            ui.label("🍣 全頭 UMAMI テーブル").classes(
+                "text-xl font-bold mt-2 mb-1")
+            ui.label(
+                "UMAMI = 同条件 (EV帯×オッズ帯) の馬券が test 2024-25 で実際に"
+                "回収した率。1.00=損益分岐 / 0.80=控除率中立。"
+                "「明らかに来ない馬」(勝率/複勝率の足切り・単勝50倍超) は判定=罠。"
+                "列クリックでソート。"
+            ).classes("text-sm text-slate-400 mb-2")
+            JUDGE_DISP = {"S": "🟢 S 美味", "A": "🟡 A 控除率超え圏",
+                          "B": "⚪ B 平凡", "C": "⚫ C 不味", "罠": "🚫 罠"}
+            t_rows = []
+            for h in race.get("horses", []):
+                um = umami_for_horse(h)
+                ut, uf = um["tan"], um["fuku"]
+                # 判定 = 単勝/複勝の良い方 (両方 gated なら罠)
+                if ut["gated"] and uf["gated"]:
+                    judge, j_order = "罠", -1
+                else:
+                    grades = [g["grade"] for g in (ut, uf) if not g["gated"]]
+                    order = {"S": 3, "A": 2, "B": 1, "C": 0}
+                    best = max(grades, key=lambda g: order.get(g, 0))
+                    judge, j_order = best, order.get(best, 0)
+                gate_note = ut["gate_reason"] if ut["gated"] else (
+                    uf["gate_reason"] if uf["gated"] else "")
+                t_rows.append({
+                    "mark": h.get("mark") or "",
+                    "umaban": int(h.get("umaban") or 0),
+                    "name": h.get("horse_name", "?"),
+                    "odds": h.get("tansho_odds"),
+                    "p_win": round((h.get("p_win") or 0) * 100, 1),
+                    "p_sho": round((h.get("p_sho") or 0) * 100, 1),
+                    "umami_tan": ut["xroi"],
+                    "umami_fuku": uf["xroi"],
+                    "judge": JUDGE_DISP.get(judge, judge),
+                    "j_order": j_order,
+                    "note": gate_note,
+                })
+            t_cols = [
+                {"name": "mark", "label": "印", "field": "mark", "align": "center"},
+                {"name": "umaban", "label": "番", "field": "umaban",
+                 "sortable": True, "align": "center"},
+                {"name": "name", "label": "馬名", "field": "name",
+                 "sortable": True, "align": "left"},
+                {"name": "odds", "label": "単勝", "field": "odds",
+                 "sortable": True, "align": "right"},
+                {"name": "p_win", "label": "勝率%", "field": "p_win",
+                 "sortable": True, "align": "right"},
+                {"name": "p_sho", "label": "複勝率%", "field": "p_sho",
+                 "sortable": True, "align": "right"},
+                {"name": "umami_tan", "label": "UMAMI単", "field": "umami_tan",
+                 "sortable": True, "align": "right"},
+                {"name": "umami_fuku", "label": "UMAMI複", "field": "umami_fuku",
+                 "sortable": True, "align": "right"},
+                {"name": "judge", "label": "判定", "field": "judge",
+                 "sortable": True, "align": "left"},
+                {"name": "note", "label": "ゲート理由", "field": "note",
+                 "align": "left"},
+            ]
+            ui.table(columns=t_cols, rows=t_rows, row_key="umaban") \
+                .props('dense flat dark wrap-cells '
+                       ':pagination="{rowsPerPage: 0, sortBy: \'umami_fuku\', descending: true}"') \
+                .classes("w-full mb-4")
+
             ui.label("📍 全頭ポジショニング (AI vs 市場)").classes(
                 "text-xl font-bold mt-2 mb-1")
             ui.label("対角線より上 = AI 高評価。下 = AI 低評価。" +

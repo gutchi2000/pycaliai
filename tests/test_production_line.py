@@ -178,3 +178,55 @@ class TestBetCis:
         # 全 bet 不的中 → ROI 0% で CI 上限が 80 未満
         out = _bet_cis(self._settled(50, 10**9))
         assert out["roi_verdict"] == "below_takeout"
+
+
+# ============================================================
+# umami: 美味しさスコア (補正後期待回収率 + 来ない馬ゲート)
+# ============================================================
+from umami import umami
+
+
+class TestUmami:
+    def test_longshot_is_trap(self):
+        """例の EV7.31 大穴 (107倍): 生EVが最大でも罠判定でゲート。"""
+        u = umami("tansho", 0.068, 107.5)
+        assert u["gated"] and u["grade"] == "罠"
+        assert "大穴帯" in u["gate_reason"]
+
+    def test_low_psho_is_trap(self):
+        u = umami("fukusho", 0.05, 3.0, tansho_odds=40)
+        assert u["gated"] and "来る見込み薄" in u["gate_reason"]
+
+    def test_mid_odds_value_passes(self):
+        u = umami("tansho", 0.25, 5.0)
+        assert not u["gated"]
+        assert u["xroi"] is not None and 0.5 < u["xroi"] < 1.2
+
+    def test_xroi_not_monotone_in_ev(self):
+        """生EVが大きいほど xroi が高い、にはならない (EV逆転の織込み確認)。"""
+        low_ev = umami("tansho", 0.30, 4.0)    # EV 1.2 中人気
+        high_ev = umami("tansho", 0.06, 45.0)  # EV 2.7 大穴ぎりぎり
+        assert low_ev["xroi"] >= high_ev["xroi"]
+
+    def test_missing_inputs_gated(self):
+        assert umami("tansho", None, None)["gated"]
+
+
+class TestValueHorsesUmamiGate:
+    def test_trap_horse_excluded(self):
+        """生EVが巨大でも罠馬 (大穴) は妙味馬リストに入らない。"""
+        from betting_judgment import extract_value_horses
+        horses = [
+            {"umaban": 13, "horse_name": "罠馬", "p_win": 0.068,
+             "tansho_odds": 107.5, "p_sho": 0.206,
+             "fuku_odds_low": 15.0, "fuku_odds_high": 19.0,
+             "ai_vs_market": "under"},
+            {"umaban": 4, "horse_name": "妙味馬", "p_win": 0.25,
+             "tansho_odds": 5.0, "p_sho": 0.60,
+             "fuku_odds_low": 1.8, "fuku_odds_high": 2.2,
+             "ai_vs_market": "under"},
+        ]
+        out = extract_value_horses(horses)
+        names = [v["horse_name"] for v in out]
+        assert "妙味馬" in names
+        assert "罠馬" not in names

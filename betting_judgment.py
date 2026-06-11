@@ -116,9 +116,14 @@ def extract_value_horses(horses: list[dict]) -> list[dict]:
         - 単勝妙味=割安 または 複勝妙味=割安
         - 該当する方の EV >= VALUE_EV_MIN
         - 勝率 >= VALUE_PWIN_MIN (テール除外)
-    → EV 降順の list[dict]。各要素は umaban/horse_name/p_win/ev_tan/ev_fuku/
-      tan_value/fuku_value/sides を持つ。
+        - **UMAMI ゲートを通過** (2026-06-12 追加: 妙味があっても明らかに
+          来ない馬・実測最悪の大穴帯は候補から除外。umami.py 参照)
+    → UMAMI (補正後期待回収率) 降順の list[dict]。
+      生 EV 降順ソートは廃止: audit_ev_bin_roi で「高EVほど実現ROIが低い」が
+      実証済みのため、生 EV を「美味しさ」として並べるのは罠だった。
     """
+    from umami import umami_for_horse  # 遅延 import (循環回避 + stdlib方針維持)
+
     out = []
     for h in horses or []:
         p_win = h.get("p_win") or 0
@@ -134,8 +139,12 @@ def extract_value_horses(horses: list[dict]) -> list[dict]:
         # 複勝妙味: 同ロジックを p_sho vs 1/複勝中央値 で
         fuku_status = vs_market_status(h.get("p_sho"), fmid if fmid > 0 else None)
 
-        tan_value = (tan_status == "under" and ev_tan >= VALUE_EV_MIN)
-        fuku_value = (fuku_status == "under" and ev_fuku >= VALUE_EV_MIN)
+        um = umami_for_horse(h)
+        # UMAMI ゲート: gated の側は「妙味」として数えない
+        tan_value = (tan_status == "under" and ev_tan >= VALUE_EV_MIN
+                     and not um["tan"]["gated"])
+        fuku_value = (fuku_status == "under" and ev_fuku >= VALUE_EV_MIN
+                      and not um["fuku"]["gated"])
         if not (tan_value or fuku_value):
             continue
 
@@ -151,21 +160,24 @@ def extract_value_horses(horses: list[dict]) -> list[dict]:
             "p_win": round(float(p_win), 4),
             "ev_tan": round(float(ev_tan), 2),
             "ev_fuku": round(float(ev_fuku), 2),
+            "umami_tan": um["tan"]["xroi"],
+            "umami_fuku": um["fuku"]["xroi"],
+            "umami_grade": (um["tan"]["grade"] if tan_value else um["fuku"]["grade"]),
             "tan_value": tan_value,
             "fuku_value": fuku_value,
             "sides": sides,
         })
 
-    # 割安側のうち良い方の EV で降順ソート
-    def _best_ev(v):
+    # 有効な側のうち良い方の UMAMI (補正後期待回収率) で降順ソート
+    def _best_umami(v):
         cands = []
-        if v["tan_value"]:
-            cands.append(v["ev_tan"])
-        if v["fuku_value"]:
-            cands.append(v["ev_fuku"])
+        if v["tan_value"] and v["umami_tan"] is not None:
+            cands.append(v["umami_tan"])
+        if v["fuku_value"] and v["umami_fuku"] is not None:
+            cands.append(v["umami_fuku"])
         return max(cands) if cands else 0.0
 
-    out.sort(key=_best_ev, reverse=True)
+    out.sort(key=_best_umami, reverse=True)
     return out
 
 
