@@ -3140,11 +3140,10 @@ def render_training_tab(race: dict, date_str: str | None = None) -> None:
             "course": (f"{rec['place']}{rec['kind']}" if rec else "—"),
             "times": rec["times"] if rec else "—",
             "eval": f"{GRADE_ICON[grade]} {note}",
-            "_rank": h.get("ai_rank") or 99,
         })
-    rows.sort(key=lambda x: x["_rank"])
+    rows.sort(key=lambda x: x["umaban"])   # 馬番順 (ユーザー指定)
 
-    ui.label("⏱ 最終追切タイム (レース前14日以内の最新)").classes(
+    ui.label("⏱ 最終追切タイム (レース前14日以内の最新・馬番順)").classes(
         "text-xl font-bold mt-2 mb-1")
     ui.label(
         "タイム表記 — 坂路: 4F-3F-2F-1F (累計)。CW: 5F-4F-3F と終い1F。"
@@ -3164,8 +3163,11 @@ def render_training_tab(race: dict, date_str: str | None = None) -> None:
         {"name": "eval", "label": "AI評価", "field": "eval", "sortable": True,
          "align": "left"},
     ]
+    # dense を外し table-class で文字を大きく (小さすぎる、のフィードバック対応)
     ui.table(columns=cols, rows=rows, row_key="umaban") \
-        .props('dense flat dark wrap-cells :pagination="{rowsPerPage: 0}"') \
+        .props('flat dark wrap-cells table-class="text-base" '
+               'table-header-class="text-amber-200" '
+               ':pagination="{rowsPerPage: 0}"') \
         .classes("w-full")
 
 
@@ -3214,17 +3216,30 @@ def render_tenkai_corner(race: dict, date_str: str | None = None) -> None:
             continue
         p1 = pos1 if pos1 is not None else pos4
         p4 = pos4 if pos4 is not None else pos1
-        r1 = min(max(p1 / field_size, 0.02), 1.0)   # 0=先頭, 1=最後方
-        r4 = min(max(p4 / field_size, 0.02), 1.0)
-        r3 = r1 * (1 / 3) + r4 * (2 / 3)
-        placed.append({"h": h, "r": {"スタート後": r1, "3コーナー": r3,
-                                      "4コーナー": r4}})
+        # 「予測」らしさ: スタート後はテン位置をそのまま、4角に向けて
+        # 前走の位置取り変化 (p4-p1) を 1.6 倍に増幅して展開の動きを強調する
+        # (前走なぞりだけだと並びがほぼ変わらず予測に見えない、というフィードバック対応)
+        delta = (p4 - p1) * 1.6
+        v1 = p1
+        v4 = p1 + delta
+        v3 = p1 + delta * 0.55
+        placed.append({"h": h, "v": {"スタート後": v1, "3コーナー": v3,
+                                      "4コーナー": v4}})
+
+    # 芝/ダートで馬場の色を変える (course 文字列で判定)
+    course_str = str(meta.get("course", "") or "")
+    is_turf = "芝" in course_str and "ダ" not in course_str.split("芝")[0]
+    if "ダ" in course_str:
+        track_bg, track_bd, name_color = "#9c7a45", "#6e5630", "#f3e7c9"   # ダート=砂色
+    else:
+        track_bg, track_bd, name_color = "#3f7a44", "#2c5a30", "#eaf6e6"   # 芝=緑
+    surface_label = "芝" if is_turf or "芝" in course_str else "ダート"
 
     ui.label("🏇 AI展開予測 (コーナー別の想定隊列)").classes(
         "text-xl font-bold mt-2 mb-1")
     ui.label(
-        "前走の通過順位から推定した各馬の位置。右が先頭。"
-        "スタート後 → 4コーナーの並び変化で「どこから競馬をする馬か」が分かる。"
+        f"馬場: {surface_label} ({esc(course_str)})。前走の通過順位とその変化から"
+        "推定。各段はそのフェーズの想定順位で等間隔に並べている (右が先頭)。"
         "印の色 = ◎赤 / 〇青 / ▲緑 / △橙。"
     ).classes("text-sm text-slate-400 mb-2")
 
@@ -3233,40 +3248,48 @@ def render_tenkai_corner(race: dict, date_str: str | None = None) -> None:
             "text-slate-500 text-sm mb-3")
         return
 
+    n = len(placed)
     for phase in ["スタート後", "3コーナー", "4コーナー"]:
         chips = []
-        # 前にいる順に並べ、縦4段ローテーションで重なり回避
-        order = sorted(placed, key=lambda x: x["r"][phase])
+        # そのフェーズの値で順位付けし、等間隔配置 (中央への団子を防ぎ、
+        # フェーズ間の「順位の入れ替わり」= 展開が見えるようにする)
+        order = sorted(placed, key=lambda x: x["v"][phase])
         for i, item in enumerate(order):
             h = item["h"]
-            r = item["r"][phase]
+            rank_pos = i / max(n - 1, 1)        # 0=先頭, 1=最後方
             mark = h.get("mark") or ""
             color = MARK_COLORS.get(mark, "#6c7086")
-            left = 4 + (1.0 - r) * 88           # 右=先頭
-            top = 6 + (i % 4) * 27
+            left = 5 + (1.0 - rank_pos) * 88    # 右=先頭
+            top = 8 + (i % 3) * 40              # 3 段×40px (名前と次の丸の被り防止)
             name4 = esc(str(h.get("horse_name", ""))[:4])
             chips.append(f"""
             <div style="position:absolute;left:{left:.1f}%;top:{top}px;
-                        text-align:center;width:46px;margin-left:-23px">
-              <div style="width:24px;height:24px;border-radius:50%;margin:0 auto;
+                        text-align:center;width:52px;margin-left:-26px">
+              <div style="width:26px;height:26px;border-radius:50%;margin:0 auto;
                           background:{color};color:#fff;font-weight:bold;
-                          font-size:12px;line-height:24px;
-                          border:2px solid rgba(255,255,255,.55)">{h.get("umaban","")}</div>
-              <div style="color:#e6d9b8;font-size:9px;white-space:nowrap;
-                          overflow:hidden;text-overflow:ellipsis">{name4}</div>
+                          font-size:13px;line-height:26px;
+                          border:2px solid rgba(255,255,255,.6)">{h.get("umaban","")}</div>
+              <div style="color:{name_color};font-size:10px;font-weight:bold;
+                          white-space:nowrap;overflow:hidden;
+                          text-shadow:0 1px 2px rgba(0,0,0,.7)">{name4}</div>
             </div>""")
+        # 進行方向の大型ラベルはスタート後の段だけ (フィードバック対応)
+        direction = ""
+        if phase == "スタート後":
+            direction = ('<div style="position:absolute;right:10px;top:6px;'
+                         'color:rgba(255,255,255,.85);font-size:17px;font-weight:bold;'
+                         'text-shadow:0 1px 3px rgba(0,0,0,.6);pointer-events:none">'
+                         '→→ 進行方向 (右が先頭)</div>')
         ui.html(f"""
         <div style="margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="background:#1e1e2e;color:#f9e2af;padding:2px 12px;
-                         border-radius:10px;font-size:12px;font-weight:bold">{phase}</span>
-            <span style="color:#6c7086;font-size:10px">→ 進行方向 (右が先頭)</span>
-          </div>
-          <div style="position:relative;height:122px;border-radius:8px;margin-top:4px;
-                      background:#9c7a45;border:1px solid #6e5630;overflow:hidden">
+          <span style="background:#1e1e2e;color:#f9e2af;padding:2px 14px;
+                       border-radius:10px;font-size:13px;font-weight:bold">{phase}</span>
+          <div style="position:relative;height:138px;border-radius:8px;margin-top:4px;
+                      background:{track_bg};border:1px solid {track_bd};overflow:hidden">
             <div style="position:absolute;inset:0;background:
                  repeating-linear-gradient(90deg,transparent,transparent 60px,
                  rgba(255,255,255,.07) 60px,rgba(255,255,255,.07) 61px)"></div>
+            {direction}
             {''.join(chips)}
           </div>
         </div>""")
@@ -3777,19 +3800,20 @@ def race_scatter_option(horses: list) -> dict:
     """
     data = []
     for h in horses:
-        p_win = (h.get("p_win") or 0) * 100
+        # 対数軸のため 0 は下限 0.4% に clamp (左下の団子を広げて潰れを解消)
+        p_win = max((h.get("p_win") or 0) * 100, 0.4)
         tan = h.get("tansho_odds") or 0
-        market = (1 / tan) * 100 if tan else 0
+        market = max((1 / tan) * 100 if tan else 0, 0.4)
         mark = h.get("mark") or ""
         name = h.get("horse_name", "")
         # 乖離方向で色分け (±20% バンドは betting_judgment と同じ)
-        if market > 0 and p_win >= market * 1.2:
+        if market > 0.4 and p_win >= market * 1.2:
             color, zone = "#a6e3a1", "AIが市場より強気 (妙味候補)"
-        elif market > 0 and p_win <= market * 0.8:
+        elif market > 0.4 and p_win <= market * 0.8:
             color, zone = "#f38ba8", "市場が過熱 (AIは懐疑的)"
         else:
             color, zone = "#9399b2", "AIと市場がほぼ一致"
-        size = 24 if mark == "◎" else 20 if mark == "〇" else 16 if mark == "▲" else 11
+        size = 26 if mark == "◎" else 22 if mark == "〇" else 18 if mark == "▲" else 13
         data.append({
             "value": [round(market, 2), round(p_win, 2)],
             "name": name, "symbol": "circle", "symbolSize": size,
@@ -3799,27 +3823,29 @@ def race_scatter_option(horses: list) -> dict:
             "label": {"show": True,
                        "position": "top" if mark in ["◎", "〇", "▲"] else "right",
                        "color": "#cdd6f4",
-                       "fontSize": 12 if mark in ["◎", "〇", "▲"] else 10,
+                       "fontSize": 12 if mark in ["◎", "〇", "▲"] else 11,
                        "formatter": (mark + " " + name) if mark else name},
             "_zone": zone, "_odds": tan,
         })
-    max_val = max((d["value"][0] for d in data), default=50) * 1.15
-    max_val = max(max_val, max((d["value"][1] for d in data), default=50) * 1.15)
+    lo = 0.35
+    max_val = max(max((d["value"][0] for d in data), default=50),
+                  max((d["value"][1] for d in data), default=50)) * 1.3
     return {
         "title": {"text": "AIと市場の意見の違い",
                    "subtext": "対角線の上 = AIのほうが勝てると見ている馬 (緑=妙味候補)。"
-                              "下 = 人気ほどAIは評価していない馬 (赤)。線上 = 意見一致。",
+                              "下 = 人気ほどAIは評価していない馬 (赤)。線上 = 意見一致。"
+                              "※両軸は対数スケール (人気薄ゾーンを拡大表示)",
                    "textStyle": {"color": "#cdd6f4", "fontSize": 16},
                    "subtextStyle": {"color": "#a6adc8", "fontSize": 12},
                    "left": "center"},
-        "xAxis": {"name": "市場の評価 (単勝オッズを勝率%に換算)",
-                   "type": "value", "min": 0, "max": round(max_val, 1),
+        "xAxis": {"name": "市場の評価 (単勝オッズを勝率%に換算・対数)",
+                   "type": "log", "min": lo, "max": round(max_val, 1),
                    "splitLine": {"lineStyle": {"color": "#313244"}},
                    "axisLabel": {"color": "#a6adc8", "formatter": "{value}%"},
                    "nameTextStyle": {"color": "#cdd6f4", "fontSize": 13},
                    "nameLocation": "middle", "nameGap": 35},
-        "yAxis": {"name": "AIの予想勝率",
-                   "type": "value", "min": 0, "max": round(max_val, 1),
+        "yAxis": {"name": "AIの予想勝率 (対数)",
+                   "type": "log", "min": lo, "max": round(max_val, 1),
                    "splitLine": {"lineStyle": {"color": "#313244"}},
                    "axisLabel": {"color": "#a6adc8", "formatter": "{value}%"},
                    "nameTextStyle": {"color": "#cdd6f4", "fontSize": 13},
@@ -3827,19 +3853,21 @@ def race_scatter_option(horses: list) -> dict:
         "tooltip": {"trigger": "item", "backgroundColor": "#1e1e2e",
                      "borderColor": "#313244", "textStyle": {"color": "#cdd6f4"}},
         "series": [
-            {"type": "scatter", "data": data, "z": 2},
-            {"type": "line", "data": [[0, 0], [max_val, max_val]],
+            {"type": "scatter", "data": data, "z": 2,
+             # ラベルの重なりを自動で縦にずらす (潰れて読めない対策)
+             "labelLayout": {"hideOverlap": False, "moveOverlap": "shiftY"}},
+            {"type": "line", "data": [[lo, lo], [max_val, max_val]],
              "lineStyle": {"type": "dashed", "color": "#7f849c", "width": 1.5},
              "symbol": "none", "tooltip": {"show": False}, "z": 1, "silent": True,
              "label": {"show": False},
              "markPoint": {"data": [
-                 {"coord": [max_val * 0.86, max_val * 0.86], "symbol": "rect",
+                 {"coord": [max_val * 0.6, max_val * 0.6], "symbol": "rect",
                   "symbolSize": 1,
                   "label": {"show": True, "formatter": "← この線上＝AIと市場が同意見",
                              "color": "#7f849c", "fontSize": 11,
                              "position": "insideEndTop"}}]}},
         ],
-        "grid": {"left": 70, "right": 30, "top": 80, "bottom": 60},
+        "grid": {"left": 70, "right": 40, "top": 80, "bottom": 60},
         "backgroundColor": "transparent",
     }
 
