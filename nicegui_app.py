@@ -3188,35 +3188,46 @@ def render_tenkai_corner(race: dict, date_str: str | None = None) -> None:
     weekly_df = load_weekly_horses(date_str) if date_str else None
     rid_16 = str(race.get("race_id", ""))[:16]
 
-    placed, missing = [], []
+    def _f(row, col):
+        if col in row.index and pd.notna(row[col]):
+            try:
+                return float(row[col])
+            except (TypeError, ValueError):
+                return None
+        return None
+
+    placed, missing, fallback_notes = [], [], []
     for h in horses:
         umaban = h.get("umaban")
         pos1 = pos4 = None
+        src = ""
         if weekly_df is not None and umaban is not None:
             sub = weekly_df[(weekly_df["race_id_16"] == rid_16) &
                               (weekly_df["馬番"] == int(umaban))]
             if not sub.empty:
                 row = sub.iloc[0]
-                for c in ["前1角", "前走通過1"]:
-                    if c in row.index and pd.notna(row[c]):
-                        try:
-                            pos1 = float(row[c])
-                        except (TypeError, ValueError):
-                            pass
-                        break
-                for c in ["前4角", "前走通過4"]:
-                    if c in row.index and pd.notna(row[c]):
-                        try:
-                            pos4 = float(row[c])
-                        except (TypeError, ValueError):
-                            pass
+                # フォールバックチェーン: 前走 → 前々走 → 3走前 (週次99列形式は
+                # 二走前/三走前の通過順位も持っている。海外・地方前走で前走の
+                # 通過が無い馬も、より前の国内戦から脚質を推定する)
+                chains = [
+                    (["前1角", "前走通過1"], ["前4角", "前走通過4"], ""),
+                    (["二走前通過1"], ["二走前通過4"], "前々走"),
+                    (["三走前通過1"], ["三走前通過4"], "3走前"),
+                ]
+                for c1s, c4s, label in chains:
+                    p1v = next((v for c in c1s if (v := _f(row, c)) is not None), None)
+                    p4v = next((v for c in c4s if (v := _f(row, c)) is not None), None)
+                    if p1v is not None or p4v is not None:
+                        pos1, pos4, src = p1v, p4v, label
                         break
         if pos1 is None and pos4 is None:
             missing.append(h)
             continue
+        if src:
+            fallback_notes.append(f"{umaban} {str(h.get('horse_name',''))[:6]}({src})")
         p1 = pos1 if pos1 is not None else pos4
         p4 = pos4 if pos4 is not None else pos1
-        # 前走の位置取り変化 (テン→4角) を 1.6 倍に増幅して展開を予測
+        # 位置取り変化 (テン→4角) を 1.6 倍に増幅して展開を予測
         delta = (p4 - p1) * 1.6
         placed.append({"h": h, "v": {"スタート後": p1,
                                       "3コーナー": p1 + delta * 0.55,
@@ -3242,27 +3253,43 @@ def render_tenkai_corner(race: dict, date_str: str | None = None) -> None:
     PHASES = ["スタート後", "3コーナー", "4コーナー"]
     n = len(placed)
 
-    # フェーズごとの順位 (0=先頭) と値レンジを事前計算
+    # フェーズごとの順位 (≫マーク用) と「集団形成レイアウト」座標を事前計算
+    # netkeiba 方式: x = 実際の予測位置 (連続値)。位置が近い馬は「同じ集団」と
+    # みなして縦に積む (縦は馬番順 = 内枠が上)。これで「逃げ馬がポツンと前、
+    # 好位に塊、後方バラけ」というレースの隊形が再現される。
     ranks: dict[str, dict] = {}
-    vrange: dict[str, tuple] = {}
+    coords: dict[str, dict] = {}
+    CLUSTER_GAP = 0.055     # 正規化位置でこの差以内なら同じ集団
     for ph in PHASES:
         order = sorted(placed, key=lambda x: x["v"][ph])
         ranks[ph] = {id(item): i for i, item in enumerate(order)}
         vals = [it["v"][ph] for it in placed]
-        vrange[ph] = (min(vals), max(vals))
+        vmin, vmax = min(vals), max(vals)
+        span = (vmax - vmin) or 1.0
+        # 正規化位置 (0=先頭, 1=最後方) で昇順に走査し、近い馬をクラスタ化
+        # (key 指定必須: x 同値の馬がいるとタプル比較が dict 比較に落ちて TypeError)
+        norm = sorted((((it["v"][ph] - vmin) / span, it) for it in placed),
+                      key=lambda t: t[0])
+        clusters: list[list] = []
+        for x, it in norm:
+            if clusters and x - clusters[-1][-1][0] <= CLUSTER_GAP:
+                clusters[-1].append((x, it))
+            else:
+                clusters.append([(x, it)])
+        coords[ph] = {}
+        for cl in clusters:
+            cx = sum(x for x, _ in cl) / len(cl)          # 集団の代表位置
+            members = sorted((it for _, it in cl),
+                             key=lambda it: int(it["h"].get("umaban") or 99))
+            for tier, it in enumerate(members):
+                col_shift = (tier // 4) * 0.035           # 5頭以上の塊は半列ずらす
+                x_pos = min(cx + col_shift, 1.0)
+                left = 5 + (1.0 - x_pos) * 86             # 右=先頭
+                top = 12 + (tier % 4) * 44
+                coords[ph][id(it)] = (left, top)
 
     def _pos(item, ph):
-        # 順位 60% + 実位置 40% のハイブリッド配置:
-        #   順位だけだと「順位が入れ替わらないレースで馬が一切動かない」
-        #   実位置だけだと中央に団子になる — 両方の弱点を相殺する
-        i = ranks[ph][id(item)]
-        rank_pos = i / max(n - 1, 1)
-        vmin, vmax = vrange[ph]
-        val_pos = ((item["v"][ph] - vmin) / (vmax - vmin)) if vmax > vmin else 0.5
-        blend = 0.6 * rank_pos + 0.4 * val_pos      # 0=先頭, 1=最後方
-        left = 5 + (1.0 - blend) * 86               # 右=先頭
-        top = 14 + (i % 3) * 44
-        return left, top
+        return coords[ph][id(item)]
 
     def _chip_html(item, ph) -> str:
         """チップ内容 (馬シルエット + 番号 + 名前 + 加速/失速マーク)。"""
@@ -3338,7 +3365,7 @@ def render_tenkai_corner(race: dict, date_str: str | None = None) -> None:
         ui.html('<span style="color:#f9e2af;font-size:17px;font-weight:bold">'
                 '→→ 進行方向 (右が先頭)</span>')
     track = ui.element("div").classes("w-full").style(
-        f"position:relative;height:158px;border-radius:10px;overflow:hidden;"
+        f"position:relative;height:212px;border-radius:10px;overflow:hidden;"
         f"background:{track_bg};border:1px solid {track_bd}")
     with track:
         ui.html(f"""
@@ -3377,10 +3404,14 @@ def render_tenkai_corner(race: dict, date_str: str | None = None) -> None:
 
     render_buttons()
 
+    if fallback_notes:
+        ui.label("※ 前走に通過データが無いため過去走から推定: "
+                 + "、".join(esc(s) for s in fallback_notes)).classes(
+            "text-xs text-slate-400 mt-1")
     if missing:
         names = "、".join(f"{m.get('umaban','?')} {esc(str(m.get('horse_name',''))[:8])}"
                            for m in missing)
-        ui.label(f"※ 通過順位データなし (位置不明): {names}").classes(
+        ui.label(f"※ 3走前まで遡っても通過データなし (位置不明): {names}").classes(
             "text-xs text-slate-500 mb-3")
 
 
