@@ -3216,83 +3216,166 @@ def render_tenkai_corner(race: dict, date_str: str | None = None) -> None:
             continue
         p1 = pos1 if pos1 is not None else pos4
         p4 = pos4 if pos4 is not None else pos1
-        # 「予測」らしさ: スタート後はテン位置をそのまま、4角に向けて
-        # 前走の位置取り変化 (p4-p1) を 1.6 倍に増幅して展開の動きを強調する
-        # (前走なぞりだけだと並びがほぼ変わらず予測に見えない、というフィードバック対応)
+        # 前走の位置取り変化 (テン→4角) を 1.6 倍に増幅して展開を予測
         delta = (p4 - p1) * 1.6
-        v1 = p1
-        v4 = p1 + delta
-        v3 = p1 + delta * 0.55
-        placed.append({"h": h, "v": {"スタート後": v1, "3コーナー": v3,
-                                      "4コーナー": v4}})
+        placed.append({"h": h, "v": {"スタート後": p1,
+                                      "3コーナー": p1 + delta * 0.55,
+                                      "4コーナー": p1 + delta}})
 
     # 芝/ダートで馬場の色を変える (course 文字列で判定)
     course_str = str(meta.get("course", "") or "")
-    is_turf = "芝" in course_str and "ダ" not in course_str.split("芝")[0]
     if "ダ" in course_str:
-        track_bg, track_bd, name_color = "#9c7a45", "#6e5630", "#f3e7c9"   # ダート=砂色
+        track_bg, track_bd, name_color = "#9c7a45", "#6e5630", "#f7eed6"   # ダート=砂色
+        surface_label = "ダート"
     else:
-        track_bg, track_bd, name_color = "#3f7a44", "#2c5a30", "#eaf6e6"   # 芝=緑
-    surface_label = "芝" if is_turf or "芝" in course_str else "ダート"
+        track_bg, track_bd, name_color = "#4d8a4f", "#36673a", "#f0fae9"   # 芝=緑
+        surface_label = "芝"
 
-    ui.label("🏇 AI展開予測 (コーナー別の想定隊列)").classes(
+    ui.label("🏇 AI展開予測 (コーナーを切り替えると馬が動きます)").classes(
         "text-xl font-bold mt-2 mb-1")
-    ui.label(
-        f"馬場: {surface_label} ({esc(course_str)})。前走の通過順位とその変化から"
-        "推定。各段はそのフェーズの想定順位で等間隔に並べている (右が先頭)。"
-        "印の色 = ◎赤 / 〇青 / ▲緑 / △橙。"
-    ).classes("text-sm text-slate-400 mb-2")
 
     if not placed:
         ui.label("通過順位データのある馬がいません (新馬戦など)").classes(
             "text-slate-500 text-sm mb-3")
         return
 
+    PHASES = ["スタート後", "3コーナー", "4コーナー"]
     n = len(placed)
-    for phase in ["スタート後", "3コーナー", "4コーナー"]:
-        chips = []
-        # そのフェーズの値で順位付けし、等間隔配置 (中央への団子を防ぎ、
-        # フェーズ間の「順位の入れ替わり」= 展開が見えるようにする)
-        order = sorted(placed, key=lambda x: x["v"][phase])
-        for i, item in enumerate(order):
-            h = item["h"]
-            rank_pos = i / max(n - 1, 1)        # 0=先頭, 1=最後方
-            mark = h.get("mark") or ""
-            color = MARK_COLORS.get(mark, "#6c7086")
-            left = 5 + (1.0 - rank_pos) * 88    # 右=先頭
-            top = 8 + (i % 3) * 40              # 3 段×40px (名前と次の丸の被り防止)
-            name4 = esc(str(h.get("horse_name", ""))[:4])
-            chips.append(f"""
-            <div style="position:absolute;left:{left:.1f}%;top:{top}px;
-                        text-align:center;width:52px;margin-left:-26px">
-              <div style="width:26px;height:26px;border-radius:50%;margin:0 auto;
-                          background:{color};color:#fff;font-weight:bold;
-                          font-size:13px;line-height:26px;
-                          border:2px solid rgba(255,255,255,.6)">{h.get("umaban","")}</div>
-              <div style="color:{name_color};font-size:10px;font-weight:bold;
-                          white-space:nowrap;overflow:hidden;
-                          text-shadow:0 1px 2px rgba(0,0,0,.7)">{name4}</div>
-            </div>""")
-        # 進行方向の大型ラベルはスタート後の段だけ (フィードバック対応)
-        direction = ""
-        if phase == "スタート後":
-            direction = ('<div style="position:absolute;right:10px;top:6px;'
-                         'color:rgba(255,255,255,.85);font-size:17px;font-weight:bold;'
-                         'text-shadow:0 1px 3px rgba(0,0,0,.6);pointer-events:none">'
-                         '→→ 進行方向 (右が先頭)</div>')
+
+    # フェーズごとの順位 (0=先頭) と値レンジを事前計算
+    ranks: dict[str, dict] = {}
+    vrange: dict[str, tuple] = {}
+    for ph in PHASES:
+        order = sorted(placed, key=lambda x: x["v"][ph])
+        ranks[ph] = {id(item): i for i, item in enumerate(order)}
+        vals = [it["v"][ph] for it in placed]
+        vrange[ph] = (min(vals), max(vals))
+
+    def _pos(item, ph):
+        # 順位 60% + 実位置 40% のハイブリッド配置:
+        #   順位だけだと「順位が入れ替わらないレースで馬が一切動かない」
+        #   実位置だけだと中央に団子になる — 両方の弱点を相殺する
+        i = ranks[ph][id(item)]
+        rank_pos = i / max(n - 1, 1)
+        vmin, vmax = vrange[ph]
+        val_pos = ((item["v"][ph] - vmin) / (vmax - vmin)) if vmax > vmin else 0.5
+        blend = 0.6 * rank_pos + 0.4 * val_pos      # 0=先頭, 1=最後方
+        left = 5 + (1.0 - blend) * 86               # 右=先頭
+        top = 14 + (i % 3) * 44
+        return left, top
+
+    def _chip_html(item, ph) -> str:
+        """チップ内容 (馬シルエット + 番号 + 名前 + 加速/失速マーク)。"""
+        h = item["h"]
+        mark = h.get("mark") or ""
+        color = MARK_COLORS.get(mark, "#6c7086")
+        name4 = esc(str(h.get("horse_name", ""))[:4])
+        # 次のフェーズへの順位変化で動きを予告 (netkeiba の »» 風)
+        pi = PHASES.index(ph)
+        badge = ""
+        if pi < 2:
+            d = ranks[PHASES[pi]][id(item)] - ranks[PHASES[pi + 1]][id(item)]
+            if d >= 3:
+                badge = ('<span style="color:#ff5d5d;font-weight:bold;font-size:13px;'
+                         'text-shadow:0 1px 2px rgba(0,0,0,.6)">≫≫</span>')
+            elif d >= 1:
+                badge = ('<span style="color:#ffb86b;font-weight:bold;font-size:12px;'
+                         'text-shadow:0 1px 2px rgba(0,0,0,.6)">≫</span>')
+            elif d <= -3:
+                badge = ('<span style="color:#b9c2d0;font-weight:bold;font-size:12px;'
+                         'text-shadow:0 1px 2px rgba(0,0,0,.6)">▼</span>')
+        else:
+            # 4角: 増幅 delta で「直線でさらに伸びる/苦しい」を示す
+            dv = item["v"]["4コーナー"] - item["v"]["スタート後"]
+            if dv <= -2.5:
+                badge = ('<span style="color:#ff5d5d;font-weight:bold;font-size:13px;'
+                         'text-shadow:0 1px 2px rgba(0,0,0,.6)">≫≫</span>')
+            elif dv >= 3.5:
+                badge = ('<span style="color:#b9c2d0;font-weight:bold;font-size:12px;'
+                         'text-shadow:0 1px 2px rgba(0,0,0,.6)">▼苦</span>')
+        return f"""
+        <div style="text-align:center;width:56px">
+          <div style="font-size:15px;line-height:1;
+                      transform:scaleX(-1);filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))">🐎</div>
+          <div style="width:26px;height:26px;border-radius:50%;margin:0 auto;
+                      background:{color};color:#fff;font-weight:bold;
+                      font-size:13px;line-height:26px;
+                      border:2px solid rgba(255,255,255,.65)">{h.get("umaban","")}</div>
+          <div style="color:{name_color};font-size:10px;font-weight:bold;
+                      white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.75)">{name4}{badge}</div>
+        </div>"""
+
+    # 展開の自動解説 (逃げ/先行の頭数 → ペースと有利不利の一言)
+    front = sum(1 for it in placed if ranks["スタート後"][id(it)] <= 1)
+    closers = sum(1 for it in placed
+                  if ranks["スタート後"][id(it)] - ranks["4コーナー"][id(it)] >= 2)
+    if front >= 2 and closers >= 2:
+        pace_note = (f"テンが速い馬が{front}頭並ぶ想定で、前は楽ができない隊列。"
+                     f"4角で位置を上げる馬 (≫≫) が{closers}頭おり、差し有利に傾きやすい。")
+    elif front >= 2:
+        pace_note = (f"テンが速い馬が{front}頭並ぶ想定で序盤は流れそう。"
+                     "ただし後ろから動く馬は少なく、隊列が落ち着けば前々の決着もある。")
+    elif closers >= 3:
+        pace_note = (f"逃げ争いは緩めだが、中団から動く馬が{closers}頭。"
+                     "直線勝負になれば末脚 (調教タブの終い) の比較が効く。")
+    else:
+        pace_note = ("先行勢がすんなり隊列を作る想定。前残り警戒で、"
+                     "逃げ・先行馬 (右側) の粘り込みに注意。")
+    ui.label(
+        f"馬場: {surface_label} ({esc(course_str)})。コーナーのボタンを押すと隊列が動く。"
+        f"≫≫ = 次のコーナーで位置を上げてくる馬 / ▼ = 位置が下がる・苦しくなる馬。"
+    ).classes("text-sm text-slate-400 mb-1")
+    ui.label(f"💡 展開予測: {pace_note}").classes(
+        "text-sm text-amber-200 font-bold mb-2")
+
+    # ---- 1 トラック + フェーズ切替 (CSS transition で馬が滑らかに動く) ----
+    state_ph = {"cur": "スタート後"}
+    chip_refs: list[tuple] = []   # (item, wrapper_element, html_element)
+
+    phase_row = ui.row().classes("gap-2 mb-1")
+    track = ui.element("div").classes("w-full").style(
+        f"position:relative;height:158px;border-radius:10px;overflow:hidden;"
+        f"background:{track_bg};border:1px solid {track_bd}")
+    with track:
         ui.html(f"""
-        <div style="margin-bottom:10px">
-          <span style="background:#1e1e2e;color:#f9e2af;padding:2px 14px;
-                       border-radius:10px;font-size:13px;font-weight:bold">{phase}</span>
-          <div style="position:relative;height:138px;border-radius:8px;margin-top:4px;
-                      background:{track_bg};border:1px solid {track_bd};overflow:hidden">
-            <div style="position:absolute;inset:0;background:
-                 repeating-linear-gradient(90deg,transparent,transparent 60px,
-                 rgba(255,255,255,.07) 60px,rgba(255,255,255,.07) 61px)"></div>
-            {direction}
-            {''.join(chips)}
-          </div>
-        </div>""")
+        <div style="position:absolute;inset:0;background:
+             repeating-linear-gradient(90deg,transparent,transparent 60px,
+             rgba(255,255,255,.08) 60px,rgba(255,255,255,.08) 61px)"></div>
+        <div style="position:absolute;right:12px;top:6px;
+                    color:rgba(255,255,255,.9);font-size:17px;font-weight:bold;
+                    text-shadow:0 1px 3px rgba(0,0,0,.6);pointer-events:none">
+          →→ 進行方向 (右が先頭)</div>""")
+        for item in placed:
+            left, top = _pos(item, "スタート後")
+            wrap = ui.element("div").style(
+                f"position:absolute;left:{left:.1f}%;top:{top}px;margin-left:-28px;"
+                f"transition:left 0.9s ease-in-out, top 0.9s ease-in-out")
+            with wrap:
+                html_el = ui.html(_chip_html(item, "スタート後"))
+            chip_refs.append((item, wrap, html_el))
+
+    def set_phase(ph: str):
+        state_ph["cur"] = ph
+        for item, wrap, html_el in chip_refs:
+            left, top = _pos(item, ph)
+            wrap.style(f"position:absolute;left:{left:.1f}%;top:{top}px;"
+                       f"margin-left:-28px;"
+                       f"transition:left 0.9s ease-in-out, top 0.9s ease-in-out")
+            html_el.content = _chip_html(item, ph)
+        render_buttons()
+
+    btn_refs: list = []
+
+    def render_buttons():
+        phase_row.clear()
+        with phase_row:
+            for ph in PHASES:
+                active = (ph == state_ph["cur"])
+                b = ui.button(ph, on_click=lambda ph=ph: set_phase(ph)) \
+                    .props("no-caps dense " + ("color=green-8" if active else "outline color=grey-6"))
+                btn_refs.append(b)
+
+    render_buttons()
 
     if missing:
         names = "、".join(f"{m.get('umaban','?')} {esc(str(m.get('horse_name',''))[:8])}"
@@ -3789,8 +3872,70 @@ def render_course_analysis(race: dict) -> None:
 
 
 # ============================================================
-# 全頭分析: 散布図 + レーダーチャート
+# 全頭分析: ポジショニング (バー型) + レーダーチャート
 # ============================================================
+def _positioning_bars_html(horses: list) -> str:
+    """AI vs 市場の乖離バーリスト (散布図の置換, 2026-06-12)。
+
+    1 馬 1 行: [印+番号] 馬名 | 市場バー(グレー)/AIバー(青) | 乖離ラベル。
+    散布図は低勝率帯が左下に潰れて読めなかった。バーなら全馬が等高で読める。
+    """
+    rows = []
+    items = []
+    for h in horses or []:
+        p_ai = (h.get("p_win") or 0) * 100
+        tan = h.get("tansho_odds") or 0
+        p_mk = (1 / tan) * 100 if tan else 0
+        items.append((h, p_ai, p_mk, p_ai - p_mk))
+    if not items:
+        return ""
+    items.sort(key=lambda x: -x[3])            # 乖離 (AI-市場) 降順 = 妙味順
+    scale_max = max(max(p for _, p, _, _ in items),
+                    max(m for _, _, m, _ in items), 1.0)
+
+    for h, p_ai, p_mk, diff in items:
+        mark = h.get("mark") or ""
+        color = MARK_COLORS.get(mark, "#45475a")
+        name = esc(str(h.get("horse_name", "?")))
+        uma = h.get("umaban", "?")
+        w_ai = p_ai / scale_max * 100
+        w_mk = p_mk / scale_max * 100
+        if p_mk > 0 and p_ai >= p_mk * 1.2:
+            tag = (f'<span style="color:#a6e3a1;font-weight:bold">🟢 AI強気 '
+                   f'+{diff:.1f}pt</span>')
+        elif p_mk > 0 and p_ai <= p_mk * 0.8:
+            tag = (f'<span style="color:#f38ba8;font-weight:bold">🔴 過熱 '
+                   f'{diff:.1f}pt</span>')
+        else:
+            tag = '<span style="color:#9399b2">⚪ ほぼ一致</span>'
+        rows.append(f"""
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 4px;
+                    border-bottom:1px solid #313244">
+          <span style="width:26px;height:26px;border-radius:50%;background:{color};
+                       color:#fff;font-weight:bold;font-size:13px;line-height:26px;
+                       text-align:center;flex-shrink:0">{uma}</span>
+          <span style="width:150px;color:#cdd6f4;font-size:14px;font-weight:bold;
+                       flex-shrink:0;overflow:hidden;text-overflow:ellipsis;
+                       white-space:nowrap">{esc(mark)} {name}</span>
+          <div style="flex:1;min-width:160px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="height:9px;width:{w_mk:.1f}%;background:#6c7086;
+                          border-radius:4px"></div>
+              <span style="color:#9399b2;font-size:11px">市場 {p_mk:.1f}%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+              <div style="height:9px;width:{w_ai:.1f}%;background:#74a8fc;
+                          border-radius:4px"></div>
+              <span style="color:#a8c7ff;font-size:11px">AI {p_ai:.1f}%</span>
+            </div>
+          </div>
+          <span style="width:140px;font-size:12px;text-align:right;
+                       flex-shrink:0">{tag}</span>
+        </div>""")
+    return ('<div style="background:#11111b;border-radius:10px;padding:8px 12px">'
+            + "".join(rows) + "</div>")
+
+
 def race_scatter_option(horses: list) -> dict:
     """AI vs 市場の意見の違いマップ (2026-06-12 改善版)。
 
@@ -4613,16 +4758,16 @@ def main_page():
                 "（= この馬で一番マシな買い方をした場合の実測期待回収率）。"
             ).classes("text-xs text-slate-500 mb-4")
 
-            # AI vs 市場の意見マップ (2026-06-12 改善版: 点の色=乖離方向)
+            # AI vs 市場の意見の違い (散布図は「左下に潰れて読めない」ため
+            # 2026-06-12 にバー型リストへ置換。乖離の大きい順)
             ui.label("📍 全頭ポジショニング (AIと市場の意見の違い)").classes(
                 "text-xl font-bold mt-2 mb-1")
             ui.label(
-                "見方: 右にある馬ほど人気、上にある馬ほど AI が勝てると予想。"
-                "🟢緑 = AIの評価が人気より高い (買う価値を検討)、"
-                "🔴赤 = 人気だけ先行 (AIは疑っている)、⚪グレー = 妥当な人気。"
+                "馬ごとに 市場の評価 (グレー) と AI の予想 (青) を同じ物差しで並べた。"
+                "青がグレーより長い = AI が人気より強気 (🟢妙味候補)。"
+                "短い = 人気だけ先行 (🔴AIは懐疑的)。乖離が大きい順。"
             ).classes("text-sm text-slate-400 mb-2")
-            ui.echart(race_scatter_option(horses_sorted)).classes(
-                "w-full").style("height: 480px")
+            ui.html(_positioning_bars_html(race.get("horses", [])))
 
             # 各馬の評価を自然な日本語で (a〜g 7軸 + UMAMI + 市場乖離)
             render_pyca_eval_list(race, date_str=state.get("date"))
