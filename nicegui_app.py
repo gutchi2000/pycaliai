@@ -88,9 +88,16 @@ from __future__ import annotations
 
 import bisect
 import functools
+import html as _html
 import json
 import re
 from pathlib import Path
+
+
+def esc(s) -> str:
+    """LLM (Cowork) / CSV 由来の可変文字列を ui.html へ補間する前の HTML エスケープ。
+    理由文に '<' 等が混ざるとテーブル構造が崩れる (公開 Space なら配信リスクも)。"""
+    return _html.escape(str(s)) if s is not None else ""
 
 import os
 
@@ -658,8 +665,20 @@ def parse_wide_kekka() -> dict[tuple, dict[tuple[int, int], int]] | None:
     return out
 
 
-@functools.lru_cache(maxsize=64)
 def parse_kekka(date_str: str) -> dict[str, dict] | None:
+    """data/kekka/{date}.csv をパース (mtime をキャッシュキーに含む外側ラッパー)。
+
+    旧実装は date キーのみの lru_cache で、kekka CSV を後から配置/更新しても
+    None や旧内容が恒久キャッシュされた (audit 2026-06-11)。mtime を内側関数の
+    キーに渡すことでファイル更新が自動で反映される。
+    """
+    p = BASE / "data" / "kekka" / f"{date_str}.csv"
+    mtime = p.stat().st_mtime if p.exists() else 0.0
+    return _parse_kekka_cached(date_str, mtime)
+
+
+@functools.lru_cache(maxsize=64)
+def _parse_kekka_cached(date_str: str, _mtime: float) -> dict[str, dict] | None:
     """data/kekka/{date}.csv をパースして race_id_16 → 結果 dict を返す。
 
     kekka 列構成 (15 cols):
@@ -1059,8 +1078,20 @@ def load_kako5_horses(date_str: str) -> dict | None:
     return out
 
 
-@functools.lru_cache(maxsize=8)
 def compute_training_top5(date_str: str, days_back: int = 7) -> dict:
+    """調教 Top5 (bundle/training の mtime をキャッシュキーに含む外側ラッパー)。
+    bundle を週中に再生成しても古い印/p_win が Best5 に残る問題の対策 (audit)。"""
+    bp = COWORK_INPUT_DIR / f"{date_str}_bundle.json"
+    mt_bundle = bp.stat().st_mtime if bp.exists() else 0.0
+    tdir = BASE / "data" / "training"
+    mt_train = max((p.stat().st_mtime for p in tdir.glob("*.csv")), default=0.0) \
+        if tdir.exists() else 0.0
+    return _compute_training_top5_cached(date_str, days_back, mt_bundle, mt_train)
+
+
+@functools.lru_cache(maxsize=8)
+def _compute_training_top5_cached(date_str: str, days_back: int,
+                                  _mt_bundle: float, _mt_train: float) -> dict:
     """直近 days_back 日間の調教ベストタイム 上位 5 頭 (坂路 + WC)。
 
     **当週末 (bundle.json) に出走する馬のみ** を対象とする。
@@ -4118,14 +4149,14 @@ def main_page():
                     ui.html(f"""
                     <div style="display:inline-block;background:{nat_color};color:#1e1e2e;
                                 padding:6px 18px;border-radius:4px;font-weight:bold;
-                                margin-bottom:10px;font-size:16px">{race_nature_str}</div>
+                                margin-bottom:10px;font-size:16px">{esc(race_nature_str)}</div>
                     """)
                 if race_reason:
                     ui.html(f"""
                     <div style="background:#1e1e2e;border-left:3px solid #fab387;
                                 padding:12px 16px;margin:8px 0;color:#cdd6f4;font-size:16px;
                                 line-height:1.7">
-                      <b style="color:#fab387">📝 根拠:</b> {race_reason}
+                      <b style="color:#fab387">📝 根拠:</b> {esc(race_reason)}
                     </div>
                     """)
                 if not bets:
@@ -4144,13 +4175,13 @@ def main_page():
                         rows.append(f"""
                         <tr style="border-bottom:1px solid #313244">
                           <td style="padding:10px 14px;color:#5865f2;font-weight:bold;
-                                     font-size:15px">{b.get("馬券種","")}</td>
+                                     font-size:15px">{esc(b.get("馬券種",""))}</td>
                           <td style="padding:10px 14px;color:#cdd6f4;font-size:15px;
-                                     font-weight:bold">{b.get("買い目","")}</td>
+                                     font-weight:bold">{esc(b.get("買い目",""))}</td>
                           <td style="padding:10px 14px;color:#a6e3a1;text-align:right;
                                      font-size:15px;font-weight:bold">¥{b.get("購入額",0):,}</td>
                           <td style="padding:10px 14px;color:#a6adc8;font-size:13px;
-                                     line-height:1.6">{b.get("理由","")}</td>
+                                     line-height:1.6">{esc(b.get("理由",""))}</td>
                         </tr>
                         """)
                     ui.html(f"""
@@ -4182,17 +4213,21 @@ def main_page():
                     ).classes("text-sm text-slate-400 mb-3")
                     cards = []
                     for adv in advisor:
-                        uma = adv.get("umaban", "")
-                        name = adv.get("horse_name", "?")
-                        grade = adv.get("grade", "")
-                        tag = adv.get("tag") or ""
-                        comment = adv.get("comment", "")
-                        g_color = ADVISOR_GRADE_COLORS.get(grade, "#6c7086")
-                        t_color = ADVISOR_TAG_COLORS.get(tag, "#6c7086")
+                        # raw は lookup (色辞書・umaban 比較) 用、esc 済みは HTML 補間用に分離
+                        uma_raw = adv.get("umaban", "")
+                        grade_raw = adv.get("grade", "")
+                        tag_raw = adv.get("tag") or ""
+                        uma = esc(uma_raw)
+                        name = esc(adv.get("horse_name", "?"))
+                        grade = esc(grade_raw)
+                        tag = esc(tag_raw)
+                        comment = esc(adv.get("comment", ""))
+                        g_color = ADVISOR_GRADE_COLORS.get(grade_raw, "#6c7086")
+                        t_color = ADVISOR_TAG_COLORS.get(tag_raw, "#6c7086")
                         # 印 (bundle.json) を参照
                         mark = ""
                         for h in race.get("horses", []):
-                            if h.get("umaban") == uma:
+                            if h.get("umaban") == uma_raw:
                                 mark = h.get("mark", "") or ""
                                 break
                         mark_color = MARK_COLORS.get(mark, "#475569") if mark else "transparent"
@@ -4349,11 +4384,31 @@ def main_page():
         with grade_scope_box:
             render_grade_scope(date)
 
+        selected = False
         if state["current_place"]:
             races = sorted(by_place.get(state["current_place"], []),
                             key=_race_num)
             if races:
                 select_race(races[0])
+                selected = True
+        if not selected:
+            # bundle 不在/レース 0 の日付に切り替えたとき、前の日付のレース詳細
+            # パネルが残留して誤読を招く (audit 2026-06-11)。全 box をクリアして
+            # プレースホルダを出す。
+            for box in (left_box, right_box, shutsuba_box, bunseki_box,
+                        course_box, pedigree_box, bets_box):
+                box.clear()
+            with shutsuba_box:
+                ui.html(f"""
+                <div style="background:#1e1e2e;border-left:3px solid #f9e2af;
+                            padding:14px 18px;border-radius:8px;color:#f9e2af;
+                            font-size:14px">
+                  ⚠️ {date} の bundle.json がありません (または 0 レース)。<br>
+                  <span style="font-size:12px;color:#a6adc8">
+                    weekly_nicegui.ps1 (Phase A) 実行後に反映されます。
+                  </span>
+                </div>
+                """)
 
     date_dd.on_value_change(lambda e: update_for_date(e.value))
     update_for_date(dates[0])
