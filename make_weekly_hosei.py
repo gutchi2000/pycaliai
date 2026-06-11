@@ -158,6 +158,38 @@ def load_kekka(date_key: str) -> pd.DataFrame | None:
 
 
 # =========================================================
+# kekka マスターフォールバック (全馬収録 v2)
+# =========================================================
+# 日別 kekka CSV (data/kekka/) は週次運用分 (2026〜) しか無く、前走が 2025 年の
+# 馬は 18桁ID を引けず「kekka未照合」で補正が欠損していた (20260607 で 90/313頭)。
+# E:\競馬過去走データ\kekka_..._v2.csv は全馬収録 (馬名/日付/レースID(新)18桁)
+# なので、日別 CSV に無い日付はこれで引く。
+KEKKA_MASTER_V2 = Path(r"E:\競馬過去走データ\kekka_20130105-20251228_v2.csv")
+_master_lookup: dict[tuple[str, str], str] | None = None
+
+
+def load_kekka_master_lookup() -> dict[tuple[str, str], str]:
+    """(馬名, 日付8桁) → レースID(新)18桁 の辞書。初回のみロード。"""
+    global _master_lookup
+    if _master_lookup is not None:
+        return _master_lookup
+    _master_lookup = {}
+    if not KEKKA_MASTER_V2.exists():
+        log.warning(f"kekka マスター v2 なし: {KEKKA_MASTER_V2} (フォールバック無効)")
+        return _master_lookup
+    df = pd.read_csv(KEKKA_MASTER_V2, encoding="cp932",
+                     usecols=["日付", "馬名", "レースID(新)"],
+                     dtype={"日付": str, "レースID(新)": str})
+    # 日付は YYMMDD 6桁 (例 251228) → 20YYMMDD
+    dates = "20" + df["日付"].str.strip().str.zfill(6)
+    names = df["馬名"].astype(str).str.strip()
+    rids = df["レースID(新)"].astype(str).str.strip().str.zfill(18)
+    _master_lookup = dict(zip(zip(names, dates), rids))
+    log.info(f"kekka マスター v2 lookup: {len(_master_lookup):,} エントリ")
+    return _master_lookup
+
+
+# =========================================================
 # 前走日付キー生成
 # =========================================================
 def prev_date_key(race_date_s: str, prev_month: int, prev_day: int) -> str | None:
@@ -227,18 +259,18 @@ def main() -> None:
             cnt_no_prev += 1
             continue
 
-        # kekka CSV から前走の 18桁ID を取得
+        # kekka CSV から前走の 18桁ID を取得 (日別 → 無ければ全期間マスター v2)
+        prev_18 = None
         kk = load_kekka(pdk)
-        if kk is None:
+        if kk is not None:
+            kk_horse = kk[kk["馬名"].astype(str).str.strip() == horse_name]
+            if not kk_horse.empty:
+                prev_18 = str(kk_horse.iloc[0]["レースID(新)"]).strip().zfill(18)
+        if prev_18 is None:
+            prev_18 = load_kekka_master_lookup().get((horse_name, pdk))
+        if prev_18 is None:
             cnt_no_kekka += 1
             continue
-
-        kk_horse = kk[kk["馬名"].astype(str).str.strip() == horse_name]
-        if kk_horse.empty:
-            cnt_no_kekka += 1
-            continue
-
-        prev_18 = str(kk_horse.iloc[0]["レースID(新)"]).strip().zfill(18)
 
         # hosei から補正タイムを取得
         entry = hosei_lookup.get(prev_18)

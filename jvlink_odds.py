@@ -97,12 +97,34 @@ def fetch_race(race_key: str) -> dict:
             **o1}
 
 
+def dump_raw(race_key: str) -> None:
+    """0B31/0B33/0B34 の生レコードを reports/live_odds/raw/ に保存する。
+
+    用途: ワイド(0B33)/馬単(0B34) のパーサ位置確定 (audit 2026-06-11 残課題)。
+    土曜のレース時間帯に 1 回実行して raw を残せば、確定オッズと突合して
+    オフラインでパーサを書ける。複勝 pos269 暫定の最終検証にも使う。
+    """
+    raw_dir = OUT_DIR / "raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    for spec in ("0B31", "0B33", "0B34"):
+        recs = fetch_records(race_key, spec)
+        p = raw_dir / f"{race_key}_{spec}.txt"
+        p.write_text("\n".join(recs), encoding="utf-8", errors="replace")
+        heads = sorted({r[:2] for r in recs}) if recs else []
+        print(f"[dump] {spec}: {len(recs)} recs (種別 {heads}) → {p.name}")
+
+
 def main():
     sys.stdout = sys.stdout if hasattr(sys.stdout, "buffer") else sys.stdout
     ap = argparse.ArgumentParser()
     ap.add_argument("--race", required=True, help="16桁 race_key（例 2026060705030211）")
     ap.add_argument("--validate", help="bundle.json パスを渡すと単勝を照合表示")
+    ap.add_argument("--dump-raw", action="store_true",
+                    help="0B31/0B33/0B34 の生レコードを reports/live_odds/raw/ に保存"
+                         " (ワイド/馬単パーサ確定用。土曜に1回でOK)")
     args = ap.parse_args()
+    if args.dump_raw:
+        dump_raw(args.race)
     res = fetch_race(args.race)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     (OUT_DIR / f"{args.race}.json").write_text(
