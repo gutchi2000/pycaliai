@@ -24,9 +24,10 @@ NiceGUI の 4 カード（市場一致 / ◎独走度 / 上位2頭集中 / 混�
   - --dry は引数定義のみで未参照 (print のみなので dry/本実行の区別が無い)。
   - 入力2 (JV-Link T-10 ライブオッズ / jvlink_odds.py の reports/live_odds/) は未配線。
     EV は bundle 埋込オッズ (= 土曜朝 TARGET スナップ) で計算しており、T-10 時点とはズレる。
-  - ワイド EV は p_sho_i×p_sho_j の独立積近似で系統的に過大 (実測 +21〜27%)。
-    正確な joint は backtest_pl_ev.py の all_wide_mat / pl_calibrators_v6 の wide calibrator を使うべき。
-  T-10 運用に投入する前にこれらの配線が必要。
+  - ✅解消済(2026-06-11): ワイド/馬連/馬単の確率は bundle 埋込の pair_probs
+    (calibrated PL joint, export_marks_json が印馬10ペアに付与) を優先使用。
+    pair_probs の無い旧 bundle のみ独立積近似 (+21〜27% 過大) にフォールバック。
+  T-10 運用に投入する前に残りの配線 (ライブオッズ/書込/--dry) が必要。
 """
 from __future__ import annotations
 import argparse, bisect, io, json, sys
@@ -161,6 +162,17 @@ def compute_race_bets(race: dict) -> dict:
     um = race.get("umaren_matrix", {})
     def umaren(i, j):
         a, b = sorted((i, j)); return _num(um.get(f"{a}-{b}"))
+    # bundle 埋込の正確な PL joint 確率 (calibrated, export_marks_json が印馬10ペアに付与)。
+    # あればワイド/馬連/馬単の確率に優先使用。無い旧 bundle は従来近似にフォールバック
+    # (ワイド独立積は +21〜27% 系統過大 → docs/audit_20260611.md 🔴)。
+    pp = race.get("pair_probs", {}) or {}
+    def pair_p(i, j, kind):
+        d = pp.get(f"{min(i, j)}-{max(i, j)}")
+        if not d:
+            return None
+        if kind == "umatan":
+            return _num((d.get("umatan") or {}).get(f"{i}→{j}"))
+        return _num(d.get(kind))
     cands = []  # [kind, sel, bans, odds, ev, ish, boost]
     # オッズ上限（モデルのテール過大評価が EV 経由で大穴を生むのを遮断）
     ODDS_CAP = {"馬連": 100.0, "ワイド": 50.0, "馬単": 200.0}
@@ -185,19 +197,36 @@ def compute_race_bets(race: dict) -> dict:
         lo, hi, ps = fld(b, "fuku_odds_low"), fld(b, "fuku_odds_high"), fld(b, "p_sho")
         if lo and hi and ps: push("複勝", str(b), (b,), (lo + hi) / 2, ps * (lo + hi) / 2, boost)
     def c_umaren(i, j, boost=1.0):
-        o, pi, pj = umaren(i, j), fld(i, "p_win"), fld(j, "p_win")
-        if o and pi and pj and 0 < pi < 1 and 0 < pj < 1:
+        o = umaren(i, j)
+        if not o:
+            return
+        p = pair_p(i, j, "umaren")
+        if p is None:  # 旧 bundle 互換: Harville 風近似
+            pi, pj = fld(i, "p_win"), fld(j, "p_win")
+            if not (pi and pj and 0 < pi < 1 and 0 < pj < 1):
+                return
             p = pi * pj / (1 - pi) + pj * pi / (1 - pj)
-            push("馬連", f"{min(i,j)}-{max(i,j)}", (i, j), o, o * p, boost)
+        push("馬連", f"{min(i,j)}-{max(i,j)}", (i, j), o, o * p, boost)
     def c_wide(i, j, boost=1.0):
-        o, si, sj = umaren(i, j), fld(i, "p_sho"), fld(j, "p_sho")
-        if o and si and sj: push("ワイド", f"{min(i,j)}-{max(i,j)}", (i, j), o / 3.0, (o / 3.0) * si * sj, boost)
+        o = umaren(i, j)
+        if not o:
+            return
+        p = pair_p(i, j, "wide")
+        if p is None:  # 旧 bundle 互換: 独立積近似 (+21〜27% 系統過大)
+            si, sj = fld(i, "p_sho"), fld(j, "p_sho")
+            if not (si and sj):
+                return
+            p = si * sj
+        push("ワイド", f"{min(i,j)}-{max(i,j)}", (i, j), o / 3.0, (o / 3.0) * p, boost)
     def c_umatan(i, j, boost=1.0):  # i→j (i 1着, j 2着)。馬単odds ≈ 馬連 × (pi+pj)/pi
         o, pi, pj = umaren(i, j), fld(i, "p_win"), fld(j, "p_win")
-        if o and pi and pj and pi > 0 and pi < 1:
-            ut = o * (pi + pj) / pi
-            ev = ut * (pi * pj / (1 - pi))
-            push("馬単", f"{i}→{j}", (i, j), ut, ev, boost)
+        if not (o and pi and pj and 0 < pi < 1):
+            return
+        ut = o * (pi + pj) / pi
+        p = pair_p(i, j, "umatan")
+        if p is None:  # 旧 bundle 互換
+            p = pi * pj / (1 - pi)
+        push("馬単", f"{i}→{j}", (i, j), ut, ut * p, boost)
 
     rel = [x for x in (tai, san, *osae) if x]            # 相手(〇▲△)
     box4 = [b for b in (hon, tai, san, *osae) if b][:4]  # 上位4

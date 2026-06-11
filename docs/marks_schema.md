@@ -90,6 +90,32 @@ Cowork 側はこの JSON を受け取り、**馬券種・点数・予算配分�
 | `fuku_odds_low` | float \| null | 複勝オッズ下限 |
 | `fuku_odds_high` | float \| null | 複勝オッズ上限 |
 | `ai_vs_market` | string | `"under"` / `"fair"` / `"over"` / `"unknown"` |
+| `why` | array \| 省略 | SHAP による印の根拠 (top-k 特徴寄与)。**印馬のみ**付与 (下記) |
+
+### `why` (印の根拠 / SHAP 寄与)
+
+`export_weekly_marks.py` が `--shap-topk K` (default 6, `0` で無効) のとき、
+**印が付いた馬 (◎〇▲△△) のみ** に付与する。`marks_shap.py` が生成。
+ai_score を `shap.TreeExplainer` で特徴ごとに分解し、`|contrib|` 降順で top-K。
+
+```json
+"why": [
+  {"feat": "prev_hosei",   "label": "前走 補正タイム",        "value": 99,    "contrib": 0.285},
+  {"feat": "jockey_fuku90","label": "騎手 複勝率(直近90日)", "value": 0.389, "contrib": 0.258},
+  {"feat": "前距離",        "label": "前距離",                "value": 1200,  "contrib": -0.199}
+]
+```
+
+| サブフィールド | 型 | 説明 |
+|----------|-----|------|
+| `feat` | string | モデルの正準特徴名 (ground truth) |
+| `label` | string | 日本語表示ラベル (`FEAT_LABELS`、未登録は `feat` と同じ) |
+| `value` | number \| string \| null | その馬の **エンコード前の実値** (欠損は null) |
+| `contrib` | float | 符号付き SHAP 寄与。**正=ai_score を押し上げ (印に効く) / 負=押し下げ** |
+
+- ベースライン: `shap.expected_value`(v6 ≈ -1.02)。**全120特徴**の `Σ contrib + base = ai_score` (恒等)。`why` はそのうち寄与の大きい top-K のみ抜粋
+- **相関ベースの寄与であり因果ではない**。Cowork は narrative の裏取り用に使い、買い目判断は確率を主軸にする
+- 無効化: `python export_weekly_marks.py --csv ... --model v6 --shap-topk 0`
 
 ### 印の規則
 
@@ -276,3 +302,26 @@ for path in glob.glob("reports/marks_v5/2025*.json"):
 3. **`p_plc` のキャリブレータ**: 現在は raw PL 値 (calibrator 未適用)。`p_win` / `p_sho` は適用済
 4. **`ai_market_agreement`**: 出走馬の少なくとも 3 頭にオッズが揃わないと `null`
 5. **ECE の解釈**: `p_win` / `p_sho` は isotonic キャリブレータ適用後の値で、ECE 0.018-0.022 程度。`ai_vs_market` 判定 (1.20× / 0.80× 閾値) は実用十分な精度
+
+---
+
+## pair_probs (2026-06-11 追加)
+
+印5頭の C(5,2)=10 ペアについて、**calibrated PL joint 確率**を race 直下に埋め込む。
+compute_bets.py のワイド/馬連/馬単 EV 計算が独立積近似 (+21〜27% 系統過大) を
+していた問題の解消用。キーは umaren_matrix と同じ「a-b」(a<b の馬番)。
+
+```json
+"pair_probs": {
+  "5-9": {
+    "wide":   0.09801,
+    "umaren": 0.03768,
+    "umatan": {"9→5": 0.01883, "5→9": 0.01844}
+  }
+}
+```
+
+- `wide` / `umaren`: 無向ペア確率 (calibrated)
+- `umatan`: 方向つき (「i→j」= i が1着・j が2着)
+- calibrator は本番ラインでは serve 条件 fit 版 (pl_calibrators_v6_serve.pkl) を使用
+- pair_probs の無い旧 bundle に対して compute_bets は従来近似へフォールバックする

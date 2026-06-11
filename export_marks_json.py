@@ -206,13 +206,18 @@ def race_meta(g, class_prior_map: dict | None = None):
 
 
 def export_race(rid, g_orig, model, feats, encs, tansho_idx, fuku_idx,
-                calibrators=None, umaren_idx=None, class_prior_map=None):
+                calibrators=None, umaren_idx=None, class_prior_map=None,
+                shap_explainer=None, shap_topk=0, shap_marked_only=True):
     """1 レース分の JSON を返す.
 
     umaren_idx: optional dict {(rid_s, i, j): float} (i<j 対称) — bundle に
                  'umaren_matrix': {"i-j": odds} を埋め込む。
     class_prior_map: optional dict {class_name: prior_dict} → race_meta に
                  class_prior フィールドを埋め込み (Cowork が prior 参照可能に)。
+    shap_explainer: optional shap.TreeExplainer (marks_shap.build_explainer)。
+                 渡されて shap_topk>0 なら各馬 (印馬のみ/全馬) に "why" (top-k 寄与) を付与。
+    shap_topk: 付与する SHAP 寄与の数 (0 で無効)。
+    shap_marked_only: True なら印が付いた馬 (◎〇▲△△) だけに "why" を付与。
     """
     rid_s = str(rid).split(".")[0]  # remove .0 if float
     if isinstance(rid, float) and rid.is_integer():
@@ -264,6 +269,15 @@ def export_race(rid, g_orig, model, feats, encs, tansho_idx, fuku_idx,
     market_rank_by_idx = pd.Series(market_odds_by_idx).rank().values
     ai_rank_order = ai_rank_by_idx.copy()
 
+    # SHAP 寄与 (印の根拠)。explainer 未指定 or topk<=0 なら None のまま。
+    contribs = None
+    if shap_explainer is not None and shap_topk and shap_topk > 0:
+        try:
+            from marks_shap import race_contribs
+            contribs = race_contribs(shap_explainer, X, feats, g, topk=shap_topk)
+        except Exception:
+            contribs = None  # SHAP 失敗時も bundle 生成は継続
+
     horses = []
     for i in range(n):
         ban = int(bans[i])
@@ -280,6 +294,8 @@ def export_race(rid, g_orig, model, feats, encs, tansho_idx, fuku_idx,
             tansho_odds=tansho if tansho and not pd.isna(tansho) else None,
             fuku_odds=fuku,
         )
+        if contribs is not None and (not shap_marked_only or mark_by_idx[i] != ""):
+            rec["why"] = contribs[i]
         horses.append(rec)
 
     # umaban 順にソート
@@ -314,6 +330,41 @@ def export_race(rid, g_orig, model, feats, encs, tansho_idx, fuku_idx,
                     matrix[f"{a}-{b}"] = round(float(v), 1)
         if matrix:
             payload["umaren_matrix"] = matrix
+
+    # --- 印馬ペア C(5,2)=10 組の正確な PL joint 確率 (calibrated) ---
+    # compute_bets のワイド EV が独立積近似 p_sho_i×p_sho_j で +21〜27% 系統過大
+    # だった問題 (docs/audit_20260611.md 🔴) の解消用。PL の厳密 joint を
+    # calibrator (wide/umaren/umatan) に通した値を埋め込み、compute_bets は
+    # これを読むだけにする。キーは umaren_matrix と同じ "a-b" (a<b の馬番)。
+    # umatan のみ方向があるので {"a→b": p, "b→a": p} のネスト。
+    top5_idx = [int(ix) for ix in order[:5]]
+    pair_probs = {}
+    for ai in range(len(top5_idx)):
+        for bi in range(ai + 1, len(top5_idx)):
+            i, j = top5_idx[ai], top5_idx[bi]
+            p_wide_ = float(PL.p_wide(w, i, j))
+            p_umaren_ = float(PL.p_umaren(w, i, j))
+            p_ut_ij = float(PL.p_umatan(w, i, j))
+            p_ut_ji = float(PL.p_umatan(w, j, i))
+            if calibrators is not None:
+                if "wide" in calibrators:
+                    p_wide_ = float(calibrators["wide"].predict([p_wide_])[0])
+                if "umaren" in calibrators:
+                    p_umaren_ = float(calibrators["umaren"].predict([p_umaren_])[0])
+                if "umatan" in calibrators:
+                    p_ut_ij = float(calibrators["umatan"].predict([p_ut_ij])[0])
+                    p_ut_ji = float(calibrators["umatan"].predict([p_ut_ji])[0])
+            ban_i, ban_j = int(bans[i]), int(bans[j])
+            a, b = sorted((ban_i, ban_j))
+            ut = {f"{ban_i}→{ban_j}": round(p_ut_ij, 5),
+                  f"{ban_j}→{ban_i}": round(p_ut_ji, 5)}
+            pair_probs[f"{a}-{b}"] = {
+                "wide": round(p_wide_, 5),
+                "umaren": round(p_umaren_, 5),
+                "umatan": ut,
+            }
+    if pair_probs:
+        payload["pair_probs"] = pair_probs
 
     return payload
 
