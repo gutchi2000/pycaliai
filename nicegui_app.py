@@ -3163,10 +3163,10 @@ def render_training_tab(race: dict, date_str: str | None = None) -> None:
         {"name": "eval", "label": "AI評価", "field": "eval", "sortable": True,
          "align": "left"},
     ]
-    # dense を外し table-class で文字を大きく (小さすぎる、のフィードバック対応)
+    # 文字サイズはユーザー指定で 1.2 倍 (text-base 16px → text-lg 18px)
     ui.table(columns=cols, rows=rows, row_key="umaban") \
-        .props('flat dark wrap-cells table-class="text-base" '
-               'table-header-class="text-amber-200" '
+        .props('flat dark wrap-cells table-class="text-lg" '
+               'table-header-class="text-base text-amber-200" '
                ':pagination="{rowsPerPage: 0}"') \
         .classes("w-full")
 
@@ -3332,7 +3332,11 @@ def render_tenkai_corner(race: dict, date_str: str | None = None) -> None:
     state_ph = {"cur": "スタート後"}
     chip_refs: list[tuple] = []   # (item, wrapper_element, html_element)
 
-    phase_row = ui.row().classes("gap-2 mb-1")
+    # 進行方向はトラックの外 (ボタン行の右) に出す: トラック内だと馬と被る
+    with ui.row().classes("w-full items-center justify-between mb-1"):
+        phase_row = ui.row().classes("gap-2")
+        ui.html('<span style="color:#f9e2af;font-size:17px;font-weight:bold">'
+                '→→ 進行方向 (右が先頭)</span>')
     track = ui.element("div").classes("w-full").style(
         f"position:relative;height:158px;border-radius:10px;overflow:hidden;"
         f"background:{track_bg};border:1px solid {track_bd}")
@@ -3340,11 +3344,7 @@ def render_tenkai_corner(race: dict, date_str: str | None = None) -> None:
         ui.html(f"""
         <div style="position:absolute;inset:0;background:
              repeating-linear-gradient(90deg,transparent,transparent 60px,
-             rgba(255,255,255,.08) 60px,rgba(255,255,255,.08) 61px)"></div>
-        <div style="position:absolute;right:12px;top:6px;
-                    color:rgba(255,255,255,.9);font-size:17px;font-weight:bold;
-                    text-shadow:0 1px 3px rgba(0,0,0,.6);pointer-events:none">
-          →→ 進行方向 (右が先頭)</div>""")
+             rgba(255,255,255,.08) 60px,rgba(255,255,255,.08) 61px)"></div>""")
         for item in placed:
             left, top = _pos(item, "スタート後")
             wrap = ui.element("div").style(
@@ -4750,7 +4750,8 @@ def main_page():
                  "align": "left"},
             ]
             ui.table(columns=t_cols, rows=t_rows, row_key="umaban") \
-                .props('dense flat dark wrap-cells '
+                .props('flat dark wrap-cells table-class="text-base" '
+                       'table-header-class="text-amber-200" '
                        ':pagination="{rowsPerPage: 0, sortBy: \'umami_sogo\', descending: true}"') \
                 .classes("w-full mb-4")
             ui.label(
@@ -4758,16 +4759,8 @@ def main_page():
                 "（= この馬で一番マシな買い方をした場合の実測期待回収率）。"
             ).classes("text-xs text-slate-500 mb-4")
 
-            # AI vs 市場の意見の違い (散布図は「左下に潰れて読めない」ため
-            # 2026-06-12 にバー型リストへ置換。乖離の大きい順)
-            ui.label("📍 全頭ポジショニング (AIと市場の意見の違い)").classes(
-                "text-xl font-bold mt-2 mb-1")
-            ui.label(
-                "馬ごとに 市場の評価 (グレー) と AI の予想 (青) を同じ物差しで並べた。"
-                "青がグレーより長い = AI が人気より強気 (🟢妙味候補)。"
-                "短い = 人気だけ先行 (🔴AIは懐疑的)。乖離が大きい順。"
-            ).classes("text-sm text-slate-400 mb-2")
-            ui.html(_positioning_bars_html(race.get("horses", [])))
+            # (全頭ポジショニングは「混乱するだけ」のため 2026-06-12 廃止。
+            #  AI vs 市場の乖離は UMAMI テーブルの理由列と評価文に含まれている)
 
             # 各馬の評価を自然な日本語で (a〜g 7軸 + UMAMI + 市場乖離)
             render_pyca_eval_list(race, date_str=state.get("date"))
