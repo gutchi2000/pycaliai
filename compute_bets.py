@@ -439,6 +439,10 @@ def apply_to_bets_json(date_str: str, computed: list[dict]) -> Path:
     for e in computed:
         i = by_rid.get(e["race_id"])
         if i is not None:
+            # 書込契約: Cowork の narrative (advisor) は消さずに引き継ぐ
+            old = races_list[i]
+            if isinstance(old, dict) and old.get("advisor") and not e.get("advisor"):
+                e = {**e, "advisor": old["advisor"]}
             races_list[i] = e
             n_rep += 1
         else:
