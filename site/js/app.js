@@ -189,7 +189,7 @@ function donut(label, frac, color) {
   const C = (2 * Math.PI * 20).toFixed(1);
   const v = Math.max(0, Math.min(1, frac ?? 0));
   return `<div class="gauge">
-    <svg viewBox="0 0 48 48" width="56" height="56" aria-hidden="true">
+    <svg viewBox="0 0 48 48" width="76" height="76" aria-hidden="true">
       <circle class="g-track" cx="24" cy="24" r="20"></circle>
       <circle class="g-fill" cx="24" cy="24" r="20"
         style="stroke:${color};stroke-dasharray:${C};stroke-dashoffset:${C};--off:${(C * (1 - v)).toFixed(1)}"></circle>
