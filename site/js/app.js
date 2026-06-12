@@ -631,8 +631,11 @@ function openDrawer(umaban) {
     </div>
     <div class="dw-ped">父 <b>${esc(ped.sire || "—")}</b> ／ 母父 <b>${esc(ped.broodmare_sire || "—")}</b>
       ${ped.broodmare_sire_type ? `（${esc(ped.broodmare_sire_type)}）` : ""}</div>
-    <div class="dw-grid">
-      <div class="dw-col">
+    <div class="dw-top ${whyHtml ? "" : "solo"}">
+      ${whyHtml ? `<div class="dw-left">
+        <div class="dw-sec" style="margin-top:0">AI の根拠（特徴量寄与）</div>${whyHtml}
+      </div>` : ""}
+      <div class="dw-right">
         <div class="dw-stats">
           <div class="dw-stat"><div class="v ${h.mark === "◎" ? "gold" : ""}">${pct(h.p_win)}%</div><div class="k">勝率</div></div>
           <div class="dw-stat"><div class="v">${pct(h.p_plc)}%</div><div class="k">連対率</div></div>
@@ -642,16 +645,13 @@ function openDrawer(umaban) {
         <div class="dw-odds">単勝 <b class="num">${num(h.odds)}</b> 倍 ／
           複勝 <b class="num">${num(h.fuku_low)}〜${num(h.fuku_high)}</b> 倍 ／ ${vsChip(h.vs_market)}</div>
         <div class="dw-info">${infoRows}</div>
-        ${whyHtml ? `<div class="dw-sec">AI の根拠（特徴量寄与）</div>${whyHtml}` : ""}
-      </div>
-      <div class="dw-col">
-        <div class="dw-sec" style="margin-top:0">近 5 走</div>
-        ${runRows ? `<table class="rt">
-          <thead><tr><th></th><th>コース</th><th>馬場</th><th>着</th><th>人気</th><th>クラス</th><th>脚質</th><th>上り3F</th><th>間隔</th></tr></thead>
-          <tbody>${runRows}</tbody>
-        </table>${histSummary}` : `<div class="cw-empty">出走歴なし（初出走）</div>`}
       </div>
     </div>
+    <div class="dw-sec">近 5 走</div>
+    ${runRows ? `<div class="rt-wrap"><table class="rt">
+      <thead><tr><th></th><th>コース</th><th>馬場</th><th>着</th><th>人気</th><th>クラス</th><th>脚質</th><th>上り3F</th><th>間隔</th></tr></thead>
+      <tbody>${runRows}</tbody>
+    </table></div>${histSummary}` : `<div class="cw-empty">出走歴なし（初出走）</div>`}
     <div class="dw-note">勝率・複勝圏は v6 calibrator 補正後の Plackett-Luce 確率。EV = 勝率 × 単勝オッズ。ZI は TARGET 指数。</div>`;
 
   $("#dwClose").onclick = closeDrawer;
