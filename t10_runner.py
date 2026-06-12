@@ -74,8 +74,10 @@ def notify(text: str) -> bool:
         return False
     import urllib.request
     body = json.dumps({"content": text[:1990]}).encode("utf-8")  # Discord 上限 2000 字
+    # User-Agent 必須: Python-urllib デフォルト UA は Cloudflare に 403 で弾かれる
     req = urllib.request.Request(
-        url, data=body, headers={"Content-Type": "application/json"})
+        url, data=body, headers={"Content-Type": "application/json",
+                                 "User-Agent": "PyCaLiAI-T10 (private bot)"})
     try:
         urllib.request.urlopen(req, timeout=10)
         return True
