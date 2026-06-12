@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyCaLiAI — AI競馬予想</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏇</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="track-stripe"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">Py<b>CaLi</b>AI</span>
+    <span class="brand-ver">v6 marks</span>
+  </div>
+  <div class="topbar-right">
+    <label class="date-wrap">
+      <span class="date-ico">開催日</span>
+      <select id="dateSel"></select>
+    </label>
+  </div>
+</header>
+
+<nav class="venues" id="venueTabs" aria-label="開催場"></nav>
+<nav class="races" id="raceStrip" aria-label="レース選択"></nav>
+
+<main id="main">
+  <section id="raceHeader"></section>
+  <nav class="viewtabs" id="viewTabs">
+    <button class="vt on">出走表</button>
+    <button class="vt soon" disabled>全頭分析<i>準備中</i></button>
+    <button class="vt soon" disabled>コース<i>準備中</i></button>
+    <button class="vt soon" disabled>調教<i>準備中</i></button>
+    <button class="vt soon" disabled>血統<i>準備中</i></button>
+  </nav>
+  <section id="shutsuba"></section>
+  <section id="cowork"></section>
+  <footer class="foot">
+    <span id="footInfo">PyCaLiAI — 静的ビルド</span>
+    <span>AI予測は参考情報です。馬券の購入判断はご自身で。</span>
+  </footer>
+</main>
+
+<div id="overlay"></div>
+<aside id="drawer" aria-label="馬詳細"></aside>
+
+<script src="js/app.js"></script>
+</body>
+</html>
