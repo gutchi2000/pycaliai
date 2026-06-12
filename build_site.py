@@ -24,6 +24,7 @@ import io
 import json
 import re
 import sys
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 
@@ -76,6 +77,17 @@ def _decode(raw: bytes) -> str:
         except UnicodeDecodeError:
             continue
     return raw.decode("utf-8", errors="replace")
+
+
+def deep_zen(o):
+    """半角カナ→全角 / 全角英数→半角 (NFKC)。TARGET 出力の ｵｰﾌﾟﾝ 等の潰れ対策。"""
+    if isinstance(o, str):
+        return unicodedata.normalize("NFKC", o)
+    if isinstance(o, list):
+        return [deep_zen(x) for x in o]
+    if isinstance(o, dict):
+        return {k: deep_zen(v) for k, v in o.items()}
+    return o
 
 
 # ---------------------------------------------------------------- 枠番
@@ -425,11 +437,11 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict) -> dict:
     places = [p for p in PLACE_ORDER if p in places_seen]
     places += sorted(places_seen - set(places))
 
-    return {
+    return deep_zen({
         "date": date_str,
         "places": places,
         "races": races_out,
-    }
+    })
 
 
 # ---------------------------------------------------------------- main

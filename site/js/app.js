@@ -586,16 +586,28 @@ function openDrawer(umaban) {
   }).join("");
 
   const runs = (h.history?.runs || []).slice(0, 5);
-  const runsHtml = runs.map((u) => {
+  const runRows = runs.map((u) => {
     const p = u.pos;
-    const pcls = p === 1 ? "p1" : (p === 2 || p === 3) ? "p23" : "px";
-    return `<div class="run ${p <= 3 ? "best" : ""}">
-      <div class="pos ${pcls}">${p ?? "—"}</div>
-      <div class="rc">${esc(u.place || "")}${esc(u.td || "")}${u.dist ?? ""}</div>
-      <div class="rc">${esc(u.track || "")}・${u.ninki ?? "—"}人気</div>
-      <div class="rc">上り${num(u.agari3f)}</div>
-    </div>`;
+    const pcls = p === 1 ? "rt1" : (p === 2 || p === 3) ? "rt23" : "";
+    return `<tr class="${pcls}">
+      <td class="rt-ago">${u.n_ago === 1 ? "前走" : `${u.n_ago}走前`}</td>
+      <td class="rt-course">${esc(u.place || "")}${esc(u.td || "")}${u.dist ?? ""}</td>
+      <td class="ta-c">${esc(u.track || "—")}</td>
+      <td class="ta-c rt-pos">${posBadge(p) || "—"}</td>
+      <td class="ta-c num">${u.ninki ?? "—"}<small>人気</small></td>
+      <td>${esc(u.style || "—")}</td>
+      <td class="ta-c">${esc(u.weight_change || "—")}</td>
+      <td class="ta-r num">${num(u.agari3f)}</td>
+      <td class="ta-r num">${u.interval_weeks != null ? u.interval_weeks + "<small>週</small>" : "—"}</td>
+    </tr>`;
   }).join("");
+  const hist = h.history || {};
+  const histSummary = runs.length
+    ? `<div class="dw-hsum">平均 <b class="num">${num(hist.avg_pos)}</b> 着 ・ 最高
+        <b class="num">${hist.best_pos ?? "—"}</b> 着
+        ${hist.deogure_count ? ` ・ 出遅れ <b class="num">${hist.deogure_count}</b> 回` : ""}
+        ${hist.same_td_ratio != null ? ` ・ 同馬場率 <b class="num">${pct(hist.same_td_ratio, 0)}%</b>` : ""}</div>`
+    : "";
 
   const ped = h.pedigree || {};
   const resPos = r.result ? r.result.order[String(h.umaban)] : null;
@@ -615,21 +627,31 @@ function openDrawer(umaban) {
       <span class="dw-mark mark ${markCls(h.mark)}">${h.mark || ""}</span>
       <span class="dw-name">${esc(h.name)}</span>
       ${resPos != null ? posBadge(resPos) : ""}
+      <span class="dw-sub2">${esc(h.sex)}${h.age ?? ""} ・ ${h.ninki ?? "—"}番人気 ・ AIランク #${h.ai_rank ?? "—"}</span>
     </div>
-    <div class="dw-sub">${esc(h.sex)}${h.age ?? ""} ・ ${h.ninki ?? "—"}番人気 ・ AIランク #${h.ai_rank ?? "—"}</div>
     <div class="dw-ped">父 <b>${esc(ped.sire || "—")}</b> ／ 母父 <b>${esc(ped.broodmare_sire || "—")}</b>
       ${ped.broodmare_sire_type ? `（${esc(ped.broodmare_sire_type)}）` : ""}</div>
-    <div class="dw-stats">
-      <div class="dw-stat"><div class="v ${h.mark === "◎" ? "gold" : ""}">${pct(h.p_win)}%</div><div class="k">勝率</div></div>
-      <div class="dw-stat"><div class="v">${pct(h.p_plc)}%</div><div class="k">連対率</div></div>
-      <div class="dw-stat"><div class="v">${pct(h.p_sho)}%</div><div class="k">複勝圏</div></div>
-      <div class="dw-stat"><div class="v ${h.ev_tan >= 1.2 ? "teal" : ""}">${num(h.ev_tan, 2)}</div><div class="k">単勝EV</div></div>
+    <div class="dw-grid">
+      <div class="dw-col">
+        <div class="dw-stats">
+          <div class="dw-stat"><div class="v ${h.mark === "◎" ? "gold" : ""}">${pct(h.p_win)}%</div><div class="k">勝率</div></div>
+          <div class="dw-stat"><div class="v">${pct(h.p_plc)}%</div><div class="k">連対率</div></div>
+          <div class="dw-stat"><div class="v">${pct(h.p_sho)}%</div><div class="k">複勝圏</div></div>
+          <div class="dw-stat"><div class="v ${h.ev_tan >= 1.2 ? "teal" : ""}">${num(h.ev_tan, 2)}</div><div class="k">単勝EV</div></div>
+        </div>
+        <div class="dw-odds">単勝 <b class="num">${num(h.odds)}</b> 倍 ／
+          複勝 <b class="num">${num(h.fuku_low)}〜${num(h.fuku_high)}</b> 倍 ／ ${vsChip(h.vs_market)}</div>
+        <div class="dw-info">${infoRows}</div>
+        ${whyHtml ? `<div class="dw-sec">AI の根拠（特徴量寄与）</div>${whyHtml}` : ""}
+      </div>
+      <div class="dw-col">
+        <div class="dw-sec" style="margin-top:0">近 5 走</div>
+        ${runRows ? `<table class="rt">
+          <thead><tr><th></th><th>コース</th><th>馬場</th><th>着</th><th>人気</th><th>クラス</th><th>脚質</th><th>上り3F</th><th>間隔</th></tr></thead>
+          <tbody>${runRows}</tbody>
+        </table>${histSummary}` : `<div class="cw-empty">出走歴なし（初出走）</div>`}
+      </div>
     </div>
-    <div style="font-size:11.5px;color:var(--tx2);margin-bottom:4px">単勝 <b class="num">${num(h.odds)}</b> 倍 ／
-      複勝 <b class="num">${num(h.fuku_low)}〜${num(h.fuku_high)}</b> 倍 ／ ${vsChip(h.vs_market)}</div>
-    <div class="dw-info">${infoRows}</div>
-    ${whyHtml ? `<div class="dw-sec">AI の根拠（特徴量寄与）</div>${whyHtml}` : ""}
-    ${runsHtml ? `<div class="dw-sec">近 5 走（左が最新）</div><div class="runs">${runsHtml}</div>` : ""}
     <div class="dw-note">勝率・複勝圏は v6 calibrator 補正後の Plackett-Luce 確率。EV = 勝率 × 単勝オッズ。ZI は TARGET 指数。</div>`;
 
   $("#dwClose").onclick = closeDrawer;
