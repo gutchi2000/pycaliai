@@ -103,13 +103,22 @@ boost: 単勝◎ 1.4-1.6（最重視）、馬単formation 1.3、おいしい馬 
 - 出力後 NiceGUI が cowork_output を ui.timer で随時表示（confidence カードと並ぶ）。
 
 ## 当日オーケストレータ（t10_runner.py / t10.ps1、2026-06-12）
-レース日朝に `.\t10.ps1` を 1 回起動。data/weekly/{date}.csv の発走時刻から全レースを
-スケジュールし、各レース T-10（`-LeadMin`）に自動で:
+data/weekly/{date}.csv の発走時刻から全レースをスケジュールし、各レース T-10（`-LeadMin`）に自動で:
 1. `py -3.12-32 jvlink_odds.py --race {rid16}` → reports/live_odds/{rid16}.json
 2. `compute_bets.py --race {rid16} --live-odds-dir --apply`（当該レースのみ in-place merge）
 3. `validate_cowork_bets.py --apply`（見送りガード）
 4. 買い目コンソール表示 + ビープ → 人間が IPAT 投票
 `--once {rid16}` 単発テスト / `--dry` 書込なし / 発走済みレースはスキップ / HF push なし。
+
+### ルーチン（タスクスケジューラ登録済み、2026-06-12）
+**タスク `PyCaLiAI_T10` が毎週土日 9:00 に `t10.ps1 -Routine` を自動起動**（ログオン中のみ・
+ウィンドウ表示・二重起動は IgnoreNew + .t10_lock で防止・実行上限 10h・遅延起動可）。
+- `-Routine` = 対象日を「今日」に固定 + bundle 未生成なら Phase A 完了を 15:00 まで 2 分間隔で
+  待機（→ 人間は土日朝に Phase A を回すだけ。bundle が出来た時点でラインが動き出す）
+- 全出力を `logs/t10_{date}.log` に記録
+- 非開催日（bundle が出ない日）は 15:00 に自然終了
+- ⚠ 祝日（月曜）開催はトリガー外 → 手動で `.\t10.ps1`
+- 無効化: `Disable-ScheduledTask -TaskName PyCaLiAI_T10` / 削除: `Unregister-ScheduledTask`
 
 ## JV-Link パーサ（全4券種確定、2026-06-12 raw 突合 + 確定配当照合）
 | spec | 券種 | レイアウト |

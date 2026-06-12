@@ -416,10 +416,10 @@ v6 + cowork_prompt 改修（節 11）でこの弱点改善を狙う。
 # 週次 Phase B（Cowork 返答後）
 .\weekly_nicegui.ps1 -BetsOnly
 
-# 当日 T-10 自動馬券ライン（レース日朝に1回起動。各レース発走10分前に
-# JV-Linkオッズ取得→compute_bets→validateを自動実行し買い目表示。投票は人間IPAT。
-# 詳細: docs/compute_bets_spec.md）
-.\t10.ps1            # 日付自動検出 / .\t10.ps1 20260614 -Dry で書込なしテスト
+# 当日 T-10 自動馬券ライン（各レース発走10分前に JV-Linkオッズ取得→compute_bets
+# →validate を自動実行し買い目表示。投票は人間IPAT。詳細: docs/compute_bets_spec.md）
+# ★土日 9:00 はタスクスケジューラ「PyCaLiAI_T10」が自動起動 (bundle 待機つき) — 手動起動は不要。
+#   祝日(月)開催のみ手動: .\t10.ps1   / テスト: .\t10.ps1 20260614 -Dry
 
 # 週次 Phase C（日曜夜、kekka 配置後）
 .\weekly_nicegui.ps1 -Post

@@ -23,6 +23,13 @@ fail-safe: オッズ欠損/鮮度NG/overround 異常は compute_bets 側で見�
   venv311\\Scripts\\python.exe t10_runner.py 20260614 --dry # 計算のみ・書込なし
   venv311\\Scripts\\python.exe t10_runner.py 20260607 --once 2026060705030211 --max-age-min 99999
                                                             # 1レース即時処理（動作テスト用）
+
+ルーチン運用 (タスクスケジューラ "PyCaLiAI_T10" → t10.ps1 -Routine が呼ぶ):
+  --wait-bundle : bundle 未生成なら 2 分間隔でポーリングして待つ (Phase A 完了待ち)。
+                  デッドライン (--wait-deadline, 既定 15:00) 超過で諦めて終了。
+                  日付未指定なら「今日」を対象にする (最新 bundle 検出だと翌日分を
+                  拾い得るため、ルーチンでは必ず当日に固定)。
+  多重起動ガード: reports/live_odds/.t10_lock (12h 未満) があれば起動拒否 (--force-lock で無視)。
 """
 from __future__ import annotations
 import argparse
@@ -40,9 +47,34 @@ from pathlib import Path
 BASE = Path(__file__).parent
 PY32 = ["py", "-3.12-32"]          # JV-Link は 32-bit COM
 LIVE_DIR = BASE / "reports" / "live_odds"
+LOCK = LIVE_DIR / ".t10_lock"
 POLL_SEC = 15
+BUNDLE_POLL_SEC = 120
 
 sys.stdout.reconfigure(encoding="utf-8")
+
+
+def acquire_lock(force: bool) -> bool:
+    """多重起動ガード (手動起動とスケジュールタスクの同時実行防止)。"""
+    try:
+        if LOCK.exists():
+            age_h = (time.time() - LOCK.stat().st_mtime) / 3600.0
+            if age_h < 12 and not force:
+                print(f"[ERROR] 別の t10_runner が稼働中の可能性 ({LOCK} が {age_h:.1f}h 前)。"
+                      "多重起動を中止。強制するなら --force-lock")
+                return False
+        LIVE_DIR.mkdir(parents=True, exist_ok=True)
+        LOCK.write_text(f"{os.getpid()} {datetime.now().isoformat()}", encoding="utf-8")
+    except OSError:
+        pass   # ロックが書けなくても本処理は止めない
+    return True
+
+
+def release_lock():
+    try:
+        LOCK.unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 def _rid16(x) -> str:
@@ -183,12 +215,35 @@ def main():
     ap.add_argument("--dry", action="store_true", help="計算のみ。bets.json へ書き込まない")
     ap.add_argument("--once", default=None,
                     help="rid16 を指定して 1 レースだけ即時処理して終了 (テスト用)")
+    ap.add_argument("--wait-bundle", action="store_true",
+                    help="bundle 未生成なら 2 分間隔で待つ (ルーチン用。日付未指定なら今日)")
+    ap.add_argument("--wait-deadline", default="15:00",
+                    help="--wait-bundle の諦め時刻 HH:MM (default 15:00)")
+    ap.add_argument("--force-lock", action="store_true",
+                    help="多重起動ガード (.t10_lock) を無視して起動")
     args = ap.parse_args()
 
-    date_str = args.date or latest_bundle_date()
+    if args.wait_bundle and not args.date:
+        # ルーチンは必ず「今日」(最新 bundle 検出だと先行生成済みの翌日分を拾い得る)
+        date_str = datetime.now().strftime("%Y%m%d")
+    else:
+        date_str = args.date or latest_bundle_date()
     if not date_str:
         print("[ERROR] bundle が見つからない (reports/cowork_input/)"); return 1
     bundle = BASE / "reports" / "cowork_input" / f"{date_str}_bundle.json"
+
+    if not bundle.exists() and args.wait_bundle:
+        hm = parse_hhmm(args.wait_deadline) or (15, 0)
+        deadline = datetime.now().replace(hour=hm[0], minute=hm[1], second=0)
+        print(f"[wait] {bundle.name} 未生成 → Phase A 完了を待機 "
+              f"({BUNDLE_POLL_SEC}s 間隔, {deadline:%H:%M} まで)")
+        while not bundle.exists():
+            if datetime.now() >= deadline:
+                print(f"[ERROR] {deadline:%H:%M} までに bundle が生成されず → 諦めて終了。"
+                      "(開催日でない / Phase A 未実行)")
+                return 1
+            time.sleep(BUNDLE_POLL_SEC)
+        print(f"[wait] bundle 検出 → 開始")
     if not bundle.exists():
         print(f"[ERROR] {bundle} が無い (Phase A を先に実行)"); return 1
 
@@ -234,20 +289,25 @@ def main():
         print(f"  {pt:%H:%M} 発走 → {(pt-lead):%H:%M} 処理  {label}")
     print("  (Ctrl+C で停止。投票は人間が IPAT で行う)\n")
 
-    done: set[str] = set()
-    while len(done) < len(sched):
-        now = datetime.now()
-        for pt, rid, label in sched:
-            if rid in done:
-                continue
-            if now >= pt:
-                print(f"[{now:%H:%M:%S}] ✗ {label} は発走済み ({pt:%H:%M}) → スキップ")
-                done.add(rid)
-            elif now >= pt - lead:
-                process_race(date_str, bundle, rid, label, args.max_age_min, args.dry)
-                done.add(rid)
-        if len(done) < len(sched):
-            time.sleep(POLL_SEC)
+    if not acquire_lock(args.force_lock):
+        return 1
+    try:
+        done: set[str] = set()
+        while len(done) < len(sched):
+            now = datetime.now()
+            for pt, rid, label in sched:
+                if rid in done:
+                    continue
+                if now >= pt:
+                    print(f"[{now:%H:%M:%S}] ✗ {label} は発走済み ({pt:%H:%M}) → スキップ")
+                    done.add(rid)
+                elif now >= pt - lead:
+                    process_race(date_str, bundle, rid, label, args.max_age_min, args.dry)
+                    done.add(rid)
+            if len(done) < len(sched):
+                time.sleep(POLL_SEC)
+    finally:
+        release_lock()
     print(f"\n========== 全 {len(sched)}R 処理完了 ==========")
     return 0
 
