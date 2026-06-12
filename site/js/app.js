@@ -336,7 +336,12 @@ function subLine(h) {
   return parts.join(" ") || "—";
 }
 
-function renderTable(r) {
+function renderTable(r, flip = false) {
+  const prevTops = new Map();
+  if (flip) {
+    $("#shutsuba").querySelectorAll(".hrow").forEach((el) =>
+      prevTops.set(el.dataset.uma, el.getBoundingClientRect().top));
+  }
   const valueSet = new Set((r.judgment?.value_horses || []).map((v) => v.umaban));
   const maxP = Math.max(...r.horses.map((h) => h.p_win ?? 0), 0.001);
   const scores = r.horses.map((h) => h.ai_score).filter((v) => v != null);
@@ -356,7 +361,7 @@ function renderTable(r) {
     const ev = h.ev_tan;
     const resPos = hasRes ? r.result.order[String(h.umaban)] : null;
     const inTop3 = resPos != null && resPos <= 3;
-    return `<div class="hrow ${isHonmei ? "honmei" : ""} ${!h.mark ? "dim" : ""} ${isValue ? "value" : ""} ${inTop3 ? "intop3" : ""}"
+    return `<div class="hrow ${flip ? "still" : ""} ${isHonmei ? "honmei" : ""} ${!h.mark ? "dim" : ""} ${isValue ? "value" : ""} ${inTop3 ? "intop3" : ""}"
         style="--i:${i}" data-uma="${h.umaban}" role="button" tabindex="0">
       ${hasRes ? `<span class="c-res">${posBadge(resPos)}</span>` : ""}
       <span class="mark ${markCls(h.mark)}">${h.mark || "・"}</span>
@@ -415,7 +420,7 @@ function renderTable(r) {
         state.sort = key;
         state.sortAsc = true;
       }
-      renderTable(currentRace());
+      renderTable(currentRace(), true);
     };
   });
   $("#shutsuba").querySelectorAll(".hrow").forEach((row) => {
@@ -423,6 +428,18 @@ function renderTable(r) {
     row.onclick = open;
     row.onkeydown = (e) => { if (e.key === "Enter") open(); };
   });
+
+  if (flip) {
+    $("#shutsuba").querySelectorAll(".hrow").forEach((el, i) => {
+      const prev = prevTops.get(el.dataset.uma);
+      if (prev == null) return;
+      const d = prev - el.getBoundingClientRect().top;
+      if (Math.abs(d) < 1) return;
+      el.animate(
+        [{ transform: `translateY(${d}px)` }, { transform: "none" }],
+        { duration: 340 + i * 12, easing: "cubic-bezier(.2,.7,.3,1)" });
+    });
+  }
 }
 
 /* ---------------- extras: 展開 + 馬連/ワイド ---------------- */
