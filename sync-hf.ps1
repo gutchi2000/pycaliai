@@ -45,6 +45,8 @@ $SyncFiles = @(
     "requirements-nicegui.txt",
     "nicegui_app.py",
     "betting_judgment.py",
+    "umami.py",
+    "reports/audit_ev_bin_roi.json",
     "data/course_stats.json",
     "data/chaos_quantiles.json",
     "data/kekka/wide_kekka.csv",
