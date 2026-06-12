@@ -19,15 +19,17 @@ NiceGUI の 4 カード（市場一致 / ◎独走度 / 上位2頭集中 / 混�
 
 実行: PYTHONUTF8=1 python compute_bets.py --bundle reports/cowork_input/20260607_bundle.json --dry
 
-実装状況 (2026-06-11 / docs/audit_20260611.md):
+実装状況 (2026-06-12):
   ✅ pair_probs: ワイド/馬連/馬単の確率は bundle 埋込の calibrated PL joint を優先。
      旧 bundle のみ独立積近似 (+21〜27% 過大) にフォールバック。
   ✅ T-10 ライブオッズ: --live-odds-dir reports/live_odds でライブ必須モード。
      単勝/複勝を 0B31 実値に差替。欠損/ok=false/鮮度NG (--max-age-min) は fail-safe 見送り。
   ✅ 書込契約: --apply で cowork_output/{date}_bets.json へ in-place merge (.bak退避+アトミック置換)。
      書込後は validate_cowork_bets.py --apply を必ず通す。デフォルト(--dry)は表示のみ。
-  ⏳ ワイド/馬単のライブ実値 (0B33/0B34): パーサ未検証 (土曜ライブで確認予定)。
-     それまで umaren_matrix (土曜朝スナップ) 由来の推定オッズを使用。
+  ✅ ワイド/馬単のライブ実値 (0B33/0B34): raw 突合 + 確定配当照合でパーサ確定 (2026-06-12)。
+     ライブ実値を優先、無ければ umaren_matrix 推定にフォールバック。
+  ✅ --race rid16: 指定レースのみ計算・apply (t10_runner.py が T-10 にレース単位で使う)。
+  ✅ t10_runner.py / t10.ps1: 当日オーケストレータ (発走時刻→T-10 自動発火)。
 """
 from __future__ import annotations
 import argparse, bisect, io, json, sys
@@ -147,6 +149,8 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
 
     # ---- T-10 ライブオッズ (spec §入力2): 指定時は必須 = 読めなければ fail-safe 見送り ----
     live_note = ""
+    lwide: dict = {}    # {(i,j): (lo,hi)} ライブワイド実値
+    lumatan: dict = {}  # {(i,j): odds}   ライブ馬単実値 (i=1着)
     if live_dir is not None:
         live, why = load_live_odds(live_dir, rid[:16], max_age_min)
         if live is None:
@@ -167,9 +171,23 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
                 n_tan += 1
             if b in live_fuku:
                 h["fuku_odds_low"], h["fuku_odds_high"] = live_fuku[b]
-        live_note = f" [T-10オッズ {n_tan}頭]"
-        # ワイド/馬単は 0B33/0B34 パーサ未検証のため bundle 由来の umaren_matrix 推定のまま
-        # (jvlink_odds.py docstring: 土曜ライブで最終検証予定)
+        # ワイド/馬単のライブ実値 (0B33/0B34, raw 突合で確定 2026-06-12)。
+        # 無ければ従来どおり umaren_matrix 推定にフォールバック。
+        for k, v in (live.get("wide") or {}).items():
+            try:
+                i, j = (int(x) for x in k.split("-"))
+                lwide[(min(i, j), max(i, j))] = (float(v[0]), float(v[1]))
+            except (ValueError, TypeError, IndexError):
+                continue
+        for k, v in (live.get("umatan") or {}).items():
+            try:
+                i, j = (int(x) for x in k.split(">"))
+                lumatan[(i, j)] = float(v)
+            except (ValueError, TypeError):
+                continue
+        live_note = (f" [T-10オッズ 単複{n_tan}頭"
+                     + (f"/ワイド{len(lwide)}組" if lwide else "")
+                     + (f"/馬単{len(lumatan)}組" if lumatan else "") + "]")
 
     by_ban = {int(h["umaban"]): h for h in horses if _num(h.get("umaban")) is not None}
 
@@ -274,23 +292,33 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
             p = pi * pj / (1 - pi) + pj * pi / (1 - pj)
         push("馬連", f"{min(i,j)}-{max(i,j)}", (i, j), o, o * p, boost)
     def c_wide(i, j, boost=1.0):
-        o = umaren(i, j)
-        if not o:
-            return
+        lw = lwide.get((min(i, j), max(i, j)))
+        if lw:                       # T-10 ライブ実値 (lo+hi)/2
+            o = (lw[0] + lw[1]) / 2.0
+        else:                        # 推定: ワイド ≈ 馬連/3
+            o_um = umaren(i, j)
+            if not o_um:
+                return
+            o = o_um / 3.0
         p = pair_p(i, j, "wide")
         if p is None:  # 旧 bundle 互換: 独立積近似 (+21〜27% 系統過大)
             si, sj = fld(i, "p_sho"), fld(j, "p_sho")
             if not (si and sj):
                 return
             p = si * sj
-        push("ワイド", f"{min(i,j)}-{max(i,j)}", (i, j), o / 3.0, (o / 3.0) * p, boost)
-    def c_umatan(i, j, boost=1.0):  # i→j (i 1着, j 2着)。馬単odds ≈ 馬連 × (pi+pj)/pi
-        o, pi, pj = umaren(i, j), fld(i, "p_win"), fld(j, "p_win")
-        if not (o and pi and pj and 0 < pi < 1):
-            return
-        ut = o * (pi + pj) / pi
+        push("ワイド", f"{min(i,j)}-{max(i,j)}", (i, j), o, o * p, boost)
+    def c_umatan(i, j, boost=1.0):  # i→j (i 1着, j 2着)
+        pi, pj = fld(i, "p_win"), fld(j, "p_win")
+        ut = lumatan.get((i, j))     # T-10 ライブ実値
+        if ut is None:               # 推定: 馬単odds ≈ 馬連 × (pi+pj)/pi
+            o = umaren(i, j)
+            if not (o and pi and pj and 0 < pi < 1):
+                return
+            ut = o * (pi + pj) / pi
         p = pair_p(i, j, "umatan")
         if p is None:  # 旧 bundle 互換
+            if not (pi and pj and 0 < pi < 1):
+                return
             p = pi * pj / (1 - pi)
         push("馬単", f"{i}→{j}", (i, j), ut, ut * p, boost)
 
@@ -429,9 +457,20 @@ def main():
                          "ライブ必須モード: 欠損/ok=false/鮮度NG のレースは fail-safe 見送り")
     ap.add_argument("--max-age-min", type=float, default=20.0,
                     help="ライブオッズの許容鮮度 (分, default 20)")
+    ap.add_argument("--race", default=None,
+                    help="rid16 (カンマ区切り可)。指定レースのみ計算・apply する"
+                         " (t10_runner がレース毎 T-10 に使う。他レースの上書き防止)")
     args = ap.parse_args()
     d = json.load(open(args.bundle, encoding="utf-8"))
     races = d.get("races", d if isinstance(d, list) else [])
+    if args.race:
+        import re as _re
+        want = {_re.sub(r"\D", "", x)[:16] for x in args.race.split(",") if x.strip()}
+        races = [r for r in races
+                 if _re.sub(r"\D", "", str(r.get("race_id", "")))[:16] in want]
+        if not races:
+            print(f"[ERROR] --race {args.race} に一致するレースが bundle に無い", file=sys.stderr)
+            return 1
     live_dir = Path(args.live_odds_dir) if args.live_odds_dir else None
     if live_dir is not None:
         print(f"[live] T-10 モード: {live_dir} (鮮度 {args.max_age_min:.0f}分)")

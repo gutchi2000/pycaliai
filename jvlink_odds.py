@@ -8,17 +8,21 @@ jvlink_odds.py — JV-Link 速報オッズ取得（32-bit 専用ブリッジ）
 ★必ず 32-bit Python で実行: py -3.12-32 jvlink_odds.py --race 2026060705030211
   64-bit では COM load 不可（-2147221021）。
 
-実証済（2026-06-09）:
+実証済（2026-06-09 単勝 / 2026-06-12 複勝・ワイド・馬単 raw 突合で確定）:
   JVInit("UNKNOWN")=0 / JVRTOpen("0B31",raceKey)=0 / JVRead→(size, O1録)
-  O1 単勝: pos45 起点 stride8 bytes/頭、odds=int(rec[s:s+4])/10。人気馬で bundle と一致確認。
+  O1 単勝: pos45 起点 stride8、odds=int(rec[s:s+4])/10、人気=+4(2)。bundle と全頭一致。
+  O1 複勝: pos269 起点 stride12 = lo(4)+hi(4)+人気等(4)。bundle と全頭一致。
+    ※旧 stride10 は 5頭ごとに1スロットずれる誤パーサだった (2026-06-12 修正)。
+  O3 ワイド: pos40 起点 stride17 = 組番(4)+lo(5)+hi(5)+人気(3)、/10。153組+票数計11。
+  O4 馬単  : pos40 起点 stride13 = 組番(4)+odds(6)+人気(3)、/10。306組+票数計11。
 
-データ仕様(RT):
-  0B31 単複枠 / 0B33 ワイド / 0B34 馬単 （馬連=不使用）
-  ※ 単勝パース確定。複勝/馬単/ワイドは土曜ライブで最終検証（暫定パーサ + フォールバック）。
+データ仕様(RT): 0B31 単複枠 / 0B33 ワイド / 0B34 馬単 （馬連=不使用）
 
 出力: reports/live_odds/{race_id}.json
-  {race_id, fetched, ok, tansho:{ban:odds}, fukusho:{ban:[low,high]}, overround_tan}
+  {race_id, fetched, ok, tansho:{ban:odds}, fukusho:{ban:[low,high]},
+   wide:{"i-j":[low,high]}, umatan:{"i>j":odds}, overround_tan}
 fail-safe: overround(単勝 Σ1/odds) が [1.0,1.5] 外 / 録なし → ok=false（compute_bets 側で見送り）
+           ワイド/馬単は取れなくても ok 判定に影響しない（compute_bets が推定にフォールバック）
 """
 from __future__ import annotations
 import argparse, json, re, sys
@@ -65,8 +69,9 @@ def fetch_records(race_key: str, spec: str, max_rec: int = 200) -> list[str]:
 
 def parse_o1(rec: str) -> dict:
     """O1(単複枠) → {tansho:{ban:odds}, fukusho:{ban:[low,high]}}。
-    単勝: pos45 起点 stride8、odds=int(rec[s:s+4])/10（実証済）。
-    複勝: 単勝28頭×8=224 後の pos269 起点 stride10、low/high=int(/10)（暫定・土曜検証）。"""
+    単勝: pos45 起点 stride8 = odds(4)+人気(2)+予備(2)、/10（実証済 2026-06-09）。
+    複勝: pos269 起点 stride12 = lo(4)+hi(4)+人気等(4)、/10（raw 突合で確定 2026-06-12。
+          旧 stride10 は 5頭ごとに1スロットずれて別馬のオッズを返す致命バグだった）。"""
     tansho, fukusho = {}, {}
     TAN0, TAN_STRIDE, N = 45, 8, 28
     for i in range(1, N + 1):
@@ -74,13 +79,47 @@ def parse_o1(rec: str) -> dict:
         v = _digits(rec[s:s + 4])
         if v and v > 0:
             tansho[i] = round(v / 10.0, 1)
-    FUK0, FUK_STRIDE = TAN0 + N * TAN_STRIDE, 10   # =269（暫定）
+    FUK0, FUK_STRIDE = TAN0 + N * TAN_STRIDE, 12   # =269
     for i in range(1, N + 1):
         s = FUK0 + (i - 1) * FUK_STRIDE
         lo, hi = _digits(rec[s:s + 4]), _digits(rec[s + 4:s + 8])
         if lo and hi and 0 < lo <= hi:
             fukusho[i] = [round(lo / 10.0, 1), round(hi / 10.0, 1)]
     return {"tansho": tansho, "fukusho": fukusho}
+
+
+def parse_o3(rec: str) -> dict:
+    """O3(ワイド) → {"i-j":[low,high]}。
+    pos40 起点 stride17 = 組番(4)+lo(5)+hi(5)+人気(3)、/10（raw 突合で確定 2026-06-12）。"""
+    out = {}
+    W0, STRIDE, NMAX = 40, 17, 153   # C(18,2)
+    for k in range(NMAX):
+        s = W0 + k * STRIDE
+        kumi = rec[s:s + 4]
+        if not kumi.strip() or not kumi.isdigit():
+            continue
+        i, j = int(kumi[:2]), int(kumi[2:])
+        lo, hi = _digits(rec[s + 4:s + 9]), _digits(rec[s + 9:s + 14])
+        if i and j and lo and hi and 0 < lo <= hi:
+            out[f"{i}-{j}"] = [round(lo / 10.0, 1), round(hi / 10.0, 1)]
+    return out
+
+
+def parse_o4(rec: str) -> dict:
+    """O4(馬単) → {"i>j":odds} (i=1着, j=2着)。
+    pos40 起点 stride13 = 組番(4)+odds(6)+人気(3)、/10（raw 突合で確定 2026-06-12）。"""
+    out = {}
+    U0, STRIDE, NMAX = 40, 13, 306   # 18P2
+    for k in range(NMAX):
+        s = U0 + k * STRIDE
+        kumi = rec[s:s + 4]
+        if not kumi.strip() or not kumi.isdigit():
+            continue
+        i, j = int(kumi[:2]), int(kumi[2:])
+        v = _digits(rec[s + 4:s + 10])
+        if i and j and v and v > 0:
+            out[f"{i}>{j}"] = round(v / 10.0, 1)
+    return out
 
 
 def fetch_race(race_key: str) -> dict:
@@ -94,11 +133,22 @@ def fetch_race(race_key: str) -> dict:
     tan = o1["tansho"]
     over = sum(1.0 / o for o in tan.values() if o > 1.0) if tan else 0.0
     ok = bool(tan) and (1.0 <= over <= 1.5)
+    # ワイド/馬単は取れなくても ok 判定に影響しない (compute_bets が推定にフォールバック)
+    wide, umatan = {}, {}
+    try:
+        r3 = [r for r in fetch_records(race_key, "0B33") if r.startswith("O3")]
+        if r3:
+            wide = parse_o3(r3[-1])
+        r4 = [r for r in fetch_records(race_key, "0B34") if r.startswith("O4")]
+        if r4:
+            umatan = parse_o4(r4[-1])
+    except Exception:
+        pass
     # fetched は compute_bets の鮮度 fail-safe (--max-age-min) が参照する
     return {"race_id": race_key, "fetched": fetched,
             "ok": ok, "overround_tan": round(over, 3),
             "reason": "" if ok else f"overround {over:.3f} 異常 or 単勝空",
-            **o1}
+            **o1, "wide": wide, "umatan": umatan}
 
 
 def dump_raw(race_key: str) -> None:
@@ -134,8 +184,9 @@ def main():
     (OUT_DIR / f"{args.race}.json").write_text(
         json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[jvlink_odds] race={args.race} ok={res['ok']} "
-          f"単勝{len(res.get('tansho',{}))}頭 overround={res.get('overround_tan')} "
-          f"{res.get('reason','')}")
+          f"単勝{len(res.get('tansho',{}))}頭 複勝{len(res.get('fukusho',{}))}頭 "
+          f"ワイド{len(res.get('wide',{}))}組 馬単{len(res.get('umatan',{}))}組 "
+          f"overround={res.get('overround_tan')} {res.get('reason','')}")
     if args.validate:
         d = json.load(open(args.validate, encoding="utf-8"))
         races = d.get("races", [])
