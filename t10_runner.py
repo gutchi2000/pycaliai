@@ -86,6 +86,83 @@ def notify(text: str) -> bool:
         return False
 
 
+# ---------------------------------------------------------------
+# Discord Bot 受信 (予算再計算コマンド)。webhook は送信専用なので、
+# 受信には bot_token + channel_id が必要 (notify_config.json)。
+# 未設定なら一方向通知のみで動く。
+# ---------------------------------------------------------------
+def _bot_cfg() -> tuple[str, str]:
+    try:
+        cfg = json.loads(NOTIFY_CFG.read_text(encoding="utf-8"))
+        return (str(cfg.get("bot_token", "") or "").strip(),
+                str(cfg.get("channel_id", "") or "").strip())
+    except (OSError, ValueError):
+        return "", ""
+
+
+def _discord_get_messages(token: str, channel_id: str, after_id: str | None):
+    """チャンネルの新着メッセージ (古い順) を返す。失敗は [] (非致命)。"""
+    import urllib.request
+    url = f"https://discord.com/api/v10/channels/{channel_id}/messages?limit=20"
+    if after_id:
+        url += f"&after={after_id}"
+    req = urllib.request.Request(url, headers={
+        "Authorization": f"Bot {token}",
+        "User-Agent": "PyCaLiAI-T10 (private bot)"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            msgs = json.loads(r.read().decode("utf-8"))
+        return sorted(msgs, key=lambda m: int(m["id"]))  # 古い順
+    except Exception as e:
+        print(f"  [bot] メッセージ取得失敗 (非致命): {e}")
+        return []
+
+
+def parse_budget_command(text: str) -> int | None:
+    """「金額2000円」「2000円」「¥2000」「2000」「3,000円」→ int。該当なしは None。"""
+    t = (text or "").strip().replace(",", "").replace("，", "")
+    m = re.search(r"(\d{3,6})\s*円", t)
+    if not m:
+        m = re.fullmatch(r"[¥\\]?\s*(\d{3,6})", t)
+    if not m:
+        return None
+    v = int(m.group(1))
+    return v if 500 <= v <= 100000 else None
+
+
+class BotPoller:
+    """T-10 ループ内で Discord 返信をポーリングし、予算コマンドを拾う。"""
+
+    def __init__(self):
+        self.token, self.channel = _bot_cfg()
+        self.enabled = bool(self.token and self.channel)
+        self.last_id: str | None = None
+        if self.enabled:
+            # 起動以前のメッセージには反応しない (最新 id を起点にする)
+            msgs = _discord_get_messages(self.token, self.channel, None)
+            if msgs:
+                self.last_id = msgs[-1]["id"]
+            print(f"[bot] 予算コマンド受付 ON (channel={self.channel})")
+        else:
+            print("[bot] bot_token/channel_id 未設定 → 一方向通知のみ "
+                  "(返信での予算再計算は無効)")
+
+    def poll_budgets(self) -> list[int]:
+        """新着の人間メッセージから予算コマンドを抽出。"""
+        if not self.enabled:
+            return []
+        msgs = _discord_get_messages(self.token, self.channel, self.last_id)
+        budgets = []
+        for m in msgs:
+            self.last_id = m["id"]
+            if m.get("author", {}).get("bot"):
+                continue   # 自分の webhook 投稿等は無視
+            b = parse_budget_command(m.get("content", ""))
+            if b is not None:
+                budgets.append(b)
+        return budgets
+
+
 def acquire_lock(force: bool) -> bool:
     """多重起動ガード (手動起動とスケジュールタスクの同時実行防止)。"""
     try:
@@ -204,10 +281,11 @@ def show_race_bets(date_str: str, rid16: str):
 
 
 def process_race(date_str: str, bundle: Path, rid16: str, label: str,
-                 max_age_min: float, dry: bool) -> bool:
-    """T-10 処理 1 レース分。True=完了 (見送り含む)。"""
+                 max_age_min: float, dry: bool, budget: int | None = None) -> bool:
+    """T-10 処理 1 レース分。True=完了 (見送り含む)。budget=予算再計算 (Discord コマンド)。"""
     now = datetime.now().strftime("%H:%M:%S")
-    print(f"\n[{now}] ▶ T-10 処理開始: {label} ({rid16})")
+    tag = f" (予算¥{budget:,} 再計算)" if budget else ""
+    print(f"\n[{now}] ▶ T-10 処理開始: {label} ({rid16}){tag}")
 
     # 1. JV-Link ライブオッズ (32-bit)。失敗しても compute_bets が fail-safe 見送りにする
     rc, out = run_cmd([*PY32, "jvlink_odds.py", "--race", rid16])
@@ -218,6 +296,8 @@ def process_race(date_str: str, bundle: Path, rid16: str, label: str,
     cmd = [sys.executable, "compute_bets.py", "--bundle", str(bundle),
            "--live-odds-dir", str(LIVE_DIR), "--max-age-min", str(max_age_min),
            "--race", rid16]
+    if budget:
+        cmd += ["--budget", str(int(budget))]
     if not dry:
         cmd.append("--apply")
     rc, out = run_cmd(cmd)
@@ -345,9 +425,12 @@ def main():
 
     if not acquire_lock(args.force_lock):
         return 1
+    poller = BotPoller() if not args.dry else None
+    last_post = sched[-1][0]
     try:
         done: set[str] = set()
-        while len(done) < len(sched):
+        last_proc: tuple | None = None   # 直近処理レース (rid, label, post_dt)
+        while True:
             now = datetime.now()
             for pt, rid, label in sched:
                 if rid in done:
@@ -358,8 +441,24 @@ def main():
                 elif now >= pt - lead:
                     process_race(date_str, bundle, rid, label, args.max_age_min, args.dry)
                     done.add(rid)
-            if len(done) < len(sched):
-                time.sleep(POLL_SEC)
+                    last_proc = (rid, label, pt)
+            # Discord 返信の予算コマンド (「2000円」等) → 直近レースを新予算で再計算
+            if poller:
+                for b in poller.poll_budgets():
+                    if last_proc is None:
+                        notify("⚠ まだ処理済みレースがありません (最初の T-10 をお待ちください)")
+                        continue
+                    rid, label, pt = last_proc
+                    if datetime.now() >= pt:
+                        notify(f"⚠ {label} は発走済みのため再計算できません")
+                        continue
+                    notify(f"🔁 {label} を予算 ¥{b:,} で再計算します…")
+                    process_race(date_str, bundle, rid, label,
+                                 args.max_age_min, args.dry, budget=b)
+            # 全レース処理済みでも最終発走までは返信を受け付ける
+            if len(done) >= len(sched) and now >= last_post:
+                break
+            time.sleep(POLL_SEC)
     finally:
         release_lock()
     print(f"\n========== 全 {len(sched)}R 処理完了 ==========")

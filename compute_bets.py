@@ -39,6 +39,10 @@ BASE = Path(__file__).parent
 BUDGET, MIN_BET, MAX_BET = 10000, 500, 7000
 CHAOS_Q = BASE / "data" / "chaos_quantiles.json"
 
+# 出力 bets[] の券種表示順 (ユーザー指定 2026-06-12。金額配分には影響しない)
+KIND_ORDER = {"単勝": 0, "複勝": 1, "ワイド": 2, "馬連": 3, "馬単": 4,
+              "三連複": 5, "三連単": 6}
+
 # カード閾値（nicegui_app と一致）
 TH_TOP1_GO, TH_TOP1_OK = 0.75, 0.50      # ◎独走 / ◎やや優位
 TH_TOP2_GO, TH_TOP2_OK, TH_TOP2_LOW = 0.75, 0.50, 0.40  # 本線濃厚 / やや本線 / 分散
@@ -138,7 +142,7 @@ def load_live_odds(live_dir: Path, rid16: str, max_age_min: float):
 
 
 def compute_race_bets(race: dict, live_dir: Path | None = None,
-                      max_age_min: float = 20.0) -> dict:
+                      max_age_min: float = 20.0, budget: int = BUDGET) -> dict:
     rm = race.get("race_meta", {})
     rc = race.get("race_confidence", {})
     bj = race.get("buy_judgment", {})
@@ -382,13 +386,14 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
         if hc: chosen.append(max(hc, key=lambda c: c[4]))
     if not chosen and cands:
         chosen = [max(cands, key=lambda c: c[4])]
-    # 点数上限（馬単formationは8、その他は6目安）
+    # 点数上限（馬単formationは8、その他は6目安。少額予算は MIN_BET で入る点数まで絞る）
     cap = 8 if shape == "本命勝負" else 6
+    cap = max(1, min(cap, int(budget) // MIN_BET))
     chosen = sorted(chosen, key=lambda c: -(c[4] * c[6]))[:cap]
 
     # ---- 配分（EV×boost 重み、キャップ厳守）----
     base = [amount_for_ev(c[4]) * c[6] for c in chosen]
-    amts = allocate(base)
+    amts = allocate(base, budget=int(budget))
     waku = bj.get("waku_tag") or "参加枠"
     bets = []
     for c, amt in zip(chosen, amts):
@@ -396,6 +401,8 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
         role = "おいしい" if (set(bans) & set(value_bans)) else ("◎絡み" if ish else "相手")
         bets.append({"馬券種": kind, "買い目": sel, "購入額": int(amt), "枠タグ": waku,
                      "理由": f"{role}（{kind} {odds:.1f}倍）"})
+    # 表示順: 単勝→複勝→ワイド→馬連→馬単→三連複→三連単、同券種内は金額降順
+    bets.sort(key=lambda b: (KIND_ORDER.get(b["馬券種"], 9), -b["購入額"]))
 
     hon_name = by_ban.get(hon, {}).get("horse_name", "本命")
     rr = (f"◎{hon_name}。{shape}（独走{top1:.2f}/集中{top2:.2f}/混戦{chaos:.2f}/"
@@ -460,6 +467,8 @@ def main():
     ap.add_argument("--race", default=None,
                     help="rid16 (カンマ区切り可)。指定レースのみ計算・apply する"
                          " (t10_runner がレース毎 T-10 に使う。他レースの上書き防止)")
+    ap.add_argument("--budget", type=int, default=BUDGET,
+                    help=f"1レース予算 (default {BUDGET}。Discord 再計算コマンドが使う)")
     args = ap.parse_args()
     d = json.load(open(args.bundle, encoding="utf-8"))
     races = d.get("races", d if isinstance(d, list) else [])
@@ -474,7 +483,8 @@ def main():
     live_dir = Path(args.live_odds_dir) if args.live_odds_dir else None
     if live_dir is not None:
         print(f"[live] T-10 モード: {live_dir} (鮮度 {args.max_age_min:.0f}分)")
-    out = [compute_race_bets(r, live_dir=live_dir, max_age_min=args.max_age_min)
+    out = [compute_race_bets(r, live_dir=live_dir, max_age_min=args.max_age_min,
+                             budget=args.budget)
            for r in races]
     n_bet = sum(1 for e in out if e["bets"]); tot = sum(b["購入額"] for e in out for b in e["bets"])
     shapes = {}
