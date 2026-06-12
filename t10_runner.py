@@ -48,10 +48,40 @@ BASE = Path(__file__).parent
 PY32 = ["py", "-3.12-32"]          # JV-Link は 32-bit COM
 LIVE_DIR = BASE / "reports" / "live_odds"
 LOCK = LIVE_DIR / ".t10_lock"
+NOTIFY_CFG = BASE / "notify_config.json"   # gitignore 対象 (webhook URL は秘匿)
 POLL_SEC = 15
 BUNDLE_POLL_SEC = 120
 
 sys.stdout.reconfigure(encoding="utf-8")
+
+
+def _webhook_url() -> str:
+    """Discord webhook URL。環境変数 PYCALIAI_DISCORD_WEBHOOK > notify_config.json。"""
+    url = os.environ.get("PYCALIAI_DISCORD_WEBHOOK", "").strip()
+    if url:
+        return url
+    try:
+        cfg = json.loads(NOTIFY_CFG.read_text(encoding="utf-8"))
+        return str(cfg.get("discord_webhook", "") or "").strip()
+    except (OSError, ValueError):
+        return ""
+
+
+def notify(text: str) -> bool:
+    """Discord webhook へ送信。未設定/失敗は非致命 (本処理は止めない)。"""
+    url = _webhook_url()
+    if not url:
+        return False
+    import urllib.request
+    body = json.dumps({"content": text[:1990]}).encode("utf-8")  # Discord 上限 2000 字
+    req = urllib.request.Request(
+        url, data=body, headers={"Content-Type": "application/json"})
+    try:
+        urllib.request.urlopen(req, timeout=10)
+        return True
+    except Exception as e:
+        print(f"  [notify] Discord 送信失敗 (非致命): {e}")
+        return False
 
 
 def acquire_lock(force: bool) -> bool:
@@ -144,7 +174,7 @@ def run_cmd(cmd: list[str], timeout: int = 180) -> tuple[int, str]:
 
 
 def show_race_bets(date_str: str, rid16: str):
-    """apply 後の bets.json から当該レースを読み戻して表示。"""
+    """apply 後の bets.json から当該レースを読み戻して表示 + Discord 通知。"""
     path = BASE / "reports" / "cowork_output" / f"{date_str}_bets.json"
     if not path.exists():
         return
@@ -155,14 +185,20 @@ def show_race_bets(date_str: str, rid16: str):
         return
     if e.get("bets"):
         tot = sum(b["購入額"] for b in e["bets"])
-        print(f"  🎫 {e.get('race_label','')} [{e.get('race_nature','')}] "
-              f"{len(e['bets'])}点 ¥{tot:,}")
+        head = (f"🎫 {e.get('race_label','')} [{e.get('race_nature','')}] "
+                f"{len(e['bets'])}点 ¥{tot:,}")
+        print(f"  {head}")
+        lines = [f"**{head}**"]
         for b in e["bets"]:
             print(f"     {b['馬券種']:3s} {b['買い目']:8s} ¥{b['購入額']:>5,}  {b.get('理由','')}")
+            lines.append(f"{b['馬券種']} `{b['買い目']}` ¥{b['購入額']:,}  {b.get('理由','')}")
         print(f"     → {e.get('race_reason','')}")
+        lines.append(f"_{e.get('race_reason','')}_")
+        notify("\n".join(lines))
         beep()
     else:
         print(f"  — {e.get('race_label','')} [見送り] {e.get('race_reason','')}")
+        notify(f"— {e.get('race_label','')} **見送り** {e.get('race_reason','')}")
 
 
 def process_race(date_str: str, bundle: Path, rid16: str, label: str,
@@ -221,7 +257,18 @@ def main():
                     help="--wait-bundle の諦め時刻 HH:MM (default 15:00)")
     ap.add_argument("--force-lock", action="store_true",
                     help="多重起動ガード (.t10_lock) を無視して起動")
+    ap.add_argument("--test-notify", action="store_true",
+                    help="Discord 通知のテスト送信だけして終了")
     args = ap.parse_args()
+
+    if args.test_notify:
+        if not _webhook_url():
+            print("[notify] 未設定。notify_config.json の discord_webhook に "
+                  "webhook URL を貼るか、環境変数 PYCALIAI_DISCORD_WEBHOOK を設定。")
+            return 1
+        ok = notify("✅ PyCaLiAI T-10 ライン: 通知テスト成功。土日はこのチャンネルに買い目が届きます。")
+        print(f"[notify] テスト送信 {'成功' if ok else '失敗'}")
+        return 0 if ok else 1
 
     if args.wait_bundle and not args.date:
         # ルーチンは必ず「今日」(最新 bundle 検出だと先行生成済みの翌日分を拾い得る)
@@ -241,6 +288,8 @@ def main():
             if datetime.now() >= deadline:
                 print(f"[ERROR] {deadline:%H:%M} までに bundle が生成されず → 諦めて終了。"
                       "(開催日でない / Phase A 未実行)")
+                notify(f"⚠ T-10 ライン {date_str}: {deadline:%H:%M} までに bundle 未生成のため"
+                       "終了 (Phase A 未実行?)")
                 return 1
             time.sleep(BUNDLE_POLL_SEC)
         print(f"[wait] bundle 検出 → 開始")
@@ -288,6 +337,9 @@ def main():
     for pt, rid, label in sched:
         print(f"  {pt:%H:%M} 発走 → {(pt-lead):%H:%M} 処理  {label}")
     print("  (Ctrl+C で停止。投票は人間が IPAT で行う)\n")
+    if not args.dry:
+        notify(f"🏇 T-10 ライン起動 {date_str}: {len(sched)}R をスケジュール "
+               f"(T-{args.lead_min:.0f}, {sched[0][0]:%H:%M}〜{sched[-1][0]:%H:%M})")
 
     if not acquire_lock(args.force_lock):
         return 1
@@ -309,6 +361,8 @@ def main():
     finally:
         release_lock()
     print(f"\n========== 全 {len(sched)}R 処理完了 ==========")
+    if not args.dry:
+        notify(f"🏁 T-10 ライン {date_str}: 全 {len(sched)}R 処理完了")
     return 0
 
 
