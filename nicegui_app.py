@@ -1561,11 +1561,62 @@ def compute_course_stats_v2(place: str, course_str: str) -> dict | None:
     }
 
 
+def _course_stats_from_json(place: str, course_str: str) -> dict | None:
+    """course_stats.json (事前集計) から右パネル用スキーマを組み立てる。
+
+    master_v2 (515MB) は HF Spaces に置いていないため、HF では右パネルの
+    「過去同コース成績 / 枠バイアス」が常にデータ無し表示だった (2026-06-12
+    指摘)。コース分析タブと同じ事前集計 JSON から 枠番別 → 内/中/外 3 段に
+    集約してフォールバックする。
+    """
+    data = load_precomputed_course_stats()
+    if not data or not place or not course_str:
+        return None
+    e = data.get(f"{place}|{course_str}")
+    if e is None:  # 表記ゆれ (ダート1200 / ダ1200) 両対応
+        alt = (course_str.replace("ダート", "ダ") if "ダート" in course_str
+               else course_str.replace("ダ", "ダート", 1))
+        e = data.get(f"{place}|{alt}")
+    if e is None:
+        return None
+
+    waku_stats = {}
+    for band, lo, hi in (("内枠", 1, 2), ("中枠", 3, 6), ("外枠", 7, 8)):
+        rows = [w for w in e.get("waku", [])
+                if str(w.get("label", "")).isdigit() and lo <= int(w["label"]) <= hi]
+        n_total = sum(r.get("n_total", 0) for r in rows)
+        if n_total:
+            n1 = sum(r.get("n_1", 0) for r in rows)
+            n123 = sum(r.get("n_1", 0) + r.get("n_2", 0) + r.get("n_3", 0)
+                       for r in rows)
+            waku_stats[band] = {
+                "starts": n_total, "wins": n1,
+                "win_rate": n1 / n_total * 100,
+                "top3_rate": n123 / n_total * 100,
+            }
+
+    # 1着馬番の平均 (馬番別 n_1 の加重平均で復元)
+    uma_rows = [u for u in e.get("uma", []) if str(u.get("label", "")).isdigit()]
+    n1_sum = sum(u.get("n_1", 0) for u in uma_rows)
+    first_uma_avg = (sum(int(u["label"]) * u.get("n_1", 0) for u in uma_rows)
+                     / n1_sum) if n1_sum else 0.0
+
+    return {
+        "n_races": e.get("n_races", 0),
+        "n_starts": e.get("n_starts", 0),
+        "waku": waku_stats,
+        "baba_dist": {},          # JSON には馬場状態別が無い (表示側未使用)
+        "first_uma_avg": float(first_uma_avg),
+    }
+
+
 @functools.lru_cache(maxsize=128)
 def compute_course_stats(place: str, course_str: str) -> dict | None:
-    """同コース過去成績 + 馬場バイアス"""
+    """同コース過去成績 + 馬場バイアス (master_v2 → 無ければ事前集計 JSON)"""
     df = get_master_df()
-    if df is None or not place or not course_str:
+    if df is None:
+        return _course_stats_from_json(place, course_str)   # HF フォールバック
+    if not place or not course_str:
         return None
     surface, dist = parse_course_str(course_str)
     if not surface or not dist:
