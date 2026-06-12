@@ -118,7 +118,16 @@ data/weekly/{date}.csv の発走時刻から全レースをスケジュールし
 - 全出力を `logs/t10_{date}.log` に記録
 - 非開催日（bundle が出ない日）は 15:00 に自然終了
 - ⚠ 祝日（月曜）開催はトリガー外 → 手動で `.\t10.ps1`
+- ⚠ 前提: 土日 9:00 までに PC 起動＋ログオン（スリープなら復帰後に遅延起動）
 - 無効化: `Disable-ScheduledTask -TaskName PyCaLiAI_T10` / 削除: `Unregister-ScheduledTask`
+
+### Discord 通知（2026-06-12）
+`notify_config.json`（gitignore）の `discord_webhook` に webhook URL を貼ると、
+起動サマリ / 各レースの買い目（見送り含む）/ 全R完了 / bundle 未生成警告 が Discord に届く。
+設定手順: Discord チャンネル設定 → 連携サービス → ウェブフック → URL コピー → 貼付 →
+`venv311\Scripts\python.exe t10_runner.py --test-notify` で確認。
+環境変数 `PYCALIAI_DISCORD_WEBHOOK` でも可。送信失敗は非致命（買い目生成は止まらない）。
+LINE は LINE Notify がサービス終了（2025-03）のため不採用（Messaging API はチャネル開設要）。
 
 ## JV-Link パーサ（全4券種確定、2026-06-12 raw 突合 + 確定配当照合）
 | spec | 券種 | レイアウト |
