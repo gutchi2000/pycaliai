@@ -44,9 +44,12 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 
 .track-stripe {
   height: 3px;
-  background: linear-gradient(90deg, var(--gold), var(--teal) 45%, var(--blue) 80%, transparent);
+  background: linear-gradient(90deg, var(--gold), var(--teal) 30%, var(--blue) 55%, var(--gold) 85%, var(--teal));
+  background-size: 220% 100%;
   opacity: .85;
+  animation: flow 9s linear infinite;
 }
+@keyframes flow { to { background-position: -220% 0; } }
 
 /* ---------------- topbar ---------------- */
 .topbar {
@@ -62,9 +65,12 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .brand { display: flex; align-items: baseline; gap: 10px; }
 .brand-mark {
   font-family: var(--disp); font-weight: 600; font-size: 24px; letter-spacing: .06em;
-  background: linear-gradient(110deg, #fff 10%, var(--gold2) 45%, var(--gold) 75%);
+  background: linear-gradient(110deg, #fff 10%, var(--gold2) 35%, var(--gold) 55%, #fff 75%, var(--gold2) 95%);
+  background-size: 250% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: shimmer 7s ease-in-out infinite;
 }
+@keyframes shimmer { 0%, 100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
 .brand-mark b { font-weight: 600; }
 .brand-ver {
   font-size: 11px; color: var(--teal);
@@ -198,8 +204,19 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .res-n { font-size: 13px; font-weight: 700; }
 .res-pays { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
 .res-pays i { font-style: normal; font-size: 11px; color: var(--tx2); background: var(--bg3); border-radius: 6px; padding: 2px 8px; font-variant-numeric: tabular-nums; }
-.hitchip { font-size: 11px; font-weight: 900; color: #2d2002; background: linear-gradient(120deg, var(--gold2), var(--gold)); border-radius: 6px; padding: 2px 9px; box-shadow: 0 2px 10px -2px rgba(245,185,66,.6); }
-.hitchip.miss { background: none; color: var(--tx3); border: 1px solid var(--line2); box-shadow: none; }
+.hitchip {
+  font-size: 11px; font-weight: 900; color: #2d2002;
+  background: linear-gradient(120deg, var(--gold2), var(--gold));
+  border-radius: 6px; padding: 2px 9px;
+  animation: stampin .5s cubic-bezier(.3,1.5,.5,1) backwards .25s,
+             hitglow 1.8s ease-in-out infinite 1s;
+}
+@keyframes stampin { from { transform: scale(1.6) rotate(-6deg); opacity: 0; } }
+@keyframes hitglow {
+  0%, 100% { box-shadow: 0 2px 10px -2px rgba(245,185,66,.6); }
+  50% { box-shadow: 0 2px 22px 0 rgba(245,185,66,.85); }
+}
+.hitchip.miss { background: none; color: var(--tx3); border: 1px solid var(--line2); box-shadow: none; animation: none; }
 
 .resb {
   display: inline-flex; align-items: center; justify-content: center;
@@ -282,7 +299,9 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
   min-width: 21px; height: 21px; padding: 0 4px;
   border-radius: 5px;
   font-family: var(--disp); font-size: 12.5px; font-weight: 600;
+  transition: transform .18s cubic-bezier(.3,1.5,.5,1);
 }
+.hrow:hover .wk { transform: scale(1.14); }
 .w1 { background: #f4f6fb; color: #18202f; }
 .w2 { background: #14161c; color: #e8e8ec; border: 1px solid #3c4254; }
 .w3 { background: #d33b3b; color: #fff; }
@@ -318,6 +337,19 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .odds { font-size: 14px; }
 .oddsev { display: block; font-size: 9.5px; color: var(--gold2); line-height: 1.1; font-family: var(--sans); font-weight: 700; }
 .spark { display: inline-block; vertical-align: middle; }
+.spark polyline {
+  stroke-dasharray: 100; stroke-dashoffset: 100;
+  animation: draw .8s ease-out forwards;
+  animation-delay: calc(var(--i, 0) * 22ms + .25s);
+}
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.spark circle {
+  transform-box: fill-box; transform-origin: center;
+  transform: scale(0);
+  animation: pop .35s cubic-bezier(.3,1.6,.5,1) forwards;
+  animation-delay: calc(var(--i, 0) * 22ms + var(--d, 0s) + .3s);
+}
+@keyframes pop { to { transform: scale(1); } }
 .nosp { font-size: 10px; color: var(--tx3); }
 
 .vschip { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; text-align: center; }
@@ -398,8 +430,12 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .ticket {
   position: relative; overflow: hidden;
   padding: 12px 14px 12px 18px;
-  opacity: 0; animation: rise .5s cubic-bezier(.2,.7,.3,1) forwards;
-  animation-delay: calc(var(--i) * 60ms);
+  opacity: 0; animation: stamp .5s cubic-bezier(.3,1.4,.5,1) forwards;
+  animation-delay: calc(var(--i) * 90ms);
+}
+@keyframes stamp {
+  from { opacity: 0; transform: scale(1.12) rotate(-1.5deg); }
+  to { opacity: 1; transform: none; }
 }
 .ticket::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--bcol, var(--gold)); }
 .ticket-type { font-size: 11px; font-weight: 900; letter-spacing: .14em; color: var(--bcol, var(--gold)); }
@@ -472,6 +508,20 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .loading { padding: 60px 0; text-align: center; color: var(--tx3); font-size: 13px; letter-spacing: .2em; animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .35; } }
 .err { padding: 40px 20px; text-align: center; color: var(--red); font-size: 13px; }
+
+.skel { padding: 16px 20px; margin-bottom: 10px; }
+.skel-bar {
+  height: 14px; border-radius: 7px; margin: 10px 0;
+  background: linear-gradient(90deg, var(--bg3) 25%, #1a2742 40%, var(--bg3) 55%);
+  background-size: 250% 100%;
+  animation: skshine 1.3s linear infinite;
+}
+@keyframes skshine { to { background-position: -250% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01s !important; animation-delay: 0s !important; transition-duration: .01s !important; }
+  .track-stripe, .brand-mark, .hitchip { animation: none !important; }
+}
 
 /* ---------------- responsive ---------------- */
 @media (max-width: 1000px) {

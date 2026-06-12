@@ -61,8 +61,15 @@ async function boot() {
 }
 
 async function loadDay(date) {
-  $("#raceHeader").innerHTML = `<div class="loading">LOADING…</div>`;
-  ["#shutsuba", "#extras", "#cowork"].forEach((s) => { $(s).innerHTML = ""; });
+  $("#raceHeader").innerHTML = `<div class="card skel">
+    <div class="skel-bar" style="width:34%"></div>
+    <div class="skel-bar" style="width:72%"></div>
+    <div class="skel-bar" style="width:55%"></div>
+  </div>`;
+  $("#shutsuba").innerHTML = `<div class="card skel">
+    ${`<div class="skel-bar"></div>`.repeat(6)}
+  </div>`;
+  ["#extras", "#cowork"].forEach((s) => { $(s).innerHTML = ""; });
   let day = dayCache.get(date);
   if (!day) {
     try {
@@ -136,7 +143,7 @@ function renderNav() {
       const first = racesOf(state.place)[0];
       state.raceId = first ? first.race_id : null;
       renderNav();
-      renderRace();
+      renderRaceVT();
     };
   });
 
@@ -166,7 +173,15 @@ function selectRace(rid) {
     document.querySelectorAll(".rpill").forEach((x) =>
       x.classList.toggle("on", x.dataset.rid === rid));
   }
-  renderRace();
+  renderRaceVT();
+}
+
+function renderRaceVT() {
+  if (document.startViewTransition) {
+    document.startViewTransition(() => renderRace());
+  } else {
+    renderRace();
+  }
 }
 
 /* ---------------- race header ---------------- */
@@ -179,9 +194,22 @@ function donut(label, frac, color) {
       <circle class="g-fill" cx="24" cy="24" r="20"
         style="stroke:${color};stroke-dasharray:${C};stroke-dashoffset:${C};--off:${(C * (1 - v)).toFixed(1)}"></circle>
     </svg>
-    <div class="g-val num">${Math.round(v * 100)}<small>%</small></div>
+    <div class="g-val num"><span class="cv" data-cv="${Math.round(v * 100)}">0</span><small>%</small></div>
     <div class="g-label">${label}</div>
   </div>`;
+}
+
+function runCounters(scope) {
+  scope.querySelectorAll(".cv").forEach((el) => {
+    const target = +el.dataset.cv || 0;
+    const t0 = performance.now(), dur = 800;
+    const tick = (t) => {
+      const p = Math.min((t - t0) / dur, 1);
+      el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
 }
 
 function priorStrip(r) {
@@ -265,6 +293,7 @@ function renderHeader(r) {
     ${priorStrip(r)}
   </div>
   ${resultBanner(r)}`;
+  runCounters($("#raceHeader"));
 }
 
 /* ---------------- shutsuba table ---------------- */
@@ -289,11 +318,12 @@ function spark(h) {
   const dots = pts.map((u, i) => {
     const p = u.pos;
     const c = p === 1 ? "#f5b942" : p <= 3 ? "#2dd4a8" : "#55648a";
-    return `<circle cx="${x(i).toFixed(1)}" cy="${y(u.pos).toFixed(1)}" r="${i === n - 1 ? 3 : 2}" fill="${c}"/>`;
+    return `<circle cx="${x(i).toFixed(1)}" cy="${y(u.pos).toFixed(1)}" r="${i === n - 1 ? 3 : 2}"
+      fill="${c}" style="--d:${(i * 0.07).toFixed(2)}s"/>`;
   }).join("");
   const tip = runs.map((u) => `${u.n_ago}走前:${u.place || ""}${u.td || ""}${u.dist || ""} ${u.pos ?? "?"}着`).join(" ");
   return `<svg class="spark" width="64" height="26" viewBox="0 0 64 26"><title>${esc(tip)}</title>
-    <polyline points="${poly}" fill="none" stroke="#33415e" stroke-width="1.5"/>${dots}</svg>`;
+    <polyline points="${poly}" pathLength="100" fill="none" stroke="#33415e" stroke-width="1.5"/>${dots}</svg>`;
 }
 
 function subLine(h) {
