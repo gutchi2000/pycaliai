@@ -29,6 +29,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 # アプリ本体 + 依存モジュール + 表示用データ
 COPY nicegui_app.py .
 COPY betting_judgment.py .
+COPY umami.py .
 COPY data data
 COPY reports reports
 
