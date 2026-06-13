@@ -110,15 +110,20 @@ data/weekly/{date}.csv の発走時刻から全レースをスケジュールし
 4. 買い目コンソール表示 + ビープ → 人間が IPAT 投票
 `--once {rid16}` 単発テスト / `--dry` 書込なし / 発走済みレースはスキップ / HF push なし。
 
-### ルーチン（タスクスケジューラ登録済み、2026-06-12）
-**タスク `PyCaLiAI_T10` が毎週土日 9:00 に `t10.ps1 -Routine` を自動起動**（ログオン中のみ・
-ウィンドウ表示・二重起動は IgnoreNew + .t10_lock で防止・実行上限 10h・遅延起動可）。
-- `-Routine` = 対象日を「今日」に固定 + bundle 未生成なら Phase A 完了を 15:00 まで 2 分間隔で
-  待機（→ 人間は土日朝に Phase A を回すだけ。bundle が出来た時点でラインが動き出す）
-- 全出力を `logs/t10_{date}.log` に記録
-- 非開催日（bundle が出ない日）は 15:00 に自然終了
-- ⚠ 祝日（月曜）開催はトリガー外 → 手動で `.\t10.ps1`
-- ⚠ 前提: 土日 9:00 までに PC 起動＋ログオン（スリープなら復帰後に遅延起動）
+### ルーチン（レース毎タスク方式 = スリープ耐性あり、2026-06-13 改訂）
+**マスタータスク `PyCaLiAI_T10` が毎週土日 9:00（WakeToRun）に `t10.ps1 -Schedule` を起動**し、
+bundle 完成を待ってから**各レースの発走 T-10 に 1 個ずつ Windows タスク `PyCaLiAI_T10R_{rid16}` を
+登録**（それぞれ WakeToRun）。以降は PC がスリープしても各レースで自動起床し、そのレースだけ
+処理（オッズ→compute_bets→validate→Discord 通知）してまた眠る。**一日中起動し続ける必要がない。**
+- `-Schedule`（=`-Routine` 別名）: 対象日=今日、bundle 未生成なら 15:00 まで 2 分間隔で待機 →
+  旧 `PyCaLiAI_T10R_*` を掃除 → `t10_runner.py --list-schedule`（発走時刻）から未来レース分を登録
+- 各レースタスク: `t10.ps1 -Once {rid16}` を実行。keep-awake（SetThreadExecutionState）で処理中は
+  スリープ禁止 → オッズ取得→買い目→通知 → **発走時刻まで Discord 予算返信（「2000円」）を受付** → 終了。
+  一度きりトリガ（EndBoundary +2h）、実行後 6h で自動削除。
+- 旧 1 本ループ方式は `t10.ps1 20260614 -Loop`（PC 起動必須・予算返信を常時受付）として残置。
+- 全出力 `logs/t10_{date}.log`。非開催日は 15:00 に自然終了。⚠ 祝日（月）開催はトリガー外 → 手動 `.\t10.ps1 -Schedule`。
+- ⚠ 前提: **完全シャットダウンは不可**（JV-Link はこの PC のみ）。スリープ放置で OK（各レースで自動起床）。
+  ただしサインアウトは不可（ログオン中のみ実行）。
 - 無効化: `Disable-ScheduledTask -TaskName PyCaLiAI_T10` / 削除: `Unregister-ScheduledTask`
 
 ### Discord 通知（2026-06-12）

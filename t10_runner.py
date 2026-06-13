@@ -198,6 +198,39 @@ def beep():
         print("\a", end="")
 
 
+# --- keep-awake: 処理中は PC をアイドルスリープさせない (SetThreadExecutionState) ---
+_ES_CONTINUOUS = 0x80000000
+_ES_SYSTEM_REQUIRED = 0x00000001
+
+
+def keep_awake(on: bool):
+    """on=True で「実行中はスリープ禁止」。レース処理の前後で呼ぶ。"""
+    try:
+        import ctypes
+        flags = (_ES_CONTINUOUS | _ES_SYSTEM_REQUIRED) if on else _ES_CONTINUOUS
+        ctypes.windll.kernel32.SetThreadExecutionState(flags)
+    except Exception:
+        pass   # 非 Windows / 失敗は非致命
+
+
+def build_schedule(date_str: str, races: list, lead_min: float):
+    """bundle races + 発走時刻 → (sched[(post_dt, rid16, label)], missing)。
+    --list-schedule とループ両方で使う単一ソース。"""
+    post = load_post_times(date_str)
+    base_day = datetime.strptime(date_str, "%Y%m%d")
+    sched, missing = [], []
+    for r in races:
+        rid = _rid16(r.get("race_id", ""))
+        rm = r.get("race_meta", {})
+        label = f"{rm.get('place','')} {rm.get('course','')} {rm.get('class','')}".strip()
+        hm = parse_hhmm(post.get(rid, ""))
+        if hm is None:
+            missing.append((rid, label)); continue
+        sched.append((base_day.replace(hour=hm[0], minute=hm[1], second=0), rid, label))
+    sched.sort()
+    return sched, missing
+
+
 def latest_bundle_date() -> str | None:
     files = glob.glob(str(BASE / "reports" / "cowork_input" / "*_bundle.json"))
     dates = sorted({Path(f).name.split("_")[0] for f in files
@@ -332,7 +365,12 @@ def main():
                     help="ライブオッズ許容鮮度 (分) → compute_bets へ渡す")
     ap.add_argument("--dry", action="store_true", help="計算のみ。bets.json へ書き込まない")
     ap.add_argument("--once", default=None,
-                    help="rid16 を指定して 1 レースだけ即時処理して終了 (テスト用)")
+                    help="rid16 を指定して 1 レースだけ処理 (レース毎タスク / テスト用)")
+    ap.add_argument("--poll-until", default=None,
+                    help="--once 後、この時刻 HH:MM まで Discord 予算返信を受け付ける"
+                         " (レース毎タスクが発走時刻を渡す)。省略時は即終了")
+    ap.add_argument("--list-schedule", action="store_true",
+                    help="rid<TAB>発走HH:MM<TAB>label を出力して終了 (t10.ps1 -Schedule 用)")
     ap.add_argument("--wait-bundle", action="store_true",
                     help="bundle 未生成なら 2 分間隔で待つ (ルーチン用。日付未指定なら今日)")
     ap.add_argument("--wait-deadline", default="15:00",
@@ -380,30 +418,42 @@ def main():
 
     d = json.loads(bundle.read_text(encoding="utf-8"))
     races = d.get("races", [])
-    post = load_post_times(date_str)
 
-    # --once: 即時 1 レース (発走時刻不要)
+    # --list-schedule: t10.ps1 -Schedule がレース毎タスク登録に使う (rid<TAB>HH:MM<TAB>label)
+    if args.list_schedule:
+        sched, _ = build_schedule(date_str, races, args.lead_min)
+        for pt, rid, label in sched:
+            print(f"{rid}\t{pt:%H:%M}\t{label}")
+        return 0
+
+    # --once: 1 レース処理 (レース毎タスク本体)。--poll-until まで予算返信を受付。
     if args.once:
         rid = _rid16(args.once)
         rm = next((r.get("race_meta", {}) for r in races
                    if _rid16(r.get("race_id", "")) == rid), {})
         label = f"{rm.get('place','')}{rm.get('R','') or ''} {rm.get('course','')}".strip() or rid
-        process_race(date_str, bundle, rid, label, args.max_age_min, args.dry)
+        keep_awake(True)
+        try:
+            process_race(date_str, bundle, rid, label, args.max_age_min, args.dry)
+            # 発走時刻まで予算返信 (「2000円」) を受け付けて再計算
+            until_hm = parse_hhmm(args.poll_until) if args.poll_until else None
+            if until_hm and not args.dry:
+                until = datetime.now().replace(hour=until_hm[0], minute=until_hm[1], second=0)
+                poller = BotPoller()
+                if poller.enabled and datetime.now() < until:
+                    print(f"[bot] 予算返信を {until:%H:%M} まで受付")
+                    while datetime.now() < until:
+                        for b in poller.poll_budgets():
+                            notify(f"🔁 {label} を予算 ¥{b:,} で再計算します…")
+                            process_race(date_str, bundle, rid, label,
+                                         args.max_age_min, args.dry, budget=b)
+                        time.sleep(POLL_SEC)
+        finally:
+            keep_awake(False)
         return 0
 
-    # スケジュール構築
-    sched = []   # (post_dt, rid16, label)
-    base_day = datetime.strptime(date_str, "%Y%m%d")
-    missing = []
-    for r in races:
-        rid = _rid16(r.get("race_id", ""))
-        rm = r.get("race_meta", {})
-        label = f"{rm.get('place','')} {rm.get('course','')} {rm.get('class','')}".strip()
-        hm = parse_hhmm(post.get(rid, ""))
-        if hm is None:
-            missing.append((rid, label)); continue
-        sched.append((base_day.replace(hour=hm[0], minute=hm[1]), rid, label))
-    sched.sort()
+    # スケジュール構築 (1本ループ運用 -Routine 用。レース毎タスク運用では使わない)
+    sched, missing = build_schedule(date_str, races, args.lead_min)
 
     if missing:
         print(f"[WARN] 発走時刻不明 {len(missing)}R (data/weekly/{date_str}.csv に無い) → スキップ:")
@@ -427,6 +477,7 @@ def main():
         return 1
     poller = BotPoller() if not args.dry else None
     last_post = sched[-1][0]
+    keep_awake(True)   # 1本ループ運用中はアイドルスリープ禁止 (凍結=取りこぼし防止)
     try:
         done: set[str] = set()
         last_proc: tuple | None = None   # 直近処理レース (rid, label, post_dt)
@@ -461,6 +512,7 @@ def main():
             time.sleep(POLL_SEC)
     finally:
         release_lock()
+        keep_awake(False)
     print(f"\n========== 全 {len(sched)}R 処理完了 ==========")
     if not args.dry:
         notify(f"🏁 T-10 ライン {date_str}: 全 {len(sched)}R 処理完了")
