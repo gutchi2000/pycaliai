@@ -19,8 +19,12 @@
       <span class="brand-mark">Py<b>CaLi</b>AI</span>
       <span class="brand-ver">v6 marks</span>
     </div>
+    <nav class="modenav" id="modeNav">
+      <button data-mode="races" class="on">🏇 予想</button>
+      <button data-mode="results">📊 成績</button>
+    </nav>
     <div class="topbar-right">
-      <label class="date-wrap">
+      <label class="date-wrap" id="dateWrap">
         <span class="date-ico">開催日</span>
         <select id="dateSel"></select>
       </label>
@@ -40,6 +44,8 @@
     <span>AI予測は参考情報です。馬券の購入判断はご自身で。</span>
   </footer>
 </main>
+
+<main id="resultsMain" hidden></main>
 
 <div id="overlay"></div>
 <aside id="drawer" aria-label="馬詳細"></aside>

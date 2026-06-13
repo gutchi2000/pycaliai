@@ -15,9 +15,11 @@ const state = {
   sort: "uma",
   sortAsc: true,
   view: "shutsuba",
+  mode: "races",
 };
 const dayCache = new Map();
 let charts = [];
+let resultsData = null;
 
 /* ---------------- utils ---------------- */
 function esc(s) {
@@ -59,7 +61,23 @@ async function boot() {
   sel.onchange = () => loadDay(sel.value);
   $("#footInfo").textContent =
     `PyCaLiAI ${mf.model} — 静的ビルド ${mf.built_at} ／ ← → キーでレース移動`;
+  $("#modeNav").querySelectorAll("button").forEach((b) => {
+    b.onclick = () => setMode(b.dataset.mode);
+  });
   if (mf.dates.length) loadDay(mf.dates[0].date);
+}
+
+/* ---------------- 予想 / 成績 モード ---------------- */
+function setMode(mode) {
+  state.mode = mode;
+  $("#modeNav").querySelectorAll("button").forEach((b) =>
+    b.classList.toggle("on", b.dataset.mode === mode));
+  const isResults = mode === "results";
+  ["#venueTabs", "#raceStrip", "#main"].forEach((s) => { $(s).hidden = isResults; });
+  $("#resultsMain").hidden = !isResults;
+  $("#dateWrap").style.visibility = isResults ? "hidden" : "";
+  closeDrawer();
+  if (isResults) renderResults();
 }
 
 async function loadDay(date) {
@@ -1163,6 +1181,166 @@ function renderRace() {
   renderHeader(r);
   renderViewTabs();
   renderView();
+}
+
+/* ================= 成績 (Cowork 的中一覧 + 累計収支) ================= */
+const BTYPE_COLOR = {
+  "単勝": "#f5b942", "複勝": "#2dd4a8", "ワイド": "#5ba0f5",
+  "馬連": "#b78cf2", "馬単": "#e4549a", "三連複": "#f0a132", "三連単": "#f2555a",
+};
+function rsDate(d8) {
+  return `${+d8.slice(4, 6)}/${+d8.slice(6, 8)}`;
+}
+
+async function renderResults() {
+  const rm = $("#resultsMain");
+  rm.innerHTML = `<div class="rs-wrap"><div class="loading">LOADING…</div></div>`;
+  if (!resultsData) {
+    try {
+      const v = encodeURIComponent(state.manifest?.built_at || "0");
+      resultsData = await (await fetch(`data/results.json?v=${v}`)).json();
+    } catch (e) {
+      rm.innerHTML = `<div class="rs-wrap"><div class="err">data/results.json を読めませんでした。</div></div>`;
+      return;
+    }
+  }
+  const a = resultsData.agg || {};
+  const hits = resultsData.hits || [];
+  const pCls = (a.total_profit ?? 0) >= 0 ? "pos" : "neg";
+
+  const byType = Object.entries(a.by_type || {})
+    .sort((x, y) => (y[1].roi || 0) - (x[1].roi || 0))
+    .map(([t, v]) => `<div class="rs-bt">
+      <span class="rs-bt-h"><span class="rs-dot" style="background:${BTYPE_COLOR[t] || "#888"}"></span>${esc(t)}</span>
+      <span class="rs-bt-roi ${v.roi >= 100 ? "pos" : v.roi >= 80 ? "mid" : "neg"}">${v.roi}%</span>
+      <span class="rs-bt-sub">的中 ${v.wins}/${v.n}・収支 ${v.profit >= 0 ? "+" : ""}${(v.profit).toLocaleString()}</span>
+    </div>`).join("");
+
+  const cards = hits.map((h) => `<button class="hit-card t-${esc(h.btype)}" data-date="${h.date}" data-rid="${esc(h.race_id)}">
+    <div class="hit-stamp">的中</div>
+    <div class="hit-info">
+      <div class="hit-meta">${rsDate(h.date)} ${esc(h.place)}${h.rno}R</div>
+      <div class="hit-name">${esc(h.name)}</div>
+      <div class="hit-row"><span class="hit-type" style="background:${BTYPE_COLOR[h.btype] || "#888"}">${esc(h.btype)}</span>
+        <span class="hit-pay">${yen(h.payout)}</span></div>
+    </div>
+  </button>`).join("");
+
+  rm.innerHTML = `<div class="rs-wrap">
+    <div class="card rs-sum">
+      <div class="rs-sum-grid">
+        <div class="rs-stat"><div class="k">累計投資</div><div class="v">${yen(a.total_cost)}</div></div>
+        <div class="rs-stat"><div class="k">累計収支</div><div class="v ${pCls}">${(a.total_profit ?? 0) >= 0 ? "+" : ""}${yen(a.total_profit).slice(1)}</div></div>
+        <div class="rs-stat"><div class="k">回収率 ROI</div><div class="v ${pCls}">${a.roi}%</div></div>
+        <div class="rs-stat"><div class="k">的中率</div><div class="v">${a.hit_rate}%<small> ${a.n_wins}/${a.n_bets}</small></div></div>
+      </div>
+      <div class="rs-bt-grid">${byType}</div>
+      ${a.n_unsettled ? `<div class="rs-note">⚠ ワイド ${a.n_unsettled}件 (¥${(a.unsettled_cost).toLocaleString()}) は払戻データ未取込のため集計外</div>` : ""}
+    </div>
+    <div class="rs-h">🎯 的中一覧 <small>${hits.length}件・新しい順／配当順・カードで詳細</small></div>
+    <div class="hit-grid">${cards || `<div class="cw-empty">的中データがありません。</div>`}</div>
+  </div>`;
+
+  rm.querySelectorAll(".hit-card").forEach((c) => {
+    c.onclick = () => openResultDetail(c.dataset.date, c.dataset.rid);
+  });
+}
+
+function horseByUma(r, uma) {
+  return r.horses.find((h) => h.umaban === uma);
+}
+
+function resultTableHtml(r) {
+  const res = r.result;
+  if (!res) return "";
+  const pays = res.pays || {};
+  const top3 = res.top3 || [];
+  const nin = (u) => { const h = horseByUma(r, u); return h && h.ninki != null ? `${h.ninki}番人気` : "—"; };
+  const wk2 = (u) => { const h = horseByUma(r, u); return h ? h.waku : "?"; };
+  const rows = [];
+  const add = (label, sel, pay, pop) => {
+    if (pay == null) return;
+    rows.push(`<tr><td class="rt2-l">${label}</td><td class="rt2-s">${sel}</td>
+      <td class="rt2-p num">${yen(pay)}</td><td class="rt2-n">${pop || ""}</td></tr>`);
+  };
+  if (top3[0] != null) add("単勝", top3[0], pays.tan, nin(top3[0]));
+  top3.forEach((u, i) => add(i === 0 ? "複勝" : "", u, (pays.fuku || {})[String(u)], nin(u)));
+  if (top3.length >= 2) add("枠連", `${wk2(top3[0])}-${wk2(top3[1])}`, pays.wakuren, "");
+  if (top3.length >= 2) add("馬連", `${Math.min(top3[0], top3[1])}-${Math.max(top3[0], top3[1])}`, pays.umaren, "");
+  if (top3.length >= 2) add("馬単", `${top3[0]}→${top3[1]}`, pays.umatan, "");
+  const wide = pays.wide || {};
+  let wfirst = true;
+  if (top3.length >= 3) {
+    [[0, 1], [0, 2], [1, 2]].forEach(([i, j]) => {
+      const a = Math.min(top3[i], top3[j]), b = Math.max(top3[i], top3[j]);
+      const p = wide[`${a}-${b}`];
+      if (p != null) { add(wfirst ? "ワイド" : "", `${a}-${b}`, p, ""); wfirst = false; }
+    });
+  }
+  if (top3.length >= 3) add("三連複", top3.slice(0, 3).slice().sort((a, b) => a - b).join("-"), pays.sanrenpuku, "");
+  if (top3.length >= 3) add("三連単", top3.slice(0, 3).join("→"), pays.sanrentan, "");
+
+  const finish = top3.map((u, i) => {
+    const h = horseByUma(r, u);
+    return `<span class="rt2-fin">${posBadge(i + 1)}${h ? wk(h) : ""}<b>${esc(h ? h.name : u)}</b>${h && h.mark ? `<span class="mark ${markCls(h.mark)}">${h.mark}</span>` : ""}</span>`;
+  }).join("");
+
+  return `<div class="card rs-result">
+    <div class="rs-sec">レース結果</div>
+    <div class="rt2-finish">${finish}</div>
+    <table class="rt2"><tbody>${rows.join("")}</tbody></table>
+  </div>`;
+}
+
+async function openResultDetail(date, rid) {
+  const rm = $("#resultsMain");
+  rm.innerHTML = `<div class="rs-wrap"><div class="loading">LOADING…</div></div>`;
+  let day = dayCache.get(date);
+  if (!day) {
+    try {
+      const v = encodeURIComponent(state.manifest?.built_at || "0");
+      day = await (await fetch(`data/${date}.json?v=${v}`)).json();
+      dayCache.set(date, day);
+    } catch (e) {
+      rm.innerHTML = `<div class="rs-wrap"><div class="err">${date} のデータを読めませんでした。</div></div>`;
+      return;
+    }
+  }
+  const r = (day.races || []).find((x) => String(x.race_id) === String(rid));
+  if (!r) { rm.innerHTML = `<div class="rs-wrap"><div class="err">レースが見つかりません。</div></div>`; return; }
+
+  const cw = r.cowork || {};
+  const bets = cw.bets || [];
+  const settled = r.bets_settled || [];
+  const isTurf = (r.course || "").startsWith("芝");
+  const betCards = bets.map((b, i) => {
+    const st = settled[i] || {};
+    const col = BTYPE_COLOR[b.type] || "#97a4c2";
+    const amt = typeof b.amount === "number" ? b.amount.toLocaleString() : esc(b.amount);
+    return `<div class="card ticket ${st.is_win ? "won" : st.settled === false ? "" : "lost"}" style="--bcol:${col}">
+      <div class="ticket-type">${esc(b.type)}${st.is_win ? `<span class="won-badge">的中 ${yen(st.payout)}</span>` : ""}</div>
+      <div class="ticket-sel">${esc(b.selection)}</div>
+      <div class="ticket-amt"><b>¥${amt}</b>${st.settled !== false ? ` <span class="ticket-pl ${st.profit >= 0 ? "pos" : "neg"}">${st.profit >= 0 ? "+" : ""}${Math.round(st.profit || 0).toLocaleString()}</span>` : ""}</div>
+      ${b.reason ? `<div class="ticket-reason">${esc(b.reason)}</div>` : ""}
+    </div>`;
+  }).join("");
+
+  rm.innerHTML = `<div class="rs-wrap">
+    <button class="rs-back" id="rsBack">← 的中一覧へ戻る</button>
+    <div class="card rh" style="margin-top:10px">
+      <div class="rh-main">
+        <div class="rh-title"><span class="rh-place">${esc(r.place)}</span><span class="rh-rno">${r.rno}R</span>
+          ${r.race_name ? `<span class="rh-name">${esc(r.race_name)}</span>` : ""}
+          <span class="rh-time num">${rsDate(date)}</span></div>
+        <div class="rh-sub"><span class="tdchip ${isTurf ? "turf" : "dirt"}">${esc(r.course)}</span>
+          <span class="mchip">${esc(r.klass)}</span><span class="mchip">${r.field_size}頭</span></div>
+      </div>
+    </div>
+    ${bets.length ? `<div class="rs-sec2">AI予想・買い目</div><div class="bet-grid">${betCards}</div>` : ""}
+    ${resultTableHtml(r)}
+  </div>`;
+  $("#rsBack").onclick = () => renderResults();
+  window.scrollTo(0, 0);
 }
 
 boot();

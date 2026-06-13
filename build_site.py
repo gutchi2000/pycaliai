@@ -521,6 +521,92 @@ def parse_training_file(path, kind: str) -> dict:
     return rows
 
 
+# ---------------------------------------------------------------- 馬券決済
+def _combos(selection: str, n: int, ordered: bool) -> list[tuple]:
+    """'4-7,4-9' を combo タプル列に。n=2(馬連系)/3(三連系)。"""
+    out = []
+    for c in str(selection).split(","):
+        parts = c.strip().split("-")
+        if len(parts) != n:
+            continue
+        try:
+            nums = [int(x) for x in parts]
+        except (ValueError, TypeError):
+            continue
+        out.append(tuple(nums) if ordered else tuple(sorted(nums)))
+    return out
+
+
+def settle_bet(btype: str, selection: str, cost: float, res: dict) -> dict:
+    """1 bet を決済。返り値 {is_win, payout(配当/100円), received, profit, settled}。
+    settled=False は決済不能 (ワイド払戻未取込等) で集計外。compute_bet_pl と同ロジック。"""
+    btype = (btype or "").strip()
+    selection = str(selection or "").strip()
+    pays = res.get("pays") or {}
+    top3 = res.get("top3") or []
+    miss = {"is_win": False, "payout": 0, "received": 0.0, "profit": -cost, "settled": True}
+    if cost <= 0:
+        return {"is_win": False, "payout": 0, "received": 0.0, "profit": 0.0, "settled": True}
+
+    def win(pay, unit):
+        recv = unit * (pay or 0) / 100.0
+        return {"is_win": True, "payout": pay or 0, "received": recv,
+                "profit": recv - cost, "settled": True}
+
+    if btype == "単勝":
+        try:
+            u = int(selection)
+        except ValueError:
+            return miss
+        return win(pays.get("tan"), cost) if (top3 and u == top3[0]) else miss
+    if btype == "複勝":
+        try:
+            u = int(selection)
+        except ValueError:
+            return miss
+        if u in top3:
+            return win((pays.get("fuku") or {}).get(str(u)), cost)
+        return miss
+    if btype in ("馬連", "馬単"):
+        ordered = btype == "馬単"
+        combos = _combos(selection, 2, ordered)
+        if not combos or len(top3) < 2:
+            return miss
+        w = (top3[0], top3[1]) if ordered else tuple(sorted([top3[0], top3[1]]))
+        if w in combos:
+            return win(pays.get("umatan" if ordered else "umaren"), cost / len(combos))
+        return miss
+    if btype == "ワイド":
+        combos = _combos(selection, 2, False)
+        if not combos:
+            return miss
+        wide = pays.get("wide") or {}
+        if not wide:  # 払戻未取込 → 決済不能 (集計外)
+            return {"is_win": False, "payout": 0, "received": 0.0, "profit": None, "settled": False}
+        unit = cost / len(combos)
+        recv, best, nhit = 0.0, 0, 0
+        for a, b in combos:
+            p = wide.get(f"{a}-{b}")
+            if p:
+                recv += unit * p / 100.0
+                best = max(best, p)
+                nhit += 1
+        if nhit:
+            return {"is_win": True, "payout": best, "received": recv,
+                    "profit": recv - cost, "settled": True}
+        return miss
+    if btype in ("三連複", "三連単"):
+        ordered = btype == "三連単"
+        combos = _combos(selection, 3, ordered)
+        if not combos or len(top3) < 3:
+            return miss
+        w = tuple(top3[:3]) if ordered else tuple(sorted(top3[:3]))
+        if w in combos:
+            return win(pays.get("sanrentan" if ordered else "sanrenpuku"), cost / len(combos))
+        return miss
+    return miss
+
+
 # ---------------------------------------------------------------- bundle 変換
 def transform_bundle(path: Path, cowork: dict, wide_data: dict,
                      course_stats: dict, ped_index, grade_map: dict) -> dict:
@@ -654,6 +740,16 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
             "result": results.get(rid),
         })
 
+        # Cowork 買い目を結果で決済 (的中/配当/収支)
+        cw = cowork.get(rid)
+        res = results.get(rid)
+        if cw and cw.get("bets") and res:
+            races_out[-1]["bets_settled"] = [
+                settle_bet(b.get("type"), b.get("selection"),
+                           float(b.get("amount") or 0), res)
+                for b in cw["bets"]
+            ]
+
     places_seen = {r["place"] for r in races_out}
     places = [p for p in PLACE_ORDER if p in places_seen]
     places += sorted(places_seen - set(places))
@@ -687,6 +783,84 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
         "courses": courses,
         "training_top5": top5[:5],
     })
+
+
+# ---------------------------------------------------------------- 成績集計
+def build_results_json() -> dict:
+    """site/data/*.json を全走査し、Cowork 的中一覧 + 累計集計を results.json に。"""
+    hits = []
+    by_type: dict = {}
+    by_date: dict = {}
+    tot_cost = tot_profit = 0.0
+    n_bets = n_wins = n_unset = 0
+    unset_cost = 0.0
+
+    for p in sorted(SITE_DATA_DIR.glob("[0-9]" * 8 + ".json")):
+        with open(p, encoding="utf-8") as f:
+            day = json.load(f)
+        date = day.get("date", p.stem)
+        for r in day.get("races", []):
+            bs = r.get("bets_settled")
+            cw = r.get("cowork")
+            if not bs or not cw:
+                continue
+            bets = cw.get("bets") or []
+            for bet, st in zip(bets, bs):
+                cost = float(bet.get("amount") or 0)
+                t = bet.get("type") or "?"
+                if not st.get("settled", True):
+                    n_unset += 1
+                    unset_cost += cost
+                    continue
+                profit = st.get("profit") or 0.0
+                n_bets += 1
+                tot_cost += cost
+                tot_profit += profit
+                bt = by_type.setdefault(t, {"n": 0, "wins": 0, "cost": 0.0, "profit": 0.0})
+                bt["n"] += 1
+                bt["cost"] += cost
+                bt["profit"] += profit
+                d = by_date.setdefault(date, {"cost": 0.0, "profit": 0.0, "n": 0, "wins": 0})
+                d["cost"] += cost
+                d["profit"] += profit
+                d["n"] += 1
+                if st.get("is_win"):
+                    n_wins += 1
+                    bt["wins"] += 1
+                    d["wins"] += 1
+                    hits.append({
+                        "date": date, "race_id": r.get("race_id"),
+                        "place": r.get("place"), "rno": r.get("rno"),
+                        "name": r.get("race_name") or r.get("klass") or "",
+                        "btype": t, "selection": bet.get("selection"),
+                        "payout": st.get("payout"), "stake": cost,
+                        "profit": round(profit),
+                    })
+
+    hits.sort(key=lambda h: (h["date"], h.get("payout") or 0), reverse=True)
+    for t in by_type.values():
+        t["cost"] = round(t["cost"]); t["profit"] = round(t["profit"])
+        t["roi"] = round((t["cost"] + t["profit"]) / t["cost"] * 100, 1) if t["cost"] else 0.0
+    cum = 0.0
+    date_series = []
+    for date in sorted(by_date):
+        d = by_date[date]
+        cum += d["profit"]
+        date_series.append({"date": date, "cost": round(d["cost"]),
+                            "profit": round(d["profit"]), "cum": round(cum),
+                            "n": d["n"], "wins": d["wins"]})
+
+    return {
+        "agg": {
+            "total_cost": round(tot_cost), "total_profit": round(tot_profit),
+            "roi": round((tot_cost + tot_profit) / tot_cost * 100, 1) if tot_cost else 0.0,
+            "n_bets": n_bets, "n_wins": n_wins,
+            "hit_rate": round(n_wins / n_bets * 100, 1) if n_bets else 0.0,
+            "n_unsettled": n_unset, "unsettled_cost": round(unset_cost),
+            "by_type": by_type, "by_date": date_series,
+        },
+        "hits": hits,
+    }
 
 
 # ---------------------------------------------------------------- main
@@ -743,6 +917,16 @@ def main() -> None:
     with open(SITE_DATA_DIR / "manifest.json", "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=1)
     print(f"manifest: {len(manifest_entries)} dates")
+
+    # 成績 (Cowork 的中一覧 + 累計収支)
+    results_payload = build_results_json()
+    results_payload["built_at"] = manifest["built_at"]
+    with open(SITE_DATA_DIR / "results.json", "w", encoding="utf-8") as f:
+        json.dump(results_payload, f, ensure_ascii=False, separators=(",", ":"))
+    a = results_payload["agg"]
+    print(f"results: hits {len(results_payload['hits'])} / "
+          f"{a['n_bets']} bets ROI {a['roi']}% hit {a['hit_rate']}% "
+          f"profit {a['total_profit']:+,} (unsettled {a['n_unsettled']})")
 
 
 if __name__ == "__main__":
