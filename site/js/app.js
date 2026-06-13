@@ -366,8 +366,8 @@ function renderTable(r, flip = false) {
       ${hasRes ? `<span class="c-res">${posBadge(resPos)}</span>` : ""}
       <span class="mark ${markCls(h.mark)}">${h.mark || "・"}</span>
       <span>${wk(h)}</span>
-      <span style="min-width:0">
-        <span class="hname">${esc(h.name)}</span><br>
+      <span class="hcell">
+        <span class="hname">${esc(h.name)}</span>
         <span class="hsub">${esc(subLine(h))}</span>
       </span>
       <span class="c-ninki num ta-c">${h.ninki ?? "—"}</span>

@@ -327,8 +327,9 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .w7 { background: #e2702a; color: #fff; }
 .w8 { background: #e4549a; color: #fff; }
 
-.hname { font-size: 18px; font-weight: 700; color: var(--tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hsub { font-size: 14px; color: var(--tx2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hcell { min-width: 0; overflow: hidden; }
+.hname { display: block; font-size: 18px; font-weight: 700; color: var(--tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hsub { display: block; font-size: 14px; color: var(--tx2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .c-ninki { font-size: 17px; color: var(--tx2); }
 .pbar { display: flex; align-items: center; gap: 7px; min-width: 0; }
@@ -592,12 +593,27 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
   .res-pays { margin-left: 0; }
 }
 @media (max-width: 560px) {
+  body { font-size: 15px; }
   .c-ai { display: none; }
   .htable.hasres .hh, .htable.hasres .hrow {
-    grid-template-columns: 32px 28px 48px minmax(0,1fr) 64px 62px 58px;
+    grid-template-columns: 26px 22px 40px minmax(0,1fr) 50px 46px 50px;
+    gap: 6px; padding: 7px 8px;
   }
   .htable.nores .hh, .htable.nores .hrow {
-    grid-template-columns: 28px 48px minmax(0,1fr) 64px 62px 58px;
+    grid-template-columns: 22px 40px minmax(0,1fr) 50px 46px 50px;
+    gap: 6px; padding: 7px 8px;
   }
+  .hh { font-size: 11px; top: 54px; }
+  .hsort { font-size: 11px; }
+  .hname { font-size: 14px; }
+  .hsub { font-size: 10.5px; }
+  .odds, .pwin { font-size: 14px; }
+  .pwin small, .psho small { font-size: 9px; }
+  .oddsev { font-size: 9.5px; }
+  .vschip { font-size: 10.5px; padding: 2px 5px; }
+  .mark { font-size: 16px; }
+  .mark.m1 { font-size: 18px; }
+  .wk { min-width: 21px; height: 21px; font-size: 12.5px; }
+  .resb { width: 20px; height: 20px; font-size: 12px; }
   .dw-info { grid-template-columns: 1fr; }
 }
