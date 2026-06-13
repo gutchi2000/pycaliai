@@ -14,8 +14,10 @@ const state = {
   raceId: null,
   sort: "uma",
   sortAsc: true,
+  view: "shutsuba",
 };
 const dayCache = new Map();
+let charts = [];
 
 /* ---------------- utils ---------------- */
 function esc(s) {
@@ -66,10 +68,9 @@ async function loadDay(date) {
     <div class="skel-bar" style="width:72%"></div>
     <div class="skel-bar" style="width:55%"></div>
   </div>`;
-  $("#shutsuba").innerHTML = `<div class="card skel">
+  $("#viewbody").innerHTML = `<div class="card skel">
     ${`<div class="skel-bar"></div>`.repeat(6)}
   </div>`;
-  ["#extras", "#cowork"].forEach((s) => { $(s).innerHTML = ""; });
   let day = dayCache.get(date);
   if (!day) {
     const v = encodeURIComponent(state.manifest?.built_at || "0");
@@ -683,18 +684,365 @@ document.addEventListener("keydown", (e) => {
   selectRace(flat[next].race_id);
 });
 
+/* ================= 全頭分析 / コース / 調教 / 血統 ================= */
+const VIEWS = [
+  { key: "shutsuba", label: "出走表" },
+  { key: "bunseki", label: "全頭分析" },
+  { key: "course", label: "コース" },
+  { key: "training", label: "調教" },
+  { key: "pedigree", label: "血統" },
+];
+const MARK_COLOR = { "◎": "#f5b942", "〇": "#d9e2f2", "○": "#d9e2f2", "▲": "#d08b4c", "△": "#8d9cba", "": "#46587e" };
+const RANK_COLOR = { SS: "#f5b942", S: "#2dd4a8", A: "#5ba0f5", B: "#8d9cba" };
+
+function disposeCharts() {
+  charts.forEach((c) => { try { c.dispose(); } catch (e) { /* noop */ } });
+  charts = [];
+}
+function mkChart(id, option) {
+  const el = document.getElementById(id);
+  if (!el || typeof echarts === "undefined") return null;
+  const c = echarts.init(el, null, { renderer: "canvas" });
+  c.setOption(Object.assign({
+    backgroundColor: "transparent",
+    textStyle: { fontFamily: '"Noto Sans JP", sans-serif', color: "#a9b6d3" },
+    animationDuration: 600,
+  }, option));
+  charts.push(c);
+  return c;
+}
+const GRID = { left: 8, right: 14, top: 28, bottom: 8, containLabel: true };
+function axisStyle() {
+  return {
+    axisLine: { lineStyle: { color: "#32456e" } },
+    axisLabel: { color: "#a9b6d3", fontSize: 12 },
+    splitLine: { lineStyle: { color: "rgba(50,69,110,.35)" } },
+    nameTextStyle: { color: "#7385a8" },
+  };
+}
+function normArr(vals) {
+  const ok = vals.filter((v) => v != null && !isNaN(v));
+  const lo = Math.min(...ok, 0), hi = Math.max(...ok, 1e-9);
+  const span = hi - lo || 1;
+  return (v) => (v == null || isNaN(v)) ? 0 : Math.round((v - lo) / span * 100);
+}
+function rankBadge(rank) {
+  if (!rank) return "";
+  return `<span class="rkb" style="background:${RANK_COLOR[rank] || "#46587e"}">${rank}</span>`;
+}
+
+/* ---------------- 全頭分析 ---------------- */
+function renderBunseki(r, vb) {
+  vb.innerHTML = `<div class="an-grid">
+    <div class="card anc">
+      <div class="an-t">AI評価 × 市場人気
+        <small>右上＝人気薄なのにAI高評価（妙味） / 左下＝人気だがAI低評価（過剰）</small></div>
+      <div id="ch-scatter" class="chart"></div>
+    </div>
+    <div class="card anc">
+      <div class="an-t">上位5頭 能力レーダー
+        <small>能力 / 勝率 / 複勝安定 / 妙味 / 瞬発(上がり) / 実績 をレース内で正規化</small></div>
+      <div id="ch-radar" class="chart"></div>
+    </div>
+  </div>`;
+
+  const hs = r.horses;
+  const N = hs.length;
+  // --- scatter: x=人気(1→左), y=AI複勝圏率% ---
+  const pts = hs.map((h) => ({
+    value: [h.ninki ?? N, +( (h.p_sho ?? 0) * 100).toFixed(1)],
+    itemStyle: { color: MARK_COLOR[h.mark] ?? MARK_COLOR[""], borderColor: "#0b1322", borderWidth: 1 },
+    symbolSize: 10 + (h.p_win ?? 0) * 70,
+    label: { show: true, formatter: String(h.umaban), color: "#0b1322", fontSize: 10, fontFamily: "Oswald" },
+    h,
+  }));
+  const avgSho = hs.reduce((s, h) => s + (h.p_sho ?? 0), 0) / Math.max(N, 1) * 100;
+  mkChart("ch-scatter", {
+    grid: GRID,
+    tooltip: {
+      backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e",
+      textStyle: { color: "#edf1fb", fontSize: 12 },
+      formatter: (p) => { const h = p.data.h; return `<b>${h.umaban} ${esc(h.name)}</b> ${h.mark || ""}<br>`
+        + `${h.ninki ?? "—"}番人気 / 単${num(h.odds)}倍<br>AI複勝圏 ${pct(h.p_sho)}% / 勝率 ${pct(h.p_win)}%<br>単EV ${num(h.ev_tan, 2)}`; },
+    },
+    xAxis: Object.assign({ name: "人気→", min: 0.5, max: N + 0.5, interval: 1, inverse: false }, axisStyle()),
+    yAxis: Object.assign({ name: "AI複勝圏率 %", min: 0 }, axisStyle()),
+    series: [{
+      type: "scatter", data: pts,
+      markLine: {
+        silent: true, symbol: "none", lineStyle: { color: "#3a4d75", type: "dashed" },
+        label: { show: false },
+        data: [{ yAxis: +avgSho.toFixed(1) }, { xAxis: (N + 1) / 2 }],
+      },
+    }],
+  });
+
+  // --- radar: top5 by ai_rank ---
+  const top = [...hs].sort((a, b) => (a.ai_rank ?? 99) - (b.ai_rank ?? 99)).slice(0, 5);
+  const agari = (h) => {
+    const rs = (h.history?.runs || []).map((u) => u.agari3f).filter((v) => v);
+    return rs.length ? Math.min(...rs) : null; // 速い(小)ほど良 → 後で反転
+  };
+  const jisseki = (h) => {
+    const rs = h.history?.runs || [];
+    return rs.length ? rs.filter((u) => (u.pos ?? 9) <= 3).length / rs.length : 0;
+  };
+  const nAbility = normArr(hs.map((h) => h.ai_score));
+  const nWin = normArr(hs.map((h) => h.p_win));
+  const nSho = normArr(hs.map((h) => h.p_sho));
+  const nEv = normArr(hs.map((h) => Math.min(h.ev_tan ?? 0, 3)));
+  const agVals = hs.map(agari);
+  const nAg = normArr(agVals.map((v) => v == null ? null : -v)); // 反転(速い=高)
+  const nJis = normArr(hs.map(jisseki));
+  const indVal = (h) => [nAbility(h.ai_score), nWin(h.p_win), nSho(h.p_sho),
+    nEv(Math.min(h.ev_tan ?? 0, 3)), nAg(agari(h) == null ? null : -agari(h)), nJis(jisseki(h))];
+  mkChart("ch-radar", {
+    legend: {
+      data: top.map((h) => `${h.umaban} ${h.name}`), bottom: 0, textStyle: { color: "#a9b6d3", fontSize: 11 },
+      itemWidth: 12, itemHeight: 8, type: "scroll",
+    },
+    tooltip: { backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e", textStyle: { color: "#edf1fb" } },
+    radar: {
+      indicator: ["能力", "勝率", "複勝安定", "妙味", "瞬発", "実績"].map((n) => ({ name: n, max: 100 })),
+      radius: "62%", center: ["50%", "46%"],
+      axisName: { color: "#a9b6d3", fontSize: 11 },
+      splitLine: { lineStyle: { color: "rgba(50,69,110,.5)" } },
+      splitArea: { areaStyle: { color: ["rgba(255,255,255,.02)", "rgba(255,255,255,.04)"] } },
+      axisLine: { lineStyle: { color: "rgba(50,69,110,.5)" } },
+    },
+    series: [{
+      type: "radar",
+      data: top.map((h) => ({
+        value: indVal(h), name: `${h.umaban} ${h.name}`,
+        lineStyle: { color: MARK_COLOR[h.mark] ?? "#5ba0f5", width: 2 },
+        itemStyle: { color: MARK_COLOR[h.mark] ?? "#5ba0f5" },
+        areaStyle: { opacity: 0.08 },
+      })),
+    }],
+  });
+}
+
+/* ---------------- コース ---------------- */
+function renderCourse(r, vb) {
+  const key = `${r.place}|${r.course}`;
+  const cs = state.day.courses ? state.day.courses[key] : null;
+  if (!cs) {
+    vb.innerHTML = `<div class="card cw-empty">このコース（${esc(key)}）の集計データがありません。</div>`;
+    return;
+  }
+  const marked = r.horses.filter((h) => h.mark);
+  const honmei = r.horses.find((h) => h.mark === "◎");
+  const wakuOf = (h) => String(h.waku ?? "");
+  const tags = (pred) => marked.filter(pred).map((h) =>
+    `<span class="cc-tag" style="color:${MARK_COLOR[h.mark]}">${h.mark}${h.umaban}</span>`).join("");
+
+  vb.innerHTML = `<div class="cc-head card">
+    <div class="cc-h-t">${esc(r.place)} ${esc(r.course)} <small>過去 ${cs.n_races?.toLocaleString()}レース / ${cs.n_starts?.toLocaleString()}頭 の傾向</small></div>
+    ${honmei ? `<div class="cc-h-s">◎${honmei.umaban} ${esc(honmei.name)} … <b>${wakuOf(honmei)}枠</b> / 脚質 <b>${esc(honmei.style || "—")}</b></div>` : ""}
+  </div>
+  <div class="cc-grid">
+    <div class="card anc"><div class="an-t">枠順別 複勝率 <small>印馬の枠を強調</small></div><div id="ch-waku" class="chart sm"></div></div>
+    <div class="card anc"><div class="an-t">脚質別 複勝率 <small>${["逃げ", "先行", "差し", "追込"].map((k) => `${k}${tags((h) => h.style === k) ? "•" : ""}`).join(" ")}</small></div><div id="ch-kyaku" class="chart sm"></div></div>
+    <div class="card anc"><div class="an-t">年齢別 複勝率</div><div id="ch-age" class="chart sm"></div></div>
+    <div class="card anc"><div class="an-t">性別 複勝率</div><div id="ch-sex" class="chart sm"></div></div>
+  </div>`;
+
+  const baseFuku = cs.n_starts ? null : null;
+  const markedWaku = new Set(marked.map((h) => String(h.waku)));
+  const markedStyle = {};
+  marked.forEach((h) => { markedStyle[h.style] = (markedStyle[h.style] || 0) + 1; });
+
+  const barChart = (id, rows, opt = {}) => {
+    const cats = rows.map((x) => x.label);
+    const vals = rows.map((x) => x.fuku);
+    const hl = opt.highlight || (() => false);
+    mkChart(id, {
+      grid: { left: 6, right: 12, top: 16, bottom: 6, containLabel: true },
+      tooltip: {
+        backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e", textStyle: { color: "#edf1fb", fontSize: 12 },
+        formatter: (p) => { const x = rows[p[0].dataIndex]; return `${x.label}<br>複勝率 ${x.fuku}% / 勝率 ${x.win}%<br>n=${(x.n || 0).toLocaleString()}`; },
+      },
+      xAxis: Object.assign({ type: "category", data: cats }, axisStyle()),
+      yAxis: Object.assign({ type: "value", name: "複勝率%", min: 0 }, axisStyle()),
+      series: [{
+        type: "bar", data: vals.map((v, i) => ({
+          value: v,
+          itemStyle: { color: hl(rows[i].label) ? "#f5b942" : "#3f6fb8", borderRadius: [3, 3, 0, 0] },
+        })),
+        barWidth: opt.barWidth || "58%",
+        label: { show: true, position: "top", color: "#a9b6d3", fontSize: 10, formatter: (p) => p.value + "%" },
+      }],
+    });
+  };
+  barChart("ch-waku", cs.waku, { highlight: (l) => markedWaku.has(l) });
+  barChart("ch-kyaku", cs.kyaku, { highlight: (l) => (markedStyle[l] || 0) > 0, barWidth: "46%" });
+  barChart("ch-age", cs.age, { barWidth: "46%" });
+  barChart("ch-sex", cs.sex, { barWidth: "40%" });
+}
+
+/* ---------------- 調教 ---------------- */
+function lapMini(laps, faster) {
+  if (!laps || !laps.length) return "";
+  const lo = Math.min(...laps), hi = Math.max(...laps);
+  const span = hi - lo || 1;
+  return `<span class="lapmini">${laps.map((l) => {
+    const h = 6 + (1 - (l - lo) / span) * 16; // 速い(小)=高い
+    return `<i style="height:${h.toFixed(0)}px" title="${l}"></i>`;
+  }).join("")}</span>`;
+}
+function renderTraining(r, vb) {
+  const top5 = state.day.training_top5 || [];
+  const top5Html = top5.length ? `<div class="card tr-top">
+    <div class="an-t">⚡ 今週の好調教 Best5 <small>坂路 終い200m が速い順（開催全体）</small></div>
+    <div class="tr-top-row">${top5.map((t, i) => `<div class="tr-top-c">
+      <span class="tr-rk">${i + 1}</span>
+      <div><div class="tr-top-n">${esc(t.name)}</div>
+        <div class="tr-top-m">${esc(t.place)}${t.rno}R・${t.umaban}番</div></div>
+      <span class="tr-top-v num">${num(t.lap1)}<small>終い</small></span>
+    </div>`).join("")}</div>
+  </div>` : "";
+
+  const rows = r.horses.map((h) => {
+    const t = h.training;
+    const hanro = t && t.hanro;
+    const wc = t && t.wc;
+    if (!hanro && !wc) {
+      return `<div class="tr-row none">
+        <span class="mark ${markCls(h.mark)}">${h.mark || "・"}</span>${wk(h)}
+        <span class="tr-name">${esc(h.name)}</span>
+        <span class="tr-na">追い切りデータなし</span></div>`;
+    }
+    const hanroHtml = hanro ? `<span class="tr-set"><b>坂路</b>
+      <span class="tr-kv">4F <em class="num">${num(hanro.t4f)}</em></span>
+      <span class="tr-kv">終い <em class="num">${num(hanro.lap1)}</em></span>
+      ${lapMini(hanro.laps)}<span class="tr-d">${esc((hanro.date || "").slice(4))}</span></span>` : "";
+    const wcHtml = wc ? `<span class="tr-set"><b>W</b>
+      <span class="tr-kv">5F <em class="num">${num(wc.f5)}</em></span>
+      <span class="tr-kv">終い <em class="num">${num(wc.lap1)}</em></span>
+      ${lapMini(wc.laps)}<span class="tr-d">${esc((wc.date || "").slice(4))}</span></span>` : "";
+    return `<div class="tr-row">
+      <span class="mark ${markCls(h.mark)}">${h.mark || "・"}</span>${wk(h)}
+      <span class="tr-name">${esc(h.name)}</span>
+      <span class="tr-sets">${hanroHtml}${wcHtml}</span></div>`;
+  }).join("");
+
+  const nCov = r.horses.filter((h) => h.training).length;
+  vb.innerHTML = `${top5Html}
+    <div class="card tr-list">
+      <div class="an-t">出走馬の最終追い切り <small>${nCov}/${r.horses.length}頭にデータ・坂路は美浦/栗東のみ</small></div>
+      ${rows}
+    </div>`;
+}
+
+/* ---------------- 血統 ---------------- */
+function renderPedigree(r, vb) {
+  const withStats = r.horses.filter((h) => h.ped_stats && (h.ped_stats.sire || h.ped_stats.bms));
+  const baseline = withStats.length ? withStats[0].ped_stats.baseline : null;
+
+  // bar: 各馬の父 fuku% (このコース) vs baseline
+  const sireRows = r.horses
+    .filter((h) => h.ped_stats && h.ped_stats.sire)
+    .map((h) => ({ h, fuku: h.ped_stats.sire.fuku, rank: h.ped_stats.sire.rank }))
+    .sort((a, b) => b.fuku - a.fuku);
+
+  const chartHtml = sireRows.length
+    ? `<div class="card anc"><div class="an-t">父 × このコース 複勝率 <small>${baseline != null ? `全体平均 ${baseline}%` : ""}</small></div><div id="ch-ped" class="chart sm"></div></div>`
+    : "";
+
+  const cards = r.horses.map((h) => {
+    const ped = h.pedigree || {};
+    const ps = h.ped_stats;
+    const sire = ps && ps.sire;
+    const bms = ps && ps.bms;
+    return `<div class="card ped-c">
+      <div class="ped-head">${wk(h)}<span class="mark ${markCls(h.mark)}">${h.mark || ""}</span>
+        <span class="ped-name">${esc(h.name)}</span></div>
+      <div class="ped-line"><span class="ped-l">父</span>
+        <span class="ped-sire">${esc(ped.sire || "—")}</span>
+        ${sire ? `${rankBadge(sire.rank)}<span class="ped-f">複勝 <b>${sire.fuku}%</b> <small>n=${sire.n}</small></span>`
+          : `<span class="ped-na">データ少</span>`}</div>
+      <div class="ped-line"><span class="ped-l">母父</span>
+        <span class="ped-sire">${esc(ped.broodmare_sire || "—")}</span>
+        ${bms ? `${rankBadge(bms.rank)}<span class="ped-f">複勝 <b>${bms.fuku}%</b> <small>n=${bms.n}</small></span>`
+          : `<span class="ped-na">データ少</span>`}</div>
+    </div>`;
+  }).join("");
+
+  vb.innerHTML = `${chartHtml}
+    <div class="ped-note">★ このコース（${esc(r.place)} ${esc(r.course)}）における種牡馬・母父の過去複勝率。
+      ランク SS&gt;S&gt;A&gt;B は全体平均との比。出走数15以上の血統のみ集計対象。</div>
+    <div class="ped-grid">${cards}</div>`;
+
+  if (sireRows.length) {
+    mkChart("ch-ped", {
+      grid: { left: 6, right: 14, top: 16, bottom: 6, containLabel: true },
+      tooltip: {
+        backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e", textStyle: { color: "#edf1fb", fontSize: 12 },
+        formatter: (p) => { const x = sireRows[p[0].dataIndex]; return `${x.h.umaban} ${esc(x.h.name)}<br>父 ${esc(x.h.pedigree.sire)}<br>複勝率 ${x.fuku}% (${x.rank})`; },
+      },
+      xAxis: Object.assign({ type: "category", data: sireRows.map((x) => x.h.umaban) }, axisStyle()),
+      yAxis: Object.assign({ type: "value", name: "複勝率%", min: 0 }, axisStyle()),
+      series: [{
+        type: "bar", barWidth: "56%",
+        data: sireRows.map((x) => ({ value: x.fuku, itemStyle: { color: RANK_COLOR[x.rank] || "#3f6fb8", borderRadius: [3, 3, 0, 0] } })),
+        label: { show: true, position: "top", color: "#a9b6d3", fontSize: 10, formatter: (p) => p.value + "%" },
+        markLine: baseline != null ? {
+          silent: true, symbol: "none", lineStyle: { color: "#f2555a", type: "dashed" },
+          label: { color: "#f3989b", fontSize: 10, formatter: "平均" },
+          data: [{ yAxis: baseline }],
+        } : undefined,
+      }],
+    });
+  }
+}
+
+/* ---------------- view machinery ---------------- */
+function renderViewTabs() {
+  const vt = $("#viewTabs");
+  vt.innerHTML = VIEWS.map((v) =>
+    `<button class="vt ${v.key === state.view ? "on" : ""}" data-view="${v.key}">${v.label}</button>`).join("");
+  vt.querySelectorAll(".vt").forEach((b) => {
+    b.onclick = () => {
+      if (state.view === b.dataset.view) return;
+      state.view = b.dataset.view;
+      renderViewTabs();
+      renderView();
+    };
+  });
+}
+
+function renderView() {
+  disposeCharts();
+  const r = currentRace();
+  const vb = $("#viewbody");
+  if (!r) { vb.innerHTML = `<div class="err">レースがありません</div>`; return; }
+  if (state.view === "shutsuba") {
+    vb.innerHTML = `<section id="shutsuba"></section><section id="extras"></section><section id="cowork"></section>`;
+    renderTable(r); renderExtras(r); renderCowork(r);
+  } else if (state.view === "bunseki") {
+    renderBunseki(r, vb);
+  } else if (state.view === "course") {
+    renderCourse(r, vb);
+  } else if (state.view === "training") {
+    renderTraining(r, vb);
+  } else if (state.view === "pedigree") {
+    renderPedigree(r, vb);
+  }
+}
+
+window.addEventListener("resize", () => { charts.forEach((c) => { try { c.resize(); } catch (e) { /* noop */ } }); });
+
 /* ---------------- compose ---------------- */
 function renderRace() {
   const r = currentRace();
   if (!r) {
     $("#raceHeader").innerHTML = `<div class="err">レースがありません</div>`;
-    ["#shutsuba", "#extras", "#cowork"].forEach((s) => { $(s).innerHTML = ""; });
+    $("#viewbody").innerHTML = "";
     return;
   }
   renderHeader(r);
-  renderTable(r);
-  renderExtras(r);
-  renderCowork(r);
+  renderViewTabs();
+  renderView();
 }
 
 boot();

@@ -24,7 +24,7 @@
   --disp: "Oswald", "Noto Sans JP", sans-serif;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { scrollbar-color: var(--line2) var(--bg); }
+html { scrollbar-color: var(--line2) var(--bg); overflow-x: clip; }
 body {
   background: var(--bg);
   color: var(--tx);
@@ -32,6 +32,7 @@ body {
   font-size: 17px;
   line-height: 1.55;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 body::before {
   content: "";
@@ -574,6 +575,64 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
   .track-stripe, .brand-mark, .hitchip, .vschip.under { animation: none !important; }
 }
 
+/* ---------------- 分析タブ共通 (チャート) ---------------- */
+.chart { width: 100%; height: 360px; }
+.chart.sm { height: 248px; }
+.an-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.anc { padding: 12px 14px 8px; }
+.an-t { font-size: 14.5px; font-weight: 700; color: var(--tx2); letter-spacing: .06em; margin-bottom: 4px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.an-t small { font-weight: 400; font-size: 11.5px; color: var(--tx3); letter-spacing: 0; }
+
+/* ---------------- コースタブ ---------------- */
+.cc-head { padding: 12px 16px; margin-top: 10px; }
+.cc-h-t { font-size: 17px; font-weight: 700; }
+.cc-h-t small { font-size: 12.5px; font-weight: 400; color: var(--tx3); margin-left: 8px; }
+.cc-h-s { font-size: 13.5px; color: var(--tx2); margin-top: 4px; }
+.cc-h-s b { color: var(--gold2); }
+.cc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.cc-tag { font-weight: 700; margin-left: 2px; }
+
+/* ---------------- 調教タブ ---------------- */
+.tr-top { padding: 12px 14px; margin-top: 10px; border-color: rgba(245,185,66,.35); }
+.tr-top-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.tr-top-c { display: flex; align-items: center; gap: 8px; background: var(--bg3); border-radius: 9px; padding: 8px 10px; }
+.tr-rk { font-family: var(--disp); font-size: 17px; font-weight: 600; color: var(--gold2); width: 18px; text-align: center; }
+.tr-top-n { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.tr-top-m { font-size: 11px; color: var(--tx3); }
+.tr-top-v { margin-left: auto; font-size: 17px; color: var(--teal2); }
+.tr-top-v small { font-size: 9px; color: var(--tx3); margin-left: 2px; }
+.tr-list { padding: 12px 14px; margin-top: 8px; }
+.tr-row { display: flex; align-items: center; gap: 9px; padding: 9px 2px; border-top: 1px solid var(--line); }
+.tr-row:first-of-type { border-top: none; }
+.tr-row .mark { font-size: 15px; width: 18px; }
+.tr-name { font-size: 14.5px; font-weight: 700; min-width: 96px; }
+.tr-na { font-size: 12.5px; color: var(--tx3); }
+.tr-row.none { opacity: .6; }
+.tr-sets { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-left: auto; align-items: center; }
+.tr-set { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--tx2); }
+.tr-set > b { font-size: 11px; font-weight: 900; color: var(--tx3); background: var(--bg3); border-radius: 4px; padding: 1px 6px; }
+.tr-kv em { font-style: normal; color: var(--tx); font-size: 14.5px; margin-left: 2px; }
+.tr-d { font-size: 10.5px; color: var(--tx3); }
+.lapmini { display: inline-flex; align-items: flex-end; gap: 2px; height: 22px; }
+.lapmini i { display: inline-block; width: 5px; background: linear-gradient(180deg, var(--teal2), #169c79); border-radius: 1px; }
+
+/* ---------------- 血統タブ ---------------- */
+.rkb { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 19px; padding: 0 5px; border-radius: 5px; font-family: var(--disp); font-size: 12px; font-weight: 600; color: #131008; }
+.ped-note { font-size: 12.5px; color: var(--tx3); line-height: 1.6; margin: 10px 2px 8px; }
+.ped-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 8px; }
+.ped-c { padding: 11px 13px; }
+.ped-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.ped-head .mark { font-size: 15px; }
+.ped-name { font-size: 15px; font-weight: 700; }
+.ped-line { display: flex; align-items: center; gap: 7px; padding: 4px 0; font-size: 13px; }
+.ped-line + .ped-line { border-top: 1px dashed var(--line); }
+.ped-l { font-size: 11px; color: var(--tx3); width: 28px; flex: 0 0 auto; }
+.ped-sire { font-weight: 700; color: var(--tx); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ped-f { margin-left: auto; font-size: 12.5px; color: var(--tx2); white-space: nowrap; }
+.ped-f b { color: var(--gold2); font-size: 14px; }
+.ped-f small { color: var(--tx3); font-size: 10.5px; }
+.ped-na { margin-left: auto; font-size: 11.5px; color: var(--tx3); }
+
 /* ---------------- responsive ---------------- */
 @media (max-width: 1000px) {
   .c-spark { display: none; }
@@ -598,6 +657,10 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
   .rh-place, .rh-rno { font-size: 26px; }
   .rh-name { font-size: 24px; }
   .ex-grid { grid-template-columns: 1fr; }
+  .an-grid, .cc-grid { grid-template-columns: 1fr; }
+  .chart { height: 300px; }
+  .chart.sm { height: 220px; }
+  .tr-sets { margin-left: 0; flex-basis: 100%; }
   .res-pays { margin-left: 0; }
 }
 @media (max-width: 560px) {

@@ -33,6 +33,9 @@ BUNDLE_DIR = ROOT / "reports" / "cowork_input"
 COWORK_OUT_DIR = ROOT / "reports" / "cowork_output"
 WEEKLY_DIR = ROOT / "data" / "weekly"
 KEKKA_DIR = ROOT / "data" / "kekka"
+TRAINING_DIR = ROOT / "data" / "training"
+COURSE_STATS_PATH = ROOT / "data" / "course_stats.json"
+PEDIGREE_STATS_PATH = ROOT / "data" / "pedigree_stats.json"
 SITE_DATA_DIR = ROOT / "site" / "data"
 
 PLACE_ORDER = ["札幌", "函館", "福島", "新潟", "東京", "中山",
@@ -350,14 +353,135 @@ def load_all_cowork() -> dict[str, dict]:
     return out
 
 
+def _nfkc(s) -> str:
+    return unicodedata.normalize("NFKC", str(s or "")).strip()
+
+
+# ---------------------------------------------------------------- コース成績
+def load_course_stats() -> dict:
+    if not COURSE_STATS_PATH.exists():
+        return {}
+    with open(COURSE_STATS_PATH, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _slim_course(entry: dict) -> dict:
+    """course_stats の 1 コース分を表示に必要な列だけに圧縮。"""
+    out = {k: entry.get(k) for k in ("place", "surface", "distance",
+                                     "n_races", "n_starts")}
+    for grp in ("waku", "uma", "kyaku", "age", "sex"):
+        out[grp] = [{
+            "label": r.get("label"),
+            "win": r.get("win_rate"),
+            "ren": r.get("rentai_rate"),
+            "fuku": r.get("fuku_rate"),
+            "n": r.get("n_total"),
+        } for r in (entry.get(grp) or [])]
+    return out
+
+
+# ---------------------------------------------------------------- 血統
+TD_RE = re.compile(r"([芝ダ])\D*(\d+)")
+
+
+def parse_course_str(course: str):
+    """'芝1200' -> ('芝', 1200) / 'ダ1800' -> ('ダ', 1800)。"""
+    m = TD_RE.search(course or "")
+    return (m.group(1), int(m.group(2))) if m else (None, None)
+
+
+def load_pedigree_index():
+    """(place, td) -> [course entry,...] の索引。"""
+    if not PEDIGREE_STATS_PATH.exists():
+        return None
+    with open(PEDIGREE_STATS_PATH, encoding="utf-8") as f:
+        ps = json.load(f)
+    idx: dict = {}
+    for e in (ps.get("courses") or {}).values():
+        idx.setdefault((e.get("place"), e.get("td")), []).append(e)
+    return idx
+
+
+def ped_course_entry(ped_index, place: str, course: str):
+    """レースの place / 距離に最も近い血統コース統計を返す。"""
+    if not ped_index:
+        return None
+    td, dist = parse_course_str(course)
+    if td is None:
+        return None
+    best, best_d = None, 1e9
+    for e in ped_index.get((place, td)) or []:
+        band = e.get("dist_band") or [0, 0]
+        if band[0] <= dist <= band[1]:
+            d = abs((e.get("dist_bucket") or dist) - dist)
+            if d < best_d:
+                best, best_d = e, d
+    return best
+
+
+# ---------------------------------------------------------------- 調教
+TRN_RE = re.compile(r"[HW]-(\d{8})-(\d{8})\.csv$", re.I)
+
+
+def pick_training_file(prefix: str, date_str: str):
+    """race date 以前で最も新しい週次調教ファイル (H=坂路 / W=WC) を選ぶ。"""
+    if not TRAINING_DIR.exists():
+        return None
+    best, best_end = None, ""
+    for p in TRAINING_DIR.glob(f"{prefix}-*.csv"):
+        m = TRN_RE.search(p.name)
+        if not m:
+            continue
+        start, end = m.group(1), m.group(2)
+        if start <= date_str and end > best_end:
+            best, best_end = p, end
+    return best
+
+
+def parse_training_file(path, kind: str) -> dict:
+    """name(NFKC) -> 最新追い切り row。kind: 'hanro'(坂路) / 'wc'(ウッド)。"""
+    if not path or not path.exists():
+        return {}
+    rows: dict = {}
+    reader = csv.reader(io.StringIO(_decode(path.read_bytes())))
+    next(reader, None)  # header
+    for row in reader:
+        if len(row) < 4:
+            continue
+        date = row[0].strip()
+        name = _nfkc(row[1])
+        if not name:
+            continue
+        if kind == "hanro":
+            # 年月日,馬名,Time1(4F),Time2(3F),Time3(2F),Time4(1F),Lap4,Lap3,Lap2,Lap1
+            laps = [_float(row[i]) for i in (6, 7, 8, 9) if i < len(row)]
+            rec = {"date": date, "t4f": _float(row[2]) if len(row) > 2 else None,
+                   "t1f": _float(row[5]) if len(row) > 5 else None,
+                   "laps": laps, "lap1": laps[-1] if laps else None}
+        else:
+            # 年月日,馬名,5F,4F,3F,Lap3,Lap2,Lap1
+            laps = [_float(row[i]) for i in (5, 6, 7) if i < len(row)]
+            rec = {"date": date, "f5": _float(row[2]) if len(row) > 2 else None,
+                   "f4": _float(row[3]) if len(row) > 3 else None,
+                   "f3": _float(row[4]) if len(row) > 4 else None,
+                   "laps": laps, "lap1": laps[-1] if laps else None}
+        prev = rows.get(name)
+        if prev is None or date >= prev["date"]:
+            rows[name] = rec
+    return rows
+
+
 # ---------------------------------------------------------------- bundle 変換
-def transform_bundle(path: Path, cowork: dict, wide_data: dict) -> dict:
+def transform_bundle(path: Path, cowork: dict, wide_data: dict,
+                     course_stats: dict, ped_index) -> dict:
     with open(path, encoding="utf-8") as f:
         bundle = json.load(f)
 
     date_str = path.name[:8]
     race_extra, horse_extra = parse_weekly(date_str)
     results = parse_kekka(date_str, wide_data)
+    hanro_map = parse_training_file(pick_training_file("H", date_str), "hanro")
+    wc_map = parse_training_file(pick_training_file("W", date_str), "wc")
 
     races_out = []
     for race in bundle.get("races", []):
@@ -366,6 +490,15 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict) -> dict:
         field_size = meta.get("field_size") or len(race.get("horses", []))
         rext = race_extra.get(rid, {})
 
+        # このレースのコース血統統計 (種牡馬/母父 → fuku/rank)
+        pced = ped_course_entry(ped_index, meta.get("place", ""),
+                                meta.get("course", ""))
+        sire_map = {_nfkc(s.get("name")): s for s in (pced.get("sire") or [])} \
+            if pced else {}
+        bms_map = {_nfkc(s.get("name")): s for s in (pced.get("broodmare_sire") or [])} \
+            if pced else {}
+        base_fuku = pced.get("baseline_fuku_rate") if pced else None
+
         horses = []
         for h in race.get("horses", []):
             umaban = h.get("umaban")
@@ -373,6 +506,26 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict) -> dict:
             p_win = h.get("p_win")
             odds = h.get("tansho_odds")
             ev_tan = round(p_win * odds, 2) if (p_win and odds) else None
+
+            # 調教 (坂路 / WC) を馬名で結合
+            nm = _nfkc(h.get("horse_name"))
+            hanro, wc = hanro_map.get(nm), wc_map.get(nm)
+            training = {"hanro": hanro, "wc": wc} if (hanro or wc) else None
+
+            # 血統スタッツ (このコースでの父/母父 fuku/rank)
+            ped = h.get("pedigree") or {}
+            srow = sire_map.get(_nfkc(ped.get("sire")))
+            brow = bms_map.get(_nfkc(ped.get("broodmare_sire")))
+            ped_stats = None
+            if srow or brow:
+                ped_stats = {
+                    "baseline": base_fuku,
+                    "sire": {"rank": srow.get("rank"), "fuku": srow.get("fuku_rate"),
+                             "n": srow.get("n_runs")} if srow else None,
+                    "bms": {"rank": brow.get("rank"), "fuku": brow.get("fuku_rate"),
+                            "n": brow.get("n_runs")} if brow else None,
+                }
+
             horses.append({
                 "umaban": umaban,
                 "waku": hext.get("waku")
@@ -406,6 +559,8 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict) -> dict:
                 "why": h.get("why", []),
                 "history": h.get("history"),
                 "pedigree": h.get("pedigree"),
+                "training": training,
+                "ped_stats": ped_stats,
             })
 
         # 人気が weekly に無い場合はオッズ昇順から導出
@@ -439,10 +594,34 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict) -> dict:
     places = [p for p in PLACE_ORDER if p in places_seen]
     places += sorted(places_seen - set(places))
 
+    # コース成績 (place|course でユニーク化、日次で共有)
+    courses: dict = {}
+    for r in races_out:
+        key = f"{r['place']}|{r['course']}"
+        if key not in courses and course_stats.get(key):
+            courses[key] = _slim_course(course_stats[key])
+
+    # 好調教 Best5 (坂路 終い 200m が速い順、当日の出走馬に限る)
+    name_loc = {}
+    for r in races_out:
+        for h in r["horses"]:
+            name_loc.setdefault(_nfkc(h["name"]),
+                                (r["place"], r["rno"], h["umaban"], h["name"]))
+    top5 = []
+    for nm, rec in hanro_map.items():
+        loc = name_loc.get(nm)
+        if loc and rec.get("lap1"):
+            pl, rno, uma, disp = loc
+            top5.append({"name": disp, "place": pl, "rno": rno, "umaban": uma,
+                         "lap1": rec["lap1"], "t4f": rec.get("t4f")})
+    top5.sort(key=lambda x: (x["lap1"], x.get("t4f") or 99))
+
     return deep_zen({
         "date": date_str,
         "places": places,
         "races": races_out,
+        "courses": courses,
+        "training_top5": top5[:5],
     })
 
 
@@ -458,14 +637,18 @@ def main() -> None:
 
     cowork = load_all_cowork()
     wide_data = parse_wide_kekka()
-    print(f"cowork_output: {len(cowork)} races / wide_kekka: {len(wide_data)} races")
+    course_stats = load_course_stats()
+    ped_index = load_pedigree_index()
+    print(f"cowork_output: {len(cowork)} races / wide_kekka: {len(wide_data)} races / "
+          f"course_stats: {len(course_stats)} courses / "
+          f"pedigree: {'OK' if ped_index else '無し'}")
 
     manifest_entries = []
     for path in bundles:
         date_str = path.name[:8]
         out_path = SITE_DATA_DIR / f"{date_str}.json"
         if only_date is None or date_str == only_date:
-            day = transform_bundle(path, cowork, wide_data)
+            day = transform_bundle(path, cowork, wide_data, course_stats, ped_index)
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(day, f, ensure_ascii=False, separators=(",", ":"))
             n_cw = sum(1 for r in day["races"] if r["cowork"])
