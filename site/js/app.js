@@ -885,8 +885,8 @@ function renderBunseki(r, vb) {
       tooltip: { backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e", textStyle: { color: "#edf1fb", fontSize: 11 } },
       radar: {
         indicator: AXES.map((n) => ({ name: n, max: 100 })),
-        radius: "66%", center: ["50%", "54%"],
-        axisName: { color: "#8597ba", fontSize: 10 },
+        radius: "42%", center: ["50%", "50%"],
+        axisName: { color: "#e9eefa", fontSize: 18, fontWeight: 500 },
         splitNumber: 3,
         splitLine: { lineStyle: { color: "rgba(50,69,110,.45)" } },
         splitArea: { areaStyle: { color: ["rgba(255,255,255,.015)", "rgba(255,255,255,.035)"] } },
