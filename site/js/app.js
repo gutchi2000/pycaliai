@@ -780,18 +780,16 @@ function umamiTableHtml(r) {
 
 /* ---------------- 全頭分析 ---------------- */
 function renderBunseki(r, vb) {
-  vb.innerHTML = `<div class="an-grid">
-    <div class="card anc">
+  vb.innerHTML = `<div class="card anc">
       <div class="an-t">AI評価 × 市場人気
-        <small>右上＝人気薄なのにAI高評価（妙味） / 左下＝人気だがAI低評価（過剰）</small></div>
+        <small>右上＝人気薄なのにAI高評価（妙味） / 左下＝人気だがAI低評価（過剰）・点の大きさ＝勝率</small></div>
       <div id="ch-scatter" class="chart"></div>
     </div>
     <div class="card anc">
-      <div class="an-t">上位5頭 能力レーダー
-        <small>能力 / 勝率 / 複勝安定 / 妙味 / 瞬発(上がり) / 実績 をレース内で正規化</small></div>
-      <div id="ch-radar" class="chart"></div>
+      <div class="an-t">能力レーダー（上位6頭・1頭ずつ）
+        <small>能力 / 勝率 / 複勝安定 / 妙味 / 瞬発(上がり) / 実績 をレース内で正規化。<b style="color:#7385a8">グレー＝出走全体の平均</b></small></div>
+      <div class="radar-grid" id="radar-grid"></div>
     </div>
-  </div>
   <div id="um-wrap">${umamiTableHtml(r)}</div>`;
 
   const wireUmami = () => {
@@ -835,8 +833,8 @@ function renderBunseki(r, vb) {
     }],
   });
 
-  // --- radar: top5 by ai_rank ---
-  const top = [...hs].sort((a, b) => (a.ai_rank ?? 99) - (b.ai_rank ?? 99)).slice(0, 5);
+  // --- radar: 上位6頭を「1頭ずつ」小分割 (重ねない)。グレー=全体平均 ---
+  const top = [...hs].sort((a, b) => (a.ai_rank ?? 99) - (b.ai_rank ?? 99)).slice(0, 6);
   const agari = (h) => {
     const rs = (h.history?.runs || []).map((u) => u.agari3f).filter((v) => v);
     return rs.length ? Math.min(...rs) : null; // 速い(小)ほど良 → 後で反転
@@ -849,34 +847,41 @@ function renderBunseki(r, vb) {
   const nWin = normArr(hs.map((h) => h.p_win));
   const nSho = normArr(hs.map((h) => h.p_sho));
   const nEv = normArr(hs.map((h) => Math.min(h.ev_tan ?? 0, 3)));
-  const agVals = hs.map(agari);
-  const nAg = normArr(agVals.map((v) => v == null ? null : -v)); // 反転(速い=高)
+  const nAg = normArr(hs.map((h) => { const a = agari(h); return a == null ? null : -a; }));
   const nJis = normArr(hs.map(jisseki));
   const indVal = (h) => [nAbility(h.ai_score), nWin(h.p_win), nSho(h.p_sho),
     nEv(Math.min(h.ev_tan ?? 0, 3)), nAg(agari(h) == null ? null : -agari(h)), nJis(jisseki(h))];
-  mkChart("ch-radar", {
-    legend: {
-      data: top.map((h) => `${h.umaban} ${h.name}`), bottom: 0, textStyle: { color: "#a9b6d3", fontSize: 11 },
-      itemWidth: 12, itemHeight: 8, type: "scroll",
-    },
-    tooltip: { backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e", textStyle: { color: "#edf1fb" } },
-    radar: {
-      indicator: ["能力", "勝率", "複勝安定", "妙味", "瞬発", "実績"].map((n) => ({ name: n, max: 100 })),
-      radius: "62%", center: ["50%", "46%"],
-      axisName: { color: "#a9b6d3", fontSize: 11 },
-      splitLine: { lineStyle: { color: "rgba(50,69,110,.5)" } },
-      splitArea: { areaStyle: { color: ["rgba(255,255,255,.02)", "rgba(255,255,255,.04)"] } },
-      axisLine: { lineStyle: { color: "rgba(50,69,110,.5)" } },
-    },
-    series: [{
-      type: "radar",
-      data: top.map((h) => ({
-        value: indVal(h), name: `${h.umaban} ${h.name}`,
-        lineStyle: { color: MARK_COLOR[h.mark] ?? "#5ba0f5", width: 2 },
-        itemStyle: { color: MARK_COLOR[h.mark] ?? "#5ba0f5" },
-        areaStyle: { opacity: 0.08 },
-      })),
-    }],
+  // 全体平均 (グレー参照ポリゴン)
+  const avgVal = [0, 1, 2, 3, 4, 5].map((k) =>
+    Math.round(hs.reduce((s, h) => s + indVal(h)[k], 0) / Math.max(hs.length, 1)));
+  const AXES = ["能力", "勝率", "複勝安定", "妙味", "瞬発", "実績"];
+
+  const grid = $("#radar-grid");
+  grid.innerHTML = top.map((h, i) =>
+    `<div class="rd-cell"><div id="rd-${i}" class="rd-chart"></div>
+      <div class="rd-cap"><span class="mark ${markCls(h.mark)}">${h.mark || ""}</span>${wk(h)}
+      <span class="rd-nm">${esc(h.name)}</span></div></div>`).join("");
+  top.forEach((h, i) => {
+    const col = MARK_COLOR[h.mark] ?? "#5ba0f5";
+    mkChart(`rd-${i}`, {
+      tooltip: { backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e", textStyle: { color: "#edf1fb", fontSize: 11 } },
+      radar: {
+        indicator: AXES.map((n) => ({ name: n, max: 100 })),
+        radius: "66%", center: ["50%", "54%"],
+        axisName: { color: "#8597ba", fontSize: 10 },
+        splitNumber: 3,
+        splitLine: { lineStyle: { color: "rgba(50,69,110,.45)" } },
+        splitArea: { areaStyle: { color: ["rgba(255,255,255,.015)", "rgba(255,255,255,.035)"] } },
+        axisLine: { lineStyle: { color: "rgba(50,69,110,.45)" } },
+      },
+      series: [{
+        type: "radar", symbolSize: 3,
+        data: [
+          { value: avgVal, name: "全体平均", lineStyle: { color: "#46587e", width: 1, type: "dashed" }, itemStyle: { color: "#46587e" }, areaStyle: { color: "rgba(70,88,126,.12)" } },
+          { value: indVal(h), name: `${h.umaban} ${h.name}`, lineStyle: { color: col, width: 2 }, itemStyle: { color: col }, areaStyle: { color: col, opacity: 0.18 } },
+        ],
+      }],
+    });
   });
 }
 
@@ -939,13 +944,14 @@ function renderCourse(r, vb) {
 }
 
 /* ---------------- 調教 ---------------- */
-function lapMini(laps, faster) {
+function lapMini(laps) {
   if (!laps || !laps.length) return "";
   const lo = Math.min(...laps), hi = Math.max(...laps);
   const span = hi - lo || 1;
-  return `<span class="lapmini">${laps.map((l) => {
+  const n = laps.length;
+  return `<span class="lapmini" title="200mごとのラップ（右＝終い・高い＝速い）">${laps.map((l, i) => {
     const h = 6 + (1 - (l - lo) / span) * 16; // 速い(小)=高い
-    return `<i style="height:${h.toFixed(0)}px" title="${l}"></i>`;
+    return `<i class="${i === n - 1 ? "last" : ""}" style="height:${h.toFixed(0)}px" title="${l}秒"></i>`;
   }).join("")}</span>`;
 }
 function renderTraining(r, vb) {
@@ -988,6 +994,8 @@ function renderTraining(r, vb) {
   vb.innerHTML = `${top5Html}
     <div class="card tr-list">
       <div class="an-t">出走馬の最終追い切り <small>${nCov}/${r.horses.length}頭にデータ・坂路は美浦/栗東のみ</small></div>
+      <div class="tr-legend">読み方：<b>4F/5F</b>＝追い切り全体のタイム（短いほど速い）／<b>終い</b>＝ラスト200mのタイム／
+        <span class="lapmini lg"><i style="height:9px"></i><i style="height:13px"></i><i style="height:17px"></i><i class="last" style="height:21px"></i></span>＝200mごとのラップ（右が終い・棒が高いほど速い）</div>
       ${rows}
     </div>`;
 }
