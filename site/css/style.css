@@ -407,7 +407,7 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .tk.tk-hon i { color: var(--gold2); font-weight: 700; }
 
 .pair {
-  display: grid; grid-template-columns: 62px 14px 62px repeat(3, minmax(0,1fr)) auto;
+  display: grid; grid-template-columns: 54px 12px 54px repeat(3, minmax(0,1fr)) auto;
   gap: 6px; align-items: center;
   padding: 5px 4px; border-top: 1px dashed var(--line);
   opacity: 0; animation: rise .4s cubic-bezier(.2,.7,.3,1) forwards;
@@ -417,10 +417,18 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .pair-h { display: inline-flex; align-items: center; gap: 4px; }
 .pair-h .mark { font-size: 14.5px; }
 .pair-x { color: var(--tx3); font-size: 12px; text-align: center; }
-.pair-v { font-size: 16px; text-align: right; color: var(--tx2); }
+.pair-v { font-size: 16px; text-align: right; color: var(--tx2); white-space: nowrap; }
 .pair-v small { font-size: 11px; color: var(--tx3); }
+.pair-v.odds-col { color: var(--tx); }
+.pair.hh2 .pair-v.odds-col { color: var(--tx3); }
 .pair.win { background: rgba(45,212,168,.07); border-radius: 6px; border-top-color: transparent; }
-.pair-win { font-size: 12px; font-weight: 700; color: var(--teal2); padding-left: 4px; }
+.pair-win { font-size: 12px; font-weight: 700; color: var(--teal2); padding-left: 4px; white-space: nowrap; }
+.pair-note {
+  font-size: 12px; color: var(--tx3); line-height: 1.65;
+  margin-top: 9px; padding-top: 8px; border-top: 1px dashed var(--line);
+}
+.pair-note b { color: var(--tx2); font-weight: 700; }
+.pair-note u { color: var(--teal2); text-decoration: none; }
 
 /* ---------------- cowork section ---------------- */
 .cw { margin-top: 12px; }
@@ -605,8 +613,15 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
   }
   .hh { font-size: 11px; top: 54px; }
   .hsort { font-size: 11px; }
-  .hname { font-size: 14px; }
+  .hrow { align-items: center; }
+  .hname { font-size: 13.5px; line-height: 1.2; white-space: normal; overflow: visible; text-overflow: clip; }
   .hsub { font-size: 10.5px; }
+  .pair { grid-template-columns: 46px 10px 46px repeat(3, minmax(0,1fr)) auto; gap: 5px; }
+  .pair-v { font-size: 13px; }
+  .pair-v small { font-size: 9px; }
+  .pair.hh2 { font-size: 10px; }
+  .pair-h .wk { min-width: 20px; height: 20px; font-size: 12px; }
+  .pair-note { font-size: 11px; }
   .odds, .pwin { font-size: 14px; }
   .pwin small, .psho small { font-size: 9px; }
   .oddsev { font-size: 9.5px; }

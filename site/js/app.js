@@ -43,7 +43,7 @@ async function boot() {
   $("#raceHeader").innerHTML = `<div class="loading">LOADING…</div>`;
   let mf;
   try {
-    mf = await (await fetch("data/manifest.json")).json();
+    mf = await (await fetch("data/manifest.json?t=" + Date.now())).json();
   } catch (e) {
     $("#raceHeader").innerHTML =
       `<div class="err">data/manifest.json を読めませんでした。<br>` +
@@ -72,8 +72,9 @@ async function loadDay(date) {
   ["#extras", "#cowork"].forEach((s) => { $(s).innerHTML = ""; });
   let day = dayCache.get(date);
   if (!day) {
+    const v = encodeURIComponent(state.manifest?.built_at || "0");
     try {
-      day = await (await fetch(`data/${date}.json`)).json();
+      day = await (await fetch(`data/${date}.json?v=${v}`)).json();
     } catch (e) {
       $("#raceHeader").innerHTML = `<div class="err">data/${date}.json を読めませんでした。</div>`;
       return;
@@ -485,7 +486,7 @@ function renderExtras(r) {
       <span class="pair-h">${wk(hb)}${hb.mark ? `<b class="mark ${markCls(hb.mark)}">${hb.mark}</b>` : ""}</span>
       <span class="pair-v num">${pct(p.p_umaren)}<small>%</small></span>
       <span class="pair-v num">${pct(p.p_wide)}<small>%</small></span>
-      <span class="pair-v num">${p.fair != null ? num(p.fair) : "—"}<small>倍</small></span>
+      <span class="pair-v num odds-col">${p.umaren_odds != null ? num(p.umaren_odds) : "—"}<small>倍</small></span>
       ${win ? `<span class="pair-win">的中 ${yen(r.result.pays.umaren)}</span>` : ""}
     </div>`;
   }).join("");
@@ -497,12 +498,16 @@ function renderExtras(r) {
       ${laneHtml}${unkHtml}
     </div>
     <div class="card ex">
-      <div class="ex-t">馬連・ワイド AI確率 <small>上位${(r.pairs || []).length}ペア</small></div>
+      <div class="ex-t">馬連・ワイド 妙味 <small>AI確率 × 実オッズ・上位${(r.pairs || []).length}ペア</small></div>
       <div class="pair hh2">
         <span></span><span></span><span></span>
-        <span class="pair-v">馬連率</span><span class="pair-v">ワイド率</span><span class="pair-v">適正</span>
+        <span class="pair-v">馬連率</span><span class="pair-v">ワイド率</span><span class="pair-v odds-col">馬連オッズ</span>
       </div>
       ${pairRows || `<div class="cw-empty">ペアデータなし</div>`}
+      ${(r.pairs || []).some((p) => p.umaren_odds != null) ? `<div class="pair-note">
+        <b>馬連率/ワイド率</b>＝AIが算出した、その2頭が馬連/ワイドで的中する確率。
+        <b>馬連オッズ</b>＝実際に出ている馬連の配当（倍）。<u>率の割にオッズが高いペアが妙味</u>。
+      </div>` : ""}
     </div>
   </div>`;
 }

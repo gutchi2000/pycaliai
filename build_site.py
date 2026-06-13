@@ -199,7 +199,9 @@ def pairs_top(race: dict, top_n: int = 8) -> list[dict]:
             "a": a, "b": b,
             "p_umaren": (v or {}).get("umaren"),
             "p_wide": (v or {}).get("wide"),
-            "fair": matrix.get(key),
+            # umaren_matrix = data/odds/OD*.CSV 由来の「実際の馬連オッズ」(市場配当)。
+            # 旧名 "fair" は誤り (適正値ではなく実オッズ) だったので umaren_odds に改名。
+            "umaren_odds": matrix.get(key),
         })
     out.sort(key=lambda x: -(x["p_umaren"] or 0))
     return out[:top_n]
