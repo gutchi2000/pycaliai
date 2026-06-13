@@ -425,7 +425,7 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .pair.win { background: rgba(45,212,168,.07); border-radius: 6px; border-top-color: transparent; }
 .pair-win { font-size: 12px; font-weight: 700; color: var(--teal2); padding-left: 4px; white-space: nowrap; }
 .pair-note {
-  font-size: 12px; color: var(--tx2); line-height: 1.65;
+  font-size: 14.5px; color: var(--tx); line-height: 1.65;
   margin-top: 9px; padding-top: 8px; border-top: 1px dashed var(--line);
 }
 .pair-note b { color: var(--tx2); font-weight: 700; }
@@ -459,7 +459,7 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .adv-tag.t-myomi { background: rgba(45,212,168,.13); color: var(--teal2); border: 1px solid rgba(45,212,168,.5); }
 .adv-tag.t-wana { background: rgba(242,85,90,.1); color: #f3989b; border: 1px solid rgba(242,85,90,.4); }
 .adv-tag.t-etc { color: var(--tx3); border: 1px solid var(--line2); }
-.adv-comment { font-size: 15.5px; color: var(--tx2); line-height: 1.78; }
+.adv-comment { font-size: 15.5px; color: var(--tx); line-height: 1.78; }
 
 .bet-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); gap: 8px; margin-bottom: 10px; }
 .ticket {
@@ -477,7 +477,7 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .ticket-sel { font-family: var(--disp); font-size: 26px; font-weight: 500; letter-spacing: .04em; margin: 1px 0 2px; }
 .ticket-amt { font-family: var(--disp); font-size: 16.5px; color: var(--tx2); }
 .ticket-amt b { color: var(--tx); font-weight: 500; }
-.ticket-reason { font-size: 14px; color: var(--tx2); margin-top: 5px; line-height: 1.65; border-top: 1px dashed var(--line); padding-top: 6px; }
+.ticket-reason { font-size: 17px; color: var(--tx); margin-top: 5px; line-height: 1.65; border-top: 1px dashed var(--line); padding-top: 6px; }
 .cw-empty { padding: 13px 16px; font-size: 14.5px; color: var(--tx3); }
 
 /* ---------------- drawer ---------------- */
@@ -544,7 +544,7 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .rt tr.rt23 td { background: rgba(45,212,168,.055); }
 .dw-hsum { font-size: 15.5px; color: var(--tx2); margin-top: 10px; }
 .dw-hsum b { color: var(--tx); }
-.dw-note { font-size: 13.5px; color: var(--tx2); margin-top: 16px; line-height: 1.6; }
+.dw-note { font-size: 16px; color: var(--tx); margin-top: 16px; line-height: 1.6; }
 
 @media (max-width: 980px) {
   #drawer { width: min(470px, 95vw); }
@@ -616,7 +616,7 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .um-xroi small { font-size: 9px; color: var(--tx3); }
 .um-g { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; border-radius: 5px; font-family: var(--disp); font-size: 12.5px; font-weight: 600; color: #131008; }
 .um-side { font-size: 12.5px; color: var(--tx2); }
-.um-reason { font-size: 12px; color: var(--tx2); line-height: 1.55; overflow: hidden; }
+.um-reason { font-size: 14.5px; color: var(--tx); line-height: 1.55; overflow: hidden; }
 
 /* ---------------- コースタブ ---------------- */
 .cc-head { padding: 12px 16px; margin-top: 10px; }
@@ -652,12 +652,12 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .lapmini i { display: inline-block; width: 5px; background: #3f6fb8; border-radius: 1px; }
 .lapmini i.last { background: linear-gradient(180deg, var(--gold2), var(--gold)); }
 .lapmini.lg { height: 22px; vertical-align: -6px; margin: 0 2px; }
-.tr-legend { font-size: 12px; color: var(--tx2); line-height: 1.7; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
+.tr-legend { font-size: 14.5px; color: var(--tx); line-height: 1.7; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
 .tr-legend b { color: var(--tx2); font-weight: 700; }
 
 /* ---------------- 血統タブ ---------------- */
 .rkb { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 19px; padding: 0 5px; border-radius: 5px; font-family: var(--disp); font-size: 12px; font-weight: 600; color: #131008; }
-.ped-note { font-size: 12.5px; color: var(--tx2); line-height: 1.6; margin: 10px 2px 8px; }
+.ped-note { font-size: 15px; color: var(--tx); line-height: 1.6; margin: 10px 2px 8px; }
 .ped-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 8px; }
 .ped-c { padding: 11px 13px; }
 .ped-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
