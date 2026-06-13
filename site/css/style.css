@@ -654,9 +654,9 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .anc { padding: 12px 14px 8px; }
 .an-t { font-size: 14.5px; font-weight: 700; color: var(--tx2); letter-spacing: .06em; margin-bottom: 4px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .an-t small { font-weight: 400; font-size: 11.5px; color: var(--tx3); letter-spacing: 0; }
-.radar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 4px; margin-top: 6px; }
+.radar-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 10px; margin-top: 6px; }
 .rd-cell { display: flex; flex-direction: column; align-items: center; }
-.rd-chart { width: 100%; height: 170px; }
+.rd-chart { width: 100%; height: 210px; }
 .rd-cap { display: flex; align-items: center; gap: 5px; font-size: 12.5px; margin-top: -6px; max-width: 100%; }
 .rd-cap .mark { font-size: 13px; }
 .rd-nm { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
