@@ -28,6 +28,12 @@ import unicodedata
 from datetime import datetime
 from pathlib import Path
 
+try:
+    from umami import umami_total, explain as umami_explain
+except Exception:  # umami / audit json 不在でもサイト生成は継続
+    umami_total = None
+    umami_explain = None
+
 ROOT = Path(__file__).resolve().parent
 BUNDLE_DIR = ROOT / "reports" / "cowork_input"
 COWORK_OUT_DIR = ROOT / "reports" / "cowork_output"
@@ -512,6 +518,18 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
             hanro, wc = hanro_map.get(nm), wc_map.get(nm)
             training = {"hanro": hanro, "wc": wc} if (hanro or wc) else None
 
+            # UMAMI (実測補正後の期待回収率 xROI) を全頭ぶん算出
+            umami_obj = None
+            if umami_total:
+                ut = umami_total(h)
+                umj = ut["um"]
+                umami_obj = {
+                    "xroi": ut["xroi"], "side": ut["side"], "grade": ut["grade"],
+                    "ev_tan": umj["tan"]["ev"], "ev_fuku": umj["fuku"]["ev"],
+                    "tan_xroi": umj["tan"]["xroi"], "fuku_xroi": umj["fuku"]["xroi"],
+                    "reason": umami_explain(h, ut) if umami_explain else "",
+                }
+
             # 血統スタッツ (このコースでの父/母父 fuku/rank)
             ped = h.get("pedigree") or {}
             srow = sire_map.get(_nfkc(ped.get("sire")))
@@ -561,6 +579,7 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
                 "pedigree": h.get("pedigree"),
                 "training": training,
                 "ped_stats": ped_stats,
+                "umami": umami_obj,
             })
 
         # 人気が weekly に無い場合はオッズ昇順から導出

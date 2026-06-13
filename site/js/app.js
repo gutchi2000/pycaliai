@@ -694,6 +694,8 @@ const VIEWS = [
 ];
 const MARK_COLOR = { "◎": "#f5b942", "〇": "#d9e2f2", "○": "#d9e2f2", "▲": "#d08b4c", "△": "#8d9cba", "": "#46587e" };
 const RANK_COLOR = { SS: "#f5b942", S: "#2dd4a8", A: "#5ba0f5", B: "#8d9cba" };
+const UMAMI_COLOR = { S: "#f5b942", A: "#2dd4a8", B: "#5ba0f5", C: "#8d9cba", "罠": "#f2555a" };
+let umamiSort = "xroi";
 
 function disposeCharts() {
   charts.forEach((c) => { try { c.dispose(); } catch (e) { /* noop */ } });
@@ -731,6 +733,51 @@ function rankBadge(rank) {
   return `<span class="rkb" style="background:${RANK_COLOR[rank] || "#46587e"}">${rank}</span>`;
 }
 
+/* ---------------- 全頭 UMAMI テーブル ---------------- */
+function umamiTableHtml(r) {
+  const SORTS = {
+    xroi: (h) => h.umami?.xroi ?? -1,
+    uma: (h) => -(h.umaban ?? 99),
+    evt: (h) => h.umami?.ev_tan ?? -1,
+    evf: (h) => h.umami?.ev_fuku ?? -1,
+  };
+  const key = SORTS[umamiSort] ? umamiSort : "xroi";
+  const hs = [...r.horses].sort((a, b) => SORTS[key](b) - SORTS[key](a));
+  const sb = (k, label) => `<button class="usort ${umamiSort === k ? "on" : ""}" data-uk="${k}">${label}${umamiSort === k ? " ▼" : ""}</button>`;
+
+  const rows = hs.map((h) => {
+    const u = h.umami || {};
+    const g = u.grade || "—";
+    const gated = u.side == null;
+    const xroiTxt = u.xroi != null ? `${Math.round(u.xroi * 100)}<small>%</small>` : "—";
+    const xroiCls = u.xroi == null ? "" : u.xroi >= 0.8 ? "good" : u.xroi >= 0.72 ? "mid" : "low";
+    return `<div class="um-row ${gated ? "gated" : ""} ${h.mark === "◎" ? "honmei" : ""}" data-uma="${h.umaban}">
+      <span class="mark ${markCls(h.mark)}">${h.mark || "・"}</span>
+      <span>${wk(h)}</span>
+      <span class="um-name">${esc(h.name)}</span>
+      <span class="num ta-r um-odds">${num(h.odds)}</span>
+      <span class="num ta-r um-evt">${u.ev_tan != null ? u.ev_tan.toFixed(2) : "—"}</span>
+      <span class="num ta-r um-evf">${u.ev_fuku != null ? u.ev_fuku.toFixed(2) : "—"}</span>
+      <span class="num ta-r um-xroi ${xroiCls}">${xroiTxt}</span>
+      <span class="ta-c"><span class="um-g" style="background:${UMAMI_COLOR[g] || "#46587e"}">${g}</span></span>
+      <span class="um-side">${gated ? "—" : esc(u.side || "")}</span>
+      <span class="um-reason">${esc(u.reason || "")}</span>
+    </div>`;
+  }).join("");
+
+  return `<div class="card um-card">
+    <div class="an-t">🍣 全頭 UMAMI テーブル
+      <small>UMAMI = 実測補正後の期待回収率(xROI)。0.80=控除率中立、それ以上が勝負どころ。「罠」は妙味でも来る見込み薄</small></div>
+    <div class="um-head">
+      <span></span><span>${sb("uma", "馬番")}</span><span>馬名</span>
+      <span class="ta-r um-odds">単オッズ</span><span class="ta-r um-evt">${sb("evt", "EV単")}</span>
+      <span class="ta-r um-evf">${sb("evf", "EV複")}</span><span class="ta-r">${sb("xroi", "UMAMI")}</span>
+      <span class="ta-c">格</span><span class="um-side">推奨</span><span class="um-reason">理由</span>
+    </div>
+    ${rows}
+  </div>`;
+}
+
 /* ---------------- 全頭分析 ---------------- */
 function renderBunseki(r, vb) {
   vb.innerHTML = `<div class="an-grid">
@@ -744,7 +791,18 @@ function renderBunseki(r, vb) {
         <small>能力 / 勝率 / 複勝安定 / 妙味 / 瞬発(上がり) / 実績 をレース内で正規化</small></div>
       <div id="ch-radar" class="chart"></div>
     </div>
-  </div>`;
+  </div>
+  <div id="um-wrap">${umamiTableHtml(r)}</div>`;
+
+  const wireUmami = () => {
+    $("#um-wrap").querySelectorAll(".usort").forEach((b) => {
+      b.onclick = (e) => { e.stopPropagation(); umamiSort = b.dataset.uk; $("#um-wrap").innerHTML = umamiTableHtml(r); wireUmami(); };
+    });
+    $("#um-wrap").querySelectorAll(".um-row").forEach((row) => {
+      row.onclick = () => openDrawer(+row.dataset.uma);
+    });
+  };
+  wireUmami();
 
   const hs = r.horses;
   const N = hs.length;

@@ -583,6 +583,35 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .an-t { font-size: 14.5px; font-weight: 700; color: var(--tx2); letter-spacing: .06em; margin-bottom: 4px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .an-t small { font-weight: 400; font-size: 11.5px; color: var(--tx3); letter-spacing: 0; }
 
+/* ---------------- 全頭 UMAMI テーブル ---------------- */
+.um-card { padding: 12px 14px 6px; margin-top: 8px; }
+.um-head, .um-row {
+  display: grid;
+  grid-template-columns: 30px 52px minmax(96px, 1.1fr) 70px 56px 56px 74px 42px 56px minmax(0, 2fr);
+  gap: 9px; align-items: center; padding: 8px 6px;
+}
+.um-head { font-size: 12px; color: var(--tx3); border-bottom: 1px solid var(--line2); padding-bottom: 7px; }
+.usort { font-size: 12px; color: var(--tx3); padding: 0; }
+.usort:hover { color: var(--tx); }
+.usort.on { color: var(--gold2); }
+.um-row { border-top: 1px solid var(--line); cursor: pointer; transition: background .15s; }
+.um-row:first-of-type { border-top: none; }
+.um-row:nth-child(odd) { background: rgba(255,255,255,.012); }
+.um-row:hover { background: rgba(255,255,255,.04); box-shadow: inset 3px 0 0 var(--line2); }
+.um-row.honmei { background: linear-gradient(90deg, rgba(245,185,66,.08), transparent 55%); }
+.um-row.gated { opacity: .58; }
+.um-row .mark { font-size: 15px; }
+.um-name { font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.um-row .num { font-size: 15px; }
+.um-xroi { font-size: 17px; font-weight: 500; color: var(--tx2); }
+.um-xroi.good { color: var(--teal2); }
+.um-xroi.mid { color: var(--gold2); }
+.um-xroi.low { color: var(--tx3); }
+.um-xroi small { font-size: 9px; color: var(--tx3); }
+.um-g { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; border-radius: 5px; font-family: var(--disp); font-size: 12.5px; font-weight: 600; color: #131008; }
+.um-side { font-size: 12.5px; color: var(--tx2); }
+.um-reason { font-size: 11.5px; color: var(--tx3); line-height: 1.5; overflow: hidden; }
+
 /* ---------------- コースタブ ---------------- */
 .cc-head { padding: 12px 16px; margin-top: 10px; }
 .cc-h-t { font-size: 17px; font-weight: 700; }
@@ -660,6 +689,16 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
   .an-grid, .cc-grid { grid-template-columns: 1fr; }
   .chart { height: 300px; }
   .chart.sm { height: 220px; }
+  .um-card { padding: 10px 8px 4px; }
+  .um-head, .um-row {
+    grid-template-columns: 24px 34px minmax(0,1fr) 50px 32px 44px;
+    gap: 5px; padding: 8px 2px;
+  }
+  .um-odds, .um-evt, .um-evf, .um-reason { display: none; }
+  .um-name { font-size: 13.5px; }
+  .um-row .num { font-size: 13.5px; }
+  .um-xroi { font-size: 16px; }
+  .um-side { font-size: 11.5px; }
   .tr-sets { margin-left: 0; flex-basis: 100%; }
   .res-pays { margin-left: 0; }
 }
