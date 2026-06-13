@@ -654,12 +654,29 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .anc { padding: 12px 14px 8px; }
 .an-t { font-size: 14.5px; font-weight: 700; color: var(--tx2); letter-spacing: .06em; margin-bottom: 4px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .an-t small { font-weight: 400; font-size: 11.5px; color: var(--tx3); letter-spacing: 0; }
-.radar-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 10px; margin-top: 6px; }
-.rd-cell { display: flex; flex-direction: column; align-items: center; }
-.rd-chart { width: 100%; height: 300px; }
-.rd-cap { display: flex; align-items: center; gap: 5px; font-size: 13.5px; margin-top: 2px; max-width: 100%; }
-.rd-cap .mark { font-size: 13px; }
-.rd-nm { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 想定隊列 (NiceGUI 移植) */
+.tk-card { border: 1px solid #46587e; }
+.tk-title { font-size: 18px; font-weight: 800; color: var(--tx1); margin-bottom: 10px; }
+.tk-pace { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.tk-pace-chip { color: #15151f; padding: 5px 16px; border-radius: 12px; font-weight: 800; font-size: 15px; }
+.tk-pace-msg { color: var(--tx2); font-size: 13.5px; }
+.tk-lineup { background: rgba(0,0,0,.18); padding: 10px 12px; border-radius: 8px; }
+.tk-row { display: flex; align-items: flex-start; gap: 14px; padding: 9px 6px; border-left: 3px solid #46587e; background: rgba(0,0,0,.22); border-radius: 6px; margin: 3px 0; }
+.tk-lab { min-width: 68px; text-align: center; font-weight: 800; font-size: 14px; padding-top: 6px; }
+.tk-icon { font-size: 18px; line-height: 1.3; }
+.tk-chips { display: flex; flex-wrap: wrap; align-items: center; flex: 1; }
+.tk-arrow { text-align: center; color: #6c7086; font-size: 14px; margin: 4px 0; letter-spacing: 4px; }
+.tk-chip { display: inline-flex; align-items: center; gap: 7px; background: #181825; border: 1px solid #313244; padding: 6px 11px; border-radius: 8px; margin: 3px 4px; min-width: 122px; cursor: pointer; }
+.tk-chip.mk { border-width: 2px; }
+.tk-chip:hover { background: #1f1f33; }
+.tk-badge { width: 23px; height: 23px; line-height: 23px; text-align: center; border-radius: 50%; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.tk-badge-non { background: #46587e; color: #cdd6f4; }
+.tk-nm { color: var(--tx2); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.tk-win { color: var(--tx3); font-size: 11px; margin-left: auto; padding-left: 4px; }
+.tk-unknown { margin-top: 12px; padding: 8px 12px; background: rgba(108,112,134,.1); border-radius: 6px; border: 1px dashed #45475a; }
+.tk-unknown-h { color: var(--tx3); font-size: 12px; margin-bottom: 6px; }
+.tk-foot { margin-top: 13px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; color: var(--tx3); font-size: 13px; }
+.tk-adv { color: #fab387; font-weight: 800; font-size: 14px; }
 
 /* ---------------- 重賞 Grade Scope ---------------- */
 .vt-grade.on::after { background: linear-gradient(90deg, #ffd97a, #f5b942); }
@@ -807,8 +824,10 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
   .an-grid, .cc-grid { grid-template-columns: 1fr; }
   .chart { height: 300px; }
   .chart.sm { height: 220px; }
-  .radar-grid { grid-template-columns: 1fr 1fr; }
-  .rd-chart { height: 150px; }
+  .tk-row { flex-direction: column; gap: 6px; }
+  .tk-lab { display: flex; gap: 8px; align-items: center; padding-top: 0; min-width: 0; }
+  .tk-icon { font-size: 16px; }
+  .tk-chip { min-width: 0; flex: 1 1 auto; }
   .gs-bar { padding: 12px 14px; }
   .gs-title { font-size: 16px; }
   .gs-body { padding: 4px 14px 12px; }

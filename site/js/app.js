@@ -462,34 +462,9 @@ function renderTable(r, flip = false) {
   }
 }
 
-/* ---------------- extras: 展開 + 馬連/ワイド ---------------- */
-const LANES = ["逃げ", "先行", "差し", "追込"];
-
+/* ---------------- extras: 馬連/ワイド 妙味 ---------------- */
+// 展開予想は廃止 (コース分析タブの「想定隊列」に集約)。左半分は当面空白。
 function renderExtras(r) {
-  // --- 展開 ---
-  const lanes = { "逃げ": [], "先行": [], "差し": [], "追込": [] };
-  const unk = [];
-  r.horses.forEach((h) => (h.style ? lanes[h.style] : unk).push(h));
-  const nFront = lanes["逃げ"].length + lanes["先行"].length;
-  const ratio = nFront / Math.max(r.horses.length, 1);
-  const pace = lanes["逃げ"].length >= 3 || ratio >= 0.5 ? ["ハイ想定", "#f2555a"]
-    : ratio >= 0.3 ? ["ミドル想定", "#f0a132"] : ["スロー想定", "#2dd4a8"];
-  const laneHtml = LANES.map((ln) => {
-    const chips = lanes[ln]
-      .sort((a, b) => a.umaban - b.umaban)
-      .map((h) => `<span class="tk ${h.mark === "◎" ? "tk-hon" : h.mark ? "tk-mk" : ""}"
-          title="${esc(h.name)} (${esc(h.jockey || "")})">${wk(h)}<i>${esc(h.name)}</i></span>`)
-      .join("");
-    return `<div class="lane">
-      <span class="lane-l">${ln}<small>${lanes[ln].length}</small></span>
-      <div class="lane-c">${chips || `<span class="lane-none">—</span>`}</div>
-    </div>`;
-  }).join("");
-  const unkHtml = unk.length
-    ? `<div class="lane"><span class="lane-l">不明<small>${unk.length}</small></span>
-        <div class="lane-c">${unk.map((h) => `<span class="tk" title="${esc(h.name)}">${wk(h)}<i>${esc(h.name)}</i></span>`).join("")}</div></div>`
-    : "";
-
   // --- ペア ---
   const top2 = r.result
     ? Object.entries(r.result.order).filter(([, p]) => p <= 2).map(([u]) => +u)
@@ -511,11 +486,6 @@ function renderExtras(r) {
   }).join("");
 
   $("#extras").innerHTML = `<div class="ex-grid">
-    <div class="card ex">
-      <div class="ex-t">展開予想 <span class="pace" style="color:${pace[1]};border-color:${pace[1]}">${pace[0]}</span>
-        <small>近5走の脚質から推定</small></div>
-      ${laneHtml}${unkHtml}
-    </div>
     <div class="card ex">
       <div class="ex-t">馬連・ワイド 妙味 <small>AI確率 × 実オッズ・上位${(r.pairs || []).length}ペア</small></div>
       <div class="pair hh2">
@@ -737,15 +707,11 @@ function axisStyle() {
     axisLine: { lineStyle: { color: "#32456e" } },
     axisLabel: { color: "#a9b6d3", fontSize: 12 },
     splitLine: { lineStyle: { color: "rgba(50,69,110,.35)" } },
-    nameTextStyle: { color: "#7385a8" },
+    nameTextStyle: { color: "#c2cde4", fontSize: 12 },
   };
 }
-function normArr(vals) {
-  const ok = vals.filter((v) => v != null && !isNaN(v));
-  const lo = Math.min(...ok, 0), hi = Math.max(...ok, 1e-9);
-  const span = hi - lo || 1;
-  return (v) => (v == null || isNaN(v)) ? 0 : Math.round((v - lo) / span * 100);
-}
+// 枠順別チャート用 JRA 枠色 (黒枠は暗背景でも見えるよう薄枠線を併用)
+const WAKU_BAR = { "1": "#f4f6fb", "2": "#14161c", "3": "#d33b3b", "4": "#2667d6", "5": "#f0c93c", "6": "#2c9e57", "7": "#e2702a", "8": "#e4549a" };
 function rankBadge(rank) {
   if (!rank) return "";
   return `<span class="rkb" style="background:${RANK_COLOR[rank] || "#46587e"}">${rank}</span>`;
@@ -796,17 +762,81 @@ function umamiTableHtml(r) {
   </div>`;
 }
 
+/* ---------------- 想定隊列 (NiceGUI 移植) ---------------- */
+// 各馬の脚質 (h.style) で 逃げ/先行/差し/追込 に分類 → ペース判定 + 有利脚質。
+function taikeiHtml(r) {
+  const horses = r.horses || [];
+  if (!horses.length) return "";
+  const ORDER = ["逃げ", "先行", "差し", "追込"];
+  const groups = { "逃げ": [], "先行": [], "差し": [], "追込": [], "不明": [] };
+  horses.forEach((h) => groups[ORDER.includes(h.style) ? h.style : "不明"].push(h));
+  Object.keys(groups).forEach((k) => groups[k].sort((a, b) => (a.umaban ?? 99) - (b.umaban ?? 99)));
+  const counts = {}; Object.keys(groups).forEach((k) => counts[k] = groups[k].length);
+
+  // ペース判定 (NiceGUI と同一ロジック)
+  const nNige = counts["逃げ"], nSen = counts["先行"], nSashi = counts["差し"] + counts["追込"];
+  let pace, paceColor, paceMsg;
+  if (nNige >= 2) { pace = "Hペース"; paceColor = "#f38ba8"; paceMsg = "逃げ馬複数 → 前崩れ気配、差し・追込有利"; }
+  else if (nNige === 0 && nSen >= 3) { pace = "Sペース"; paceColor = "#89b4fa"; paceMsg = "明確な逃げ馬不在 + 先行多 → スロー濃厚、上り勝負・先行有利"; }
+  else if (nSashi >= nSen + nNige) { pace = "Mペース (差し決着)"; paceColor = "#cba6f7"; paceMsg = "差し型多数 → 上り3F が決まる末脚勝負"; }
+  else { pace = "Mペース"; paceColor = "#a6e3a1"; paceMsg = "脚質バランス均等 → 標準的な流れ、ポジション戦"; }
+
+  let advantage;
+  if (pace === "Hペース") advantage = "差し・追込";
+  else if (pace === "Sペース") advantage = "逃げ・先行";
+  else if (pace.includes("差し決着")) advantage = "差し";
+  else advantage = "先行〜差し";
+
+  // 印馬は枠色 (.w1〜.w8) でバッジ+枠線を着色。無印は navy。
+  const WAKU_HEX = { 1: "#f4f6fb", 2: "#3c4254", 3: "#d33b3b", 4: "#2667d6", 5: "#f0c93c", 6: "#2c9e57", 7: "#e2702a", 8: "#e4549a" };
+  const chip = (h) => {
+    const mark = h.mark || "";
+    const pwin = Math.round((h.p_win || 0) * 100);
+    const nm = `<span class="tk-nm">${h.umaban} ${esc(h.name)}</span><span class="tk-win">${pwin}%</span>`;
+    if (mark) {
+      const wkc = h.waku ? `w${h.waku}` : "tk-badge-non";
+      const bc = WAKU_HEX[h.waku] || "#46587e";
+      return `<div class="tk-chip mk" data-uma="${h.umaban}" style="border-color:${bc}">
+        <span class="tk-badge ${wkc}">${mark}</span>${nm}</div>`;
+    }
+    return `<div class="tk-chip" data-uma="${h.umaban}">
+      <span class="tk-badge tk-badge-non">${h.umaban}</span>${nm}</div>`;
+  };
+
+  const SECTIONS = [["逃げ", "#f38ba8", "🏃"], ["先行", "#fab387", "→"], ["差し", "#a6e3a1", "←"], ["追込", "#89b4fa", "←←"]];
+  let lineup = "", prevFilled = false;
+  for (const [k, color, icon] of SECTIONS) {
+    const recs = groups[k];
+    if (!recs.length) continue;
+    if (prevFilled) lineup += `<div class="tk-arrow">↓</div>`;
+    lineup += `<div class="tk-row" style="border-left-color:${color}">
+      <div class="tk-lab" style="color:${color}"><div class="tk-icon">${icon}</div><div>${k} (${recs.length})</div></div>
+      <div class="tk-chips">${recs.map(chip).join("")}</div></div>`;
+    prevFilled = true;
+  }
+  const unk = groups["不明"];
+  const unkSection = unk.length ? `<div class="tk-unknown">
+      <div class="tk-unknown-h">脚質不明 (${unk.length}頭・過去走情報不足)</div>
+      <div class="tk-chips">${unk.map(chip).join("")}</div></div>` : "";
+
+  return `<div class="card tk-card" style="border-color:${paceColor}">
+    <div class="tk-title">🏇 想定隊列</div>
+    <div class="tk-pace"><span class="tk-pace-chip" style="background:${paceColor}">${pace}</span>
+      <span class="tk-pace-msg">${esc(paceMsg)}</span></div>
+    <div class="tk-lineup">${lineup}</div>
+    ${unkSection}
+    <div class="tk-foot">
+      <div>脚質分布: 逃げ ${counts["逃げ"]} / 先行 ${counts["先行"]} / 差し ${counts["差し"]} / 追込 ${counts["追込"]}${counts["不明"] ? ` (不明 ${counts["不明"]})` : ""}</div>
+      <div class="tk-adv">有利脚質: ${advantage}</div>
+    </div></div>`;
+}
+
 /* ---------------- 全頭分析 ---------------- */
 function renderBunseki(r, vb) {
   vb.innerHTML = `<div class="card anc">
       <div class="an-t">AI評価 × 市場人気
         <small>右上＝人気薄なのにAI高評価（妙味） / 左下＝人気だがAI低評価（過剰）・点の大きさ＝勝率</small></div>
       <div id="ch-scatter" class="chart"></div>
-    </div>
-    <div class="card anc">
-      <div class="an-t">能力レーダー（上位6頭・1頭ずつ）
-        <small>能力 / 勝率 / 複勝安定 / 妙味 / 瞬発(上がり) / 実績 をレース内で正規化。<b style="color:#7385a8">グレー＝出走全体の平均</b></small></div>
-      <div class="radar-grid" id="radar-grid"></div>
     </div>
   <div id="um-wrap">${umamiTableHtml(r)}</div>`;
 
@@ -832,15 +862,15 @@ function renderBunseki(r, vb) {
   }));
   const avgSho = hs.reduce((s, h) => s + (h.p_sho ?? 0), 0) / Math.max(N, 1) * 100;
   mkChart("ch-scatter", {
-    grid: GRID,
+    grid: { left: 10, right: 16, top: 30, bottom: 46, containLabel: true },
     tooltip: {
       backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e",
       textStyle: { color: "#edf1fb", fontSize: 12 },
       formatter: (p) => { const h = p.data.h; return `<b>${h.umaban} ${esc(h.name)}</b> ${h.mark || ""}<br>`
         + `${h.ninki ?? "—"}番人気 / 単${num(h.odds)}倍<br>AI複勝圏 ${pct(h.p_sho)}% / 勝率 ${pct(h.p_win)}%<br>単EV ${num(h.ev_tan, 2)}`; },
     },
-    xAxis: Object.assign({ name: "人気→", min: 0.5, max: N + 0.5, interval: 1, inverse: false }, axisStyle()),
-    yAxis: Object.assign({ name: "AI複勝圏率 %", min: 0 }, axisStyle()),
+    xAxis: Object.assign({ name: "市場人気（左ほど上位人気）", nameLocation: "middle", nameGap: 30, min: 0.5, max: N + 0.5, interval: 1, inverse: false }, axisStyle()),
+    yAxis: Object.assign({ name: "AI複勝圏率（%）", nameLocation: "middle", nameRotate: 90, nameGap: 34, min: 0 }, axisStyle()),
     series: [{
       type: "scatter", data: pts,
       markLine: {
@@ -851,64 +881,17 @@ function renderBunseki(r, vb) {
     }],
   });
 
-  // --- radar: 上位6頭を「1頭ずつ」小分割 (重ねない)。グレー=全体平均 ---
-  const top = [...hs].sort((a, b) => (a.ai_rank ?? 99) - (b.ai_rank ?? 99)).slice(0, 6);
-  const agari = (h) => {
-    const rs = (h.history?.runs || []).map((u) => u.agari3f).filter((v) => v);
-    return rs.length ? Math.min(...rs) : null; // 速い(小)ほど良 → 後で反転
-  };
-  const jisseki = (h) => {
-    const rs = h.history?.runs || [];
-    return rs.length ? rs.filter((u) => (u.pos ?? 9) <= 3).length / rs.length : 0;
-  };
-  const nAbility = normArr(hs.map((h) => h.ai_score));
-  const nWin = normArr(hs.map((h) => h.p_win));
-  const nSho = normArr(hs.map((h) => h.p_sho));
-  const nEv = normArr(hs.map((h) => Math.min(h.ev_tan ?? 0, 3)));
-  const nAg = normArr(hs.map((h) => { const a = agari(h); return a == null ? null : -a; }));
-  const nJis = normArr(hs.map(jisseki));
-  const indVal = (h) => [nAbility(h.ai_score), nWin(h.p_win), nSho(h.p_sho),
-    nEv(Math.min(h.ev_tan ?? 0, 3)), nAg(agari(h) == null ? null : -agari(h)), nJis(jisseki(h))];
-  // 全体平均 (グレー参照ポリゴン)
-  const avgVal = [0, 1, 2, 3, 4, 5].map((k) =>
-    Math.round(hs.reduce((s, h) => s + indVal(h)[k], 0) / Math.max(hs.length, 1)));
-  const AXES = ["能力", "勝率", "複勝安定", "妙味", "瞬発", "実績"];
-
-  const grid = $("#radar-grid");
-  grid.innerHTML = top.map((h, i) =>
-    `<div class="rd-cell"><div id="rd-${i}" class="rd-chart"></div>
-      <div class="rd-cap"><span class="mark ${markCls(h.mark)}">${h.mark || ""}</span>${wk(h)}
-      <span class="rd-nm">${esc(h.name)}</span></div></div>`).join("");
-  top.forEach((h, i) => {
-    const col = MARK_COLOR[h.mark] ?? "#5ba0f5";
-    mkChart(`rd-${i}`, {
-      tooltip: { backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e", textStyle: { color: "#edf1fb", fontSize: 11 } },
-      radar: {
-        indicator: AXES.map((n) => ({ name: n, max: 100 })),
-        radius: "42%", center: ["50%", "50%"],
-        axisName: { color: "#e9eefa", fontSize: 18, fontWeight: 500 },
-        splitNumber: 3,
-        splitLine: { lineStyle: { color: "rgba(50,69,110,.45)" } },
-        splitArea: { areaStyle: { color: ["rgba(255,255,255,.015)", "rgba(255,255,255,.035)"] } },
-        axisLine: { lineStyle: { color: "rgba(50,69,110,.45)" } },
-      },
-      series: [{
-        type: "radar", symbolSize: 3,
-        data: [
-          { value: avgVal, name: "全体平均", lineStyle: { color: "#46587e", width: 1, type: "dashed" }, itemStyle: { color: "#46587e" }, areaStyle: { color: "rgba(70,88,126,.12)" } },
-          { value: indVal(h), name: `${h.umaban} ${h.name}`, lineStyle: { color: col, width: 2 }, itemStyle: { color: col }, areaStyle: { color: col, opacity: 0.18 } },
-        ],
-      }],
-    });
-  });
 }
 
 /* ---------------- コース ---------------- */
 function renderCourse(r, vb) {
+  const taikei = taikeiHtml(r);
+  const wireTaikei = () => vb.querySelectorAll(".tk-chip").forEach((c) => { c.onclick = () => openDrawer(+c.dataset.uma); });
   const key = `${r.place}|${r.course}`;
   const cs = state.day.courses ? state.day.courses[key] : null;
   if (!cs) {
-    vb.innerHTML = `<div class="card cw-empty">このコース（${esc(key)}）の集計データがありません。</div>`;
+    vb.innerHTML = taikei + `<div class="card cw-empty">このコース（${esc(key)}）の集計データがありません。</div>`;
+    wireTaikei();
     return;
   }
   const marked = r.horses.filter((h) => h.mark);
@@ -917,7 +900,7 @@ function renderCourse(r, vb) {
   const tags = (pred) => marked.filter(pred).map((h) =>
     `<span class="cc-tag" style="color:${MARK_COLOR[h.mark]}">${h.mark}${h.umaban}</span>`).join("");
 
-  vb.innerHTML = `<div class="cc-head card">
+  vb.innerHTML = taikei + `<div class="cc-head card">
     <div class="cc-h-t">${esc(r.place)} ${esc(r.course)} <small>過去 ${cs.n_races?.toLocaleString()}レース / ${cs.n_starts?.toLocaleString()}頭 の傾向</small></div>
     ${honmei ? `<div class="cc-h-s">◎${honmei.umaban} ${esc(honmei.name)} … <b>${wakuOf(honmei)}枠</b> / 脚質 <b>${esc(honmei.style || "—")}</b></div>` : ""}
   </div>
@@ -927,6 +910,7 @@ function renderCourse(r, vb) {
     <div class="card anc"><div class="an-t">年齢別 複勝率</div><div id="ch-age" class="chart sm"></div></div>
     <div class="card anc"><div class="an-t">性別 複勝率</div><div id="ch-sex" class="chart sm"></div></div>
   </div>`;
+  wireTaikei();
 
   const baseFuku = cs.n_starts ? null : null;
   const markedWaku = new Set(marked.map((h) => String(h.waku)));
@@ -938,24 +922,34 @@ function renderCourse(r, vb) {
     const vals = rows.map((x) => x.fuku);
     const hl = opt.highlight || (() => false);
     mkChart(id, {
-      grid: { left: 6, right: 12, top: 16, bottom: 6, containLabel: true },
+      grid: { left: 8, right: 12, top: 34, bottom: 6, containLabel: true },
       tooltip: {
         backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e", textStyle: { color: "#edf1fb", fontSize: 12 },
         formatter: (p) => { const x = rows[p[0].dataIndex]; return `${x.label}<br>複勝率 ${x.fuku}% / 勝率 ${x.win}%<br>n=${(x.n || 0).toLocaleString()}`; },
       },
       xAxis: Object.assign({ type: "category", data: cats }, axisStyle()),
-      yAxis: Object.assign({ type: "value", name: "複勝率%", min: 0 }, axisStyle()),
+      yAxis: Object.assign({ type: "value", name: "複勝率 %", nameGap: 10, min: 0 }, axisStyle()),
       series: [{
-        type: "bar", data: vals.map((v, i) => ({
-          value: v,
-          itemStyle: { color: hl(rows[i].label) ? "#f5b942" : "#3f6fb8", borderRadius: [3, 3, 0, 0] },
-        })),
+        type: "bar", data: vals.map((v, i) => {
+          const label = rows[i].label;
+          const high = hl(label);
+          const color = opt.colorByWaku ? (WAKU_BAR[String(label)] || "#3f6fb8") : (high ? "#f5b942" : "#3f6fb8");
+          return {
+            value: v,
+            itemStyle: {
+              color, borderRadius: [3, 3, 0, 0],
+              borderColor: opt.colorByWaku ? (high ? "#f5b942" : "rgba(233,238,250,.28)") : "transparent",
+              borderWidth: opt.colorByWaku ? (high ? 2.5 : 1) : 0,
+            },
+            label: (opt.colorByWaku && high) ? { color: "#f5b942", fontWeight: 700 } : undefined,
+          };
+        }),
         barWidth: opt.barWidth || "58%",
         label: { show: true, position: "top", color: "#a9b6d3", fontSize: 10, formatter: (p) => p.value + "%" },
       }],
     });
   };
-  barChart("ch-waku", cs.waku, { highlight: (l) => markedWaku.has(l) });
+  barChart("ch-waku", cs.waku, { highlight: (l) => markedWaku.has(l), colorByWaku: true });
   barChart("ch-kyaku", cs.kyaku, { highlight: (l) => (markedStyle[l] || 0) > 0, barWidth: "46%" });
   barChart("ch-age", cs.age, { barWidth: "46%" });
   barChart("ch-sex", cs.sex, { barWidth: "40%" });
