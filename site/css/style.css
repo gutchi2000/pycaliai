@@ -589,6 +589,42 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .rd-cap .mark { font-size: 13px; }
 .rd-nm { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ---------------- 重賞 Grade Scope ---------------- */
+.vt-grade.on::after { background: linear-gradient(90deg, #ffd97a, #f5b942); }
+.vt-grade { color: var(--gold2); }
+.gs-card { padding: 0; margin-top: 10px; overflow: hidden; }
+.gs-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px;
+  background: linear-gradient(110deg, rgba(245,185,66,.16), rgba(245,185,66,.03) 60%, transparent);
+  border-bottom: 1px solid var(--line2);
+}
+.gs-badge {
+  font-family: var(--disp); font-size: 15px; font-weight: 600; letter-spacing: .06em;
+  color: #2d2002; background: linear-gradient(120deg, var(--gold2), var(--gold));
+  border-radius: 7px; padding: 3px 12px;
+  box-shadow: 0 2px 12px -3px rgba(245,185,66,.6);
+}
+.gs-title { font-size: 19px; font-weight: 700; color: var(--tx); }
+.gs-body { padding: 6px 20px 14px; max-width: 880px; }
+.gs-h {
+  font-size: 17px; font-weight: 700; color: var(--gold2);
+  margin: 20px 0 8px; padding-bottom: 6px;
+  border-bottom: 1px dashed var(--line2); letter-spacing: .04em;
+}
+.gs-p { font-size: 16px; color: var(--tx); line-height: 1.9; margin: 8px 0; }
+.gs-ul { margin: 6px 0 8px; padding-left: 4px; list-style: none; }
+.gs-ul li {
+  font-size: 15.5px; color: var(--tx2); line-height: 1.8;
+  padding: 3px 0 3px 20px; position: relative;
+}
+.gs-ul li::before { content: "▸"; position: absolute; left: 2px; color: var(--gold); }
+.gs-body b { color: var(--gold2); font-weight: 700; }
+.gs-foot {
+  font-size: 12.5px; color: var(--tx3); padding: 10px 20px 16px;
+  border-top: 1px solid var(--line);
+}
+
 /* ---------------- 全頭 UMAMI テーブル ---------------- */
 .um-card { padding: 12px 14px 6px; margin-top: 8px; }
 .um-head, .um-row {
@@ -701,6 +737,11 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
   .chart.sm { height: 220px; }
   .radar-grid { grid-template-columns: 1fr 1fr; }
   .rd-chart { height: 150px; }
+  .gs-bar { padding: 12px 14px; }
+  .gs-title { font-size: 16px; }
+  .gs-body { padding: 4px 14px 12px; }
+  .gs-p { font-size: 15px; line-height: 1.8; }
+  .gs-h { font-size: 16px; }
   .um-card { padding: 10px 8px 4px; }
   .um-head, .um-row {
     grid-template-columns: 24px 34px minmax(0,1fr) 50px 32px 44px;

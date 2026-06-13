@@ -1062,11 +1062,62 @@ function renderPedigree(r, vb) {
   }
 }
 
+/* ---------------- 重賞 Grade Scope ---------------- */
+function mdToHtml(md) {
+  const inline = (t) => esc(t)
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/`(.+?)`/g, "$1");
+  let html = "", inList = false;
+  const closeList = () => { if (inList) { html += "</ul>"; inList = false; } };
+  for (const raw of String(md || "").split("\n")) {
+    const line = raw.trim();
+    if (/^#{1,4}\s+/.test(line)) {
+      closeList();
+      html += `<h3 class="gs-h">${inline(line.replace(/^#{1,4}\s+/, ""))}</h3>`;
+    } else if (/^[-・*]\s+/.test(line)) {
+      if (!inList) { html += '<ul class="gs-ul">'; inList = true; }
+      html += `<li>${inline(line.replace(/^[-・*]\s+/, ""))}</li>`;
+    } else if (line === "") {
+      closeList();
+    } else {
+      closeList();
+      html += `<p class="gs-p">${inline(line)}</p>`;
+    }
+  }
+  closeList();
+  return html;
+}
+
+function renderGrade(r, vb) {
+  const gs = r.grade_scope;
+  if (!gs) {
+    vb.innerHTML = `<div class="card cw-empty">この重賞の詳細見解はまだありません。</div>`;
+    return;
+  }
+  vb.innerHTML = `<div class="card gs-card">
+    <div class="gs-bar">
+      <span class="gs-badge">${esc(gs.klass || "重賞")}</span>
+      <span class="gs-title">${esc(gs.race_label || r.race_name || (r.place + r.rno + "R"))}</span>
+    </div>
+    <div class="gs-body">${mdToHtml(gs.markdown)}</div>
+    <div class="gs-foot">🏆 Anthropic Cowork (Claude) による重賞詳細見解</div>
+  </div>`;
+}
+
 /* ---------------- view machinery ---------------- */
+function viewsFor(r) {
+  const vs = [...VIEWS];
+  if (r && r.grade_scope) vs.splice(1, 0, { key: "grade", label: "🏆 重賞" });
+  return vs;
+}
+
 function renderViewTabs() {
+  const r = currentRace();
+  const views = viewsFor(r);
+  if (!views.some((v) => v.key === state.view)) state.view = "shutsuba";
   const vt = $("#viewTabs");
-  vt.innerHTML = VIEWS.map((v) =>
-    `<button class="vt ${v.key === state.view ? "on" : ""}" data-view="${v.key}">${v.label}</button>`).join("");
+  vt.innerHTML = views.map((v) =>
+    `<button class="vt ${v.key === state.view ? "on" : ""} ${v.key === "grade" ? "vt-grade" : ""}" data-view="${v.key}">${v.label}</button>`).join("");
   vt.querySelectorAll(".vt").forEach((b) => {
     b.onclick = () => {
       if (state.view === b.dataset.view) return;
@@ -1082,9 +1133,12 @@ function renderView() {
   const r = currentRace();
   const vb = $("#viewbody");
   if (!r) { vb.innerHTML = `<div class="err">レースがありません</div>`; return; }
+  if (state.view === "grade" && !r.grade_scope) state.view = "shutsuba";
   if (state.view === "shutsuba") {
     vb.innerHTML = `<section id="shutsuba"></section><section id="extras"></section><section id="cowork"></section>`;
     renderTable(r); renderExtras(r); renderCowork(r);
+  } else if (state.view === "grade") {
+    renderGrade(r, vb);
   } else if (state.view === "bunseki") {
     renderBunseki(r, vb);
   } else if (state.view === "course") {

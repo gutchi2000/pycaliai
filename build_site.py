@@ -359,6 +359,50 @@ def load_all_cowork() -> dict[str, dict]:
     return out
 
 
+def _parse_one_grade_scope(path: Path) -> dict[str, dict]:
+    """1 ファイルの top-level 'grade_scope' (重賞 LLM 詳細見解) を race_id 別に。"""
+    try:
+        text = _decode(path.read_bytes())
+    except Exception:
+        return {}
+    m = re.search(r"```(?:json|JSON)?\s*\n([\s\S]+?)\n\s*```", text)
+    raw = m.group(1) if m else text.strip()
+    try:
+        data = json.loads(raw)
+    except Exception:
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    out: dict[str, dict] = {}
+    for g in data.get("grade_scope") or []:
+        if not isinstance(g, dict):
+            continue
+        rid = str(g.get("race_id") or "")[:16]
+        if not rid or not g.get("markdown"):
+            continue
+        out[rid] = {
+            "klass": str(g.get("class", "")),
+            "race_label": str(g.get("race_label", "")),
+            "markdown": str(g.get("markdown", "")),
+            "source": path.name,
+        }
+    return out
+
+
+def load_all_grade_scope() -> dict[str, dict]:
+    if not COWORK_OUT_DIR.exists():
+        return {}
+    files = sorted(
+        (p for p in COWORK_OUT_DIR.iterdir()
+         if p.is_file() and p.suffix.lower() in (".json", ".txt", ".md")),
+        key=lambda p: p.stat().st_mtime,
+    )
+    out: dict[str, dict] = {}
+    for p in files:
+        out.update(_parse_one_grade_scope(p))
+    return out
+
+
 def _nfkc(s) -> str:
     return unicodedata.normalize("NFKC", str(s or "")).strip()
 
@@ -479,7 +523,7 @@ def parse_training_file(path, kind: str) -> dict:
 
 # ---------------------------------------------------------------- bundle 変換
 def transform_bundle(path: Path, cowork: dict, wide_data: dict,
-                     course_stats: dict, ped_index) -> dict:
+                     course_stats: dict, ped_index, grade_map: dict) -> dict:
     with open(path, encoding="utf-8") as f:
         bundle = json.load(f)
 
@@ -606,6 +650,7 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
             "pairs": pairs_top(race),
             "horses": horses,
             "cowork": cowork.get(rid),
+            "grade_scope": grade_map.get(rid),
             "result": results.get(rid),
         })
 
@@ -655,11 +700,12 @@ def main() -> None:
         sys.exit(1)
 
     cowork = load_all_cowork()
+    grade_map = load_all_grade_scope()
     wide_data = parse_wide_kekka()
     course_stats = load_course_stats()
     ped_index = load_pedigree_index()
-    print(f"cowork_output: {len(cowork)} races / wide_kekka: {len(wide_data)} races / "
-          f"course_stats: {len(course_stats)} courses / "
+    print(f"cowork_output: {len(cowork)} races / grade_scope: {len(grade_map)} races / "
+          f"wide_kekka: {len(wide_data)} races / course_stats: {len(course_stats)} courses / "
           f"pedigree: {'OK' if ped_index else '無し'}")
 
     manifest_entries = []
@@ -667,7 +713,8 @@ def main() -> None:
         date_str = path.name[:8]
         out_path = SITE_DATA_DIR / f"{date_str}.json"
         if only_date is None or date_str == only_date:
-            day = transform_bundle(path, cowork, wide_data, course_stats, ped_index)
+            day = transform_bundle(path, cowork, wide_data, course_stats,
+                                   ped_index, grade_map)
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(day, f, ensure_ascii=False, separators=(",", ":"))
             n_cw = sum(1 for r in day["races"] if r["cowork"])
