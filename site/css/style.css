@@ -604,18 +604,20 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
   body { font-size: 15px; }
   .c-ai { display: none; }
   .htable.hasres .hh, .htable.hasres .hrow {
-    grid-template-columns: 26px 22px 40px minmax(0,1fr) 50px 46px 50px;
-    gap: 6px; padding: 7px 8px;
+    grid-template-columns: 20px 18px 30px minmax(0,1fr) 42px 38px 38px;
+    gap: 4px; padding: 7px 6px;
   }
   .htable.nores .hh, .htable.nores .hrow {
-    grid-template-columns: 22px 40px minmax(0,1fr) 50px 46px 50px;
-    gap: 6px; padding: 7px 8px;
+    grid-template-columns: 20px 34px minmax(0,1fr) 44px 40px 40px;
+    gap: 4px; padding: 7px 6px;
   }
   .hh { font-size: 11px; top: 54px; }
+  .hh span, .hsort { white-space: nowrap; }
   .hsort { font-size: 11px; }
   .hrow { align-items: center; }
-  .hname { font-size: 13.5px; line-height: 1.2; white-space: normal; overflow: visible; text-overflow: clip; }
-  .hsub { font-size: 10.5px; }
+  /* 馬名は常に 1 行表示。列幅を詰め名前列を最大化し、9 文字名でも収める。 */
+  .hname { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hsub { font-size: 10px; }
   .pair { grid-template-columns: 46px 10px 46px repeat(3, minmax(0,1fr)) auto; gap: 5px; }
   .pair-v { font-size: 13px; }
   .pair-v small { font-size: 9px; }
