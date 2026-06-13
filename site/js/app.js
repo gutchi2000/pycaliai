@@ -189,7 +189,7 @@ function donut(label, frac, color) {
   const C = (2 * Math.PI * 20).toFixed(1);
   const v = Math.max(0, Math.min(1, frac ?? 0));
   return `<div class="gauge">
-    <svg viewBox="0 0 48 48" width="76" height="76" aria-hidden="true">
+    <svg viewBox="0 0 48 48" width="66" height="66" aria-hidden="true">
       <circle class="g-track" cx="24" cy="24" r="20"></circle>
       <circle class="g-fill" cx="24" cy="24" r="20"
         style="stroke:${color};stroke-dasharray:${C};stroke-dashoffset:${C};--off:${(C * (1 - v)).toFixed(1)}"></circle>
@@ -263,7 +263,7 @@ function renderHeader(r) {
   const baba = (r.baba || "").replace("(暫定)", "");
   const weather = (r.weather || "").replace("(暫定)", "");
   $("#raceHeader").innerHTML = `<div class="card rh">
-    <div style="min-width:0">
+    <div class="rh-main">
       <div class="rh-title">
         <span class="rh-place">${esc(r.place)}</span>
         <span class="rh-rno">${r.rno}R</span>
@@ -524,7 +524,7 @@ function renderCowork(r) {
   const cw = r.cowork;
   if (!cw || (!cw.bets?.length && !cw.advisor?.length)) {
     $("#cowork").innerHTML = `<div class="cw">
-      <div class="cw-title"><b>COWORK</b>買い目・見解</div>
+      <div class="cw-title"><b>COWORK</b>買い目・AI上位馬の見解</div>
       <div class="card cw-empty">このレースの Cowork 出力はありません。</div>
     </div>`;
     return;
@@ -559,9 +559,9 @@ function renderCowork(r) {
   }).join("");
 
   $("#cowork").innerHTML = `<div class="cw">
-    ${tickets ? `<div class="cw-title"><b>COWORK</b>買い目<span class="cw-src">${esc(cw.source || "")}</span></div>
+    ${tickets ? `<div class="cw-title"><b>COWORK</b>買い目</div>
       <div class="bet-grid">${tickets}</div>` : ""}
-    ${advisors ? `<div class="cw-title"><b>COWORK</b>全頭見解${tickets ? "" : `<span class="cw-src">${esc(cw.source || "")}</span>`}</div>
+    ${advisors ? `<div class="cw-title"><b>COWORK</b>AI上位馬の見解</div>
       <div class="adv-grid">${advisors}</div>` : ""}
   </div>`;
 }
