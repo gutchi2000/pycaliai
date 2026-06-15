@@ -3,7 +3,8 @@
 > **このファイルの位置づけ**: 次に触る人（含む将来の自分）が 5 分で全体像を掴めるようにする。
 > 詳細仕様は `docs/` 配下、運用フローは `WORKFLOW.md` を参照。
 >
-> 最終更新: 2026-05-20（NiceGUI + Cowork パラダイムに全面改訂、**v6 本番投入**、cowork_results 集計修復）
+> 最終更新: 2026-06-16（**本番表示を静的サイト pycaliai-umami に移行**、週次フローに sync-hf-umami 組込み、predict デフォルト skip / 見送りガードを反映）
+> 旧: 2026-05-20（NiceGUI + Cowork パラダイムに全面改訂、**v6 本番投入**、cowork_results 集計修復）
 
 ---
 
@@ -19,7 +20,7 @@
 ファイル編集・読み込み・モデル学習・バックテスト・スクリプト実行・コミットなどの通常作業では、いちいち許可を求めない。情報をもらったら自分で判断して自律的に進める。
 
 確認が必要なのは以下のみ：
-- `git push` のうち **HuggingFace Spaces への反映を伴うもの**（`sync-hf.ps1` 単独実行）
+- `git push` のうち **HuggingFace Spaces への反映を伴うもの**（`sync-hf.ps1` / `sync-hf-umami.ps1` の単独実行、および `weekly_nicegui.ps1` の HF 同期フェーズ）
 - データ・モデルの**削除**（不可逆操作）
 - `data/master*.csv` の再生成（数十分〜時間規模）
 - スコープ外の大規模リファクタ
@@ -40,7 +41,7 @@
 |---|---|---|
 | **PyCaLiAI**（このリポジトリのモデル部分） | 印付け（◎〇▲△△）と Plackett-Luce 確率の算出 | `reports/cowork_input/{date}_bundle.json` |
 | **Cowork**（Anthropic Claude Desktop App） | 馬券種・点数・予算配分・見送り判断 | `reports/cowork_output/{date}_bets.json` |
-| **NiceGUI**（HF Spaces）／**Streamlit**（Cloud） | 表示専用（推論済みデータを可視化） | 画面 |
+| **静的サイト**（HF Docker Space `pycaliai-umami`、本番）／NiceGUI（旧）／Streamlit（Cloud） | 表示専用（推論済みデータを可視化） | 画面 |
 
 **重要**：かつての rule-based betting（`strategy_weights.json`）から **Cowork-driven betting** に主軸が移っている。
 `strategy_weights.json` は Streamlit 版が今も読むが、運用上の意思決定は Cowork 側で行われる。
@@ -57,9 +58,9 @@
 - Python 3.11（`venv311\`）
 - Windows 11 / `E:\PyCaLiAI`
 - 仮想環境: `venv311\Scripts\activate`
-- **NiceGUI（主）**: `python nicegui_app.py` → `http://localhost:8080`
+- **静的サイト（本番表示, 2026-06-14〜）**: https://gutchi15300-pycaliai-umami.hf.space ← クリーンURL。`site/` を Docker Space `gutchi15300/pycaliai-umami` で配信。ソースは `site/`、データ生成は `build_site.py`、デプロイは `sync-hf-umami.ps1`
+- **NiceGUI（旧本番）**: `python nicegui_app.py` → `http://localhost:8080` / HF: https://gutchi15300-pycaliai.hf.space （`sync-hf.ps1`、まだ併行更新中）
 - **Streamlit（副）**: `streamlit run app.py`
-- **HF Spaces（本番表示）**: https://gutchi15300-pycaliai.hf.space
 - **GPU / torch**: CUDA 12.8 動作中（unified_rank_v5 自体は LightGBM のみで torch 不要）
 
 ---
@@ -118,12 +119,12 @@
 .\weekly_nicegui.ps1                  # 最新 data/weekly/*.csv を自動検出
 # または .\weekly_nicegui.ps1 20260516
 ```
-自動で：
+自動で（デフォルト model=**v6**）：
 1. `make_weekly_hosei.py` → `data/hosei/H_{date}.csv`
-2. `predict_weekly.py` → `reports/pred_{date}.csv`（Streamlit 用、`-SkipPredict` で省略可）
-3. `export_weekly_marks.py --model v5` → `reports/cowork_input/{date}_bundle.json` **★これが NiceGUI/Cowork のキー入力**
-4. `build_course_stats.py` → `data/course_stats.json`（NiceGUI コース分析タブ用）
-5. `git push origin master` → `sync-hf.ps1`（HF Spaces 反映）
+2. `predict_weekly.py` → **デフォルト SKIP**（2026-06-11 audit P1-1。旧8モデルは重く NiceGUI/Cowork に不要）。Streamlit 用に欲しい週だけ `-WithPredict`
+3. `export_weekly_marks.py --model v6` → `reports/cowork_input/{date}_bundle.json` **★これが Cowork のキー入力**
+4. `build_course_stats.py` → `data/course_stats.json`（コース分析タブ用）
+5. `git push origin master` → `sync-hf.ps1`（旧 NiceGUI Space）→ `sync-hf-umami.ps1`（**本番 静的サイト**、`build_site.py` で再生成して push）
 
 ### Phase B — 土曜昼（Cowork が買い目を返してきたら）
 ```
@@ -132,6 +133,9 @@
 2. Cowork のレスポンスを reports/cowork_output/{date}_bets.json として保存
 3. .\weekly_nicegui.ps1 -BetsOnly
 ```
+内部で：
+1. `validate_cowork_bets.py --apply` で**見送りガード**を強制（絶対禁則の4条件。Cowork が見送るべき race に買い目を付けても bets:[] に矯正）。ガード自体が実行不能なら **fail-closed で停止**（未検証 bets を本番に出さない）。どうしても push したい時のみ `-Force`
+2. `git push origin master` → `sync-hf.ps1` → `sync-hf-umami.ps1`
 
 ### Phase C — 日曜夜（TARGET 結果エクスポート後）
 ```powershell
@@ -139,11 +143,12 @@
 .\weekly_nicegui.ps1 -Post
 ```
 内部で：
-1. `weekly_post.ps1`
-   - `generate_results.py` → `data/results.json`
+1. `weekly_post.ps1`（失敗したら **fail-hard** して HF 同期を中止）
+   - `generate_results.py` → `data/results.json` / `data/cowork_results.json`（**集計凍結対策で必ず commit**）
    - `update_live_results.py` → `data/live_results_2026.csv`
    - `git push` + `reports/cowork_bets/{date}/`
-2. `sync-hf.ps1`
+   - `cowork_results.json` の `generated_at` が当日かチェック（凍結検知）
+2. `sync-hf.ps1`（旧 NiceGUI）→ `sync-hf-umami.ps1`（**本番 静的サイト**）
 3. 日曜 + 月初 1〜7 日なら `retrain_value_model.py` 自動実行
 4. 日曜なら `run_audit.ps1` 自動実行（週次監査）
 
@@ -278,11 +283,14 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 ### ★ NiceGUI / Cowork ライン（本番、最重要）
 | ファイル | 役割 |
 |---|---|
-| `nicegui_app.py` | NiceGUI 本体（v11）。HF Spaces にデプロイ |
-| `export_weekly_marks.py` | unified_rank_v5 → bundle.json |
-| `build_course_stats.py` | NiceGUI コース分析タブ用統計 |
-| `weekly_nicegui.ps1` | 週次ワークフロー 3 フェーズ統合 |
-| `sync-hf.ps1` | master ブランチ → hf-spaces orphan → HF push |
+| `build_site.py` | ★**本番 静的サイト**のデータ生成（bundle/cowork_output/kekka 等 → `site/data/*.json`） |
+| `site/` | ★**本番 静的サイト**ソース（index.html / css / js、vanilla JS + ECharts CDN） |
+| `sync-hf-umami.ps1` | ★**本番**デプロイ: `build_site.py` → Docker Space `pycaliai-umami` へ push |
+| `export_weekly_marks.py` | unified_rank_v6 → bundle.json |
+| `build_course_stats.py` | コース分析タブ用統計 |
+| `weekly_nicegui.ps1` | 週次ワークフロー 3 フェーズ統合（sync-hf + sync-hf-umami 両方を叩く） |
+| `nicegui_app.py` | NiceGUI 本体（v11、旧本番）。`sync-hf.ps1` でまだ併行更新 |
+| `sync-hf.ps1` | （旧）master → hf-spaces orphan → NiceGUI Space へ push |
 | `docs/cowork_prompt.md` | Cowork に投げるプロンプト |
 | `docs/marks_schema.md` | bundle.json のスキーマ仕様 |
 

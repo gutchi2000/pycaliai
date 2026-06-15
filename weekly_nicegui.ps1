@@ -4,9 +4,11 @@
 # Purpose:
 #   One script that handles three phases:
 #     [A] PRE-RACE  (default)  : hosei + bundle.json + push
+#                                 + sync-hf.ps1 (NiceGUI) + sync-hf-umami.ps1 (static 本番)
 #     [B] BETS-ONLY (-BetsOnly): push reports/cowork_output/ only
 #                                 (after Cowork returns the bets JSON)
-#     [C] POST-RACE (-Post)    : run weekly_post.ps1 + sync-hf.ps1
+#                                 + sync-hf.ps1 + sync-hf-umami.ps1
+#     [C] POST-RACE (-Post)    : run weekly_post.ps1 + sync-hf.ps1 + sync-hf-umami.ps1
 #
 # Typical week:
 #   Sat morning  (after TARGET export):
@@ -158,8 +160,15 @@ if ($BetsOnly) {
         }
     }
     if (-not $SkipHF) {
-        Step "[2/2] sync-hf.ps1"
+        Step "[2/3] sync-hf.ps1 (NiceGUI Space)"
         & .\sync-hf.ps1
+        Step "[3/3] sync-hf-umami.ps1 (static 本番サイト pycaliai-umami)"
+        if (Test-Path 'sync-hf-umami.ps1') {
+            & .\sync-hf-umami.ps1
+            if ($LASTEXITCODE -ne 0) { Warn "sync-hf-umami.ps1 returned non-zero" }
+        } else {
+            Warn "sync-hf-umami.ps1 not found; skipping umami push"
+        }
     }
     Write-Host ""
     Write-Host "Done. NiceGUI 'Cowork buy' tab will show the bets after rebuild." -ForegroundColor Green
@@ -196,8 +205,15 @@ if ($Post) {
     } catch { Warn "cowork_results.json の generated_at 確認に失敗 (非致命)" }
 
     if (-not $SkipHF) {
-        Step "[2/2] sync-hf.ps1"
+        Step "[2/3] sync-hf.ps1 (NiceGUI Space)"
         & .\sync-hf.ps1
+        Step "[3/3] sync-hf-umami.ps1 (static 本番サイト pycaliai-umami)"
+        if (Test-Path 'sync-hf-umami.ps1') {
+            & .\sync-hf-umami.ps1
+            if ($LASTEXITCODE -ne 0) { Warn "sync-hf-umami.ps1 returned non-zero" }
+        } else {
+            Warn "sync-hf-umami.ps1 not found; skipping umami push"
+        }
     }
     Write-Host ""
     Write-Host "Done." -ForegroundColor Green
@@ -329,15 +345,25 @@ if ($SkipGit) {
 
 # -- Step 5: sync to HuggingFace Spaces --
 if ($SkipHF) {
-    Step "[5/5] sync-hf.ps1 SKIPPED (-SkipHF)"
+    Step "[5/5] sync-hf.ps1 / sync-hf-umami.ps1 SKIPPED (-SkipHF)"
 } else {
-    Step "[5/5] sync-hf.ps1 (master -> hf-spaces orphan -> HF push)"
+    Step "[5/5] sync-hf.ps1 (master -> hf-spaces orphan -> NiceGUI Space)"
     if (-not (Test-Path 'sync-hf.ps1')) {
         Warn "sync-hf.ps1 not found; skipping HF push"
     } else {
         & .\sync-hf.ps1
         if ($LASTEXITCODE -ne 0) {
             Warn "sync-hf.ps1 returned non-zero"
+        }
+    }
+
+    Step "[5b/5] sync-hf-umami.ps1 (build_site.py -> static 本番サイト pycaliai-umami)"
+    if (-not (Test-Path 'sync-hf-umami.ps1')) {
+        Warn "sync-hf-umami.ps1 not found; skipping umami push"
+    } else {
+        & .\sync-hf-umami.ps1
+        if ($LASTEXITCODE -ne 0) {
+            Warn "sync-hf-umami.ps1 returned non-zero"
         }
     }
 }
