@@ -788,12 +788,16 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
 # ---------------------------------------------------------------- 成績集計
 def build_results_json() -> dict:
     """site/data/*.json を全走査し、Cowork 的中一覧 + 累計集計を results.json に。"""
+    # 撤廃券種 (2026-06-18): 馬単は構造的回収不能(2/122)で本番から撤廃済 → 累計/ROI/by_type/
+    # カードから除外する。生データ(site/data)は保持し、agg.excluded に件数を残して透明化。
+    DISCONTINUED = {"馬単"}
     hits = []
     by_type: dict = {}
     by_date: dict = {}
     tot_cost = tot_profit = 0.0
     n_bets = n_wins = n_unset = 0
     unset_cost = 0.0
+    ex_n = 0; ex_cost = ex_profit = 0.0
 
     for p in sorted(SITE_DATA_DIR.glob("[0-9]" * 8 + ".json")):
         with open(p, encoding="utf-8") as f:
@@ -813,6 +817,9 @@ def build_results_json() -> dict:
                     unset_cost += cost
                     continue
                 profit = st.get("profit") or 0.0
+                if t in DISCONTINUED:        # 撤廃券種は累計/by_type から除外(別枠で記録)
+                    ex_n += 1; ex_cost += cost; ex_profit += profit
+                    continue
                 n_bets += 1
                 tot_cost += cost
                 tot_profit += profit
@@ -857,6 +864,8 @@ def build_results_json() -> dict:
             "n_bets": n_bets, "n_wins": n_wins,
             "hit_rate": round(n_wins / n_bets * 100, 1) if n_bets else 0.0,
             "n_unsettled": n_unset, "unsettled_cost": round(unset_cost),
+            "excluded_btypes": sorted(DISCONTINUED), "n_excluded": ex_n,
+            "excluded_cost": round(ex_cost), "excluded_profit": round(ex_profit),
             "by_type": by_type, "by_date": date_series,
         },
         "hits": hits,

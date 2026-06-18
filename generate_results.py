@@ -455,6 +455,9 @@ def match_cowork_bet(bet: dict, race_kk: pd.DataFrame,
     """
     btype = bet.get("馬券種")
     sel = str(bet.get("買い目", "")).strip()
+    # 馬単/三連単の買い目は "4→8" / "1→2→3" のように矢印区切り。
+    # ペア/トリオ判定は "-" 区切り前提なので正規化する（カンマ区切りは温存）。
+    sel = sel.replace("→", "-").replace("＞", "-").replace(">", "-").replace("－", "-")
     if not sel or not btype:
         return False, 0.0, 0.0
 

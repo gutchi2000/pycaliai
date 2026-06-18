@@ -1,0 +1,8 @@
+{
+  "_note": "T-10 当日フェイルセーフ(資金ガード)のしきい値。実バンクロールとリスク許容で調整すること。¥はその日の純損益。halt_is_hard=true で停止時に買い目を空にする(false=通知のみ・人間判断)。",
+  "day_loss_halt_yen": 30000,
+  "day_loss_stakedown_yen": 15000,
+  "stake_down_factor": 0.5,
+  "profit_take_roi_pct": 100.0,
+  "halt_is_hard": false
+}

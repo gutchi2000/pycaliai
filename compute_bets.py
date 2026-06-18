@@ -49,6 +49,13 @@ TH_TOP2_GO, TH_TOP2_OK, TH_TOP2_LOW = 0.75, 0.50, 0.40  # 本線濃厚 / やや�
 TH_CHAOS_HARD, TH_CHAOS_MID = 0.75, 0.50  # カオス / 混戦（パーセンタイル）
 TH_MARKET_ANABA = 0.30                    # 市場乖離→妙味
 CHAOS_RAW_SKIP = 0.92                     # §0 hard 見送り（生値）
+# §0b 参戦規律フェイルセーフ (2026-06-18): chaos_pct(=field_chaos_score=正規化エントロピーの
+# 過去分布百分位) がこの閾値を超えるレースは見送る。OOS検証 (2024fit→2025eval,
+# analysis/test_race_selection_oos.py): クリーン帯=エントロピー下位1/3(chaos_pct<=0.33)のみ
+# ◎複勝ROI~90%/単勝85%/top3 76% と控除床(80%)を明確に超える。mid(0.33-0.67)80.8% /
+# chaotic(0.67-)82.5% は床近傍=参戦しても負けを増やすだけ。「最も負けない線」=クリーン帯に絞る。
+# 0.33=クリーン帯のみ(=2/3を見送り) / 0.50=+mid / 1.0=ゲート無効(従来挙動)。
+CLEAN_BAND_MAX = 0.33
 
 _QT = None
 def _qtab():
@@ -230,6 +237,12 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",
                 "race_reason": "chaos_quantiles.json 欠如/破損で指標変換不能のため見送り (fail-safe)。",
                 "bets": []}
+
+    # ---- §0b 参戦規律: クリーン帯(低エントロピー)外は見送り (fail-safe / 最も負けない線) ----
+    if chaos > CLEAN_BAND_MAX:
+        return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                "race_reason": f"クリーン帯外(混戦度 pct{chaos:.2f}>{CLEAN_BAND_MAX:.2f}・参戦規律)で見送り。"
+                               "◎の信頼が薄い帯=OOSで控除床近傍につき不参戦。", "bets": []}
     market = _num(rc.get("ai_market_agreement")) or 0.0
     anaba = market < TH_MARKET_ANABA
     value_bans = [int(v["umaban"]) for v in bj.get("value_horses", []) if _num(v.get("umaban")) is not None]
@@ -325,45 +338,55 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
                 return
             p = pi * pj / (1 - pi)
         push("馬単", f"{i}→{j}", (i, j), ut, ut * p, boost)
+    def c_pair(i, j, boost=1.0):
+        """ペア馬券: 馬連とワイドを【並行】生成 (2026-06-18 ユーザー指示「馬連と並行して」)。
+        馬連=ROI主軸(gate_q2 prob-only 79%>控除77.5%)、ワイド=的中率/床防御で並走。
+        馬連オッズ欠損ペアは c_umaren が内部 return → ワイドのみ(従来フォールバックも包含)。
+        選抜(後段)で馬連/ワイドを型別に交互確保しないと prob-first が全ワイドに倒れる点に注意。"""
+        c_umaren(i, j, boost)   # 馬連（umaren_matrix 欠損なら内部で return）
+        c_wide(i, j, boost)     # ワイド 並行
 
     rel = [x for x in (tai, san, *osae) if x]            # 相手(〇▲△)
+    # ① ペアの相手は ◎〇▲ にcap (相手4頭=10点でワイド床割れ76.7%。wide-playbook 2026-06-18)。
+    rel_pair = [x for x in (tai, san) if x]              # ペア用相手(〇▲のみ)
     box4 = [b for b in (hon, tai, san, *osae) if b][:4]  # 上位4
 
     # ---- 形ごとに候補生成（おいしい馬 boost）----
-    # ★馬連は全廃（実績ROI最弱56%）。◎独走系は 馬単＋単勝、◎弱は ワイド流し。
-    # ⚠ ポリシー変更の規律 (2026-06-11): ここの boost/全廃の根拠だった実績は
-    # 小標本の点推定で、data/cowork_results.json の by_type.roi_ci95 は全券種
-    # 「控除率80%と区別不能 (inconclusive)」。今後の変更は roi_verdict が
-    # above/below_takeout になったときだけ行うこと (単勝120%→96%回帰の再発防止)。
+    # ★馬連を prob-first で再有効化 (2026-06-15 監査, c_pair)。旧「全廃」の根拠 ROI56%
+    #   は EV選抜時代の馬連の数字。gate_q2_umaren_priceedge は「馬連を p_umaren 上位
+    #   top-K で流す」と test ROI 79%(>控除77.5%)/CLV+ を示し、EV選抜(66.6%/CLV-)を
+    #   13pt 上回る。よって馬連 prob-first は規律(roi_verdict)の趣旨に合致。ペア生成は
+    #   c_pair(馬連優先・欠損時ワイド)、選抜は prob-first(:後段)。
+    # ⚠ 規律 (2026-06-11): boost の点推定での弄りは禁止。cowork_results の roi_verdict
+    #   が above/below_takeout になった時のみ boost 変更可 (単勝120%→96%回帰の再発防止)。
     if shape == "本命勝負" and hon and tai:
-        tgt = [b for b in (hon, tai, san, *osae) if b]    # ◎〇▲△△
-        for a in (hon, tai):
-            for t in tgt:
-                if a != t: c_umatan(a, t, 1.3)            # 馬単8点 formation
-        c_tan(hon, 1.6); c_fuku(hon, 1.1)                 # 単勝◎ 厚
+        # 本命勝負(◎独走/本線濃厚/固い): 馬単8点フォメを撤廃し馬連+ワイド並行へ全面置換
+        # (2026-06-18 ユーザー指示。馬単は2/122=構造的回収不能 [[loss_forensics_842]]、
+        #  馬連UMAMIが馬単に+6pt。固い本命race=◎軸の単複厚+◎-〇▲ペアに集約)。
+        c_tan(hon, 1.6); c_fuku(hon, 1.1)                 # 単勝◎厚 + 複勝◎
+        for r in rel_pair:
+            c_pair(hon, r, 1.3)                           # ◎-〇▲ 馬連+ワイド並行(厚boost)
     elif shape == "◎軸" and hon:
         c_tan(hon, 1.6)                                   # 単勝◎（最重視・実績120%）
-        if (fld(hon, "tansho_odds") or 99) <= 15:         # ◎が実本命の時だけ馬単
-            for r in rel: c_umatan(hon, r, 1.2)           # 馬単 ◎→相手（◎1着固定流し）
-        for r in (tai, san, *osae[:1]):
-            if r: c_wide(hon, r, 1.1)                      # 人気薄◎は単勝＋ワイドに寄せる
+        for r in rel_pair:
+            c_pair(hon, r, 1.1)                            # ◎-〇▲の馬連+ワイド並行(馬単撤廃)
         c_fuku(hon, 1.0)
-    elif shape == "広め流し":                              # ◎弱 → ワイド流しのみ（馬単/馬連なし）
-        for r in rel:
-            if hon: c_wide(hon, r, 1.2)
+    elif shape == "広め流し":                              # ◎弱 → ペア流し(馬連+ワイド並行)
+        for r in rel_pair:
+            if hon: c_pair(hon, r, 1.2)
         if tai:
-            for r in [x for x in (hon, san, *osae) if x and x != tai]:
-                c_wide(tai, r, 1.0)
+            for r in [x for x in (hon, san) if x and x != tai]:
+                c_pair(tai, r, 1.0)
         if hon: c_fuku(hon, 1.1)
     elif shape == "カオス薄":
         if hon:
-            for r in rel: c_wide(hon, r, 1.0)
+            for r in rel_pair: c_pair(hon, r, 1.0)
             c_fuku(hon, 1.2)
     else:  # 標準
         if hon:
             c_tan(hon, 1.4); c_fuku(hon, 1.1)
-            for r in (tai, san, *osae):
-                if r: c_wide(hon, r, 1.1)
+            for r in rel_pair:
+                c_pair(hon, r, 1.1)
 
     # ---- 穴 overlay: おいしい馬（value_horses）を上乗せ ----
     # 単勝は 30 倍キャップ: audit_ev_bin_roi で単勝 50+ オッズ帯は ROI 30-61% /
@@ -374,22 +397,62 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
             if (fld(vb, "tansho_odds") or 999) <= ANA_TAN_ODDS_CAP:
                 c_tan(vb, 1.3)
             if hon and vb != hon:
-                c_wide(vb, hon, 1.2)
+                c_pair(vb, hon, 1.2)
             c_fuku(vb, 1.1)
 
-    # ---- ソフトEVフロア（明確な-EVのみ除外。本命勝負の馬単は formation 全採用）----
-    floor = 0.70 if shape == "本命勝負" else 0.80
-    chosen = [c for c in cands if c[4] >= floor or (shape == "本命勝負" and c[0] == "馬単")]
-    # ◎必須
-    if hon and not any(c[5] for c in chosen):
-        hc = [c for c in cands if c[5]]
-        if hc: chosen.append(max(hc, key=lambda c: c[4]))
-    if not chosen and cands:
-        chosen = [max(cands, key=lambda c: c[4])]
-    # 点数上限（馬単formationは8、その他は6目安。少額予算は MIN_BET で入る点数まで絞る）
-    cap = 8 if shape == "本命勝負" else 6
-    cap = max(1, min(cap, int(budget) // MIN_BET))
-    chosen = sorted(chosen, key=lambda c: -(c[4] * c[6]))[:cap]
+    # ---- 銘柄選抜: prob-first（gate_q2 実証, 2026-06-15 監査）----
+    # gate_q2_umaren_priceedge: 馬連/ワイドのペアを EV(価格ズレ)で選ぶと test ROI 66.6%
+    # /CLV-5.8%、calibrated p_pair 上位 top-K で選ぶと 79%/CLV+。EV選抜は毎回約13pt捨てる。
+    # → ペアは「ペア内で p_pair 降順 top-K」。EVフロアは課さない（低オッズ本命ペアを
+    #   弾かないため。大穴は ODDS_CAP/umami 罠ゲートで別途排除済み）。
+    #   p_pair = ev/odds = c[4]/c[3]（ev=odds×p の定義から厳密復元、新カラム不要）。
+    # ★型混在の生prob比較は禁止（複勝 p_sho > ペア p_pair でペアが押し出される）。
+    #   単複の◎系はアンカーとして別枠確保し、◎必須を切り詰め後も保証する。
+    # ※配分(amount_for_ev×boost)は EV-band サイジングのまま=follow-up（選抜が主効果）。
+    PAIR = {"馬連", "ワイド"}
+    # 馬単撤廃(2026-06-18)で本命勝負も pair(馬連+ワイド)+単複中心 → 馬単専用の特別選抜は不要。
+    # 全 shape を prob-first(型別交互)選抜に統一する(EV選抜は prob-first 比 -13pt)。
+    is_honmei = False
+    _p = lambda c: (c[4] / c[3]) if c[3] else 0.0   # p_pair / p_single（大=良）
+
+    if is_honmei:
+        # 本命勝負: 馬単8点 formation 全採用 + 単複◎(EVフロア)、従来 EV×boost 順を維持。
+        floor = 0.70
+        chosen = [c for c in cands if c[4] >= floor or c[0] == "馬単"]
+        if hon and not any(c[5] for c in chosen):
+            hc = [c for c in cands if c[5]]
+            if hc: chosen.append(max(hc, key=lambda c: c[4] * c[6]))
+        if not chosen and cands:
+            chosen = [max(cands, key=lambda c: c[4] * c[6])]
+        cap = max(1, min(8, int(budget) // MIN_BET))
+        chosen = sorted(chosen, key=lambda c: -(c[4] * c[6]))[:cap]
+    else:
+        # 非本命勝負: ◎単複アンカー → prob-first ペア → 残り単複 の優先順で cap まで。
+        floor = 0.80
+        cap = max(1, min(6, int(budget) // MIN_BET))
+        # 馬連と並行(2026-06-18): 型別に prob-first 確保し交互配置(混合 prob-first だと
+        # ワイド p_pair > 馬連 p_pair で全ワイドに倒れ「馬連並行」が消えるため)。
+        _pu = sorted([c for c in cands if c[0] == "馬連"], key=lambda c: -_p(c))
+        _pw = sorted([c for c in cands if c[0] == "ワイド"], key=lambda c: -_p(c))
+        pairs = []
+        for _k in range(max(len(_pu), len(_pw))):
+            if _k < len(_pu): pairs.append(_pu[_k])
+            if _k < len(_pw): pairs.append(_pw[_k])
+        singles = sorted([c for c in cands if c[0] not in PAIR and c[4] >= floor],
+                         key=lambda c: (0 if c[5] else 1, -_p(c)))
+        anchors = [c for c in singles if c[5]][:2]      # ◎絡み単複を最大2枠確保
+        anchor_ids = {id(c) for c in anchors}
+        chosen = list(anchors[:cap])
+        for grp in (pairs, [c for c in singles if id(c) not in anchor_ids]):
+            for c in grp:
+                if len(chosen) >= cap: break
+                chosen.append(c)
+        # ◎必須: ◎絡みが1つも無ければ最高prob◎絡みを先頭に差し込む（切り詰めで消えない）
+        if hon and not any(c[5] for c in chosen):
+            hc = sorted([c for c in cands if c[5]], key=lambda c: -_p(c))
+            if hc: chosen = ([hc[0]] + [c for c in chosen if id(c) != id(hc[0])])[:cap]
+        if not chosen and cands:
+            chosen = [max(cands, key=_p)]
 
     # ---- 配分（EV×boost 重み、キャップ厳守）----
     base = [amount_for_ev(c[4]) * c[6] for c in chosen]
