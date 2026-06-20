@@ -403,6 +403,11 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .hcell { min-width: 0; overflow: hidden; }
 .hname { display: block; font-size: 18px; font-weight: 700; color: var(--tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hsub { display: block; font-size: 14px; color: var(--tx2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kyaku { display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 5px; font-size: 11px; font-weight: 700; vertical-align: middle; }
+.k-nige   { background: rgba(242,85,90,.16);  color: #ff8488; }
+.k-senko  { background: rgba(245,185,66,.16); color: var(--gold2); }
+.k-sashi  { background: rgba(91,155,255,.16); color: #7fb0ff; }
+.k-oikomi { background: rgba(45,212,168,.16); color: var(--teal2); }
 
 .c-ninki { font-size: 17px; color: var(--tx2); }
 .pbar { display: flex; align-items: center; gap: 7px; min-width: 0; }
@@ -871,6 +876,7 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
   /* 馬名は常に 1 行表示。列幅を詰め名前列を最大化し、9 文字名でも収める。 */
   .hname { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hsub { font-size: 10px; }
+  .kyaku { font-size: 9px; padding: 0 4px; margin-right: 4px; }
   .pair { grid-template-columns: 46px 10px 46px repeat(3, minmax(0,1fr)) auto; gap: 5px; }
   .pair-v { font-size: 13px; }
   .pair-v small { font-size: 9px; }

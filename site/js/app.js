@@ -346,6 +346,11 @@ function spark(h) {
     <polyline points="${poly}" pathLength="100" fill="none" stroke="#33415e" stroke-width="1.5"/>${dots}</svg>`;
 }
 
+const KYAKU_CLS = { "逃げ": "k-nige", "先行": "k-senko", "差し": "k-sashi", "追込": "k-oikomi" };
+function kyakuChip(h) {
+  return h.style ? `<span class="kyaku ${KYAKU_CLS[h.style] || ""}">${h.style}</span>` : "";
+}
+
 function subLine(h) {
   const parts = [];
   const sexage = `${h.sex || ""}${h.age ?? ""}`;
@@ -388,7 +393,7 @@ function renderTable(r, flip = false) {
       <span>${wk(h)}</span>
       <span class="hcell">
         <span class="hname">${esc(h.name)}</span>
-        <span class="hsub">${esc(subLine(h))}</span>
+        <span class="hsub">${kyakuChip(h)}${esc(subLine(h))}</span>
       </span>
       <span class="c-ninki num ta-c">${h.ninki ?? "—"}</span>
       <span class="odds num ta-r c-odds">${num(h.odds)}${ev != null && ev >= 1.2 ? `<span class="oddsev">EV ${ev.toFixed(2)}</span>` : ""}</span>
