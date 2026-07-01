@@ -20,6 +20,7 @@ const state = {
 const dayCache = new Map();
 let charts = [];
 let resultsData = null;
+let realizedBias = null;   // data/realized_bias.json (直近開催の実現トラックバイアス)
 
 /* ---------------- utils ---------------- */
 function esc(s) {
@@ -55,6 +56,9 @@ async function boot() {
     return;
   }
   state.manifest = mf;
+  try {
+    realizedBias = await (await fetch("data/realized_bias.json?t=" + Date.now())).json();
+  } catch (e) { realizedBias = null; }   // 非開催週などで無くても描画は続行
   const sel = $("#dateSel");
   sel.innerHTML = mf.dates.map((d) =>
     `<option value="${d.date}">${fmtDate(d.date)}${d.has_results ? " ✓" : ""}</option>`).join("");
@@ -502,6 +506,45 @@ function renderExtras(r) {
         <b>馬連率/ワイド率</b>＝AIが算出した、その2頭が馬連/ワイドで的中する確率。
         <b>馬連オッズ</b>＝実際に出ている馬連の配当（倍）。<u>率の割にオッズが高いペアが妙味</u>。
       </div>` : ""}
+    </div>
+    ${realizedCard(r)}
+  </div>`;
+}
+
+/* 実現トラックバイアス カード (出走表タブ・妙味の隣). 直近開催の結果から会場×面で算出。
+   前残り(脚質)=信頼できる定数 / 枠=小標本で反転しやすい弱信号、として見せる。 */
+function realizedCard(r) {
+  // クロスデイ: 前日(土)の実現を翌日(日)のカードに載せる。土曜カード(=前日なし)や
+  // 無関係な日には出さない。show_on_date(=結果の日の翌開催日) が今見てる日と一致する時のみ。
+  const showOn = realizedBias?.show_on_date;
+  if (!showOn || state.day?.date !== showOn) return "";
+  const surf = (r.course || "").startsWith("芝") ? "芝" : "ダ";
+  const rb = realizedBias && realizedBias.venues
+    ? realizedBias.venues[`${r.place}|${surf}`] : null;
+  if (!rb) {
+    return `<div class="card ex">
+      <div class="ex-t">実現バイアス <small>直近開催の結果から</small></div>
+      <div class="cw-empty">この会場×面の実現データがまだありません。</div>
+    </div>`;
+  }
+  const wcls = rb.waku === "内" ? "in" : rb.waku === "外" ? "out" : "flat";
+  const fp = Math.round(rb.front_rate * 100);
+  const ih = Math.round(rb.inner_half * 100);
+  return `<div class="card ex">
+    <div class="ex-t">実現バイアス <small>${esc(realizedBias.label)}・${esc(r.place)}${surf}・${rb.n}R</small></div>
+    <div class="rb-row">
+      <span class="rb-k">前残り</span>
+      <span class="rb-bar"><i style="width:${fp}%"></i></span>
+      <span class="rb-v num">${fp}<small>%</small></span>
+    </div>
+    <div class="rb-row">
+      <span class="rb-k">枠</span>
+      <span class="rb-waku ${wcls}">${esc(rb.waku)}</span>
+      <span class="rb-sub">内半 ${ih}% ・ ${esc(rb.baba)}</span>
+    </div>
+    <div class="pair-note">
+      <b>前残り</b>＝道中 前1/3 で勝った割合（脚質バイアス・<u>信頼できる定数</u>）。
+      <b>枠</b>＝小標本で日々反転しやすい弱信号、参考程度に。
     </div>
   </div>`;
 }

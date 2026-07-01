@@ -9,6 +9,18 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<style>
+.baba-bias{margin:8px auto;max-width:1100px;padding:0 10px}
+.baba-bias h3{font-size:14px;margin:6px 2px;display:flex;align-items:center;gap:8px}
+.baba-bias h3 .sub{font-size:11px;opacity:.6;font-weight:400}
+.baba-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}
+.baba-card{border:1px solid rgba(128,128,128,.28);border-radius:10px;padding:8px 10px;background:rgba(128,128,128,.06)}
+.baba-card .bv{font-weight:700;font-size:13px}
+.baba-card .bc{font-size:12px;opacity:.85;margin:2px 0 5px}
+.baba-card .bl{font-size:11.5px;line-height:1.5;padding:3px 6px;border-radius:6px;margin-top:3px}
+.baba-card .bl.shiba{background:rgba(46,160,67,.13)}
+.baba-card .bl.dirt{background:rgba(180,120,60,.15)}
+</style>
 </head>
 <body>
 <div class="track-stripe"></div>
@@ -22,6 +34,7 @@
     <nav class="modenav" id="modeNav">
       <button data-mode="races" class="on">🏇 予想</button>
       <button data-mode="results">📊 成績</button>
+      <a href="explain.html" style="text-decoration:none"><button type="button">🔬 分析カード</button></a>
     </nav>
     <div class="topbar-right">
       <label class="date-wrap" id="dateWrap">
@@ -33,6 +46,7 @@
 </header>
 
 <nav class="venues" id="venueTabs" aria-label="開催場"></nav>
+<section class="baba-bias" id="babaBias" hidden></section>
 <nav class="races" id="raceStrip" aria-label="レース選択"></nav>
 
 <main id="main">
@@ -51,6 +65,7 @@
 <aside id="drawer" aria-label="馬詳細"></aside>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script src="js/baba.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

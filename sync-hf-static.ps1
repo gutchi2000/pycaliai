@@ -1,20 +1,19 @@
 # =====================================================================
-# sync-hf-static.ps1 — 静的サイト (site/) を HF static Space に公開
+# sync-hf-static.ps1 - publish the static site (site/) to an HF static Space
 # =====================================================================
-# 既存の sync-hf.ps1 (NiceGUI / Docker Space) とは別物。
-# 新規に作った static Space (例: gutchi15300/pycaliai-web) に site/ の中身を
-# ルート配置で push する。
+# Separate from sync-hf.ps1 (NiceGUI / Docker Space). Pushes the contents of
+# site/ (index.html, css/, js/, data/, README) to the ROOT of a NEW static
+# Space (e.g. gutchi15300/pycaliai-web), running in parallel with the NiceGUI
+# Space.
 #
-# 仕組み:
-#   master を一切触らず、$STAGE (TEMP 下のクローン) に site/ を流し込んで
-#   commit & push する。orphan ブランチ操作も master の checkout 切替も無し
-#   → master の作業ツリーは安全。
+# It never touches the master working tree: it builds data, then mirrors site/
+# into a persistent clone under TEMP and commits/pushes from there.
 #
-# 使い方:
+# Usage:
 #   .\sync-hf-static.ps1 -SpaceUrl https://huggingface.co/spaces/<user>/<space>
-#   .\sync-hf-static.ps1 -SpaceUrl <url> -DryRun   # 組立だけ (push しない)
+#   .\sync-hf-static.ps1 -SpaceUrl <url> -DryRun   # assemble only, no push
 #
-# 初回は Space を HF 側で作成しておくこと (sdk: static)。
+# NOTE: ASCII-only on purpose (Windows PowerShell 5.1 misreads BOM-less UTF-8).
 # =====================================================================
 [CmdletBinding()]
 param(
@@ -22,35 +21,37 @@ param(
     [switch]$DryRun
 )
 $ErrorActionPreference = "Continue"
-$ROOT = $PSScriptRoot
+# $PSScriptRoot is empty when the body is run inline (not as a .ps1 file);
+# fall back to the current directory so Join-Path never gets an empty Path.
+$ROOT = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
 $SITE = Join-Path $ROOT "site"
 $STAGE = Join-Path $env:TEMP "pycaliai_web_deploy"
 
 function Step($m) { Write-Host "==> $m" -ForegroundColor Cyan }
 function Fail($m) { Write-Host "ERROR: $m" -ForegroundColor Red; exit 1 }
 
-# 1. データ生成
-Step "build_site.py でデータ再生成"
+# 1. regenerate data
+Step "build_site.py (regenerate data)"
 & (Join-Path $ROOT "venv311\Scripts\python.exe") (Join-Path $ROOT "build_site.py")
-if ($LASTEXITCODE -ne 0) { Fail "build_site.py に失敗" }
+if ($LASTEXITCODE -ne 0) { Fail "build_site.py failed" }
 
 foreach ($f in @("index.html", "css\style.css", "js\app.js", "data\manifest.json", "README_hf.md")) {
-    if (-not (Test-Path (Join-Path $SITE $f))) { Fail "site\$f が見つからない" }
+    if (-not (Test-Path (Join-Path $SITE $f))) { Fail "missing site\$f" }
 }
 
-# 2. staging (Space のローカルクローン) を用意
+# 2. ensure a local clone of the Space exists
 if (-not (Test-Path (Join-Path $STAGE ".git"))) {
-    Step "Space を clone: $SpaceUrl -> $STAGE"
+    Step "clone Space: $SpaceUrl"
     if (Test-Path $STAGE) { Remove-Item $STAGE -Recurse -Force }
     git clone $SpaceUrl $STAGE
-    if ($LASTEXITCODE -ne 0) { Fail "clone 失敗。Space を HF 側で作成済みか / URL を確認" }
+    if ($LASTEXITCODE -ne 0) { Fail "clone failed (Space exists? URL correct?)" }
 } else {
-    Step "staging 更新 (git pull)"
+    Step "update existing clone (git pull)"
     git -C $STAGE pull --rebase 2>$null
 }
 
-# 3. staging の中身を入れ替え (.git は残す)
-Step "staging を site/ の内容で更新"
+# 3. replace staging contents with site/ (keep .git)
+Step "mirror site/ into staging root"
 Get-ChildItem $STAGE -Force | Where-Object { $_.Name -ne ".git" } |
     Remove-Item -Recurse -Force
 Copy-Item (Join-Path $SITE "index.html") $STAGE
@@ -58,36 +59,35 @@ Copy-Item (Join-Path $SITE "css") $STAGE -Recurse
 Copy-Item (Join-Path $SITE "js") $STAGE -Recurse
 Copy-Item (Join-Path $SITE "data") $STAGE -Recurse
 Copy-Item (Join-Path $SITE "README_hf.md") (Join-Path $STAGE "README.md")
-# Git LFS 誤適用を避けるため .gitattributes は置かない (json/js/css/html は通常 blob)
 
 $nFiles = (Get-ChildItem (Join-Path $STAGE "data") -File).Count
-Step "data/*.json: $nFiles 件配置"
+Step "data/*.json placed: $nFiles files"
 
 # 4. commit
 $sha = (git -C $ROOT rev-parse --short HEAD).Trim()
 git -C $STAGE add -A
 $pending = git -C $STAGE status --porcelain
 if (-not $pending) {
-    Step "変更なし (push 不要)"
+    Step "no changes (nothing to push)"
     exit 0
 }
 
 if ($DryRun) {
-    Step "DryRun: staging 組立完了。差分:"
+    Step "DryRun: staging assembled. diff:"
     git -C $STAGE status --short
-    Write-Host "  (push は行いませんでした)" -ForegroundColor Yellow
+    Write-Host "  (no push performed)" -ForegroundColor Yellow
     exit 0
 }
 
 git -C $STAGE commit -m "deploy: site $sha"
-if ($LASTEXITCODE -ne 0) { Fail "commit 失敗" }
+if ($LASTEXITCODE -ne 0) { Fail "commit failed" }
 
 # 5. push
-Step "HF static Space へ push"
+Step "push to HF static Space"
 git -C $STAGE push origin HEAD:main
 if ($LASTEXITCODE -ne 0) {
     git -C $STAGE push origin HEAD:master
-    if ($LASTEXITCODE -ne 0) { Fail "push 失敗。手動: git -C `"$STAGE`" push origin HEAD:main" }
+    if ($LASTEXITCODE -ne 0) { Fail "push failed; retry manually: git -C `"$STAGE`" push origin HEAD:main" }
 }
 
-Step "完了。数十秒で反映: $SpaceUrl"
+Step "done. live in ~30s: $SpaceUrl"

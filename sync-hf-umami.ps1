@@ -39,7 +39,7 @@ Step "build_site.py (regenerate data)"
 & (Join-Path $ROOT "venv311\Scripts\python.exe") (Join-Path $ROOT "build_site.py")
 if ($LASTEXITCODE -ne 0) { Fail "build_site.py failed" }
 
-foreach ($f in @("index.html", "css\style.css", "js\app.js", "data\manifest.json")) {
+foreach ($f in @("index.html", "explain.html", "css\style.css", "js\app.js", "data\manifest.json")) {
     if (-not (Test-Path (Join-Path $SITE $f))) { Fail "missing site\$f" }
 }
 foreach ($f in @("Dockerfile", "README.md")) {
@@ -63,7 +63,7 @@ Get-ChildItem $STAGE -Force | Where-Object { $_.Name -ne ".git" } |
     Remove-Item -Recurse -Force
 Copy-Item (Join-Path $DOCKER "Dockerfile") $STAGE
 Copy-Item (Join-Path $DOCKER "README.md") $STAGE
-Copy-Item (Join-Path $SITE "index.html") $STAGE
+Copy-Item (Join-Path $SITE "*.html") $STAGE
 Copy-Item (Join-Path $SITE "css") $STAGE -Recurse
 Copy-Item (Join-Path $SITE "js") $STAGE -Recurse
 Copy-Item (Join-Path $SITE "data") $STAGE -Recurse

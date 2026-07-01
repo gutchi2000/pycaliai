@@ -57,6 +57,15 @@ CHAOS_RAW_SKIP = 0.92                     # §0 hard 見送り（生値）
 # 0.33=クリーン帯のみ(=2/3を見送り) / 0.50=+mid / 1.0=ゲート無効(従来挙動)。
 CLEAN_BAND_MAX = 0.33
 
+# 複勝特化(的中率)モード (--fuku-hit): ◎の p_win(bundle値) が閾値以上のレースだけ ◎複勝を flat 購入。
+# 設計操作点(offline v6 OOS 2024-25, analysis/hit_rate_frontier.py): 信頼度上位~20%帯 →
+#   的中~80% / 回収~92% (valid2023も一致)。控除床(回収100%)は越えない＝「最も負けない高的中」。
+# ★閾値は serve(bundle) の p_win 分布に合わせて設定: 本番bundle の p_win は offline より低スケール
+#   (中央値 0.13 vs offline ~0.25)。offline絶対値(0.36)では発火0.8%なので、serve実分布で
+#   上位~20%(週~15R)になる 0.21 を既定とする (reports/cowork_input/*_bundle 655R で実測)。
+# ※的中/回収 80/92% は offline 射影。serve スケール差があるため、実 serve 結果での前向き検証が必須。
+FUKU_HIT_THR = 0.21
+
 _QT = None
 def _qtab():
     global _QT
@@ -148,8 +157,61 @@ def load_live_odds(live_dir: Path, rid16: str, max_age_min: float):
     return d, ""
 
 
+def compute_fuku_hit(race: dict, thr: float = FUKU_HIT_THR, stake: int = BUDGET,
+                     live_dir: Path | None = None, max_age_min: float = 20.0) -> dict:
+    """複勝特化(的中率)モード: ◎の p_win(calibrated)>=thr のレースだけ ◎複勝を flat 購入。
+    選択はモデル確率のみ依存(odds 非依存)。出力契約は compute_race_bets と同形。
+    操作点(v6 OOS, analysis/hit_rate_frontier.py): thr=0.36 → 週~14R/的中80%/回収92%。
+    """
+    rm = race.get("race_meta", {})
+    horses = race.get("horses", [])
+    field = _num(rm.get("field_size")) or len(horses)
+    rid = str(race.get("race_id") or rm.get("race_id") or "")
+    label = f"{rm.get('place','')}{rm.get('course','')} {rm.get('race_name','')}".strip()
+
+    # T-10 ライブ複勝オッズ (任意・表示用。選択は確率ベースなので odds 非依存)
+    if live_dir is not None:
+        live, why = load_live_odds(live_dir, rid[:16], max_age_min)
+        if live is None:
+            return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                    "race_reason": f"{why} のため見送り (fail-safe)。", "bets": []}
+        live_fuku = {int(k): v for k, v in (live.get("fukusho") or {}).items()}
+        horses = [dict(h) for h in horses]
+        for h in horses:
+            b = _num(h.get("umaban"))
+            if b is not None and int(b) in live_fuku:
+                h["fuku_odds_low"], h["fuku_odds_high"] = live_fuku[int(b)]
+
+    hon = next((h for h in horses
+                if h.get("mark") == "◎" and _num(h.get("umaban")) is not None), None)
+    if hon is None:
+        return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                "race_reason": "◎不在のため複勝特化対象外。", "bets": []}
+    if field < 5:
+        return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                "race_reason": "少頭数(<5)で複勝対象外。", "bets": []}
+    pwin = _num(hon.get("p_win"))
+    if pwin is None or pwin < thr:
+        pw_s = f"{pwin:.3f}" if pwin is not None else "NA"
+        return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                "race_reason": f"◎p_win {pw_s}<閾値{thr:.2f}（複勝特化の的中ゲート未達）で見送り。",
+                "bets": []}
+
+    ban = int(hon.get("umaban"))
+    lo, hi = _num(hon.get("fuku_odds_low")), _num(hon.get("fuku_odds_high"))
+    odds_note = f"（複勝{lo:.1f}-{hi:.1f}倍）" if lo and hi else ""
+    reason = (f"◎p_win {pwin:.3f}>=閾値{thr:.2f} → 高的中複勝{odds_note}。"
+              f"複勝特化(的中率重視)選別。※閾値は serve 実測で要校正(offline射影 的中~80%/回収~92%)。")
+    bet = {"馬券種": "複勝", "買い目": str(ban), "購入額": int(stake), "理由": reason}
+    return {"race_id": rid, "race_label": label, "race_nature": "複勝特化",
+            "race_reason": reason, "bets": [bet]}
+
+
 def compute_race_bets(race: dict, live_dir: Path | None = None,
-                      max_age_min: float = 20.0, budget: int = BUDGET) -> dict:
+                      max_age_min: float = 20.0, budget: int = BUDGET,
+                      force_floor: bool = False) -> dict:
+    # force_floor=True: §0b 参戦規律(クリーン帯ゲート)を緩める。プロ条件(週10R∧¥100k)を
+    #   満たすため枠プランの消化枠で使用。§0 hard(chaos>=0.92/少頭数/◎薄/odds欠)は維持。
     rm = race.get("race_meta", {})
     rc = race.get("race_confidence", {})
     bj = race.get("buy_judgment", {})
@@ -239,7 +301,8 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
                 "bets": []}
 
     # ---- §0b 参戦規律: クリーン帯(低エントロピー)外は見送り (fail-safe / 最も負けない線) ----
-    if chaos > CLEAN_BAND_MAX:
+    #   force_floor 時は緩める(プロ条件 10R∧¥100k 充足のため枠プラン消化枠で参戦)。
+    if chaos > CLEAN_BAND_MAX and not force_floor:
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",
                 "race_reason": f"クリーン帯外(混戦度 pct{chaos:.2f}>{CLEAN_BAND_MAX:.2f}・参戦規律)で見送り。"
                                "◎の信頼が薄い帯=OOSで控除床近傍につき不参戦。", "bets": []}
@@ -276,7 +339,8 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
         return _num(d.get(kind))
     cands = []  # [kind, sel, bans, odds, ev, ish, boost]
     # オッズ上限（モデルのテール過大評価が EV 経由で大穴を生むのを遮断）
-    ODDS_CAP = {"馬連": 100.0, "ワイド": 50.0, "馬単": 200.0}
+    # 馬連 100→50 (2026-06-19 ユーザー禁止「穴推奨の馬連」: 高オッズ馬連=穴を遮断)
+    ODDS_CAP = {"馬連": 50.0, "ワイド": 50.0, "馬単": 200.0}
     def push(kind, sel, bans, odds, ev, boost=1.0):
         if not odds or ev is None: return
         cap = ODDS_CAP.get(kind)
@@ -536,9 +600,28 @@ def main():
                          " (t10_runner がレース毎 T-10 に使う。他レースの上書き防止)")
     ap.add_argument("--budget", type=int, default=BUDGET,
                     help=f"1レース予算 (default {BUDGET}。Discord 再計算コマンドが使う)")
+    ap.add_argument("--plan", default=None,
+                    help="build_bet_plan.py の出力 (reports/bet_plan/{date}.json)。"
+                         "指定時は各レース予算を枠プランから取得し、枠外(見送り/対象外)は買わない")
+    ap.add_argument("--fuku-hit", action="store_true",
+                    help="複勝特化(的中率)モード: ◎の p_win>=閾値のレースだけ ◎複勝を flat 購入"
+                         " (週~15R/的中80%/回収92%操作点)。--budget が1点の購入額")
+    ap.add_argument("--fuku-hit-thr", type=float, default=FUKU_HIT_THR,
+                    help=f"複勝特化の p_win(◎) 閾値 (default {FUKU_HIT_THR}=週~14R)。下げるほど本数増")
     args = ap.parse_args()
     d = json.load(open(args.bundle, encoding="utf-8"))
     races = d.get("races", d if isinstance(d, list) else [])
+
+    # 枠プラン: {rid16: budget}。plan 指定時のみ。非指定なら従来の単一 --budget。
+    import re as _re2
+    plan_budget = {}
+    if args.plan:
+        pj = json.load(open(args.plan, encoding="utf-8"))
+        for _tier, _rows in (pj.get("tiers") or {}).items():
+            for _row in _rows:
+                if _row.get("budget"):
+                    plan_budget[_re2.sub(r"\D", "", str(_row.get("rid")))[:16]] = int(_row["budget"])
+        print(f"[plan] {args.plan} 枠対象 {len(plan_budget)}R")
     if args.race:
         import re as _re
         want = {_re.sub(r"\D", "", x)[:16] for x in args.race.split(",") if x.strip()}
@@ -550,9 +633,22 @@ def main():
     live_dir = Path(args.live_odds_dir) if args.live_odds_dir else None
     if live_dir is not None:
         print(f"[live] T-10 モード: {live_dir} (鮮度 {args.max_age_min:.0f}分)")
-    out = [compute_race_bets(r, live_dir=live_dir, max_age_min=args.max_age_min,
-                             budget=args.budget)
-           for r in races]
+    out = []
+    for r in races:
+        if args.fuku_hit:
+            out.append(compute_fuku_hit(r, thr=args.fuku_hit_thr, stake=args.budget,
+                                        live_dir=live_dir, max_age_min=args.max_age_min))
+        elif args.plan:
+            rid16 = _re2.sub(r"\D", "", str(r.get("race_id", "")))[:16]
+            rb = plan_budget.get(rid16)
+            if not rb:
+                continue  # 枠外(見送り/対象外) → 買わない
+            # プロ条件(週10R∧¥100k)充足: 枠対象は参戦規律を緩めて必ず買う(§0 hard安全ガードは維持)
+            out.append(compute_race_bets(r, live_dir=live_dir, max_age_min=args.max_age_min,
+                                         budget=rb, force_floor=True))
+        else:
+            out.append(compute_race_bets(r, live_dir=live_dir, max_age_min=args.max_age_min,
+                                         budget=args.budget))
     n_bet = sum(1 for e in out if e["bets"]); tot = sum(b["購入額"] for e in out for b in e["bets"])
     shapes = {}
     for e in out: shapes[e["race_nature"]] = shapes.get(e["race_nature"], 0) + 1

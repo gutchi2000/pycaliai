@@ -197,6 +197,13 @@ def main():
         scenarios[f"回収+{gname}"] = (rec_num, rec_cat)
     scenarios["回収+リネーム18(調教+補正)"] = (
         [c for c in dead_numeric if c not in rename18_num], dead_cat)
+    # 現状 (2026-06-15): リネーム18(補正/調教)は serve 復活済み。実際に本番で死ぬのは
+    # SERVE_DEAD_NOW の12個 (hist_same×4 + course×3 + jockey×3 + 騎手/調教師コード×2)。
+    # この行が「いま本番が出荷している」◎複勝圏率/ECE の直接値 (回収+リネーム18 と一致する想定)。
+    serve_dead_num = [c for c in dead_numeric
+                      if c.startswith(SERVE_DEAD_NOW_PREFIX) or c in SERVE_DEAD_NOW_EXACT]
+    serve_dead_cat = [c for c in dead_cat if c in SERVE_DEAD_NOW_CAT]
+    scenarios["現状(serve12死)"] = (serve_dead_num, serve_dead_cat)
 
     results = {}
     for name, (mn, mc) in scenarios.items():

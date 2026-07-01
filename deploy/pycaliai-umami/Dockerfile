@@ -4,7 +4,7 @@
 FROM python:3.11-slim
 
 WORKDIR /site
-COPY index.html /site/
+COPY *.html /site/
 COPY css /site/css
 COPY js /site/js
 COPY data /site/data

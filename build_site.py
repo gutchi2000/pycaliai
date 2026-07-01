@@ -877,6 +877,13 @@ def main() -> None:
     only_date = sys.argv[1] if len(sys.argv) > 1 else None
     SITE_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
+    # 分析カードの as-of レーティング辞書を鮮度チェック(元parquet更新時のみ再生成、平時は即skip)
+    try:
+        import build_explain_ratings as _ber
+        _ber.ensure()
+    except Exception as e:
+        print(f"[explain_ratings skip] {e}")
+
     bundles = sorted(BUNDLE_DIR.glob("*_bundle.json"))
     if not bundles:
         print(f"bundle が見つかりません: {BUNDLE_DIR}")
@@ -900,6 +907,15 @@ def main() -> None:
                                    ped_index, grade_map)
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(day, f, ensure_ascii=False, separators=(",", ":"))
+            # 分析カード(Explainability) を同時生成 (LLMは重いので既定OFF; EXPLAIN_LLM=1で有効)
+            try:
+                import os as _os
+                from explain_card import write_day_explain
+                n_card = write_day_explain(day, SITE_DATA_DIR / "explain",
+                                           with_llm=bool(_os.environ.get("EXPLAIN_LLM")))
+                print(f"    explain cards: {n_card}")
+            except Exception as e:
+                print(f"    [explain skip] {e}")
             n_cw = sum(1 for r in day["races"] if r["cowork"])
             n_res = sum(1 for r in day["races"] if r["result"])
             print(f"  {date_str}: {len(day['races'])} races "
@@ -927,6 +943,13 @@ def main() -> None:
         json.dump(manifest, f, ensure_ascii=False, indent=1)
     print(f"manifest: {len(manifest_entries)} dates")
 
+    # 分析カードの manifest (explain.html 用)
+    try:
+        from explain_card import write_explain_manifest
+        write_explain_manifest(SITE_DATA_DIR / "explain")
+    except Exception as e:
+        print(f"[explain manifest skip] {e}")
+
     # 成績 (Cowork 的中一覧 + 累計収支)
     results_payload = build_results_json()
     results_payload["built_at"] = manifest["built_at"]
@@ -936,6 +959,20 @@ def main() -> None:
     print(f"results: hits {len(results_payload['hits'])} / "
           f"{a['n_bets']} bets ROI {a['roi']}% hit {a['hit_rate']}% "
           f"profit {a['total_profit']:+,} (unsettled {a['n_unsettled']})")
+
+    # 今日の馬場バイアス (fetch_baba_today.py 出力をサイトに同梱)
+    baba_src = ROOT / "data" / "baba_today.json"
+    if baba_src.exists():
+        (SITE_DATA_DIR / "baba_today.json").write_text(
+            baba_src.read_text(encoding="utf-8"), encoding="utf-8")
+        print("baba_today: copied to site/data")
+
+    # 実現トラックバイアス (build_realized_bias.py 出力。出走表タブの妙味隣カード)
+    rb_src = ROOT / "data" / "realized_bias.json"
+    if rb_src.exists():
+        (SITE_DATA_DIR / "realized_bias.json").write_text(
+            rb_src.read_text(encoding="utf-8"), encoding="utf-8")
+        print("realized_bias: copied to site/data")
 
 
 if __name__ == "__main__":

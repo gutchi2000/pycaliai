@@ -441,6 +441,52 @@ def main() -> int:
                 gate_errors.append(
                     f"p_win 非null率 {pwin_cov*100:.0f}% < 90% (モデル予測の大量失敗)")
 
+    # serve skew ゲート (audit 2026-06-15): 補正/調教 (_SERVE_RENAME) が serve 経路で
+    # 死ぬと offline ◎複勝 62.08% → serve 57.53% (-4.55pt)・ECE複勝2.3倍に無言劣化する。
+    # リネーム破綻/TARGET列ズレ/入力欠落を canary 列の非null率で検知し push を止める。
+    # 正常カバレッジは週で振れる (prev_hosei 65〜94% / trnH 80〜93%)。canary の役目は
+    # 「リネーム破綻=列が NaN に潰れて 0%」の検知なので、floor は低く (0.20) して破綻
+    # (≈0%) のみ捕え、カバレッジの低い正常週 (>40%) は弾かない (偽陽性回避)。
+    # serve skew カナリア (audit 2026-06-17 全特徴化): 旧版は手書き4特徴のみ監視で、
+    # 「正常時 alive な特徴が serve で無言死」を取りこぼしていた (実測で26死/うち14は未追跡)。
+    # data/serve_feature_baseline.json (健全週の特徴別カバレッジ中央値) と毎回比較し、
+    # 正常 alive(baseline>=40%) の特徴が壊滅(現在<20% かつ baseline の4割未満)に落ちたら止める。
+    # 既知 dead(baseline<40%: course_*/jockey_*/hist_same_*/前走*等 serve未実装) は対象外。
+    # 再診断/baseline更新: analysis/measure_serve_coverage.py
+    baseline_path = BASE / "data" / "serve_feature_baseline.json"
+    if baseline_path.exists():
+        try:
+            base_cov = (json.load(open(baseline_path, encoding="utf-8")) or {}).get("baseline_cov", {})
+        except Exception as e:
+            base_cov = {}
+            logger.warning(f"[serve canary] baseline 読込失敗 ({e}) → 監視スキップ")
+        monitored, silent_deaths = 0, []
+        for col in feats:
+            exp = base_cov.get(col)
+            if exp is None or exp < 0.40:
+                continue   # 既知 dead / 監視対象外
+            monitored += 1
+            cur = float(df[col].notna().mean()) if col in df.columns else 0.0
+            if cur < 0.20 and cur < exp * 0.40:
+                silent_deaths.append(f"{col}({exp*100:.0f}%→{cur*100:.0f}%)")
+        logger.info(f"[serve canary] 監視 {monitored} 特徴 / 無言死 {len(silent_deaths)}")
+        if silent_deaths:
+            gate_errors.append(
+                f"serve特徴が無言死 ({len(silent_deaths)}): {', '.join(silent_deaths[:12])}"
+                f"{' ...' if len(silent_deaths) > 12 else ''} "
+                f"(parse_csv/_SERVE_RENAME/TARGET列ズレ。offline→serve 劣化。"
+                f"analysis/measure_serve_coverage.py で再診断)")
+    else:
+        logger.warning("[serve canary] baseline 未生成 → 旧4特徴チェックにフォールバック "
+                       "(analysis/measure_serve_coverage.py を実行して baseline を作ること)")
+        for col, floor_cov in {"prev_hosei": 0.20, "trnH_Time1": 0.20}.items():
+            if col in feats:
+                cov = float(df[col].notna().mean()) if col in df.columns else 0.0
+                if cov < floor_cov:
+                    gate_errors.append(
+                        f"serve特徴 {col} 非null率 {cov*100:.0f}% < {floor_cov*100:.0f}% "
+                        f"(補正/調教リネーム破綻 or 列ズレ)")
+
     print()
     if gate_errors:
         for ge in gate_errors:

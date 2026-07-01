@@ -313,6 +313,21 @@ def show_race_bets(date_str: str, rid16: str):
         notify(f"— {e.get('race_label','')} **見送り** {e.get('race_reason','')}")
 
 
+def ensure_plan(date_str: str) -> None:
+    """枠プラン(reports/bet_plan/{date}.json)が無ければ build_bet_plan.py で生成。
+    失敗しても続行(compute_bets は --plan 無しの従来挙動にフォールバック)。"""
+    plan = BASE / "reports" / "bet_plan" / f"{date_str}.json"
+    if plan.exists():
+        print(f"[plan] 既存 {plan.name} を使用")
+        return
+    try:
+        rc, _ = run_cmd([sys.executable, "build_bet_plan.py", date_str])
+        print(f"[plan] build_bet_plan {date_str} (exit {rc}) → "
+              f"{'生成OK' if plan.exists() else '生成失敗→--plan無しで継続'}")
+    except Exception as e:
+        print(f"[plan] 生成スキップ ({e})→--plan無しで継続")
+
+
 def process_race(date_str: str, bundle: Path, rid16: str, label: str,
                  max_age_min: float, dry: bool, budget: int | None = None) -> bool:
     """T-10 処理 1 レース分。True=完了 (見送り含む)。budget=予算再計算 (Discord コマンド)。"""
@@ -330,7 +345,11 @@ def process_race(date_str: str, bundle: Path, rid16: str, label: str,
            "--live-odds-dir", str(LIVE_DIR), "--max-age-min", str(max_age_min),
            "--race", rid16]
     if budget:
-        cmd += ["--budget", str(int(budget))]
+        cmd += ["--budget", str(int(budget))]    # Discord 手動再計算: 枠予算を上書き
+    else:
+        _plan = BASE / "reports" / "bet_plan" / f"{date_str}.json"
+        if _plan.exists():
+            cmd += ["--plan", str(_plan)]         # 枠プラン: per-race予算 + プロ条件floor(force_floor)
     if not dry:
         cmd.append("--apply")
     rc, out = run_cmd(cmd)
@@ -415,6 +434,8 @@ def main():
         print(f"[wait] bundle 検出 → 開始")
     if not bundle.exists():
         print(f"[ERROR] {bundle} が無い (Phase A を先に実行)"); return 1
+
+    ensure_plan(date_str)   # 枠プラン(勝負/準勝負/消化 + プロ条件 10R∧¥100k)を用意
 
     d = json.loads(bundle.read_text(encoding="utf-8"))
     races = d.get("races", [])
