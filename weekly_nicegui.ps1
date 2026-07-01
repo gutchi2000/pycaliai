@@ -11,21 +11,26 @@
 #     [C] POST-RACE (-Post)    : run weekly_post.ps1 + sync-hf.ps1 + sync-hf-umami.ps1
 #
 # Typical week:
+#   TARGET から出したら data\_inbox\ に全部放り込む (出走表=S / 過去5走=K を先頭に)
+#     -> Phase A/C 冒頭の Step 0 で place_weekly.py が自動で正しい場所へ振り分ける。
+#        手動で place_weekly.py を先に走らせる必要はもう無い。 (-SkipIntake で無効化)
 #   Sat morning  (after TARGET export):
-#     .\weekly_nicegui.ps1                    # phase A: bundle to HF
+#     .\weekly_nicegui.ps1                    # phase A: intake -> bundle to HF
 #   Sat noon  (after Cowork returns bets):
 #     # save Cowork's JSON to reports\cowork_output\{date}_bets.json first
 #     .\weekly_nicegui.ps1 -BetsOnly          # phase B: bets to HF
 #   Sun night (after TARGET kekka export):
-#     .\weekly_nicegui.ps1 -Post              # phase C: results + HF
+#     .\weekly_nicegui.ps1 -Post              # phase C: intake -> results + HF
 #
 # Other usage:
 #   .\weekly_nicegui.ps1 20260502             # specify date
 #   .\weekly_nicegui.ps1 20260502 -SkipHF     # local + GitHub only
 #   .\weekly_nicegui.ps1 20260502 -SkipPredict # skip predict_weekly.py
 #   .\weekly_nicegui.ps1 20260502 -SkipGit    # local generation only
+#   .\weekly_nicegui.ps1 -SkipIntake          # data\_inbox\ 自動振り分けをしない
 #
 # Phase A steps (default):
+#   0. place_weekly.py          -> data\_inbox\ の CSV を weekly/kako5/kekka/training/bias へ振り分け
 #   1. make_weekly_hosei.py     -> data/hosei/H_{date}.csv
 #   2. predict_weekly.py        -> reports/pred_{date}.csv  (Streamlit)
 #   3. export_weekly_marks.py   -> reports/cowork_input/{date}_bundle.json
@@ -41,6 +46,7 @@ param(
     [switch]$SkipGit,
     [switch]$BetsOnly,
     [switch]$Post,
+    [switch]$SkipIntake,  # data\_inbox\ の自動振り分け (place_weekly.py) をスキップ
     [switch]$Force   # 見送りガードが実行できなくても続行する明示バイパス (fail-closed の解除)
 )
 
@@ -60,6 +66,36 @@ function Warn($msg) {
 function Fail($msg) {
     Write-Host "    FAIL: $msg" -ForegroundColor Red
     exit 1
+}
+
+# =================================================================
+# Step 0: intake auto-sort  (data\_inbox\ -> weekly / kako5 / kekka / training / bias)
+#   place_weekly.py を週次フローに前置。data\_inbox\ に放り込んだ TARGET エクスポートを
+#   ファイル名(S/K/H-/W-/OD) と中身(15列=結果 / 174列=払戻→実現バイアス自動生成) で
+#   自動振り分けする。ここで data\weekly\{date}.csv 等が置かれるので、この後の
+#   「日付自動検出」が効く。BetsOnly(Phase B) は _inbox を使わないため対象外。
+#   -SkipIntake で明示スキップ。CSV が無ければ何もしない (no-op)。
+# =================================================================
+if ((-not $BetsOnly) -and (-not $SkipIntake)) {
+    $inboxCsv = @()
+    if (Test-Path 'data\_inbox') {
+        $inboxCsv = @(Get-ChildItem 'data\_inbox' -Filter '*.csv' -ErrorAction SilentlyContinue)
+    }
+    if ($inboxCsv.Count -gt 0) {
+        Step "[0] place_weekly.py (data\_inbox\ の $($inboxCsv.Count) 件を自動振り分け)"
+        $prevUtf8 = $env:PYTHONUTF8
+        $env:PYTHONUTF8 = '1'
+        python place_weekly.py
+        if ($LASTEXITCODE -ne 0) {
+            Warn "place_weekly.py が非ゼロ終了 (未振り分けは data\_inbox\ に残置)。続行します。"
+        } else {
+            OK "intake 完了 (振り分け先は上記ログ参照)"
+        }
+        if ($null -eq $prevUtf8) { Remove-Item Env:\PYTHONUTF8 -ErrorAction SilentlyContinue }
+        else { $env:PYTHONUTF8 = $prevUtf8 }
+    } else {
+        Write-Host "==> [0] intake: data\_inbox\ に CSV なし -> 振り分けスキップ" -ForegroundColor DarkGray
+    }
 }
 
 # -- Determine date (mode-aware) --
