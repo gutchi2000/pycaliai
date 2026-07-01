@@ -1,0 +1,94 @@
+{
+  "classifier": "field_chaos_score (NORMALIZED entropy/log(n)) from production race_confidence; per-split chaos quartiles; primary on CALIBRATED p_win (tansho isotonic v6, renormalized)",
+  "p_win_basis": "CALIBRATED (models/pl_calibrators_v6.pkl ['calibrators']['tansho'] isotonic .predict applied to all_tansho(pl_w), then renormalized). Raw-win chaos also tested as sensitivity.",
+  "baselines": [
+    {
+      "name": "B0_probfirst_top6",
+      "test_roi": 82.223,
+      "ci_low": 77.218,
+      "ci_high": 87.304,
+      "capture_pct": 27.923,
+      "stake_per_race": 6000.0,
+      "n_races": 6833,
+      "valid_roi": 79.849
+    },
+    {
+      "name": "B2_user_system",
+      "test_roi": 77.482,
+      "ci_low": 73.466,
+      "ci_high": 81.626,
+      "capture_pct": 36.66,
+      "stake_per_race": 9579.0,
+      "n_races": 6833,
+      "valid_roi": 72.173
+    },
+    {
+      "name": "B4_reversed",
+      "test_roi": 76.036,
+      "ci_low": 71.46,
+      "ci_high": 80.644,
+      "capture_pct": 38.49,
+      "stake_per_race": 9581.5,
+      "n_races": 6833,
+      "valid_roi": 69.919
+    }
+  ],
+  "per_tier": [
+    {
+      "tier": "固い->F4",
+      "n_races_test": 1710,
+      "avg_points": 5.0,
+      "stake_per_combo": 2000,
+      "capture_pct": 36.257,
+      "roi_pct": 84.809,
+      "roi_ci_low": 77.209,
+      "roi_ci_high": 93.361
+    },
+    {
+      "tier": "やや固->F3",
+      "n_races_test": 1708,
+      "avg_points": 10.0,
+      "stake_per_combo": 1000,
+      "capture_pct": 36.827,
+      "roi_pct": 78.51,
+      "roi_ci_low": 70.806,
+      "roi_ci_high": 86.256
+    },
+    {
+      "tier": "やや荒->F2",
+      "n_races_test": 1707,
+      "avg_points": 15.89,
+      "stake_per_combo": 600,
+      "capture_pct": 38.137,
+      "roi_pct": 73.583,
+      "roi_ci_low": 66.41,
+      "roi_ci_high": 81.243
+    },
+    {
+      "tier": "荒れ->F1",
+      "n_races_test": 1708,
+      "avg_points": 21.95,
+      "stake_per_combo": 400,
+      "capture_pct": 35.422,
+      "roi_pct": 72.186,
+      "roi_ci_low": 62.819,
+      "roi_ci_high": 81.458
+    }
+  ],
+  "tiered_system": {
+    "test_roi": 77.482,
+    "ci_low": 73.466,
+    "ci_high": 81.626,
+    "valid_roi": 72.173,
+    "stake_per_race": 9579.0,
+    "era_2024_roi": 80.129,
+    "era_2025_roi": 74.833,
+    "fixed_threshold_test_roi": 77.734
+  },
+  "vs_probfirst_delta_pt": -4.741,
+  "vs_reversed_delta_pt": 1.446,
+  "tiers_separate": false,
+  "beats_probfirst": false,
+  "beats_breakeven": false,
+  "notes": "B0 valid=79.85; B2 valid=72.17; raw-win-chaos B2 test ROI=78.83 (sensitivity); fixed(valid-edges) B2=77.73. Per-split percentile is mildly in-sample favorable (reported alongside valid-derived fixed-threshold). Dropped 29 races (n<3 or bad trio). pop_rank NaN -> market_agreement skipped for those races (chaos unaffected)."
+}

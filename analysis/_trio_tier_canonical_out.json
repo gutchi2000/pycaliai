@@ -1,0 +1,133 @@
+{
+  "proxy": "PL_entropy_quartiles_on_model_rank_per_split",
+  "column_basis": "model_rank (1=◎). Formations are over RANK positions; combo bought iff some perm maps ranks to (A,B,C). Entropy quartiles computed separately per split.",
+  "baselines": [
+    {
+      "name": "B0",
+      "test_roi": 82.2225474413386,
+      "ci_low": 77.21787038392117,
+      "ci_high": 87.30410629786819,
+      "capture_pct": 27.923313332357676,
+      "stake_per_race": 6000.0,
+      "valid_roi": 79.84879424348502,
+      "n_races": 6833
+    },
+    {
+      "name": "B1_F1",
+      "test_roi": 71.8696336195403,
+      "ci_low": 68.12782715384536,
+      "ci_high": 75.76456508379512,
+      "capture_pct": 48.44138738475048,
+      "stake_per_race": 8781.384457778428,
+      "valid_roi": 67.11967060698632,
+      "n_races": 6833
+    },
+    {
+      "name": "B1_F2",
+      "test_roi": 75.992760164324,
+      "ci_low": 72.18558831341008,
+      "ci_high": 79.95013608408392,
+      "capture_pct": 43.23137714034831,
+      "stake_per_race": 9533.089418996049,
+      "valid_roi": 68.95031977862888,
+      "n_races": 6833
+    },
+    {
+      "name": "B1_F3",
+      "test_roi": 78.69354602663545,
+      "ci_low": 74.16460559051662,
+      "ci_high": 83.37212790867846,
+      "capture_pct": 34.74315820283916,
+      "stake_per_race": 10000.0,
+      "valid_roi": 70.8281796966161,
+      "n_races": 6833
+    },
+    {
+      "name": "B1_F4",
+      "test_roi": 78.99253622127908,
+      "ci_low": 73.83987999414606,
+      "ci_high": 84.46605444168009,
+      "capture_pct": 23.76701302502561,
+      "stake_per_race": 10000.0,
+      "valid_roi": 78.69661610268378,
+      "n_races": 6833
+    },
+    {
+      "name": "B3",
+      "test_roi": 73.7061052259497,
+      "ci_low": 69.24268948218545,
+      "ci_high": 78.36724815689223,
+      "capture_pct": 35.38709205327089,
+      "stake_per_race": 13248.79262403044,
+      "valid_roi": 68.14513110675678,
+      "n_races": 6833
+    },
+    {
+      "name": "B4",
+      "test_roi": 75.16914927415807,
+      "ci_low": 70.35154419181553,
+      "ci_high": 79.73910524825823,
+      "capture_pct": 39.67510610273672,
+      "stake_per_race": 9581.267378896531,
+      "valid_roi": 72.81943125654323,
+      "n_races": 6833
+    }
+  ],
+  "per_tier": [
+    {
+      "tier": "F1",
+      "n_races_test": 1708,
+      "avg_points": 22.0,
+      "stake_per_combo": 400,
+      "capture_pct": 26.52224824355972,
+      "roi_pct": 64.5055354481584,
+      "roi_ci_low": 56.67968916329573,
+      "roi_ci_high": 73.68010831381734
+    },
+    {
+      "tier": "F2",
+      "n_races_test": 1708,
+      "avg_points": 16.0,
+      "stake_per_combo": 600,
+      "capture_pct": 34.19203747072599,
+      "roi_pct": 76.66605679156908,
+      "roi_ci_low": 68.65015734777518,
+      "roi_ci_high": 84.9466206820843
+    },
+    {
+      "tier": "F3",
+      "n_races_test": 1708,
+      "avg_points": 10.0,
+      "stake_per_combo": 1000,
+      "capture_pct": 37.88056206088993,
+      "roi_pct": 85.04918032786885,
+      "roi_ci_low": 76.30150761124122,
+      "roi_ci_high": 94.91343676814986
+    },
+    {
+      "tier": "F4",
+      "n_races_test": 1709,
+      "avg_points": 5.0,
+      "stake_per_combo": 2000,
+      "capture_pct": 42.94909303686366,
+      "roi_pct": 82.02574605032183,
+      "roi_ci_low": 75.36064950263311,
+      "roi_ci_high": 88.90254534815679
+    }
+  ],
+  "tiered_system": {
+    "test_roi": 77.45882446201972,
+    "ci_low": 73.49535887924304,
+    "ci_high": 81.61798524698987,
+    "valid_roi": 70.79863136911707,
+    "stake_per_race": 9600.058539440948,
+    "era_2024_roi": 80.7767876707326,
+    "era_2025_roi": 74.12874021039256
+  },
+  "vs_probfirst_delta_pt": -4.763722979318885,
+  "vs_reversed_delta_pt": 2.289675187861647,
+  "tiers_separate": true,
+  "beats_probfirst": false,
+  "beats_breakeven": false,
+  "notes": ""
+}

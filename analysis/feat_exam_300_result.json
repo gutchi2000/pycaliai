@@ -1,0 +1,1835 @@
+{
+ "built": 296,
+ "failed": 2,
+ "baseline_auc": 0.76115,
+ "survivors": [
+  "fukusho_room",
+  "field_fill_ratio",
+  "is_small_field",
+  "course_top3_x_class_ord",
+  "course_jockey_trainer_prod_race_z",
+  "class_x_prevpos",
+  "f27_expgood_x_agari",
+  "hosei_rank_top20_flag",
+  "hosei9_z_x_coursetop3",
+  "hosei_improve_prev_minus_prev9",
+  "f04_expgood_ratio_z",
+  "jockey_trainer_fuku90_prod_race_z",
+  "crs_top3_x_jky_top3_rank",
+  "hosei_x_chakusa_rpct",
+  "f15_hid_minus_exp_z",
+  "rate_dispersion_in_race",
+  "jockey_fuku90_x_prev_hosei_race_z",
+  "jockey_fuku90_race_z",
+  "classup_flag_x_prevmargin",
+  "layoff_nth_x_classord"
+ ],
+ "ranked": [
+  {
+   "name": "fukusho_room",
+   "part_corr": 0.11306,
+   "built": true,
+   "uni_auc": 0.5759,
+   "delta_auc": 0.00744
+  },
+  {
+   "name": "field_fill_ratio",
+   "part_corr": -0.0905,
+   "built": true,
+   "uni_auc": 0.567,
+   "delta_auc": 0.00674
+  },
+  {
+   "name": "is_small_field",
+   "part_corr": 0.08759,
+   "built": true,
+   "uni_auc": 0.5298,
+   "delta_auc": 0.00386
+  },
+  {
+   "name": "course_top3_x_class_ord",
+   "part_corr": -0.08533,
+   "built": true,
+   "uni_auc": 0.5354,
+   "delta_auc": 0.00488
+  },
+  {
+   "name": "course_jockey_trainer_prod_race_z",
+   "part_corr": 0.08476,
+   "built": true,
+   "uni_auc": 0.6385,
+   "delta_auc": 0.00134
+  },
+  {
+   "name": "class_x_prevpos",
+   "part_corr": -0.08385,
+   "built": true,
+   "uni_auc": 0.5324,
+   "delta_auc": 0.00497
+  },
+  {
+   "name": "f27_expgood_x_agari",
+   "part_corr": 0.08344,
+   "built": true,
+   "uni_auc": 0.6703,
+   "delta_auc": 0.00052
+  },
+  {
+   "name": "hosei_rank_top20_flag",
+   "part_corr": 0.07986,
+   "built": true,
+   "uni_auc": 0.6184,
+   "delta_auc": 0.00114
+  },
+  {
+   "name": "hosei9_z_x_coursetop3",
+   "part_corr": 0.07858,
+   "built": true,
+   "uni_auc": 0.6704,
+   "delta_auc": 0.00275
+  },
+  {
+   "name": "hosei_improve_prev_minus_prev9",
+   "part_corr": 0.07795,
+   "built": true,
+   "uni_auc": 0.5076,
+   "delta_auc": 0.0036
+  },
+  {
+   "name": "f04_expgood_ratio_z",
+   "part_corr": 0.07531,
+   "built": true,
+   "uni_auc": 0.6898,
+   "delta_auc": 0.00109
+  },
+  {
+   "name": "jockey_trainer_fuku90_prod_race_z",
+   "part_corr": 0.07306,
+   "built": true,
+   "uni_auc": 0.6639,
+   "delta_auc": 0.00099
+  },
+  {
+   "name": "crs_top3_x_jky_top3_rank",
+   "part_corr": 0.07206,
+   "built": true,
+   "uni_auc": 0.631,
+   "delta_auc": 0.00205
+  },
+  {
+   "name": "hosei_x_chakusa_rpct",
+   "part_corr": 0.06716,
+   "built": true,
+   "uni_auc": 0.6296,
+   "delta_auc": 0.0038
+  },
+  {
+   "name": "f15_hid_minus_exp_z",
+   "part_corr": -0.06693,
+   "built": true,
+   "uni_auc": 0.6747,
+   "delta_auc": 0.00111
+  },
+  {
+   "name": "rate_dispersion_in_race",
+   "part_corr": 0.0667,
+   "built": true,
+   "uni_auc": 0.6521,
+   "delta_auc": 0.00111
+  },
+  {
+   "name": "jockey_fuku90_x_prev_hosei_race_z",
+   "part_corr": 0.06635,
+   "built": true,
+   "uni_auc": 0.5274,
+   "delta_auc": 0.00124
+  },
+  {
+   "name": "jockey_fuku90_race_z",
+   "part_corr": 0.06424,
+   "built": true,
+   "uni_auc": 0.6535,
+   "delta_auc": 0.00082
+  },
+  {
+   "name": "classup_flag_x_prevmargin",
+   "part_corr": -0.06171,
+   "built": true,
+   "uni_auc": 0.5282,
+   "delta_auc": 0.00318
+  },
+  {
+   "name": "layoff_nth_x_classord",
+   "part_corr": -0.06071,
+   "built": true,
+   "uni_auc": 0.502,
+   "delta_auc": 0.00334
+  },
+  {
+   "name": "hosei9_race_rank",
+   "part_corr": -0.06027,
+   "built": true,
+   "uni_auc": 0.6448
+  },
+  {
+   "name": "jockey_top3_rate_race_z",
+   "part_corr": 0.05704,
+   "built": true,
+   "uni_auc": 0.6111
+  },
+  {
+   "name": "course_top3_minus_race_max",
+   "part_corr": 0.05682,
+   "built": true,
+   "uni_auc": 0.5828
+  },
+  {
+   "name": "prevhosei9_z",
+   "part_corr": 0.05568,
+   "built": true,
+   "uni_auc": 0.6934
+  },
+  {
+   "name": "hosei9_rpct",
+   "part_corr": 0.05509,
+   "built": true,
+   "uni_auc": 0.6633
+  },
+  {
+   "name": "course_top3_rel_in_race",
+   "part_corr": 0.05352,
+   "built": true,
+   "uni_auc": 0.5873
+  },
+  {
+   "name": "horse_course_prod_race_rank",
+   "part_corr": 0.05319,
+   "built": true,
+   "uni_auc": 0.6203
+  },
+  {
+   "name": "course_top3_x_prev_hosei_race_z",
+   "part_corr": 0.05168,
+   "built": true,
+   "uni_auc": 0.5461
+  },
+  {
+   "name": "prevpos_relative_to_prevfield",
+   "part_corr": -0.0514,
+   "built": true,
+   "uni_auc": 0.5125
+  },
+  {
+   "name": "jockey_fuku90_race_rank",
+   "part_corr": 0.05027,
+   "built": true,
+   "uni_auc": 0.6502
+  },
+  {
+   "name": "f12_prevposfrac_z",
+   "part_corr": -0.0494,
+   "built": true,
+   "uni_auc": 0.6876
+  },
+  {
+   "name": "course_top3_minus_field",
+   "part_corr": 0.0481,
+   "built": true,
+   "uni_auc": 0.591
+  },
+  {
+   "name": "course_rate_dev_in_race",
+   "part_corr": 0.0476,
+   "built": true,
+   "uni_auc": 0.5876
+  },
+  {
+   "name": "course_rate_reliability_weighted_race_z",
+   "part_corr": 0.04656,
+   "built": true,
+   "uni_auc": 0.591
+  },
+  {
+   "name": "course_top3_rate_race_z",
+   "part_corr": 0.04577,
+   "built": true,
+   "uni_auc": 0.5892
+  },
+  {
+   "name": "distchg_x_grade_softturf",
+   "part_corr": -0.04487,
+   "built": true,
+   "uni_auc": 0.5017
+  },
+  {
+   "name": "interval_x_career_stage",
+   "part_corr": -0.04433,
+   "built": true,
+   "uni_auc": 0.5191
+  },
+  {
+   "name": "jockey_trainer_fuku90_prod",
+   "part_corr": 0.04432,
+   "built": true,
+   "uni_auc": 0.6616
+  },
+  {
+   "name": "course_exp_x_class_up",
+   "part_corr": -0.04399,
+   "built": true,
+   "uni_auc": 0.5008
+  },
+  {
+   "name": "jockey_above_race_mean_flag",
+   "part_corr": 0.04218,
+   "built": true,
+   "uni_auc": 0.613
+  },
+  {
+   "name": "f16_cons_x_peak_z",
+   "part_corr": 0.0417,
+   "built": true,
+   "uni_auc": 0.6552
+  },
+  {
+   "name": "f22_histcond_top3_rank",
+   "part_corr": 0.04154,
+   "built": true,
+   "uni_auc": 0.6523
+  },
+  {
+   "name": "young_fresh_flag",
+   "part_corr": 0.04111,
+   "built": true,
+   "uni_auc": 0.5216
+  },
+  {
+   "name": "prevhosei_rpct",
+   "part_corr": 0.0402,
+   "built": true,
+   "uni_auc": 0.6565
+  },
+  {
+   "name": "f19_prevhosei_rank",
+   "part_corr": 0.0402,
+   "built": true,
+   "uni_auc": 0.6565
+  },
+  {
+   "name": "trn90_x_layoff",
+   "part_corr": -0.03979,
+   "built": true,
+   "uni_auc": 0.534
+  },
+  {
+   "name": "prevpos_in_field_z",
+   "part_corr": -0.03959,
+   "built": true,
+   "uni_auc": 0.685
+  },
+  {
+   "name": "field_size_change_x_class",
+   "part_corr": -0.03952,
+   "built": true,
+   "uni_auc": 0.5037
+  },
+  {
+   "name": "kinryo_per_body_x_handi",
+   "part_corr": -0.03929,
+   "built": true,
+   "uni_auc": 0.5019
+  },
+  {
+   "name": "class_x_prevpos_x_field_pressure",
+   "part_corr": -0.03868,
+   "built": true,
+   "uni_auc": 0.595
+  },
+  {
+   "name": "trainer_fuku90_race_z",
+   "part_corr": 0.03844,
+   "built": true,
+   "uni_auc": 0.6089
+  },
+  {
+   "name": "f02_momentum_z",
+   "part_corr": 0.03841,
+   "built": true,
+   "uni_auc": 0.5619
+  },
+  {
+   "name": "course_jockey_trainer_rate_prod",
+   "part_corr": 0.03818,
+   "built": true,
+   "uni_auc": 0.6354
+  },
+  {
+   "name": "hosei_z_in_race",
+   "part_corr": 0.03817,
+   "built": true,
+   "uni_auc": 0.6842
+  },
+  {
+   "name": "f07_prevhosei_z",
+   "part_corr": 0.03817,
+   "built": true,
+   "uni_auc": 0.6842
+  },
+  {
+   "name": "prevhosei_z",
+   "part_corr": 0.03817,
+   "built": true,
+   "uni_auc": 0.6842
+  },
+  {
+   "name": "prev_hosei_race_z",
+   "part_corr": 0.03817,
+   "built": true,
+   "uni_auc": 0.6842
+  },
+  {
+   "name": "hosei_race_z",
+   "part_corr": 0.03817,
+   "built": true,
+   "uni_auc": 0.6842
+  },
+  {
+   "name": "hosei_z_resid",
+   "part_corr": 0.03817,
+   "built": true,
+   "uni_auc": 0.6842
+  },
+  {
+   "name": "hosei_z_in_race2",
+   "part_corr": 0.03817,
+   "built": true,
+   "uni_auc": 0.6842
+  },
+  {
+   "name": "prev_class_drop_strength",
+   "part_corr": 0.03782,
+   "built": true,
+   "uni_auc": 0.6106
+  },
+  {
+   "name": "layoff_bin",
+   "part_corr": -0.03694,
+   "built": true,
+   "uni_auc": 0.5103
+  },
+  {
+   "name": "prevhosei_z_orthog_kako5",
+   "part_corr": 0.03686,
+   "built": true,
+   "uni_auc": 0.565
+  },
+  {
+   "name": "trainer_fuku90_race_rank",
+   "part_corr": 0.03565,
+   "built": true,
+   "uni_auc": 0.606
+  },
+  {
+   "name": "rotation_bin",
+   "part_corr": -0.0354,
+   "built": true,
+   "uni_auc": 0.5116
+  },
+  {
+   "name": "jky_x_crs_top3",
+   "part_corr": 0.03496,
+   "built": true,
+   "uni_auc": 0.6171
+  },
+  {
+   "name": "hosei_rel_in_race",
+   "part_corr": 0.03472,
+   "built": true,
+   "uni_auc": 0.6829
+  },
+  {
+   "name": "prev_hosei_rel",
+   "part_corr": 0.03472,
+   "built": true,
+   "uni_auc": 0.6829
+  },
+  {
+   "name": "prev_margin_per100m_field_rank",
+   "part_corr": -0.03461,
+   "built": true,
+   "uni_auc": 0.6411
+  },
+  {
+   "name": "f18_proj_pos_z",
+   "part_corr": -0.03439,
+   "built": true,
+   "uni_auc": 0.705
+  },
+  {
+   "name": "chakusa_race_z",
+   "part_corr": -0.0339,
+   "built": true,
+   "uni_auc": 0.6388
+  },
+  {
+   "name": "prev_agari_vs_kako_ratio",
+   "part_corr": -0.03309,
+   "built": true,
+   "uni_auc": 0.5003
+  },
+  {
+   "name": "f26_cons_mom_z",
+   "part_corr": -0.03308,
+   "built": true,
+   "uni_auc": 0.5558
+  },
+  {
+   "name": "fresh_strong_horse",
+   "part_corr": -0.03304,
+   "built": true,
+   "uni_auc": 0.5337
+  },
+  {
+   "name": "layoff_return_flag",
+   "part_corr": -0.03288,
+   "built": true,
+   "uni_auc": 0.5162
+  },
+  {
+   "name": "fresh_off_layoff",
+   "part_corr": -0.03287,
+   "built": true,
+   "uni_auc": 0.5181
+  },
+  {
+   "name": "chakusa_rpct",
+   "part_corr": -0.0328,
+   "built": true,
+   "uni_auc": 0.6122
+  },
+  {
+   "name": "prev_margin_field_rank",
+   "part_corr": -0.0328,
+   "built": true,
+   "uni_auc": 0.6122
+  },
+  {
+   "name": "prev_pci_rank_minus_margin_rank",
+   "part_corr": 0.03252,
+   "built": true,
+   "uni_auc": 0.6126
+  },
+  {
+   "name": "hosei9_minus_hosei_x_baba",
+   "part_corr": -0.03225,
+   "built": true,
+   "uni_auc": 0.5026
+  },
+  {
+   "name": "course_win_to_top3_ratio",
+   "part_corr": -0.03076,
+   "built": true,
+   "uni_auc": 0.5173
+  },
+  {
+   "name": "hosei_z_div_fieldspread",
+   "part_corr": 0.03065,
+   "built": true,
+   "uni_auc": 0.6731
+  },
+  {
+   "name": "trn90_layoff_long_flag",
+   "part_corr": -0.03028,
+   "built": true,
+   "uni_auc": 0.5078
+  },
+  {
+   "name": "prev_margin_field_z",
+   "part_corr": -0.02971,
+   "built": true,
+   "uni_auc": 0.6735
+  },
+  {
+   "name": "f23_prevmargin_z",
+   "part_corr": -0.02971,
+   "built": true,
+   "uni_auc": 0.6735
+  },
+  {
+   "name": "prev_chakusa_race_z",
+   "part_corr": 0.02971,
+   "built": true,
+   "uni_auc": 0.6735
+  },
+  {
+   "name": "chakusa_z_resid",
+   "part_corr": 0.02971,
+   "built": true,
+   "uni_auc": 0.6735
+  },
+  {
+   "name": "f30_ceil_spread_z",
+   "part_corr": -0.02923,
+   "built": true,
+   "uni_auc": 0.5721
+  },
+  {
+   "name": "prev_margin_per_furlong",
+   "part_corr": 0.02824,
+   "built": true,
+   "uni_auc": 0.6396
+  },
+  {
+   "name": "f03_bestavg_gap_z",
+   "part_corr": -0.02821,
+   "built": true,
+   "uni_auc": 0.5697
+  },
+  {
+   "name": "trn30_x_short_layoff",
+   "part_corr": 0.0279,
+   "built": true,
+   "uni_auc": 0.5183
+  },
+  {
+   "name": "prev_margin_rank_minus_pci3_rank",
+   "part_corr": -0.02777,
+   "built": true,
+   "uni_auc": 0.6009
+  },
+  {
+   "name": "f01_cons_inv_std_z",
+   "part_corr": 0.02741,
+   "built": true,
+   "uni_auc": 0.5373
+  },
+  {
+   "name": "prev_margin_per_100m",
+   "part_corr": 0.02709,
+   "built": true,
+   "uni_auc": 0.6373
+  },
+  {
+   "name": "chakusa_perhead_z",
+   "part_corr": -0.02704,
+   "built": true,
+   "uni_auc": 0.6683
+  },
+  {
+   "name": "agari_improve_kako_minus_prev",
+   "part_corr": 0.02673,
+   "built": true,
+   "uni_auc": 0.5235
+  },
+  {
+   "name": "jky_crs_top3_min",
+   "part_corr": 0.02663,
+   "built": true,
+   "uni_auc": 0.5882
+  },
+  {
+   "name": "hosei9_minus_hosei_z",
+   "part_corr": 0.02539,
+   "built": true,
+   "uni_auc": 0.5094
+  },
+  {
+   "name": "hosei_minus_hosei9_z",
+   "part_corr": -0.02539,
+   "built": true,
+   "uni_auc": 0.5094
+  },
+  {
+   "name": "hosei_x_agari_rpct",
+   "part_corr": 0.02516,
+   "built": true,
+   "uni_auc": 0.6351
+  },
+  {
+   "name": "prev_margin_sec",
+   "part_corr": 0.0251,
+   "built": true,
+   "uni_auc": 0.6357
+  },
+  {
+   "name": "course_top3_x_field",
+   "part_corr": 0.02476,
+   "built": true,
+   "uni_auc": 0.5688
+  },
+  {
+   "name": "margin_z_in_race",
+   "part_corr": -0.02338,
+   "built": true,
+   "uni_auc": 0.6718
+  },
+  {
+   "name": "chakusa_per_distratio_z",
+   "part_corr": -0.02335,
+   "built": true,
+   "uni_auc": 0.6743
+  },
+  {
+   "name": "f29_hidbin_x_hosei",
+   "part_corr": -0.02321,
+   "built": true,
+   "uni_auc": 0.5067
+  },
+  {
+   "name": "prev_avg1f_rank_x_margin_rank",
+   "part_corr": -0.02299,
+   "built": true,
+   "uni_auc": 0.6082
+  },
+  {
+   "name": "f13_bestpos_z",
+   "part_corr": 0.02282,
+   "built": true,
+   "uni_auc": 0.6696
+  },
+  {
+   "name": "f24_bestpos_perfield_z",
+   "part_corr": 0.02282,
+   "built": true,
+   "uni_auc": 0.6696
+  },
+  {
+   "name": "corner4_x_fieldsize_now",
+   "part_corr": -0.0228,
+   "built": true,
+   "uni_auc": 0.5972
+  },
+  {
+   "name": "course_winrate_x_dist",
+   "part_corr": -0.02263,
+   "built": true,
+   "uni_auc": 0.5187
+  },
+  {
+   "name": "age_x_dist_resid",
+   "part_corr": -0.02226,
+   "built": true,
+   "uni_auc": 0.5686
+  },
+  {
+   "name": "interval_per_age",
+   "part_corr": -0.02158,
+   "built": true,
+   "uni_auc": 0.5018
+  },
+  {
+   "name": "layoff_per_age",
+   "part_corr": -0.02158,
+   "built": true,
+   "uni_auc": 0.5018
+  },
+  {
+   "name": "agari_improve_rel_in_race",
+   "part_corr": 0.02133,
+   "built": true,
+   "uni_auc": 0.5258
+  },
+  {
+   "name": "cond_match_x_prev_margin",
+   "part_corr": 0.02128,
+   "built": true,
+   "uni_auc": 0.5354
+  },
+  {
+   "name": "waku_inner_short",
+   "part_corr": 0.021,
+   "built": true,
+   "uni_auc": 0.5123
+  },
+  {
+   "name": "prev_pci_x_avg1f_rank_interaction",
+   "part_corr": 0.02068,
+   "built": true,
+   "uni_auc": 0.5731
+  },
+  {
+   "name": "dist_change_abs_rel_in_race",
+   "part_corr": -0.02061,
+   "built": true,
+   "uni_auc": 0.5641
+  },
+  {
+   "name": "f17_spec_edge_z",
+   "part_corr": 0.02058,
+   "built": true,
+   "uni_auc": 0.6352
+  },
+  {
+   "name": "trn_dual_accel_z",
+   "part_corr": 0.02048,
+   "built": true,
+   "uni_auc": 0.5393
+  },
+  {
+   "name": "jockey_win_rate_race_z",
+   "part_corr": 0.02041,
+   "built": true,
+   "uni_auc": 0.5421
+  },
+  {
+   "name": "hosei_z_x_coursewin",
+   "part_corr": 0.02023,
+   "built": true,
+   "uni_auc": 0.6204
+  },
+  {
+   "name": "cond_match_full_boost",
+   "part_corr": 0.01994,
+   "built": true,
+   "uni_auc": 0.5271
+  },
+  {
+   "name": "prev_margin_per100_rel_in_race",
+   "part_corr": -0.01959,
+   "built": true,
+   "uni_auc": 0.6748
+  },
+  {
+   "name": "trnW_accel_z",
+   "part_corr": 0.0195,
+   "built": true,
+   "uni_auc": 0.5365
+  },
+  {
+   "name": "f08_prevagari_rank",
+   "part_corr": -0.01905,
+   "built": true,
+   "uni_auc": 0.5509
+  },
+  {
+   "name": "agari_rank_in_race",
+   "part_corr": -0.01897,
+   "built": true,
+   "uni_auc": 0.5508
+  },
+  {
+   "name": "f25_versatility_z",
+   "part_corr": 0.0187,
+   "built": true,
+   "uni_auc": 0.5675
+  },
+  {
+   "name": "horsefuku30_layoff_decay",
+   "part_corr": 0.01833,
+   "built": true,
+   "uni_auc": 0.6105
+  },
+  {
+   "name": "prev_agari_rel",
+   "part_corr": -0.01784,
+   "built": true,
+   "uni_auc": 0.5771
+  },
+  {
+   "name": "agari3f_z",
+   "part_corr": -0.01784,
+   "built": true,
+   "uni_auc": 0.5771
+  },
+  {
+   "name": "prev_agari3f_race_z",
+   "part_corr": 0.01784,
+   "built": true,
+   "uni_auc": 0.5771
+  },
+  {
+   "name": "agari3f_race_z",
+   "part_corr": -0.01784,
+   "built": true,
+   "uni_auc": 0.5771
+  },
+  {
+   "name": "agari_z_resid",
+   "part_corr": 0.01784,
+   "built": true,
+   "uni_auc": 0.5771
+  },
+  {
+   "name": "trnW_last3F_decel_ratio",
+   "part_corr": -0.01782,
+   "built": true,
+   "uni_auc": 0.5372
+  },
+  {
+   "name": "legpos_x_draw_x_field",
+   "part_corr": -0.01766,
+   "built": true,
+   "uni_auc": 0.5698
+  },
+  {
+   "name": "trnH_accel_rank_pct",
+   "part_corr": 0.01763,
+   "built": true,
+   "uni_auc": 0.5273
+  },
+  {
+   "name": "dist_chg_abs_x_field",
+   "part_corr": -0.01756,
+   "built": true,
+   "uni_auc": 0.5521
+  },
+  {
+   "name": "leg4kaku_rel_race_z",
+   "part_corr": -0.01753,
+   "built": true,
+   "uni_auc": 0.6107
+  },
+  {
+   "name": "pci_minus_rpci_x_legpos",
+   "part_corr": -0.01746,
+   "built": true,
+   "uni_auc": 0.5452
+  },
+  {
+   "name": "prev_avg1f_field_z_signflip_x_pci_rank",
+   "part_corr": 0.0174,
+   "built": true,
+   "uni_auc": 0.5679
+  },
+  {
+   "name": "prev_pci_minus_pci3_field_z",
+   "part_corr": 0.0172,
+   "built": true,
+   "uni_auc": 0.5621
+  },
+  {
+   "name": "prev_rpci_minus_pci_field_rank",
+   "part_corr": -0.01618,
+   "built": true,
+   "uni_auc": 0.5325
+  },
+  {
+   "name": "recon_bodyweight",
+   "part_corr": -0.01618,
+   "built": true,
+   "uni_auc": 0.5449
+  },
+  {
+   "name": "agari_rank_rel",
+   "part_corr": -0.01608,
+   "built": true,
+   "uni_auc": 0.5935
+  },
+  {
+   "name": "recon_bw_rel_in_race",
+   "part_corr": 0.01605,
+   "built": true,
+   "uni_auc": 0.5512
+  },
+  {
+   "name": "interval_z_in_race",
+   "part_corr": -0.01589,
+   "built": true,
+   "uni_auc": 0.5156
+  },
+  {
+   "name": "log_interval_minus_field",
+   "part_corr": -0.01551,
+   "built": true,
+   "uni_auc": 0.514
+  },
+  {
+   "name": "prevhosei_gap_to_best_z",
+   "part_corr": -0.0153,
+   "built": true,
+   "uni_auc": 0.6474
+  },
+  {
+   "name": "course_top3_x_leg4kaku_rel",
+   "part_corr": 0.01527,
+   "built": true,
+   "uni_auc": 0.568
+  },
+  {
+   "name": "ave3f_minus_avg1f",
+   "part_corr": -0.01512,
+   "built": true,
+   "uni_auc": 0.5425
+  },
+  {
+   "name": "prev_avg1f_minus_field_min_norm",
+   "part_corr": -0.01489,
+   "built": true,
+   "uni_auc": 0.5527
+  },
+  {
+   "name": "recon_bw_change_from_prev",
+   "part_corr": -0.01464,
+   "built": true,
+   "uni_auc": 0.504
+  },
+  {
+   "name": "pci_minus_rpci",
+   "part_corr": -0.01461,
+   "built": true,
+   "uni_auc": 0.5479
+  },
+  {
+   "name": "prev_pci_gap",
+   "part_corr": -0.01461,
+   "built": true,
+   "uni_auc": 0.5479
+  },
+  {
+   "name": "jky_winrate_z",
+   "part_corr": 0.01458,
+   "built": true,
+   "uni_auc": 0.5312
+  },
+  {
+   "name": "prev_avg1f_field_z",
+   "part_corr": -0.01431,
+   "built": true,
+   "uni_auc": 0.5763
+  },
+  {
+   "name": "hosei_improve_x_uptrend",
+   "part_corr": 0.01423,
+   "built": true,
+   "uni_auc": 0.5434
+  },
+  {
+   "name": "prev_pci_minus_rpci_field_z",
+   "part_corr": 0.01366,
+   "built": true,
+   "uni_auc": 0.5541
+  },
+  {
+   "name": "dist_change_abs_x_layoff",
+   "part_corr": -0.01366,
+   "built": true,
+   "uni_auc": 0.5193
+  },
+  {
+   "name": "agari_rpct_x_pci_rpct",
+   "part_corr": 0.01356,
+   "built": true,
+   "uni_auc": 0.5627
+  },
+  {
+   "name": "f21_proven_peak_z",
+   "part_corr": 0.01295,
+   "built": true,
+   "uni_auc": 0.6447
+  },
+  {
+   "name": "f11_course_top3_rank",
+   "part_corr": 0.01259,
+   "built": true,
+   "uni_auc": 0.5578
+  },
+  {
+   "name": "crs_top3_rate_rank",
+   "part_corr": 0.01259,
+   "built": true,
+   "uni_auc": 0.5578
+  },
+  {
+   "name": "trnH_lap1lap2_ratio_z",
+   "part_corr": -0.01253,
+   "built": true,
+   "uni_auc": 0.526
+  },
+  {
+   "name": "waku_pos_x_dist_z",
+   "part_corr": -0.01242,
+   "built": true,
+   "uni_auc": 0.5091
+  },
+  {
+   "name": "trnH_sustain_x_recency",
+   "part_corr": -0.01238,
+   "built": true,
+   "uni_auc": 0.5198
+  },
+  {
+   "name": "pci_minus_rpci_z",
+   "part_corr": 0.01232,
+   "built": true,
+   "uni_auc": 0.5545
+  },
+  {
+   "name": "pci_minus_rpci_rel_in_race",
+   "part_corr": 0.0123,
+   "built": true,
+   "uni_auc": 0.5545
+  },
+  {
+   "name": "renchaku_flag",
+   "part_corr": 0.01186,
+   "built": true,
+   "uni_auc": 0.5043
+  },
+  {
+   "name": "trnW_lap1lap2_ratio_z",
+   "part_corr": -0.01167,
+   "built": true,
+   "uni_auc": 0.5173
+  },
+  {
+   "name": "trnH_accel_x_recency",
+   "part_corr": 0.01166,
+   "built": true,
+   "uni_auc": 0.5232
+  },
+  {
+   "name": "trnW_closing_rank_pct",
+   "part_corr": 0.01161,
+   "built": true,
+   "uni_auc": 0.5358
+  },
+  {
+   "name": "prev_margin_z_x_rpci_z",
+   "part_corr": -0.01133,
+   "built": true,
+   "uni_auc": 0.5039
+  },
+  {
+   "name": "prev_pci_field_z",
+   "part_corr": 0.01124,
+   "built": true,
+   "uni_auc": 0.5466
+  },
+  {
+   "name": "f09_prevpci_z",
+   "part_corr": 0.01124,
+   "built": true,
+   "uni_auc": 0.5466
+  },
+  {
+   "name": "pci_z",
+   "part_corr": 0.01124,
+   "built": true,
+   "uni_auc": 0.5466
+  },
+  {
+   "name": "pci_race_z",
+   "part_corr": 0.01124,
+   "built": true,
+   "uni_auc": 0.5466
+  },
+  {
+   "name": "trnH_full_sustain_z",
+   "part_corr": -0.01099,
+   "built": true,
+   "uni_auc": 0.5193
+  },
+  {
+   "name": "agari_rank_norm",
+   "part_corr": 0.01089,
+   "built": true,
+   "uni_auc": 0.5751
+  },
+  {
+   "name": "ave3f_rpct",
+   "part_corr": -0.01066,
+   "built": true,
+   "uni_auc": 0.5214
+  },
+  {
+   "name": "distdown_x_speed_agari",
+   "part_corr": -0.01062,
+   "built": true,
+   "uni_auc": 0.5176
+  },
+  {
+   "name": "trnH_accel_z",
+   "part_corr": 0.01061,
+   "built": true,
+   "uni_auc": 0.5228
+  },
+  {
+   "name": "course_experience_x_top3",
+   "part_corr": -0.01058,
+   "built": true,
+   "uni_auc": 0.5624
+  },
+  {
+   "name": "course_top3_rate_x_n_prev",
+   "part_corr": -0.01058,
+   "built": true,
+   "uni_auc": 0.5624
+  },
+  {
+   "name": "trnW_recency_w",
+   "part_corr": -0.01018,
+   "built": true,
+   "uni_auc": 0.5039
+  },
+  {
+   "name": "prev_pci_field_dev_x_field_n",
+   "part_corr": 0.00997,
+   "built": true,
+   "uni_auc": 0.5459
+  },
+  {
+   "name": "f20_bestagari_z",
+   "part_corr": -0.00977,
+   "built": true,
+   "uni_auc": 0.5426
+  },
+  {
+   "name": "prev_avg1f_field_z_x_distdown",
+   "part_corr": -0.00969,
+   "built": true,
+   "uni_auc": 0.5271
+  },
+  {
+   "name": "prev_corner_move",
+   "part_corr": -0.00964,
+   "built": true,
+   "uni_auc": 0.5355
+  },
+  {
+   "name": "kinryo_taiju_ratio_z_in_race",
+   "part_corr": -0.00964,
+   "built": true,
+   "uni_auc": 0.5333
+  },
+  {
+   "name": "horse_x_course_top3_prod",
+   "part_corr": 0.00955,
+   "built": true,
+   "uni_auc": 0.6163
+  },
+  {
+   "name": "trn_sharp_fresh",
+   "part_corr": -0.00954,
+   "built": true,
+   "uni_auc": 0.5066
+  },
+  {
+   "name": "hosei_per_dist_change",
+   "part_corr": -0.00933,
+   "built": true,
+   "uni_auc": 0.6091
+  },
+  {
+   "name": "trnH_recency_w",
+   "part_corr": -0.00925,
+   "built": true,
+   "uni_auc": 0.512
+  },
+  {
+   "name": "trn_both_fresh",
+   "part_corr": -0.009,
+   "built": true,
+   "uni_auc": 0.5066
+  },
+  {
+   "name": "trnW_4F5F_grad_z",
+   "part_corr": -0.00889,
+   "built": true,
+   "uni_auc": 0.5059
+  },
+  {
+   "name": "hosei_x_pci_z",
+   "part_corr": 0.00865,
+   "built": true,
+   "uni_auc": 0.5039
+  },
+  {
+   "name": "baba_heavy_x_closer",
+   "part_corr": 0.00825,
+   "built": true,
+   "uni_auc": 0.5049
+  },
+  {
+   "name": "agari_rank_x_baba",
+   "part_corr": -0.00816,
+   "built": true,
+   "uni_auc": 0.5394
+  },
+  {
+   "name": "f05_hidgood_ratio_z",
+   "part_corr": -0.00816,
+   "built": true,
+   "uni_auc": 0.5191
+  },
+  {
+   "name": "prev_pci_field_quartile_bin",
+   "part_corr": 0.00804,
+   "built": true,
+   "uni_auc": 0.5458
+  },
+  {
+   "name": "pace1f_x_dist_chg",
+   "part_corr": -0.00782,
+   "built": true,
+   "uni_auc": 0.5177
+  },
+  {
+   "name": "second_after_rest",
+   "part_corr": -0.00774,
+   "built": true,
+   "uni_auc": 0.5013
+  },
+  {
+   "name": "dist_change_bin",
+   "part_corr": -0.00773,
+   "built": true,
+   "uni_auc": 0.5049
+  },
+  {
+   "name": "prev_pci_field_z_x_fieldsize_change",
+   "part_corr": 0.00756,
+   "built": true,
+   "uni_auc": 0.5458
+  },
+  {
+   "name": "prev_pci_field_rank",
+   "part_corr": 0.00748,
+   "built": true,
+   "uni_auc": 0.5457
+  },
+  {
+   "name": "trnH_lap1_dev_from_horsebest",
+   "part_corr": 0.0074,
+   "built": true,
+   "uni_auc": 0.522
+  },
+  {
+   "name": "agari_pace_resid_z",
+   "part_corr": -0.00734,
+   "built": true,
+   "uni_auc": 0.5483
+  },
+  {
+   "name": "distup_x_stamina_agari",
+   "part_corr": -0.0073,
+   "built": true,
+   "uni_auc": 0.5209
+  },
+  {
+   "name": "jky_crs_top3_gap",
+   "part_corr": -0.00719,
+   "built": true,
+   "uni_auc": 0.5469
+  },
+  {
+   "name": "trip_short_inner_fullgate",
+   "part_corr": -0.00715,
+   "built": true,
+   "uni_auc": 0.5092
+  },
+  {
+   "name": "hosei_rank_bottom30_flag",
+   "part_corr": -0.00713,
+   "built": true,
+   "uni_auc": 0.5826
+  },
+  {
+   "name": "dist_shorten_x_sire_agari",
+   "part_corr": 0.00706,
+   "built": true,
+   "uni_auc": 0.5042
+  },
+  {
+   "name": "baba_x_leg4kaku_rel",
+   "part_corr": 0.00681,
+   "built": true,
+   "uni_auc": 0.5088
+  },
+  {
+   "name": "layoff_x_age_z",
+   "part_corr": -0.00681,
+   "built": true,
+   "uni_auc": 0.5151
+  },
+  {
+   "name": "prev_avg1f_z_x_pci_z",
+   "part_corr": -0.00681,
+   "built": true,
+   "uni_auc": 0.5184
+  },
+  {
+   "name": "comeback_x_horsefuku30",
+   "part_corr": -0.0068,
+   "built": true,
+   "uni_auc": 0.5811
+  },
+  {
+   "name": "weight_diff_x_age",
+   "part_corr": 0.00669,
+   "built": true,
+   "uni_auc": 0.5079
+  },
+  {
+   "name": "waku_rel",
+   "part_corr": 0.00661,
+   "built": true,
+   "uni_auc": 0.5072
+  },
+  {
+   "name": "trnW_full_speed_z",
+   "part_corr": -0.00641,
+   "built": true,
+   "uni_auc": 0.5155
+  },
+  {
+   "name": "trn_HW_closing_gap",
+   "part_corr": 0.00612,
+   "built": true,
+   "uni_auc": 0.5066
+  },
+  {
+   "name": "prev_pci_field_z_x_turf",
+   "part_corr": 0.00609,
+   "built": true,
+   "uni_auc": 0.5349
+  },
+  {
+   "name": "ave3f_z_x_dist",
+   "part_corr": 0.00605,
+   "built": true,
+   "uni_auc": 0.5337
+  },
+  {
+   "name": "kinryo_per_dist",
+   "part_corr": 0.00597,
+   "built": true,
+   "uni_auc": 0.5151
+  },
+  {
+   "name": "weight_per_dist",
+   "part_corr": 0.00597,
+   "built": true,
+   "uni_auc": 0.5151
+  },
+  {
+   "name": "dist_change_ratio",
+   "part_corr": -0.00584,
+   "built": true,
+   "uni_auc": 0.509
+  },
+  {
+   "name": "f14_avgagari_z",
+   "part_corr": -0.00571,
+   "built": true,
+   "uni_auc": 0.5538
+  },
+  {
+   "name": "trnH_lap2lap3_grad_z",
+   "part_corr": 0.00571,
+   "built": true,
+   "uni_auc": 0.5149
+  },
+  {
+   "name": "prevpos_resid_vs_hosei_z",
+   "part_corr": -0.00558,
+   "built": true,
+   "uni_auc": 0.5076
+  },
+  {
+   "name": "trainer_fuku_momentum",
+   "part_corr": 0.00555,
+   "built": true,
+   "uni_auc": 0.5087
+  },
+  {
+   "name": "trn_form_consistency",
+   "part_corr": -0.00555,
+   "built": true,
+   "uni_auc": 0.5087
+  },
+  {
+   "name": "is_inside_draw",
+   "part_corr": -0.00553,
+   "built": true,
+   "uni_auc": 0.5045
+  },
+  {
+   "name": "prev_pci3_minus_rpci_field_z",
+   "part_corr": -0.00549,
+   "built": true,
+   "uni_auc": 0.5067
+  },
+  {
+   "name": "prev_pci_minus_rpci_x_distup",
+   "part_corr": 0.00528,
+   "built": true,
+   "uni_auc": 0.5102
+  },
+  {
+   "name": "dist_change_signed",
+   "part_corr": -0.00505,
+   "built": true,
+   "uni_auc": 0.5149
+  },
+  {
+   "name": "trnW_days_normgap",
+   "part_corr": -0.00501,
+   "built": true,
+   "uni_auc": 0.5046
+  },
+  {
+   "name": "prev_rpci_field_z_x_route",
+   "part_corr": 0.00488,
+   "built": true,
+   "uni_auc": 0.5097
+  },
+  {
+   "name": "trn_HW_accel_agreement",
+   "part_corr": 0.00488,
+   "built": true,
+   "uni_auc": 0.5019
+  },
+  {
+   "name": "corner4_vs_pos_gap",
+   "part_corr": 0.00484,
+   "built": true,
+   "uni_auc": 0.5643
+  },
+  {
+   "name": "going_worse_flag",
+   "part_corr": 0.00464,
+   "built": true,
+   "uni_auc": 0.5002
+  },
+  {
+   "name": "kinryo_gain_x_classlevel",
+   "part_corr": -0.00453,
+   "built": true,
+   "uni_auc": 0.5014
+  },
+  {
+   "name": "weight_ratio_x_dist_chg",
+   "part_corr": -0.00449,
+   "built": true,
+   "uni_auc": 0.5147
+  },
+  {
+   "name": "trnH_recency_x_avglap",
+   "part_corr": 0.00445,
+   "built": true,
+   "uni_auc": 0.5135
+  },
+  {
+   "name": "uma_rel",
+   "part_corr": 0.00414,
+   "built": true,
+   "uni_auc": 0.504
+  },
+  {
+   "name": "agari_x_rpci_kickfit",
+   "part_corr": 0.00392,
+   "built": true,
+   "uni_auc": 0.5127
+  },
+  {
+   "name": "kinryo_change_x_dist",
+   "part_corr": -0.00392,
+   "built": true,
+   "uni_auc": 0.5045
+  },
+  {
+   "name": "trn_dual_closing_z",
+   "part_corr": 0.00392,
+   "built": true,
+   "uni_auc": 0.5254
+  },
+  {
+   "name": "waku_rank_in_field",
+   "part_corr": 0.00383,
+   "built": true,
+   "uni_auc": 0.5115
+  },
+  {
+   "name": "trnH_2F_grad_z",
+   "part_corr": -0.00381,
+   "built": true,
+   "uni_auc": 0.5151
+  },
+  {
+   "name": "distchg_x_dirt_to_turf_msire",
+   "part_corr": 0.00378,
+   "built": true,
+   "uni_auc": 0.5059
+  },
+  {
+   "name": "trnH_avglap_z",
+   "part_corr": 0.00369,
+   "built": true,
+   "uni_auc": 0.5148
+  },
+  {
+   "name": "trnH_time1_per_class_resid",
+   "part_corr": 0.00369,
+   "built": true,
+   "uni_auc": 0.5148
+  },
+  {
+   "name": "weight_ratio_dist_resid",
+   "part_corr": 0.00369,
+   "built": true,
+   "uni_auc": 0.5114
+  },
+  {
+   "name": "front_runner_x_inner_draw",
+   "part_corr": -0.00369,
+   "built": true,
+   "uni_auc": 0.5514
+  },
+  {
+   "name": "dist_extend_x_sire_avgagari",
+   "part_corr": -0.00369,
+   "built": true,
+   "uni_auc": 0.5061
+  },
+  {
+   "name": "distchg_abs_x_softturf",
+   "part_corr": -0.00368,
+   "built": true,
+   "uni_auc": 0.5014
+  },
+  {
+   "name": "baba_x_pace1f_rel",
+   "part_corr": 0.00352,
+   "built": true,
+   "uni_auc": 0.5259
+  },
+  {
+   "name": "jockey_fuku_momentum",
+   "part_corr": 0.0035,
+   "built": true,
+   "uni_auc": 0.5071
+  },
+  {
+   "name": "f06_samecond_best_z",
+   "part_corr": -0.00347,
+   "built": true,
+   "uni_auc": 0.6605
+  },
+  {
+   "name": "baba_good_x_outer_long",
+   "part_corr": -0.00347,
+   "built": true,
+   "uni_auc": 0.5009
+  },
+  {
+   "name": "prev_pci3_field_rank_x_route_short",
+   "part_corr": 0.00343,
+   "built": true,
+   "uni_auc": 0.5092
+  },
+  {
+   "name": "trn_HW_avail_pattern",
+   "part_corr": -0.00342,
+   "built": true,
+   "uni_auc": 0.5034
+  },
+  {
+   "name": "trn_closing_consensus",
+   "part_corr": 0.00341,
+   "built": true,
+   "uni_auc": 0.5154
+  },
+  {
+   "name": "baba_worsen_x_legpos_x_msire",
+   "part_corr": 0.00321,
+   "built": true,
+   "uni_auc": 0.5013
+  },
+  {
+   "name": "pace_shift_projection",
+   "part_corr": -0.00316,
+   "built": true,
+   "uni_auc": 0.5173
+  },
+  {
+   "name": "jockey_fuku_momentum_race_z",
+   "part_corr": -0.00304,
+   "built": true,
+   "uni_auc": 0.5058
+  },
+  {
+   "name": "prev_rpci_rel",
+   "part_corr": 0.00282,
+   "built": true,
+   "uni_auc": 0.5152
+  },
+  {
+   "name": "cond_match_x_kako5_same_dist",
+   "part_corr": 0.00278,
+   "built": true,
+   "uni_auc": 0.5467
+  },
+  {
+   "name": "is_outside_draw",
+   "part_corr": 0.00271,
+   "built": true,
+   "uni_auc": 0.5021
+  },
+  {
+   "name": "f28_prevpci3_z",
+   "part_corr": 0.0027,
+   "built": true,
+   "uni_auc": 0.5136
+  },
+  {
+   "name": "prev_pci3_field_z",
+   "part_corr": 0.0027,
+   "built": true,
+   "uni_auc": 0.5136
+  },
+  {
+   "name": "rpci_z",
+   "part_corr": 0.00252,
+   "built": true,
+   "uni_auc": 0.5146
+  },
+  {
+   "name": "prev_rpci_race_z",
+   "part_corr": 0.00252,
+   "built": true,
+   "uni_auc": 0.5146
+  },
+  {
+   "name": "rpci_z_resid",
+   "part_corr": 0.00252,
+   "built": true,
+   "uni_auc": 0.5146
+  },
+  {
+   "name": "rpci_z_in_race",
+   "part_corr": 0.00252,
+   "built": true,
+   "uni_auc": 0.5146
+  },
+  {
+   "name": "f10_prevrpci_z",
+   "part_corr": 0.00252,
+   "built": true,
+   "uni_auc": 0.5146
+  },
+  {
+   "name": "prev_rpci_field_z",
+   "part_corr": 0.00252,
+   "built": true,
+   "uni_auc": 0.5146
+  },
+  {
+   "name": "rpci_dev_x_pci_dev",
+   "part_corr": 0.00244,
+   "built": true,
+   "uni_auc": 0.5073
+  },
+  {
+   "name": "prev_bw_change_rate",
+   "part_corr": 0.00237,
+   "built": true,
+   "uni_auc": 0.5124
+  },
+  {
+   "name": "course_rate_reliability_weighted",
+   "part_corr": 0.00208,
+   "built": true,
+   "uni_auc": 0.581
+  },
+  {
+   "name": "legpos_x_rpci_pacefit",
+   "part_corr": 0.00197,
+   "built": true,
+   "uni_auc": 0.5147
+  },
+  {
+   "name": "dist_chg_x_sire_dist_rate",
+   "part_corr": 0.0019,
+   "built": true,
+   "uni_auc": 0.5019
+  },
+  {
+   "name": "prev_pci_field_rank_x_distchg_abs",
+   "part_corr": -0.0018,
+   "built": true,
+   "uni_auc": 0.5281
+  },
+  {
+   "name": "trnW_closing_z",
+   "part_corr": -0.00178,
+   "built": true,
+   "uni_auc": 0.5274
+  },
+  {
+   "name": "rpci_x_baba",
+   "part_corr": 0.00138,
+   "built": true,
+   "uni_auc": 0.504
+  },
+  {
+   "name": "prev_corner4_rel",
+   "part_corr": -0.00131,
+   "built": true,
+   "uni_auc": 0.5857
+  },
+  {
+   "name": "prev_pci_field_z_x_heavybaba",
+   "part_corr": 0.00126,
+   "built": true,
+   "uni_auc": 0.5048
+  },
+  {
+   "name": "waku_centrality_long",
+   "part_corr": 0.00126,
+   "built": true,
+   "uni_auc": 0.5117
+  },
+  {
+   "name": "distchg_ratio_x_baba_code",
+   "part_corr": -0.00123,
+   "built": true,
+   "uni_auc": 0.5035
+  },
+  {
+   "name": "legpos_proxy_prev4c",
+   "part_corr": -0.001,
+   "built": true,
+   "uni_auc": 0.5831
+  },
+  {
+   "name": "jockey_top3_minus_course_top3",
+   "part_corr": -0.00073,
+   "built": true,
+   "uni_auc": 0.5196
+  },
+  {
+   "name": "prev_bw_change_rate_abs_rel",
+   "part_corr": -0.00024,
+   "built": true,
+   "uni_auc": 0.5155
+  },
+  {
+   "name": "distup_x_stamina_siretype",
+   "part_corr": 0.00021,
+   "built": true,
+   "uni_auc": 0.5003
+  },
+  {
+   "name": "weight_carry_burden",
+   "part_corr": 0.0002,
+   "built": true,
+   "uni_auc": 0.5068
+  },
+  {
+   "name": "agari3f_gap_to_best",
+   "part_corr": -0.00015,
+   "built": true,
+   "uni_auc": 0.5481
+  },
+  {
+   "name": "ninki_pos_gap_x_field",
+   "part_corr": 0.0,
+   "built": false
+  },
+  {
+   "name": "weight_x_dist_z",
+   "part_corr": 0.0,
+   "built": false
+  }
+ ]
+}

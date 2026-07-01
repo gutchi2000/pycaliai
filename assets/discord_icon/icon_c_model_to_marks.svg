@@ -1,0 +1,62 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="78%">
+      <stop offset="0%" stop-color="#182b4a"/>
+      <stop offset="60%" stop-color="#101d36"/>
+      <stop offset="100%" stop-color="#070e1c"/>
+    </radialGradient>
+    <linearGradient id="hex" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3ee6d8"/>
+      <stop offset="100%" stop-color="#3b8df5"/>
+    </linearGradient>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowGold" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- AI core: hexagon chip -->
+  <g filter="url(#glow)">
+    <polygon points="512,170 642,245 642,395 512,470 382,395 382,245"
+             fill="#10243f" stroke="url(#hex)" stroke-width="12" stroke-linejoin="round"/>
+    <!-- inner network -->
+    <g stroke="#3ee6d8" stroke-width="6" opacity="0.9">
+      <line x1="452" y1="270" x2="512" y2="320"/>
+      <line x1="572" y1="270" x2="512" y2="320"/>
+      <line x1="452" y1="370" x2="512" y2="320"/>
+      <line x1="572" y1="370" x2="512" y2="320"/>
+    </g>
+    <g fill="#aef6ee">
+      <circle cx="452" cy="270" r="14"/>
+      <circle cx="572" cy="270" r="14"/>
+      <circle cx="452" cy="370" r="14"/>
+      <circle cx="572" cy="370" r="14"/>
+      <circle cx="512" cy="320" r="17"/>
+    </g>
+  </g>
+
+  <!-- connections to marks -->
+  <g stroke="#3b8df5" stroke-width="7" opacity="0.75" filter="url(#glow)" fill="none">
+    <path d="M 512 470 C 512 560 512 590 512 640"/>
+    <path d="M 442 432 C 330 520 290 560 272 622"/>
+    <path d="M 582 432 C 694 520 734 560 752 622"/>
+  </g>
+
+  <!-- output marks: 〇 ◎ ▲ -->
+  <!-- ◎ center (gold, biggest) -->
+  <g filter="url(#glowGold)" stroke="#ffd75e" fill="none">
+    <circle cx="512" cy="752" r="112" stroke-width="19"/>
+    <circle cx="512" cy="752" r="54" stroke-width="14"/>
+  </g>
+  <!-- 〇 left (silver) -->
+  <circle cx="252" cy="730" r="74" fill="none" stroke="#c8d4e6" stroke-width="15" filter="url(#glow)"/>
+  <!-- ▲ right (silver) -->
+  <polygon points="772,656 846,790 698,790" fill="none" stroke="#c8d4e6" stroke-width="15"
+           stroke-linejoin="round" filter="url(#glow)"/>
+</svg>

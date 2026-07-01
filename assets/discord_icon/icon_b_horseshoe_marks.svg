@@ -1,0 +1,60 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="78%">
+      <stop offset="0%" stop-color="#1a2c4d"/>
+      <stop offset="60%" stop-color="#111e38"/>
+      <stop offset="100%" stop-color="#070e1c"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffe289"/>
+      <stop offset="100%" stop-color="#e0a32e"/>
+    </linearGradient>
+    <filter id="glowCyan" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGold" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- horseshoe: open at top -->
+  <g filter="url(#softGold)">
+    <path d="M 262 330
+             A 320 320 0 1 0 762 330"
+          fill="none" stroke="url(#gold)" stroke-width="96" stroke-linecap="round"/>
+    <!-- nail holes -->
+    <g fill="#0d1830">
+      <circle cx="248" cy="372" r="15"/>
+      <circle cx="224" cy="520" r="15"/>
+      <circle cx="296" cy="700" r="15"/>
+      <circle cx="512" cy="822" r="15"/>
+      <circle cx="728" cy="700" r="15"/>
+      <circle cx="800" cy="520" r="15"/>
+      <circle cx="776" cy="372" r="15"/>
+    </g>
+  </g>
+
+  <!-- circuit traces from center -->
+  <g stroke="#3ee6d8" stroke-width="7" fill="none" opacity="0.85" filter="url(#glowCyan)">
+    <path d="M 512 350 L 512 250 L 432 170"/>
+    <path d="M 512 350 L 512 250 L 592 170"/>
+    <path d="M 392 470 L 320 470"/>
+    <path d="M 632 470 L 704 470"/>
+  </g>
+  <g fill="#aef6ee" filter="url(#glowCyan)">
+    <circle cx="432" cy="170" r="13"/>
+    <circle cx="592" cy="170" r="13"/>
+    <circle cx="320" cy="470" r="13"/>
+    <circle cx="704" cy="470" r="13"/>
+  </g>
+
+  <!-- cyan ◎ in the middle -->
+  <g filter="url(#glowCyan)" stroke="#3ee6d8" fill="none">
+    <circle cx="512" cy="470" r="120" stroke-width="20"/>
+    <circle cx="512" cy="470" r="58" stroke-width="15"/>
+  </g>
+</svg>

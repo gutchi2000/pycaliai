@@ -1,0 +1,133 @@
+{
+  "proxy": "market_min_ou_lastlog_quartiles_per_split",
+  "column_basis": "model_rank (1=◎) for formations; chaos call by per-race min(ou_lastlog) (strongest 9am favorite). Smallest min_ou quartile -> F4 本命堅い (solid), largest -> F1 荒れ (chaotic). Quartiles per split. Races without pop coverage dropped.",
+  "baselines": [
+    {
+      "name": "B0",
+      "test_roi": 82.60948995210586,
+      "ci_low": 77.84202957586531,
+      "ci_high": 87.64213326420777,
+      "capture_pct": 28.040290327358907,
+      "stake_per_race": 6000.0,
+      "valid_roi": 80.28371954842544,
+      "n_races": 6751
+    },
+    {
+      "name": "B1_F1",
+      "test_roi": 71.55138446591461,
+      "ci_low": 67.63919611128354,
+      "ci_high": 75.57698177463504,
+      "capture_pct": 48.511331654569695,
+      "stake_per_race": 8781.86935268849,
+      "valid_roi": 67.25103481860238,
+      "n_races": 6751
+    },
+    {
+      "name": "B1_F2",
+      "test_roi": 75.80754924535513,
+      "ci_low": 71.925212981853,
+      "ci_high": 79.81348445290855,
+      "capture_pct": 43.31210191082803,
+      "stake_per_race": 9533.609835579915,
+      "valid_roi": 69.26423651940198,
+      "n_races": 6751
+    },
+    {
+      "name": "B1_F3",
+      "test_roi": 78.78817952895866,
+      "ci_low": 74.25256628647607,
+      "ci_high": 83.53125833209896,
+      "capture_pct": 34.883720930232556,
+      "stake_per_race": 10000.0,
+      "valid_roi": 70.9298871063577,
+      "n_races": 6751
+    },
+    {
+      "name": "B1_F4",
+      "test_roi": 79.48155828766109,
+      "ci_low": 74.35679158643164,
+      "ci_high": 84.94074951858984,
+      "capture_pct": 23.863131387942527,
+      "stake_per_race": 10000.0,
+      "valid_roi": 79.3065953654189,
+      "n_races": 6751
+    },
+    {
+      "name": "B3",
+      "test_roi": 76.24089017633399,
+      "ci_low": 72.00771987893211,
+      "ci_high": 81.0119813313137,
+      "capture_pct": 36.15760628055103,
+      "stake_per_race": 12886.090949488964,
+      "valid_roi": 70.0607410406965,
+      "n_races": 6751
+    },
+    {
+      "name": "B4",
+      "test_roi": 75.68944909268717,
+      "ci_low": 70.75428252908942,
+      "ci_high": 80.46532876816991,
+      "capture_pct": 38.86831580506592,
+      "stake_per_race": 9542.438157310027,
+      "valid_roi": 73.5956464543672,
+      "n_races": 6751
+    }
+  ],
+  "per_tier": [
+    {
+      "tier": "F1",
+      "n_races_test": 1579,
+      "avg_points": 21.992400253324888,
+      "stake_per_combo": 400,
+      "capture_pct": 33.31222292590247,
+      "roi_pct": 75.4544145596959,
+      "roi_ci_low": 67.57268865207374,
+      "roi_ci_high": 83.97137025960188
+    },
+    {
+      "tier": "F2",
+      "n_races_test": 1625,
+      "avg_points": 15.974153846153847,
+      "stake_per_combo": 600,
+      "capture_pct": 37.84615384615385,
+      "roi_pct": 76.5810154865552,
+      "roi_ci_low": 68.57372943508238,
+      "roi_ci_high": 84.98493326187503
+    },
+    {
+      "tier": "F3",
+      "n_races_test": 1715,
+      "avg_points": 10.0,
+      "stake_per_combo": 1000,
+      "capture_pct": 37.95918367346939,
+      "roi_pct": 77.13294460641399,
+      "roi_ci_low": 69.79055393586006,
+      "roi_ci_high": 84.86032069970845
+    },
+    {
+      "tier": "F4",
+      "n_races_test": 1832,
+      "avg_points": 5.0,
+      "stake_per_combo": 2000,
+      "capture_pct": 35.42576419213974,
+      "roi_pct": 76.58842794759826,
+      "roi_ci_low": 69.3894923580786,
+      "roi_ci_high": 83.77704694323143
+    }
+  ],
+  "tiered_system": {
+    "test_roi": 76.48788330520273,
+    "ci_low": 72.79023722879337,
+    "ci_high": 80.77909477144449,
+    "valid_roi": 71.65856437758937,
+    "stake_per_race": 9618.60465116279,
+    "era_2024_roi": 80.12496756896999,
+    "era_2025_roi": 72.87117461331498
+  },
+  "vs_probfirst_delta_pt": -6.121606646903132,
+  "vs_reversed_delta_pt": 0.7984342125155592,
+  "tiers_separate": false,
+  "beats_probfirst": false,
+  "beats_breakeven": false,
+  "notes": ""
+}

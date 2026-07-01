@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyCaLiAI — レース分析カード</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏇</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:var(--pad);}
+  .ehead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 18px;}
+  .ehead h1{font-family:var(--disp);font-weight:600;font-size:1.4rem;margin:0;color:var(--tx);}
+  select{background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;font-family:var(--sans);}
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 22px;}
+  .ctitle{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px;}
+  .ctitle .nm{font-family:var(--disp);font-size:1.15rem;color:var(--gold2);}
+  .ctitle .sub{color:var(--tx2);font-size:.85rem;}
+  .meta{display:flex;gap:18px;flex-wrap:wrap;color:var(--tx2);font-size:.82rem;margin-bottom:12px;}
+  .meta b{color:var(--teal2);font-weight:600;}
+  table{width:100%;border-collapse:collapse;font-size:.82rem;}
+  th,td{padding:5px 7px;text-align:right;white-space:nowrap;}
+  th{color:var(--tx3);font-weight:500;border-bottom:1px solid var(--line2);text-align:right;}
+  td.l,th.l{text-align:left;}
+  tr:nth-child(even) td{background:rgba(255,255,255,.018);}
+  .mk{font-weight:900;font-size:1rem;}
+  .mk-0{color:var(--gold);} .mk-1{color:var(--teal);} .mk-2{color:var(--blue);} .mk-3{color:var(--tx2);}
+  .buy{color:var(--teal2);font-weight:700;}
+  .ev-pos{color:var(--teal2);font-weight:700;} .ev-neg{color:var(--tx3);}
+  .narr{background:var(--bg3);border-left:3px solid var(--gold);border-radius:8px;padding:10px 14px;margin:14px 0 8px;color:var(--tx);line-height:1.7;font-size:.9rem;white-space:pre-wrap;}
+  .ana{background:rgba(240,161,50,.08);border:1px solid var(--amber);border-radius:8px;padding:10px 14px;margin:8px 0;color:var(--gold2);font-size:.86rem;line-height:1.6;}
+  .res{color:var(--tx2);font-size:.82rem;margin-top:10px;}
+  .res b{color:var(--gold2);}
+  .hint{color:var(--tx3);font-size:.8rem;margin:6px 0 0;}
+  .badge{display:inline-block;background:var(--bg3);border:1px solid var(--line2);border-radius:6px;padding:2px 8px;font-size:.75rem;color:var(--tx2);}
+  .backlink{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:8px;padding:6px 12px;text-decoration:none;font-family:var(--sans);font-size:.85rem;font-weight:500;}
+  .backlink:hover{border-color:var(--gold);color:var(--gold2);}
+</style>
+</head>
+<body>
+<div class="track-stripe"></div>
+<div class="wrap">
+  <div class="ehead">
+    <a href="index.html" class="backlink">← 予想に戻る</a>
+    <h1>🏇 レース分析カード <span class="badge">Explainability</span></h1>
+    <label>開催日 <select id="dateSel"></select></label>
+    <span class="hint">勝率/対戦レーティング/脚質/馬場/展開 ＋ AI解説。馬券判断はご自身で。</span>
+  </div>
+  <div id="cards"></div>
+</div>
+<script>
+const J = (x)=> (x===null||x===undefined||x==="None")?"–":x;
+const fmtOdds = (x)=> (x===null||x===undefined)?"–":Number(x).toFixed(1);
+const MKCLASS = {"◎":"mk-0","〇":"mk-1","▲":"mk-2","△":"mk-3"};
+
+async function getJSON(u){ const r = await fetch(u); if(!r.ok) throw new Error(u); return r.json(); }
+
+function horseRow(h){
+  const mk = h.mark||"";
+  const evc = (h.ev!=null && h.ev>=1.0)?"ev-pos":"ev-neg";
+  const vs = (h.elo_vs_field!=null)? (h.elo_vs_field>0?"+":"")+h.elo_vs_field : "–";
+  const pos = h.pos_1c?`${h.pos_1c}→${h.pos_4c}`:"–";
+  return `<tr>
+    <td class="mk ${MKCLASS[mk]||''}">${mk}</td>
+    <td>${h.ban}</td>
+    <td class="l">${J(h.name)}</td>
+    <td>${h.p_win_pct}%</td>
+    <td>${h.p_top3_pct}%</td>
+    <td>${fmtOdds(h.yoso_odds)}</td>
+    <td>${fmtOdds(h.kijun_odds)}</td>
+    <td>${fmtOdds(h.real_odds)}</td>
+    <td class="${evc}">${h.ev!=null?h.ev:"–"}</td>
+    <td>${J(h.elo)}</td>
+    <td>${vs}</td>
+    <td class="l">${J(h.kyaku)}</td>
+    <td>${pos}</td>
+    <td class="buy">${h.buy?"買":""}</td>
+  </tr>`;
+}
+
+function renderCard(c){
+  const r = c.race;
+  const rows = c.horses.map(horseRow).join("");
+  // LLM(7b)は数値を裏切る事があるため「参考下書き」扱い。数値準拠テンプレ＋データ駆動の穴を必ず併記。
+  const narr = c.llm_narrative ? `<div class="narr">🧠 AI下書き(参考・要検証)\n${c.llm_narrative}</div>` : "";
+  const tmpl = (c.comments_top3||[]).map(x=>`・${x}`).join("\n");
+  const tmplBox = `<div class="narr" style="border-left-color:var(--teal);color:var(--tx2)">📋 根拠(数値準拠)\n${tmpl}</div>`;
+  const ana = c.ana_pick ? `<div class="ana">🎯 特選穴馬(データ駆動): ${c.ana_pick}</div>` : "";
+  const res = c.result_for_demo ? `<div class="res">（参考・確定）1着<b>${c.result_for_demo.win_ban}</b> 2着${c.result_for_demo.plc_ban} 3着${c.result_for_demo.sho_ban} ／ 単勝 ${c.result_for_demo.tansho_pay}円</div>`:"";
+  return `<div class="card">
+    <div class="ctitle"><span class="nm">${J(r.name)}</span>
+      <span class="sub">${J(r.venue)}${J(r.surface)}${J(r.distance)}m ・ ${J(r.class)} ・ ${r.field_size}頭</span></div>
+    <div class="meta">
+      ${r.race_level_elo!=null?`<span>レースレベル <b>${r.race_level_elo}</b></span>`:''}
+      <span>馬場 <b>${J(r.baba)}</b></span>
+      <span>展開 <b>${J(r.pace)}</b></span>
+      ${r.judgment&&r.judgment.headline?`<span>買い方 <b>${r.judgment.headline}</b>${r.judgment.hardness?` (${r.judgment.hardness})`:''}</span>`:''}
+    </div>
+    <table>
+      <thead><tr><th>印</th><th>馬番</th><th class="l">馬名</th><th>勝率</th><th>複勝</th>
+      <th>予想</th><th>基準</th><th>実</th><th>EV</th><th>RTG</th><th>vs</th><th class="l">脚質</th><th>位置</th><th>買</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${tmplBox}${narr}${ana}${res}</div>`;
+}
+
+async function loadDate(date){
+  const data = await getJSON(`data/explain/${date}.json`);
+  document.getElementById("cards").innerHTML = data.races.map(renderCard).join("");
+}
+
+(async function(){
+  try{
+    const man = await getJSON("data/explain/manifest.json");
+    const sel = document.getElementById("dateSel");
+    sel.innerHTML = man.dates.map(d=>`<option value="${d}">${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}</option>`).join("");
+    sel.onchange = ()=>loadDate(sel.value);
+    if(man.dates.length) await loadDate(man.dates[0]);
+  }catch(e){
+    document.getElementById("cards").innerHTML = `<div class="hint">分析カードデータがまだありません (build_explain_cards.py を実行してください)。</div>`;
+  }
+})();
+</script>
+</body>
+</html>
