@@ -3,7 +3,8 @@
 > **このファイルの位置づけ**: 次に触る人（含む将来の自分）が 5 分で全体像を掴めるようにする。
 > 詳細仕様は `docs/` 配下、運用フローは `WORKFLOW.md` を参照。
 >
-> 最終更新: 2026-06-24（**現状整理**: cowork_results は修復済み＝壊れていない／Cowork 78% 表は v5 期の歴史値で現在値ではない／「これ以上強くする」の本筋は予測 v7 や EV 閾値ではなく **検証済み未配線 ROI の回収**＝下記「強化の本筋」参照）
+> 最終更新: 2026-07-01（**ルート整理**: 実験・研究スクリプト 97 本を `lab/<theme>/` へ集約し root .py を 237→139 に。巨大生成物/スクラッチを `.gitignore`。詳細は下記「✅ ルート整理済み」節と `lab/README.md`）
+> 旧: 2026-06-24（**現状整理**: cowork_results は修復済み＝壊れていない／Cowork 78% 表は v5 期の歴史値で現在値ではない／「これ以上強くする」の本筋は予測 v7 や EV 閾値ではなく **検証済み未配線 ROI の回収**＝下記「強化の本筋」参照）
 > 旧: 2026-06-16（**本番表示を静的サイト pycaliai-umami に移行**、週次フローに sync-hf-umami 組込み、predict デフォルト skip / 見送りガードを反映）
 > 旧: 2026-05-20（NiceGUI + Cowork パラダイムに全面改訂、**v6 本番投入**、cowork_results 集計修復）
 
@@ -342,19 +343,18 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 | `docs/PROJECT_OVERVIEW.md` | プロジェクト全体像 |
 | `docs/hypothesis_registry.md` | 検証中の仮説リスト |
 
-### ❌ 整理候補（実験・使い捨て・重複多数）
-**ルートに散らばっているスクリプト群**：
-- `sim_*.py`（11 本）→ `analysis/` に移動候補
-- `backtest_*.py` の重複版（`backtest_wide_*.py` 5 本、`backtest_pl_wide.py` 等）→ 集約候補
-- `check_*.py` は既に `analysis/` に 7 本あるがルートにも残骸
-- `sweep_*.py`, `grid_search_*.py`, `creative_strategy*.py`, `diag_*.py` 等の一回限りスクリプト
+### ✅ ルート整理済み（2026-07-01）
+実験・研究スクリプト **97 本を `lab/<theme>/` へ移動**（root .py 237→139）。移動対象は import 依存グラフ＋subprocess/文字列参照＋ps1/doc 参照を機械解析し、**本番が参照するものは root 固定**（import 破壊 0・全 py_compile 通過を検証済み）。詳細は `lab/README.md`。
+- テーマ: `lab/experiments/ betting_lab/ bet_type_lab/ physics_gates/ backtest/ train/ audits/ features_dead/ pipelines_old/ sims/`
+- **移動スクリプトの再実行は root から** `python -m lab.<theme>.<name>`（cwd=root が sys.path に乗り `import utils` 等が解決。`python lab/…/x.py` の直叩きは不可）
+- 巨大生成物（`feats_1000.parquet` 686MB 等）・実験モデル・スクラッチは `.gitignore` 済み（**ディスクには残す**）
+- 現用ツール（`place_weekly.py` `participation_analyzer.py` `gutchi_brain.py` `keiba_card*.py` `build_bet_plan.py` 等）と本番エントリは **root 維持**
+- 注: 上の「ファイル役割マップ」内の一部実験スクリプト（`backtest_v2.py` `train_catboost.py` 等）は `lab/` 配下へ移動済み
+
+**残タスク**：
 - `models/` 配下の日付付き pkl（`*_20260313_*.pkl` 等）→ `models/archive/` へ
 - 互換用旧マスター `data/master_20130105-20251228.csv` は v5 が `master_v2_*` を使うので削除候補
-
-**確認待ち**：
-- `EPyCaLiAIlogsold_strategy.json`（パス壊れたファイル名のゴミ）→ 削除可能
-- `models/expert_*_rejected.pkl`（命名通り不採用）→ archive 行き
-- `models/lgbm_*_20260319_*.pkl` 等の中間 dump → archive
+- `models/expert_*_rejected.pkl`（命名通り不採用）/ `models/lgbm_*_20260319_*.pkl` 中間 dump → archive 行き
 
 ---
 
