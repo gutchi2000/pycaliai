@@ -1,0 +1,659 @@
+{
+  "race_id": "2026062005030504",
+  "race_meta": {
+    "date": "20260620",
+    "place": "東京",
+    "course": "芝1400",
+    "field_size": 11,
+    "class": "新馬",
+    "race_name": "",
+    "class_prior": {
+      "n_samples": 604,
+      "hon_1st_pct": 26.7,
+      "hon_top2_pct": 46.5,
+      "hon_top3_pct": 57.9,
+      "tai_1st_pct": 17.5,
+      "tai_top2_pct": 33.6,
+      "tai_top3_pct": 48.3,
+      "san_top3_pct": 37.3,
+      "del1_top3_pct": 29.8,
+      "del2_top3_pct": 26.0
+    }
+  },
+  "horses": [
+    {
+      "umaban": 1,
+      "horse_name": "インサイドエッジ",
+      "mark": "",
+      "ai_rank": 11,
+      "ai_score": -0.9293,
+      "p_win": 0.0626,
+      "p_plc": 0.1342,
+      "p_sho": 0.2356,
+      "tansho_odds": 12.2,
+      "fuku_odds_low": 3.8,
+      "fuku_odds_high": 5.1,
+      "ai_vs_market": "over",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    },
+    {
+      "umaban": 2,
+      "horse_name": "ルークウォーム",
+      "mark": "",
+      "ai_rank": 10,
+      "ai_score": -0.7253,
+      "p_win": 0.083,
+      "p_plc": 0.1632,
+      "p_sho": 0.2635,
+      "tansho_odds": 3.7,
+      "fuku_odds_low": 1.8,
+      "fuku_odds_high": 2.3,
+      "ai_vs_market": "over",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    },
+    {
+      "umaban": 3,
+      "horse_name": "アフィーリア",
+      "mark": "▲",
+      "ai_rank": 3,
+      "ai_score": -0.503,
+      "p_win": 0.1062,
+      "p_plc": 0.2013,
+      "p_sho": 0.2894,
+      "tansho_odds": 26.5,
+      "fuku_odds_low": 2.9,
+      "fuku_odds_high": 3.9,
+      "ai_vs_market": "under",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": null,
+          "contrib": 0.314
+        },
+        {
+          "feat": "前距離",
+          "label": "前距離",
+          "value": null,
+          "contrib": -0.226
+        },
+        {
+          "feat": "prev_hosei",
+          "label": "前走 補正タイム",
+          "value": null,
+          "contrib": -0.169
+        },
+        {
+          "feat": "hist_same_cond_top3_rate",
+          "label": "同条件 複勝圏率(履歴)",
+          "value": null,
+          "contrib": -0.121
+        },
+        {
+          "feat": "prev_hosei9",
+          "label": "前走 補正タイム(9F基準)",
+          "value": null,
+          "contrib": -0.098
+        },
+        {
+          "feat": "前走上り3F順",
+          "label": "前走上り3F順",
+          "value": null,
+          "contrib": 0.084
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    },
+    {
+      "umaban": 4,
+      "horse_name": "オーケーマドンナ",
+      "mark": "",
+      "ai_rank": 8,
+      "ai_score": -0.711,
+      "p_win": 0.083,
+      "p_plc": 0.1654,
+      "p_sho": 0.2635,
+      "tansho_odds": 39.0,
+      "fuku_odds_low": 4.4,
+      "fuku_odds_high": 5.9,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    },
+    {
+      "umaban": 5,
+      "horse_name": "ソプラノクイーン",
+      "mark": "",
+      "ai_rank": 9,
+      "ai_score": -0.7112,
+      "p_win": 0.083,
+      "p_plc": 0.1654,
+      "p_sho": 0.2635,
+      "tansho_odds": 8.5,
+      "fuku_odds_low": 2.1,
+      "fuku_odds_high": 2.7,
+      "ai_vs_market": "over",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    },
+    {
+      "umaban": 6,
+      "horse_name": "エルシオン",
+      "mark": "",
+      "ai_rank": 6,
+      "ai_score": -0.6422,
+      "p_win": 0.083,
+      "p_plc": 0.1766,
+      "p_sho": 0.28,
+      "tansho_odds": 35.3,
+      "fuku_odds_low": 5.5,
+      "fuku_odds_high": 7.4,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    },
+    {
+      "umaban": 7,
+      "horse_name": "パストザクラウン",
+      "mark": "〇",
+      "ai_rank": 2,
+      "ai_score": -0.4726,
+      "p_win": 0.1142,
+      "p_plc": 0.2071,
+      "p_sho": 0.2894,
+      "tansho_odds": 32.7,
+      "fuku_odds_low": 7.9,
+      "fuku_odds_high": 10.6,
+      "ai_vs_market": "under",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": null,
+          "contrib": 0.321
+        },
+        {
+          "feat": "前距離",
+          "label": "前距離",
+          "value": null,
+          "contrib": -0.211
+        },
+        {
+          "feat": "prev_hosei",
+          "label": "前走 補正タイム",
+          "value": null,
+          "contrib": -0.163
+        },
+        {
+          "feat": "hist_same_cond_top3_rate",
+          "label": "同条件 複勝圏率(履歴)",
+          "value": null,
+          "contrib": -0.118
+        },
+        {
+          "feat": "prev_hosei9",
+          "label": "前走 補正タイム(9F基準)",
+          "value": null,
+          "contrib": -0.1
+        },
+        {
+          "feat": "前走上り3F順",
+          "label": "前走上り3F順",
+          "value": null,
+          "contrib": 0.092
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    },
+    {
+      "umaban": 8,
+      "horse_name": "スターリーデー",
+      "mark": "",
+      "ai_rank": 7,
+      "ai_score": -0.6551,
+      "p_win": 0.083,
+      "p_plc": 0.1744,
+      "p_sho": 0.28,
+      "tansho_odds": 8.1,
+      "fuku_odds_low": 2.1,
+      "fuku_odds_high": 2.8,
+      "ai_vs_market": "over",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    },
+    {
+      "umaban": 9,
+      "horse_name": "ニクスルーナ",
+      "mark": "△",
+      "ai_rank": 4,
+      "ai_score": -0.5155,
+      "p_win": 0.1019,
+      "p_plc": 0.199,
+      "p_sho": 0.2894,
+      "tansho_odds": 4.0,
+      "fuku_odds_low": 1.7,
+      "fuku_odds_high": 2.1,
+      "ai_vs_market": "over",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": null,
+          "contrib": 0.325
+        },
+        {
+          "feat": "前距離",
+          "label": "前距離",
+          "value": null,
+          "contrib": -0.239
+        },
+        {
+          "feat": "prev_hosei",
+          "label": "前走 補正タイム",
+          "value": null,
+          "contrib": -0.162
+        },
+        {
+          "feat": "hist_same_cond_top3_rate",
+          "label": "同条件 複勝圏率(履歴)",
+          "value": null,
+          "contrib": -0.123
+        },
+        {
+          "feat": "前走上り3F順",
+          "label": "前走上り3F順",
+          "value": null,
+          "contrib": 0.097
+        },
+        {
+          "feat": "prev_hosei9",
+          "label": "前走 補正タイム(9F基準)",
+          "value": null,
+          "contrib": -0.096
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    },
+    {
+      "umaban": 10,
+      "horse_name": "ゴールデンハニビー",
+      "mark": "△",
+      "ai_rank": 5,
+      "ai_score": -0.6395,
+      "p_win": 0.083,
+      "p_plc": 0.177,
+      "p_sho": 0.28,
+      "tansho_odds": 4.6,
+      "fuku_odds_low": 1.6,
+      "fuku_odds_high": 1.9,
+      "ai_vs_market": "over",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": null,
+          "contrib": 0.321
+        },
+        {
+          "feat": "前距離",
+          "label": "前距離",
+          "value": null,
+          "contrib": -0.234
+        },
+        {
+          "feat": "prev_hosei",
+          "label": "前走 補正タイム",
+          "value": null,
+          "contrib": -0.167
+        },
+        {
+          "feat": "hist_same_cond_top3_rate",
+          "label": "同条件 複勝圏率(履歴)",
+          "value": null,
+          "contrib": -0.121
+        },
+        {
+          "feat": "prev_hosei9",
+          "label": "前走 補正タイム(9F基準)",
+          "value": null,
+          "contrib": -0.094
+        },
+        {
+          "feat": "前走上り3F順",
+          "label": "前走上り3F順",
+          "value": null,
+          "contrib": 0.079
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    },
+    {
+      "umaban": 11,
+      "horse_name": "ユリア",
+      "mark": "◎",
+      "ai_rank": 1,
+      "ai_score": -0.3294,
+      "p_win": 0.1208,
+      "p_plc": 0.2365,
+      "p_sho": 0.3502,
+      "tansho_odds": 12.6,
+      "fuku_odds_low": 2.9,
+      "fuku_odds_high": 3.8,
+      "ai_vs_market": "under",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": null,
+          "contrib": 0.318
+        },
+        {
+          "feat": "前距離",
+          "label": "前距離",
+          "value": null,
+          "contrib": -0.22
+        },
+        {
+          "feat": "prev_hosei",
+          "label": "前走 補正タイム",
+          "value": null,
+          "contrib": -0.164
+        },
+        {
+          "feat": "hist_same_cond_top3_rate",
+          "label": "同条件 複勝圏率(履歴)",
+          "value": null,
+          "contrib": -0.122
+        },
+        {
+          "feat": "trnH_Time4",
+          "label": "坂路 ラスト1Fタイム",
+          "value": 12.4,
+          "contrib": 0.113
+        },
+        {
+          "feat": "prev_hosei9",
+          "label": "前走 補正タイム(9F基準)",
+          "value": null,
+          "contrib": -0.093
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    }
+  ],
+  "race_confidence": {
+    "top1_dominance": 0.0066,
+    "top2_concentration": 0.235,
+    "field_chaos_score": 0.9933,
+    "ai_market_agreement": -0.2455
+  },
+  "buy_judgment": {
+    "hardness": "荒れ",
+    "chaos_pct": 0.983,
+    "has_value": true,
+    "headline": "広く薄く",
+    "category": "caution",
+    "detail": "妙味馬を複勝/ワイドで複数、1点を小さく（テールは除外済み）。",
+    "kenshu_hint": "妙味馬を複勝/ワイドで複数・1点小",
+    "waku_tag": "妙味枠",
+    "value_horses": [
+      {
+        "umaban": 4,
+        "horse_name": "オーケーマドンナ",
+        "p_win": 0.083,
+        "ev_tan": 3.24,
+        "ev_fuku": 1.36,
+        "umami_tan": 0.616,
+        "umami_fuku": 0.817,
+        "umami_grade": "C",
+        "tan_value": true,
+        "fuku_value": true,
+        "sides": [
+          "単勝",
+          "複勝"
+        ]
+      },
+      {
+        "umaban": 6,
+        "horse_name": "エルシオン",
+        "p_win": 0.083,
+        "ev_tan": 2.93,
+        "ev_fuku": 1.81,
+        "umami_tan": 0.616,
+        "umami_fuku": 0.78,
+        "umami_grade": "C",
+        "tan_value": true,
+        "fuku_value": true,
+        "sides": [
+          "単勝",
+          "複勝"
+        ]
+      },
+      {
+        "umaban": 11,
+        "horse_name": "ユリア",
+        "p_win": 0.1208,
+        "ev_tan": 1.52,
+        "ev_fuku": 1.17,
+        "umami_tan": 0.778,
+        "umami_fuku": 0.827,
+        "umami_grade": "B",
+        "tan_value": true,
+        "fuku_value": false,
+        "sides": [
+          "単勝"
+        ]
+      },
+      {
+        "umaban": 7,
+        "horse_name": "パストザクラウン",
+        "p_win": 0.1142,
+        "ev_tan": 3.73,
+        "ev_fuku": 2.68,
+        "umami_tan": 0.616,
+        "umami_fuku": 0.771,
+        "umami_grade": "C",
+        "tan_value": true,
+        "fuku_value": true,
+        "sides": [
+          "単勝",
+          "複勝"
+        ]
+      },
+      {
+        "umaban": 3,
+        "horse_name": "アフィーリア",
+        "p_win": 0.1062,
+        "ev_tan": 2.81,
+        "ev_fuku": 0.98,
+        "umami_tan": 0.616,
+        "umami_fuku": 0.718,
+        "umami_grade": "C",
+        "tan_value": true,
+        "fuku_value": false,
+        "sides": [
+          "単勝"
+        ]
+      }
+    ]
+  },
+  "umaren_matrix": {
+    "1-2": 45.8,
+    "1-3": 162.2,
+    "1-4": 336.9,
+    "1-5": 85.8,
+    "1-6": 282.5,
+    "1-7": 350.3,
+    "1-8": 156.4,
+    "1-9": 99.5,
+    "1-10": 45.3,
+    "1-11": 145.9,
+    "2-3": 36.0,
+    "2-4": 59.9,
+    "2-5": 13.6,
+    "2-6": 59.5,
+    "2-7": 53.7,
+    "2-8": 16.6,
+    "2-9": 7.0,
+    "2-10": 6.9,
+    "2-11": 21.0,
+    "3-4": 265.4,
+    "3-5": 81.1,
+    "3-6": 208.5,
+    "3-7": 364.9,
+    "3-8": 119.9,
+    "3-9": 82.6,
+    "3-10": 56.5,
+    "3-11": 182.4,
+    "4-5": 159.2,
+    "4-6": 515.2,
+    "4-7": 302.0,
+    "4-8": 165.2,
+    "4-9": 128.8,
+    "4-10": 97.3,
+    "4-11": 213.6,
+    "5-6": 95.2,
+    "5-7": 136.8,
+    "5-8": 38.0,
+    "5-9": 20.6,
+    "5-10": 11.2,
+    "5-11": 56.8,
+    "6-7": 398.1,
+    "6-8": 132.7,
+    "6-9": 112.3,
+    "6-10": 82.6,
+    "6-11": 203.7,
+    "7-8": 126.9,
+    "7-9": 94.1,
+    "7-10": 90.3,
+    "7-11": 199.0,
+    "8-9": 24.4,
+    "8-10": 23.9,
+    "8-11": 50.3,
+    "9-10": 9.1,
+    "9-11": 34.8,
+    "10-11": 32.0
+  },
+  "pair_probs": {
+    "7-11": {
+      "wide": 0.08222,
+      "umaren": 0.02781,
+      "umatan": {
+        "11→7": 0.01681,
+        "7→11": 0.01446
+      }
+    },
+    "3-11": {
+      "wide": 0.08222,
+      "umaren": 0.02781,
+      "umatan": {
+        "11→3": 0.01446,
+        "3→11": 0.01177
+      }
+    },
+    "9-11": {
+      "wide": 0.08009,
+      "umaren": 0.02781,
+      "umatan": {
+        "11→9": 0.01446,
+        "9→11": 0.01177
+      }
+    },
+    "10-11": {
+      "wide": 0.07254,
+      "umaren": 0.02407,
+      "umatan": {
+        "11→10": 0.01177,
+        "10→11": 0.01177
+      }
+    },
+    "3-7": {
+      "wide": 0.07254,
+      "umaren": 0.02407,
+      "umatan": {
+        "7→3": 0.01177,
+        "3→7": 0.01177
+      }
+    },
+    "7-9": {
+      "wide": 0.07254,
+      "umaren": 0.02262,
+      "umatan": {
+        "7→9": 0.01177,
+        "9→7": 0.01177
+      }
+    },
+    "7-10": {
+      "wide": 0.0629,
+      "umaren": 0.02262,
+      "umatan": {
+        "7→10": 0.01177,
+        "10→7": 0.0102
+      }
+    },
+    "3-9": {
+      "wide": 0.06801,
+      "umaren": 0.02262,
+      "umatan": {
+        "3→9": 0.01177,
+        "9→3": 0.01177
+      }
+    },
+    "3-10": {
+      "wide": 0.0629,
+      "umaren": 0.02082,
+      "umatan": {
+        "3→10": 0.0102,
+        "10→3": 0.00913
+      }
+    },
+    "9-10": {
+      "wide": 0.0629,
+      "umaren": 0.02082,
+      "umatan": {
+        "9→10": 0.00913,
+        "10→9": 0.00913
+      }
+    }
+  }
+}

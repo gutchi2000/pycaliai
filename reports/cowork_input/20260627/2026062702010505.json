@@ -1,0 +1,567 @@
+{
+  "race_id": "2026062702010505",
+  "race_meta": {
+    "date": "20260627",
+    "place": "函館",
+    "course": "芝1200",
+    "field_size": 8,
+    "class": "新馬",
+    "race_name": "",
+    "class_prior": {
+      "n_samples": 604,
+      "hon_1st_pct": 26.7,
+      "hon_top2_pct": 46.5,
+      "hon_top3_pct": 57.9,
+      "tai_1st_pct": 17.5,
+      "tai_top2_pct": 33.6,
+      "tai_top3_pct": 48.3,
+      "san_top3_pct": 37.3,
+      "del1_top3_pct": 29.8,
+      "del2_top3_pct": 26.0
+    }
+  },
+  "horses": [
+    {
+      "umaban": 1,
+      "horse_name": "ステラトップガン",
+      "mark": "〇",
+      "ai_rank": 2,
+      "ai_score": -0.4419,
+      "p_win": 0.1337,
+      "p_plc": 0.2645,
+      "p_sho": 0.3502,
+      "tansho_odds": 1.9,
+      "fuku_odds_low": 1.1,
+      "fuku_odds_high": 1.1,
+      "ai_vs_market": "over",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": null,
+          "contrib": 0.31
+        },
+        {
+          "feat": "前距離",
+          "label": "前距離",
+          "value": null,
+          "contrib": -0.215
+        },
+        {
+          "feat": "prev_hosei",
+          "label": "前走 補正タイム",
+          "value": null,
+          "contrib": -0.167
+        },
+        {
+          "feat": "hist_same_cond_top3_rate",
+          "label": "同条件 複勝圏率(履歴)",
+          "value": null,
+          "contrib": -0.117
+        },
+        {
+          "feat": "prev_hosei9",
+          "label": "前走 補正タイム(9F基準)",
+          "value": null,
+          "contrib": -0.101
+        },
+        {
+          "feat": "前走着差タイム",
+          "label": "前走着差タイム",
+          "value": null,
+          "contrib": 0.085
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牡",
+      "age": 2
+    },
+    {
+      "umaban": 2,
+      "horse_name": "ミハテヌユメ",
+      "mark": "",
+      "ai_rank": 8,
+      "ai_score": -0.6388,
+      "p_win": 0.1142,
+      "p_plc": 0.2206,
+      "p_sho": 0.3502,
+      "tansho_odds": 10.3,
+      "fuku_odds_low": 1.7,
+      "fuku_odds_high": 4.2,
+      "ai_vs_market": "fair",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2,
+      "pedigree": {
+        "sire": "ミリオンディスク",
+        "sire_type": "ネイティヴダンサー系",
+        "broodmare_sire": "フレンチデピュティ",
+        "broodmare_sire_type": "ニアークティック系"
+      }
+    },
+    {
+      "umaban": 3,
+      "horse_name": "ライーリーアース",
+      "mark": "",
+      "ai_rank": 7,
+      "ai_score": -0.5647,
+      "p_win": 0.1142,
+      "p_plc": 0.2363,
+      "p_sho": 0.3502,
+      "tansho_odds": 18.8,
+      "fuku_odds_low": 2.1,
+      "fuku_odds_high": 5.5,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    },
+    {
+      "umaban": 4,
+      "horse_name": "サウンドエフォート",
+      "mark": "",
+      "ai_rank": 6,
+      "ai_score": -0.5278,
+      "p_win": 0.1208,
+      "p_plc": 0.2445,
+      "p_sho": 0.3502,
+      "tansho_odds": 28.0,
+      "fuku_odds_low": 3.5,
+      "fuku_odds_high": 9.9,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牡",
+      "age": 2
+    },
+    {
+      "umaban": 5,
+      "horse_name": "アゴルディーノ",
+      "mark": "▲",
+      "ai_rank": 3,
+      "ai_score": -0.4522,
+      "p_win": 0.1208,
+      "p_plc": 0.262,
+      "p_sho": 0.3502,
+      "tansho_odds": 4.1,
+      "fuku_odds_low": 1.4,
+      "fuku_odds_high": 3.4,
+      "ai_vs_market": "over",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": null,
+          "contrib": 0.314
+        },
+        {
+          "feat": "前距離",
+          "label": "前距離",
+          "value": null,
+          "contrib": -0.225
+        },
+        {
+          "feat": "prev_hosei",
+          "label": "前走 補正タイム",
+          "value": null,
+          "contrib": -0.163
+        },
+        {
+          "feat": "hist_same_cond_top3_rate",
+          "label": "同条件 複勝圏率(履歴)",
+          "value": null,
+          "contrib": -0.117
+        },
+        {
+          "feat": "prev_hosei9",
+          "label": "前走 補正タイム(9F基準)",
+          "value": null,
+          "contrib": -0.099
+        },
+        {
+          "feat": "前走着差タイム",
+          "label": "前走着差タイム",
+          "value": null,
+          "contrib": 0.083
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牡",
+      "age": 2
+    },
+    {
+      "umaban": 6,
+      "horse_name": "ルギッドドランジュ",
+      "mark": "△",
+      "ai_rank": 4,
+      "ai_score": -0.5002,
+      "p_win": 0.1208,
+      "p_plc": 0.2508,
+      "p_sho": 0.3502,
+      "tansho_odds": 14.5,
+      "fuku_odds_low": 2.4,
+      "fuku_odds_high": 6.5,
+      "ai_vs_market": "under",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": null,
+          "contrib": 0.316
+        },
+        {
+          "feat": "前距離",
+          "label": "前距離",
+          "value": null,
+          "contrib": -0.216
+        },
+        {
+          "feat": "prev_hosei",
+          "label": "前走 補正タイム",
+          "value": null,
+          "contrib": -0.17
+        },
+        {
+          "feat": "hist_same_cond_top3_rate",
+          "label": "同条件 複勝圏率(履歴)",
+          "value": null,
+          "contrib": -0.12
+        },
+        {
+          "feat": "prev_hosei9",
+          "label": "前走 補正タイム(9F基準)",
+          "value": null,
+          "contrib": -0.103
+        },
+        {
+          "feat": "前走着差タイム",
+          "label": "前走着差タイム",
+          "value": null,
+          "contrib": 0.08
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    },
+    {
+      "umaban": 7,
+      "horse_name": "ヌーンベルク",
+      "mark": "◎",
+      "ai_rank": 1,
+      "ai_score": -0.3933,
+      "p_win": 0.1337,
+      "p_plc": 0.2764,
+      "p_sho": 0.3993,
+      "tansho_odds": 4.9,
+      "fuku_odds_low": 1.2,
+      "fuku_odds_high": 2.4,
+      "ai_vs_market": "over",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": null,
+          "contrib": 0.308
+        },
+        {
+          "feat": "前距離",
+          "label": "前距離",
+          "value": null,
+          "contrib": -0.211
+        },
+        {
+          "feat": "prev_hosei",
+          "label": "前走 補正タイム",
+          "value": null,
+          "contrib": -0.165
+        },
+        {
+          "feat": "hist_same_cond_top3_rate",
+          "label": "同条件 複勝圏率(履歴)",
+          "value": null,
+          "contrib": -0.124
+        },
+        {
+          "feat": "trnH_Time4",
+          "label": "坂路 ラスト1Fタイム",
+          "value": 12.3,
+          "contrib": 0.121
+        },
+        {
+          "feat": "前走上り3F順",
+          "label": "前走上り3F順",
+          "value": null,
+          "contrib": 0.094
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    },
+    {
+      "umaban": 8,
+      "horse_name": "マナベラ",
+      "mark": "△",
+      "ai_rank": 5,
+      "ai_score": -0.5258,
+      "p_win": 0.1208,
+      "p_plc": 0.2449,
+      "p_sho": 0.3502,
+      "tansho_odds": 19.9,
+      "fuku_odds_low": 3.4,
+      "fuku_odds_high": 9.6,
+      "ai_vs_market": "under",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": null,
+          "contrib": 0.31
+        },
+        {
+          "feat": "前距離",
+          "label": "前距離",
+          "value": null,
+          "contrib": -0.204
+        },
+        {
+          "feat": "prev_hosei",
+          "label": "前走 補正タイム",
+          "value": null,
+          "contrib": -0.167
+        },
+        {
+          "feat": "hist_same_cond_top3_rate",
+          "label": "同条件 複勝圏率(履歴)",
+          "value": null,
+          "contrib": -0.125
+        },
+        {
+          "feat": "prev_hosei9",
+          "label": "前走 補正タイム(9F基準)",
+          "value": null,
+          "contrib": -0.102
+        },
+        {
+          "feat": "前走確定着順",
+          "label": "前走確定着順",
+          "value": null,
+          "contrib": 0.079
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2
+    }
+  ],
+  "race_confidence": {
+    "top1_dominance": 0.0,
+    "top2_concentration": 0.2674,
+    "field_chaos_score": 0.9992,
+    "ai_market_agreement": 0.619
+  },
+  "buy_judgment": {
+    "hardness": "荒れ",
+    "chaos_pct": 1.0,
+    "has_value": true,
+    "headline": "広く薄く",
+    "category": "caution",
+    "detail": "妙味馬を複勝/ワイドで複数、1点を小さく（テールは除外済み）。",
+    "kenshu_hint": "妙味馬を複勝/ワイドで複数・1点小",
+    "waku_tag": "妙味枠",
+    "value_horses": [
+      {
+        "umaban": 6,
+        "horse_name": "ルギッドドランジュ",
+        "p_win": 0.1208,
+        "ev_tan": 1.75,
+        "ev_fuku": 1.56,
+        "umami_tan": 0.778,
+        "umami_fuku": 0.845,
+        "umami_grade": "B",
+        "tan_value": true,
+        "fuku_value": true,
+        "sides": [
+          "単勝",
+          "複勝"
+        ]
+      },
+      {
+        "umaban": 3,
+        "horse_name": "ライーリーアース",
+        "p_win": 0.1142,
+        "ev_tan": 2.15,
+        "ev_fuku": 1.33,
+        "umami_tan": 0.616,
+        "umami_fuku": 0.817,
+        "umami_grade": "C",
+        "tan_value": true,
+        "fuku_value": true,
+        "sides": [
+          "単勝",
+          "複勝"
+        ]
+      },
+      {
+        "umaban": 4,
+        "horse_name": "サウンドエフォート",
+        "p_win": 0.1208,
+        "ev_tan": 3.38,
+        "ev_fuku": 2.35,
+        "umami_tan": 0.616,
+        "umami_fuku": 0.771,
+        "umami_grade": "C",
+        "tan_value": true,
+        "fuku_value": true,
+        "sides": [
+          "単勝",
+          "複勝"
+        ]
+      },
+      {
+        "umaban": 8,
+        "horse_name": "マナベラ",
+        "p_win": 0.1208,
+        "ev_tan": 2.4,
+        "ev_fuku": 2.28,
+        "umami_tan": 0.616,
+        "umami_fuku": 0.771,
+        "umami_grade": "C",
+        "tan_value": true,
+        "fuku_value": true,
+        "sides": [
+          "単勝",
+          "複勝"
+        ]
+      }
+    ]
+  },
+  "umaren_matrix": {
+    "1-2": 8.8,
+    "1-3": 21.6,
+    "1-4": 33.7,
+    "1-5": 7.3,
+    "1-6": 22.3,
+    "1-7": 7.2,
+    "1-8": 27.8,
+    "2-3": 34.9,
+    "2-4": 73.7,
+    "2-5": 14.3,
+    "2-6": 32.8,
+    "2-7": 13.8,
+    "2-8": 52.3,
+    "3-4": 117.0,
+    "3-5": 31.0,
+    "3-6": 56.0,
+    "3-7": 32.3,
+    "3-8": 57.6,
+    "4-5": 36.1,
+    "4-6": 107.5,
+    "4-7": 36.8,
+    "4-8": 84.6,
+    "5-6": 17.8,
+    "5-7": 7.4,
+    "5-8": 32.3,
+    "6-7": 18.6,
+    "6-8": 44.2,
+    "7-8": 30.6
+  },
+  "pair_probs": {
+    "1-7": {
+      "wide": 0.13182,
+      "umaren": 0.04258,
+      "umatan": {
+        "7→1": 0.02144,
+        "1→7": 0.02144
+      }
+    },
+    "5-7": {
+      "wide": 0.13182,
+      "umaren": 0.04258,
+      "umatan": {
+        "7→5": 0.02144,
+        "5→7": 0.02144
+      }
+    },
+    "6-7": {
+      "wide": 0.11912,
+      "umaren": 0.04258,
+      "umatan": {
+        "7→6": 0.02144,
+        "6→7": 0.02144
+      }
+    },
+    "7-8": {
+      "wide": 0.11912,
+      "umaren": 0.04258,
+      "umatan": {
+        "7→8": 0.02105,
+        "8→7": 0.02105
+      }
+    },
+    "1-5": {
+      "wide": 0.11912,
+      "umaren": 0.04258,
+      "umatan": {
+        "1→5": 0.02144,
+        "5→1": 0.02144
+      }
+    },
+    "1-6": {
+      "wide": 0.11912,
+      "umaren": 0.04159,
+      "umatan": {
+        "1→6": 0.01991,
+        "6→1": 0.01991
+      }
+    },
+    "1-8": {
+      "wide": 0.10629,
+      "umaren": 0.04159,
+      "umatan": {
+        "1→8": 0.01991,
+        "8→1": 0.01991
+      }
+    },
+    "5-6": {
+      "wide": 0.11823,
+      "umaren": 0.04159,
+      "umatan": {
+        "5→6": 0.01991,
+        "6→5": 0.01991
+      }
+    },
+    "5-8": {
+      "wide": 0.10629,
+      "umaren": 0.04159,
+      "umatan": {
+        "5→8": 0.01991,
+        "8→5": 0.01991
+      }
+    },
+    "6-8": {
+      "wide": 0.10629,
+      "umaren": 0.04159,
+      "umatan": {
+        "6→8": 0.01991,
+        "8→6": 0.01991
+      }
+    }
+  }
+}
