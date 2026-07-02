@@ -95,8 +95,12 @@ def last_run(h):
 
 
 def kyakushitsu(h):
-    lr = last_run(h)
-    return (lr or {}).get("weight_change")
+    lr = last_run(h) or {}
+    # 新schema: style=決手 / 旧schema: weight_change に決手が入っていた
+    v = str(lr.get("style") or "").strip()
+    if v in {"逃げ", "先行", "中団", "差し", "ﾏｸﾘ", "マクリ", "後方", "追込"}:
+        return v
+    return lr.get("weight_change")
 
 
 def auto_kaiko(h, pos, ninki, exact):

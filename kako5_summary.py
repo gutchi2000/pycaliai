@@ -52,15 +52,22 @@ def _td_to_label(td: str) -> str:
 
 
 def _has_deogure(style: str) -> bool:
-    """脚質ラベル文字列から「出遅れ」を判定。"""
+    """脚質ラベル文字列から「出遅れ」を判定。
+
+    注意: 現行 TARGET エクスポート(46/72列)の決手は 逃げ/先行/中団/後方/
+    追込/ﾏｸﾘ のみで「出遅」を含まないため、deogure_count は実質常に 0。
+    出遅情報を得るには TARGET 側で備考/コメント列を含む形式が必要。
+    """
     if not style:
         return False
     s = str(style)
     return any(k in s for k in ["出遅", "ﾃﾞｵ", "デオ"])
 
 
-# 過去1〜5走の column offset (parse_kako5.py と整合):
-#   race i → (場所, TD, 距離, 馬場, 着順, 人気, 脚質, 上3F, 馬体, 前走間隔)
+# 過去1〜5走の column offset (実CSVで実測検証済み 2026-07-03):
+#   race i → (場所, TD, 距離, 馬場, 着順, 人気, レース名, 上3F, 決手, 前走間隔)
+# 注: 旧版は base+6 を style、base+8 を weight_change と誤ラベルしていた
+#     (実体はレース名と決手)。馬体重変化はこの CSV に存在しない。
 PAST_RUN_BASE = [14, 26, 38, 50, 62]
 
 
@@ -79,9 +86,9 @@ def _extract_run(row: list[str], base: int) -> Optional[dict]:
         "track": (row[base + 3] or "").strip() or None,
         "pos": pos,
         "ninki": _safe_int(row[base + 5]),
-        "style": (row[base + 6] or "").strip() or None,
+        "race_name": (row[base + 6] or "").strip() or None,
         "agari3f": _safe_float(row[base + 7]),
-        "weight_change": (row[base + 8] or "").strip() or None,
+        "style": (row[base + 8] or "").strip() or None,
         "interval_weeks": _safe_int(row[base + 9]),
     }
 

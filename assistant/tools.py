@@ -85,15 +85,37 @@ _MARK2PRIOR = {  # 印 → class_prior の複勝率キー
 }
 
 
+# 決手の正規値 (新旧 bundle schema 判別用。旧: style=レース名/weight_change=決手)
+_STYLE_VALUES = {"逃げ", "先行", "中団", "差し", "ﾏｸﾘ", "マクリ", "後方", "追込"}
+
+
+def _run_style(r: dict):
+    """脚質(決手)を新旧 schema 両対応で取り出す。"""
+    for k in ("style", "weight_change"):
+        v = str(r.get(k) or "").strip()
+        if v in _STYLE_VALUES:
+            return v
+    return None
+
+
+def _run_race(r: dict):
+    """レース名(クラス)を新旧 schema 両対応で取り出す。"""
+    v = r.get("race_name")
+    if v:
+        return v
+    v = str(r.get("style") or "").strip()  # 旧schemaは style にレース名
+    return v if v and v not in _STYLE_VALUES else None
+
+
 def _fmt_runs(hist: dict) -> list:
     """過去走を読みやすい形に（前走どうだった?に答えるため）。"""
     out = []
     for r in (hist.get("runs") or [])[:5]:
         out.append({
-            "何走前": r.get("n_ago"), "レース": r.get("style"),
+            "何走前": r.get("n_ago"), "レース": _run_race(r),
             "着順": r.get("pos"), "人気": r.get("ninki"),
             "コース": f"{r.get('place', '')}{r.get('td', '')}{r.get('dist', '')}",
-            "上り3F": r.get("agari3f"), "脚質": r.get("weight_change"),
+            "上り3F": r.get("agari3f"), "脚質": _run_style(r),
         })
     return out
 
@@ -103,7 +125,7 @@ def _form_line(hist: dict) -> str:
     if not runs:
         return ""
     r = runs[0]
-    return (f"。前走={r.get('style')} {r.get('pos')}着"
+    return (f"。前走={_run_race(r)} {r.get('pos')}着"
             f"({r.get('ninki')}人気・{r.get('place')}{r.get('td')}{r.get('dist')})")
 
 

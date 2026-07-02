@@ -61,11 +61,12 @@ STYLE_MAP = {"逃げ": "逃げ", "先行": "先行", "中団": "差し", "差し
 STYLE_ORDER = ["逃げ", "先行", "差し", "追込"]
 
 
-def classify_style(history):      # build_site と同じ (runs[].weight_change から脚質)
+def classify_style(history):      # build_site と同じ (新schema=style / 旧=weight_change)
     runs = (history or {}).get("runs") or []
     score = {}
     for u in runs:
-        st = STYLE_MAP.get(str(u.get("weight_change", "")).strip())
+        st = (STYLE_MAP.get(str(u.get("style", "")).strip())
+              or STYLE_MAP.get(str(u.get("weight_change", "")).strip()))
         if not st:
             continue
         score[st] = score.get(st, 0) + max(1, 6 - (u.get("n_ago") or 5))

@@ -180,7 +180,9 @@ def classify_style(history: dict | None) -> str | None:
     runs = (history or {}).get("runs") or []
     score: dict[str, float] = {}
     for u in runs:
-        st = STYLE_MAP.get(str(u.get("weight_change", "")).strip())
+        # 新schema: style=決手 / 旧schema(〜2026-06): weight_change に決手が入っていた
+        st = (STYLE_MAP.get(str(u.get("style", "")).strip())
+              or STYLE_MAP.get(str(u.get("weight_change", "")).strip()))
         if not st:
             continue
         w = max(1, 6 - (u.get("n_ago") or 5))
