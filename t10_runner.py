@@ -295,6 +295,10 @@ def show_race_bets(date_str: str, rid16: str):
     e = next((r for r in races if _rid16(r.get("race_id", "")) == rid16), None)
     if e is None:
         return
+    hosei_line = ""
+    if e.get("hosei_marks"):
+        from compute_bets import fmt_hosei
+        hosei_line = fmt_hosei(e["hosei_marks"])
     if e.get("bets"):
         tot = sum(b["購入額"] for b in e["bets"])
         head = (f"🎫 {e.get('race_label','')} [{e.get('race_nature','')}] "
@@ -304,13 +308,19 @@ def show_race_bets(date_str: str, rid16: str):
         for b in e["bets"]:
             print(f"     {b['馬券種']:3s} {b['買い目']:8s} ¥{b['購入額']:>5,}  {b.get('理由','')}")
             lines.append(f"{b['馬券種']} `{b['買い目']}` ¥{b['購入額']:,}  {b.get('理由','')}")
+        if hosei_line:
+            print(f"     {hosei_line}")
+            lines.append(hosei_line)
         print(f"     → {e.get('race_reason','')}")
         lines.append(f"_{e.get('race_reason','')}_")
         notify("\n".join(lines))
         beep()
     else:
         print(f"  — {e.get('race_label','')} [見送り] {e.get('race_reason','')}")
-        notify(f"— {e.get('race_label','')} **見送り** {e.get('race_reason','')}")
+        if hosei_line:
+            print(f"     {hosei_line}")
+        notify(f"— {e.get('race_label','')} **見送り** {e.get('race_reason','')}"
+               + (f"\n{hosei_line}" if hosei_line else ""))
 
 
 def ensure_plan(date_str: str) -> None:

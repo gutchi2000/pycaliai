@@ -32,12 +32,54 @@ NiceGUI の 4 カード（市場一致 / ◎独走度 / 上位2頭集中 / 混�
   ✅ t10_runner.py / t10.ps1: 当日オーケストレータ (発走時刻→T-10 自動発火)。
 """
 from __future__ import annotations
-import argparse, bisect, io, json, sys
+import argparse, bisect, io, json, math, sys
 from pathlib import Path
 
 BASE = Path(__file__).parent
 BUDGET, MIN_BET, MAX_BET = 10000, 500, 7000
 CHAOS_Q = BASE / "data" / "chaos_quantiles.json"
+T10_BLEND = BASE / "data" / "t10_blend.json"
+
+# T-10 補正印 (2026-07-03): u = log(p_win) + λ·log(π) 降順の上位5頭に印を付け直す。
+#   p_win=bundle較正PL単勝率 / π=de-vig市場単勝確率 / λ=analysis/fit_t10_blend.py で
+#   valid2023 fit。OOS(test2024-25, 6,858R): ◎top3 61.7%→65.1% (Δ+3.41pt CI[+2.5,+4.3])、
+#   市場単独64.3%も上回る。表示専用 — 買い目計算・公開印には影響しない。
+HOSEI_MARK5 = ["◎", "〇", "▲", "△", "△"]
+
+_BLEND_LAM = -1.0  # 未ロード sentinel
+
+
+def _blend_lambda():
+    """t10_blend.json から λ をロード (無ければ None = 補正印無効, fail-soft)。"""
+    global _BLEND_LAM
+    if _BLEND_LAM == -1.0:
+        try:
+            _BLEND_LAM = float(json.loads(
+                T10_BLEND.read_text(encoding="utf-8"))["lambda"])
+        except Exception:
+            _BLEND_LAM = None
+    return _BLEND_LAM
+
+
+def hosei_marks(horses: list[dict]) -> list[dict] | None:
+    """blend 順上位5頭の補正印。p_win/オッズ欠損馬は対象外、5頭未満なら None。"""
+    lam = _blend_lambda()
+    if lam is None:
+        return None
+    rows = []
+    for h in horses:
+        b, p, o = (_num(h.get("umaban")), _num(h.get("p_win")),
+                   _num(h.get("tansho_odds")))
+        if b is None or p is None or o is None or p <= 0 or o <= 0:
+            continue
+        rows.append((int(b), float(p), 1.0 / float(o),
+                     h.get("horse_name") or "", h.get("mark") or ""))
+    if len(rows) < 5:
+        return None
+    s_inv = sum(r[2] for r in rows)  # de-vig 正規化 (レース内定数、順位不変だが明示)
+    rows.sort(key=lambda r: -(math.log(r[1]) + lam * math.log(r[2] / s_inv)))
+    return [{"mark": HOSEI_MARK5[i], "umaban": r[0], "horse_name": r[3],
+             "orig_mark": r[4]} for i, r in enumerate(rows[:5])]
 
 # 出力 bets[] の券種表示順 (ユーザー指定 2026-06-12。金額配分には影響しない)
 KIND_ORDER = {"単勝": 0, "複勝": 1, "ワイド": 2, "馬連": 3, "馬単": 4,
@@ -264,6 +306,10 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
 
     by_ban = {int(h["umaban"]): h for h in horses if _num(h.get("umaban")) is not None}
 
+    # T-10 補正印 (表示専用)。live 差し替え後の tansho_odds で計算。
+    # 見送りレースにも付けるため early return より前に算出する。
+    hosei = hosei_marks(horses)
+
     def fld(b, k):
         return _num(by_ban.get(b, {}).get(k)) if b is not None else None
 
@@ -288,7 +334,8 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     elif pwin_hon is not None and pwin_hon < 0.05: skip = "本命勝率<0.05"
     if skip:
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",
-                "race_reason": f"{skip} のため見送り。", "bets": []}
+                "race_reason": f"{skip} のため見送り。", "bets": [],
+                **({"hosei_marks": hosei} if hosei else {})}
 
     # ---- カード値（パーセンタイル + market 生値）----
     top1 = pct(rc.get("top1_dominance"), "top1_dominance")
@@ -298,14 +345,15 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
         # 分位テーブル欠如/破損 → shape 判定不能。fail-safe 見送り
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",
                 "race_reason": "chaos_quantiles.json 欠如/破損で指標変換不能のため見送り (fail-safe)。",
-                "bets": []}
+                "bets": [], **({"hosei_marks": hosei} if hosei else {})}
 
     # ---- §0b 参戦規律: クリーン帯(低エントロピー)外は見送り (fail-safe / 最も負けない線) ----
     #   force_floor 時は緩める(プロ条件 10R∧¥100k 充足のため枠プラン消化枠で参戦)。
     if chaos > CLEAN_BAND_MAX and not force_floor:
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",
                 "race_reason": f"クリーン帯外(混戦度 pct{chaos:.2f}>{CLEAN_BAND_MAX:.2f}・参戦規律)で見送り。"
-                               "◎の信頼が薄い帯=OOSで控除床近傍につき不参戦。", "bets": []}
+                               "◎の信頼が薄い帯=OOSで控除床近傍につき不参戦。", "bets": [],
+                **({"hosei_marks": hosei} if hosei else {})}
     market = _num(rc.get("ai_market_agreement")) or 0.0
     anaba = market < TH_MARKET_ANABA
     value_bans = [int(v["umaban"]) for v in bj.get("value_horses", []) if _num(v.get("umaban")) is not None]
@@ -537,7 +585,16 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     return {"race_id": rid, "race_label": label, "race_nature": shape, "race_reason": rr,
             "confidence": {"top1_pct": round(top1, 3), "top2_pct": round(top2, 3),
                            "chaos_pct": round(chaos, 3), "market": round(market, 3)},
-            "bets": bets}
+            "bets": bets, **({"hosei_marks": hosei} if hosei else {})}
+
+
+def fmt_hosei(hm: list[dict]) -> str:
+    """補正印の1行表示。元印から昇格/降格した馬に * を付ける。"""
+    parts = []
+    for x in hm:
+        chg = "*" if (x.get("orig_mark") or "") != x["mark"] else ""
+        parts.append(f"{x['mark']}{x['umaban']}{x['horse_name']}{chg}")
+    return "補正印(オッズblend): " + " ".join(parts)
 
 
 def apply_to_bets_json(date_str: str, computed: list[dict]) -> Path:
@@ -662,6 +719,8 @@ def main():
                 print(f"   {b['馬券種']:3s} {b['買い目']:8s} ¥{b['購入額']:>5,}  {b['理由']}")
         else:
             print(f"\n— {e['race_label']} [見送り] {e['race_reason']}")
+        if e.get("hosei_marks"):
+            print("   " + fmt_hosei(e["hosei_marks"]))
 
     if args.apply:
         m = None
