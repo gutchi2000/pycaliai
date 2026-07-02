@@ -449,6 +449,9 @@ v6 + cowork_prompt 改修（節 11）でこの弱点改善を狙う。
 # →validate を自動実行し買い目表示。投票は人間IPAT。詳細: docs/compute_bets_spec.md）
 # ★土日 9:00 はタスクスケジューラ「PyCaLiAI_T10」が自動起動 (bundle 待機つき) — 手動起動は不要。
 #   祝日(月)開催のみ手動: .\t10.ps1   / テスト: .\t10.ps1 20260614 -Dry
+# 補正印(オッズblend, 2026-07-03): T-10 で log(p_win)+λ·log(市場π) 再ランクの印を表示。
+#   OOS実証 ◎top3 61.7%→65.1% (test2024-25, Δ+3.41pt CI[+2.5,+4.3])。表示専用・買い目不干渉。
+#   λ再fit: python -m analysis.fit_t10_blend → data/t10_blend.json
 
 # 週次 Phase C（日曜夜、kekka 配置後）
 .\weekly_nicegui.ps1 -Post
