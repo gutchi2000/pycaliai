@@ -35,7 +35,8 @@ COL_BAN  = "馬番"
 
 
 def load_valid(race_relative_mode: str | None = None,
-               course_affinity_mode: str | None = None):
+               course_affinity_mode: str | None = None,
+               grade_feats_mode: str | None = None):
     print(f"[load] {MASTER_CSV}")
     df = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", low_memory=False)
     df[COL_JYUN] = pd.to_numeric(df[COL_JYUN], errors="coerce")
@@ -48,6 +49,10 @@ def load_valid(race_relative_mode: str | None = None,
         from course_affinity_feats import add_course_affinity_feats
         df = add_course_affinity_feats(df, mode=course_affinity_mode)
         print(f"  + course_affinity_feats(mode={course_affinity_mode})")
+    if grade_feats_mode:
+        from grade_feats import add_grade_feats
+        df = add_grade_feats(df, mode=grade_feats_mode)
+        print(f"  + grade_feats(mode={grade_feats_mode})")
     vl = df[df["split"] == "valid"].copy()
     print(f"  valid rows={len(vl):,}  races={vl[COL_RID].nunique():,}")
     return vl
@@ -75,10 +80,12 @@ def main():
     encs   = bundle["encoders"]
     rr_mode = bundle.get("race_relative_mode")
     ca_mode = bundle.get("course_affinity_mode")
+    gf_mode = bundle.get("grade_feats_mode")
     print(f"[model] feats={len(feats)}  best_iter={model.best_iteration}  "
-          f"race_relative={rr_mode}  course_affinity={ca_mode}")
+          f"race_relative={rr_mode}  course_affinity={ca_mode}  grade_feats={gf_mode}")
 
-    vl = load_valid(race_relative_mode=rr_mode, course_affinity_mode=ca_mode)
+    vl = load_valid(race_relative_mode=rr_mode, course_affinity_mode=ca_mode,
+                    grade_feats_mode=gf_mode)
     vl = apply_encoders(vl, encs)
     X  = vl[feats].apply(pd.to_numeric, errors="coerce").fillna(-9999).values
     vl["_score"] = model.predict(X)

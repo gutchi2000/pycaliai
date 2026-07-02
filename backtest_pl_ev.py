@@ -202,6 +202,7 @@ def score_test(include_valid=False):
     model, feats, encs = bundle["model"], bundle["feature_cols"], bundle["encoders"]
     rr_mode = bundle.get("race_relative_mode")
     ca_mode = bundle.get("course_affinity_mode")
+    gf_mode = bundle.get("grade_feats_mode")
     df = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", low_memory=False)
     df[COL_JYUN] = pd.to_numeric(df[COL_JYUN], errors="coerce")
     df = df.dropna(subset=[COL_JYUN, COL_RID, "split"]).copy()
@@ -211,6 +212,9 @@ def score_test(include_valid=False):
     if ca_mode:
         from course_affinity_feats import add_course_affinity_feats
         df = add_course_affinity_feats(df, mode=ca_mode)
+    if gf_mode:
+        from grade_feats import add_grade_feats
+        df = add_grade_feats(df, mode=gf_mode)
     if include_valid:
         te = df[df["split"].isin(["test", "valid"])].copy()
     else:
