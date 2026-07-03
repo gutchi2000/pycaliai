@@ -12,7 +12,8 @@ fetch_baba_today.py — JRA 馬場情報(クッション値/含水率)を当日�
 実行: PYTHONUTF8=1 ./venv311/Scripts/python.exe fetch_baba_today.py
 """
 from __future__ import annotations
-import json, re, sys
+import datetime as dt
+import json, re, sys, time
 from pathlib import Path
 import requests
 
@@ -25,10 +26,17 @@ RC = ["rcA", "rcB", "rcC", "rcD"]
 DATE_TIME = r"(\d+月\d+日（[^）]+）\s*\d+時\d+分)"
 
 
-def get(url):
-    r = requests.get(url, headers=H, timeout=20)
-    r.raise_for_status()
-    return r.content.decode("shift_jis", "replace")
+def get(url, tries=3, wait=20):
+    """JRA サイトの一時不調に備え 3 回リトライ (確実に取る)。"""
+    for k in range(tries):
+        try:
+            r = requests.get(url, headers=H, timeout=20)
+            r.raise_for_status()
+            return r.content.decode("shift_jis", "replace")
+        except Exception:
+            if k == tries - 1:
+                raise
+            time.sleep(wait)
 
 
 def firmness(cu):
@@ -98,13 +106,16 @@ def main():
         BT = json.loads(BIAS_TABLE.read_text(encoding="utf-8"))
     except Exception:
         sys.exit("data/baba_bias.json が無い（build_baba_bias.py を先に）")
+    today = dt.date.today().isoformat()
     try:
         venues = active_venues(); cu = parse_cushion(); mo = parse_moist()
     except Exception as e:
-        OUT.write_text(json.dumps({"venues": [], "error": str(e)}, ensure_ascii=False), encoding="utf-8")
+        OUT.write_text(json.dumps({"date": today, "venues": [], "error": str(e)},
+                                  ensure_ascii=False), encoding="utf-8")
         sys.exit(f"取得失敗(非開催日?): {e}")
     if not venues:
-        OUT.write_text(json.dumps({"venues": []}, ensure_ascii=False), encoding="utf-8")
+        OUT.write_text(json.dumps({"date": today, "venues": []}, ensure_ascii=False),
+                       encoding="utf-8")
         print("当日開催なし"); return
 
     rows = []
@@ -123,7 +134,11 @@ def main():
             "shiba_bias": shiba_bias, "dirt_bias": dirt_bias,
         })
     meas = next((r["cushion_time"] or r["moist_time"] for r in rows if r.get("cushion_time") or r.get("moist_time")), None)
-    payload = {"measured_label": meas, "venues": rows}
+    # date: 取得実行日 (ISO)。site/js/baba.js が「閲覧日と一致する時だけ今日のとして表示」
+    # の鮮度ゲートに使う (stale 表示バグ対策 2026-07-04)。
+    payload = {"date": today,
+               "fetched_at": dt.datetime.now().isoformat(timespec="seconds"),
+               "measured_label": meas, "venues": rows}
     OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"[saved] {OUT}  ({len(rows)}場)")
     for r in rows:

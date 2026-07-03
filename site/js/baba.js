@@ -1,11 +1,19 @@
 /* 今日の馬場バイアス パネル（fetch_baba_today.py → data/baba_today.json）
-   SPA(app.js)とは独立。非開催日/データ無しなら非表示。 */
+   SPA(app.js)とは独立。非開催日/データ無し/鮮度切れなら非表示。
+   鮮度ゲート (2026-07-04): d.date が閲覧日と一致する時だけ表示。
+   古い測定値を「今日の」と偽らない (stale バグ対策)。 */
 (function () {
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")
+      + "-" + String(d.getDate()).padStart(2, "0");
+  }
   function render(d) {
     var el = document.getElementById("babaBias");
     if (!el) return;
     if (!d || !d.venues || !d.venues.length) { el.hidden = true; return; }
+    if (d.date !== todayISO()) { el.hidden = true; return; }  // 今日のデータでなければ出さない
     var cards = d.venues.map(function (v) {
       var s = v.shiba_bias, dd = v.dirt_bias;
       return '<div class="baba-card">'
