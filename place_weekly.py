@@ -10,11 +10,14 @@ place_weekly.py — 週次 TARGET エクスポートを data/_inbox/ から各�
   ファイル名 OD*.CSV ...................... data/odds/       (オッズ・名前そのまま)
   ファイル名 S<日付>.csv ................. data/weekly/{日付}.csv   (★出走表 = S プレフィクス)
   ファイル名 K<日付>.csv ................. data/kako5/{日付}.csv    (★過去5走 = K プレフィクス)
+  ファイル名 T<日付>.csv ................. data/tyaku/{日付}.csv    (★着度数 = T プレフィクス)
   中身 15列・「確定着順」系 ............... data/kekka/{日付}.csv    (結果・払戻 通常版)
   中身 174列・払戻成績 ................... data/bias/{日付}.csv     (★土曜結果 → 実現バイアス自動生成)
 
-  ※ 出走表(出走表)と過去5走は構造が完全同型で中身判定できないため、ファイル名の
-     先頭1文字(S / K)で見分ける。エクスポート時か _inbox 投入時に S/K を付ける。
+  ※ 出走表/過去5走/着度数 はレースヘッダが同型 (19列) だが、馬行の列数が違う
+     (出走表=46 or 99 / 着度数=53-60 / 過去5走=72)。プレフィクス無しでも
+     馬行列数から自動判別する (実測 2026-07-03)。判別不能時のみ S/K/T を付けて再実行。
+     着度数は serve の horse_fuku_* 特徴 (predict_weekly.parse_csv) の供給源 = 必須ファイル。
   ※ 174列の払戻成績を置くと build_realized_bias.py を自動実行し data/realized_bias.json を更新
      (=翌開催日の出走表タブに「実現バイアス」カードが出る)。
 
@@ -74,7 +77,34 @@ def detect_content(path: Path) -> str | None:
     if "確定着順" in h:
         return "kekka"
     if n < 30 and "レースID(新)" in h and "クラス名" in h:
-        return "racelist"        # 出走表/過去5走 — S/K プレフィクスが要る
+        return "racelist"        # 出走表/過去5走/着度数 — 馬行列数で二次判定
+    return None
+
+
+def detect_racelist_kind(path: Path) -> str | None:
+    """racelist 系 (レースヘッダ19列) の種類を馬行の列数から判定。
+    出走表=46列(99列形式も) / 着度数=53-60列(週により+2程度揺れる) / 過去5走=72列。
+    """
+    from collections import Counter
+    cnt: Counter = Counter()
+    try:
+        with open(path, encoding="cp932", errors="replace") as f:
+            for row in csv.reader(f):
+                if len(row) > 19 and row[0].strip().isdigit():
+                    cnt[len(row)] += 1
+                if sum(cnt.values()) >= 200:
+                    break
+    except Exception:
+        return None
+    if not cnt:
+        return None
+    n = cnt.most_common(1)[0][0]
+    if n in (46, 99):
+        return "weekly"
+    if n == 72:
+        return "kako5"
+    if 50 <= n <= 60:
+        return "tyaku"
     return None
 
 
@@ -92,6 +122,9 @@ def route(path: Path):
     if re.match(r"^[Kk]\d", name):                          # ★過去5走
         d = extract_date(name[1:], path)
         return (BASE / "data" / "kako5" / f"{d}.csv") if d else None, False, "過去5走(K)"
+    if re.match(r"^[Tt]\d", name):                          # ★着度数
+        d = extract_date(name[1:], path)
+        return (BASE / "data" / "tyaku" / f"{d}.csv") if d else None, False, "着度数(T)"
     t = detect_content(path)
     if t == "bias":
         d = extract_date(name, path)
@@ -100,7 +133,14 @@ def route(path: Path):
         d = extract_date(name, path)
         return (BASE / "data" / "kekka" / f"{d}.csv") if d else None, False, "結果(kekka)"
     if t == "racelist":
-        return None, False, "⚠ 出走表/過去5走は見分け不能。S/K プレフィクスを付けて"
+        kind = detect_racelist_kind(path)
+        d = extract_date(name, path)
+        if kind and d:
+            sub, label = {"weekly": ("weekly", "出走表(自動判別)"),
+                          "kako5": ("kako5", "過去5走(自動判別)"),
+                          "tyaku": ("tyaku", "着度数(自動判別)")}[kind]
+            return BASE / "data" / sub / f"{d}.csv", False, label
+        return None, False, "⚠ 出走表/過去5走/着度数を判別できず。S/K/T プレフィクスを付けて"
     return None, False, "⚠ 種類判定不能"
 
 
