@@ -69,30 +69,6 @@ async function boot() {
     b.onclick = () => setMode(b.dataset.mode);
   });
   if (mf.dates.length) loadDay(mf.dates[0].date);
-  renderHero();
-}
-
-/* ---------------- ヒーロー KPI (累計成績の看板) ---------------- */
-async function renderHero() {
-  const el = $("#heroKpis");
-  if (!el) return;
-  try {
-    if (!resultsData) {
-      const v = encodeURIComponent(state.manifest?.built_at || "0");
-      resultsData = await (await fetch(`data/results.json?v=${v}`)).json();
-    }
-    const a = resultsData.agg || {};
-    const roiCls = (a.roi ?? 0) >= 100 ? "pos" : (a.roi ?? 0) >= 80 ? "mid" : "";
-    const roi = Math.round(a.roi ?? 0), hit = Math.round(a.hit_rate ?? 0), nb = a.n_bets ?? 0;
-    // 初期値に実数を入れておき、rAF が走らない環境でも 0 表示にならないようにする
-    el.innerHTML = `
-      <div class="hkpi"><div class="hk-v num ${roiCls}"><span class="cv" data-cv="${roi}">${roi}</span><small>%</small></div><div class="hk-k">累計回収率</div></div>
-      <div class="hkpi"><div class="hk-v num"><span class="cv" data-cv="${hit}">${hit}</span><small>%</small></div><div class="hk-k">的中率</div></div>
-      <div class="hkpi"><div class="hk-v num"><span class="cv" data-cv="${nb}">${nb}</span><small>件</small></div><div class="hk-k">対象ベット</div></div>`;
-    runCounters(el);
-  } catch (e) {
-    el.innerHTML = "";  // 成績データが無くても看板は空で続行
-  }
 }
 
 /* ---------------- 予想 / 成績 モード ---------------- */
@@ -240,7 +216,7 @@ function donut(label, frac, color) {
     <svg viewBox="0 0 48 48" width="66" height="66" aria-hidden="true">
       <circle class="g-track" cx="24" cy="24" r="20"></circle>
       <circle class="g-fill" cx="24" cy="24" r="20"
-        style="stroke:${color};stroke-dasharray:${C};stroke-dashoffset:${C};--off:${(C * (1 - v)).toFixed(1)}"></circle>
+        style="stroke:${color};stroke-dasharray:${C};stroke-dashoffset:${(C * (1 - v)).toFixed(1)};--c:${C};--off:${(C * (1 - v)).toFixed(1)}"></circle>
     </svg>
     <div class="g-val num"><span class="cv" data-cv="${Math.round(v * 100)}">0</span><small>%</small></div>
     <div class="g-label">${label}</div>
