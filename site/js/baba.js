@@ -25,9 +25,14 @@
         + (dd ? '<div class="bl dirt">' + esc(dd.line) + '</div>' : '')
         + '</div>';
     }).join("");
-    el.innerHTML = '<h3>🏇 今日の馬場バイアス'
-      + (d.measured_label ? ' <span class="sub">' + esc(d.measured_label) + ' 測定 / 過去10年実測</span>' : '')
-      + '</h3><div class="baba-grid">' + cards + '</div>';
+    // 当日測定がまだ掲載されていない早朝は前日値が最新。正直に「前日測定」と示す。
+    var stale = (d.is_measured_today === false);
+    var head = stale ? '🏇 馬場バイアス（前日測定）' : '🏇 今日の馬場バイアス';
+    var note = d.measured_label
+      ? ' <span class="sub">' + esc(d.measured_label) + ' 測定'
+        + (stale ? '・本日値は発表待ち' : '') + ' / 過去10年実測</span>'
+      : '';
+    el.innerHTML = '<h3>' + head + note + '</h3><div class="baba-grid">' + cards + '</div>';
     el.hidden = false;
   }
   fetch("data/baba_today.json?v=" + Date.now())

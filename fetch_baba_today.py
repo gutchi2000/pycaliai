@@ -39,6 +39,24 @@ def get(url, tries=3, wait=20):
             time.sleep(wait)
 
 
+def measured_iso(label, today):
+    """「7月3日（金曜）10時00分」→ ISO 日付。年は today 基準 (年跨ぎ補正付き)。"""
+    if not label:
+        return None
+    m = re.search(r"(\d+)月(\d+)日", label)
+    if not m:
+        return None
+    mo_, d_ = int(m.group(1)), int(m.group(2))
+    y = today.year
+    # 1月に12月測定を見た場合は前年
+    if today.month == 1 and mo_ == 12:
+        y -= 1
+    try:
+        return dt.date(y, mo_, d_).isoformat()
+    except ValueError:
+        return None
+
+
 def firmness(cu):
     if cu is None: return None
     return ("硬め" if cu >= 12 else "やや硬め" if cu >= 10 else "標準"
@@ -134,13 +152,19 @@ def main():
             "shiba_bias": shiba_bias, "dirt_bias": dirt_bias,
         })
     meas = next((r["cushion_time"] or r["moist_time"] for r in rows if r.get("cushion_time") or r.get("moist_time")), None)
+    m_iso = measured_iso(meas, dt.date.today())
+    is_today = (m_iso == today)
     # date: 取得実行日 (ISO)。site/js/baba.js が「閲覧日と一致する時だけ今日のとして表示」
     # の鮮度ゲートに使う (stale 表示バグ対策 2026-07-04)。
+    # measured_date/is_measured_today: JRA は当日測定を race 当日 8:20 頃に掲載するため、
+    # 早朝取得だと前日値が最新。前日値の時は baba.js が「前日測定」と正直表示し、
+    # baba_daily.ps1 の午前ポーリングが当日値の掲載を待って取り直す (2026-07-04)。
     payload = {"date": today,
                "fetched_at": dt.datetime.now().isoformat(timespec="seconds"),
-               "measured_label": meas, "venues": rows}
+               "measured_label": meas, "measured_date": m_iso,
+               "is_measured_today": is_today, "venues": rows}
     OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"[saved] {OUT}  ({len(rows)}場)")
+    print(f"[saved] {OUT}  ({len(rows)}場)  measured={m_iso} today={is_today}")
     for r in rows:
         print(f"\n■ {r['venue']}（クッション{r['cushion']}={r['cushion_firmness']} / 含水芝{r['shiba_gp']}% ダ{r['dirt_gp']}%）")
         if r["shiba_bias"]: print("  ", r["shiba_bias"]["line"])
