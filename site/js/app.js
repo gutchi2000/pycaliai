@@ -69,6 +69,28 @@ async function boot() {
     b.onclick = () => setMode(b.dataset.mode);
   });
   if (mf.dates.length) loadDay(mf.dates[0].date);
+  renderHero();
+}
+
+/* ---------------- ヒーロー KPI (累計成績の看板) ---------------- */
+async function renderHero() {
+  const el = $("#heroKpis");
+  if (!el) return;
+  try {
+    if (!resultsData) {
+      const v = encodeURIComponent(state.manifest?.built_at || "0");
+      resultsData = await (await fetch(`data/results.json?v=${v}`)).json();
+    }
+    const a = resultsData.agg || {};
+    const roiCls = (a.roi ?? 0) >= 100 ? "pos" : (a.roi ?? 0) >= 80 ? "mid" : "";
+    el.innerHTML = `
+      <div class="hkpi"><div class="hk-v num ${roiCls}"><span class="cv" data-cv="${Math.round(a.roi ?? 0)}">0</span><small>%</small></div><div class="hk-k">累計回収率</div></div>
+      <div class="hkpi"><div class="hk-v num"><span class="cv" data-cv="${Math.round(a.hit_rate ?? 0)}">0</span><small>%</small></div><div class="hk-k">的中率</div></div>
+      <div class="hkpi"><div class="hk-v num"><span class="cv" data-cv="${a.n_bets ?? 0}">0</span><small>件</small></div><div class="hk-k">対象ベット</div></div>`;
+    runCounters(el);
+  } catch (e) {
+    el.innerHTML = "";  // 成績データが無くても看板は空で続行
+  }
 }
 
 /* ---------------- 予想 / 成績 モード ---------------- */
@@ -542,11 +564,56 @@ function realizedCard(r) {
       <span class="rb-waku ${wcls}">${esc(rb.waku)}</span>
       <span class="rb-sub">内半 ${ih}% ・ ${esc(rb.baba)}</span>
     </div>
+    ${biasFitBlock(r, rb)}
     <div class="pair-note">
       <b>前残り</b>＝道中 前1/3 で勝った割合（脚質バイアス・<u>信頼できる定数</u>）。
       <b>枠</b>＝小標本で日々反転しやすい弱信号、参考程度に。
+      <b>合致/逆風</b>＝各印馬の脚質を実現バイアスと突合した<u>読みの目安</u>（買い目には未反映）。
     </div>
   </div>`;
+}
+
+/* 実現バイアス × 各印馬の脚質を突合して「バイアス合致=評価↑ / 逆風=評価↓」を言語化。
+   前残り(脚質)の robust 軸のみで判定。枠は弱信号なので添える程度。表示専用＝買い目不干渉。 */
+const _FRONT_STY = { "逃げ": 1, "先行": 1 };
+const _CLOSE_STY = { "差し": 1, "追込": 1 };
+const _MARK_RANK = { "◎": 0, "〇": 1, "○": 1, "▲": 2, "△": 3 };
+function biasFitBlock(r, rb) {
+  const fp = Math.round(rb.front_rate * 100);
+  // 前有利(+1) / 差し有利(-1) / フラット(0)。前脚質は元々勝ちやすいので中立帯を広めに。
+  let favor = 0;
+  if (fp >= 58) favor = 1;
+  else if (fp <= 34) favor = -1;
+  const dirWord = favor > 0 ? "前残り" : "差し・追込";
+  if (favor === 0) {
+    return `<div class="rb-fit-flat">前残り${fp}% ＝ ほぼフラット。脚質での評価上下は今回なし。</div>`;
+  }
+  const marked = (r.horses || [])
+    .filter((h) => h.mark && _MARK_RANK[h.mark] != null)
+    .sort((a, b) => _MARK_RANK[a.mark] - _MARK_RANK[b.mark]);
+  const rows = [];
+  for (const h of marked) {
+    const sty = h.style;
+    if (!sty) continue;
+    const isFront = _FRONT_STY[sty], isClose = _CLOSE_STY[sty];
+    if (!isFront && !isClose) continue;      // 中間脚質など判定外
+    // dir: +1=追い風(バイアス合致) / -1=逆風
+    const dir = (favor > 0) ? (isFront ? 1 : -1) : (isClose ? 1 : -1);
+    const low = _MARK_RANK[h.mark] >= 2;      // ▲△ = 軽い印
+    let msg;
+    if (dir > 0) msg = low ? "バイアス合致。実質格上げの狙い目" : "バイアスも後押し、信頼度アップ";
+    else msg = low ? "元々軽い上に逆風、消し寄り" : "本命級だが逆風、頭は危険・軽めに";
+    rows.push(`<div class="rb-fit ${dir > 0 ? "up" : "dn"}">
+      <span class="mark ${markCls(h.mark)}">${h.mark}</span>
+      <span class="rb-fit-n">${h.umaban} ${esc(h.name)}</span>
+      <span class="rb-fit-sty">${esc(sty)}</span>
+      <span class="rb-fit-arw">${dir > 0 ? "追い風▲" : "逆風▼"}</span>
+      <span class="rb-fit-msg">${msg}</span>
+    </div>`);
+  }
+  if (!rows.length) return "";
+  const small = rb.n < 3 ? `<span class="rb-fit-warn">※${rb.n}Rの小標本・目安</span>` : "";
+  return `<div class="rb-fit-hd">${dirWord}有利の脚質補正 ${small}</div>${rows.join("")}`;
 }
 
 /* ---------------- cowork section ---------------- */
