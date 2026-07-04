@@ -83,10 +83,12 @@ async function renderHero() {
     }
     const a = resultsData.agg || {};
     const roiCls = (a.roi ?? 0) >= 100 ? "pos" : (a.roi ?? 0) >= 80 ? "mid" : "";
+    const roi = Math.round(a.roi ?? 0), hit = Math.round(a.hit_rate ?? 0), nb = a.n_bets ?? 0;
+    // 初期値に実数を入れておき、rAF が走らない環境でも 0 表示にならないようにする
     el.innerHTML = `
-      <div class="hkpi"><div class="hk-v num ${roiCls}"><span class="cv" data-cv="${Math.round(a.roi ?? 0)}">0</span><small>%</small></div><div class="hk-k">累計回収率</div></div>
-      <div class="hkpi"><div class="hk-v num"><span class="cv" data-cv="${Math.round(a.hit_rate ?? 0)}">0</span><small>%</small></div><div class="hk-k">的中率</div></div>
-      <div class="hkpi"><div class="hk-v num"><span class="cv" data-cv="${a.n_bets ?? 0}">0</span><small>件</small></div><div class="hk-k">対象ベット</div></div>`;
+      <div class="hkpi"><div class="hk-v num ${roiCls}"><span class="cv" data-cv="${roi}">${roi}</span><small>%</small></div><div class="hk-k">累計回収率</div></div>
+      <div class="hkpi"><div class="hk-v num"><span class="cv" data-cv="${hit}">${hit}</span><small>%</small></div><div class="hk-k">的中率</div></div>
+      <div class="hkpi"><div class="hk-v num"><span class="cv" data-cv="${nb}">${nb}</span><small>件</small></div><div class="hk-k">対象ベット</div></div>`;
     runCounters(el);
   } catch (e) {
     el.innerHTML = "";  // 成績データが無くても看板は空で続行
@@ -588,6 +590,10 @@ function biasFitBlock(r, rb) {
   if (favor === 0) {
     return `<div class="rb-fit-flat">前残り${fp}% ＝ ほぼフラット。脚質での評価上下は今回なし。</div>`;
   }
+  // AI指数(出走表と同じ: レース内で ai_score を 0-100 正規化)
+  const scores = (r.horses || []).map((h) => h.ai_score).filter((v) => v != null);
+  const sMin = scores.length ? Math.min(...scores) : 0;
+  const sRange = scores.length ? Math.max(Math.max(...scores) - sMin, 1e-9) : 1;
   const marked = (r.horses || [])
     .filter((h) => h.mark && _MARK_RANK[h.mark] != null)
     .sort((a, b) => _MARK_RANK[a.mark] - _MARK_RANK[b.mark]);
@@ -603,10 +609,12 @@ function biasFitBlock(r, rb) {
     let msg;
     if (dir > 0) msg = low ? "バイアス合致。実質格上げの狙い目" : "バイアスも後押し、信頼度アップ";
     else msg = low ? "元々軽い上に逆風、消し寄り" : "本命級だが逆風、頭は危険・軽めに";
+    const idx = h.ai_score == null ? "—" : Math.round((h.ai_score - sMin) / sRange * 100);
     rows.push(`<div class="rb-fit ${dir > 0 ? "up" : "dn"}">
       <span class="mark ${markCls(h.mark)}">${h.mark}</span>
       <span class="rb-fit-n">${h.umaban} ${esc(h.name)}</span>
       <span class="rb-fit-sty">${esc(sty)}</span>
+      <span class="rb-fit-ai">AI<b>${idx}</b>${h.ai_rank ? `<span class="rb-fit-rk">#${h.ai_rank}</span>` : ""}</span>
       <span class="rb-fit-arw">${dir > 0 ? "追い風▲" : "逆風▼"}</span>
       <span class="rb-fit-msg">${msg}</span>
     </div>`);
