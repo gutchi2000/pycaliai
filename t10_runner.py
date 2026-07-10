@@ -9,7 +9,9 @@ t10_runner.py — 当日 T-10 自動馬券ライン（スケジューラ本体�
   2. compute_bets.py --race {rid16} --live-odds-dir --apply
        → reports/cowork_output/{date}_bets.json へ当該レースのみ in-place merge
   3. validate_cowork_bets.py --apply (見送りガード)
-  4. 買い目をコンソール表示 + ビープ（投票は人間が IPAT で行う）
+  4. compute_bets(🎫 prob-first) と gutchi_brain(🧠 俺のブレイン) の買い目を併記表示
+     + ビープ（投票は人間が IPAT。ブレインは同一ライブオッズ/realized bias で算出した
+       比較用ラインで、bets.json には書かない = 見送りガードも通さない）
 
 を実行する。NiceGUI (ローカル) は cowork_output を ui.timer で随時読むので
 画面にもそのまま反映される。HF への push は本ランナーでは行わない（手動）。
@@ -285,8 +287,91 @@ def run_cmd(cmd: list[str], timeout: int = 180) -> tuple[int, str]:
         return -1, str(e)
 
 
-def show_race_bets(date_str: str, rid16: str):
-    """apply 後の bets.json から当該レースを読み戻して表示 + Discord 通知。"""
+def brain_tickets(bundle: Path, rid16: str, date_str: str,
+                  live_dir: Path | None, max_age_min: float,
+                  budget: int | None = None) -> dict | None:
+    """gutchi_brain (俺のブレイン) で同一レースの買い目を算出 (併走比較用)。
+    compute_bets と同じライブオッズ・realized bias を食わせ、bets.json には書かない。
+    返値: {"tickets":[...], "note":str, "miokuri":bool} / None(レース不在・bundle不能)。"""
+    import copy
+    try:
+        d = json.loads(bundle.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    race = next((r for r in d.get("races", [])
+                 if _rid16(r.get("race_id", "")) == rid16), None)
+    if race is None:
+        return None
+    race = copy.deepcopy(race)   # bundle を破壊しない
+
+    # realized bias (土→日クロスデイ): show_on_date == 今日 の時だけ一次シグナルに使う
+    sat_bias, note = None, ""
+    rb_path = BASE / "data" / "realized_bias.json"
+    if rb_path.exists():
+        try:
+            rb = json.loads(rb_path.read_text(encoding="utf-8"))
+            if rb.get("show_on_date") == date_str and rb.get("venues"):
+                sat_bias = rb["venues"]
+                note = f" +{rb.get('label', '実現')}"
+        except (OSError, ValueError):
+            pass
+
+    # ライブオッズ (compute_bets.load_live_odds と同一ソース) を horses にマージ
+    scratched: set = set()
+    if live_dir is not None:
+        from compute_bets import load_live_odds
+        live, why = load_live_odds(live_dir, rid16, max_age_min)
+        if live is None:      # compute_bets と同じ fail-safe 見送り
+            return {"tickets": [], "note": why, "miokuri": True}
+        live_tan = {int(k): v for k, v in (live.get("tansho") or {}).items()}
+        live_fuku = {int(k): v for k, v in (live.get("fukusho") or {}).items()}
+        for h in race.get("horses", []):
+            try:
+                b = int(h.get("umaban"))
+            except (TypeError, ValueError):
+                continue
+            if b in live_tan:
+                h["tansho_odds"] = live_tan[b]
+            if b in live_fuku:
+                h["fuku_odds_low"], h["fuku_odds_high"] = live_fuku[b]
+        if live_tan:          # 実オッズが取れた頭のみ生存 = ライブに居ない馬は取消扱い
+            for h in race.get("horses", []):
+                try:
+                    b = int(h.get("umaban"))
+                except (TypeError, ValueError):
+                    continue
+                if b not in live_tan:
+                    scratched.add(h.get("umaban"))
+        note = " [T-10オッズ]" + note
+
+    import gutchi_brain
+    tickets = gutchi_brain.build_tickets(
+        race, sat_bias=sat_bias, scratched=scratched,
+        budget=int(budget) if budget else gutchi_brain.BUDGET)
+    return {"tickets": tickets, "note": note.strip(), "miokuri": not tickets}
+
+
+def render_brain(brain: dict | None) -> tuple[list[str], list[str]]:
+    """brain 結果 → (コンソール行, Discord行)。brain=None は空。"""
+    if brain is None:
+        return [], []
+    if brain.get("miokuri"):
+        note = f" ({brain['note']})" if brain.get("note") else ""
+        return ([f"  🧠 俺のブレイン: 見送り{note}"],
+                [f"🧠 **俺のブレイン: 見送り**{note}"])
+    ts = brain["tickets"]
+    tot = sum(t["購入額"] for t in ts)
+    note = f" {brain['note']}" if brain.get("note") else ""
+    con = [f"  🧠 俺のブレイン {len(ts)}点 ¥{tot:,}{note}"]
+    dis = [f"🧠 **俺のブレイン {len(ts)}点 ¥{tot:,}**{note}"]
+    for t in ts:
+        con.append(f"     {t['馬券種']:3s} {t['買い目']:10s} ¥{t['購入額']:>5,}  {t.get('理由','')}")
+        dis.append(f"{t['馬券種']} `{t['買い目']}` ¥{t['購入額']:,}  {t.get('理由','')}")
+    return con, dis
+
+
+def show_race_bets(date_str: str, rid16: str, brain: dict | None = None):
+    """apply 後の bets.json (🎫 prob-first) を読み戻し、🧠 俺のブレインと併記表示 + Discord 通知。"""
     path = BASE / "reports" / "cowork_output" / f"{date_str}_bets.json"
     if not path.exists():
         return
@@ -299,28 +384,46 @@ def show_race_bets(date_str: str, rid16: str):
     if e.get("hosei_marks"):
         from compute_bets import fmt_hosei
         hosei_line = fmt_hosei(e["hosei_marks"])
-    if e.get("bets"):
+
+    cb: list[str] = []   # Discord 行 (compute_bets = prob-first 側)
+    has_bets = bool(e.get("bets"))
+    if has_bets:
         tot = sum(b["購入額"] for b in e["bets"])
         head = (f"🎫 {e.get('race_label','')} [{e.get('race_nature','')}] "
-                f"{len(e['bets'])}点 ¥{tot:,}")
+                f"prob-first {len(e['bets'])}点 ¥{tot:,}")
         print(f"  {head}")
-        lines = [f"**{head}**"]
+        cb.append(f"**{head}**")
         for b in e["bets"]:
             print(f"     {b['馬券種']:3s} {b['買い目']:8s} ¥{b['購入額']:>5,}  {b.get('理由','')}")
-            lines.append(f"{b['馬券種']} `{b['買い目']}` ¥{b['購入額']:,}  {b.get('理由','')}")
+            cb.append(f"{b['馬券種']} `{b['買い目']}` ¥{b['購入額']:,}  {b.get('理由','')}")
         if hosei_line:
             print(f"     {hosei_line}")
-            lines.append(hosei_line)
+            cb.append(hosei_line)
         print(f"     → {e.get('race_reason','')}")
-        lines.append(f"_{e.get('race_reason','')}_")
-        notify("\n".join(lines))
-        beep()
+        cb.append(f"_{e.get('race_reason','')}_")
     else:
         print(f"  — {e.get('race_label','')} [見送り] {e.get('race_reason','')}")
+        cb.append(f"🎫 {e.get('race_label','')} **prob-first 見送り** {e.get('race_reason','')}")
         if hosei_line:
             print(f"     {hosei_line}")
-        notify(f"— {e.get('race_label','')} **見送り** {e.get('race_reason','')}"
-               + (f"\n{hosei_line}" if hosei_line else ""))
+            cb.append(hosei_line)
+
+    con_b, dis_b = render_brain(brain)
+    for l in con_b:
+        print(l)
+
+    # Discord: 🎫 と 🧠 を 1 通に統合。2000 字上限に近い時だけ 2 通に分割。
+    if dis_b:
+        combined = "\n".join(cb + [""] + dis_b)
+        if len(combined) <= 1900:
+            notify(combined)
+        else:
+            notify("\n".join(cb))
+            notify("\n".join(dis_b))
+    else:
+        notify("\n".join(cb))
+    if has_bets:
+        beep()
 
 
 def ensure_plan(date_str: str) -> None:
@@ -367,21 +470,31 @@ def process_race(date_str: str, bundle: Path, rid16: str, label: str,
     if rc != 0:
         print("       " + out.strip().replace("\n", "\n       ")[-500:])
         return True   # 再試行しない (fail-safe 見送り扱い)
+
+    # gutchi_brain (俺のブレイン) 併走: compute_bets と同じライブオッズ/realized bias で比較買い目
+    brain = None
+    try:
+        brain = brain_tickets(bundle, rid16, date_str, LIVE_DIR, max_age_min, budget)
+    except Exception as ex:
+        print(f"  [brain] gutchi_brain 失敗 (非致命): {ex}")
+
     if dry:
-        # dry は compute_bets の出力をそのまま見せる
+        # dry は compute_bets の出力 + 🧠 ブレインをそのまま見せる
         for l in out.splitlines():
             if l.strip():
                 print("       " + l)
+        for l in render_brain(brain)[0]:
+            print(l)
         return True
 
-    # 3. 見送りガード (書込後は必ず通す契約)
+    # 3. 見送りガード (書込後は必ず通す契約。ブレインは bets.json 非書込なので対象外)
     rc, out = run_cmd([sys.executable, "validate_cowork_bets.py",
                        "--date", date_str, "--apply"])
     print(f"  [3/3] validate_cowork_bets (exit {rc})")
     if rc == 1:
         print("       ⚠ ガード実行不能: " + out.strip()[-300:])
 
-    show_race_bets(date_str, rid16)
+    show_race_bets(date_str, rid16, brain=brain)
     return True
 
 
