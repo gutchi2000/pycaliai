@@ -313,6 +313,7 @@ function renderHeader(r) {
       ${donut("混戦度", conf.field_chaos_score, "#f2555a")}
       ${donut("市場一致", conf.ai_market_agreement, "#2dd4a8")}
     </div>
+    ${memberLevelEl(r)}
     ${r.cowork?.race_reason ? `<div class="rh-quote"><b>COWORK</b>${esc(r.cowork.race_reason)}</div>` : ""}
     ${priorStrip(r)}
   </div>
@@ -365,6 +366,74 @@ function subLine(h) {
   return parts.join(" ") || "—";
 }
 
+/* ---------------- レベル (近走成績ベース, 公開データのみ, 非蓄積) ---------------- */
+// 各馬レベル: build_site が history.runs(着順/人気=公開事実)から算出した 0-100 + S〜D。
+// ELO(蓄積)や ZI/補正タイム(TARGET外部指数)には依存しない。
+function levelChip(h) {
+  const lv = h.level;
+  if (!lv || lv.tier == null) return "";
+  return `<span class="lvchip lv-${lv.tier}" title="各馬レベル = 近走の着順・人気(公開データ)から算出した成績スコア ${lv.score}/100。ELO(蓄積)や外部指数は不使用">${lv.tier}<i>${lv.score}</i></span>`;
+}
+// メンバーレベル: 上位3頭の平均レベルを同クラス分布で位置づけ (build_site が算出)。
+// D→S のタイア帯スペクトラム上に「この組の位置」と「クラス平均」を印で示す。
+function memberLevelEl(r) {
+  const m = r.member_level;
+  if (!m) return "";
+  if (!m.tier) {
+    return `<div class="mlvl lv-none">
+      <div class="mlvl-head">
+        <span class="mlvl-badge">–</span>
+        <span class="mlvl-body"><span class="mlvl-t">メンバーレベル <b class="mlvl-lab">${esc(m.label || "—")}</b></span>
+        <span class="mlvl-ctx">出走馬の前走成績が少なく判定不能（新馬など）</span></span>
+      </div></div>`;
+  }
+  const ctx = [];
+  if (m.top_level != null) ctx.push(`上位レベル <b>${m.top_level}</b>`);
+  if (m.class_avg != null) ctx.push(`${esc(m.class_key || "")}平均 ${m.class_avg}`);
+  if (m.pct != null) ctx.push(`上位 ${Math.max(1, 100 - m.pct)}%`);
+  const clamp = (v) => Math.max(3, Math.min(97, v ?? 0));
+  const zones = ["D", "C", "B", "A", "S"]
+    .map((t) => `<span class="mls-zone lv-${t}">${t}</span>`).join("");
+  const avg = m.avg_pct != null
+    ? `<span class="mls-avg" style="left:${clamp(m.avg_pct)}%"><em>平均</em></span>` : "";
+  return `<div class="mlvl lv-${m.tier}" title="出走馬の近走成績(公開データ)から算出。上位3頭の平均レベルを同クラスの分布で位置づけ。ELOや外部指数は不使用。">
+    <div class="mlvl-head">
+      <span class="mlvl-badge">${m.tier}</span>
+      <span class="mlvl-body">
+        <span class="mlvl-t">メンバーレベル <b class="mlvl-lab">${esc(m.label)}</b></span>
+        <span class="mlvl-ctx">${ctx.join(" ・ ")}</span>
+      </span>
+    </div>
+    <div class="mls" role="img" aria-label="メンバーレベル ${m.tier} / 5段階">
+      <div class="mls-track">
+        ${zones}
+        ${avg}
+        <span class="mls-mark" style="left:${clamp(m.pct)}%"><b>${m.tier}</b></span>
+      </div>
+      <div class="mls-cap"><span>低調</span><span>ハイレベル</span></div>
+    </div>
+    ${honmeiVerdictEl(r)}
+    <div class="mlvl-note">※ 近走成績ベースの目安。買い目の最終判断は 勝率・AI指数 と合わせて。</div>
+  </div>`;
+}
+
+// 「本命◎ はこの組で格上か」= ◎の近走レベル − 相手の中央値。格上ほど◎が来やすい(2026実測)。
+function honmeiVerdictEl(r) {
+  const hon = r.horses.find((h) => h.mark === "◎" && h.level);
+  const others = r.horses.filter((h) => h.mark !== "◎" && h.level)
+    .map((h) => h.level.score).sort((a, b) => a - b);
+  if (!hon || others.length < 3) return "";
+  const med = others[Math.floor(others.length / 2)];
+  const gap = hon.level.score - med;
+  const v = gap >= 41 ? { t: "格上", c: "up", hint: "◎の複勝率が高めの型 (2026実測 約58%)" }
+    : gap >= 20 ? { t: "やや上", c: "mid", hint: "標準的な型 (2026実測 約51%)" }
+    : { t: "ほぼ同格", c: "flat", hint: "混戦・◎も楽ではない型 (2026実測 約40%)" };
+  return `<div class="mlvl-verdict cls-${v.c}" title="◎の近走レベルが組の中央値をどれだけ上回るか。格上ほど◎が好走しやすい傾向(2026年 実測)。">
+    <span class="mlvl-vlead">本命<b class="m1c">◎</b>${esc(hon.name)} は この組で <b class="vv">${v.t}</b></span>
+    <span class="vsub">近走レベル ${hon.level.score} / 組の中央値 ${med} ・ ${v.hint}</span>
+  </div>`;
+}
+
 function renderTable(r, flip = false) {
   const prevTops = new Map();
   if (flip) {
@@ -397,7 +466,7 @@ function renderTable(r, flip = false) {
       <span>${wk(h)}</span>
       <span class="hcell">
         <span class="hname">${esc(h.name)}</span>
-        <span class="hsub">${kyakuChip(h)}${esc(subLine(h))}</span>
+        <span class="hsub">${levelChip(h)}${kyakuChip(h)}${esc(subLine(h))}</span>
       </span>
       <span class="c-ninki num ta-c">${h.ninki ?? "—"}</span>
       <span class="odds num ta-r c-odds">${num(h.odds)}${ev != null && ev >= 1.2 ? `<span class="oddsev">EV ${ev.toFixed(2)}</span>` : ""}</span>
@@ -422,7 +491,7 @@ function renderTable(r, flip = false) {
   $("#shutsuba").innerHTML = `
     <div class="sh-head">
       <span class="sh-title"><b>AI印</b>出走表</span>
-      <span class="sh-note">行クリックで詳細 ／ 列見出しでソート</span>
+      <span class="sh-note">行クリックで詳細 ／ 列見出しでソート ／ <b class="lvchip lv-S" style="margin:0">Lv</b>=馬レベル(近走成績・S〜D)</span>
     </div>
     <div class="card htable ${hasRes ? "hasres" : "nores"}">
       <div class="hh">
@@ -710,7 +779,9 @@ function openDrawer(umaban) {
     ["厩舎", h.trainer ? `${esc(h.shozoku ? h.shozoku + "・" : "")}${esc(h.trainer)}` : "—"],
     ["馬体重", h.taiju ? `${h.taiju}${h.taiju_diff ? ` (${esc(h.taiju_diff)})` : ""}` : "—"],
     ["脚質", h.style ? esc(h.style) : "—"],
-    ["ZI指数", h.zi != null ? `${num(h.zi, 0)} <small>(${h.zi_rank ?? "—"}位)</small>` : "—"],
+    ["馬レベル (近走成績)", h.level
+      ? `<b class="lvchip lv-${h.level.tier}" style="margin-right:6px">${h.level.tier}</b>${h.level.score} <small>/100</small>`
+      : "—（出走歴なし）"],
   ].map(([k, v]) => `<div class="ir"><span>${k}</span><span>${v}</span></div>`).join("");
 
   $("#drawer").innerHTML = `
@@ -745,7 +816,7 @@ function openDrawer(umaban) {
       <thead><tr><th></th><th>コース</th><th>馬場</th><th>着</th><th>人気</th><th>クラス</th><th>脚質</th><th>上り3F</th><th>間隔</th></tr></thead>
       <tbody>${runRows}</tbody>
     </table></div>${histSummary}` : `<div class="cw-empty">出走歴なし（初出走）</div>`}
-    <div class="dw-note">勝率・複勝圏は v6 calibrator 補正後の Plackett-Luce 確率。EV = 勝率 × 単勝オッズ。ZI は TARGET 指数。</div>`;
+    <div class="dw-note">勝率・複勝圏は v6 calibrator 補正後の Plackett-Luce 確率。EV = 勝率 × 単勝オッズ。馬レベルは近走の着順・人気(公開データ)から算出。</div>`;
 
   $("#dwClose").onclick = closeDrawer;
   $("#overlay").classList.add("show");

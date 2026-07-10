@@ -43,6 +43,7 @@ TRAINING_DIR = ROOT / "data" / "training"
 COURSE_STATS_PATH = ROOT / "data" / "course_stats.json"
 PEDIGREE_STATS_PATH = ROOT / "data" / "pedigree_stats.json"
 SITE_DATA_DIR = ROOT / "site" / "data"
+LEVEL_NORMS_PATH = ROOT / "data" / "level_norms.json"
 
 PLACE_ORDER = ["札幌", "函館", "福島", "新潟", "東京", "中山",
                "中京", "京都", "阪神", "小倉"]
@@ -125,8 +126,9 @@ def parse_weekly(date_str: str) -> tuple[dict, dict]:
 
     race_extra:  rid16 → {race_name, start_time, baba, weather, fullgate}
     horse_extra: (rid16, umaban) → {waku, jockey, kinryo, ninki, odds_pre,
-                                    zi, zi_rank, kawari, blinker, taiju, taiju_diff,
+                                    kawari, blinker, taiju, taiju_diff,
                                     trainer, shozoku}
+    ※ ZI(TARGET独自指数)は Web 再掲不可のため取り込まない。
     """
     p = WEEKLY_DIR / f"{date_str}.csv"
     if not p.exists():
@@ -162,8 +164,6 @@ def parse_weekly(date_str: str) -> tuple[dict, dict]:
                 "kinryo": _float(g("斤量")),
                 "ninki": _int(g("人気")),
                 "odds_pre": _float(g("単勝")),
-                "zi": _float(g("ZI")),
-                "zi_rank": _int(g("ZI順")),
                 "kawari": g("替"),
                 "blinker": g("B"),
                 "taiju": _int(g("馬体重")),
@@ -609,6 +609,93 @@ def settle_bet(btype: str, selection: str, cost: float, res: dict) -> dict:
     return miss
 
 
+# ---------------------------------------------------------------- 馬/メンバーレベル
+# ELO/Glicko(蓄積)にも ZI/補正タイム(TARGET外部指数=Web再掲不可)にも依存せず、
+# history.runs の公開事実(着順/人気)だけで「馬レベル」を作る (level_metric.py)。
+# data/level_norms.json (build_level_norms.py 生成) で 0-100 正規化 + クラス別基準。
+import level_metric as _LM
+
+_LEVEL_NORMS_CACHE = None
+# メンバーレベル: 上位3頭平均 level を ref のどの分位以上かで判定 (境界キー, tier, ラベル)
+_LEVEL_TIERS = [("p80", "S", "ハイレベル"), ("p60", "A", "やや強め"),
+                ("p40", "B", "標準"), ("p20", "C", "やや軽い"), (None, "D", "低調")]
+
+
+def _level_norms() -> dict:
+    global _LEVEL_NORMS_CACHE
+    if _LEVEL_NORMS_CACHE is None:
+        try:
+            _LEVEL_NORMS_CACHE = json.loads(LEVEL_NORMS_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            _LEVEL_NORMS_CACHE = {}
+    return _LEVEL_NORMS_CACHE
+
+
+def _raw_to_100(raw, anchors):
+    n = len(anchors)
+    step = 100 / (n - 1)
+    # 線形補間 (numpy 非依存)
+    for i in range(n - 1):
+        if raw <= anchors[i + 1]:
+            lo, hi = anchors[i], anchors[i + 1]
+            frac = 0 if hi == lo else (raw - lo) / (hi - lo)
+            return max(0.0, min(100.0, (i + frac) * step))
+    return 100.0
+
+
+def _level_tier(score100):
+    return ("S" if score100 >= 80 else "A" if score100 >= 60
+            else "B" if score100 >= 40 else "C" if score100 >= 20 else "D")
+
+
+def horse_level(history) -> dict | None:
+    """各馬の近走成績レベル {score(0-100), tier}。出走歴なしは None。"""
+    norms = _level_norms()
+    raw = _LM.horse_level_raw(history)
+    if raw is None or not norms.get("raw_anchors"):
+        return None
+    s = round(_raw_to_100(raw, norms["raw_anchors"]))
+    return {"score": s, "tier": _level_tier(s)}
+
+
+def _pct_in_class(value, ref):
+    """value(top3/平均レベル) を クラス分位 p20/40/60/80 で 0-100 パーセンタイルに。"""
+    if value is None or ref.get("p20") is None:
+        return None
+    anchors = [(0.0, ref["p20"] - 8), (0.2, ref["p20"]), (0.4, ref["p40"]),
+               (0.6, ref["p60"]), (0.8, ref["p80"]), (1.0, ref["p80"] + 8)]
+    for (q0, v0), (q1, v1) in zip(anchors, anchors[1:]):
+        if value <= v1:
+            p = (q0 + (q1 - q0) * ((value - v0) / (v1 - v0 or 1))) * 100
+            return max(0, min(100, round(p)))
+    return 100
+
+
+def compute_member_level(klass: str, horse_levels: list) -> dict | None:
+    """出走馬の level(score) 群 → メンバーレベル(上位3頭平均を同クラス分布で位置づけ)。"""
+    norms = _level_norms()
+    if not norms:
+        return None
+    scores = sorted((hl["score"] for hl in horse_levels if hl), reverse=True)
+    if len(scores) < 3:
+        return {"tier": None, "label": "実績データ不足", "top_level": None,
+                "field_level": round(sum(scores) / len(scores)) if scores else None,
+                "class_key": None, "class_avg": None, "n_class": 0,
+                "pct": None, "avg_pct": None}
+    top3 = round(sum(scores[:3]) / 3)
+    field_level = round(sum(scores) / len(scores))
+    key = _LM.class_group(klass)
+    ref = (norms.get("classes", {}) or {}).get(key) or norms.get("global") or {}
+    tier, label = "D", "低調"
+    for pk, t, lb in _LEVEL_TIERS:
+        if pk is None or top3 >= ref.get(pk, 1e9):
+            tier, label = t, lb
+            break
+    return {"tier": tier, "label": label, "top_level": top3, "field_level": field_level,
+            "class_key": key, "class_avg": ref.get("mean"), "n_class": ref.get("n"),
+            "pct": _pct_in_class(top3, ref), "avg_pct": _pct_in_class(ref.get("mean"), ref)}
+
+
 # ---------------------------------------------------------------- bundle 変換
 def transform_bundle(path: Path, cowork: dict, wide_data: dict,
                      course_stats: dict, ped_index, grade_map: dict) -> dict:
@@ -698,8 +785,7 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
                 "jockey": hext.get("jockey", ""),
                 "kinryo": hext.get("kinryo"),
                 "ninki": hext.get("ninki"),
-                "zi": hext.get("zi"),
-                "zi_rank": hext.get("zi_rank"),
+                "level": horse_level(h.get("history")),
                 "kawari": hext.get("kawari", ""),
                 "blinker": hext.get("blinker", ""),
                 "taiju": hext.get("taiju"),
@@ -733,6 +819,8 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
             "weather": rext.get("weather", ""),
             "field_size": field_size,
             "class_prior": meta.get("class_prior"),
+            "member_level": compute_member_level(
+                meta.get("class", ""), [h["level"] for h in horses]),
             "confidence": race.get("race_confidence", {}),
             "judgment": race.get("buy_judgment", {}),
             "pairs": pairs_top(race),
@@ -885,6 +973,14 @@ def main() -> None:
         _ber.ensure()
     except Exception as e:
         print(f"[explain_ratings skip] {e}")
+
+    # 馬レベル norm を鮮度チェック(バンドル更新時のみ再生成、平時は即skip)
+    try:
+        import build_level_norms as _bln
+        _bln.ensure()
+        globals()["_LEVEL_NORMS_CACHE"] = None   # 再生成後に読み直す
+    except Exception as e:
+        print(f"[level_norms skip] {e}")
 
     bundles = sorted(BUNDLE_DIR.glob("*_bundle.json"))
     if not bundles:

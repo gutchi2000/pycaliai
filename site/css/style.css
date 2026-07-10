@@ -304,6 +304,119 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .g-val small { font-size: 10px; color: var(--tx3); margin-left: 1px; }
 .g-label { font-size: 12.5px; color: var(--tx3); margin-top: 3px; white-space: nowrap; }
 
+/* ---------------- レベル (近走成績, S〜D) ---------------- */
+/* ELO(蓄積)や外部指数ではなく公開の近走成績ベース。tier→色を共通変数 --lvc に。 */
+.lv-S { --lvc: #ffd97a; }   /* gold  */
+.lv-A { --lvc: #2dd4a8; }   /* teal  */
+.lv-B { --lvc: #5ba0f5; }   /* blue  */
+.lv-C { --lvc: #9aa8ca; }   /* slate */
+.lv-D { --lvc: #6b7ba0; }   /* gray  */
+.lv-none { --lvc: #6b7ba0; }
+
+/* 各馬レベルの小チップ (出走表サブ行 / ドロワー) */
+.lvchip {
+  display: inline-flex; align-items: baseline; gap: 1px;
+  font-family: var(--disp); font-weight: 600; font-size: 11.5px; letter-spacing: .02em;
+  padding: 0 6px; border-radius: 5px; margin-right: 6px; vertical-align: middle;
+  color: var(--lvc);
+  background: color-mix(in srgb, var(--lvc) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lvc) 38%, transparent);
+}
+.lvchip i { font-style: normal; font-size: .82em; opacity: .82; color: var(--tx2); }
+
+/* メンバーレベル (レースヘッダ、フル幅) */
+.mlvl {
+  flex-basis: 100%; display: flex; flex-direction: column; gap: 12px;
+  margin-top: 10px; padding: 12px 15px;
+  border: 1px solid color-mix(in srgb, var(--lvc) 30%, var(--line));
+  border-radius: var(--r-md);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--lvc) 9%, transparent), transparent 62%), var(--bg2);
+}
+.mlvl-head { display: flex; align-items: center; gap: 13px; }
+.mlvl-badge {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 10px;
+  font-family: var(--disp); font-weight: 600; font-size: 22px; line-height: 1;
+  color: var(--lvc);
+  background: color-mix(in srgb, var(--lvc) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lvc) 45%, transparent);
+}
+.mlvl-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mlvl-t { font-size: 12.5px; font-weight: 700; letter-spacing: .12em; color: var(--tx3); }
+.mlvl-t .mlvl-lab { font-size: 16px; letter-spacing: .02em; color: var(--tx); margin-left: 8px; }
+.mlvl-ctx { font-size: 12.5px; color: var(--tx3); letter-spacing: .01em; }
+.mlvl-ctx b { color: var(--lvc); font-weight: 700; font-family: var(--disp); }
+.mlvl.lv-none { opacity: .85; }
+.mlvl-note { font-size: 11px; color: var(--tx3); letter-spacing: .01em; margin-top: 2px; }
+
+/* 本命◎の格 判定 (メンバーレベルの "so what" = ◎の信頼度目安) */
+.mlvl-verdict {
+  display: flex; align-items: baseline; gap: 6px 12px; flex-wrap: wrap;
+  padding: 8px 12px; border-radius: 9px; margin-top: 2px;
+  background: color-mix(in srgb, var(--vc, var(--tx3)) 10%, var(--bg3));
+  border: 1px solid color-mix(in srgb, var(--vc, var(--tx3)) 28%, transparent);
+}
+.mlvl-verdict.cls-up   { --vc: var(--teal2); }
+.mlvl-verdict.cls-mid  { --vc: var(--blue); }
+.mlvl-verdict.cls-flat { --vc: var(--amber); }
+.mlvl-vlead { font-size: 13.5px; color: var(--tx); }
+.mlvl-vlead .m1c { color: var(--gold2); font-weight: 700; margin: 0 2px; }
+.mlvl-vlead .vv { color: var(--vc); font-weight: 700; font-size: 14.5px; margin-left: 2px; }
+.mlvl-verdict .vsub { font-size: 11.5px; color: var(--tx3); }
+
+/* D→S タイア帯スペクトラム + 「この組」印 + クラス平均印 */
+.mls { --pad: 3px; }
+.mls-track {
+  position: relative; display: flex; gap: 3px; height: 22px;
+  padding: 0; margin: 14px 2px 0;
+}
+.mls-zone {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--disp); font-size: 12px; font-weight: 600; letter-spacing: .04em;
+  border-radius: 5px;
+  color: color-mix(in srgb, var(--lvc) 78%, var(--tx3));
+  background: color-mix(in srgb, var(--lvc) 15%, var(--bg3));
+  border: 1px solid color-mix(in srgb, var(--lvc) 22%, transparent);
+}
+/* 「この組」= 三角キャップ + 縦ライン (現tier色, グロー) */
+.mls-mark {
+  position: absolute; top: -13px; bottom: -3px; width: 0;
+  transform: translateX(-50%); z-index: 3; pointer-events: none;
+}
+.mls-mark::before {   /* 縦ライン */
+  content: ""; position: absolute; left: 50%; top: 12px; bottom: 0; width: 2px;
+  transform: translateX(-50%);
+  background: var(--lvc); box-shadow: 0 0 7px -1px var(--lvc); border-radius: 2px;
+}
+.mls-mark b {   /* tier バッジ (ポインタ) */
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  font-family: var(--disp); font-weight: 600; font-size: 12px; line-height: 1;
+  color: #10131b; background: var(--lvc);
+  padding: 2px 7px; border-radius: 5px;
+  box-shadow: 0 2px 8px -2px var(--lvc);
+}
+.mls-mark b::after {   /* 下向き三角 */
+  content: ""; position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
+  border: 4px solid transparent; border-top-color: var(--lvc);
+}
+/* クラス平均の目印 (控えめ) */
+.mls-avg {
+  position: absolute; top: -2px; bottom: -2px; width: 0;
+  transform: translateX(-50%); z-index: 2; pointer-events: none;
+}
+.mls-avg::before {
+  content: ""; position: absolute; left: 50%; top: 0; bottom: 12px; width: 0;
+  border-left: 1.5px dashed var(--tx3); transform: translateX(-50%); opacity: .8;
+}
+.mls-avg em {
+  position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
+  font-style: normal; font-size: 9.5px; color: var(--tx3); white-space: nowrap;
+}
+.mls-cap {
+  display: flex; justify-content: space-between;
+  font-size: 10.5px; color: var(--tx3); margin: 16px 2px 0;
+}
+
 /* ---------------- result banner ---------------- */
 .resbar {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
@@ -939,14 +1052,18 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 }
 @media (max-width: 560px) {
   body { font-size: 15px; }
-  .c-ai { display: none; }
+  /* AI指数(c-ai) はモバイルでも残す。バー/順位を省き数値のみのコンパクト表示に。 */
+  .c-ai .bar, .c-ai .rk { display: none; }
+  .pbar { gap: 0; justify-content: center; }
+  .aidx { width: auto; min-width: 0; font-size: 14px; text-align: center; }
+  .c-ai .hsort { font-size: 9px; }
   .htable.hasres .hh, .htable.hasres .hrow {
-    grid-template-columns: 20px 18px 30px minmax(0,1fr) 42px 38px 38px;
-    gap: 4px; padding: 7px 6px;
+    grid-template-columns: 18px 16px 24px minmax(0,1fr) 36px 32px 34px 32px;
+    gap: 4px; padding: 7px 5px;
   }
   .htable.nores .hh, .htable.nores .hrow {
-    grid-template-columns: 20px 34px minmax(0,1fr) 44px 40px 40px;
-    gap: 4px; padding: 7px 6px;
+    grid-template-columns: 18px 26px minmax(0,1fr) 38px 34px 36px 34px;
+    gap: 4px; padding: 7px 5px;
   }
   .hh { font-size: 11px; top: 54px; }
   .hh span, .hsort { white-space: nowrap; }
@@ -971,4 +1088,30 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
   .wk { min-width: 21px; height: 21px; font-size: 12.5px; }
   .resb { width: 20px; height: 20px; font-size: 12px; }
   .dw-info { grid-template-columns: 1fr; }
+  /* メンバーレベル: 幅が狭いのでスペクトラムを少し詰める */
+  .mlvl { gap: 10px; padding: 10px 11px; }
+  .mlvl-t .mlvl-lab { font-size: 15px; }
+  .mls-track { gap: 2px; height: 20px; }
+  .mls-zone { font-size: 11px; }
+  .mls-cap, .mls-avg em { font-size: 9.5px; }
+  .lvchip { font-size: 10.5px; padding: 0 5px; margin-right: 4px; }
+}
+
+/* ---- モバイル topbar: 2段化 (モード楕円の縦潰れ / 開催日の見切れ を解消) ---- */
+@media (max-width: 680px) {
+  .tb-in { flex-wrap: wrap; row-gap: 9px; min-height: 0; padding: 9px var(--pad); }
+  .brand { order: 1; }
+  .brand-mark { font-size: 21px; }
+  .topbar-right { order: 2; margin-left: auto; }
+  .date-wrap { padding: 4px 12px 4px 11px; }
+  #dateSel { font-size: 16px; }
+  /* モードナビをフル幅・3等分の水平ピルに (テキスト折返し禁止で楕円を綺麗に) */
+  .modenav { order: 3; flex-basis: 100%; width: 100%; gap: 4px; }
+  .modenav > button, .modenav > a { flex: 1 1 0; min-width: 0; }
+  .modenav > a { display: flex; text-decoration: none; }
+  .modenav > a > button { width: 100%; }
+  .modenav button {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 8px 6px; font-size: 13.5px; white-space: nowrap;
+  }
 }
