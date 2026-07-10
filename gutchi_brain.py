@@ -15,7 +15,7 @@ gutchi_brain.py — 決定論ポリシーエンジン (docs/gutchi_brain_policy.
        2頭(◎-〇近い)                     → 馬連+ワイド (2頭圧倒的なら ◎単勝+複勝両頭の保険)
        3頭+ (▲が BOX_WALL 内)            → 馬連流し + ワイドBOX(上位3) + 三連複1点
                                             ◎逆風なら 三連複カット + ワイド流し広め(軽め)
-  少頭数(≤5)×◎確勝 → 三連複 + 三連単box
+  少頭数(≤5)×◎確勝 → 三連複(本線 + 上位4頭BOX)  ※三連単は禁止則で不使用
 取消: scratched で除外。 馬連=近い壁(WALL) / ワイドBOX=広い壁(BOX_WALL)。
 """
 from __future__ import annotations
@@ -89,6 +89,57 @@ def waku(u, fs):                  # 内/中/外
     return "内" if nd <= 0.33 else "外" if nd >= 0.67 else "中"
 
 
+def _fav_axes(vb):
+    """Step0: realized_bias vb → (fav_leg, fav_side)。fav_leg∈{前,後,None}, fav_side∈{内,外,None}。"""
+    fr = vb.get("front_rate")
+    fav_leg = ("前" if (fr is not None and fr >= 0.6)
+               else "後" if (fr is not None and fr <= 0.40)
+               else None)                       # 0.4-0.6 = 脚質中立
+    wk = vb.get("waku")
+    return fav_leg, (wk if wk in ("内", "外") else None)
+
+
+def _waku_fav(u, fs, fav_side):
+    """Step1: 枠が有利側か。ユーザー閾値 内≦0.5 / 外≧0.5(馬番÷頭数)。"""
+    if not fav_side:
+        return False
+    pos = (u - 1) / (fs - 1) if fs and fs > 1 else 0.5
+    return pos <= 0.5 if fav_side == "内" else pos >= 0.5
+
+
+def is_star(h, fs, fav_leg, fav_side):
+    """Step2 ★: 立ってる軸を「全部」満たす。両立場(内/外×前残り)=脚質∧枠 /
+    前残りのみ(枠フラット)=脚質だけ / 枠のみ(脚質中立)=枠だけ。バイアス無=★不成立。"""
+    if fav_leg is None and fav_side is None:
+        return False
+    if fav_leg is not None and leg(h) != fav_leg:
+        return False
+    if fav_side is not None and not _waku_fav(h["umaban"], fs, fav_side):
+        return False
+    return True
+
+
+def bias_symbol(horses, a_h, vb, fs):
+    """Step3: レース記号 ★/⚠/無印 と ⚠時の振替軸馬番(★の〇▲)。ほぼ◎で決まる。"""
+    if not vb:
+        return "無印", None
+    fav_leg, fav_side = _fav_axes(vb)
+    if fav_leg is None and fav_side is None:
+        return "無印", None                       # 場が均等(前提なし)
+    if is_star(a_h, fs, fav_leg, fav_side):
+        return "★", None                          # ◎が★ → ◎本線・軸OK
+    lg = leg(a_h)
+    pos = (a_h["umaban"] - 1) / (fs - 1) if fs and fs > 1 else 0.5
+    leg_bad = bool(fav_leg) and lg is not None and lg != fav_leg
+    waku_bad = (fav_side == "内" and pos > 0.5) or (fav_side == "外" and pos < 0.5)
+    if leg_bad or waku_bad:                        # ◎が後/枠逆 → ⚠(★の〇▲へ軸振替)
+        for h in sorted(horses, key=lambda x: -(_num(x.get("ai_score")) or 0)):
+            if h.get("mark") in ("〇", "▲") and is_star(h, fs, fav_leg, fav_side):
+                return "⚠", h["umaban"]
+        return "⚠", None                          # 受け皿(★の〇▲)なし
+    return "無印", None                            # ◎が中/脚質不明 → AI印のまま軽め
+
+
 def apply_bias(horses, vb, fs):
     """土曜バイアス vb で 枠×脚質 適合を ai_score に ±。AI主・bias従(0.3σ/0.15σ)。"""
     if not vb:
@@ -130,7 +181,7 @@ def _box_trio(members, per, why):
             for c in combinations(members, 3)]
 
 
-def build_tickets(race, sat_bias=None, scratched=None, budget=BUDGET):
+def build_tickets(race, sat_bias=None, scratched=None, budget=BUDGET, bias_mode=False):
     scratched = scratched or set()
     horses = [h for h in race.get("horses", [])
               if _num(h.get("tansho_odds")) and h.get("umaban") not in scratched]
@@ -153,6 +204,10 @@ def build_tickets(race, sat_bias=None, scratched=None, budget=BUDGET):
     idx = ai_index(horses)
     ranked = sorted(horses, key=lambda h: -idx[h["umaban"]])
     a_h = next((h for h in horses if h.get("mark") == "◎"), ranked[0])
+
+    # === バイアス記号(opt-in): ★(◎が有利脚質×有利枠)のレースだけ参加。⚠/無印/バイアス元なし=見送り ===
+    if bias_mode and (not vb or bias_symbol(horses, a_h, vb, fs)[0] != "★"):
+        return []
     a = a_h["umaban"]
     others = [h for h in ranked if h["umaban"] != a]
     g_ow = idx[a] - idx[others[0]["umaban"]] if others else 99
@@ -173,11 +228,16 @@ def build_tickets(race, sat_bias=None, scratched=None, budget=BUDGET):
     gyaku = bool(vb) and vb.get("front_rate", 0) >= 0.6 and leg(a_h) == "後"  # 逆風(◎後脚質 on 前残り日)
     hod0 = {h["umaban"]: (od(h)) for h in others}
 
-    # === 少頭数(≤5)×◎確勝級 → 三連複 + 三連単box ===
+    # === 少頭数(≤5)×◎確勝級 → 三連複(本線 + 上位4頭BOX)。三連単は禁止則で不使用 ===
     if fs <= SMALL_FIELD and (_num(a_h.get("p_win")) or 0) >= 0.30:
-        t3 = sorted([h["umaban"] for h in sorted(horses, key=lambda h: -(_num(h.get("p_win")) or 0))[:3]])
-        return [_t("三連複", "-".join(map(str, t3)), 4000, "少頭数×◎確勝の本線"),
-                _t("三連単", f"{t3[0]}-{t3[1]}-{t3[2]}(box)", 6000, "少頭数の一撃box")]
+        top = [h["umaban"] for h in sorted(horses, key=lambda h: -(_num(h.get("p_win")) or 0))]
+        t3 = sorted(top[:3])
+        extra = [sorted(c) for c in combinations(sorted(top[:4]), 3) if sorted(c) != t3]
+        hon = budget * 4 // 10                                    # 本線に4割
+        per = max(100, (budget - hon) // max(1, len(extra)) // 100 * 100) if extra else 0
+        bets = [_t("三連複", "-".join(map(str, t3)), hon, "少頭数×◎確勝の本線")]
+        bets += [_t("三連複", "-".join(map(str, c)), per, "上位4頭BOX(取りこぼし)") for c in extra]
+        return bets
 
     chaos = _num((race.get("race_confidence") or {}).get("field_chaos_score")) or 0.5
 
