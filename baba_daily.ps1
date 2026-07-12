@@ -40,17 +40,22 @@ if ($Register) {
     $act = New-ScheduledTaskAction -Execute "powershell.exe" `
         -Argument "-NoProfile -ExecutionPolicy Bypass -File $ROOT\baba_daily.ps1" `
         -WorkingDirectory $ROOT
-    $trg = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Saturday, Sunday -At 8:30AM
-    # Attach a repetition (every 30 min for 3h) so late-posted race-day data is caught.
-    $rep = (New-ScheduledTaskTrigger -Once -At 8:30AM `
-            -RepetitionInterval (New-TimeSpan -Minutes 30) `
-            -RepetitionDuration (New-TimeSpan -Hours 3)).Repetition
-    $trg.Repetition = $rep
+    # Explicit per-time triggers (Sat/Sun). WHY not a repetition: copying the
+    # .Repetition of a -Once trigger onto a -Weekly trigger silently FAILS to
+    # persist on this box -- it registered as a single 08:30 run with NO retry,
+    # so JRA's late-posted race-day cushion (~08:20, sometimes later) could be
+    # missed for the whole day (blank/prev-day panel). Explicit weekly triggers
+    # always stick, and each run is cheap (fetch -> skip push if unchanged), so we
+    # fan out across the posting window: 08:30 / 09:00 / 09:30 / 10:00.
+    $times = @("8:30AM", "9:00AM", "9:30AM", "10:00AM")
+    $trg = $times | ForEach-Object {
+        New-ScheduledTaskTrigger -Weekly -DaysOfWeek Saturday, Sunday -At $_
+    }
     $set = New-ScheduledTaskSettingsSet -StartWhenAvailable -WakeToRun `
         -ExecutionTimeLimit (New-TimeSpan -Minutes 15) -MultipleInstances IgnoreNew
     Register-ScheduledTask -TaskName "PyCaLiAI_Baba" -Action $act -Trigger $trg `
-        -Settings $set -Description "JRA baba -> today bias -> site (Sat/Sun 8:30, 30min repeat 3h)" -Force | Out-Null
-    Write-Host "[registered] PyCaLiAI_Baba  Sat/Sun 08:30 +30min repeat x3h (WakeToRun)"
+        -Settings $set -Description "JRA baba -> today bias -> site (Sat/Sun 08:30/09:00/09:30/10:00)" -Force | Out-Null
+    Write-Host "[registered] PyCaLiAI_Baba  Sat/Sun 08:30/09:00/09:30/10:00 (WakeToRun)"
     exit 0
 }
 

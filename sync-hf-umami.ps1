@@ -34,6 +34,21 @@ $STAGE = Join-Path $env:TEMP "pycaliai_umami_deploy"
 function Step($m) { Write-Host "==> $m" -ForegroundColor Cyan }
 function Fail($m) { Write-Host "ERROR: $m" -ForegroundColor Red; exit 1 }
 
+# 0. best-effort: refresh today's track bias so a deploy NEVER ships last week's
+#    baba (baba.js hides any baba whose date != viewer's today, so a stale file
+#    = blank panel). JRA posts race-day cushion ~08:20; a pre-08:20 run yields
+#    yesterday's read (shown as "prev-day"), which the 08:30 PyCaLiAI_Baba repeat
+#    later upgrades to today's measurement. A JRA hiccup must never block publish:
+#    fetch_baba_today.py raises on failure and leaves the existing file intact,
+#    and we swallow any nonzero exit and deploy whatever baba_today.json exists.
+Step "refresh baba_today.json (best-effort)"
+try {
+    & (Join-Path $ROOT "venv311\Scripts\python.exe") (Join-Path $ROOT "fetch_baba_today.py")
+    if ($LASTEXITCODE -ne 0) { Write-Host "  baba fetch nonzero exit ($LASTEXITCODE); deploying existing baba_today.json" -ForegroundColor Yellow }
+} catch {
+    Write-Host "  baba fetch threw ($($_.Exception.Message)); deploying existing baba_today.json" -ForegroundColor Yellow
+}
+
 # 1. regenerate data
 Step "build_site.py (regenerate data)"
 & (Join-Path $ROOT "venv311\Scripts\python.exe") (Join-Path $ROOT "build_site.py")

@@ -8,20 +8,79 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20260707f">
+<link rel="stylesheet" href="css/style.css?v=20260711h">
 <style>
-/* 馬場バイアス — 本編のカード言語に統一 */
+/* 馬場バイアス — 芝|ダ 2分割 + クッション/含水ゲージ(メンバーレベルバー準拠) */
 .baba-bias{margin:12px auto 0;max-width:var(--maxw);padding:0 var(--pad)}
 .baba-bias h3{font-size:15px;font-weight:700;color:var(--tx2);letter-spacing:.1em;margin:4px 2px 10px;display:flex;align-items:center;gap:9px}
 .baba-bias h3::before{content:"";width:3px;height:14px;border-radius:2px;background:linear-gradient(180deg,var(--gold2),var(--gold))}
 .baba-bias h3 .sub{font-size:12px;color:var(--tx3);font-weight:400;letter-spacing:0}
-.baba-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-.baba-card{border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;background:linear-gradient(180deg,rgba(255,255,255,.032),rgba(255,255,255,0) 34%),var(--bg2);box-shadow:var(--shadow-card)}
-.baba-card .bv{font-weight:700;font-size:13.5px;color:var(--tx)}
-.baba-card .bc{font-size:12.5px;color:var(--tx3);margin:3px 0 7px}
-.baba-card .bl{font-size:12px;line-height:1.55;padding:4px 8px;border-radius:6px;margin-top:4px;color:var(--tx2)}
-.baba-card .bl.shiba{background:rgba(46,160,67,.13)}
-.baba-card .bl.dirt{background:rgba(180,120,60,.15)}
+.baba-grid{display:grid;gap:12px}
+.baba-card{border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px 16px;background:linear-gradient(180deg,rgba(255,255,255,.032),rgba(255,255,255,0) 34%),var(--bg2);box-shadow:var(--shadow-card)}
+.baba-vname{font-weight:700;font-size:14px;color:var(--tx);margin:0 0 10px}
+.baba-split{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.baba-split .bsurf+.bsurf{border-left:1px solid var(--line);padding-left:18px}
+@media(max-width:560px){.baba-split{grid-template-columns:1fr;gap:14px}.baba-split .bsurf+.bsurf{border-left:0;padding-left:0;border-top:1px solid var(--line);padding-top:14px}}
+.bsurf-h{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.bsurf-tag{font-size:12px;font-weight:700;padding:1px 10px;border-radius:var(--r-pill);letter-spacing:.05em}
+.bsurf-tag.shiba{color:#8be0a4;background:rgba(46,160,67,.16);border:1px solid rgba(46,160,67,.35)}
+.bsurf-tag.dirt{color:#e6b98a;background:rgba(180,120,60,.18);border:1px solid rgba(180,120,60,.4)}
+.bsurf-band{font-size:13.5px;color:var(--tx);font-weight:700}
+.cg{margin:0 2px}
+.cg+.cg{padding-top:7px}
+.cg-track{position:relative;display:flex;gap:3px;height:22px;margin:20px 2px 0}
+.cg-z{flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-size:10.5px;font-weight:600;border-radius:5px;color:var(--tx2);border:1px solid transparent}
+.cg-z.z1{background:color-mix(in srgb,var(--teal) 16%,var(--bg3));border-color:color-mix(in srgb,var(--teal) 22%,transparent)}
+.cg-z.z2{background:color-mix(in srgb,var(--teal) 9%,var(--bg3))}
+.cg-z.z3{background:color-mix(in srgb,var(--blue) 12%,var(--bg3))}
+.cg-z.z4{background:color-mix(in srgb,var(--amber) 12%,var(--bg3))}
+.cg-z.z5{background:color-mix(in srgb,var(--gold) 16%,var(--bg3));border-color:color-mix(in srgb,var(--gold) 22%,transparent)}
+.cg-moist .cg-fill{position:absolute;inset:0;border-radius:6px;background:linear-gradient(90deg,color-mix(in srgb,var(--amber) 20%,var(--bg3)) 8%,color-mix(in srgb,var(--blue) 34%,var(--bg3)))}
+.cg-mark{position:absolute;top:-13px;bottom:-3px;width:0;transform:translateX(-50%);z-index:3;pointer-events:none}
+.cg-mark::before{content:"";position:absolute;left:50%;top:12px;bottom:0;width:2px;transform:translateX(-50%);background:var(--gold2);box-shadow:0 0 7px -1px var(--gold);border-radius:2px}
+.cg-mark b{position:absolute;top:0;left:50%;transform:translateX(-50%);font-family:var(--disp);font-weight:600;font-size:12px;line-height:1;color:#10131b;background:var(--gold2);padding:2px 7px;border-radius:5px;box-shadow:0 2px 8px -2px var(--gold);white-space:nowrap}
+.cg-mark b::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--gold2)}
+.cg-cap{display:flex;justify-content:space-between;font-size:10px;color:var(--tx3);margin:15px 2px 0}
+.cg-cap .mid{color:var(--tx2);letter-spacing:.03em}
+.cg-empty{font-size:12px;color:var(--tx3);padding:14px 2px}
+.bstats{margin-top:13px;display:flex;flex-direction:column;gap:7px}
+.bstat{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2)}
+.bstat .bk{color:var(--tx3);min-width:34px}
+.bstat .bbar{flex:0 1 92px;height:6px;border-radius:3px;background:var(--bg3);overflow:hidden}
+.bstat .bbar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.bstat .bv{font-family:var(--disp);font-weight:600;color:var(--tx)}
+.bstat .bv small{font-size:10px;color:var(--tx3);margin-left:1px;font-weight:400}
+.bstat .bsub{font-size:11px;color:var(--tx3)}
+.bw{font-size:11px;padding:1px 9px;border-radius:var(--r-pill);border:1px solid var(--line2)}
+.bw.out{color:var(--gold2);border-color:color-mix(in srgb,var(--gold) 40%,transparent)}
+.bw.in{color:var(--teal2);border-color:color-mix(in srgb,var(--teal) 40%,transparent)}
+.bw.flat{color:var(--tx3)}
+.kchip{font-size:11.5px;font-weight:700;padding:2px 11px;border-radius:var(--r-pill);letter-spacing:.02em}
+.kchip.front{color:#231803;background:linear-gradient(120deg,var(--gold2),var(--gold))}
+.kchip.front-mild{color:var(--gold2);background:color-mix(in srgb,var(--gold) 14%,transparent);border:1px solid color-mix(in srgb,var(--gold) 36%,transparent)}
+.kchip.flat{color:var(--tx2);background:var(--bg3);border:1px solid var(--line2)}
+.kchip.back{color:#07201a;background:linear-gradient(120deg,var(--teal2),var(--teal))}
+.kchip em{font-style:normal;font-size:10px;margin-left:5px;padding:0 5px;border-radius:6px;background:rgba(0,0,0,.22)}
+.bstat.bchips{flex-wrap:wrap;gap:8px 14px}
+.bstat.bchips .pair{display:inline-flex;align-items:center;gap:8px}
+.bstat.bchips .pair .bk{min-width:auto}
+/* 馬場バイアス 文字1.2倍 (2026-07-11 ユーザー指定)。--bfs で倍率を一括調整可 */
+.baba-bias{--bfs:1.2}
+.baba-bias h3{font-size:calc(15px*var(--bfs))}
+.baba-bias h3 .sub{font-size:calc(12px*var(--bfs))}
+.baba-vname{font-size:calc(14px*var(--bfs))}
+.bsurf-tag{font-size:calc(12px*var(--bfs))}
+.bsurf-band{font-size:calc(13.5px*var(--bfs))}
+.cg-z{font-size:calc(10.5px*var(--bfs))}
+.cg-mark b{font-size:calc(12px*var(--bfs))}
+.cg-cap{font-size:calc(10px*var(--bfs))}
+.cg-empty{font-size:calc(12px*var(--bfs))}
+.bstat{font-size:calc(12px*var(--bfs))}
+.bstat .bv small{font-size:calc(10px*var(--bfs))}
+.bstat .bsub{font-size:calc(11px*var(--bfs))}
+.bw{font-size:calc(11px*var(--bfs))}
+.kchip{font-size:calc(11.5px*var(--bfs))}
+.kchip em{font-size:calc(10px*var(--bfs))}
 </style>
 </head>
 <body>
@@ -68,7 +127,7 @@
 <aside id="drawer" aria-label="馬詳細"></aside>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
-<script src="js/baba.js?v=20260707f"></script>
-<script src="js/app.js?v=20260707f"></script>
+<script src="js/baba.js?v=20260711h"></script>
+<script src="js/app.js?v=20260711h"></script>
 </body>
 </html>

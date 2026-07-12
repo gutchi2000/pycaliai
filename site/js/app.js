@@ -80,8 +80,12 @@ function setMode(mode) {
   ["#venueTabs", "#raceStrip", "#main"].forEach((s) => { $(s).hidden = isResults; });
   $("#resultsMain").hidden = !isResults;
   $("#dateWrap").style.visibility = isResults ? "hidden" : "";
+  // 馬場バイアスは会場スコープの予想ビュー専用。成績ビューでは隠し、戻ったら再評価。
+  const bb = $("#babaBias");
+  if (bb) bb.hidden = true;
   closeDrawer();
   if (isResults) renderResults();
+  else if (window.renderBabaBias) window.renderBabaBias();
 }
 
 async function loadDay(date) {
@@ -185,6 +189,10 @@ function renderNav() {
   rs.querySelectorAll(".rpill").forEach((b) => {
     b.onclick = () => selectRace(b.dataset.rid);
   });
+
+  // 上部の馬場バイアスを選択中の会場に同期（baba.js が __babaPlace で1場に絞る）
+  window.__babaPlace = state.place;
+  if (window.renderBabaBias) window.renderBabaBias();
 }
 
 function selectRace(rid) {
