@@ -54,10 +54,12 @@ Step "build_site.py (regenerate data)"
 & (Join-Path $ROOT "venv311\Scripts\python.exe") (Join-Path $ROOT "build_site.py")
 if ($LASTEXITCODE -ne 0) { Fail "build_site.py failed" }
 
-foreach ($f in @("index.html", "explain.html", "css\style.css", "js\app.js", "data\manifest.json")) {
+foreach ($f in @("index.html", "explain.html", "css\style.css", "js\app.js", "data\manifest.json",
+                 "manifest.webmanifest", "sw.js", "apple-touch-icon.png", "favicon.ico",
+                 "icons\icon-192.png", "icons\icon-512.png")) {
     if (-not (Test-Path (Join-Path $SITE $f))) { Fail "missing site\$f" }
 }
-foreach ($f in @("Dockerfile", "README.md")) {
+foreach ($f in @("Dockerfile", "README.md", "server.py")) {
     if (-not (Test-Path (Join-Path $DOCKER $f))) { Fail "missing deploy\pycaliai-umami\$f" }
 }
 
@@ -78,10 +80,16 @@ Get-ChildItem $STAGE -Force | Where-Object { $_.Name -ne ".git" } |
     Remove-Item -Recurse -Force
 Copy-Item (Join-Path $DOCKER "Dockerfile") $STAGE
 Copy-Item (Join-Path $DOCKER "README.md") $STAGE
+Copy-Item (Join-Path $DOCKER "server.py") $STAGE
 Copy-Item (Join-Path $SITE "*.html") $STAGE
 Copy-Item (Join-Path $SITE "css") $STAGE -Recurse
 Copy-Item (Join-Path $SITE "js") $STAGE -Recurse
 Copy-Item (Join-Path $SITE "data") $STAGE -Recurse
+Copy-Item (Join-Path $SITE "icons") $STAGE -Recurse
+Copy-Item (Join-Path $SITE "manifest.webmanifest") $STAGE
+Copy-Item (Join-Path $SITE "sw.js") $STAGE
+Copy-Item (Join-Path $SITE "apple-touch-icon.png") $STAGE
+Copy-Item (Join-Path $SITE "favicon.ico") $STAGE
 
 $nFiles = (Get-ChildItem (Join-Path $STAGE "data") -File).Count
 Step "data/*.json placed: $nFiles files"
