@@ -1,0 +1,1843 @@
+{
+  "race_id": "2026071803020703",
+  "race_meta": {
+    "date": "20260718",
+    "place": "福島",
+    "course": "ダート1150",
+    "field_size": 16,
+    "class": "未勝利",
+    "race_name": "",
+    "class_prior": {
+      "n_samples": 2473,
+      "hon_1st_pct": 33.5,
+      "hon_top2_pct": 53.8,
+      "hon_top3_pct": 67.1,
+      "tai_1st_pct": 19.1,
+      "tai_top2_pct": 36.9,
+      "tai_top3_pct": 50.7,
+      "san_top3_pct": 42.7,
+      "del1_top3_pct": 32.8,
+      "del2_top3_pct": 25.1
+    }
+  },
+  "horses": [
+    {
+      "umaban": 1,
+      "horse_name": "プリンセスダーコ",
+      "mark": "",
+      "ai_rank": 16,
+      "ai_score": -2.6023,
+      "p_win": 0.0105,
+      "p_plc": 0.0343,
+      "p_sho": 0.0461,
+      "tansho_odds": 155.4,
+      "fuku_odds_low": 19.9,
+      "fuku_odds_high": 35.6,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 5,
+        "avg_pos": 10.6,
+        "best_pos": 7,
+        "pos_trend": -0.5,
+        "same_td_ratio": 1.0,
+        "same_dist_ratio": 0.2,
+        "same_place_ratio": 0.0,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "稍",
+            "pos": 12,
+            "ninki": 13,
+            "race_name": "未勝利",
+            "agari3f": 38.4,
+            "style": "後方",
+            "interval_weeks": 4
+          },
+          {
+            "n_ago": 2,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "良",
+            "pos": 13,
+            "ninki": 9,
+            "race_name": "未勝利",
+            "agari3f": 39.6,
+            "style": "中団",
+            "interval_weeks": 2
+          },
+          {
+            "n_ago": 3,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1300,
+            "track": "稍",
+            "pos": 7,
+            "ninki": 11,
+            "race_name": "未勝利",
+            "agari3f": 37.7,
+            "style": "後方",
+            "interval_weeks": 3
+          },
+          {
+            "n_ago": 4,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1800,
+            "track": "稍",
+            "pos": 10,
+            "ninki": 8,
+            "race_name": "未勝利",
+            "agari3f": 41.4,
+            "style": "中団",
+            "interval_weeks": 2
+          },
+          {
+            "n_ago": 5,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1800,
+            "track": "良",
+            "pos": 11,
+            "ninki": 7,
+            "race_name": "未勝利",
+            "agari3f": 42.4,
+            "style": "中団",
+            "interval_weeks": 10
+          }
+        ]
+      },
+      "sex": "牝",
+      "age": 3,
+      "pedigree": {
+        "sire": "マクフィ",
+        "broodmare_sire": "ディープインパクト",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 2,
+      "horse_name": "サクラボーベル",
+      "mark": "",
+      "ai_rank": 6,
+      "ai_score": -1.3715,
+      "p_win": 0.0588,
+      "p_plc": 0.1152,
+      "p_sho": 0.2002,
+      "tansho_odds": 8.4,
+      "fuku_odds_low": 2.2,
+      "fuku_odds_high": 3.6,
+      "ai_vs_market": "over",
+      "history": {
+        "n_runs": 2,
+        "avg_pos": 10.5,
+        "best_pos": 9,
+        "pos_trend": -3.0,
+        "same_td_ratio": 1.0,
+        "same_dist_ratio": 0.0,
+        "same_place_ratio": 0.0,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1600,
+            "track": "重",
+            "pos": 12,
+            "ninki": 6,
+            "race_name": "未勝利・牝",
+            "agari3f": 39.2,
+            "style": "先行",
+            "interval_weeks": 7
+          },
+          {
+            "n_ago": 2,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1800,
+            "track": "不",
+            "pos": 9,
+            "ninki": 6,
+            "race_name": "未勝利・牝",
+            "agari3f": 40.3,
+            "style": "中団"
+          }
+        ]
+      },
+      "sex": "牝",
+      "age": 3,
+      "pedigree": {
+        "sire": "シャンハイボビー",
+        "broodmare_sire": "サクラプレジデント",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 3,
+      "horse_name": "エクスペクタント",
+      "mark": "",
+      "ai_rank": 10,
+      "ai_score": -1.9002,
+      "p_win": 0.0266,
+      "p_plc": 0.0687,
+      "p_sho": 0.1092,
+      "tansho_odds": 53.5,
+      "fuku_odds_low": 6.6,
+      "fuku_odds_high": 11.5,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 5,
+        "avg_pos": 8.8,
+        "best_pos": 4,
+        "pos_trend": -0.3,
+        "same_td_ratio": 0.2,
+        "same_dist_ratio": 0.4,
+        "same_place_ratio": 0.6,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "京都",
+            "td": "芝",
+            "dist": 1400,
+            "track": "良",
+            "pos": 10,
+            "ninki": 12,
+            "race_name": "未勝利",
+            "agari3f": 34.3,
+            "style": "中団",
+            "interval_weeks": 2
+          },
+          {
+            "n_ago": 2,
+            "place": "福島",
+            "td": "芝",
+            "dist": 1200,
+            "track": "良",
+            "pos": 10,
+            "ninki": 6,
+            "race_name": "未勝利",
+            "agari3f": 35.5,
+            "style": "中団",
+            "interval_weeks": 2
+          },
+          {
+            "n_ago": 3,
+            "place": "福島",
+            "td": "芝",
+            "dist": 1200,
+            "track": "良",
+            "pos": 4,
+            "ninki": 9,
+            "race_name": "未勝利",
+            "agari3f": 35.0,
+            "style": "差し",
+            "interval_weeks": 22
+          },
+          {
+            "n_ago": 4,
+            "place": "福島",
+            "td": "ダ",
+            "dist": 1700,
+            "track": "良",
+            "pos": 13,
+            "ninki": 9,
+            "race_name": "未勝利*",
+            "agari3f": 40.4,
+            "style": "後方",
+            "interval_weeks": 12
+          },
+          {
+            "n_ago": 5,
+            "place": "新潟",
+            "td": "芝",
+            "dist": 1600,
+            "track": "良",
+            "pos": 7,
+            "ninki": 6,
+            "race_name": "新馬",
+            "agari3f": 36.1,
+            "style": "先行"
+          }
+        ]
+      },
+      "sex": "牡",
+      "age": 3,
+      "pedigree": {
+        "sire": "ミッキーアイル",
+        "broodmare_sire": "Mr. Greeley",
+        "broodmare_sire_type": "ネイティヴダンサー系"
+      }
+    },
+    {
+      "umaban": 4,
+      "horse_name": "ヌビアン",
+      "mark": "",
+      "ai_rank": 15,
+      "ai_score": -2.4136,
+      "p_win": 0.0143,
+      "p_plc": 0.0414,
+      "p_sho": 0.0637,
+      "tansho_odds": 105.7,
+      "fuku_odds_low": 16.4,
+      "fuku_odds_high": 29.3,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 1,
+        "avg_pos": 12.0,
+        "best_pos": 12,
+        "pos_trend": 0.0,
+        "same_td_ratio": 1.0,
+        "same_dist_ratio": 1.0,
+        "same_place_ratio": 0.0,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1300,
+            "track": "稍",
+            "pos": 12,
+            "ninki": 10,
+            "race_name": "未勝利",
+            "agari3f": 37.6,
+            "style": "中団"
+          }
+        ]
+      },
+      "sex": "牡",
+      "age": 3,
+      "pedigree": {
+        "sire": "シニスターミニスター",
+        "sire_type": "ナスルーラ系",
+        "broodmare_sire": "ダイワメジャー",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 5,
+      "horse_name": "ジャガーライズ",
+      "mark": "",
+      "ai_rank": 7,
+      "ai_score": -1.3878,
+      "p_win": 0.0541,
+      "p_plc": 0.1134,
+      "p_sho": 0.2002,
+      "tansho_odds": 10.1,
+      "fuku_odds_low": 1.9,
+      "fuku_odds_high": 3.1,
+      "ai_vs_market": "over",
+      "history": {
+        "n_runs": 5,
+        "avg_pos": 6.8,
+        "best_pos": 4,
+        "pos_trend": -1.9,
+        "same_td_ratio": 1.0,
+        "same_dist_ratio": 0.4,
+        "same_place_ratio": 0.0,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1300,
+            "track": "良",
+            "pos": 13,
+            "ninki": 7,
+            "race_name": "未勝利",
+            "agari3f": 42.2,
+            "style": "逃げ",
+            "interval_weeks": 2
+          },
+          {
+            "n_ago": 2,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1300,
+            "track": "稍",
+            "pos": 6,
+            "ninki": 4,
+            "race_name": "未勝利",
+            "agari3f": 38.1,
+            "style": "中団",
+            "interval_weeks": 4
+          },
+          {
+            "n_ago": 3,
+            "place": "中京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "稍",
+            "pos": 6,
+            "ninki": 3,
+            "race_name": "未勝利",
+            "agari3f": 39.0,
+            "style": "先行",
+            "interval_weeks": 2
+          },
+          {
+            "n_ago": 4,
+            "place": "中京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "良",
+            "pos": 5,
+            "ninki": 3,
+            "race_name": "未勝利",
+            "agari3f": 38.2,
+            "style": "中団",
+            "interval_weeks": 3
+          },
+          {
+            "n_ago": 5,
+            "place": "阪神",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "良",
+            "pos": 4,
+            "ninki": 5,
+            "race_name": "未勝利",
+            "agari3f": 37.2,
+            "style": "差し",
+            "interval_weeks": 7
+          }
+        ]
+      },
+      "sex": "牡",
+      "age": 3,
+      "pedigree": {
+        "sire": "パイロ",
+        "sire_type": "ナスルーラ系",
+        "broodmare_sire": "ゴールドアリュール",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 6,
+      "horse_name": "ニンジャトットリ",
+      "mark": "▲",
+      "ai_rank": 3,
+      "ai_score": -0.7819,
+      "p_win": 0.094,
+      "p_plc": 0.2028,
+      "p_sho": 0.3077,
+      "tansho_odds": 3.2,
+      "fuku_odds_low": 1.2,
+      "fuku_odds_high": 1.6,
+      "ai_vs_market": "over",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": 2.8,
+          "contrib": 0.316
+        },
+        {
+          "feat": "前距離",
+          "label": "前距離",
+          "value": 1150,
+          "contrib": -0.304
+        },
+        {
+          "feat": "前走確定着順",
+          "label": "前走確定着順",
+          "value": 4,
+          "contrib": 0.178
+        },
+        {
+          "feat": "kako5_best_pos",
+          "label": "過去5走 最高通過順",
+          "value": 2,
+          "contrib": 0.157
+        },
+        {
+          "feat": "前走着差タイム",
+          "label": "前走着差タイム",
+          "value": 0.3,
+          "contrib": 0.066
+        },
+        {
+          "feat": "horse_fuku30",
+          "label": "当馬 複勝率(直近30走)",
+          "value": 0.402,
+          "contrib": 0.061
+        }
+      ],
+      "history": {
+        "n_runs": 5,
+        "avg_pos": 2.8,
+        "best_pos": 2,
+        "pos_trend": -0.4,
+        "same_td_ratio": 1.0,
+        "same_dist_ratio": 1.0,
+        "same_place_ratio": 0.4,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "福島",
+            "td": "ダ",
+            "dist": 1150,
+            "track": "稍",
+            "pos": 4,
+            "ninki": 6,
+            "race_name": "未勝利",
+            "agari3f": 37.6,
+            "style": "差し",
+            "interval_weeks": 11
+          },
+          {
+            "n_ago": 2,
+            "place": "福島",
+            "td": "ダ",
+            "dist": 1150,
+            "track": "良",
+            "pos": 3,
+            "ninki": 2,
+            "race_name": "未勝利",
+            "agari3f": 37.3,
+            "style": "先行",
+            "interval_weeks": 2
+          },
+          {
+            "n_ago": 3,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "稍",
+            "pos": 2,
+            "ninki": 2,
+            "race_name": "未勝利",
+            "agari3f": 37.9,
+            "style": "先行",
+            "interval_weeks": 2
+          },
+          {
+            "n_ago": 4,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "稍",
+            "pos": 3,
+            "ninki": 1,
+            "race_name": "未勝利",
+            "agari3f": 38.5,
+            "style": "先行",
+            "interval_weeks": 2
+          },
+          {
+            "n_ago": 5,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "良",
+            "pos": 2,
+            "ninki": 2,
+            "race_name": "未勝利",
+            "agari3f": 38.2,
+            "style": "先行",
+            "interval_weeks": 6
+          }
+        ]
+      },
+      "sex": "牡",
+      "age": 3,
+      "pedigree": {
+        "sire": "ミッキーアイル",
+        "broodmare_sire": "シンボリクリスエス",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 7,
+      "horse_name": "ジーティーフクフク",
+      "mark": "",
+      "ai_rank": 13,
+      "ai_score": -2.2222,
+      "p_win": 0.0143,
+      "p_plc": 0.05,
+      "p_sho": 0.0878,
+      "tansho_odds": 92.3,
+      "fuku_odds_low": 9.5,
+      "fuku_odds_high": 16.7,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 3,
+        "avg_pos": 10.33,
+        "best_pos": 7,
+        "pos_trend": -2.5,
+        "same_td_ratio": 1.0,
+        "same_dist_ratio": 0.0,
+        "same_place_ratio": 0.0,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1600,
+            "track": "重",
+            "pos": 12,
+            "ninki": 15,
+            "race_name": "未勝利・牝",
+            "agari3f": 39.0,
+            "style": "中団",
+            "interval_weeks": 9
+          },
+          {
+            "n_ago": 2,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1800,
+            "track": "重",
+            "pos": 12,
+            "ninki": 8,
+            "race_name": "未勝利・牝",
+            "agari3f": 42.5,
+            "style": "中団",
+            "interval_weeks": 2
+          },
+          {
+            "n_ago": 3,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1800,
+            "track": "稍",
+            "pos": 7,
+            "ninki": 8,
+            "race_name": "未勝利・牝",
+            "agari3f": 41.2,
+            "style": "先行"
+          }
+        ]
+      },
+      "sex": "牝",
+      "age": 3,
+      "pedigree": {
+        "sire": "リオンディーズ",
+        "broodmare_sire": "フジキセキ",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 8,
+      "horse_name": "アンセートゥモダン",
+      "mark": "",
+      "ai_rank": 14,
+      "ai_score": -2.356,
+      "p_win": 0.0143,
+      "p_plc": 0.0438,
+      "p_sho": 0.0666,
+      "tansho_odds": 369.3,
+      "fuku_odds_low": 39.4,
+      "fuku_odds_high": 70.6,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 5,
+        "avg_pos": 12.0,
+        "best_pos": 7,
+        "pos_trend": -1.6,
+        "same_td_ratio": 1.0,
+        "same_dist_ratio": 1.0,
+        "same_place_ratio": 0.2,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "稍",
+            "pos": 14,
+            "ninki": 15,
+            "race_name": "未勝利",
+            "agari3f": 39.5,
+            "style": "中団",
+            "interval_weeks": 5
+          },
+          {
+            "n_ago": 2,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "重",
+            "pos": 16,
+            "ninki": 12,
+            "race_name": "未勝利",
+            "agari3f": 39.3,
+            "style": "後方",
+            "interval_weeks": 6
+          },
+          {
+            "n_ago": 3,
+            "place": "小倉",
+            "td": "ダ",
+            "dist": 1000,
+            "track": "良",
+            "pos": 9,
+            "ninki": 14,
+            "race_name": "未勝利",
+            "agari3f": 37.1,
+            "style": "後方",
+            "interval_weeks": 11
+          },
+          {
+            "n_ago": 4,
+            "place": "福島",
+            "td": "ダ",
+            "dist": 1150,
+            "track": "良",
+            "pos": 14,
+            "ninki": 11,
+            "race_name": "未勝利*",
+            "agari3f": 37.5,
+            "style": "後方",
+            "interval_weeks": 6
+          },
+          {
+            "n_ago": 5,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "良",
+            "pos": 7,
+            "ninki": 12,
+            "race_name": "新馬",
+            "agari3f": 38.5,
+            "style": "中団"
+          }
+        ]
+      },
+      "sex": "牝",
+      "age": 3,
+      "pedigree": {
+        "sire": "ルヴァンスレーヴ",
+        "broodmare_sire": "ダイワメジャー",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 9,
+      "horse_name": "ハングローズ",
+      "mark": "◎",
+      "ai_rank": 1,
+      "ai_score": 0.3315,
+      "p_win": 0.341,
+      "p_plc": 0.5227,
+      "p_sho": 0.6443,
+      "tansho_odds": 3.1,
+      "fuku_odds_low": 1.2,
+      "fuku_odds_high": 1.7,
+      "ai_vs_market": "fair",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": 3.4,
+          "contrib": 0.354
+        },
+        {
+          "feat": "prev_hosei",
+          "label": "前走 補正タイム",
+          "value": 98,
+          "contrib": 0.311
+        },
+        {
+          "feat": "前走確定着順",
+          "label": "前走確定着順",
+          "value": 3,
+          "contrib": 0.226
+        },
+        {
+          "feat": "kako5_best_pos",
+          "label": "過去5走 最高通過順",
+          "value": 2,
+          "contrib": 0.148
+        },
+        {
+          "feat": "前走着差タイム",
+          "label": "前走着差タイム",
+          "value": 0.6,
+          "contrib": 0.096
+        },
+        {
+          "feat": "年齢",
+          "label": "年齢",
+          "value": 3,
+          "contrib": 0.068
+        }
+      ],
+      "history": {
+        "n_runs": 5,
+        "avg_pos": 3.4,
+        "best_pos": 2,
+        "pos_trend": 0.0,
+        "same_td_ratio": 1.0,
+        "same_dist_ratio": 0.2,
+        "same_place_ratio": 0.0,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "不",
+            "pos": 3,
+            "ninki": 1,
+            "race_name": "未勝利・牝",
+            "agari3f": 36.9,
+            "style": "先行",
+            "interval_weeks": 4
+          },
+          {
+            "n_ago": 2,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "稍",
+            "pos": 2,
+            "ninki": 5,
+            "race_name": "未勝利・牝",
+            "agari3f": 37.8,
+            "style": "差し",
+            "interval_weeks": 12
+          },
+          {
+            "n_ago": 3,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "重",
+            "pos": 7,
+            "ninki": 1,
+            "race_name": "未勝利・牝",
+            "agari3f": 38.1,
+            "style": "先行",
+            "interval_weeks": 3
+          },
+          {
+            "n_ago": 4,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "良",
+            "pos": 2,
+            "ninki": 3,
+            "race_name": "未勝利・牝",
+            "agari3f": 38.1,
+            "style": "差し",
+            "interval_weeks": 4
+          },
+          {
+            "n_ago": 5,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1800,
+            "track": "良",
+            "pos": 3,
+            "ninki": 4,
+            "race_name": "未勝利・牝",
+            "agari3f": 40.0,
+            "style": "逃げ",
+            "interval_weeks": 2
+          }
+        ]
+      },
+      "sex": "牝",
+      "age": 3,
+      "pedigree": {
+        "sire": "ドレフォン",
+        "broodmare_sire": "キングカメハメハ",
+        "broodmare_sire_type": "ネイティヴダンサー系"
+      }
+    },
+    {
+      "umaban": 10,
+      "horse_name": "ライブリピュア",
+      "mark": "",
+      "ai_rank": 12,
+      "ai_score": -2.1568,
+      "p_win": 0.0143,
+      "p_plc": 0.0533,
+      "p_sho": 0.0878,
+      "tansho_odds": 215.4,
+      "fuku_odds_low": 28.6,
+      "fuku_odds_high": 51.2,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 5,
+        "avg_pos": 11.2,
+        "best_pos": 10,
+        "pos_trend": 0.3,
+        "same_td_ratio": 1.0,
+        "same_dist_ratio": 0.2,
+        "same_place_ratio": 0.2,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "新潟",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "良",
+            "pos": 11,
+            "ninki": 12,
+            "race_name": "未勝利・牝",
+            "agari3f": 37.8,
+            "style": "後方",
+            "interval_weeks": 9
+          },
+          {
+            "n_ago": 2,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1800,
+            "track": "良",
+            "pos": 10,
+            "ninki": 13,
+            "race_name": "未勝利・牝",
+            "agari3f": 40.4,
+            "style": "後方",
+            "interval_weeks": 8
+          },
+          {
+            "n_ago": 3,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1800,
+            "track": "良",
+            "pos": 12,
+            "ninki": 13,
+            "race_name": "未勝利・牝",
+            "agari3f": 43.4,
+            "style": "後方",
+            "interval_weeks": 2
+          },
+          {
+            "n_ago": 4,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1800,
+            "track": "稍",
+            "pos": 11,
+            "ninki": 14,
+            "race_name": "未勝利・牝",
+            "agari3f": 41.9,
+            "style": "後方",
+            "interval_weeks": 6
+          },
+          {
+            "n_ago": 5,
+            "place": "福島",
+            "td": "ダ",
+            "dist": 1700,
+            "track": "良",
+            "pos": 12,
+            "ninki": 11,
+            "race_name": "未勝利・牝*",
+            "agari3f": 40.0,
+            "style": "後方",
+            "interval_weeks": 7
+          }
+        ]
+      },
+      "sex": "牝",
+      "age": 3,
+      "pedigree": {
+        "sire": "クリエイター2",
+        "broodmare_sire": "プリサイスエンド",
+        "broodmare_sire_type": "ネイティヴダンサー系"
+      }
+    },
+    {
+      "umaban": 11,
+      "horse_name": "レーヴルーバ",
+      "mark": "",
+      "ai_rank": 11,
+      "ai_score": -2.1267,
+      "p_win": 0.0143,
+      "p_plc": 0.055,
+      "p_sho": 0.0878,
+      "tansho_odds": 192.4,
+      "fuku_odds_low": 20.0,
+      "fuku_odds_high": 35.7,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 3,
+        "avg_pos": 12.0,
+        "best_pos": 8,
+        "pos_trend": -4.5,
+        "same_td_ratio": 0.33,
+        "same_dist_ratio": 0.0,
+        "same_place_ratio": 0.0,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "東京",
+            "td": "芝",
+            "dist": 1400,
+            "track": "良",
+            "pos": 17,
+            "ninki": 17,
+            "race_name": "未勝利",
+            "agari3f": 34.0,
+            "style": "後方",
+            "interval_weeks": 19
+          },
+          {
+            "n_ago": 2,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1600,
+            "track": "良",
+            "pos": 11,
+            "ninki": 14,
+            "race_name": "未勝利・牝",
+            "agari3f": 40.0,
+            "style": "中団",
+            "interval_weeks": 6
+          },
+          {
+            "n_ago": 3,
+            "place": "中山",
+            "td": "芝",
+            "dist": 1600,
+            "track": "重",
+            "pos": 8,
+            "ninki": 15,
+            "race_name": "新馬",
+            "agari3f": 36.9,
+            "style": "中団"
+          }
+        ]
+      },
+      "sex": "牝",
+      "age": 3,
+      "pedigree": {
+        "sire": "レーヴミストラル",
+        "broodmare_sire": "スズカマンボ",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 12,
+      "horse_name": "グラデュエール",
+      "mark": "",
+      "ai_rank": 8,
+      "ai_score": -1.5404,
+      "p_win": 0.0397,
+      "p_plc": 0.0978,
+      "p_sho": 0.1703,
+      "tansho_odds": 220.0,
+      "fuku_odds_low": 30.9,
+      "fuku_odds_high": 55.4,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 5,
+        "avg_pos": 9.4,
+        "best_pos": 6,
+        "pos_trend": -0.5,
+        "same_td_ratio": 1.0,
+        "same_dist_ratio": 0.6,
+        "same_place_ratio": 0.0,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "良",
+            "pos": 11,
+            "ninki": 13,
+            "race_name": "未勝利・牝",
+            "agari3f": 38.7,
+            "style": "後方",
+            "interval_weeks": 3
+          },
+          {
+            "n_ago": 2,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "良",
+            "pos": 11,
+            "ninki": 14,
+            "race_name": "未勝利・牝",
+            "agari3f": 38.4,
+            "style": "中団",
+            "interval_weeks": 4
+          },
+          {
+            "n_ago": 3,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "良",
+            "pos": 6,
+            "ninki": 13,
+            "race_name": "未勝利・牝",
+            "agari3f": 37.3,
+            "style": "中団",
+            "interval_weeks": 5
+          },
+          {
+            "n_ago": 4,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "良",
+            "pos": 10,
+            "ninki": 15,
+            "race_name": "未勝利・牝",
+            "agari3f": 37.0,
+            "style": "後方",
+            "interval_weeks": 8
+          },
+          {
+            "n_ago": 5,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "良",
+            "pos": 9,
+            "ninki": 13,
+            "race_name": "未勝利",
+            "agari3f": 39.2,
+            "style": "中団",
+            "interval_weeks": 4
+          }
+        ]
+      },
+      "sex": "牝",
+      "age": 3,
+      "pedigree": {
+        "sire": "ミスチヴィアスアレックス",
+        "broodmare_sire": "ダンスインザダーク",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 13,
+      "horse_name": "ゲンテン",
+      "mark": "〇",
+      "ai_rank": 2,
+      "ai_score": -0.715,
+      "p_win": 0.1142,
+      "p_plc": 0.2159,
+      "p_sho": 0.3423,
+      "tansho_odds": 3.7,
+      "fuku_odds_low": 1.4,
+      "fuku_odds_high": 2.1,
+      "ai_vs_market": "over",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": 5.8,
+          "contrib": 0.32
+        },
+        {
+          "feat": "前距離",
+          "label": "前距離",
+          "value": 1200,
+          "contrib": -0.215
+        },
+        {
+          "feat": "kako5_best_pos",
+          "label": "過去5走 最高通過順",
+          "value": 4,
+          "contrib": 0.093
+        },
+        {
+          "feat": "前3角",
+          "label": "前3角",
+          "value": 11,
+          "contrib": -0.079
+        },
+        {
+          "feat": "前走着差タイム",
+          "label": "前走着差タイム",
+          "value": 1,
+          "contrib": 0.077
+        },
+        {
+          "feat": "前走確定着順",
+          "label": "前走確定着順",
+          "value": 8,
+          "contrib": -0.076
+        }
+      ],
+      "history": {
+        "n_runs": 5,
+        "avg_pos": 5.8,
+        "best_pos": 4,
+        "pos_trend": -0.3,
+        "same_td_ratio": 0.4,
+        "same_dist_ratio": 0.4,
+        "same_place_ratio": 0.0,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "新潟",
+            "td": "芝",
+            "dist": 1200,
+            "track": "稍",
+            "pos": 8,
+            "ninki": 3,
+            "race_name": "未勝利",
+            "agari3f": 35.9,
+            "style": "後方"
+          },
+          {
+            "n_ago": 2,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1300,
+            "track": "良",
+            "pos": 4,
+            "ninki": 3,
+            "race_name": "未勝利",
+            "agari3f": 37.3,
+            "style": "差し",
+            "interval_weeks": 9
+          },
+          {
+            "n_ago": 3,
+            "place": "中京",
+            "td": "芝",
+            "dist": 1400,
+            "track": "良",
+            "pos": 6,
+            "ninki": 4,
+            "race_name": "未勝利",
+            "agari3f": 35.5,
+            "style": "中団",
+            "interval_weeks": 4
+          },
+          {
+            "n_ago": 4,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "良",
+            "pos": 5,
+            "ninki": 2,
+            "race_name": "未勝利",
+            "agari3f": 37.7,
+            "style": "先行",
+            "interval_weeks": 11
+          },
+          {
+            "n_ago": 5,
+            "place": "東京",
+            "td": "芝",
+            "dist": 1600,
+            "track": "良",
+            "pos": 6,
+            "ninki": 2,
+            "race_name": "新馬",
+            "agari3f": 34.4,
+            "style": "先行"
+          }
+        ]
+      },
+      "sex": "牡",
+      "age": 3,
+      "pedigree": {
+        "sire": "シルバーステート",
+        "broodmare_sire": "Tiz Wonderful",
+        "broodmare_sire_type": "マンノウォー系"
+      }
+    },
+    {
+      "umaban": 14,
+      "horse_name": "イデアジュアンイハ",
+      "mark": "△",
+      "ai_rank": 5,
+      "ai_score": -1.2571,
+      "p_win": 0.0588,
+      "p_plc": 0.1288,
+      "p_sho": 0.2356,
+      "tansho_odds": 82.6,
+      "fuku_odds_low": 6.1,
+      "fuku_odds_high": 10.6,
+      "ai_vs_market": "under",
+      "why": [
+        {
+          "feat": "prev_hosei",
+          "label": "前走 補正タイム",
+          "value": 75,
+          "contrib": -0.168
+        },
+        {
+          "feat": "prev_hosei9",
+          "label": "前走 補正タイム(9F基準)",
+          "value": 58,
+          "contrib": -0.132
+        },
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": 8.4,
+          "contrib": -0.12
+        },
+        {
+          "feat": "前走確定着順",
+          "label": "前走確定着順",
+          "value": 8,
+          "contrib": -0.1
+        },
+        {
+          "feat": "trnH_Time4",
+          "label": "坂路 ラスト1Fタイム",
+          "value": 12.4,
+          "contrib": 0.084
+        },
+        {
+          "feat": "前走着差タイム",
+          "label": "前走着差タイム",
+          "value": 1,
+          "contrib": 0.083
+        }
+      ],
+      "history": {
+        "n_runs": 5,
+        "avg_pos": 8.4,
+        "best_pos": 5,
+        "pos_trend": 1.0,
+        "same_td_ratio": 1.0,
+        "same_dist_ratio": 0.0,
+        "same_place_ratio": 0.0,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "良",
+            "pos": 8,
+            "ninki": 14,
+            "race_name": "未勝利",
+            "agari3f": 37.8,
+            "style": "先行",
+            "interval_weeks": 2
+          },
+          {
+            "n_ago": 2,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "良",
+            "pos": 5,
+            "ninki": 12,
+            "race_name": "未勝利",
+            "agari3f": 38.1,
+            "style": "先行",
+            "interval_weeks": 7
+          },
+          {
+            "n_ago": 3,
+            "place": "中京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "良",
+            "pos": 8,
+            "ninki": 15,
+            "race_name": "未勝利・牝",
+            "agari3f": 38.3,
+            "style": "中団",
+            "interval_weeks": 2
+          },
+          {
+            "n_ago": 4,
+            "place": "中京",
+            "td": "ダ",
+            "dist": 1400,
+            "track": "良",
+            "pos": 11,
+            "ninki": 16,
+            "race_name": "未勝利",
+            "agari3f": 38.6,
+            "style": "中団",
+            "interval_weeks": 11
+          },
+          {
+            "n_ago": 5,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1800,
+            "track": "稍",
+            "pos": 10,
+            "ninki": 14,
+            "race_name": "未勝利*",
+            "agari3f": 40.5,
+            "style": "中団",
+            "interval_weeks": 8
+          }
+        ]
+      },
+      "sex": "牝",
+      "age": 3,
+      "pedigree": {
+        "sire": "ハービンジャー",
+        "sire_type": "ニアークティック系",
+        "broodmare_sire": "リンカーン",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 15,
+      "horse_name": "セントリアン",
+      "mark": "△",
+      "ai_rank": 4,
+      "ai_score": -0.9489,
+      "p_win": 0.083,
+      "p_plc": 0.1731,
+      "p_sho": 0.28,
+      "tansho_odds": 18.0,
+      "fuku_odds_low": 2.5,
+      "fuku_odds_high": 4.2,
+      "ai_vs_market": "under",
+      "why": [
+        {
+          "feat": "kako5_avg_pos",
+          "label": "過去5走 平均通過順",
+          "value": 6.6,
+          "contrib": 0.223
+        },
+        {
+          "feat": "前距離",
+          "label": "前距離",
+          "value": 1200,
+          "contrib": -0.185
+        },
+        {
+          "feat": "前走着差タイム",
+          "label": "前走着差タイム",
+          "value": 0.6,
+          "contrib": 0.095
+        },
+        {
+          "feat": "距離",
+          "label": "距離",
+          "value": 1150,
+          "contrib": 0.071
+        },
+        {
+          "feat": "horse_fuku10",
+          "label": "当馬 複勝率(直近10走)",
+          "value": 0.245,
+          "contrib": 0.061
+        },
+        {
+          "feat": "斤量体重比",
+          "label": "斤量/馬体重比",
+          "value": 0.126,
+          "contrib": 0.06
+        }
+      ],
+      "history": {
+        "n_runs": 5,
+        "avg_pos": 6.6,
+        "best_pos": 5,
+        "pos_trend": -0.1,
+        "same_td_ratio": 1.0,
+        "same_dist_ratio": 1.0,
+        "same_place_ratio": 0.2,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "新潟",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "良",
+            "pos": 7,
+            "ninki": 8,
+            "race_name": "未勝利",
+            "agari3f": 38.6,
+            "style": "先行",
+            "interval_weeks": 3
+          },
+          {
+            "n_ago": 2,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "良",
+            "pos": 5,
+            "ninki": 7,
+            "race_name": "未勝利・牝",
+            "agari3f": 37.7,
+            "style": "先行",
+            "interval_weeks": 4
+          },
+          {
+            "n_ago": 3,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "良",
+            "pos": 8,
+            "ninki": 7,
+            "race_name": "未勝利",
+            "agari3f": 38.3,
+            "style": "中団",
+            "interval_weeks": 3
+          },
+          {
+            "n_ago": 4,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "重",
+            "pos": 8,
+            "ninki": 4,
+            "race_name": "未勝利・牝",
+            "agari3f": 38.7,
+            "style": "先行",
+            "interval_weeks": 15
+          },
+          {
+            "n_ago": 5,
+            "place": "福島",
+            "td": "ダ",
+            "dist": 1150,
+            "track": "良",
+            "pos": 5,
+            "ninki": 6,
+            "race_name": "未勝利*",
+            "agari3f": 37.4,
+            "style": "中団",
+            "interval_weeks": 4
+          }
+        ]
+      },
+      "sex": "牝",
+      "age": 3,
+      "pedigree": {
+        "sire": "アジアエクスプレス",
+        "broodmare_sire": "オルフェーヴル"
+      }
+    },
+    {
+      "umaban": 16,
+      "horse_name": "テルケンレンタッチ",
+      "mark": "",
+      "ai_rank": 9,
+      "ai_score": -1.6984,
+      "p_win": 0.0347,
+      "p_plc": 0.0838,
+      "p_sho": 0.1353,
+      "tansho_odds": 77.8,
+      "fuku_odds_low": 7.4,
+      "fuku_odds_high": 12.9,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 3,
+        "avg_pos": 9.67,
+        "best_pos": 8,
+        "pos_trend": 2.0,
+        "same_td_ratio": 1.0,
+        "same_dist_ratio": 1.0,
+        "same_place_ratio": 0.0,
+        "deogure_count": 0,
+        "runs": [
+          {
+            "n_ago": 1,
+            "place": "東京",
+            "td": "ダ",
+            "dist": 1300,
+            "track": "稍",
+            "pos": 8,
+            "ninki": 7,
+            "race_name": "未勝利",
+            "agari3f": 36.4,
+            "style": "中団",
+            "interval_weeks": 9
+          },
+          {
+            "n_ago": 2,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "重",
+            "pos": 9,
+            "ninki": 15,
+            "race_name": "未勝利",
+            "agari3f": 37.6,
+            "style": "中団",
+            "interval_weeks": 3
+          },
+          {
+            "n_ago": 3,
+            "place": "中山",
+            "td": "ダ",
+            "dist": 1200,
+            "track": "良",
+            "pos": 12,
+            "ninki": 11,
+            "race_name": "未勝利",
+            "agari3f": 38.0,
+            "style": "後方"
+          }
+        ]
+      },
+      "sex": "牡",
+      "age": 3,
+      "pedigree": {
+        "sire": "エスケンデレヤ",
+        "broodmare_sire": "ドゥラメンテ"
+      }
+    }
+  ],
+  "race_confidence": {
+    "top1_dominance": 0.2268,
+    "top2_concentration": 0.4552,
+    "field_chaos_score": 0.8092,
+    "ai_market_agreement": 0.7912
+  },
+  "buy_judgment": {
+    "hardness": "固い",
+    "chaos_pct": 0.097,
+    "has_value": true,
+    "headline": "妙味本線（絞って厚く）",
+    "category": "go",
+    "detail": "妙味馬を本線に。固いレースなので少点数で厚く。",
+    "kenshu_hint": "単勝/複勝/馬連で少点数（絞って厚く）",
+    "waku_tag": "妙味枠",
+    "value_horses": [
+      {
+        "umaban": 15,
+        "horse_name": "セントリアン",
+        "p_win": 0.083,
+        "ev_tan": 1.49,
+        "ev_fuku": 0.94,
+        "umami_tan": 0.783,
+        "umami_fuku": 0.718,
+        "umami_grade": "B",
+        "tan_value": true,
+        "fuku_value": false,
+        "sides": [
+          "単勝"
+        ]
+      }
+    ]
+  },
+  "umaren_matrix": {
+    "1-2": 572.2,
+    "1-3": 1358.8,
+    "1-4": 2205.4,
+    "1-5": 674.1,
+    "1-6": 300.4,
+    "1-7": 1523.9,
+    "1-8": 4388.9,
+    "1-9": 318.9,
+    "1-10": 4719.2,
+    "1-11": 4478.4,
+    "1-12": 4571.7,
+    "1-13": 378.6,
+    "1-14": 2596.9,
+    "1-15": 1294.6,
+    "1-16": 2385.2,
+    "2-3": 216.9,
+    "2-4": 589.9,
+    "2-5": 40.8,
+    "2-6": 14.7,
+    "2-7": 173.3,
+    "2-8": 1497.9,
+    "2-9": 11.5,
+    "2-10": 1631.5,
+    "2-11": 497.0,
+    "2-12": 572.2,
+    "2-13": 22.6,
+    "2-14": 313.9,
+    "2-15": 86.6,
+    "2-16": 461.9,
+    "3-4": 1567.4,
+    "3-5": 202.4,
+    "3-6": 71.9,
+    "3-7": 1083.6,
+    "3-8": 2536.9,
+    "3-9": 71.2,
+    "3-10": 2612.4,
+    "3-11": 1487.7,
+    "3-12": 2887.4,
+    "3-13": 73.6,
+    "3-14": 815.7,
+    "3-15": 297.1,
+    "3-16": 1081.0,
+    "4-5": 698.8,
+    "4-6": 265.5,
+    "4-7": 3324.9,
+    "4-8": 3989.9,
+    "4-9": 306.0,
+    "4-10": 4345.4,
+    "4-11": 4026.5,
+    "4-12": 3568.2,
+    "4-13": 338.1,
+    "4-14": 2945.5,
+    "4-15": 1097.2,
+    "4-16": 2334.5,
+    "5-6": 17.6,
+    "5-7": 367.2,
+    "5-8": 1429.6,
+    "5-9": 16.4,
+    "5-10": 842.4,
+    "5-11": 922.0,
+    "5-12": 1212.4,
+    "5-13": 20.2,
+    "5-14": 305.2,
+    "5-15": 84.6,
+    "5-16": 383.3,
+    "6-7": 119.7,
+    "6-8": 554.1,
+    "6-9": 4.6,
+    "6-10": 395.7,
+    "6-11": 284.4,
+    "6-12": 290.4,
+    "6-13": 6.9,
+    "6-14": 88.3,
+    "6-15": 21.5,
+    "6-16": 122.6,
+    "7-8": 2906.5,
+    "7-9": 98.1,
+    "7-10": 5287.8,
+    "7-11": 2596.9,
+    "7-12": 3047.8,
+    "7-13": 164.5,
+    "7-14": 2536.9,
+    "7-15": 674.1,
+    "7-16": 2945.5,
+    "8-9": 862.2,
+    "8-10": 5699.9,
+    "8-11": 5044.7,
+    "8-12": 6181.5,
+    "8-13": 709.0,
+    "8-14": 5044.7,
+    "8-15": 2216.6,
+    "8-16": 6454.3,
+    "9-10": 336.0,
+    "9-11": 247.2,
+    "9-12": 312.6,
+    "9-13": 6.8,
+    "9-14": 99.2,
+    "9-15": 24.6,
+    "9-16": 134.6,
+    "10-11": 3324.9,
+    "10-12": 5851.9,
+    "10-13": 487.1,
+    "10-14": 3688.1,
+    "10-15": 1321.9,
+    "10-16": 3428.8,
+    "11-12": 4220.1,
+    "11-13": 249.2,
+    "11-14": 2013.2,
+    "11-15": 973.1,
+    "11-16": 2945.5,
+    "12-13": 493.6,
+    "12-14": 3047.8,
+    "12-15": 1032.6,
+    "12-16": 3275.3,
+    "13-14": 93.7,
+    "13-15": 31.2,
+    "13-16": 111.3,
+    "14-15": 297.9,
+    "14-16": 795.0,
+    "15-16": 316.4
+  },
+  "pair_probs": {
+    "9-13": {
+      "wide": 0.19549,
+      "umaren": 0.08625,
+      "umatan": {
+        "9→13": 0.04687,
+        "13→9": 0.03431
+      }
+    },
+    "6-9": {
+      "wide": 0.17035,
+      "umaren": 0.08625,
+      "umatan": {
+        "9→6": 0.04498,
+        "6→9": 0.03431
+      }
+    },
+    "9-15": {
+      "wide": 0.16667,
+      "umaren": 0.0695,
+      "umatan": {
+        "9→15": 0.03431,
+        "15→9": 0.02612
+      }
+    },
+    "9-14": {
+      "wide": 0.11912,
+      "umaren": 0.04686,
+      "umatan": {
+        "9→14": 0.02612,
+        "14→9": 0.02105
+      }
+    },
+    "6-13": {
+      "wide": 0.07254,
+      "umaren": 0.02262,
+      "umatan": {
+        "13→6": 0.01177,
+        "6→13": 0.01177
+      }
+    },
+    "13-15": {
+      "wide": 0.06801,
+      "umaren": 0.02082,
+      "umatan": {
+        "13→15": 0.00913,
+        "15→13": 0.00913
+      }
+    },
+    "13-14": {
+      "wide": 0.04692,
+      "umaren": 0.01473,
+      "umatan": {
+        "13→14": 0.00792,
+        "14→13": 0.00631
+      }
+    },
+    "6-15": {
+      "wide": 0.0629,
+      "umaren": 0.01649,
+      "umatan": {
+        "6→15": 0.00908,
+        "15→6": 0.00908
+      }
+    },
+    "6-14": {
+      "wide": 0.04692,
+      "umaren": 0.01393,
+      "umatan": {
+        "6→14": 0.00631,
+        "14→6": 0.00631
+      }
+    },
+    "14-15": {
+      "wide": 0.03748,
+      "umaren": 0.00909,
+      "umatan": {
+        "15→14": 0.00483,
+        "14→15": 0.00483
+      }
+    }
+  }
+}

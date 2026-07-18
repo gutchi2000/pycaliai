@@ -742,7 +742,9 @@ function openDrawer(umaban) {
   const h = r.horses.find((x) => x.umaban === umaban);
   if (!h) return;
 
-  const whys = (h.why || []).slice(0, 6);
+  // 値のある特徴だけを根拠に出す (初出走の過去走など欠損寄与ノイズを除外)
+  const whys = (h.why || []).filter((w) => w.value != null).slice(0, 6);
+  const isFirstRun = !((h.history?.runs || []).length);
   const maxC = Math.max(...whys.map((w) => Math.abs(w.contrib ?? 0)), 0.001);
   const whyHtml = whys.map((w, i) => {
     const neg = (w.contrib ?? 0) < 0;
@@ -803,9 +805,11 @@ function openDrawer(umaban) {
     </div>
     <div class="dw-ped">父 <b>${esc(ped.sire || "—")}</b> ／ 母父 <b>${esc(ped.broodmare_sire || "—")}</b>
       ${ped.broodmare_sire_type ? `（${esc(ped.broodmare_sire_type)}）` : ""}</div>
-    <div class="dw-top ${whyHtml ? "" : "solo"}">
-      ${whyHtml ? `<div class="dw-left">
-        <div class="dw-sec" style="margin-top:0">AI の根拠（特徴量寄与）</div>${whyHtml}
+    <div class="dw-top ${(whyHtml || isFirstRun) ? "" : "solo"}">
+      ${(whyHtml || isFirstRun) ? `<div class="dw-left">
+        <div class="dw-sec" style="margin-top:0">AI の根拠（特徴量寄与）</div>
+        ${isFirstRun ? `<div style="font-size:11px;color:#8a97b5;margin:2px 0 8px;line-height:1.45">初出走：過去走なし。調教・騎手・厩舎・血統中心の評価です。</div>` : ""}
+        ${whyHtml || `<div style="font-size:12px;color:#8a97b5">計上できる特徴がありません</div>`}
       </div>` : ""}
       <div class="dw-right">
         <div class="dw-stats">

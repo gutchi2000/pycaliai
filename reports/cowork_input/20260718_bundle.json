@@ -43,7 +43,12 @@
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "インディチャンプ",
+            "broodmare_sire": "ホワイトマズル",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 2,
@@ -66,12 +71,6 @@
               "contrib": 0.321
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.259
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 2,
@@ -84,16 +83,22 @@
               "contrib": 0.148
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.123
-            },
-            {
               "feat": "前走上り3F順",
               "label": "前走上り3F順",
               "value": 2,
               "contrib": 0.099
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 33,
+              "contrib": 0.097
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.3,
+              "contrib": 0.095
             }
           ],
           "history": {
@@ -121,7 +126,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "サトノクラウン",
+            "broodmare_sire": "アグネスタキオン",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 3,
@@ -144,12 +154,6 @@
               "contrib": 0.324
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.242
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 4,
@@ -168,10 +172,16 @@
               "contrib": 0.126
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.119
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 1.6,
+              "contrib": -0.062
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 35.7,
+              "contrib": 0.059
             }
           ],
           "history": {
@@ -199,7 +209,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ウインブライト",
+            "broodmare_sire": "ブライアンズタイム",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 4,
@@ -239,7 +254,11 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ロジャーバローズ",
+            "broodmare_sire": "エスポワールシチー"
+          }
         },
         {
           "umaban": 5,
@@ -292,7 +311,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "キズナ",
+            "broodmare_sire": "ブライアンズタイム",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 6,
@@ -315,12 +339,6 @@
               "contrib": 0.35
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.259
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 2,
@@ -339,10 +357,16 @@
               "contrib": 0.117
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.11
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.1,
+              "contrib": 0.089
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 35.2,
+              "contrib": 0.088
             }
           ],
           "history": {
@@ -370,7 +394,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "エフフォーリア",
+            "broodmare_sire": "\"Unusual Heat\"",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 7,
@@ -393,34 +422,34 @@
               "contrib": 0.295
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.249
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 5,
               "contrib": 0.13
             },
             {
-              "feat": "間隔",
-              "label": "レース間隔(週)",
-              "value": null,
-              "contrib": -0.126
+              "feat": "前走Ave-3F",
+              "label": "前走Ave-3F",
+              "value": 39.06,
+              "contrib": -0.088
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.125
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 35.2,
+              "contrib": 0.082
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.115
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 1.8,
+              "contrib": -0.069
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 3,
+              "contrib": 0.054
             }
           ],
           "history": {
@@ -448,7 +477,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ウィルテイクチャージ",
+            "broodmare_sire": "ヴィクトワールピサ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 8,
@@ -464,12 +498,6 @@
           "fuku_odds_high": 24.3,
           "ai_vs_market": "under",
           "why": [
-            {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.221
-            },
             {
               "feat": "kako5_avg_pos",
               "label": "過去5走 平均通過順",
@@ -495,10 +523,16 @@
               "contrib": 0.132
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.109
+              "feat": "kako5_pos_trend",
+              "label": "過去5走 通過順トレンド",
+              "value": 5.0,
+              "contrib": 0.088
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.8,
+              "contrib": 0.084
             }
           ],
           "history": {
@@ -916,16 +950,16 @@
               "contrib": 0.117
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.103
-            },
-            {
               "feat": "kako5_avg_pos",
               "label": "過去5走 平均通過順",
               "value": 8.25,
               "contrib": -0.098
+            },
+            {
+              "feat": "距離",
+              "label": "距離",
+              "value": 1000,
+              "contrib": 0.094
             }
           ],
           "history": {
@@ -992,7 +1026,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "モズアスコット",
+            "broodmare_sire": "スズカマンボ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 4,
@@ -1265,7 +1304,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "コントレイル",
+            "broodmare_sire": "ノヴェリスト",
+            "broodmare_sire_type": "その他のエクリプス系"
+          }
         },
         {
           "umaban": 7,
@@ -1288,12 +1332,6 @@
               "contrib": -0.271
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.235
-            },
-            {
               "feat": "kako5_avg_pos",
               "label": "過去5走 平均通過順",
               "value": 4.8,
@@ -1312,10 +1350,16 @@
               "contrib": 0.147
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.117
+              "feat": "距離",
+              "label": "距離",
+              "value": 1000,
+              "contrib": 0.079
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.8,
+              "contrib": 0.062
             }
           ],
           "history": {
@@ -1589,12 +1633,6 @@
               "contrib": -0.237
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.209
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 6,
@@ -1607,16 +1645,22 @@
               "contrib": 0.096
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.096
+              "feat": "kako5_best_pos",
+              "label": "過去5走 最高通過順",
+              "value": 6,
+              "contrib": -0.089
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.093
+              "feat": "距離",
+              "label": "距離",
+              "value": 1000,
+              "contrib": 0.075
+            },
+            {
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 2,
+              "contrib": -0.073
             }
           ],
           "history": {
@@ -1670,7 +1714,11 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "フォーウィールドライブ",
+            "broodmare_sire": "ロードカナロア"
+          }
         },
         {
           "umaban": 11,
@@ -1693,12 +1741,6 @@
               "contrib": -0.27
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.221
-            },
-            {
               "feat": "kako5_avg_pos",
               "label": "過去5走 平均通過順",
               "value": 5.8,
@@ -1717,10 +1759,16 @@
               "contrib": 0.148
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.11
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.8,
+              "contrib": 0.071
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 3,
+              "contrib": 0.063
             }
           ],
           "history": {
@@ -1871,7 +1919,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ニシケンモノノフ",
+            "broodmare_sire": "ノヴェリスト",
+            "broodmare_sire_type": "その他のエクリプス系"
+          }
         }
       ],
       "race_confidence": {
@@ -2272,7 +2325,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ホッコータルマエ",
+            "broodmare_sire": "ダイワメジャー",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 2,
@@ -2313,16 +2371,16 @@
               "contrib": 0.112
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.103
-            },
-            {
               "feat": "prev_hosei9",
               "label": "前走 補正タイム(9F基準)",
               "value": 76,
               "contrib": -0.074
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.3,
+              "contrib": 0.073
             }
           ],
           "history": {
@@ -2545,16 +2603,16 @@
               "contrib": 0.119
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.1
-            },
-            {
               "feat": "kako5_avg_agari3f",
               "label": "過去5走 平均上り3F",
               "value": 38.42,
               "contrib": -0.095
+            },
+            {
+              "feat": "prev_hosei",
+              "label": "前走 補正タイム",
+              "value": 91,
+              "contrib": -0.09
             }
           ],
           "history": {
@@ -2634,7 +2692,11 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ゴールドドリーム",
+            "broodmare_sire": "ヘニーヒューズ"
+          }
         },
         {
           "umaban": 5,
@@ -2758,7 +2820,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "シニスターミニスター",
+            "sire_type": "ナスルーラ系",
+            "broodmare_sire": "マジェスティックウォリアー"
+          }
         },
         {
           "umaban": 7,
@@ -2850,7 +2917,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "サートゥルナーリア",
+            "broodmare_sire": "ディープインパクト",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 8,
@@ -3051,7 +3123,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ドレフォン",
+            "broodmare_sire": "\"Sea The Stars\"",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 10,
@@ -3143,7 +3220,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ゴールドシップ",
+            "broodmare_sire": "ブライアンズタイム",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 11,
@@ -3166,12 +3248,6 @@
               "contrib": 0.231
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.216
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 2,
@@ -3190,10 +3266,16 @@
               "contrib": 0.13
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.128
+              "feat": "前走上り3F順",
+              "label": "前走上り3F順",
+              "value": 1,
+              "contrib": 0.101
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 38.64,
+              "contrib": -0.092
             }
           ],
           "history": {
@@ -3332,7 +3414,13 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ブラックタイド",
+            "sire_type": "ロイヤルチャージャー系",
+            "broodmare_sire": "ワイルドラッシュ",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         }
       ],
       "race_confidence": {
@@ -3596,16 +3684,16 @@
               "contrib": 0.122
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.112
-            },
-            {
               "feat": "kako5_pos_trend",
               "label": "過去5走 通過順トレンド",
               "value": 2.2,
               "contrib": 0.087
+            },
+            {
+              "feat": "距離",
+              "label": "距離",
+              "value": 1200,
+              "contrib": 0.078
             }
           ],
           "history": {
@@ -3827,16 +3915,16 @@
               "contrib": 0.134
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.124
-            },
-            {
               "feat": "prev_hosei",
               "label": "前走 補正タイム",
               "value": 95,
               "contrib": 0.109
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.6,
+              "contrib": 0.086
             }
           ],
           "history": {
@@ -3916,7 +4004,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "イスラボニータ",
+            "broodmare_sire": "クロフネ",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 4,
@@ -3981,7 +4074,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "シスキン",
+            "broodmare_sire": "ネオユニヴァース",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 5,
@@ -4145,7 +4243,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "スワーヴリチャード",
+            "broodmare_sire": "Bernardini",
+            "broodmare_sire_type": "ナスルーラ系"
+          }
         },
         {
           "umaban": 7,
@@ -4264,12 +4367,6 @@
               "contrib": 0.338
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.23
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 3,
@@ -4288,10 +4385,16 @@
               "contrib": 0.135
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.121
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34.2,
+              "contrib": 0.082
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.2,
+              "contrib": 0.082
             }
           ],
           "history": {
@@ -4319,7 +4422,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ドレフォン",
+            "broodmare_sire": "ウォーエンブレム",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 9,
@@ -4398,7 +4506,11 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "Caravaggio",
+            "broodmare_sire": "\"Lizard Island\""
+          }
         },
         {
           "umaban": 10,
@@ -4703,7 +4815,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "サトノクラウン",
+            "broodmare_sire": "ロサード",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 14,
@@ -4738,12 +4855,6 @@
               "contrib": 0.115
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.115
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 2,
@@ -4754,6 +4865,12 @@
               "label": "過去5走 平均通過順",
               "value": 6.4,
               "contrib": 0.106
+            },
+            {
+              "feat": "距離",
+              "label": "距離",
+              "value": 1200,
+              "contrib": 0.086
             }
           ],
           "history": {
@@ -4885,10 +5002,10 @@
               "contrib": 0.136
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.111
+              "feat": "前走上り3F順",
+              "label": "前走上り3F順",
+              "value": 1,
+              "contrib": 0.104
             }
           ],
           "history": {
@@ -5590,12 +5707,6 @@
               "contrib": 0.124
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.094
-            },
-            {
               "feat": "prev_hosei9",
               "label": "前走 補正タイム(9F基準)",
               "value": 75,
@@ -5612,6 +5723,12 @@
               "label": "過去5走 平均上り3F",
               "value": 38.875,
               "contrib": -0.075
+            },
+            {
+              "feat": "前距離",
+              "label": "前距離",
+              "value": 1700,
+              "contrib": 0.066
             }
           ],
           "history": {
@@ -5678,7 +5795,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "\"Into Mischief\"",
+            "broodmare_sire": "\"Medaglia d'Oro\"",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 4,
@@ -5713,22 +5835,22 @@
               "contrib": 0.103
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.097
-            },
-            {
-              "feat": "騎手コード",
-              "label": "騎手コード",
-              "value": null,
-              "contrib": 0.089
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1700,
               "contrib": 0.082
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 38.92,
+              "contrib": -0.078
+            },
+            {
+              "feat": "prev_hosei9",
+              "label": "前走 補正タイム(9F基準)",
+              "value": 78,
+              "contrib": -0.073
             }
           ],
           "history": {
@@ -5921,12 +6043,6 @@
               "contrib": 0.257
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.21
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 4,
@@ -5939,16 +6055,22 @@
               "contrib": 0.13
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.118
+              "feat": "前距離",
+              "label": "前距離",
+              "value": 1700,
+              "contrib": 0.1
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.113
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.8,
+              "contrib": 0.077
+            },
+            {
+              "feat": "前走出走頭数",
+              "label": "前走出走頭数",
+              "value": 15,
+              "contrib": 0.054
             }
           ],
           "history": {
@@ -6184,7 +6306,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "マインドユアビスケッツ",
+            "broodmare_sire": "ハーツクライ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 9,
@@ -6277,7 +6404,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "マインドユアビスケッツ",
+            "broodmare_sire": "ハーツクライ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 10,
@@ -6317,7 +6449,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "エピファネイア",
+            "broodmare_sire": "ワークフォース",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 11,
@@ -6438,12 +6575,6 @@
               "contrib": 0.269
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.221
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1800,
@@ -6456,16 +6587,22 @@
               "contrib": 0.16
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.117
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 3,
               "contrib": 0.115
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.7,
+              "contrib": 0.085
+            },
+            {
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 8,
+              "contrib": 0.079
             }
           ],
           "history": {
@@ -6669,12 +6806,6 @@
               "contrib": 0.3
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.245
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 4,
@@ -6687,16 +6818,22 @@
               "contrib": 0.15
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.122
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.4,
+              "contrib": 0.113
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.115
+              "feat": "前走上り3F順",
+              "label": "前走上り3F順",
+              "value": 1,
+              "contrib": 0.101
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 39.04,
+              "contrib": -0.08
             }
           ],
           "history": {
@@ -7488,7 +7625,13 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ルーラーシップ",
+            "sire_type": "ネイティヴダンサー系",
+            "broodmare_sire": "フレンチデピュティ",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 5,
@@ -7959,16 +8102,16 @@
               "contrib": 0.104
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.096
-            },
-            {
               "feat": "種牡馬",
               "label": "種牡馬",
               "value": "ウインブライト",
               "contrib": 0.077
+            },
+            {
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 3,
+              "contrib": 0.076
             }
           ],
           "history": {
@@ -8106,7 +8249,12 @@
             ]
           },
           "sex": "セ",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "サートゥルナーリア",
+            "broodmare_sire": "ディープインパクト",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 11,
@@ -8147,16 +8295,16 @@
               "contrib": 0.115
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.112
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 3,
               "contrib": 0.102
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34.9,
+              "contrib": 0.096
             }
           ],
           "history": {
@@ -8281,16 +8429,16 @@
               "contrib": 0.13
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.113
-            },
-            {
               "feat": "prev_hosei",
               "label": "前走 補正タイム",
               "value": 95,
               "contrib": 0.108
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34.675,
+              "contrib": 0.096
             }
           ],
           "history": {
@@ -8659,16 +8807,16 @@
               "contrib": 0.124
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.107
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.6,
               "contrib": 0.088
+            },
+            {
+              "feat": "kako5_best_pos",
+              "label": "過去5走 最高通過順",
+              "value": 4,
+              "contrib": 0.077
             }
           ],
           "history": {
@@ -8886,12 +9034,6 @@
               "contrib": 0.111
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.109
-            },
-            {
               "feat": "kako5_avg_pos",
               "label": "過去5走 平均通過順",
               "value": 6.2,
@@ -8902,6 +9044,12 @@
               "label": "年齢",
               "value": 3,
               "contrib": 0.075
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 38.4,
+              "contrib": -0.072
             }
           ],
           "history": {
@@ -9126,16 +9274,16 @@
               "contrib": 0.113
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.102
-            },
-            {
               "feat": "kako5_avg_agari3f",
               "label": "過去5走 平均上り3F",
               "value": 38.46,
               "contrib": -0.083
+            },
+            {
+              "feat": "種牡馬",
+              "label": "種牡馬",
+              "value": "レイデオロ",
+              "contrib": 0.068
             }
           ],
           "history": {
@@ -9451,12 +9599,6 @@
               "contrib": 0.259
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.139
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1700,
@@ -9467,6 +9609,12 @@
               "label": "前走 補正タイム(9F基準)",
               "value": 83,
               "contrib": -0.089
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.3,
+              "contrib": 0.077
             }
           ],
           "history": {
@@ -9785,16 +9933,16 @@
               "contrib": 0.112
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.101
-            },
-            {
               "feat": "prev_hosei9",
               "label": "前走 補正タイム(9F基準)",
               "value": 81,
               "contrib": -0.08
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 1.2,
+              "contrib": 0.079
             }
           ],
           "history": {
@@ -9875,7 +10023,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "アスクピーターパン",
+            "broodmare_sire": "シンボリクリスエス",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 12,
@@ -10460,16 +10613,16 @@
               "contrib": 0.165
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.126
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.9,
               "contrib": 0.081
+            },
+            {
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 3,
+              "contrib": 0.077
             }
           ],
           "history": {
@@ -10682,28 +10835,28 @@
               "contrib": 0.199
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.128
-            },
-            {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.126
-            },
-            {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.099
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": -0.6,
               "contrib": 0.085
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 35.033,
+              "contrib": 0.071
+            },
+            {
+              "feat": "kako5_pos_trend",
+              "label": "過去5走 通過順トレンド",
+              "value": 2.5,
+              "contrib": 0.058
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 2,
+              "contrib": 0.055
             }
           ],
           "history": {
@@ -10757,7 +10910,11 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "リオンリオン",
+            "broodmare_sire": "エピファネイア"
+          }
         },
         {
           "umaban": 4,
@@ -10995,16 +11152,16 @@
               "contrib": 0.181
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.118
-            },
-            {
               "feat": "前走Ave-3F",
               "label": "前走Ave-3F",
               "value": 38.79,
               "contrib": -0.083
+            },
+            {
+              "feat": "kako5_best_pos",
+              "label": "過去5走 最高通過順",
+              "value": 3,
+              "contrib": 0.079
             }
           ],
           "history": {
@@ -11180,7 +11337,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ブリックスアンドモルタル",
+            "broodmare_sire": "Ghostzapper",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 8,
@@ -11392,28 +11554,28 @@
               "contrib": 0.193
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.192
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 5,
               "contrib": 0.155
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.124
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34.96,
+              "contrib": 0.087
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.121
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.4,
+              "contrib": 0.082
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 2,
+              "contrib": 0.072
             }
           ],
           "history": {
@@ -12241,16 +12403,16 @@
               "contrib": -0.108
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.106
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 2,
               "contrib": 0.102
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 1.1,
+              "contrib": 0.083
             }
           ],
           "history": {
@@ -12358,22 +12520,10 @@
               "contrib": 0.241
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.206
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 3,
               "contrib": 0.16
-            },
-            {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.136
             },
             {
               "feat": "前走上り3F順",
@@ -12386,6 +12536,18 @@
               "label": "過去5走 最高通過順",
               "value": 2,
               "contrib": 0.123
+            },
+            {
+              "feat": "前距離",
+              "label": "前距離",
+              "value": 1800,
+              "contrib": 0.104
+            },
+            {
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 10,
+              "contrib": 0.077
             }
           ],
           "history": {
@@ -12506,12 +12668,6 @@
               "contrib": 0.135
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.123
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 2,
@@ -12522,6 +12678,12 @@
               "label": "前走着差タイム",
               "value": 0.2,
               "contrib": 0.084
+            },
+            {
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 2,
+              "contrib": -0.075
             }
           ],
           "history": {
@@ -12710,12 +12872,6 @@
           "ai_vs_market": "over",
           "why": [
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.2
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 5,
@@ -12734,16 +12890,22 @@
               "contrib": 0.143
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.122
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.6,
               "contrib": 0.104
+            },
+            {
+              "feat": "kako5_best_pos",
+              "label": "過去5走 最高通過順",
+              "value": 3,
+              "contrib": 0.097
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 35,
+              "contrib": 0.082
             }
           ],
           "history": {
@@ -12950,12 +13112,6 @@
               "contrib": 0.208
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.162
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 2000,
@@ -12968,16 +13124,22 @@
               "contrib": 0.146
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.109
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.2,
+              "contrib": 0.09
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.106
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 3,
+              "contrib": 0.081
+            },
+            {
+              "feat": "kako5_avg_pos",
+              "label": "過去5走 平均通過順",
+              "value": 7.4,
+              "contrib": -0.074
             }
           ],
           "history": {
@@ -14010,12 +14172,6 @@
               "contrib": 0.329
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.218
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 3,
@@ -14028,16 +14184,22 @@
               "contrib": -0.167
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.125
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.1,
+              "contrib": 0.077
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.111
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 10,
+              "contrib": -0.061
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 35.26,
+              "contrib": 0.057
             }
           ],
           "history": {
@@ -14118,7 +14280,11 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "グァンチャーレ",
+            "broodmare_sire": "\"Swiss Spirit\""
+          }
         },
         {
           "umaban": 5,
@@ -14147,12 +14313,6 @@
               "contrib": -0.173
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.104
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 10,
@@ -14169,6 +14329,12 @@
               "label": "種牡馬",
               "value": "Kingman",
               "contrib": 0.088
+            },
+            {
+              "feat": "prev_hosei9",
+              "label": "前走 補正タイム(9F基準)",
+              "value": 92,
+              "contrib": 0.086
             }
           ],
           "history": {
@@ -14384,22 +14550,22 @@
               "contrib": 0.148
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.106
-            },
-            {
               "feat": "kako5_avg_pos",
               "label": "過去5走 平均通過順",
               "value": 6.8,
               "contrib": 0.094
             },
             {
-              "feat": "Ｒ",
-              "label": "Ｒ",
-              "value": null,
-              "contrib": 0.083
+              "feat": "kako5_best_pos",
+              "label": "過去5走 最高通過順",
+              "value": 4,
+              "contrib": 0.078
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.3,
+              "contrib": 0.075
             }
           ],
           "history": {
@@ -14501,12 +14667,6 @@
           "ai_vs_market": "under",
           "why": [
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.191
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 2,
@@ -14519,22 +14679,28 @@
               "contrib": 0.132
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.126
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1200,
               "contrib": -0.119
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.101
+              "feat": "kako5_avg_pos",
+              "label": "過去5走 平均通過順",
+              "value": 6.6,
+              "contrib": 0.087
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34.36,
+              "contrib": 0.079
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 4,
+              "contrib": 0.074
             }
           ],
           "history": {
@@ -15167,10 +15333,10 @@
               "contrib": 0.116
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.094
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 38.34,
+              "contrib": -0.092
             }
           ],
           "history": {
@@ -15815,28 +15981,28 @@
               "contrib": 0.124
             },
             {
-              "feat": "Ｒ",
-              "label": "Ｒ",
-              "value": null,
-              "contrib": 0.087
-            },
-            {
               "feat": "kako5_avg_pos",
               "label": "過去5走 平均通過順",
               "value": 6.8,
               "contrib": 0.084
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.068
+              "feat": "前走斤量",
+              "label": "前走斤量",
+              "value": 58,
+              "contrib": 0.063
             },
             {
-              "feat": "前走日付",
-              "label": "前走日付",
-              "value": null,
-              "contrib": -0.066
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 1.2,
+              "contrib": 0.061
+            },
+            {
+              "feat": "生産者",
+              "label": "生産者",
+              "value": 0,
+              "contrib": -0.05
             }
           ],
           "history": {
@@ -16237,22 +16403,22 @@
               "contrib": 0.111
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.101
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.8,
               "contrib": 0.073
             },
             {
-              "feat": "騎手コード",
-              "label": "騎手コード",
-              "value": null,
-              "contrib": 0.07
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 2,
+              "contrib": 0.068
+            },
+            {
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 7,
+              "contrib": 0.065
             }
           ],
           "history": {
@@ -16361,12 +16527,6 @@
               "contrib": 0.221
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.151
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 2,
@@ -16385,10 +16545,16 @@
               "contrib": -0.102
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.097
+              "feat": "前距離",
+              "label": "前距離",
+              "value": 1700,
+              "contrib": 0.086
+            },
+            {
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 2,
+              "contrib": -0.071
             }
           ],
           "history": {
@@ -16850,16 +17016,16 @@
               "contrib": 0.189
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.105
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.3,
               "contrib": 0.072
+            },
+            {
+              "feat": "距離",
+              "label": "距離",
+              "value": 1200,
+              "contrib": 0.056
             }
           ],
           "history": {
@@ -17038,12 +17204,6 @@
               "contrib": 0.195
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.186
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1200,
@@ -17062,10 +17222,16 @@
               "contrib": 0.127
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.119
+              "feat": "前走Ave-3F",
+              "label": "前走Ave-3F",
+              "value": 34.2,
+              "contrib": 0.072
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 1,
+              "contrib": 0.064
             }
           ],
           "history": {
@@ -17518,12 +17684,6 @@
               "contrib": 0.162
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.122
-            },
-            {
               "feat": "前走上り3F順",
               "label": "前走上り3F順",
               "value": 11,
@@ -17533,6 +17693,12 @@
               "feat": "kako5_avg_pos",
               "label": "過去5走 平均通過順",
               "value": 6,
+              "contrib": 0.108
+            },
+            {
+              "feat": "kako5_best_pos",
+              "label": "過去5走 最高通過順",
+              "value": 2,
               "contrib": 0.108
             }
           ],
@@ -17856,16 +18022,16 @@
               "contrib": 0.09
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.087
-            },
-            {
               "feat": "kako5_avg_agari3f",
               "label": "過去5走 平均上り3F",
               "value": 34.42,
               "contrib": 0.085
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 1.1,
+              "contrib": 0.081
             }
           ],
           "history": {
@@ -18424,7 +18590,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ステルヴィオ",
+            "broodmare_sire": "ブラックタイド",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 2,
@@ -18464,7 +18635,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ニューイヤーズデイ",
+            "broodmare_sire": "スズカマンボ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 3,
@@ -18504,7 +18680,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ダノンスマッシュ",
+            "broodmare_sire": "ブラックタイド",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 4,
@@ -18527,12 +18708,6 @@
               "contrib": 0.336
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.248
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1200,
@@ -18551,10 +18726,16 @@
               "contrib": 0.142
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.114
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34.9,
+              "contrib": 0.077
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 2,
+              "contrib": 0.064
             }
           ],
           "history": {
@@ -18582,7 +18763,11 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ダノンプレミアム",
+            "broodmare_sire": "ヘニーヒューズ"
+          }
         },
         {
           "umaban": 5,
@@ -18605,12 +18790,6 @@
               "contrib": 0.331
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.242
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1200,
@@ -18629,10 +18808,16 @@
               "contrib": 0.148
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.116
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.8,
+              "contrib": 0.074
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 35.3,
+              "contrib": 0.063
             }
           ],
           "history": {
@@ -18660,7 +18845,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ビッグアーサー",
+            "broodmare_sire": "ハーツクライ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 6,
@@ -18676,24 +18866,6 @@
           "fuku_odds_high": 12.1,
           "ai_vs_market": "under",
           "why": [
-            {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.176
-            },
-            {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.128
-            },
-            {
-              "feat": "間隔",
-              "label": "レース間隔(週)",
-              "value": null,
-              "contrib": -0.105
-            },
             {
               "feat": "前4角",
               "label": "前4角",
@@ -18711,6 +18883,24 @@
               "label": "種牡馬",
               "value": "サリオス",
               "contrib": 0.085
+            },
+            {
+              "feat": "前走確定着順",
+              "label": "前走確定着順",
+              "value": 8,
+              "contrib": -0.085
+            },
+            {
+              "feat": "前走Ave-3F",
+              "label": "前走Ave-3F",
+              "value": 38.85,
+              "contrib": -0.083
+            },
+            {
+              "feat": "kako5_best_pos",
+              "label": "過去5走 最高通過順",
+              "value": 8,
+              "contrib": -0.083
             }
           ],
           "history": {
@@ -18738,7 +18928,11 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "サリオス",
+            "broodmare_sire": "トーセンラー"
+          }
         },
         {
           "umaban": 7,
@@ -18778,7 +18972,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ステルヴィオ",
+            "broodmare_sire": "ステイゴールド",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 8,
@@ -18801,12 +19000,6 @@
               "contrib": 0.321
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.238
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1200,
@@ -18825,10 +19018,16 @@
               "contrib": 0.134
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.123
+              "feat": "前走Ave-3F",
+              "label": "前走Ave-3F",
+              "value": 34,
+              "contrib": 0.085
+            },
+            {
+              "feat": "距離",
+              "label": "距離",
+              "value": 1200,
+              "contrib": 0.063
             }
           ],
           "history": {
@@ -18856,7 +19055,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ダノンスマッシュ",
+            "broodmare_sire": "マンハッタンカフェ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 9,
@@ -18896,7 +19100,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ロジャーバローズ",
+            "broodmare_sire": "スウェプトオーヴァーボード",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 10,
@@ -18936,7 +19145,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ダノンスマッシュ",
+            "broodmare_sire": "ハーツクライ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 11,
@@ -18976,7 +19190,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "タワーオブロンドン",
+            "broodmare_sire": "\"Discreet Cat\"",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 12,
@@ -18999,12 +19218,6 @@
               "contrib": 0.336
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.218
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1200,
@@ -19023,10 +19236,16 @@
               "contrib": 0.143
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.116
+              "feat": "trnH_Time4",
+              "label": "坂路 ラスト1Fタイム",
+              "value": 12.3,
+              "contrib": 0.104
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.8,
+              "contrib": 0.075
             }
           ],
           "history": {
@@ -19054,7 +19273,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ショウナンバッハ",
+            "broodmare_sire": "ダイワメジャー",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 13,
@@ -19094,7 +19318,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "マテラスカイ",
+            "broodmare_sire": "プリサイスエンド",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         }
       ],
       "race_confidence": {
@@ -19374,12 +19603,6 @@
               "contrib": 0.336
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.24
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 3,
@@ -19398,10 +19621,16 @@
               "contrib": 0.126
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.112
+              "feat": "前距離",
+              "label": "前距離",
+              "value": 1800,
+              "contrib": 0.107
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.7,
+              "contrib": 0.104
             }
           ],
           "history": {
@@ -19429,7 +19658,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "キセキ",
+            "broodmare_sire": "ジャングルポケット",
+            "broodmare_sire_type": "ナスルーラ系"
+          }
         },
         {
           "umaban": 2,
@@ -19452,12 +19686,6 @@
               "contrib": 0.331
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.27
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 2,
@@ -19470,16 +19698,22 @@
               "contrib": 0.147
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.121
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1800,
               "contrib": 0.116
+            },
+            {
+              "feat": "前走上り3F順",
+              "label": "前走上り3F順",
+              "value": 2,
+              "contrib": 0.098
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0,
+              "contrib": 0.079
             }
           ],
           "history": {
@@ -19507,7 +19741,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "エピファネイア",
+            "broodmare_sire": "ゼンノロブロイ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 3,
@@ -19530,12 +19769,6 @@
               "contrib": 0.326
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.253
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 5,
@@ -19548,16 +19781,22 @@
               "contrib": 0.126
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.117
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1800,
               "contrib": 0.117
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.4,
+              "contrib": 0.089
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 35.1,
+              "contrib": 0.088
             }
           ],
           "history": {
@@ -19585,7 +19824,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ダノンバラード",
+            "broodmare_sire": "スクリーンヒーロー",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 4,
@@ -19602,28 +19846,10 @@
           "ai_vs_market": "under",
           "why": [
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.242
-            },
-            {
               "feat": "kako5_avg_pos",
               "label": "過去5走 平均通過順",
               "value": 6,
               "contrib": 0.162
-            },
-            {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.132
-            },
-            {
-              "feat": "間隔",
-              "label": "レース間隔(週)",
-              "value": null,
-              "contrib": -0.117
             },
             {
               "feat": "前走確定着順",
@@ -19632,10 +19858,28 @@
               "contrib": 0.103
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.098
+              "feat": "kako5_best_pos",
+              "label": "過去5走 最高通過順",
+              "value": 6,
+              "contrib": -0.093
+            },
+            {
+              "feat": "前距離",
+              "label": "前距離",
+              "value": 1800,
+              "contrib": 0.092
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.8,
+              "contrib": 0.09
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 2,
+              "contrib": 0.074
             }
           ],
           "history": {
@@ -19663,7 +19907,11 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "フィエールマン",
+            "broodmare_sire": "\"Maclean's Music\""
+          }
         },
         {
           "umaban": 5,
@@ -19703,7 +19951,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "シャンハイボビー",
+            "broodmare_sire": "マンハッタンカフェ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 6,
@@ -19743,7 +19996,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "オルフェーヴル",
+            "broodmare_sire": "フレンチデピュティ",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 7,
@@ -19783,7 +20041,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ヴァンゴッホ",
+            "broodmare_sire": "ダイワメジャー",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 8,
@@ -19823,7 +20086,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "スワーヴリチャード",
+            "broodmare_sire": "メイショウサムソン",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 9,
@@ -19846,12 +20114,6 @@
               "contrib": 0.334
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.24
-            },
-            {
               "feat": "trnH_Time4",
               "label": "坂路 ラスト1Fタイム",
               "value": 12.2,
@@ -19864,16 +20126,22 @@
               "contrib": 0.125
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.117
+              "feat": "trnW_Lap1",
+              "label": "ウッド 最終1Fラップ",
+              "value": 12.6,
+              "contrib": -0.089
             },
             {
-              "feat": "間隔",
-              "label": "レース間隔(週)",
-              "value": null,
-              "contrib": -0.108
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34,
+              "contrib": 0.089
+            },
+            {
+              "feat": "前距離",
+              "label": "前距離",
+              "value": 1600,
+              "contrib": 0.066
             }
           ],
           "history": {
@@ -19901,7 +20169,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ミッキーアイル",
+            "broodmare_sire": "\"High Chaparral\"",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         }
       ],
       "race_confidence": {
@@ -20245,7 +20518,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "シャンハイボビー",
+            "broodmare_sire": "サクラプレジデント",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 3,
@@ -20382,7 +20660,13 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "シニスターミニスター",
+            "sire_type": "ナスルーラ系",
+            "broodmare_sire": "ダイワメジャー",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 5,
@@ -20510,12 +20794,6 @@
               "contrib": -0.304
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.227
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 4,
@@ -20528,10 +20806,16 @@
               "contrib": 0.157
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.138
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.3,
+              "contrib": 0.066
+            },
+            {
+              "feat": "horse_fuku30",
+              "label": "当馬 複勝率(直近30走)",
+              "value": 0.402,
+              "contrib": 0.061
             }
           ],
           "history": {
@@ -20683,7 +20967,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "リオンディーズ",
+            "broodmare_sire": "フジキセキ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 8,
@@ -20821,16 +21110,16 @@
               "contrib": 0.148
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.097
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.6,
               "contrib": 0.096
+            },
+            {
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 3,
+              "contrib": 0.068
             }
           ],
           "history": {
@@ -21212,12 +21501,6 @@
               "contrib": -0.215
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.095
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 4,
@@ -21234,6 +21517,12 @@
               "label": "前走着差タイム",
               "value": 1,
               "contrib": 0.077
+            },
+            {
+              "feat": "前走確定着順",
+              "label": "前走確定着順",
+              "value": 8,
+              "contrib": -0.076
             }
           ],
           "history": {
@@ -21477,34 +21766,34 @@
               "contrib": 0.223
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.206
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1200,
               "contrib": -0.185
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.101
-            },
-            {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.097
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.6,
               "contrib": 0.095
+            },
+            {
+              "feat": "距離",
+              "label": "距離",
+              "value": 1150,
+              "contrib": 0.071
+            },
+            {
+              "feat": "horse_fuku10",
+              "label": "当馬 複勝率(直近10走)",
+              "value": 0.245,
+              "contrib": 0.061
+            },
+            {
+              "feat": "斤量体重比",
+              "label": "斤量/馬体重比",
+              "value": 0.126,
+              "contrib": 0.06
             }
           ],
           "history": {
@@ -21655,7 +21944,11 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "エスケンデレヤ",
+            "broodmare_sire": "ドゥラメンテ"
+          }
         }
       ],
       "race_confidence": {
@@ -21970,7 +22263,12 @@
             ]
           },
           "sex": "セ",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ルヴァンスレーヴ",
+            "broodmare_sire": "スペシャルウィーク",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 2,
@@ -22005,12 +22303,6 @@
               "contrib": 0.156
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.127
-            },
-            {
               "feat": "kako5_avg_pos",
               "label": "過去5走 平均通過順",
               "value": 6.333,
@@ -22021,6 +22313,12 @@
               "label": "過去5走 最高通過順",
               "value": 2,
               "contrib": 0.116
+            },
+            {
+              "feat": "前走上り3F順",
+              "label": "前走上り3F順",
+              "value": 1,
+              "contrib": 0.113
             }
           ],
           "history": {
@@ -22074,7 +22372,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ダノンスマッシュ",
+            "broodmare_sire": "フジキセキ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 3,
@@ -22095,12 +22398,6 @@
               "label": "過去5走 平均通過順",
               "value": 2,
               "contrib": 0.312
-            },
-            {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.251
             },
             {
               "feat": "前距離",
@@ -22125,6 +22422,12 @@
               "label": "過去5走 最高通過順",
               "value": 2,
               "contrib": 0.153
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.5,
+              "contrib": 0.085
             }
           ],
           "history": {
@@ -22192,12 +22495,6 @@
               "contrib": 0.152
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.11
-            },
-            {
               "feat": "kako5_pos_trend",
               "label": "過去5走 通過順トレンド",
               "value": 6.0,
@@ -22208,6 +22505,12 @@
               "label": "過去5走 最高通過順",
               "value": 3,
               "contrib": 0.105
+            },
+            {
+              "feat": "prev_hosei",
+              "label": "前走 補正タイム",
+              "value": 90,
+              "contrib": -0.095
             }
           ],
           "history": {
@@ -22248,7 +22551,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "リオンディーズ",
+            "broodmare_sire": "ディープインパクト",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 5,
@@ -22373,16 +22681,16 @@
               "contrib": 0.131
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.104
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.5,
               "contrib": 0.083
+            },
+            {
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 3,
+              "contrib": 0.078
             }
           ],
           "history": {
@@ -22701,7 +23009,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ベンバトル",
+            "broodmare_sire": "トーセンホマレボシ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 10,
@@ -22742,16 +23055,16 @@
               "contrib": 0.119
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.101
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.7,
               "contrib": 0.094
+            },
+            {
+              "feat": "距離",
+              "label": "距離",
+              "value": 1200,
+              "contrib": 0.087
             }
           ],
           "history": {
@@ -23130,7 +23443,11 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ディーマジェスティ",
+            "broodmare_sire": "カフェラピード"
+          }
         },
         {
           "umaban": 15,
@@ -23196,7 +23513,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ビッグアーサー",
+            "broodmare_sire": "ステイゴールド",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 16,
@@ -23549,47 +23871,52 @@
           "ai_vs_market": "over",
           "why": [
             {
-              "feat": "kako5_avg_pos",
-              "label": "過去5走 平均通過順",
-              "value": null,
-              "contrib": 0.32
+              "feat": "trnW_days_ago",
+              "label": "ウッド 追い切り経過日数",
+              "value": 6,
+              "contrib": 0.055
             },
             {
-              "feat": "前距離",
-              "label": "前距離",
-              "value": null,
-              "contrib": -0.212
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 2,
+              "contrib": 0.05
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.175
+              "feat": "クラス名",
+              "label": "クラス名",
+              "value": "新馬",
+              "contrib": 0.044
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.127
+              "feat": "距離",
+              "label": "距離",
+              "value": 1800,
+              "contrib": -0.041
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.087
+              "feat": "種牡馬",
+              "label": "種牡馬",
+              "value": "アドマイヤマーズ",
+              "contrib": 0.04
             },
             {
-              "feat": "前走上り3F順",
-              "label": "前走上り3F順",
-              "value": null,
-              "contrib": 0.086
+              "feat": "前PCI",
+              "label": "前PCI",
+              "value": 49,
+              "contrib": -0.037
             }
           ],
           "history": {
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "アドマイヤマーズ",
+            "broodmare_sire": "\"Awesome Gambler\"",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 2,
@@ -23608,7 +23935,12 @@
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "アドマイヤマーズ",
+            "broodmare_sire": "Dynaformer",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 3,
@@ -23627,7 +23959,12 @@
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "キズナ",
+            "broodmare_sire": "Bernstein",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 4,
@@ -23646,7 +23983,12 @@
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ゴールドシップ",
+            "broodmare_sire": "マツリダゴッホ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 5,
@@ -23663,47 +24005,51 @@
           "ai_vs_market": "under",
           "why": [
             {
-              "feat": "kako5_avg_pos",
-              "label": "過去5走 平均通過順",
-              "value": null,
-              "contrib": 0.323
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 2,
+              "contrib": 0.05
             },
             {
-              "feat": "前距離",
-              "label": "前距離",
-              "value": null,
-              "contrib": -0.205
+              "feat": "trnH_Time4",
+              "label": "坂路 ラスト1Fタイム",
+              "value": 16.5,
+              "contrib": -0.05
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.175
+              "feat": "クラス名",
+              "label": "クラス名",
+              "value": "新馬",
+              "contrib": 0.049
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.124
+              "feat": "距離",
+              "label": "距離",
+              "value": 1800,
+              "contrib": -0.042
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.097
+              "feat": "trainer_fuku90",
+              "label": "厩舎 複勝率(直近90日)",
+              "value": 0.211,
+              "contrib": 0.042
             },
             {
-              "feat": "前走上り3F順",
-              "label": "前走上り3F順",
-              "value": null,
-              "contrib": 0.084
+              "feat": "生産者",
+              "label": "生産者",
+              "value": 0,
+              "contrib": 0.041
             }
           ],
           "history": {
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ホークビル",
+            "broodmare_sire": "\"Dream Ahead\""
+          }
         },
         {
           "umaban": 6,
@@ -23722,7 +24068,12 @@
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "フィエールマン",
+            "broodmare_sire": "ウォーエンブレム",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 7,
@@ -23741,7 +24092,12 @@
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ダノンキングリー",
+            "broodmare_sire": "ゴールドアリュール",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 8,
@@ -23760,7 +24116,11 @@
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ウインブライト",
+            "broodmare_sire": "Verrazano"
+          }
         },
         {
           "umaban": 9,
@@ -23779,7 +24139,11 @@
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "アドマイヤマーズ",
+            "broodmare_sire": "\"Champs Elysees\""
+          }
         },
         {
           "umaban": 10,
@@ -23796,47 +24160,52 @@
           "ai_vs_market": "under",
           "why": [
             {
-              "feat": "kako5_avg_pos",
-              "label": "過去5走 平均通過順",
-              "value": null,
-              "contrib": 0.319
+              "feat": "クラス名",
+              "label": "クラス名",
+              "value": "新馬",
+              "contrib": 0.049
             },
             {
-              "feat": "前距離",
-              "label": "前距離",
-              "value": null,
-              "contrib": -0.224
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 2,
+              "contrib": 0.045
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.167
+              "feat": "前PCI",
+              "label": "前PCI",
+              "value": 49,
+              "contrib": -0.04
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.128
+              "feat": "trainer_fuku90",
+              "label": "厩舎 複勝率(直近90日)",
+              "value": 0.211,
+              "contrib": 0.039
             },
             {
-              "feat": "前走上り3F順",
-              "label": "前走上り3F順",
-              "value": null,
-              "contrib": 0.096
+              "feat": "距離",
+              "label": "距離",
+              "value": 1800,
+              "contrib": -0.037
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.094
+              "feat": "性別",
+              "label": "性別",
+              "value": "牝",
+              "contrib": -0.035
             }
           ],
           "history": {
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ジャスタウェイ",
+            "broodmare_sire": "クロフネ",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 11,
@@ -23855,7 +24224,12 @@
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ダノンバラード",
+            "broodmare_sire": "Shamardal",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 12,
@@ -23874,7 +24248,12 @@
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "タニノフランケル",
+            "broodmare_sire": "アグネスデジタル",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 13,
@@ -23893,7 +24272,13 @@
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ルーラーシップ",
+            "sire_type": "ネイティヴダンサー系",
+            "broodmare_sire": "ディープインパクト",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 14,
@@ -23910,47 +24295,52 @@
           "ai_vs_market": "fair",
           "why": [
             {
-              "feat": "kako5_avg_pos",
-              "label": "過去5走 平均通過順",
-              "value": null,
-              "contrib": 0.322
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 2,
+              "contrib": 0.051
             },
             {
-              "feat": "前距離",
-              "label": "前距離",
-              "value": null,
-              "contrib": -0.209
+              "feat": "クラス名",
+              "label": "クラス名",
+              "value": "新馬",
+              "contrib": 0.047
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.169
+              "feat": "前PCI",
+              "label": "前PCI",
+              "value": 49,
+              "contrib": -0.037
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.127
+              "feat": "trainer_fuku90",
+              "label": "厩舎 複勝率(直近90日)",
+              "value": 0.211,
+              "contrib": 0.036
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.092
+              "feat": "距離",
+              "label": "距離",
+              "value": 1800,
+              "contrib": -0.035
             },
             {
-              "feat": "前走上り3F順",
-              "label": "前走上り3F順",
-              "value": null,
-              "contrib": 0.077
+              "feat": "生産者",
+              "label": "生産者",
+              "value": 0,
+              "contrib": 0.034
             }
           ],
           "history": {
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ウインブライト",
+            "broodmare_sire": "\"Afleet Alex\"",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 15,
@@ -23967,47 +24357,53 @@
           "ai_vs_market": "under",
           "why": [
             {
-              "feat": "kako5_avg_pos",
-              "label": "過去5走 平均通過順",
-              "value": null,
-              "contrib": 0.323
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 2,
+              "contrib": 0.049
             },
             {
-              "feat": "前距離",
-              "label": "前距離",
-              "value": null,
-              "contrib": -0.193
+              "feat": "クラス名",
+              "label": "クラス名",
+              "value": "新馬",
+              "contrib": 0.048
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.169
+              "feat": "trnH_Time4",
+              "label": "坂路 ラスト1Fタイム",
+              "value": 17.2,
+              "contrib": -0.045
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.128
+              "feat": "trainer_fuku90",
+              "label": "厩舎 複勝率(直近90日)",
+              "value": 0.211,
+              "contrib": 0.04
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.095
+              "feat": "前PCI",
+              "label": "前PCI",
+              "value": 49,
+              "contrib": -0.034
             },
             {
-              "feat": "前走上り3F順",
-              "label": "前走上り3F順",
-              "value": null,
-              "contrib": 0.093
+              "feat": "距離",
+              "label": "距離",
+              "value": 1800,
+              "contrib": -0.032
             }
           ],
           "history": {
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ハービンジャー",
+            "sire_type": "ニアークティック系",
+            "broodmare_sire": "スペシャルウィーク",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         }
       ],
       "race_confidence": {
@@ -24299,12 +24695,6 @@
               "contrib": 0.118
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.104
-            },
-            {
               "feat": "prev_hosei",
               "label": "前走 補正タイム",
               "value": 95,
@@ -24321,6 +24711,12 @@
               "label": "前距離",
               "value": 1700,
               "contrib": 0.096
+            },
+            {
+              "feat": "prev_hosei9",
+              "label": "前走 補正タイム(9F基準)",
+              "value": 80,
+              "contrib": -0.064
             }
           ],
           "history": {
@@ -24446,16 +24842,16 @@
               "contrib": 0.11
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.1
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 4,
               "contrib": 0.094
+            },
+            {
+              "feat": "prev_hosei",
+              "label": "前走 補正タイム",
+              "value": 95,
+              "contrib": 0.093
             }
           ],
           "history": {
@@ -24716,10 +25112,10 @@
               "contrib": 0.103
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.103
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.7,
+              "contrib": 0.101
             }
           ],
           "history": {
@@ -24884,7 +25280,11 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "サンダースノー",
+            "broodmare_sire": "エスポワールシチー"
+          }
         },
         {
           "umaban": 7,
@@ -25060,7 +25460,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "エイシンフラッシュ",
+            "broodmare_sire": "ネオユニヴァース",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 9,
@@ -25100,7 +25505,11 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "サンダースノー",
+            "broodmare_sire": "カレンブラックヒル"
+          }
         },
         {
           "umaban": 10,
@@ -25153,7 +25562,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "レイデオロ",
+            "broodmare_sire": "ディープインパクト",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 11,
@@ -25297,10 +25711,10 @@
               "contrib": 0.133
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.106
+              "feat": "前走上り3F順",
+              "label": "前走上り3F順",
+              "value": 2,
+              "contrib": 0.093
             }
           ],
           "history": {
@@ -26001,10 +26415,10 @@
               "contrib": 0.129
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.101
+              "feat": "前走上り3F順",
+              "label": "前走上り3F順",
+              "value": 14,
+              "contrib": -0.084
             }
           ],
           "history": {
@@ -26181,7 +26595,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "シュヴァルグラン",
+            "broodmare_sire": "キングカメハメハ",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 3,
@@ -26298,10 +26717,10 @@
               "contrib": 0.129
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.118
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34.867,
+              "contrib": 0.093
             }
           ],
           "history": {
@@ -26355,7 +26774,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "サトノダイヤモンド",
+            "broodmare_sire": "タイキシャトル",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 5,
@@ -26630,12 +27054,6 @@
               "contrib": 0.124
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.102
-            },
-            {
               "feat": "kako5_avg_agari3f",
               "label": "過去5走 平均上り3F",
               "value": 34.967,
@@ -26646,6 +27064,12 @@
               "label": "年齢",
               "value": 3,
               "contrib": 0.082
+            },
+            {
+              "feat": "前距離",
+              "label": "前距離",
+              "value": 1600,
+              "contrib": 0.081
             }
           ],
           "history": {
@@ -26699,7 +27123,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "エピファネイア",
+            "broodmare_sire": "アグネスタキオン",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 9,
@@ -26837,7 +27266,11 @@
             ]
           },
           "sex": "セ",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "サトノクラウン",
+            "broodmare_sire": "キズナ"
+          }
         },
         {
           "umaban": 11,
@@ -26884,10 +27317,10 @@
               "contrib": 0.123
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.118
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 3,
+              "contrib": 0.076
             }
           ],
           "history": {
@@ -27246,7 +27679,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "キセキ",
+            "broodmare_sire": "ステイゴールド",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 15,
@@ -27747,28 +28185,28 @@
               "contrib": -0.215
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.21
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 5,
               "contrib": 0.167
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.115
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.5,
+              "contrib": 0.084
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.097
+              "feat": "種牡馬",
+              "label": "種牡馬",
+              "value": "サートゥルナーリア",
+              "contrib": 0.08
+            },
+            {
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 8,
+              "contrib": 0.069
             }
           ],
           "history": {
@@ -27931,7 +28369,11 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "フィエールマン",
+            "broodmare_sire": "エピファネイア"
+          }
         },
         {
           "umaban": 3,
@@ -28148,22 +28590,10 @@
               "contrib": 0.206
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.177
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1200,
               "contrib": -0.174
-            },
-            {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.112
             },
             {
               "feat": "kako5_best_pos",
@@ -28172,10 +28602,22 @@
               "contrib": 0.111
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.101
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34.2,
+              "contrib": 0.08
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.1,
+              "contrib": 0.077
+            },
+            {
+              "feat": "前走Ave-3F",
+              "label": "前走Ave-3F",
+              "value": 34.2,
+              "contrib": 0.068
             }
           ],
           "history": {
@@ -28653,16 +29095,16 @@
               "contrib": 0.153
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.126
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 2,
               "contrib": 0.101
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.5,
+              "contrib": 0.095
             }
           ],
           "history": {
@@ -28983,16 +29425,16 @@
               "contrib": 0.115
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.109
-            },
-            {
               "feat": "前走Ave-3F",
               "label": "前走Ave-3F",
               "value": 33,
               "contrib": 0.096
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 1,
+              "contrib": 0.067
             }
           ],
           "history": {
@@ -29318,10 +29760,10 @@
               "contrib": 0.098
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.094
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 4,
+              "contrib": 0.064
             }
           ],
           "history": {
@@ -29836,16 +30278,16 @@
               "contrib": -0.166
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.126
-            },
-            {
               "feat": "間隔",
               "label": "レース間隔(週)",
               "value": 9,
               "contrib": 0.087
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 3,
+              "contrib": 0.074
             }
           ],
           "history": {
@@ -30161,12 +30603,6 @@
               "contrib": 0.117
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.098
-            },
-            {
               "feat": "prev_hosei9",
               "label": "前走 補正タイム(9F基準)",
               "value": 75,
@@ -30177,6 +30613,12 @@
               "label": "前走着差タイム",
               "value": -0.5,
               "contrib": 0.081
+            },
+            {
+              "feat": "種牡馬",
+              "label": "種牡馬",
+              "value": "ワールドプレミア",
+              "contrib": 0.055
             }
           ],
           "history": {
@@ -30230,7 +30672,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ワールドプレミア",
+            "broodmare_sire": "キングカメハメハ",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 6,
@@ -30271,16 +30718,16 @@
               "contrib": -0.082
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.077
-            },
-            {
               "feat": "trnW_Lap1",
               "label": "ウッド 最終1Fラップ",
               "value": 12.7,
               "contrib": -0.067
+            },
+            {
+              "feat": "horse_fuku10",
+              "label": "当馬 複勝率(直近10走)",
+              "value": 0.286,
+              "contrib": 0.062
             }
           ],
           "history": {
@@ -30668,34 +31115,34 @@
               "contrib": 0.379
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.209
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 2000,
               "contrib": 0.158
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.13
-            },
-            {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.114
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 8,
               "contrib": -0.1
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 2.2,
+              "contrib": -0.088
+            },
+            {
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 10,
+              "contrib": 0.087
+            },
+            {
+              "feat": "種牡馬",
+              "label": "種牡馬",
+              "value": "ヴァンゴッホ",
+              "contrib": 0.078
             }
           ],
           "history": {
@@ -30827,10 +31274,10 @@
               "contrib": -0.119
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.113
+              "feat": "前走上り3F順",
+              "label": "前走上り3F順",
+              "value": 2,
+              "contrib": 0.081
             }
           ],
           "history": {
@@ -31480,12 +31927,6 @@
               "contrib": 0.331
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.111
-            },
-            {
               "feat": "prev_hosei9",
               "label": "前走 補正タイム(9F基準)",
               "value": 93,
@@ -31502,6 +31943,12 @@
               "label": "前走上り3F順",
               "value": 12,
               "contrib": -0.096
+            },
+            {
+              "feat": "種牡馬",
+              "label": "種牡馬",
+              "value": "シスキン",
+              "contrib": 0.087
             }
           ],
           "history": {
@@ -31800,22 +32247,10 @@
               "contrib": 0.227
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.197
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 3,
               "contrib": 0.183
-            },
-            {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.125
             },
             {
               "feat": "前距離",
@@ -31828,6 +32263,18 @@
               "label": "坂路 ラスト1Fタイム",
               "value": 12.4,
               "contrib": 0.106
+            },
+            {
+              "feat": "kako5_pos_trend",
+              "label": "過去5走 通過順トレンド",
+              "value": 1.7,
+              "contrib": 0.081
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.9,
+              "contrib": 0.078
             }
           ],
           "history": {
@@ -32032,12 +32479,6 @@
               "contrib": 0.342
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.139
-            },
-            {
               "feat": "kako5_avg_agari3f",
               "label": "過去5走 平均上り3F",
               "value": 38.625,
@@ -32050,16 +32491,22 @@
               "contrib": 0.135
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.128
+              "feat": "種牡馬",
+              "label": "種牡馬",
+              "value": "ブリックスアンドモルタル",
+              "contrib": 0.056
             },
             {
-              "feat": "前走上り3F順",
-              "label": "前走上り3F順",
-              "value": null,
-              "contrib": 0.11
+              "feat": "trainer_fuku90",
+              "label": "厩舎 複勝率(直近90日)",
+              "value": 0.211,
+              "contrib": 0.046
+            },
+            {
+              "feat": "前PCI",
+              "label": "前PCI",
+              "value": 49,
+              "contrib": -0.042
             }
           ],
           "history": {
@@ -32414,7 +32861,12 @@
             ]
           },
           "sex": "牡",
-          "age": 4
+          "age": 4,
+          "pedigree": {
+            "sire": "ディスクリートキャット",
+            "broodmare_sire": "パイロ",
+            "broodmare_sire_type": "ナスルーラ系"
+          }
         },
         {
           "umaban": 12,
@@ -32534,12 +32986,6 @@
               "contrib": 0.281
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.189
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 5,
@@ -32552,16 +32998,22 @@
               "contrib": 0.141
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.114
-            },
-            {
               "feat": "trnH_Time4",
               "label": "坂路 ラスト1Fタイム",
               "value": 12.3,
               "contrib": 0.103
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.8,
+              "contrib": 0.082
+            },
+            {
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 2,
+              "contrib": -0.078
             }
           ],
           "history": {
@@ -32768,22 +33220,10 @@
               "contrib": 0.375
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.112
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 6,
               "contrib": 0.084
-            },
-            {
-              "feat": "Ｒ",
-              "label": "Ｒ",
-              "value": null,
-              "contrib": 0.075
             },
             {
               "feat": "prev_hosei",
@@ -32796,6 +33236,18 @@
               "label": "前走着差タイム",
               "value": 1.1,
               "contrib": 0.068
+            },
+            {
+              "feat": "prev_hosei9",
+              "label": "前走 補正タイム(9F基準)",
+              "value": 91,
+              "contrib": 0.067
+            },
+            {
+              "feat": "trnW_Lap1",
+              "label": "ウッド 最終1Fラップ",
+              "value": 12.3,
+              "contrib": -0.066
             }
           ],
           "history": {
@@ -33404,10 +33856,10 @@
               "contrib": 0.095
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.094
+              "feat": "前走確定着順",
+              "label": "前走確定着順",
+              "value": 6,
+              "contrib": 0.076
             }
           ],
           "history": {
@@ -33627,12 +34079,6 @@
               "contrib": 0.197
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.122
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 1,
@@ -33643,6 +34089,12 @@
               "label": "前距離",
               "value": 1600,
               "contrib": 0.087
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34.84,
+              "contrib": 0.082
             }
           ],
           "history": {
@@ -34353,22 +34805,22 @@
               "contrib": 0.109
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.102
-            },
-            {
-              "feat": "Ｒ",
-              "label": "Ｒ",
-              "value": null,
-              "contrib": 0.085
-            },
-            {
               "feat": "前走上り3F",
               "label": "前走上り3F",
               "value": 33.1,
               "contrib": 0.078
+            },
+            {
+              "feat": "kako5_pos_trend",
+              "label": "過去5走 通過順トレンド",
+              "value": 1.6,
+              "contrib": 0.078
+            },
+            {
+              "feat": "prev_hosei",
+              "label": "前走 補正タイム",
+              "value": 95,
+              "contrib": 0.073
             }
           ],
           "history": {
@@ -34490,22 +34942,22 @@
               "contrib": 0.126
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.111
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.2,
               "contrib": 0.084
             },
             {
-              "feat": "Ｒ",
-              "label": "Ｒ",
-              "value": null,
-              "contrib": 0.078
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 33.72,
+              "contrib": 0.068
+            },
+            {
+              "feat": "前走上り3F",
+              "label": "前走上り3F",
+              "value": 33,
+              "contrib": 0.054
             }
           ],
           "history": {
@@ -34821,12 +35273,6 @@
               "contrib": 0.204
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.153
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1800,
@@ -34837,6 +35283,12 @@
               "label": "前走確定着順",
               "value": 1,
               "contrib": -0.111
+            },
+            {
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 5,
+              "contrib": -0.098
             }
           ],
           "history": {
@@ -35393,10 +35845,10 @@
               "contrib": 0.253
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.137
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 3,
+              "contrib": 0.124
             }
           ],
           "history": {
@@ -35698,12 +36150,6 @@
               "contrib": 0.11
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.105
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.5,
@@ -35714,6 +36160,12 @@
               "label": "過去5走 通過順トレンド",
               "value": 1.6,
               "contrib": 0.099
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 12,
+              "contrib": -0.084
             }
           ],
           "history": {
@@ -35840,16 +36292,16 @@
               "contrib": 0.24
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.126
-            },
-            {
               "feat": "trnH_Time4",
               "label": "坂路 ラスト1Fタイム",
               "value": 12.4,
               "contrib": 0.1
+            },
+            {
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 13,
+              "contrib": -0.085
             }
           ],
           "history": {
@@ -36520,12 +36972,6 @@
               "contrib": 0.201
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.117
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.4,
@@ -36536,6 +36982,12 @@
               "label": "年齢",
               "value": 3,
               "contrib": 0.08
+            },
+            {
+              "feat": "種牡馬",
+              "label": "種牡馬",
+              "value": "オーヴァルエース",
+              "contrib": 0.076
             }
           ],
           "history": {
@@ -36589,7 +37041,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "オーヴァルエース",
+            "broodmare_sire": "フジキセキ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 14,
@@ -36819,16 +37276,16 @@
               "contrib": 0.112
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.104
-            },
-            {
               "feat": "前走上り3F順",
               "label": "前走上り3F順",
               "value": 1,
               "contrib": 0.098
+            },
+            {
+              "feat": "prev_hosei9",
+              "label": "前走 補正タイム(9F基準)",
+              "value": 81,
+              "contrib": -0.09
             }
           ],
           "history": {
@@ -37210,18 +37667,6 @@
           "ai_vs_market": "under",
           "why": [
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.218
-            },
-            {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.133
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.6,
@@ -37240,10 +37685,22 @@
               "contrib": -0.104
             },
             {
-              "feat": "間隔",
-              "label": "レース間隔(週)",
-              "value": null,
-              "contrib": -0.094
+              "feat": "trnW_Lap1",
+              "label": "ウッド 最終1Fラップ",
+              "value": 12.3,
+              "contrib": -0.076
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 3,
+              "contrib": 0.068
+            },
+            {
+              "feat": "kako5_avg_pos",
+              "label": "過去5走 平均通過順",
+              "value": 7,
+              "contrib": 0.064
             }
           ],
           "history": {
@@ -37271,7 +37728,11 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "レイデオロ",
+            "broodmare_sire": "\"Easing Along\""
+          }
         },
         {
           "umaban": 2,
@@ -37324,7 +37785,13 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ブラックタイド",
+            "sire_type": "ロイヤルチャージャー系",
+            "broodmare_sire": "キングカメハメハ",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 3,
@@ -37364,7 +37831,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "クリソベリル",
+            "broodmare_sire": "ステイゴールド",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 4,
@@ -37404,7 +37876,13 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ジャンダルム",
+            "sire_type": "ロイヤルチャージャー系",
+            "broodmare_sire": "エンパイアメーカー",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 5,
@@ -37427,34 +37905,34 @@
               "contrib": 0.313
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.246
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 4,
               "contrib": 0.152
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.127
-            },
-            {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.106
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 4,
               "contrib": 0.105
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34.5,
+              "contrib": 0.101
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.2,
+              "contrib": 0.08
+            },
+            {
+              "feat": "前走上り3F順",
+              "label": "前走上り3F順",
+              "value": 3,
+              "contrib": 0.054
             }
           ],
           "history": {
@@ -37482,7 +37960,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "キズナ",
+            "broodmare_sire": "\"Creative Cause\"",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 6,
@@ -37522,7 +38005,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ダノンキングリー",
+            "broodmare_sire": "Frankel",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 7,
@@ -37545,22 +38033,10 @@
               "contrib": 0.314
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.249
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 5,
               "contrib": 0.139
-            },
-            {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.124
             },
             {
               "feat": "前距離",
@@ -37569,10 +38045,22 @@
               "contrib": 0.117
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.106
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.7,
+              "contrib": 0.085
+            },
+            {
+              "feat": "前走上り3F順",
+              "label": "前走上り3F順",
+              "value": 2,
+              "contrib": 0.083
+            },
+            {
+              "feat": "trnW_Lap1",
+              "label": "ウッド 最終1Fラップ",
+              "value": 14.8,
+              "contrib": -0.072
             }
           ],
           "history": {
@@ -37600,7 +38088,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "モーリス",
+            "broodmare_sire": "エンパイアメーカー",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 8,
@@ -37640,7 +38133,11 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "イスラボニータ",
+            "broodmare_sire": "エピファネイア"
+          }
         },
         {
           "umaban": 9,
@@ -37663,12 +38160,6 @@
               "contrib": 0.337
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.238
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 5,
@@ -37681,16 +38172,22 @@
               "contrib": 0.133
             },
             {
-              "feat": "間隔",
-              "label": "レース間隔(週)",
-              "value": null,
-              "contrib": -0.129
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34.2,
+              "contrib": 0.094
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.126
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 1.9,
+              "contrib": -0.082
+            },
+            {
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 2,
+              "contrib": 0.049
             }
           ],
           "history": {
@@ -37718,7 +38215,13 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ルーラーシップ",
+            "sire_type": "ネイティヴダンサー系",
+            "broodmare_sire": "ゼンノロブロイ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 10,
@@ -37741,12 +38244,6 @@
               "contrib": 0.349
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.24
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 3,
@@ -37759,16 +38256,22 @@
               "contrib": 0.126
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.123
-            },
-            {
               "feat": "kako5_avg_agari3f",
               "label": "過去5走 平均上り3F",
               "value": 34.5,
               "contrib": 0.103
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.4,
+              "contrib": 0.091
+            },
+            {
+              "feat": "horse_fuku30",
+              "label": "当馬 複勝率(直近30走)",
+              "value": 0.405,
+              "contrib": 0.076
             }
           ],
           "history": {
@@ -37796,7 +38299,11 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "タニノフランケル",
+            "broodmare_sire": "エピファネイア"
+          }
         },
         {
           "umaban": 11,
@@ -37836,7 +38343,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "モーリス",
+            "broodmare_sire": "ルーラーシップ",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         }
       ],
       "race_confidence": {
@@ -38201,12 +38713,6 @@
               "contrib": -0.241
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.216
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 4,
@@ -38229,6 +38735,12 @@
               "label": "過去5走 最高通過順",
               "value": 2,
               "contrib": 0.136
+            },
+            {
+              "feat": "kako5_pos_trend",
+              "label": "過去5走 通過順トレンド",
+              "value": 1.6,
+              "contrib": 0.081
             }
           ],
           "history": {
@@ -38437,7 +38949,11 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ナダル",
+            "broodmare_sire": "ロードカナロア"
+          }
         },
         {
           "umaban": 5,
@@ -38472,12 +38988,6 @@
               "contrib": -0.091
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.087
-            },
-            {
               "feat": "種牡馬",
               "label": "種牡馬",
               "value": "モズアスコット",
@@ -38488,6 +38998,12 @@
               "label": "前走着差タイム",
               "value": 1,
               "contrib": 0.081
+            },
+            {
+              "feat": "prev_hosei9",
+              "label": "前走 補正タイム(9F基準)",
+              "value": 77,
+              "contrib": -0.077
             }
           ],
           "history": {
@@ -38541,7 +39057,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "モズアスコット",
+            "broodmare_sire": "\"Uncle Mo\"",
+            "broodmare_sire_type": "ナスルーラ系"
+          }
         },
         {
           "umaban": 6,
@@ -38560,7 +39081,12 @@
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "カリフォルニアクローム",
+            "broodmare_sire": "ヴァーミリアン",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 7,
@@ -38589,28 +39115,28 @@
               "contrib": 0.199
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.162
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 2,
               "contrib": 0.14
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.118
+              "feat": "距離",
+              "label": "距離",
+              "value": 1000,
+              "contrib": 0.073
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.096
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.4,
+              "contrib": 0.071
+            },
+            {
+              "feat": "kako5_avg_pos",
+              "label": "過去5走 平均通過順",
+              "value": 7.8,
+              "contrib": -0.065
             }
           ],
           "history": {
@@ -38691,7 +39217,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "フィレンツェファイア",
+            "broodmare_sire": "ハーツクライ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 8,
@@ -38756,7 +39287,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "マクフィ",
+            "broodmare_sire": "ルーラーシップ",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 9,
@@ -38808,7 +39344,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "オーヴァルエース",
+            "broodmare_sire": "ゴールドアリュール",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 10,
@@ -38953,10 +39494,10 @@
               "contrib": 0.144
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.141
+              "feat": "prev_hosei9",
+              "label": "前走 補正タイム(9F基準)",
+              "value": 64,
+              "contrib": -0.094
             }
           ],
           "history": {
@@ -39095,7 +39636,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "カリフォルニアクローム",
+            "broodmare_sire": "ケイムホーム",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 13,
@@ -39148,7 +39694,11 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "サートゥルナーリア",
+            "broodmare_sire": "オルフェーヴル"
+          }
         },
         {
           "umaban": 14,
@@ -39189,16 +39739,16 @@
               "contrib": 0.119
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.112
-            },
-            {
               "feat": "kako5_pos_trend",
               "label": "過去5走 通過順トレンド",
               "value": 2.7,
               "contrib": 0.107
+            },
+            {
+              "feat": "prev_hosei",
+              "label": "前走 補正タイム",
+              "value": 95,
+              "contrib": 0.103
             }
           ],
           "history": {
@@ -39533,47 +40083,52 @@
           "ai_vs_market": "over",
           "why": [
             {
-              "feat": "kako5_avg_pos",
-              "label": "過去5走 平均通過順",
-              "value": null,
-              "contrib": 0.318
+              "feat": "trnH_Time4",
+              "label": "坂路 ラスト1Fタイム",
+              "value": 12.6,
+              "contrib": 0.049
             },
             {
-              "feat": "前距離",
-              "label": "前距離",
-              "value": null,
-              "contrib": -0.216
+              "feat": "クラス名",
+              "label": "クラス名",
+              "value": "新馬",
+              "contrib": 0.048
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.168
+              "feat": "距離",
+              "label": "距離",
+              "value": 1200,
+              "contrib": 0.048
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.119
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 2,
+              "contrib": 0.046
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.104
+              "feat": "trnW_days_ago",
+              "label": "ウッド 追い切り経過日数",
+              "value": 10,
+              "contrib": 0.043
             },
             {
-              "feat": "前走上り3F順",
-              "label": "前走上り3F順",
-              "value": null,
-              "contrib": 0.097
+              "feat": "前PCI",
+              "label": "前PCI",
+              "value": 49,
+              "contrib": -0.04
             }
           ],
           "history": {
             "n_runs": 0
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ビッグアーサー",
+            "broodmare_sire": "アドマイヤジャパン",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 2,
@@ -39590,47 +40145,52 @@
           "ai_vs_market": "under",
           "why": [
             {
-              "feat": "kako5_avg_pos",
-              "label": "過去5走 平均通過順",
-              "value": null,
-              "contrib": 0.312
-            },
-            {
-              "feat": "前距離",
-              "label": "前距離",
-              "value": null,
-              "contrib": -0.198
-            },
-            {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.168
-            },
-            {
               "feat": "trnH_Time4",
               "label": "坂路 ラスト1Fタイム",
               "value": 12.3,
               "contrib": 0.125
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.114
+              "feat": "距離",
+              "label": "距離",
+              "value": 1200,
+              "contrib": 0.053
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.102
+              "feat": "種牡馬",
+              "label": "種牡馬",
+              "value": "アルアイン",
+              "contrib": 0.052
+            },
+            {
+              "feat": "クラス名",
+              "label": "クラス名",
+              "value": "新馬",
+              "contrib": 0.05
+            },
+            {
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 2,
+              "contrib": 0.044
+            },
+            {
+              "feat": "trainer_fuku90",
+              "label": "厩舎 複勝率(直近90日)",
+              "value": 0.211,
+              "contrib": 0.041
             }
           ],
           "history": {
             "n_runs": 0
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "アルアイン",
+            "broodmare_sire": "グラスワンダー",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 3,
@@ -39649,7 +40209,12 @@
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "トーセンラー",
+            "broodmare_sire": "Alhaarth",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 4,
@@ -39666,47 +40231,51 @@
           "ai_vs_market": "under",
           "why": [
             {
-              "feat": "kako5_avg_pos",
-              "label": "過去5走 平均通過順",
-              "value": null,
-              "contrib": 0.321
+              "feat": "trnW_days_ago",
+              "label": "ウッド 追い切り経過日数",
+              "value": 9,
+              "contrib": 0.055
             },
             {
-              "feat": "前距離",
-              "label": "前距離",
-              "value": null,
-              "contrib": -0.22
+              "feat": "距離",
+              "label": "距離",
+              "value": 1200,
+              "contrib": 0.053
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.178
+              "feat": "クラス名",
+              "label": "クラス名",
+              "value": "新馬",
+              "contrib": 0.049
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.124
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 2,
+              "contrib": 0.046
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.099
+              "feat": "種牡馬",
+              "label": "種牡馬",
+              "value": "サリオス",
+              "contrib": 0.042
             },
             {
-              "feat": "前走上り3F順",
-              "label": "前走上り3F順",
-              "value": null,
-              "contrib": 0.084
+              "feat": "前PCI",
+              "label": "前PCI",
+              "value": 49,
+              "contrib": -0.042
             }
           ],
           "history": {
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "サリオス",
+            "broodmare_sire": "キズナ"
+          }
         },
         {
           "umaban": 5,
@@ -39723,47 +40292,52 @@
           "ai_vs_market": "under",
           "why": [
             {
-              "feat": "kako5_avg_pos",
-              "label": "過去5走 平均通過順",
-              "value": null,
-              "contrib": 0.318
-            },
-            {
-              "feat": "前距離",
-              "label": "前距離",
-              "value": null,
-              "contrib": -0.193
-            },
-            {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.165
-            },
-            {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.122
-            },
-            {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.1
-            },
-            {
               "feat": "trnH_Time4",
               "label": "坂路 ラスト1Fタイム",
               "value": 12.4,
               "contrib": 0.097
+            },
+            {
+              "feat": "距離",
+              "label": "距離",
+              "value": 1200,
+              "contrib": 0.056
+            },
+            {
+              "feat": "クラス名",
+              "label": "クラス名",
+              "value": "新馬",
+              "contrib": 0.05
+            },
+            {
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 2,
+              "contrib": 0.045
+            },
+            {
+              "feat": "前PCI",
+              "label": "前PCI",
+              "value": 49,
+              "contrib": -0.043
+            },
+            {
+              "feat": "性別",
+              "label": "性別",
+              "value": "牝",
+              "contrib": -0.041
             }
           ],
           "history": {
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ダノンスマッシュ",
+            "broodmare_sire": "キンシャサノキセキ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 6,
@@ -39782,7 +40356,12 @@
             "n_runs": 0
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "タワーオブロンドン",
+            "broodmare_sire": "スペシャルウィーク",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 7,
@@ -39799,47 +40378,52 @@
           "ai_vs_market": "under",
           "why": [
             {
-              "feat": "kako5_avg_pos",
-              "label": "過去5走 平均通過順",
-              "value": null,
-              "contrib": 0.319
+              "feat": "trnW_days_ago",
+              "label": "ウッド 追い切り経過日数",
+              "value": 9,
+              "contrib": 0.057
             },
             {
-              "feat": "前距離",
-              "label": "前距離",
-              "value": null,
-              "contrib": -0.221
+              "feat": "クラス名",
+              "label": "クラス名",
+              "value": "新馬",
+              "contrib": 0.051
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.169
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 2,
+              "contrib": 0.049
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.127
+              "feat": "距離",
+              "label": "距離",
+              "value": 1200,
+              "contrib": 0.047
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.106
+              "feat": "trnW_Lap3",
+              "label": "ウッド 3F目ラップ",
+              "value": 14.8,
+              "contrib": 0.046
             },
             {
-              "feat": "前走上り3F順",
-              "label": "前走上り3F順",
-              "value": null,
-              "contrib": 0.093
+              "feat": "trainer_fuku90",
+              "label": "厩舎 複勝率(直近90日)",
+              "value": 0.211,
+              "contrib": 0.04
             }
           ],
           "history": {
             "n_runs": 0
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "リアルスティール",
+            "broodmare_sire": "キングカメハメハ",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         }
       ],
       "race_confidence": {
@@ -40262,7 +40846,11 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "サートゥルナーリア",
+            "broodmare_sire": "Tawqeet"
+          }
         },
         {
           "umaban": 4,
@@ -40315,7 +40903,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ファインニードル",
+            "broodmare_sire": "ブラックタイド",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 5,
@@ -40434,12 +41027,6 @@
               "contrib": 0.121
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.112
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1700,
@@ -40450,6 +41037,12 @@
               "label": "前走着差タイム",
               "value": 2.2,
               "contrib": -0.095
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 38.38,
+              "contrib": -0.089
             }
           ],
           "history": {
@@ -40570,12 +41163,6 @@
               "contrib": -0.09
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.09
-            },
-            {
               "feat": "種牡馬",
               "label": "種牡馬",
               "value": "タワーオブロンドン",
@@ -40586,6 +41173,12 @@
               "label": "過去5走 平均上り3F",
               "value": 38.82,
               "contrib": -0.074
+            },
+            {
+              "feat": "prev_hosei",
+              "label": "前走 補正タイム",
+              "value": 90,
+              "contrib": -0.072
             }
           ],
           "history": {
@@ -40736,7 +41329,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ダノンプレミアム",
+            "broodmare_sire": "ハービンジャー",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 9,
@@ -40777,16 +41375,16 @@
               "contrib": 0.096
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.095
-            },
-            {
               "feat": "prev_hosei9",
               "label": "前走 補正タイム(9F基準)",
               "value": 80,
               "contrib": -0.082
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 2,
+              "contrib": 0.078
             }
           ],
           "history": {
@@ -41016,10 +41614,10 @@
               "contrib": -0.093
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.093
+              "feat": "kako5_avg_pos",
+              "label": "過去5走 平均通過順",
+              "value": 6.4,
+              "contrib": 0.09
             }
           ],
           "history": {
@@ -41152,10 +41750,10 @@
               "contrib": 0.11
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.1
+              "feat": "prev_hosei9",
+              "label": "前走 補正タイム(9F基準)",
+              "value": 79,
+              "contrib": -0.069
             }
           ],
           "history": {
@@ -41260,7 +41858,13 @@
             "n_runs": 0
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "シニスターミニスター",
+            "sire_type": "ナスルーラ系",
+            "broodmare_sire": "ヴィクトワールピサ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         }
       ],
       "race_confidence": {
@@ -41594,7 +42198,13 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "スマートファルコン",
+            "sire_type": "ロイヤルチャージャー系",
+            "broodmare_sire": "ネオユニヴァース",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 2,
@@ -41647,7 +42257,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "リオンディーズ",
+            "broodmare_sire": "ブラックタイド",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 3,
@@ -41687,7 +42302,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ファインニードル",
+            "broodmare_sire": "Pivotal",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 4,
@@ -41753,7 +42373,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "サトノクラウン",
+            "broodmare_sire": "ステイゴールド",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 5,
@@ -41871,10 +42496,10 @@
               "contrib": -0.111
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.104
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.4,
+              "contrib": 0.09
             }
           ],
           "history": {
@@ -41941,7 +42566,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "エピファネイア",
+            "broodmare_sire": "ハーツクライ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 7,
@@ -42007,7 +42637,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "Zoustar",
+            "broodmare_sire": "Lonhro",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 8,
@@ -42054,10 +42689,10 @@
               "contrib": -0.113
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.11
+              "feat": "prev_hosei9",
+              "label": "前走 補正タイム(9F基準)",
+              "value": 72,
+              "contrib": -0.089
             }
           ],
           "history": {
@@ -42279,7 +42914,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "ロジャーバローズ",
+            "broodmare_sire": "メイショウサムソン",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 11,
@@ -42302,34 +42942,34 @@
               "contrib": 0.209
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.176
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1800,
               "contrib": 0.159
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.111
-            },
-            {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.107
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 0.5,
               "contrib": 0.097
+            },
+            {
+              "feat": "kako5_best_pos",
+              "label": "過去5走 最高通過順",
+              "value": 4,
+              "contrib": 0.093
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 35.2,
+              "contrib": 0.079
+            },
+            {
+              "feat": "kako5_pos_trend",
+              "label": "過去5走 通過順トレンド",
+              "value": 6.0,
+              "contrib": 0.073
             }
           ],
           "history": {
@@ -42370,7 +43010,12 @@
             ]
           },
           "sex": "牝",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "タリスマニック",
+            "broodmare_sire": "タイキシャトル",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 12,
@@ -42405,12 +43050,6 @@
               "contrib": 0.117
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.112
-            },
-            {
               "feat": "prev_hosei",
               "label": "前走 補正タイム",
               "value": 90,
@@ -42421,6 +43060,12 @@
               "label": "前3角",
               "value": 12,
               "contrib": -0.1
+            },
+            {
+              "feat": "前走上り3F順",
+              "label": "前走上り3F順",
+              "value": 1,
+              "contrib": 0.093
             }
           ],
           "history": {
@@ -43072,12 +43717,6 @@
               "contrib": 0.171
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.113
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 2,
@@ -43088,6 +43727,12 @@
               "label": "前走 補正タイム",
               "value": 95,
               "contrib": 0.094
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34.58,
+              "contrib": 0.09
             }
           ],
           "history": {
@@ -43312,16 +43957,16 @@
               "contrib": 0.203
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.139
-            },
-            {
               "feat": "前走上り3F順",
               "label": "前走上り3F順",
               "value": 2,
               "contrib": 0.119
+            },
+            {
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 34.2,
+              "contrib": 0.111
             }
           ],
           "history": {
@@ -43453,10 +44098,10 @@
               "contrib": -0.089
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.086
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 35.233,
+              "contrib": 0.074
             }
           ],
           "history": {
@@ -43549,12 +44194,6 @@
               "contrib": 0.142
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.113
-            },
-            {
               "feat": "prev_hosei9",
               "label": "前走 補正タイム(9F基準)",
               "value": 76,
@@ -43565,6 +44204,12 @@
               "label": "過去5走 平均上り3F",
               "value": 35.3,
               "contrib": 0.093
+            },
+            {
+              "feat": "prev_hosei",
+              "label": "前走 補正タイム",
+              "value": 95,
+              "contrib": 0.078
             }
           ],
           "history": {
@@ -43789,16 +44434,16 @@
               "contrib": 0.158
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.142
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": 2.1,
               "contrib": -0.089
+            },
+            {
+              "feat": "prev_hosei9",
+              "label": "前走 補正タイム(9F基準)",
+              "value": 84,
+              "contrib": -0.082
             }
           ],
           "history": {
@@ -44337,34 +44982,34 @@
               "contrib": 0.293
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.167
-            },
-            {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.119
-            },
-            {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.117
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1300,
               "contrib": -0.107
             },
             {
-              "feat": "前走上り3F順",
-              "label": "前走上り3F順",
-              "value": null,
-              "contrib": 0.106
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": -0.6,
+              "contrib": 0.091
+            },
+            {
+              "feat": "クラス名",
+              "label": "クラス名",
+              "value": "ｵｰﾌﾟﾝ",
+              "contrib": -0.072
+            },
+            {
+              "feat": "kako5_same_td_ratio",
+              "label": "過去5走 同芝ダ比率",
+              "value": 0,
+              "contrib": -0.065
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 3,
+              "contrib": 0.062
             }
           ],
           "history": {
@@ -44415,7 +45060,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "コパノチャーリー",
+            "broodmare_sire": "ダイワメジャー",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 2,
@@ -44467,7 +45117,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "エポカドーロ",
+            "broodmare_sire": "ジャングルポケット",
+            "broodmare_sire_type": "ナスルーラ系"
+          }
         },
         {
           "umaban": 3,
@@ -44519,7 +45174,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ジャンダルム",
+            "sire_type": "ロイヤルチャージャー系",
+            "broodmare_sire": "\"Super Saver\""
+          }
         },
         {
           "umaban": 4,
@@ -44571,7 +45231,11 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "スワーヴリチャード",
+            "broodmare_sire": "トゥザグローリー"
+          }
         },
         {
           "umaban": 5,
@@ -44623,7 +45287,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "サトノアラジン",
+            "broodmare_sire": "Iffraaj",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 6,
@@ -44675,7 +45344,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "フィレンツェファイア",
+            "broodmare_sire": "スペシャルウィーク",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 7,
@@ -44715,7 +45389,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "タワーオブロンドン",
+            "broodmare_sire": "サクラバクシンオー",
+            "broodmare_sire_type": "ナスルーラ系"
+          }
         },
         {
           "umaban": 8,
@@ -44754,7 +45433,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ネロ",
+            "broodmare_sire": "メイショウボーラー",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 9,
@@ -44806,7 +45490,11 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "タワーオブロンドン",
+            "broodmare_sire": "シルバーステート"
+          }
         },
         {
           "umaban": 10,
@@ -44858,7 +45546,13 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ジャンダルム",
+            "sire_type": "ロイヤルチャージャー系",
+            "broodmare_sire": "ディープブリランテ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 11,
@@ -44887,28 +45581,28 @@
               "contrib": -0.188
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.14
-            },
-            {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.13
-            },
-            {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.094
-            },
-            {
               "feat": "前走着差タイム",
               "label": "前走着差タイム",
               "value": -0.2,
               "contrib": 0.067
+            },
+            {
+              "feat": "クラス名",
+              "label": "クラス名",
+              "value": "ｵｰﾌﾟﾝ",
+              "contrib": -0.065
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 1,
+              "contrib": 0.061
+            },
+            {
+              "feat": "種牡馬",
+              "label": "種牡馬",
+              "value": "アレスバローズ",
+              "contrib": 0.056
             }
           ],
           "history": {
@@ -44936,7 +45630,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "アレスバローズ",
+            "broodmare_sire": "キングカメハメハ",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 12,
@@ -44988,7 +45687,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ケープブランコ",
+            "broodmare_sire": "フジキセキ",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 13,
@@ -45040,7 +45744,12 @@
             ]
           },
           "sex": "牡",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ネロ",
+            "broodmare_sire": "リーチザクラウン",
+            "broodmare_sire_type": "ロイヤルチャージャー系"
+          }
         },
         {
           "umaban": 14,
@@ -45092,7 +45801,13 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "スクワートルスクワート",
+            "sire_type": "ネイティヴダンサー系",
+            "broodmare_sire": "チチカステナンゴ",
+            "broodmare_sire_type": "ナスルーラ系"
+          }
         },
         {
           "umaban": 15,
@@ -45144,7 +45859,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "ケープブランコ",
+            "broodmare_sire": "キングヘイロー",
+            "broodmare_sire_type": "ニアークティック系"
+          }
         },
         {
           "umaban": 16,
@@ -45173,28 +45893,28 @@
               "contrib": -0.161
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.156
-            },
-            {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.137
-            },
-            {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.088
-            },
-            {
               "feat": "前走Ave-3F",
               "label": "前走Ave-3F",
               "value": 33.6,
               "contrib": 0.083
+            },
+            {
+              "feat": "クラス名",
+              "label": "クラス名",
+              "value": "ｵｰﾌﾟﾝ",
+              "contrib": -0.068
+            },
+            {
+              "feat": "距離",
+              "label": "距離",
+              "value": 1200,
+              "contrib": 0.06
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 1,
+              "contrib": 0.059
             }
           ],
           "history": {
@@ -45222,7 +45942,11 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "シスキン",
+            "broodmare_sire": "\"Bated Breath\""
+          }
         },
         {
           "umaban": 17,
@@ -45245,12 +45969,6 @@
               "contrib": 0.277
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.22
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 2,
@@ -45269,10 +45987,16 @@
               "contrib": 0.125
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.119
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 1,
+              "contrib": 0.065
+            },
+            {
+              "feat": "距離",
+              "label": "距離",
+              "value": 1200,
+              "contrib": 0.062
             }
           ],
           "history": {
@@ -45312,7 +46036,12 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "アレスバローズ",
+            "broodmare_sire": "ケイムホーム",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 18,
@@ -45335,12 +46064,6 @@
               "contrib": 0.245
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.216
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 3,
@@ -45359,10 +46082,16 @@
               "contrib": 0.109
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.108
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 3,
+              "contrib": 0.072
+            },
+            {
+              "feat": "kako5_pos_trend",
+              "label": "過去5走 通過順トレンド",
+              "value": 4.0,
+              "contrib": 0.07
             }
           ],
           "history": {
@@ -45402,7 +46131,11 @@
             ]
           },
           "sex": "牝",
-          "age": 2
+          "age": 2,
+          "pedigree": {
+            "sire": "セイウンコウセイ",
+            "broodmare_sire": "ドレフォン"
+          }
         }
       ],
       "race_confidence": {
@@ -45775,10 +46508,10 @@
               "contrib": 0.115
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.1
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 4,
+              "contrib": 0.073
             }
           ],
           "history": {
@@ -45899,12 +46632,6 @@
               "contrib": 0.165
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.109
-            },
-            {
               "feat": "kako5_pos_trend",
               "label": "過去5走 通過順トレンド",
               "value": 1.6,
@@ -45915,6 +46642,12 @@
               "label": "前走着差タイム",
               "value": 0.6,
               "contrib": 0.087
+            },
+            {
+              "feat": "prev_hosei",
+              "label": "前走 補正タイム",
+              "value": 91,
+              "contrib": -0.087
             }
           ],
           "history": {
@@ -46235,16 +46968,16 @@
               "contrib": 0.118
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.112
-            },
-            {
               "feat": "kako5_avg_pos",
               "label": "過去5走 平均通過順",
               "value": 6.4,
               "contrib": 0.11
+            },
+            {
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 18,
+              "contrib": -0.09
             }
           ],
           "history": {
@@ -46549,34 +47282,34 @@
               "contrib": 0.301
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.205
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 4,
               "contrib": 0.171
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.134
-            },
-            {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.129
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 3,
               "contrib": 0.108
+            },
+            {
+              "feat": "前距離",
+              "label": "前距離",
+              "value": 1700,
+              "contrib": 0.097
+            },
+            {
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 8,
+              "contrib": 0.069
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 2,
+              "contrib": 0.06
             }
           ],
           "history": {
@@ -47003,10 +47736,10 @@
               "contrib": 0.152
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.144
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 15,
+              "contrib": -0.103
             }
           ],
           "history": {
@@ -47351,12 +48084,6 @@
               "contrib": 0.143
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.14
-            },
-            {
               "feat": "trnH_Time4",
               "label": "坂路 ラスト1Fタイム",
               "value": 12.3,
@@ -47367,6 +48094,12 @@
               "label": "過去5走 平均通過順",
               "value": 8.2,
               "contrib": -0.11
+            },
+            {
+              "feat": "kako5_pos_trend",
+              "label": "過去5走 通過順トレンド",
+              "value": 2.5,
+              "contrib": 0.103
             }
           ],
           "history": {
@@ -47769,12 +48502,6 @@
               "contrib": 0.275
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.195
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1200,
@@ -47793,10 +48520,16 @@
               "contrib": -0.116
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.112
+              "feat": "前走Ave-3F",
+              "label": "前走Ave-3F",
+              "value": 33.4,
+              "contrib": 0.086
+            },
+            {
+              "feat": "前3角",
+              "label": "前3角",
+              "value": 2,
+              "contrib": 0.076
             }
           ],
           "history": {
@@ -48205,12 +48938,6 @@
               "contrib": -0.151
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.128
-            },
-            {
               "feat": "prev_hosei",
               "label": "前走 補正タイム",
               "value": 96,
@@ -48223,10 +48950,16 @@
               "contrib": -0.091
             },
             {
-              "feat": "前走上り3F順",
-              "label": "前走上り3F順",
-              "value": null,
-              "contrib": 0.086
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 33.65,
+              "contrib": 0.075
+            },
+            {
+              "feat": "kako5_best_pos",
+              "label": "過去5走 最高通過順",
+              "value": 3,
+              "contrib": 0.074
             }
           ],
           "history": {
@@ -48340,16 +49073,16 @@
               "contrib": -0.157
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.124
-            },
-            {
               "feat": "前走Ave-3F",
               "label": "前走Ave-3F",
               "value": 33,
               "contrib": 0.102
+            },
+            {
+              "feat": "kako5_best_pos",
+              "label": "過去5走 最高通過順",
+              "value": 2,
+              "contrib": 0.098
             }
           ],
           "history": {
@@ -48482,10 +49215,10 @@
               "contrib": 0.162
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.094
+              "feat": "trnH_Time4",
+              "label": "坂路 ラスト1Fタイム",
+              "value": 12.4,
+              "contrib": 0.093
             }
           ],
           "history": {
@@ -49075,12 +49808,6 @@
               "contrib": 0.27
             },
             {
-              "feat": "prev_hosei",
-              "label": "前走 補正タイム",
-              "value": null,
-              "contrib": -0.223
-            },
-            {
               "feat": "前走確定着順",
               "label": "前走確定着順",
               "value": 5,
@@ -49093,16 +49820,22 @@
               "contrib": 0.129
             },
             {
-              "feat": "prev_hosei9",
-              "label": "前走 補正タイム(9F基準)",
-              "value": null,
-              "contrib": -0.124
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 2,
               "contrib": 0.12
+            },
+            {
+              "feat": "前走着差タイム",
+              "label": "前走着差タイム",
+              "value": 0.7,
+              "contrib": 0.092
+            },
+            {
+              "feat": "種牡馬",
+              "label": "種牡馬",
+              "value": "ルヴァンスレーヴ",
+              "contrib": 0.068
             }
           ],
           "history": {
@@ -49430,10 +50163,10 @@
               "contrib": 0.155
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.135
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 3,
+              "contrib": 0.078
             }
           ],
           "history": {
@@ -49710,12 +50443,6 @@
               "contrib": -0.248
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.122
-            },
-            {
               "feat": "前距離",
               "label": "前距離",
               "value": 1800,
@@ -49726,6 +50453,12 @@
               "label": "過去5走 平均上り3F",
               "value": 38.367,
               "contrib": -0.116
+            },
+            {
+              "feat": "間隔",
+              "label": "レース間隔(週)",
+              "value": 6,
+              "contrib": 0.089
             }
           ],
           "history": {
@@ -49779,7 +50512,12 @@
             ]
           },
           "sex": "牡",
-          "age": 3
+          "age": 3,
+          "pedigree": {
+            "sire": "\"Gun Runner\"",
+            "broodmare_sire": "\"Thunder Gulch\"",
+            "broodmare_sire_type": "ネイティヴダンサー系"
+          }
         },
         {
           "umaban": 9,
@@ -49918,16 +50656,16 @@
               "contrib": 0.149
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.126
+              "feat": "kako5_avg_agari3f",
+              "label": "過去5走 平均上り3F",
+              "value": 38.16,
+              "contrib": -0.087
             },
             {
-              "feat": "Ｒ",
-              "label": "Ｒ",
-              "value": null,
-              "contrib": 0.099
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 4,
+              "contrib": 0.066
             }
           ],
           "history": {
@@ -50250,16 +50988,16 @@
               "contrib": -0.122
             },
             {
-              "feat": "hist_same_cond_top3_rate",
-              "label": "同条件 複勝圏率(履歴)",
-              "value": null,
-              "contrib": -0.099
-            },
-            {
               "feat": "kako5_best_pos",
               "label": "過去5走 最高通過順",
               "value": 4,
               "contrib": 0.085
+            },
+            {
+              "feat": "年齢",
+              "label": "年齢",
+              "value": 3,
+              "contrib": 0.083
             }
           ],
           "history": {

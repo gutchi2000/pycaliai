@@ -164,19 +164,27 @@ def race_contribs(explainer, X, feats, g_rows: pd.DataFrame, topk: int = 6):
     sv = _to_2d_shap(explainer.shap_values(X))
     n, m = sv.shape
     feats = list(feats)
+    cols = set(g_rows.columns)
     out: list[list[dict]] = []
     for i in range(n):
         row = sv[i]
-        order = np.argsort(-np.abs(row))[:topk]
+        # |contrib| 降順の全順序を舐め、「実値のある特徴」だけを top-k 採用する。
+        # 欠損 (初出走の過去5走・前走特徴など) は -9999/median で埋めた合成値への
+        # SHAP 寄与でしかなく、人が読む「根拠」としては無意味なノイズなので捨てる。
+        order = np.argsort(-np.abs(row))
         items = []
         grow = g_rows.iloc[i]
         for j in order:
+            if len(items) >= topk:
+                break
             f = feats[j]
-            raw = grow.get(f) if f in g_rows.columns else None
+            raw = grow.get(f) if f in cols else None
             try:
                 val = _fmt_value(raw)
             except Exception:
                 val = None
+            if val is None:
+                continue  # 値なし特徴は根拠に出さない
             items.append({
                 "feat": f,
                 "label": label_for(f),

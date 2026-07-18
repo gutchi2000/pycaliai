@@ -243,6 +243,31 @@ def main() -> int:
     logger.info(f"パース結果: {len(df):,} 馬 / "
                 f"{df[COL_RID].nunique():,} レース")
 
+    # ------ 週次CSV自身の血統列からのフォールバック map ------
+    # horse_pedigree.json (build_pedigree_data.py 生成) は馬名キーだが、
+    # 直近デビューの新馬などは未収録 → サイトのヘッダが「父—/母父—」になる。
+    # 出走表 CSV は 種牡馬/母父馬/(母)父タイプ名 を持つので (race_id, 馬番) で
+    # 引けるようにして pedigree 欠損を埋める (パース直後 = 列名変換前の生値を使う)。
+    csv_ped_map: dict[tuple[str, int], dict] = {}
+    _PED_SRC = {"種牡馬": "sire", "父タイプ名": "sire_type",
+                "母父馬": "broodmare_sire", "母父タイプ名": "broodmare_sire_type"}
+    if "種牡馬" in df.columns or "母父馬" in df.columns:
+        for _, _r in df.iterrows():
+            try:
+                _k = (str(_r[COL_RID]), int(_r[COL_BAN]))
+            except Exception:
+                continue
+            _ent: dict[str, str] = {}
+            for _src, _dst in _PED_SRC.items():
+                _v = _r.get(_src)
+                _s = str(_v).strip() if _v is not None else ""
+                if _s and _s != "__NaN__" and _s.lower() != "nan":
+                    _ent[_dst] = _s
+            if _ent.get("sire") or _ent.get("broodmare_sire"):
+                csv_ped_map[_k] = _ent
+        logger.info(f"CSV 血統フォールバック: {len(csv_ped_map):,} 頭分 "
+                    "(horse_pedigree.json 未収録馬の補完用)")
+
     # ------ serve skew 対策: 補正タイム + 調教の列名リネーム ------
     # parse_csv は補正を旧名 (前走補正/前走補9)、調教を旧名 (trn_hanro_*/trn_wc_*)
     # で作るが、v6 モデルは build_master_v2.py のリネーム後の名前
@@ -371,10 +396,16 @@ def main() -> int:
                         h["sex"] = fact["sex"]
                     if fact.get("age") is not None:
                         h["age"] = fact["age"]
-            if pedigree_map:
+            if pedigree_map or csv_ped_map:
                 name = (h.get("horse_name") or "").strip()
-                if name and name in pedigree_map:
-                    h["pedigree"] = pedigree_map[name]
+                ped = pedigree_map.get(name) if name else None
+                if not ped:  # 馬名で引けない (新馬など) → CSV 血統でフォールバック
+                    try:
+                        ped = csv_ped_map.get((rid_s, int(h.get("umaban", 0))))
+                    except Exception:
+                        ped = None
+                if ped:
+                    h["pedigree"] = ped
         out_path = out_dir / f"{rid_s}.json"
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, ensure_ascii=False)
