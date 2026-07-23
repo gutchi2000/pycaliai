@@ -114,14 +114,29 @@ FUKU_HIT_THR = 0.21
 # 過大計上。バンド別に補正 (1倍台は保つため 1.0 に丸め、n<60 帯は全体平均 0.91 で平滑)。
 # 表示・買い目オッズは生のまま、EV(選別・配分)にのみ適用。t10ログ蓄積で係数を再実測すること。
 SETTLE_DRIFT_TAN = [(2.0, 1.00), (4.0, 0.934), (8.0, 0.86), (20.0, 0.916), (9e9, 0.91)]
+# 複勝 (n=1162, ×0.885 CI[0.870,0.901]) / ワイド (n=1177, ×0.917 CI[0.904,0.929])
+SETTLE_DRIFT_FUKU = [(1.5, 1.00), (2.5, 0.893), (5.0, 0.84), (9e9, 0.894)]
+SETTLE_DRIFT_WIDE = [(3.0, 0.883), (7.0, 0.888), (15.0, 0.925), (9e9, 0.948)]
+
+
+def _settle(o, table):
+    for hi, m in table:
+        if o < hi:
+            return o * m
+    return o
 
 
 def settle_tan(o):
     """T-10 単勝オッズ → 決済(勝者条件付き確定)期待オッズ。"""
-    for hi, m in SETTLE_DRIFT_TAN:
-        if o < hi:
-            return o * m
-    return o
+    return _settle(o, SETTLE_DRIFT_TAN)
+
+
+def settle_fuku(o):
+    return _settle(o, SETTLE_DRIFT_FUKU)
+
+
+def settle_wide(o):
+    return _settle(o, SETTLE_DRIFT_WIDE)
 
 _QT = None
 def _qtab():
@@ -424,7 +439,8 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
         if o and pw: push("単勝", str(b), (b,), o, pw * settle_tan(o), boost)
     def c_fuku(b, boost=1.0):
         lo, hi, ps = fld(b, "fuku_odds_low"), fld(b, "fuku_odds_high"), fld(b, "p_sho")
-        if lo and hi and ps: push("複勝", str(b), (b,), (lo + hi) / 2, ps * (lo + hi) / 2, boost)
+        # EV は決済ドリフト補正後 (表示は生 mid)
+        if lo and hi and ps: push("複勝", str(b), (b,), (lo + hi) / 2, ps * settle_fuku((lo + hi) / 2), boost)
     def c_umaren(i, j, boost=1.0):
         o = umaren(i, j)
         if not o:
@@ -451,7 +467,8 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
             if not (si and sj):
                 return
             p = si * sj
-        push("ワイド", f"{min(i,j)}-{max(i,j)}", (i, j), o, o * p, boost)
+        # EV は決済ドリフト補正後 (表示は生オッズ)
+        push("ワイド", f"{min(i,j)}-{max(i,j)}", (i, j), o, settle_wide(o) * p, boost)
     def c_umatan(i, j, boost=1.0):  # i→j (i 1着, j 2着)
         pi, pj = fld(i, "p_win"), fld(j, "p_win")
         ut = lumatan.get((i, j))     # T-10 ライブ実値
