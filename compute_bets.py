@@ -108,6 +108,21 @@ CLEAN_BAND_MAX = 0.33
 # ※的中/回収 80/92% は offline 射影。serve スケール差があるため、実 serve 結果での前向き検証が必須。
 FUKU_HIT_THR = 0.21
 
+# 決済ドリフト補正 (2026-07-23 実測: analysis/measure_settle_drift.py,
+# reports/live_odds 392勝者 T-10→確定): 勝者オッズは T-10比 平均 -8.9% [CI -10.9,-7.0]
+# 縮む(steam)。単勝EVの期待払戻 = p_win × E[確定|勝ち] なので T-10 オッズ素のEVは系統的
+# 過大計上。バンド別に補正 (1倍台は保つため 1.0 に丸め、n<60 帯は全体平均 0.91 で平滑)。
+# 表示・買い目オッズは生のまま、EV(選別・配分)にのみ適用。t10ログ蓄積で係数を再実測すること。
+SETTLE_DRIFT_TAN = [(2.0, 1.00), (4.0, 0.934), (8.0, 0.86), (20.0, 0.916), (9e9, 0.91)]
+
+
+def settle_tan(o):
+    """T-10 単勝オッズ → 決済(勝者条件付き確定)期待オッズ。"""
+    for hi, m in SETTLE_DRIFT_TAN:
+        if o < hi:
+            return o * m
+    return o
+
 _QT = None
 def _qtab():
     global _QT
@@ -405,7 +420,8 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
         cands.append([kind, sel, tuple(bans), odds, ev, (hon in bans), boost])
     def c_tan(b, boost=1.0):
         o, pw = fld(b, "tansho_odds"), fld(b, "p_win")
-        if o and pw: push("単勝", str(b), (b,), o, pw * o, boost)
+        # EV は決済ドリフト補正後オッズで計算 (表示オッズ o は生のまま)
+        if o and pw: push("単勝", str(b), (b,), o, pw * settle_tan(o), boost)
     def c_fuku(b, boost=1.0):
         lo, hi, ps = fld(b, "fuku_odds_low"), fld(b, "fuku_odds_high"), fld(b, "p_sho")
         if lo and hi and ps: push("複勝", str(b), (b,), (lo + hi) / 2, ps * (lo + hi) / 2, boost)
