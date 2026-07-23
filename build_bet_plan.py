@@ -49,6 +49,50 @@ def conf_score(rc):
     return round(0.45 * c + 0.30 * d + 0.25 * (1 - ch), 4)
 
 
+# ◎前走圧勝ボーナス (2026-07-23 実測: 前走1着の着差が大きいほど次走勝率が単調増
+# 0.0s=12.7% → 0.3s=16.1% → 1.0s=31.5% [新馬→1勝, 他遷移も同傾向, n=4万+]。
+# ROIは市場織込みで不変のため賭け金レバーでなく「枠の信頼度」レバーとしてのみ使う)
+MARGIN_BONUS_W = 0.08
+
+
+def load_margins(date):
+    """weekly CSV から (rid16, 馬番) → (前走確定着順, 前走着差タイム)。無ければ空。"""
+    try:
+        from predict_weekly import parse_csv
+        import pandas as pd
+        p = BASE / "data" / "weekly" / f"{date}.csv"
+        if not p.exists():
+            return {}
+        df = parse_csv(p)
+        out = {}
+        for _, r in df.iterrows():
+            rid16 = str(r.get("レースID(新)", ""))[:16]
+            ban = int(float(r.get("馬番", 0) or 0))
+            fin = float(r.get("前走確定着順") or 99) if str(r.get("前走確定着順", "")).strip() else 99.0
+            mg = r.get("前走着差タイム")
+            try:
+                mg = float(mg)
+            except Exception:
+                mg = None
+            out[(rid16, ban)] = (fin, mg)
+        return out
+    except Exception as e:
+        log(f"  (margin読込スキップ: {e})")
+        return {}
+
+
+def margin_bonus(margins, rid, horses):
+    """◎馬が前走1着かつ着差圧勝なら conf ボーナス (0〜MARGIN_BONUS_W)。"""
+    rid16 = str(rid)[:16]
+    for h in horses:
+        if h.get("mark") == "◎":
+            fin, mg = margins.get((rid16, int(h.get("umaban", 0))), (99.0, None))
+            if fin == 1.0 and mg is not None and mg < 0:
+                return round(MARGIN_BONUS_W * min(-mg, 1.0), 4), mg
+            return 0.0, mg if fin == 1.0 else None
+    return 0.0, None
+
+
 def load_races(date):
     p = BUNDLE_DIR / f"{date}_bundle.json"
     b = json.loads(p.read_text(encoding="utf-8"))
@@ -101,6 +145,22 @@ def main():
     min_races = DAY_MIN_RACES * mult; min_yen = DAY_MIN_YEN * mult
 
     races = load_races(date)
+    # ◎前走圧勝ボーナス (的中率レバー。weekly CSV 無ければ 0 のまま)
+    margins = load_margins(date)
+    if margins:
+        p = BUNDLE_DIR / f"{date}_bundle.json"
+        b = json.loads(p.read_text(encoding="utf-8"))
+        braces = b["races"] if isinstance(b["races"], list) else list(b["races"].values())
+        hmap = {str(r.get("race_id")): r.get("horses", []) for r in braces}
+        for r in races:
+            bonus, mg = margin_bonus(margins, r["rid"], hmap.get(str(r["rid"]), []))
+            r["margin_bonus"] = bonus; r["prev_margin"] = mg
+            r["conf"] = round(r["conf"] + bonus, 4)
+        nb = sum(1 for r in races if r.get("margin_bonus"))
+        log(f"◎前走圧勝ボーナス適用: {nb}R (重み{MARGIN_BONUS_W}×圧勝秒clip1.0)")
+    else:
+        for r in races:
+            r["margin_bonus"] = 0.0; r["prev_margin"] = None
     # 見送り判定
     live, miokuri = [], []
     for r in races:
@@ -155,8 +215,9 @@ def main():
         sub = sum(r["budget"] for r in rows)
         log(f"\n【{tier}枠】{len(rows)}R / ¥{sub:,}")
         for r in rows:
+            mb = f"/◎圧勝+{r['margin_bonus']:.2f}" if r.get("margin_bonus") else ""
             log(f"  {r['place']}{r['rno']}R {r['course']} {r['klass']} {r['field_size']}頭  "
-                f"¥{r['budget']:,}  conf {r['conf']}(独走{r['dom']:.2f}/集中{r['concentration']:.2f}/混戦{r['chaos']:.2f}/市場{r['market'] if r['market'] is None else round(r['market'],2)})")
+                f"¥{r['budget']:,}  conf {r['conf']}(独走{r['dom']:.2f}/集中{r['concentration']:.2f}/混戦{r['chaos']:.2f}/市場{r['market'] if r['market'] is None else round(r['market'],2)}{mb})")
     if miokuri:
         log(f"\n【見送り】{len(miokuri)}R")
         for r in miokuri:
@@ -171,6 +232,7 @@ def _row(r):
     return {k: r.get(k) for k in ("rid", "place", "rno", "course", "klass", "race_name",
                                    "field_size", "tier", "budget", "conf", "dom",
                                    "concentration", "chaos", "market", "pwin_top",
+                                   "margin_bonus", "prev_margin",
                                    "miokuri", "judgment")}
 
 
