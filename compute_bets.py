@@ -99,9 +99,10 @@ CHAOS_RAW_SKIP = 0.92                     # §0 hard 見送り（生値）
 # 0.33=クリーン帯のみ(=2/3を見送り) / 0.50=+mid / 1.0=ゲート無効(従来挙動)。
 CLEAN_BAND_MAX = 0.33
 
-# 参戦規律の二段化 (2026-07-25 配線 [[unwired_roi_audit]] #1): 枠プラン(force_floor)でも
-# クリーン帯外は全額参戦せず消化枠水準へ予算降格。参戦自体は維持(プロ条件 10R∧¥100k)しつつ
-# 控除床近傍帯への露出を削る (clean-band ゲート実測 ◎複勝+5.31pt の回収)。
+# 参戦規律の二段化 (機構のみ, ★配線中止 2026-07-23): 枠プラン(force_floor)でクリーン帯外を
+# 消化枠水準へ予算降格する仕組み。2024-25実測+5.31ptだったが 2026 as-served 再検証
+# (analysis/reverify_clean_band_2026.py, 686R) で clean 77.6% < 帯外 87.9% と符号反転し中止。
+# main からは demote_budget を渡していない(旧挙動)。再判定は2026後半データ蓄積後。
 DEMOTE_BUDGET = 2000
 
 # 複勝特化(的中率)モード (--fuku-hit): ◎の p_win(bundle値) が閾値以上のレースだけ ◎複勝を flat 購入。
@@ -771,11 +772,12 @@ def main():
             rb = plan_budget.get(rid16)
             if not rb:
                 continue  # 枠外(見送り/対象外) → 買わない
-            # プロ条件(週10R∧¥100k)充足: 枠対象は必ず買う(§0 hard安全ガードは維持)。
-            # ただしクリーン帯外は DEMOTE_BUDGET へ予算降格 (参戦規律の二段化, 2026-07-25)
+            # プロ条件(週10R∧¥100k)充足: 枠対象は参戦規律を緩めて必ず買う(§0 hard安全ガードは維持)。
+            # ⚠ demote_budget(クリーン帯外の消化枠降格)は渡さない=二段化は中止状態。
+            #   2026 as-served 再検証(analysis/reverify_clean_band_2026.py)で+5.31ptが符号反転
+            #   (clean 77.6% < 帯外 87.9%)につき配線中止。再判定は2026後半データ蓄積後。
             out.append(compute_race_bets(r, live_dir=live_dir, max_age_min=args.max_age_min,
-                                         budget=rb, force_floor=True,
-                                         demote_budget=DEMOTE_BUDGET))
+                                         budget=rb, force_floor=True))
         else:
             out.append(compute_race_bets(r, live_dir=live_dir, max_age_min=args.max_age_min,
                                          budget=args.budget))
