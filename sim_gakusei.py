@@ -474,8 +474,10 @@ def run_gate5(days, gap90, f=0.02, gate_days=2, k=11):
         sw = min(int(bank * ff / 100) * 100, bank)
         return (0, 0.0) if sw < 100 else (sw, sw * row.wd12)
     def bet_exo(row, bank, ff):
-        pe = int(bank * ff / 700) * 100
-        return (0, 0.0) if (pe < 100 or pe * 7 > bank) else (pe * 7, pe * (row.ut_pay + row.tri_pay))
+        # 馬連1点(r1-r2)+三連複box4 = 5点均等。馬単3点から振替 (2026-07-23):
+        # 大標本9,526R同一選別で馬連82.7%>馬単78.4%、ゲートP(賞金圏)+4-5pt両年改善。
+        pe = int(bank * ff / 500) * 100
+        return (0, 0.0) if (pe < 100 or pe * 5 > bank) else (pe * 5, pe * (row.um12 + row.tri_pay))
     bank = 1_000_000; ts = 0; nv = 0; npl = 0
     perf = {"wide": [0.0, 0.0], "exo": [0.0, 0.0]}; inst = None
     for di, (date, g) in enumerate(days):
@@ -500,8 +502,8 @@ def run_gate5(days, gap90, f=0.02, gate_days=2, k=11):
 
 
 def cmd_sim5():
-    """最終戦略の再現実行。実測(2026-07-23): gate_f2 P(>1.02M)=13.6%/28.7% (2024/2025),
-    gate_f3=9.9%/29.4% P(表彰台)4.6%/4.5%。単独道具は外れ年0%=関門式が唯一の regime 頑健解。"""
+    """最終戦略の再現実行。実測(2026-07-23): 馬連版アーム gate_f2 P(>1.02M)=18.9%/33.0% (2024/2025),
+    gate_f3=17.2%/29.6% P(表彰台)6.1%/6.0%。単独道具は外れ年0%=関門式が唯一の regime 頑健解。"""
     d = pd.read_parquet(SUB)
     for c in ["ut_pay", "tri_pay", "fuku1", "wd12"]:
         d[c] = pd.to_numeric(d[c], errors="coerce").fillna(0.0)
