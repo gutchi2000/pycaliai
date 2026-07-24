@@ -1392,6 +1392,27 @@ async function renderResults() {
       <span class="rs-bt-sub">的中 ${v.wins}/${v.n}・収支 ${v.profit >= 0 ? "+" : ""}${(v.profit).toLocaleString()}</span>
     </div>`).join("");
 
+  // 月別集計 (agg.by_date を月で畳む)
+  const byMonth = {};
+  (a.by_date || []).forEach((d) => {
+    const m = d.date.slice(0, 6);
+    const o = byMonth[m] || (byMonth[m] = { cost: 0, profit: 0, n: 0, wins: 0 });
+    o.cost += d.cost; o.profit += d.profit; o.n += d.n; o.wins += d.wins;
+  });
+  const monthRows = Object.keys(byMonth).sort().reverse().map((m) => {
+    const o = byMonth[m];
+    const roi = o.cost ? ((o.cost + o.profit) / o.cost * 100) : 0;
+    const hitR = o.n ? (o.wins / o.n * 100) : 0;
+    const roiCls = roi >= 100 ? "pos" : roi >= 80 ? "mid" : "neg";
+    return `<tr>
+      <td class="rsm-m">${+m.slice(0, 4)}年${+m.slice(4, 6)}月</td>
+      <td class="num">${yen(o.cost)}</td>
+      <td class="num ${o.profit >= 0 ? "pos" : "neg"}">${o.profit >= 0 ? "+" : ""}${Math.round(o.profit).toLocaleString()}</td>
+      <td class="num rsm-roi ${roiCls}">${roi.toFixed(1)}%</td>
+      <td class="num">${hitR.toFixed(1)}% <small>${o.wins}/${o.n}</small></td>
+    </tr>`;
+  }).join("");
+
   const cards = hits.map((h) => `<button class="hit-card t-${esc(h.btype)}" data-date="${h.date}" data-rid="${esc(h.race_id)}">
     <div class="hit-stamp">的中</div>
     <div class="hit-info">
@@ -1412,6 +1433,12 @@ async function renderResults() {
       </div>
       <div class="rs-bt-grid">${byType}</div>
       ${a.n_unsettled ? `<div class="rs-note">⚠ ワイド ${a.n_unsettled}件 (¥${(a.unsettled_cost).toLocaleString()}) は払戻データ未取込のため集計外</div>` : ""}
+    </div>
+    <div class="rs-h">📅 月別成績</div>
+    <div class="card rsm-card">
+      <table class="rsm"><thead><tr>
+        <th>月</th><th class="num">投資</th><th class="num">収支</th><th class="num">回収率</th><th class="num">的中率</th>
+      </tr></thead><tbody>${monthRows || `<tr><td colspan="5">データなし</td></tr>`}</tbody></table>
     </div>
     <div class="rs-h">🎯 的中一覧 <small>${hits.length}件・新しい順／配当順・カードで詳細</small></div>
     <div class="hit-grid">${cards || `<div class="cw-empty">的中データがありません。</div>`}</div>
