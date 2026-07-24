@@ -94,8 +94,23 @@ Copy-Item (Join-Path $SITE "favicon.ico") $STAGE
 $nFiles = (Get-ChildItem (Join-Path $STAGE "data") -File).Count
 Step "data/*.json placed: $nFiles files"
 
-# 4. commit
 $sha = (git -C $ROOT rev-parse --short HEAD).Trim()
+
+# 3.5 auto cache-bust: rewrite asset ?v= tokens in staged HTML to the repo sha.
+#     Staging-only on purpose (this script never edits the master working tree).
+#     Prevents the 2026-07-24 incident: JS/CSS deployed but browsers kept the old
+#     cached file because the manual ?v= in index.html was not bumped.
+Step "cache-bust staged HTML: ?v=$sha"
+foreach ($html in Get-ChildItem $STAGE -Filter "*.html" -File) {
+    $txt = [System.IO.File]::ReadAllText($html.FullName)
+    $new = $txt -replace '(\.(css|js)\?v=)[A-Za-z0-9_.-]+', ('${1}' + $sha)
+    if ($new -ne $txt) {
+        [System.IO.File]::WriteAllText($html.FullName, $new, (New-Object System.Text.UTF8Encoding $false))
+        Write-Host "  $($html.Name): bumped" -ForegroundColor DarkGray
+    }
+}
+
+# 4. commit
 git -C $STAGE add -A
 $pending = git -C $STAGE status --porcelain
 if (-not $pending) {
