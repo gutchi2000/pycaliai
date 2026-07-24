@@ -449,7 +449,6 @@ function renderTable(r, flip = false) {
       prevTops.set(el.dataset.uma, el.getBoundingClientRect().top));
   }
   const valueSet = new Set((r.judgment?.value_horses || []).map((v) => v.umaban));
-  const maxP = Math.max(...r.horses.map((h) => h.p_win ?? 0), 0.001);
   const scores = r.horses.map((h) => h.ai_score).filter((v) => v != null);
   const sMin = scores.length ? Math.min(...scores) : 0;
   const sRange = scores.length ? Math.max(Math.max(...scores) - sMin, 1e-9) : 1;
@@ -461,7 +460,6 @@ function renderTable(r, flip = false) {
   const rows = hs.map((h, i) => {
     const isHonmei = h.mark === "◎";
     const isValue = valueSet.has(h.umaban) || h.vs_market === "under";
-    const wbar = ((h.p_win ?? 0) / maxP * 100).toFixed(1);
     const idx = h.ai_score == null ? "—"
       : Math.round((h.ai_score - sMin) / sRange * 100);
     const ev = h.ev_tan;
@@ -480,7 +478,7 @@ function renderTable(r, flip = false) {
       <span class="odds num ta-r c-odds">${num(h.odds)}${ev != null && ev >= 1.2 ? `<span class="oddsev">EV ${ev.toFixed(2)}</span>` : ""}</span>
       <span class="pbar c-ai">
         <span class="aidx num ${h.ai_rank === 1 ? "top" : ""}">${idx}</span>
-        <span class="bar"><i style="width:${wbar}%;--i:${i}"></i></span>
+        <span class="bar"><i style="width:${idx === "—" ? 0 : idx}%;--i:${i}"></i></span>
         <span class="rk">#${h.ai_rank ?? "—"}</span>
       </span>
       <span class="pwin num ta-r">${pct(h.p_win)}<small>%</small></span>
