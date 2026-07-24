@@ -118,6 +118,12 @@ SETTLE_DRIFT_TAN = [(2.0, 1.00), (4.0, 0.934), (8.0, 0.86), (20.0, 0.916), (9e9,
 SETTLE_DRIFT_FUKU = [(1.5, 1.00), (2.5, 0.893), (5.0, 0.84), (9e9, 0.894)]
 SETTLE_DRIFT_WIDE = [(3.0, 0.883), (7.0, 0.888), (15.0, 0.925), (9e9, 0.948)]
 
+# 相手信頼ゲート閾値: p23=(p2+p3)/(1-p1) の下位1/3境界。
+# ★発見期(offline OOF)境界は 0.328 だが、serve(bundle) の p_win は低スケール
+#   (FUKU_HIT_THR と同じ現象) で 0.328 だと発火69%に膨らむ。serve 実分布
+#   (reports/cowork_input 933R) の 33pct=0.252 に校正 (発火~1/3=設計意図)。
+AITE_WEAK_TH = 0.252
+
 
 def _settle(o, table):
     for hi, m in table:
@@ -560,6 +566,23 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     is_honmei = False
     _p = lambda c: (c[4] / c[3]) if c[3] else 0.0   # p_pair / p_single（大=良）
 
+    # ---- 相手信頼ゲート (2026-07-23 配線): ◎の的中率は相手軸でほぼ不変だが、
+    #   組み合わせ馬券の的中率は相手弱で半減する (発見 2016-23 n=27,596:
+    #   ◎強ワイドr1r2 的中 43.8%→23.0% / holdout 2024-25 で 43.4%→24.9% 再現、
+    #   ◎単勝は 39.7→35.3% と不変)。相手弱 = p23=(p2+p3)/(1-p1) が発見期下位1/3
+    #   境界 (0.328) 未満。該当時はペア/複数頭候補を落とし ◎単複へ予算集中
+    #   (ROIは全セル同等=これは的中率・トリガミのレバー)。
+    aite_note = ""
+    _pws = sorted((_num(h.get("p_win")) or 0.0 for h in horses), reverse=True)
+    if len(_pws) >= 3 and 0 < _pws[0] < 1.0:
+        _p23 = (_pws[1] + _pws[2]) / max(1e-9, 1.0 - _pws[0])
+        if _p23 < AITE_WEAK_TH:
+            _nb = len(cands)
+            _singles_only = [c for c in cands if len(c[2]) == 1]
+            if _singles_only:  # 単複候補が無い時はゲートを適用しない (fail-safe)
+                cands = _singles_only
+                aite_note = f"相手弱(p23 {_p23:.2f}<{AITE_WEAK_TH}) ペア{_nb - len(cands)}点抑制→◎単複集中。"
+
     if is_honmei:
         # 本命勝負: 馬単8点 formation 全採用 + 単複◎(EVフロア)、従来 EV×boost 順を維持。
         floor = 0.70
@@ -614,7 +637,7 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
 
     hon_name = by_ban.get(hon, {}).get("horse_name", "本命")
     rr = (f"◎{hon_name}。{shape}（独走{top1:.2f}/集中{top2:.2f}/混戦{chaos:.2f}/"
-          f"市場{market:+.2f}）で {len(bets)}点。{live_note}").rstrip()
+          f"市場{market:+.2f}）で {len(bets)}点。{aite_note}{live_note}").rstrip()
     return {"race_id": rid, "race_label": label, "race_nature": shape, "race_reason": rr,
             "confidence": {"top1_pct": round(top1, 3), "top2_pct": round(top2, 3),
                            "chaos_pct": round(chaos, 3), "market": round(market, 3)},
