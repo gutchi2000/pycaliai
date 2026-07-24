@@ -497,7 +497,8 @@ function renderTable(r, flip = false) {
   $("#shutsuba").innerHTML = `
     <div class="sh-head">
       <span class="sh-title"><b>AI印</b>出走表</span>
-      <span class="sh-note">行クリックで詳細 ／ 列見出しでソート ／ <b class="lvchip lv-S" style="margin:0">Lv</b>=馬レベル(近走成績・S〜D)</span>
+      <span class="sh-note">行クリックで詳細 ／ 列見出しでソート ／ <b class="lvchip lv-S" style="margin:0">Lv</b>=馬レベル(近走成績・S〜D)
+        ／ バー色: <i class="legdot gold"></i>◎本命 <i class="legdot teal"></i>妙味(市場過小評価) <i class="legdot blue"></i>その他${state.day?.odds_asof ? ` ／ オッズ=${state.day.odds_asof} 時点の前売り` : ""}</span>
     </div>
     <div class="card htable ${hasRes ? "hasres" : "nores"}">
       <div class="hh">

@@ -616,6 +616,10 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 }
 @keyframes grow { to { transform: scaleX(1); } }
 .hrow.value .bar i { background: linear-gradient(90deg, #169c79, var(--teal2)); }
+.legdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 3px 0 6px; vertical-align: baseline; }
+.legdot.gold { background: var(--gold2); }
+.legdot.teal { background: var(--teal2); }
+.legdot.blue { background: var(--blue); }
 .hrow.honmei .bar i { background: linear-gradient(90deg, #c98f1f, var(--gold2)); }
 .pwin { font-size: 17.5px; }
 .pwin small, .psho small { font-size: 11px; color: var(--tx3); margin-left: 1px; }

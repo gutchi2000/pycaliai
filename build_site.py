@@ -866,8 +866,16 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
                          "lap1": rec["lap1"], "t4f": rec.get("t4f")})
     top5.sort(key=lambda x: (x["lap1"], x.get("t4f") or 99))
 
+    # オッズ取得時点 = TARGET 出走表 CSV のエクスポート時刻 (ファイル mtime)。
+    # weekly CSV が無ければ bundle 生成時刻で代用。
+    odds_src = WEEKLY_DIR / f"{date_str}.csv"
+    odds_asof = datetime.fromtimestamp(
+        (odds_src if odds_src.exists() else path).stat().st_mtime
+    ).strftime("%m/%d %H:%M")
+
     return deep_zen({
         "date": date_str,
+        "odds_asof": odds_asof,
         "places": places,
         "races": races_out,
         "courses": courses,
