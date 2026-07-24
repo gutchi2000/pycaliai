@@ -47,7 +47,7 @@ def cmd_build():
     df["_s"] = model.predict(X)
 
     k = pd.read_csv(BASE / "data/kekka_20130105-20251228.csv", encoding="cp932",
-                    usecols=["レースID(新)", "馬番", "確定着順", "単勝配当", "複勝配当", "馬連", "３連複"],
+                    usecols=["レースID(新)", "馬番", "確定着順", "単勝配当", "複勝配当", "馬連", "馬単", "３連複"],
                     low_memory=False)
     k["rid"] = k["レースID(新)"].astype(str).str[:16]
     k["ban"] = pd.to_numeric(k["馬番"], errors="coerce")
@@ -58,7 +58,9 @@ def cmd_build():
               for r in k.itertuples() if pd.notna(r.ban) and r.f <= 3}
     kw = k[k["f"] == 1]
     ummap = dict(zip(kw["rid"], pd.to_numeric(kw["馬連"], errors="coerce") / 100))
+    utmap = dict(zip(kw["rid"], pd.to_numeric(kw["馬単"], errors="coerce") / 100))
     trimap = dict(zip(kw["rid"], pd.to_numeric(kw["３連複"], errors="coerce") / 100))
+    secmap = {r.rid: int(r.ban) for r in k.itertuples() if r.f == 2 and pd.notna(r.ban)}
     w = pd.read_parquet(BASE / "data/wide_payouts_2016-2025.parquet")
     w["rid"] = w["race_id"].astype(str).str[:16]
     wmap = {}
@@ -92,6 +94,9 @@ def cmd_build():
         top3fin = set(ban[i] for i in range(len(ban)) if fin[i] <= 3)
         tri_hit = len(top3fin & set(top4)) >= 3 and len(top3fin) == 3
         tri_pay = (trimap.get(rid16, 0.0) or 0.0) if tri_hit else 0.0
+        # 馬単3点 formation: r1→{r2,r3,r4}
+        ut_hit = (int(fin[0]) == 1) and (secmap.get(rid16) in set(int(b) for b in top4[1:4]))
+        ut_pay = (utmap.get(rid16, 0.0) or 0.0) if ut_hit else 0.0
         rows.append({
             "rid": rid16, "date": rid[:8], "year": int(rid[:4]),
             "n": len(g), "p1": p[0] / p.sum(), "p23": (praw[1] + praw[2]) / (1 - praw[0]),
@@ -102,6 +107,8 @@ def cmd_build():
             "fuku2": fukmap.get((rid16, int(ban[1])), 0.0) or 0.0,
             "wd12": wd12, "um12": um12,
             "tri_hit": tri_hit, "tri_pay": tri_pay,
+            "ut_hit": ut_hit, "ut_pay": ut_pay,
+            "gap": float(praw[0] - praw[1]),
         })
     out = pd.DataFrame(rows)
     out.to_parquet(SUB, index=False)
@@ -290,6 +297,73 @@ def cmd_sim2():
     print("[saved] reports/gakusei_sim_dynamic.csv")
 
 
+def run_exotic(days, sel, f=0.025):
+    """先行確定戦略: 馬単3点+三連複4点=7点均等, f×bank/R, 複利。sel(g)->参加サブセット。"""
+    bank = 1_000_000
+    total_stake = 0; n_voted = 0; n_plus = 0; mx_all = 0.0
+    for date, g in days:
+        g = sel(g)
+        for row in g.itertuples():
+            stake = max(700, int(bank * f / 700) * 700)  # 7点均等(100pt単位)
+            stake = min(stake, bank - bank % 100)
+            per = int(stake / 7 / 100) * 100
+            if per < 100 or bank <= 0:
+                continue
+            se = per * 7
+            ret = per * (row.ut_pay + row.tri_pay)
+            bank = bank - se + int(ret)
+            total_stake += se; n_voted += 1
+            if ret > se: n_plus += 1
+            for p_ in (row.ut_pay, row.tri_pay):
+                if p_ > 0: mx_all = max(mx_all, p_)
+    ok = (n_voted >= 96) and (total_stake >= 500_000)
+    return {"final": bank, "voted": n_voted, "staked": total_stake,
+            "hitrate": n_plus / max(n_voted, 1), "maxodds": mx_all, "eligible": ok}
+
+
+def cmd_sim3():
+    d = pd.read_parquet(SUB)
+    for c in ["ut_pay", "tri_pay", "fuku1", "wd12"]:
+        d[c] = pd.to_numeric(d[c], errors="coerce").fillna(0.0)
+    p23_terc = d["p23"].quantile([0.33, 0.67]).values
+    gap90 = d["gap"].quantile(0.90)
+    SELS = {
+        "全R":               lambda g: g,
+        "chalk10%除外(先行)": lambda g: g[g["gap"] < gap90],
+        "相手強tercile":      lambda g: g[g["p23"] >= p23_terc[1]],
+        "相手中強(下1/3除外)": lambda g: g[g["p23"] >= p23_terc[0]],
+        "chalk除外∧相手中強":  lambda g: g[(g["gap"] < gap90) & (g["p23"] >= p23_terc[0])],
+    }
+    rng = np.random.default_rng(42)
+    rows = []
+    for sname, sel in SELS.items():
+        for f in [0.02, 0.025, 0.035]:
+            for y in [2024, 2025]:
+                g = d[d["year"] == y]
+                days = [(dt, gg) for dt, gg in g.groupby("date")]
+                finals = []
+                elig = 0
+                for _ in range(500):
+                    idx = rng.integers(0, len(days), len(days))
+                    r = run_exotic([days[i] for i in idx], sel, f=f)
+                    finals.append(r["final"]); elig += r["eligible"]
+                base = run_exotic(days, sel, f=f)
+                finals = np.array(finals)
+                rows.append({"sel": sname, "f": f, "year": y,
+                             "voted": base["voted"], "E": int(finals.mean()),
+                             "P>1.06M(入賞)": round(float((finals > 1_060_000).mean()), 3),
+                             "P>1.29M(表彰台)": round(float((finals > 1_290_000).mean()), 3),
+                             "p90": int(np.percentile(finals, 90)),
+                             "p50": int(np.percentile(finals, 50)),
+                             "elig%": round(elig / 500, 2)})
+    o = pd.DataFrame(rows)
+    piv = o.pivot_table(index=["sel", "f"], columns="year",
+                        values=["voted", "E", "P>1.06M(入賞)", "P>1.29M(表彰台)", "p50", "p90", "elig%"])
+    print(piv.round(3).to_string())
+    o.to_csv(BASE / "reports" / "gakusei_sim_exotic.csv", index=False)
+    print("[saved] reports/gakusei_sim_exotic.csv")
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "build"
-    {"build": cmd_build, "sim": cmd_sim, "sim2": cmd_sim2}[cmd]()
+    {"build": cmd_build, "sim": cmd_sim, "sim2": cmd_sim2, "sim3": cmd_sim3}[cmd]()
