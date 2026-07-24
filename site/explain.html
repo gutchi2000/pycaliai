@@ -20,10 +20,21 @@
   .ehead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 18px;}
   .ehead h1{font-family:var(--disp);font-weight:600;font-size:1.4rem;margin:0;color:var(--tx);}
   select{background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;font-family:var(--sans);}
-  .card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 22px;}
-  .ctitle{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px;}
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:0;margin:0 0 12px;overflow:hidden;}
+  .ctitle{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:12px 18px;cursor:pointer;list-style:none;user-select:none;}
+  .ctitle::-webkit-details-marker{display:none;}
+  .ctitle::before{content:"▸";color:var(--tx3);font-size:.8rem;align-self:center;transition:transform .15s;}
+  details[open] > .ctitle::before{transform:rotate(90deg);}
+  details[open] > .ctitle{border-bottom:1px solid var(--line);}
+  .ctitle:hover{background:rgba(255,255,255,.02);}
   .ctitle .nm{font-family:var(--disp);font-size:1.15rem;color:var(--gold2);}
   .ctitle .sub{color:var(--tx2);font-size:.85rem;}
+  .ctitle .honmei{color:var(--gold);font-size:.85rem;font-weight:700;margin-left:auto;}
+  .ctitle .jdg{color:var(--teal2);font-size:.8rem;}
+  .cbody{padding:12px 18px 16px;}
+  .toolbar{display:flex;gap:10px;margin:0 0 14px;}
+  .toolbar button{background:var(--bg3);color:var(--tx2);border:1px solid var(--line2);border-radius:8px;padding:5px 12px;font-family:var(--sans);font-size:.8rem;cursor:pointer;}
+  .toolbar button:hover{border-color:var(--gold);color:var(--gold2);}
   .meta{display:flex;gap:18px;flex-wrap:wrap;color:var(--tx2);font-size:.82rem;margin-bottom:12px;}
   .meta b{color:var(--teal2);font-weight:600;}
   table{width:100%;border-collapse:collapse;font-size:.82rem;}
@@ -54,6 +65,7 @@
     <label>開催日 <select id="dateSel"></select></label>
     <span class="hint">勝率/対戦レーティング/脚質/馬場/展開 ＋ AI解説。馬券判断はご自身で。</span>
   </div>
+  <div id="venueTabs" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;"></div>
   <div id="cards"></div>
 </div>
 <script>
@@ -86,7 +98,7 @@ function horseRow(h){
   </tr>`;
 }
 
-function renderCard(c){
+function renderCard(c, idx){
   const r = c.race;
   const rows = c.horses.map(horseRow).join("");
   // LLM(7b)は数値を裏切る事があるため「参考下書き」扱い。数値準拠テンプレ＋データ駆動の穴を必ず併記。
@@ -95,9 +107,13 @@ function renderCard(c){
   const tmplBox = `<div class="narr" style="border-left-color:var(--teal);color:var(--tx2)">📋 根拠(数値準拠)\n${tmpl}</div>`;
   const ana = c.ana_pick ? `<div class="ana">🎯 特選穴馬(データ駆動): ${c.ana_pick}</div>` : "";
   const res = c.result_for_demo ? `<div class="res">（参考・確定）1着<b>${c.result_for_demo.win_ban}</b> 2着${c.result_for_demo.plc_ban} 3着${c.result_for_demo.sho_ban} ／ 単勝 ${c.result_for_demo.tansho_pay}円</div>`:"";
-  return `<div class="card">
-    <div class="ctitle"><span class="nm">${J(r.name)}</span>
-      <span class="sub">${J(r.venue)}${J(r.surface)}${J(r.distance)}m ・ ${J(r.class)} ・ ${r.field_size}頭</span></div>
+  const honmei = (c.horses.find(h=>h.mark==="◎")||{});
+  return `<details class="card"${idx===0?" open":""}>
+    <summary class="ctitle"><span class="nm">${J(r.name)}</span>
+      <span class="sub">${J(r.surface)}${r.distance!=null?r.distance+"m":""} ・ ${J(r.class)} ・ ${r.field_size}頭</span>
+      ${r.judgment&&r.judgment.headline?`<span class="jdg">${r.judgment.headline}</span>`:''}
+      ${honmei.name?`<span class="honmei">◎${honmei.name}</span>`:''}</summary>
+    <div class="cbody">
     <div class="meta">
       ${r.race_level_elo!=null?`<span>レースレベル <b>${r.race_level_elo}</b></span>`:''}
       <span>馬場 <b>${J(r.baba)}</b></span>
@@ -109,12 +125,37 @@ function renderCard(c){
       <th>予想</th><th>基準</th><th>実</th><th>EV</th><th>RTG</th><th>vs</th><th class="l">脚質</th><th>位置</th><th>買</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    ${tmplBox}${narr}${ana}${res}</div>`;
+    ${tmplBox}${narr}${ana}${res}</div></details>`;
+}
+
+let curData = null, curPlace = null;
+
+function renderVenueTabs(){
+  const places = [...new Set(curData.races.map(c=>c.race.venue))];
+  if(!places.includes(curPlace)) curPlace = places[0];
+  const vt = document.getElementById("venueTabs");
+  vt.innerHTML = places.map(p=>{
+    const n = curData.races.filter(c=>c.race.venue===p).length;
+    return `<button class="venue ${p===curPlace?"on":""}" data-place="${p}">${p}<small>${n}R</small></button>`;
+  }).join("");
+  vt.querySelectorAll(".venue").forEach(b=>{
+    b.onclick = ()=>{ curPlace = b.dataset.place; renderVenueTabs(); renderCards(); };
+  });
+}
+
+function renderCards(){
+  const races = curData.races.filter(c=>c.race.venue===curPlace);
+  const toolbar = `<div class="toolbar">
+    <button onclick="document.querySelectorAll('#cards details').forEach(d=>d.open=true)">すべて開く</button>
+    <button onclick="document.querySelectorAll('#cards details').forEach(d=>d.open=false)">すべて閉じる</button>
+  </div>`;
+  document.getElementById("cards").innerHTML = toolbar + races.map(renderCard).join("");
 }
 
 async function loadDate(date){
-  const data = await getJSON(`data/explain/${date}.json`);
-  document.getElementById("cards").innerHTML = data.races.map(renderCard).join("");
+  curData = await getJSON(`data/explain/${date}.json`);
+  renderVenueTabs();
+  renderCards();
 }
 
 (async function(){
