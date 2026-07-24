@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PyCaLiAI">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=20260725a">
 <style>
   .wrap{max-width:var(--maxw);margin:0 auto;padding:var(--pad);}
   .ehead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 18px;}
@@ -37,6 +37,7 @@
   .toolbar button:hover{border-color:var(--gold);color:var(--gold2);}
   .meta{display:flex;gap:18px;flex-wrap:wrap;color:var(--tx2);font-size:.82rem;margin-bottom:12px;}
   .meta b{color:var(--teal2);font-weight:600;}
+  .twrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   table{width:100%;border-collapse:collapse;font-size:.82rem;}
   th,td{padding:5px 7px;text-align:right;white-space:nowrap;}
   th{color:var(--tx3);font-weight:500;border-bottom:1px solid var(--line2);text-align:right;}
@@ -120,11 +121,11 @@ function renderCard(c, idx){
       <span>展開 <b>${J(r.pace)}</b></span>
       ${r.judgment&&r.judgment.headline?`<span>買い方 <b>${r.judgment.headline}</b>${r.judgment.hardness?` (${r.judgment.hardness})`:''}</span>`:''}
     </div>
-    <table>
+    <div class="twrap"><table>
       <thead><tr><th>印</th><th>馬番</th><th class="l">馬名</th><th>勝率</th><th>複勝</th>
       <th>予想</th><th>基準</th><th>実</th><th>EV</th><th>RTG</th><th>vs</th><th class="l">脚質</th><th>位置</th><th>買</th></tr></thead>
       <tbody>${rows}</tbody>
-    </table>
+    </table></div>
     ${tmplBox}${narr}${ana}${res}</div></details>`;
 }
 

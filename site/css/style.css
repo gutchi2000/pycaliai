@@ -1137,6 +1137,8 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
   .mls-zone { font-size: 11px; }
   .mls-cap, .mls-avg em { font-size: 9.5px; }
   .lvchip { font-size: 10.5px; padding: 0 5px; margin-right: 4px; }
+  /* 的中カード: 2列×170px では中身が overflow:hidden で切れるため 1 列にする */
+  .hit-grid { grid-template-columns: 1fr; }
 }
 
 /* ---- モバイル topbar: 2段化 (モード楕円の縦潰れ / 開催日の見切れ を解消) ---- */
