@@ -364,6 +364,163 @@ def cmd_sim3():
     print("[saved] reports/gakusei_sim_exotic.csv")
 
 
+def run_twophase(days, p23_terc_hi, ph1_days=4, ph1_n=24, ph1_stake=5300,
+                 ph2_n=8, ph2_f=0.025, shadow_go=0.90):
+    """フェーズ1: 複勝flatで96R+50万pt完走 + シャドー記録。
+    フェーズ2: シャドーROI最良の道具(wide/exotic)が閾値超なら攻撃、未満なら店じまい。"""
+    bank = 1_000_000
+    total_stake = 0; n_voted = 0; n_plus = 0; mx_all = 0.0
+    sh = {"wide": [0.0, 0.0], "exotic": [0.0, 0.0]}   # [stake, ret] 仮想
+    inst = None
+    for di, (date, g) in enumerate(days):
+        if di < ph1_days:
+            gg = g.sort_values("chaos").head(ph1_n)
+            for row in gg.itertuples():
+                stake = min(ph1_stake, bank)
+                if stake < 100 or bank <= 0:
+                    continue
+                ret = stake * row.fuku1
+                bank = bank - stake + int(ret)
+                total_stake += stake; n_voted += 1
+                if ret > stake: n_plus += 1
+                if row.fuku1 > 0: mx_all = max(mx_all, row.fuku1)
+            # シャドー: 相手強top ph2_n で wide / exotic
+            ga = g[g["p23"] >= p23_terc_hi].sort_values("p23", ascending=False).head(ph2_n)
+            for row in ga.itertuples():
+                sh["wide"][0] += 1.0; sh["wide"][1] += row.wd12
+                sh["exotic"][0] += 7.0; sh["exotic"][1] += row.ut_pay + row.tri_pay
+        else:
+            if inst is None:
+                rois = {k: (v[1] / v[0] if v[0] else 0.0) for k, v in sh.items()}
+                best = max(rois, key=rois.get)
+                inst = best if rois[best] >= shadow_go else "stop"
+            if inst == "stop":
+                continue
+            ga = g[g["p23"] >= p23_terc_hi].sort_values("p23", ascending=False).head(ph2_n)
+            for row in ga.itertuples():
+                stake = max(700, int(bank * ph2_f / 700) * 700)
+                stake = min(stake, bank - bank % 100)
+                if stake < 700 or bank <= 0:
+                    continue
+                if inst == "wide":
+                    se = stake - stake % 100
+                    ret = se * row.wd12
+                    if row.wd12 > 0: mx_all = max(mx_all, row.wd12)
+                else:
+                    per = int(stake / 7 / 100) * 100
+                    if per < 100: continue
+                    se = per * 7
+                    ret = per * (row.ut_pay + row.tri_pay)
+                    for p_ in (row.ut_pay, row.tri_pay):
+                        if p_ > 0: mx_all = max(mx_all, p_)
+                bank = bank - se + int(ret)
+                total_stake += se; n_voted += 1
+                if ret > se: n_plus += 1
+    ok = (n_voted >= 96) and (total_stake >= 500_000)
+    return {"final": bank, "voted": n_voted, "staked": total_stake,
+            "hitrate": n_plus / max(n_voted, 1), "maxodds": mx_all,
+            "eligible": ok, "inst": inst or "n/a"}
+
+
+def cmd_sim4():
+    d = pd.read_parquet(SUB)
+    for c in ["ut_pay", "tri_pay", "fuku1", "wd12"]:
+        d[c] = pd.to_numeric(d[c], errors="coerce").fillna(0.0)
+    terc_hi = float(d["p23"].quantile(0.67))
+    rng = np.random.default_rng(42)
+    TH = [("P>1.02M", 1_020_000), ("P>1.06M", 1_060_000),
+          ("P>1.18M", 1_180_000), ("P>1.29M", 1_290_000)]
+    rows = []
+    for ph2_f in [0.02, 0.03, 0.045]:
+        for ph2_n in [6, 8, 10]:
+            for go in [0.85, 0.95]:
+                for y in [2024, 2025]:
+                    g = d[d["year"] == y]
+                    days = [(dt, gg) for dt, gg in g.groupby("date")]
+                    finals, hits, insts = [], [], []
+                    elig = 0
+                    for _ in range(600):
+                        # フェーズ1の4日は固定(実カレンダー)、フェーズ2日をブートストラップ
+                        d2 = days[:4] + [days[4:][i] for i in rng.integers(0, len(days) - 4, len(days) - 4)]
+                        r = run_twophase(d2, terc_hi, ph2_f=ph2_f, ph2_n=ph2_n, shadow_go=go)
+                        finals.append(r["final"]); hits.append(r["hitrate"])
+                        insts.append(r["inst"]); elig += r["eligible"]
+                    fn = np.array(finals)
+                    from collections import Counter
+                    rec = {"ph2_f": ph2_f, "ph2_n": ph2_n, "go": go, "year": y,
+                           "med": int(np.percentile(fn, 50)),
+                           "p90": int(np.percentile(fn, 90)),
+                           "hit": round(float(np.mean(hits)), 2),
+                           "inst": Counter(insts).most_common(1)[0][0],
+                           "elig%": round(elig / 600, 2)}
+                    for lab, t in TH:
+                        rec[lab] = round(float((fn > t).mean()), 3)
+                    rows.append(rec)
+    o = pd.DataFrame(rows)
+    piv = o.pivot_table(index=["ph2_f", "ph2_n", "go"], columns="year",
+                        values=["med", "P>1.02M", "P>1.06M", "P>1.29M", "hit", "elig%"],
+                        aggfunc="first")
+    print(piv.round(3).to_string())
+    o.to_csv(BASE / "reports" / "gakusei_sim_twophase.csv", index=False)
+    print("[saved] reports/gakusei_sim_twophase.csv")
+
+
+
+
+def run_gate5(days, gap90, f=0.02, gate_days=2, k=11):
+    """★最終戦略: 初週末(2日)=wide/exotic半々で実測 → 3日目以降=実測ROI優位の道具に全集中。
+    選別=chalk10%除外∧相手信頼p23降順top-k/日。f=資金比/R。"""
+    def bet_wide(row, bank, ff):
+        sw = min(int(bank * ff / 100) * 100, bank)
+        return (0, 0.0) if sw < 100 else (sw, sw * row.wd12)
+    def bet_exo(row, bank, ff):
+        pe = int(bank * ff / 700) * 100
+        return (0, 0.0) if (pe < 100 or pe * 7 > bank) else (pe * 7, pe * (row.ut_pay + row.tri_pay))
+    bank = 1_000_000; ts = 0; nv = 0; npl = 0
+    perf = {"wide": [0.0, 0.0], "exo": [0.0, 0.0]}; inst = None
+    for di, (date, g) in enumerate(days):
+        g = g[g["gap"] < gap90].sort_values("p23", ascending=False).head(k)
+        for row in g.itertuples():
+            if bank <= 0: break
+            if di < gate_days:
+                sw, rw = bet_wide(row, bank, f / 2); se_, re_ = bet_exo(row, bank, f / 2)
+                se = sw + se_; ret = rw + re_
+                perf["wide"][0] += sw; perf["wide"][1] += rw
+                perf["exo"][0] += se_; perf["exo"][1] += re_
+            else:
+                if inst is None:
+                    r_ = {kk: (v[1] / v[0] if v[0] else 0) for kk, v in perf.items()}
+                    inst = max(r_, key=r_.get)
+                se, ret = (bet_wide(row, bank, f) if inst == "wide" else bet_exo(row, bank, f))
+            if se == 0: continue
+            bank = bank - se + int(ret); ts += se; nv += 1
+            if ret > se: npl += 1
+    return {"final": bank, "voted": nv, "staked": ts, "hitrate": npl / max(nv, 1),
+            "eligible": (nv >= 96 and ts >= 500_000), "inst": inst}
+
+
+def cmd_sim5():
+    """最終戦略の再現実行。実測(2026-07-23): gate_f2 P(>1.02M)=13.6%/28.7% (2024/2025),
+    gate_f3=9.9%/29.4% P(表彰台)4.6%/4.5%。単独道具は外れ年0%=関門式が唯一の regime 頑健解。"""
+    d = pd.read_parquet(SUB)
+    for c in ["ut_pay", "tri_pay", "fuku1", "wd12"]:
+        d[c] = pd.to_numeric(d[c], errors="coerce").fillna(0.0)
+    gap90 = d["gap"].quantile(0.90)
+    rng = np.random.default_rng(42)
+    for f in [0.02, 0.03]:
+        for y in [2024, 2025]:
+            g = d[d["year"] == y]; days = [(dt, gg) for dt, gg in g.groupby("date")]
+            finals = []
+            for _ in range(800):
+                sched = [days[i] for i in rng.integers(0, len(days), len(days))]
+                finals.append(run_gate5(sched, gap90, f=f)["final"])
+            fn = np.array(finals)
+            print(f"gate f={f} {y}: med={int(np.percentile(fn,50)):,} "
+                  f"P>1.02M={float((fn>1_020_000).mean()):.3f} "
+                  f"P>1.29M={float((fn>1_290_000).mean()):.3f}")
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "build"
-    {"build": cmd_build, "sim": cmd_sim, "sim2": cmd_sim2, "sim3": cmd_sim3}[cmd]()
+    {"build": cmd_build, "sim": cmd_sim, "sim2": cmd_sim2,
+     "sim3": cmd_sim3, "sim4": cmd_sim4, "sim5": cmd_sim5}[cmd]()
