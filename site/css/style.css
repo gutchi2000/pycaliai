@@ -165,6 +165,29 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .rsm td.pos { color: var(--teal2); } .rsm td.mid, .rsm td.rsm-roi.mid { color: var(--gold2); } .rsm td.neg { color: #f3989b; }
 .rsm td small { color: var(--tx3); font-size: 11px; }
 
+.hit-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 2px 12px; }
+.hit-chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.hit-chip {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700;
+  color: var(--tx2); background: var(--bg2); border: 1px solid var(--line2);
+  border-radius: var(--r-pill); padding: 5px 13px; transition: all .15s; cursor: pointer;
+}
+.hit-chip small { font-weight: 400; color: var(--tx3); }
+.hit-chip:hover { border-color: var(--gold); color: var(--tx); }
+.hit-chip.on { color: #131008; background: linear-gradient(120deg, var(--gold2), var(--gold)); border-color: var(--gold); }
+.hit-chip.on small { color: rgba(19,16,8,.65); }
+.hit-month {
+  font-size: 13px; font-weight: 700; color: var(--tx2); background: var(--bg2);
+  border: 1px solid var(--line2); border-radius: 8px; padding: 6px 10px;
+}
+.hit-day {
+  grid-column: 1 / -1; font-family: var(--disp); font-size: 15px; font-weight: 600;
+  color: var(--gold2); letter-spacing: .05em; margin: 8px 2px 0;
+  padding-bottom: 4px; border-bottom: 1px solid var(--line);
+}
+.hit-day small { font-family: var(--sans); font-size: 12px; font-weight: 400; color: var(--tx3); margin-left: 8px; }
+.hit-day:first-child { margin-top: 0; }
+
 .hit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
 .hit-card {
   display: flex; align-items: stretch; gap: 0; text-align: left;
@@ -186,6 +209,14 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .hit-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .hit-type { font-size: 12px; font-weight: 700; color: #131008; border-radius: var(--r-pill); padding: 2px 11px; }
 .hit-pay { font-family: var(--disp); font-size: 23px; font-weight: 600; color: var(--gold2); }
+.hit-sel { font-family: var(--disp); font-size: 13.5px; color: var(--tx2); letter-spacing: .03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hit-money { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); justify-content: flex-start; }
+.hit-stake { font-size: 12px; color: var(--tx3); font-variant-numeric: tabular-nums; }
+.hit-money .hit-pay { font-size: 19px; }
+.hit-profit { margin-left: auto; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.hit-profit.pos { color: var(--teal2); } .hit-profit.neg { color: #f3989b; }
+.hit-card.big { border-color: rgba(242,85,90,.55); background: linear-gradient(120deg, rgba(242,85,90,.14), rgba(245,185,66,.06) 55%), var(--bg2); }
+.hit-card.big .hit-stamp { background: linear-gradient(160deg, #f5b942, #d4841f); color: #2d2002; text-shadow: none; font-size: 15px; }
 
 .rs-back { font-size: 14px; font-weight: 700; color: var(--tx2); border: 1px solid var(--line2); border-radius: 8px; padding: 7px 16px; margin-top: 12px; transition: all .15s; }
 .rs-back:hover { color: var(--tx); border-color: var(--gold); }

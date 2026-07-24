@@ -1413,15 +1413,47 @@ async function renderResults() {
     </tr>`;
   }).join("");
 
-  const cards = hits.map((h) => `<button class="hit-card t-${esc(h.btype)}" data-date="${h.date}" data-rid="${esc(h.race_id)}">
-    <div class="hit-stamp">的中</div>
+  // ---- 的中一覧: フィルタ (券種 × 月) + 日付グループ + 収支表示 ----
+  const hitTypes = [...new Set(hits.map((h) => h.btype))]
+    .sort((x, y) => hits.filter((h) => h.btype === y).length - hits.filter((h) => h.btype === x).length);
+  const hitMonths = [...new Set(hits.map((h) => h.date.slice(0, 6)))].sort().reverse();
+  const hitFilter = { type: "", month: "" };
+
+  const hitCardHtml = (h) => {
+    const big = (h.payout || 0) >= 10000;
+    return `<button class="hit-card${big ? " big" : ""}" data-date="${h.date}" data-rid="${esc(h.race_id)}">
+    <div class="hit-stamp">${big ? "万馬券" : "的中"}</div>
     <div class="hit-info">
       <div class="hit-meta">${rsDate(h.date)} ${esc(h.place)}${h.rno}R</div>
       <div class="hit-name">${esc(h.name)}</div>
       <div class="hit-row"><span class="hit-type" style="background:${BTYPE_COLOR[h.btype] || "#888"}">${esc(h.btype)}</span>
-        <span class="hit-pay">${yen(h.payout)}</span></div>
+        <span class="hit-sel">${esc(h.selection || "")}</span></div>
+      <div class="hit-row hit-money"><span class="hit-stake">¥${(h.stake || 0).toLocaleString()} →</span>
+        <span class="hit-pay">¥${Math.round((h.stake || 0) + (h.profit || 0)).toLocaleString()}</span>
+        <span class="hit-profit ${h.profit >= 0 ? "pos" : "neg"}">${h.profit >= 0 ? "+" : ""}${(h.profit || 0).toLocaleString()}</span></div>
     </div>
-  </button>`).join("");
+  </button>`;
+  };
+
+  const DOW = ["日", "月", "火", "水", "木", "金", "土"];
+  const hitGridHtml = () => {
+    const fl = hits.filter((h) =>
+      (!hitFilter.type || h.btype === hitFilter.type) &&
+      (!hitFilter.month || h.date.slice(0, 6) === hitFilter.month));
+    if (!fl.length) return `<div class="cw-empty">条件に合う的中がありません。</div>`;
+    const parts = [];
+    let cur = "";
+    fl.forEach((h) => {
+      if (h.date !== cur) {
+        cur = h.date;
+        const dayHits = fl.filter((x) => x.date === cur);
+        const daySum = dayHits.reduce((s, x) => s + (x.profit || 0), 0);
+        parts.push(`<div class="hit-day">${rsDate(cur)} <small>(${DOW[new Date(+cur.slice(0,4), +cur.slice(4,6)-1, +cur.slice(6,8)).getDay()]})・的中${dayHits.length}件・的中分収支 ${daySum >= 0 ? "+" : ""}${daySum.toLocaleString()}</small></div>`);
+      }
+      parts.push(hitCardHtml(h));
+    });
+    return parts.join("");
+  };
 
   rm.innerHTML = `<div class="rs-wrap">
     <div class="card rs-sum">
@@ -1441,12 +1473,34 @@ async function renderResults() {
       </tr></thead><tbody>${monthRows || `<tr><td colspan="5">データなし</td></tr>`}</tbody></table>
     </div>
     <div class="rs-h">🎯 的中一覧 <small>${hits.length}件・新しい順／配当順・カードで詳細</small></div>
-    <div class="hit-grid">${cards || `<div class="cw-empty">的中データがありません。</div>`}</div>
+    <div class="hit-tools">
+      <div class="hit-chips" id="hitTypeChips">
+        <button class="hit-chip on" data-type="">すべて</button>
+        ${hitTypes.map((t) => `<button class="hit-chip" data-type="${esc(t)}"><span class="rs-dot" style="background:${BTYPE_COLOR[t] || "#888"}"></span>${esc(t)} <small>${hits.filter((h) => h.btype === t).length}</small></button>`).join("")}
+      </div>
+      <select class="hit-month" id="hitMonthSel">
+        <option value="">全期間</option>
+        ${hitMonths.map((m) => `<option value="${m}">${+m.slice(0, 4)}年${+m.slice(4, 6)}月</option>`).join("")}
+      </select>
+    </div>
+    <div class="hit-grid" id="hitGrid">${hits.length ? hitGridHtml() : `<div class="cw-empty">的中データがありません。</div>`}</div>
   </div>`;
 
-  rm.querySelectorAll(".hit-card").forEach((c) => {
+  const grid = rm.querySelector("#hitGrid");
+  const bindCards = () => grid.querySelectorAll(".hit-card").forEach((c) => {
     c.onclick = () => openResultDetail(c.dataset.date, c.dataset.rid);
   });
+  const refresh = () => { grid.innerHTML = hitGridHtml(); bindCards(); };
+  rm.querySelectorAll("#hitTypeChips .hit-chip").forEach((ch) => {
+    ch.onclick = () => {
+      rm.querySelectorAll("#hitTypeChips .hit-chip").forEach((x) => x.classList.remove("on"));
+      ch.classList.add("on");
+      hitFilter.type = ch.dataset.type;
+      refresh();
+    };
+  });
+  rm.querySelector("#hitMonthSel").onchange = (e) => { hitFilter.month = e.target.value; refresh(); };
+  bindCards();
 }
 
 function horseByUma(r, uma) {
