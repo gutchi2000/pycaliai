@@ -110,7 +110,8 @@ def main():
     for rid, (tier, budget) in items:
         r = races.get(rid)
         if r is None: continue
-        e = CB.compute_race_bets(r, live_dir=None, budget=budget, force_floor=True)
+        e = CB.compute_race_bets(r, live_dir=None, budget=budget, force_floor=True,
+                                 demote_budget=CB.DEMOTE_BUDGET)
         ko = kekka.get(rid)
         wp = wide.get((ko["place"], ko["R"])) if ko else None
         rm = r.get("race_meta", {})

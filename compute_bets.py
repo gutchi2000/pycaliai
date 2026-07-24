@@ -99,6 +99,11 @@ CHAOS_RAW_SKIP = 0.92                     # §0 hard 見送り（生値）
 # 0.33=クリーン帯のみ(=2/3を見送り) / 0.50=+mid / 1.0=ゲート無効(従来挙動)。
 CLEAN_BAND_MAX = 0.33
 
+# 参戦規律の二段化 (2026-07-25 配線 [[unwired_roi_audit]] #1): 枠プラン(force_floor)でも
+# クリーン帯外は全額参戦せず消化枠水準へ予算降格。参戦自体は維持(プロ条件 10R∧¥100k)しつつ
+# 控除床近傍帯への露出を削る (clean-band ゲート実測 ◎複勝+5.31pt の回収)。
+DEMOTE_BUDGET = 2000
+
 # 複勝特化(的中率)モード (--fuku-hit): ◎の p_win(bundle値) が閾値以上のレースだけ ◎複勝を flat 購入。
 # 設計操作点(offline v6 OOS 2024-25, analysis/hit_rate_frontier.py): 信頼度上位~20%帯 →
 #   的中~80% / 回収~92% (valid2023も一致)。控除床(回収100%)は越えない＝「最も負けない高的中」。
@@ -287,9 +292,12 @@ def compute_fuku_hit(race: dict, thr: float = FUKU_HIT_THR, stake: int = BUDGET,
 
 def compute_race_bets(race: dict, live_dir: Path | None = None,
                       max_age_min: float = 20.0, budget: int = BUDGET,
-                      force_floor: bool = False) -> dict:
-    # force_floor=True: §0b 参戦規律(クリーン帯ゲート)を緩める。プロ条件(週10R∧¥100k)を
-    #   満たすため枠プランの消化枠で使用。§0 hard(chaos>=0.92/少頭数/◎薄/odds欠)は維持。
+                      force_floor: bool = False,
+                      demote_budget: int | None = None) -> dict:
+    # force_floor=True: §0b 参戦規律(クリーン帯ゲート)の「見送り」を緩める。プロ条件
+    #   (週10R∧¥100k)を満たすため枠プランで使用。§0 hard(chaos>=0.92/少頭数/◎薄/odds欠)は維持。
+    # demote_budget: force_floor 時の二段目。クリーン帯外レースは見送らない代わりに
+    #   予算をこの額まで強制降格 (参戦規律ゲートの実効化, 2026-07-25)。
     rm = race.get("race_meta", {})
     rc = race.get("race_confidence", {})
     bj = race.get("buy_judgment", {})
@@ -383,13 +391,20 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
                 "race_reason": "chaos_quantiles.json 欠如/破損で指標変換不能のため見送り (fail-safe)。",
                 "bets": [], **({"hosei_marks": hosei} if hosei else {})}
 
-    # ---- §0b 参戦規律: クリーン帯(低エントロピー)外は見送り (fail-safe / 最も負けない線) ----
-    #   force_floor 時は緩める(プロ条件 10R∧¥100k 充足のため枠プラン消化枠で参戦)。
-    if chaos > CLEAN_BAND_MAX and not force_floor:
-        return {"race_id": rid, "race_label": label, "race_nature": "見送り",
-                "race_reason": f"クリーン帯外(混戦度 pct{chaos:.2f}>{CLEAN_BAND_MAX:.2f}・参戦規律)で見送り。"
-                               "◎の信頼が薄い帯=OOSで控除床近傍につき不参戦。", "bets": [],
-                **({"hosei_marks": hosei} if hosei else {})}
+    # ---- §0b 参戦規律(二段): クリーン帯(低エントロピー)外は 見送り or 消化枠降格 ----
+    #   force_floor 無し: 従来どおり見送り (最も負けない線)。
+    #   force_floor 有り(枠プラン): 参戦は維持しつつ demote_budget へ予算降格 (2026-07-25 配線)。
+    demote_note = ""
+    if chaos > CLEAN_BAND_MAX:
+        if not force_floor:
+            return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                    "race_reason": f"クリーン帯外(混戦度 pct{chaos:.2f}>{CLEAN_BAND_MAX:.2f}・参戦規律)で見送り。"
+                                   "◎の信頼が薄い帯=OOSで控除床近傍につき不参戦。", "bets": [],
+                    **({"hosei_marks": hosei} if hosei else {})}
+        if demote_budget and int(budget) > int(demote_budget):
+            budget = int(demote_budget)
+            demote_note = (f"クリーン帯外(混戦度pct{chaos:.2f}>{CLEAN_BAND_MAX:.2f})"
+                           f"→消化枠¥{budget:,}に降格。")
     market = _num(rc.get("ai_market_agreement")) or 0.0
     anaba = market < TH_MARKET_ANABA
     value_bans = [int(v["umaban"]) for v in bj.get("value_horses", []) if _num(v.get("umaban")) is not None]
@@ -637,7 +652,7 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
 
     hon_name = by_ban.get(hon, {}).get("horse_name", "本命")
     rr = (f"◎{hon_name}。{shape}（独走{top1:.2f}/集中{top2:.2f}/混戦{chaos:.2f}/"
-          f"市場{market:+.2f}）で {len(bets)}点。{aite_note}{live_note}").rstrip()
+          f"市場{market:+.2f}）で {len(bets)}点。{demote_note}{aite_note}{live_note}").rstrip()
     return {"race_id": rid, "race_label": label, "race_nature": shape, "race_reason": rr,
             "confidence": {"top1_pct": round(top1, 3), "top2_pct": round(top2, 3),
                            "chaos_pct": round(chaos, 3), "market": round(market, 3)},
@@ -756,9 +771,11 @@ def main():
             rb = plan_budget.get(rid16)
             if not rb:
                 continue  # 枠外(見送り/対象外) → 買わない
-            # プロ条件(週10R∧¥100k)充足: 枠対象は参戦規律を緩めて必ず買う(§0 hard安全ガードは維持)
+            # プロ条件(週10R∧¥100k)充足: 枠対象は必ず買う(§0 hard安全ガードは維持)。
+            # ただしクリーン帯外は DEMOTE_BUDGET へ予算降格 (参戦規律の二段化, 2026-07-25)
             out.append(compute_race_bets(r, live_dir=live_dir, max_age_min=args.max_age_min,
-                                         budget=rb, force_floor=True))
+                                         budget=rb, force_floor=True,
+                                         demote_budget=DEMOTE_BUDGET))
         else:
             out.append(compute_race_bets(r, live_dir=live_dir, max_age_min=args.max_age_min,
                                          budget=args.budget))
