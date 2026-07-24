@@ -1,0 +1,11 @@
+{
+  // Cloudflare Workers (static assets) — site/ を配信する設定。
+  // Cloudflare ダッシュボードの Workers Builds が `npx wrangler deploy` で参照する。
+  // Build command は空でよい (site/data は build_site.py がローカル生成し git に含める)。
+  "name": "pycaliai",
+  "compatibility_date": "2026-07-25",
+  "assets": {
+    "directory": "./site",
+    "not_found_handling": "single-page-application"
+  }
+}
