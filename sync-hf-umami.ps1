@@ -54,6 +54,30 @@ Step "build_site.py (regenerate data)"
 & (Join-Path $ROOT "venv311\Scripts\python.exe") (Join-Path $ROOT "build_site.py")
 if ($LASTEXITCODE -ne 0) { Fail "build_site.py failed" }
 
+# 1.5 commit regenerated site/ to master and push origin (GitHub -> Cloudflare
+#     Workers auto-deploy for pycaliai.com). Without this, pycaliai.com keeps
+#     serving the last COMMITTED site/data while HF (pushed from the working
+#     tree below) is fresh -- the 2026-07-25 stale-homepage incident.
+#     Best-effort: a GitHub outage must not block the HF publish.
+if ($DryRun) {
+    Step "DryRun: skip commit/push of site/ to origin"
+} else {
+Step "commit site/ + push origin master (Cloudflare pycaliai.com)"
+git -C $ROOT add site 2>$null
+$sitePending = git -C $ROOT status --porcelain -- site
+if ($sitePending) {
+    git -C $ROOT commit -m "site: data refresh (sync-hf-umami)" -- site
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  site commit failed; pycaliai.com may stay stale" -ForegroundColor Yellow
+    } else {
+        git -C $ROOT push origin HEAD:master
+        if ($LASTEXITCODE -ne 0) { Write-Host "  push origin failed; retry later: git push origin master (pycaliai.com stays stale until pushed)" -ForegroundColor Yellow }
+    }
+} else {
+    Write-Host "  site/ unchanged in git; no commit needed" -ForegroundColor DarkGray
+}
+}
+
 foreach ($f in @("index.html", "explain.html", "css\style.css", "js\app.js", "data\manifest.json",
                  "manifest.webmanifest", "sw.js", "apple-touch-icon.png", "favicon.ico",
                  "icons\icon-192.png", "icons\icon-512.png")) {
