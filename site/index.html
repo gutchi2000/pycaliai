@@ -13,10 +13,16 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PyCaLiAI">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<script>/* データ先行fetch: app.js(defer)を待たずHTMLパース時点で開始 */
+window.__mfP=fetch("data/manifest.json?t="+Date.now()).then(r=>r.json());
+window.__rbP=fetch("data/realized_bias.json?t="+Date.now()).then(r=>r.json()).catch(()=>null);
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20260725a">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="css/style.css?v=20260725c">
 <style>
 /* 馬場バイアス — 芝|ダ 2分割 + クッション/含水ゲージ(メンバーレベルバー準拠) */
 .baba-bias{margin:12px auto 0;max-width:var(--maxw);padding:0 var(--pad)}
@@ -134,9 +140,9 @@
 <div id="overlay"></div>
 <aside id="drawer" aria-label="馬詳細"></aside>
 
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
-<script src="js/baba.js?v=20260724a"></script>
-<script src="js/app.js?v=20260724a"></script>
+<script defer src="js/baba.js?v=20260725c"></script>
+<script defer src="js/app.js?v=20260725c"></script>
+<script defer id="echartsJs" src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
 </body>
 </html>

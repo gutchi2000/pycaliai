@@ -48,7 +48,7 @@ async function boot() {
   $("#raceHeader").innerHTML = `<div class="loading">LOADING…</div>`;
   let mf;
   try {
-    mf = await (await fetch("data/manifest.json?t=" + Date.now())).json();
+    mf = await (window.__mfP || fetch("data/manifest.json?t=" + Date.now()).then((r) => r.json()));
   } catch (e) {
     $("#raceHeader").innerHTML =
       `<div class="err">data/manifest.json を読めませんでした。<br>` +
@@ -57,7 +57,7 @@ async function boot() {
   }
   state.manifest = mf;
   try {
-    realizedBias = await (await fetch("data/realized_bias.json?t=" + Date.now())).json();
+    realizedBias = await (window.__rbP || fetch("data/realized_bias.json?t=" + Date.now()).then((r) => r.json()));
   } catch (e) { realizedBias = null; }   // 非開催週などで無くても描画は続行
   const sel = $("#dateSel");
   sel.innerHTML = mf.dates.map((d) =>
@@ -107,6 +107,13 @@ async function loadDay(date) {
       return;
     }
     dayCache.set(date, day);
+  }
+  if (day.career === undefined) {
+    // 各馬の指数推移 (全キャリア)。無い日付は null (drawer 側で非表示)
+    const v = encodeURIComponent(state.manifest?.built_at || "0");
+    try {
+      day.career = await (await fetch(`data/career_${date}.json?v=${v}`)).json();
+    } catch (e) { day.career = null; }
   }
   state.day = day;
   state.place = day.places[0] ?? null;
@@ -781,6 +788,7 @@ function openDrawer(umaban) {
     : "";
 
   const ped = h.pedigree || {};
+  const career = state.day.career?.horses?.[h.name] || null;
   const resPos = r.result ? r.result.order[String(h.umaban)] : null;
   const infoRows = [
     ["騎手", h.jockey ? `${esc(h.jockey)}${h.kawari ? " <i class='kw'>乗替</i>" : ""}` : "—"],
@@ -827,16 +835,71 @@ function openDrawer(umaban) {
       <thead><tr><th></th><th>コース</th><th>馬場</th><th>着</th><th>人気</th><th>クラス</th><th>脚質</th><th>上り3F</th><th>間隔</th></tr></thead>
       <tbody>${runRows}</tbody>
     </table></div>${histSummary}` : `<div class="cw-empty">出走歴なし（初出走）</div>`}
-    <div class="dw-note">勝率・複勝圏は v6 calibrator 補正後の Plackett-Luce 確率。EV = 勝率 × 単勝オッズ。馬レベルは近走の着順・人気(公開データ)から算出。</div>`;
+    ${career ? `<div class="dw-sec">指数推移（キャリア ${career.points.length} 走）</div>
+    <div class="dw-hsum">直近 <b class="num">${career.cur}</b> ・ 最高 <b class="num">${career.best}</b>
+      ${career.rank ? ` ・ 現役ランキング <b class="num">${career.rank}</b> 位 <small>/ ${career.n_rank.toLocaleString()}頭</small>` : ""}</div>
+    <div id="dwCareerChart" style="height:230px;margin:4px 0 2px"></div>` : ""}
+    <div class="dw-note">勝率・複勝圏は v6 calibrator 補正後の Plackett-Luce 確率。EV = 勝率 × 単勝オッズ。馬レベル・指数推移は各走の着順・人気(公開データ)から算出した 0-100 の相対指数。</div>`;
 
+  if (career) drawCareerChart(career);
   $("#dwClose").onclick = closeDrawer;
   $("#overlay").classList.add("show");
   $("#drawer").classList.add("show");
   $("#drawer").scrollTop = 0;
 }
+let dwCareerChart = null;
+function drawCareerChart(car) {
+  const el = document.getElementById("dwCareerChart");
+  if (!el || typeof echarts === "undefined") return;
+  if (dwCareerChart) { try { dwCareerChart.dispose(); } catch (e) { /* noop */ } }
+  dwCareerChart = echarts.init(el, null, { renderer: "canvas" });
+  const pts = car.points;
+  const vals = pts.map((p) => p[1]);
+  const yMin = Math.max(0, Math.floor((Math.min(...vals) - 8) / 10) * 10);
+  dwCareerChart.setOption({
+    backgroundColor: "transparent",
+    textStyle: { fontFamily: '"Noto Sans JP", sans-serif', color: "#a9b6d3" },
+    animationDuration: 500,
+    grid: { left: 8, right: 16, top: 14, bottom: 8, containLabel: true },
+    tooltip: {
+      trigger: "axis",
+      backgroundColor: "#1b2540", borderColor: "#32456e",
+      textStyle: { color: "#d9e2f2", fontSize: 12 },
+      formatter: (ps) => {
+        const p = pts[ps[0].dataIndex];
+        return `${p[0]}<br>指数 <b>${p[1]}</b> ・ ${p[2]}着${p[3] ? ` / ${p[3]}人気` : ""}`;
+      },
+    },
+    xAxis: {
+      type: "category",
+      data: pts.map((p) => p[0].slice(2).replace(/-/g, "/")),
+      axisLine: { lineStyle: { color: "#32456e" } },
+      axisLabel: { color: "#a9b6d3", fontSize: 10 },
+    },
+    yAxis: {
+      type: "value", min: yMin, max: 100,
+      axisLine: { lineStyle: { color: "#32456e" } },
+      axisLabel: { color: "#a9b6d3", fontSize: 10 },
+      splitLine: { lineStyle: { color: "rgba(50,69,110,.35)" } },
+    },
+    series: [{
+      type: "line", data: vals, smooth: true,
+      symbol: "circle", symbolSize: 7,
+      lineStyle: { color: "#f5b942", width: 2.5 },
+      itemStyle: { color: "#f5b942", borderColor: "#141c33", borderWidth: 1.5 },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: "rgba(245,185,66,.30)" },
+          { offset: 1, color: "rgba(245,185,66,.02)" },
+        ]),
+      },
+    }],
+  });
+}
 function closeDrawer() {
   $("#overlay").classList.remove("show");
   $("#drawer").classList.remove("show");
+  if (dwCareerChart) { try { dwCareerChart.dispose(); } catch (e) { /* noop */ } dwCareerChart = null; }
 }
 $("#overlay").onclick = closeDrawer;
 
@@ -872,7 +935,13 @@ function disposeCharts() {
 }
 function mkChart(id, option) {
   const el = document.getElementById(id);
-  if (!el || typeof echarts === "undefined") return null;
+  if (!el) return null;
+  if (typeof echarts === "undefined") {
+    // ECharts CDN はチャートタブ専用の遅延ロード。未着ならロード完了後に再試行
+    const s = document.getElementById("echartsJs");
+    if (s) s.addEventListener("load", () => { mkChart(id, option); }, { once: true });
+    return null;
+  }
   const c = echarts.init(el, null, { renderer: "canvas" });
   c.setOption(Object.assign({
     backgroundColor: "transparent",
