@@ -884,7 +884,8 @@ function drawCareerChart(car) {
     },
     series: [{
       type: "line", data: vals, smooth: true,
-      symbol: "circle", symbolSize: 7,
+      symbol: "circle", symbolSize: 10,
+      emphasis: { scale: 1.3 },
       lineStyle: { color: "#f5b942", width: 2.5 },
       itemStyle: { color: "#f5b942", borderColor: "#141c33", borderWidth: 1.5 },
       areaStyle: {
@@ -1088,6 +1089,11 @@ function renderBunseki(r, vb) {
         <small>右上＝人気薄なのにAI高評価（妙味） / 左下＝人気だがAI低評価（過剰）・点の大きさ＝勝率</small></div>
       <div id="ch-scatter" class="chart"></div>
     </div>
+  ${state.day.career ? `<div class="card anc">
+      <div class="an-t">指数推移の比較（キャリア）
+        <small>印馬を初期表示・凡例クリックで他馬も重ねられます。指数は着順・人気から算出の 0-100 相対値</small></div>
+      <div id="ch-career-cmp" class="chart"></div>
+    </div>` : ""}
   <div id="um-wrap">${umamiTableHtml(r)}</div>`;
 
   const wireUmami = () => {
@@ -1131,6 +1137,98 @@ function renderBunseki(r, vb) {
     }],
   });
 
+  // --- 指数推移の比較: 出走馬のキャリア指数を重ねる (印馬デフォルトON) ---
+  const careers = state.day.career?.horses;
+  if (careers && document.getElementById("ch-career-cmp")) {
+    const CMP_COLORS = ["#f5b942", "#5ba0f5", "#2dd4a8", "#e07a9e", "#c98fef",
+                       "#7fd0f0", "#f0885a", "#9fe17a", "#f2555a", "#8d9cba",
+                       "#ffd97a", "#6a7fd8", "#4fb8a0", "#d8a05a", "#b0b8d0",
+                       "#e0c060", "#70a8e8", "#58c8b0"];
+    const withCar = hs.filter((h) => careers[h.name]?.points?.length);
+    const selected = {};
+    const mainMarks = ["◎", "〇", "○", "▲"];
+    const series = withCar.map((h, i) => {
+      const car = careers[h.name];
+      const label = `${h.mark || ""}${h.umaban} ${h.name}`;
+      selected[label] = mainMarks.includes(h.mark);
+      return {
+        name: label, type: "line", smooth: 0.25,
+        symbol: "circle", symbolSize: 9,
+        emphasis: { focus: "series", scale: 1.4 },
+        blur: { lineStyle: { opacity: 0.06 }, itemStyle: { opacity: 0.06 } },
+        lineStyle: { width: h.mark === "◎" ? 3 : 2 },
+        color: h.mark === "◎" ? "#f5b942" : CMP_COLORS[(i + 1) % CMP_COLORS.length],
+        data: car.points.map((p) => ({ value: [p[0], p[1]], pos: p[2], ninki: p[3] })),
+      };
+    });
+    // 初期表示は直近12ヶ月 (スライダーで全期間へ広げられる)
+    const zoomFrom = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+    // 凡例は全馬ぶん折り返し表示。行数はラベル幅から概算して grid を空ける
+    const el = document.getElementById("ch-career-cmp");
+    const legendRows = () => {
+      const cw = Math.max(el ? el.clientWidth : 600, 300) - 20;
+      let rows = 1, lw = 0;
+      series.forEach((s) => {
+        // fontSize11: 全角~11px/半角~6px + マーカー18 + itemGap10
+        let tw = 0;
+        for (const ch of s.name) tw += ch.charCodeAt(0) > 255 ? 13.2 : 7.2;
+        const w = tw + 22 + 10;
+        if (lw + w > cw) { rows++; lw = w; } else { lw += w; }
+      });
+      return rows;
+    };
+    let legendH = legendRows() * 25;
+    const baseH = window.innerWidth <= 700 ? 300 : 360;
+    if (el) el.style.height = baseH + Math.max(0, legendH - 25) + "px";
+    const cmpChart = mkChart("ch-career-cmp", {
+      grid: { left: 8, right: 16, top: 8, bottom: 43 + legendH, containLabel: true },
+      dataZoom: [
+        { type: "inside", startValue: zoomFrom },
+        { type: "slider", startValue: zoomFrom, height: 20, bottom: legendH + 15,
+          borderColor: "#32456e", backgroundColor: "rgba(50,69,110,.2)",
+          fillerColor: "rgba(245,185,66,.12)", handleStyle: { color: "#5a6d95" },
+          moveHandleStyle: { color: "#5a6d95" }, textStyle: { color: "#8a97b5", fontSize: 10 },
+          dataBackground: { lineStyle: { color: "#3a4d75" }, areaStyle: { color: "rgba(58,77,117,.3)" } } },
+      ],
+      legend: {
+        bottom: 0, selected, itemGap: 10, itemWidth: 18,
+        textStyle: { color: "#a9b6d3", fontSize: 13 },
+        inactiveColor: "#4a587a",
+      },
+      tooltip: {
+        trigger: "item",
+        backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e",
+        textStyle: { color: "#edf1fb", fontSize: 12 },
+        formatter: (p) => `<b>${esc(p.seriesName)}</b><br>${p.value[0]}<br>指数 <b>${p.value[1]}</b> ・ ${p.data.pos}着${p.data.ninki ? ` / ${p.data.ninki}人気` : ""}`,
+      },
+      xAxis: Object.assign({}, axisStyle(), { type: "time",
+        axisLabel: { color: "#a9b6d3", fontSize: 10, formatter: "{yy}/{MM}" } }),
+      yAxis: Object.assign({}, axisStyle(), { type: "value", min: 0, max: 100 }),
+      series,
+    });
+    // レイアウト確定後、実際に描画された凡例の高さを測ってコンテナ/キャンバスを常に一致させる
+    // (概算行数は初期描画用。canvas が古い高さのまま残る問題があるため resize は必ず呼ぶ)
+    if (cmpChart) setTimeout(() => {   // rAF は非表示タブで発火しないため setTimeout
+      if (cmpChart.isDisposed()) return;
+      let lh = legendH;
+      try {
+        const view = cmpChart.getViewOfComponentModel(
+          cmpChart.getModel().getComponent("legend"));
+        lh = Math.ceil(view.group.getBoundingRect().height) - 10;   // ±5px の内部パディングを除く
+      } catch (e) { /* 内部APIが変わったら概算のまま */ }
+      const plotH = window.innerWidth <= 700 ? 240 : 290;
+      el.style.height = (8 + plotH + 43 + lh) + "px";
+      cmpChart.setOption({ grid: { bottom: 43 + lh }, dataZoom: [{}, { bottom: lh + 15 }] });
+    }, 30);
+    // キャンバスをコンテナ実寸に常に追従させる (タイマーだとレイアウト確定前に走ってズレる)
+    if (cmpChart && typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(() => {
+        if (cmpChart.isDisposed()) { ro.disconnect(); return; }
+        cmpChart.resize();
+      });
+      ro.observe(el);
+    }
+  }
 }
 
 /* ---------------- コース ---------------- */

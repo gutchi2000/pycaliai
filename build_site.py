@@ -1039,6 +1039,14 @@ def main() -> None:
         manifest_entries.append({"date": date_str, "places": places,
                                  "n_races": n_races, "has_results": has_results})
 
+    # 各馬の指数推移 (全キャリア) — 最新2開催日ぶんだけ生成 (drawer のチャート用)
+    try:
+        from build_horse_career import build_careers
+        latest = sorted((e["date"] for e in manifest_entries), reverse=True)[:2]
+        build_careers(latest)
+    except Exception as e:
+        print(f"[career skip] {e}")
+
     manifest_entries.sort(key=lambda e: e["date"], reverse=True)
     manifest = {
         "built_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
