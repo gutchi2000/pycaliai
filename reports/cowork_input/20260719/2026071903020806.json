@@ -1,0 +1,889 @@
+{
+  "race_id": "2026071903020806",
+  "race_meta": {
+    "date": "20260719",
+    "place": "福島",
+    "course": "芝1200",
+    "field_size": 16,
+    "class": "新馬",
+    "race_name": "",
+    "class_prior": {
+      "n_samples": 604,
+      "hon_1st_pct": 26.7,
+      "hon_top2_pct": 46.5,
+      "hon_top3_pct": 57.9,
+      "tai_1st_pct": 17.5,
+      "tai_top2_pct": 33.6,
+      "tai_top3_pct": 48.3,
+      "san_top3_pct": 37.3,
+      "del1_top3_pct": 29.8,
+      "del2_top3_pct": 26.0
+    }
+  },
+  "horses": [
+    {
+      "umaban": 1,
+      "horse_name": "エリンヘラクレス",
+      "mark": "▲",
+      "ai_rank": 3,
+      "ai_score": -0.2901,
+      "p_win": 0.0714,
+      "p_plc": 0.1417,
+      "p_sho": 0.2357,
+      "tansho_odds": 16.7,
+      "fuku_odds_low": 4.2,
+      "fuku_odds_high": 6.4,
+      "ai_vs_market": "fair",
+      "why": [
+        {
+          "feat": "trnH_Time4",
+          "label": "坂路 ラスト1Fタイム",
+          "value": 12.4,
+          "contrib": 0.11
+        },
+        {
+          "feat": "種牡馬",
+          "label": "種牡馬",
+          "value": "カリフォルニアクローム",
+          "contrib": 0.058
+        },
+        {
+          "feat": "距離",
+          "label": "距離",
+          "value": 1200,
+          "contrib": 0.052
+        },
+        {
+          "feat": "クラス名",
+          "label": "クラス名",
+          "value": "新馬",
+          "contrib": 0.048
+        },
+        {
+          "feat": "年齢",
+          "label": "年齢",
+          "value": 2,
+          "contrib": 0.045
+        },
+        {
+          "feat": "trainer_fuku90",
+          "label": "厩舎 複勝率(直近90日)",
+          "value": 0.211,
+          "contrib": 0.041
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牡",
+      "age": 2,
+      "pedigree": {
+        "sire": "カリフォルニアクローム",
+        "broodmare_sire": "スクリーンヒーロー",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 2,
+      "horse_name": "トランサルピナ",
+      "mark": "",
+      "ai_rank": 14,
+      "ai_score": -0.5558,
+      "p_win": 0.0588,
+      "p_plc": 0.1097,
+      "p_sho": 0.1703,
+      "tansho_odds": 6.8,
+      "fuku_odds_low": 1.7,
+      "fuku_odds_high": 2.5,
+      "ai_vs_market": "over",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牡",
+      "age": 2,
+      "pedigree": {
+        "sire": "ジャンダルム",
+        "sire_type": "ロイヤルチャージャー系",
+        "broodmare_sire": "Dubawi",
+        "broodmare_sire_type": "ネイティヴダンサー系"
+      }
+    },
+    {
+      "umaban": 3,
+      "horse_name": "セイウンリリーナ",
+      "mark": "",
+      "ai_rank": 13,
+      "ai_score": -0.533,
+      "p_win": 0.0588,
+      "p_plc": 0.1121,
+      "p_sho": 0.1822,
+      "tansho_odds": 18.8,
+      "fuku_odds_low": 3.6,
+      "fuku_odds_high": 5.3,
+      "ai_vs_market": "fair",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2,
+      "pedigree": {
+        "sire": "ダノンスマッシュ",
+        "broodmare_sire": "ダイワメジャー",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 4,
+      "horse_name": "ドリームユー",
+      "mark": "",
+      "ai_rank": 12,
+      "ai_score": -0.512,
+      "p_win": 0.0588,
+      "p_plc": 0.1145,
+      "p_sho": 0.1822,
+      "tansho_odds": 21.4,
+      "fuku_odds_low": 7.3,
+      "fuku_odds_high": 11.2,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2,
+      "pedigree": {
+        "sire": "ベンバトル",
+        "broodmare_sire": "ネオユニヴァース",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 5,
+      "horse_name": "クールボビー",
+      "mark": "",
+      "ai_rank": 10,
+      "ai_score": -0.4613,
+      "p_win": 0.0588,
+      "p_plc": 0.1202,
+      "p_sho": 0.2002,
+      "tansho_odds": 30.0,
+      "fuku_odds_low": 9.0,
+      "fuku_odds_high": 13.8,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牡",
+      "age": 2,
+      "pedigree": {
+        "sire": "シャンハイボビー",
+        "broodmare_sire": "ケイムホーム",
+        "broodmare_sire_type": "ネイティヴダンサー系"
+      }
+    },
+    {
+      "umaban": 6,
+      "horse_name": "グルーヴェンス",
+      "mark": "",
+      "ai_rank": 7,
+      "ai_score": -0.3767,
+      "p_win": 0.0626,
+      "p_plc": 0.1304,
+      "p_sho": 0.2246,
+      "tansho_odds": 12.5,
+      "fuku_odds_low": 7.3,
+      "fuku_odds_high": 11.2,
+      "ai_vs_market": "over",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牡",
+      "age": 2,
+      "pedigree": {
+        "sire": "カラヴァッジオ",
+        "broodmare_sire": "モーリス"
+      }
+    },
+    {
+      "umaban": 7,
+      "horse_name": "ミラクルオーラ",
+      "mark": "",
+      "ai_rank": 15,
+      "ai_score": -0.6155,
+      "p_win": 0.0397,
+      "p_plc": 0.1035,
+      "p_sho": 0.1703,
+      "tansho_odds": 12.5,
+      "fuku_odds_low": 4.7,
+      "fuku_odds_high": 7.2,
+      "ai_vs_market": "over",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牡",
+      "age": 2,
+      "pedigree": {
+        "sire": "ラニ",
+        "broodmare_sire": "マンハッタンカフェ",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 8,
+      "horse_name": "ヴィンチェローズ",
+      "mark": "",
+      "ai_rank": 11,
+      "ai_score": -0.4698,
+      "p_win": 0.0588,
+      "p_plc": 0.1192,
+      "p_sho": 0.2002,
+      "tansho_odds": 50.1,
+      "fuku_odds_low": 34.4,
+      "fuku_odds_high": 53.0,
+      "ai_vs_market": "under",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牡",
+      "age": 2,
+      "pedigree": {
+        "sire": "ダノンスマッシュ",
+        "broodmare_sire": "ノヴェリスト",
+        "broodmare_sire_type": "その他のエクリプス系"
+      }
+    },
+    {
+      "umaban": 9,
+      "horse_name": "キミヘノメロディー",
+      "mark": "",
+      "ai_rank": 8,
+      "ai_score": -0.3851,
+      "p_win": 0.0588,
+      "p_plc": 0.1294,
+      "p_sho": 0.2024,
+      "tansho_odds": 12.5,
+      "fuku_odds_low": 3.3,
+      "fuku_odds_high": 4.9,
+      "ai_vs_market": "over",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牡",
+      "age": 2,
+      "pedigree": {
+        "sire": "ハタノヴァンクール",
+        "broodmare_sire": "スペシャルウィーク",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 10,
+      "horse_name": "セイウンイーリス",
+      "mark": "◎",
+      "ai_rank": 1,
+      "ai_score": -0.1761,
+      "p_win": 0.083,
+      "p_plc": 0.1581,
+      "p_sho": 0.2537,
+      "tansho_odds": 21.4,
+      "fuku_odds_low": 3.6,
+      "fuku_odds_high": 5.3,
+      "ai_vs_market": "under",
+      "why": [
+        {
+          "feat": "trnH_Time4",
+          "label": "坂路 ラスト1Fタイム",
+          "value": 12.3,
+          "contrib": 0.118
+        },
+        {
+          "feat": "クラス名",
+          "label": "クラス名",
+          "value": "新馬",
+          "contrib": 0.051
+        },
+        {
+          "feat": "trnW_days_ago",
+          "label": "ウッド 追い切り経過日数",
+          "value": 11,
+          "contrib": 0.05
+        },
+        {
+          "feat": "trainer_fuku90",
+          "label": "厩舎 複勝率(直近90日)",
+          "value": 0.211,
+          "contrib": 0.048
+        },
+        {
+          "feat": "年齢",
+          "label": "年齢",
+          "value": 2,
+          "contrib": 0.047
+        },
+        {
+          "feat": "距離",
+          "label": "距離",
+          "value": 1200,
+          "contrib": 0.044
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2,
+      "pedigree": {
+        "sire": "リーチザクラウン",
+        "sire_type": "ロイヤルチャージャー系",
+        "broodmare_sire": "\"Sidney's Candy\""
+      }
+    },
+    {
+      "umaban": 11,
+      "horse_name": "ヴァンデエス",
+      "mark": "",
+      "ai_rank": 16,
+      "ai_score": -0.7548,
+      "p_win": 0.0397,
+      "p_plc": 0.0904,
+      "p_sho": 0.1492,
+      "tansho_odds": 12.5,
+      "fuku_odds_low": 2.9,
+      "fuku_odds_high": 4.3,
+      "ai_vs_market": "over",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2,
+      "pedigree": {
+        "sire": "ミッキーアイル",
+        "broodmare_sire": "Dubawi",
+        "broodmare_sire_type": "ネイティヴダンサー系"
+      }
+    },
+    {
+      "umaban": 12,
+      "horse_name": "ドナチャージ",
+      "mark": "",
+      "ai_rank": 6,
+      "ai_score": -0.3755,
+      "p_win": 0.0626,
+      "p_plc": 0.1306,
+      "p_sho": 0.2246,
+      "tansho_odds": 16.7,
+      "fuku_odds_low": 3.1,
+      "fuku_odds_high": 4.6,
+      "ai_vs_market": "fair",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2,
+      "pedigree": {
+        "sire": "ウィルテイクチャージ",
+        "broodmare_sire": "\"Malibu Moon\"",
+        "broodmare_sire_type": "ナスルーラ系"
+      }
+    },
+    {
+      "umaban": 13,
+      "horse_name": "アイアムキレマスネ",
+      "mark": "△",
+      "ai_rank": 4,
+      "ai_score": -0.2992,
+      "p_win": 0.071,
+      "p_plc": 0.1405,
+      "p_sho": 0.2356,
+      "tansho_odds": 21.4,
+      "fuku_odds_low": 9.0,
+      "fuku_odds_high": 13.8,
+      "ai_vs_market": "under",
+      "why": [
+        {
+          "feat": "trnW_days_ago",
+          "label": "ウッド 追い切り経過日数",
+          "value": 11,
+          "contrib": 0.054
+        },
+        {
+          "feat": "trnH_Time4",
+          "label": "坂路 ラスト1Fタイム",
+          "value": 17.5,
+          "contrib": -0.051
+        },
+        {
+          "feat": "年齢",
+          "label": "年齢",
+          "value": 2,
+          "contrib": 0.05
+        },
+        {
+          "feat": "クラス名",
+          "label": "クラス名",
+          "value": "新馬",
+          "contrib": 0.049
+        },
+        {
+          "feat": "距離",
+          "label": "距離",
+          "value": 1200,
+          "contrib": 0.044
+        },
+        {
+          "feat": "trnH_Lap4",
+          "label": "坂路 4F目ラップ",
+          "value": 18.5,
+          "contrib": 0.039
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牡",
+      "age": 2,
+      "pedigree": {
+        "sire": "フォーウィールドライブ",
+        "broodmare_sire": "ディープインパクト",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 14,
+      "horse_name": "チャランダマルツ",
+      "mark": "〇",
+      "ai_rank": 2,
+      "ai_score": -0.2771,
+      "p_win": 0.0747,
+      "p_plc": 0.1435,
+      "p_sho": 0.2357,
+      "tansho_odds": 2.8,
+      "fuku_odds_low": 1.3,
+      "fuku_odds_high": 1.5,
+      "ai_vs_market": "over",
+      "why": [
+        {
+          "feat": "trnH_Time4",
+          "label": "坂路 ラスト1Fタイム",
+          "value": 12.3,
+          "contrib": 0.118
+        },
+        {
+          "feat": "距離",
+          "label": "距離",
+          "value": 1200,
+          "contrib": 0.053
+        },
+        {
+          "feat": "クラス名",
+          "label": "クラス名",
+          "value": "新馬",
+          "contrib": 0.05
+        },
+        {
+          "feat": "trainer_fuku90",
+          "label": "厩舎 複勝率(直近90日)",
+          "value": 0.211,
+          "contrib": 0.046
+        },
+        {
+          "feat": "年齢",
+          "label": "年齢",
+          "value": 2,
+          "contrib": 0.045
+        },
+        {
+          "feat": "trnW_3F",
+          "label": "ウッド 3Fタイム",
+          "value": 38.2,
+          "contrib": -0.044
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牝",
+      "age": 2,
+      "pedigree": {
+        "sire": "サートゥルナーリア",
+        "broodmare_sire": "ハービンジャー",
+        "broodmare_sire_type": "ニアークティック系"
+      }
+    },
+    {
+      "umaban": 15,
+      "horse_name": "コスモルトチェコ",
+      "mark": "△",
+      "ai_rank": 5,
+      "ai_score": -0.3606,
+      "p_win": 0.0626,
+      "p_plc": 0.1324,
+      "p_sho": 0.23,
+      "tansho_odds": 150.4,
+      "fuku_odds_low": 9.0,
+      "fuku_odds_high": 13.8,
+      "ai_vs_market": "under",
+      "why": [
+        {
+          "feat": "年齢",
+          "label": "年齢",
+          "value": 2,
+          "contrib": 0.05
+        },
+        {
+          "feat": "クラス名",
+          "label": "クラス名",
+          "value": "新馬",
+          "contrib": 0.05
+        },
+        {
+          "feat": "trnH_Lap4",
+          "label": "坂路 4F目ラップ",
+          "value": 18.7,
+          "contrib": 0.043
+        },
+        {
+          "feat": "trnH_Time4",
+          "label": "坂路 ラスト1Fタイム",
+          "value": 17.3,
+          "contrib": -0.042
+        },
+        {
+          "feat": "距離",
+          "label": "距離",
+          "value": 1200,
+          "contrib": 0.038
+        },
+        {
+          "feat": "trnW_3F",
+          "label": "ウッド 3Fタイム",
+          "value": 38.2,
+          "contrib": -0.038
+        }
+      ],
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牡",
+      "age": 2,
+      "pedigree": {
+        "sire": "ノヴェリスト",
+        "sire_type": "その他のエクリプス系",
+        "broodmare_sire": "ネオユニヴァース",
+        "broodmare_sire_type": "ロイヤルチャージャー系"
+      }
+    },
+    {
+      "umaban": 16,
+      "horse_name": "アルニタク",
+      "mark": "",
+      "ai_rank": 9,
+      "ai_score": -0.4309,
+      "p_win": 0.0588,
+      "p_plc": 0.1238,
+      "p_sho": 0.2002,
+      "tansho_odds": 15.0,
+      "fuku_odds_low": 1.8,
+      "fuku_odds_high": 2.5,
+      "ai_vs_market": "fair",
+      "history": {
+        "n_runs": 0
+      },
+      "sex": "牡",
+      "age": 2,
+      "pedigree": {
+        "sire": "タワーオブロンドン",
+        "broodmare_sire": "オルフェーヴル"
+      }
+    }
+  ],
+  "race_confidence": {
+    "top1_dominance": 0.0083,
+    "top2_concentration": 0.1577,
+    "field_chaos_score": 0.9943,
+    "ai_market_agreement": -0.1799
+  },
+  "buy_judgment": {
+    "hardness": "荒れ",
+    "chaos_pct": 0.988,
+    "has_value": true,
+    "headline": "広く薄く",
+    "category": "caution",
+    "detail": "妙味馬を複勝/ワイドで複数、1点を小さく（テールは除外済み）。",
+    "kenshu_hint": "妙味馬を複勝/ワイドで複数・1点小",
+    "waku_tag": "妙味枠",
+    "value_horses": [
+      {
+        "umaban": 5,
+        "horse_name": "クールボビー",
+        "p_win": 0.0588,
+        "ev_tan": 1.76,
+        "ev_fuku": 2.28,
+        "umami_tan": 0.874,
+        "umami_fuku": 0.771,
+        "umami_grade": "S",
+        "tan_value": true,
+        "fuku_value": true,
+        "sides": [
+          "単勝",
+          "複勝"
+        ]
+      },
+      {
+        "umaban": 10,
+        "horse_name": "セイウンイーリス",
+        "p_win": 0.083,
+        "ev_tan": 1.78,
+        "ev_fuku": 1.13,
+        "umami_tan": 0.874,
+        "umami_fuku": 0.752,
+        "umami_grade": "S",
+        "tan_value": true,
+        "fuku_value": false,
+        "sides": [
+          "単勝"
+        ]
+      },
+      {
+        "umaban": 13,
+        "horse_name": "アイアムキレマスネ",
+        "p_win": 0.071,
+        "ev_tan": 1.52,
+        "ev_fuku": 2.69,
+        "umami_tan": 0.874,
+        "umami_fuku": 0.771,
+        "umami_grade": "S",
+        "tan_value": true,
+        "fuku_value": true,
+        "sides": [
+          "単勝",
+          "複勝"
+        ]
+      },
+      {
+        "umaban": 4,
+        "horse_name": "ドリームユー",
+        "p_win": 0.0588,
+        "ev_tan": 1.26,
+        "ev_fuku": 1.69,
+        "umami_tan": 0.857,
+        "umami_fuku": 0.78,
+        "umami_grade": "S",
+        "tan_value": true,
+        "fuku_value": true,
+        "sides": [
+          "単勝",
+          "複勝"
+        ]
+      },
+      {
+        "umaban": 6,
+        "horse_name": "グルーヴェンス",
+        "p_win": 0.0626,
+        "ev_tan": 0.78,
+        "ev_fuku": 2.08,
+        "umami_tan": 0.737,
+        "umami_fuku": 0.794,
+        "umami_grade": "B",
+        "tan_value": false,
+        "fuku_value": true,
+        "sides": [
+          "複勝"
+        ]
+      },
+      {
+        "umaban": 1,
+        "horse_name": "エリンヘラクレス",
+        "p_win": 0.0714,
+        "ev_tan": 1.19,
+        "ev_fuku": 1.25,
+        "umami_tan": 0.857,
+        "umami_fuku": 0.752,
+        "umami_grade": "B",
+        "tan_value": false,
+        "fuku_value": true,
+        "sides": [
+          "複勝"
+        ]
+      }
+    ]
+  },
+  "umaren_matrix": {
+    "1-2": 208.8,
+    "1-3": 208.8,
+    "1-6": 417.7,
+    "1-7": 139.2,
+    "1-8": 139.2,
+    "1-9": 208.8,
+    "1-10": 208.8,
+    "1-11": 208.8,
+    "1-12": 208.8,
+    "1-13": 417.7,
+    "1-14": 139.2,
+    "1-16": 417.7,
+    "2-3": 59.6,
+    "2-4": 208.8,
+    "2-5": 83.5,
+    "2-6": 12.2,
+    "2-7": 52.2,
+    "2-8": 104.4,
+    "2-9": 417.7,
+    "2-10": 46.4,
+    "2-11": 34.8,
+    "2-12": 19.8,
+    "2-13": 104.4,
+    "2-14": 8.5,
+    "2-16": 14.4,
+    "3-5": 139.2,
+    "3-6": 83.5,
+    "3-7": 52.2,
+    "3-8": 69.6,
+    "3-9": 104.4,
+    "3-10": 208.8,
+    "3-11": 208.8,
+    "3-13": 417.7,
+    "3-14": 59.6,
+    "3-16": 104.4,
+    "4-5": 417.7,
+    "4-7": 139.2,
+    "4-14": 139.2,
+    "4-16": 417.7,
+    "5-6": 69.6,
+    "5-7": 83.5,
+    "5-8": 69.6,
+    "5-9": 83.5,
+    "5-10": 83.5,
+    "5-11": 104.4,
+    "5-12": 46.4,
+    "5-13": 83.5,
+    "5-14": 46.4,
+    "5-16": 208.8,
+    "6-7": 208.8,
+    "6-8": 208.8,
+    "6-9": 417.7,
+    "6-10": 139.2,
+    "6-11": 208.8,
+    "6-12": 104.4,
+    "6-13": 208.8,
+    "6-14": 10.4,
+    "6-16": 34.8,
+    "7-8": 208.8,
+    "7-9": 104.4,
+    "7-10": 139.2,
+    "7-11": 59.6,
+    "7-12": 139.2,
+    "7-13": 139.2,
+    "7-14": 59.6,
+    "7-15": 417.7,
+    "7-16": 104.4,
+    "8-10": 208.8,
+    "8-11": 417.7,
+    "8-12": 417.7,
+    "8-13": 417.7,
+    "8-14": 83.5,
+    "8-16": 208.8,
+    "9-10": 208.8,
+    "9-11": 208.8,
+    "9-12": 208.8,
+    "9-14": 139.2,
+    "9-15": 417.7,
+    "9-16": 417.7,
+    "10-11": 208.8,
+    "10-12": 104.4,
+    "10-13": 208.8,
+    "10-14": 69.6,
+    "10-16": 208.8,
+    "11-13": 104.4,
+    "11-14": 46.4,
+    "11-16": 208.8,
+    "12-13": 208.8,
+    "12-14": 46.4,
+    "12-16": 208.8,
+    "13-14": 41.7,
+    "13-16": 139.2,
+    "14-15": 104.4,
+    "14-16": 11.9,
+    "15-16": 139.2
+  },
+  "pair_probs": {
+    "10-14": {
+      "wide": 0.03748,
+      "umaren": 0.01309,
+      "umatan": {
+        "10→14": 0.00631,
+        "14→10": 0.00631
+      }
+    },
+    "1-10": {
+      "wide": 0.03748,
+      "umaren": 0.01309,
+      "umatan": {
+        "10→1": 0.00631,
+        "1→10": 0.00578
+      }
+    },
+    "10-13": {
+      "wide": 0.03748,
+      "umaren": 0.01309,
+      "umatan": {
+        "10→13": 0.00578,
+        "13→10": 0.00564
+      }
+    },
+    "10-15": {
+      "wide": 0.03548,
+      "umaren": 0.00909,
+      "umatan": {
+        "10→15": 0.00564,
+        "15→10": 0.00564
+      }
+    },
+    "1-14": {
+      "wide": 0.03548,
+      "umaren": 0.00909,
+      "umatan": {
+        "14→1": 0.00483,
+        "1→14": 0.00483
+      }
+    },
+    "13-14": {
+      "wide": 0.03548,
+      "umaren": 0.00909,
+      "umatan": {
+        "14→13": 0.00483,
+        "13→14": 0.00483
+      }
+    },
+    "14-15": {
+      "wide": 0.03451,
+      "umaren": 0.00909,
+      "umatan": {
+        "14→15": 0.00483,
+        "15→14": 0.00483
+      }
+    },
+    "1-13": {
+      "wide": 0.03548,
+      "umaren": 0.00909,
+      "umatan": {
+        "1→13": 0.00483,
+        "13→1": 0.00483
+      }
+    },
+    "1-15": {
+      "wide": 0.03451,
+      "umaren": 0.00909,
+      "umatan": {
+        "1→15": 0.00483,
+        "15→1": 0.00483
+      }
+    },
+    "13-15": {
+      "wide": 0.03451,
+      "umaren": 0.00909,
+      "umatan": {
+        "13→15": 0.00483,
+        "15→13": 0.00483
+      }
+    }
+  }
+}
