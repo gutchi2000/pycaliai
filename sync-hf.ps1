@@ -1,5 +1,5 @@
-# =====================================================================
-# sync-hf.ps1 - sync master to hf-spaces orphan branch and push to HF
+﻿# =====================================================================
+# sync-hf.ps1 - sync master to hf-spaces branch (via worktree) and push to HF
 # =====================================================================
 # Usage:
 #   .\sync-hf.ps1            # copy HF files from master to hf-spaces,
@@ -22,6 +22,17 @@
 #               diff 判定 自体を放棄、commit を素直に試みる方式に変更。
 #               また 246 件以上の per-file checkout が原因らしいので、
 #               全 file path を 1 回の `git checkout master -- $batch` で渡す。
+#   2026-07-29: (1) ブランチ往復を全廃し .worktrees/hf-spaces の常設 worktree
+#               方式へ。旧方式の `git checkout --force hf-spaces` →
+#               `git checkout master` 往復は「master で未追跡だが hf-spaces
+#               では追跡」のファイルを旧版で上書き→物理削除していた
+#               (2026-07-29 に data/kekka/20260418〜20260510.csv 7件消失)。
+#               worktree 方式は master 作業ツリーに一切触れないので
+#               この事故クラスごと消滅、auto-stash も不要になった。
+#               (2) `git checkout/add master -- $batchFiles` の一括引数渡しが
+#               1030 件で Windows のコマンドライン長制限
+#               ("The filename or extension is too long") で死んでいたのを
+#               --pathspec-from-file (一時ファイル渡し) に置換。
 # =====================================================================
 
 [CmdletBinding()]
@@ -75,10 +86,14 @@ function Fail($msg) {
     exit 1
 }
 
-# 1. record current branch
+$ROOT = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
+$WT = Join-Path $ROOT ".worktrees\hf-spaces"
+
+# 1. sanity: run from master (sync source is the master *commit*, and the
+#    weekly flow always runs here; also guards against hf-spaces being
+#    checked out in the main tree, which would block worktree add)
 $origBranch = (git rev-parse --abbrev-ref HEAD).Trim()
 Write-Step "Current branch: $origBranch"
-
 if ($origBranch -ne "master") {
     Fail "Run this from master branch (current: $origBranch)"
 }
@@ -87,50 +102,22 @@ if ($origBranch -ne "master") {
 $masterSha = (git rev-parse HEAD).Trim()
 Write-Step "master HEAD: $masterSha"
 
-# 2b. stash uncommitted tracked changes before the `git checkout --force` in
-#     step 4. Without this, --force silently destroys any unstaged edit to a
-#     tracked file (e.g. work-in-progress docs/*.md or *.py) every time this
-#     script runs — and it runs from every weekly_nicegui phase. We restore
-#     the stash after switching back to $origBranch.
-$autoStashed = $false
-$dirty = git status --porcelain --untracked-files=no
-if ($dirty) {
-    Write-Step "Uncommitted tracked changes detected -> stashing before checkout --force"
-    git stash push --quiet -m "sync-hf auto-stash $masterSha"
-    if ($LASTEXITCODE -ne 0) { Fail "git stash failed; commit or stash manually before running sync-hf" }
-    $autoStashed = $true
-}
-
-# 3. verify sync targets exist
-foreach ($f in $SyncFiles) {
-    if (-not (Test-Path $f)) {
-        Fail "Sync target missing: $f"
-    }
-}
-Write-Step "Verified $($SyncFiles.Count) sync target(s)"
-
-# 4. switch to hf-spaces (--force discards stale LFS pointer junk that
-#    sometimes shows up as 'modified' on master but is not actually edited)
-Write-Step "Switching to hf-spaces"
-git checkout --force hf-spaces
-if ($LASTEXITCODE -ne 0) { Fail "checkout hf-spaces failed" }
-
-# 5. checkout SyncFiles from master (small list, 1 file = 1 call OK)
-Write-Step "Checking out fixed sync files from master"
-foreach ($f in $SyncFiles) {
-    git checkout master -- $f
-    if ($LASTEXITCODE -ne 0) {
-        git checkout $origBranch
-        Fail "checkout failed for $f"
-    }
-}
-
-# 5b. checkout data files matching regex patterns.
-# Bug fix (2026-05-23): per-file checkout を 246+ 回繰り返すと、後段の
-# git diff/status コマンドが空配列を返すバグが PS 5.1 で発生。
-# → 全 file path を集めて 1 回の `git checkout master -- $batch` で一括 checkout。
-Write-Step "Checking out data files (weekly / hosei / training / kako5 / cowork)"
+# 3. collect sync paths from the master COMMIT (not the working tree).
+#    ls-tree membership also verifies the fixed SyncFiles are actually
+#    committed to master (Test-Path alone let uncommitted files pass and
+#    then silently deploy a stale committed version).
 $allMasterFiles = git ls-tree -r --name-only master
+$masterSet = @{}
+foreach ($p in $allMasterFiles) { $masterSet[$p] = $true }
+
+foreach ($f in $SyncFiles) {
+    if (-not $masterSet.ContainsKey($f)) {
+        Fail "Sync target not tracked in master: $f (commit it first)"
+    }
+}
+Write-Step "Verified $($SyncFiles.Count) fixed sync target(s) tracked in master"
+
+Write-Step "Collecting data files (weekly / hosei / training / kako5 / cowork)"
 $batchFiles = @()
 foreach ($pat in $SyncDataPatterns) {
     $files = @($allMasterFiles | Where-Object { $_ -match $pat })
@@ -141,41 +128,89 @@ foreach ($pat in $SyncDataPatterns) {
     $batchFiles += $files
     Write-Host "    $pat -> $($files.Count) files" -ForegroundColor DarkGray
 }
-if ($batchFiles.Count -gt 0) {
-    git checkout master -- $batchFiles
-    Write-Host "    total batched: $($batchFiles.Count) files" -ForegroundColor DarkGray
+$allSyncPaths = @($SyncFiles) + $batchFiles
+Write-Host "    total sync paths: $($allSyncPaths.Count)" -ForegroundColor DarkGray
+
+# Write the pathspec to a temp file (UTF-8 no BOM; a BOM would corrupt the
+# first pathspec) to dodge the Windows command-line length limit.
+$specFile = Join-Path $env:TEMP "synchf_pathspec.txt"
+[System.IO.File]::WriteAllLines($specFile, [string[]]$allSyncPaths)
+
+# 4. ensure the persistent hf-spaces worktree exists and is healthy
+git worktree prune 2>$null
+$wtPorcelain = git worktree list --porcelain
+$wtRegistered = ($wtPorcelain | Where-Object { $_ -match '^worktree ' } |
+                 ForEach-Object { $_.Substring(9) }) -contains ($WT -replace '\\', '/')
+if (-not $wtRegistered) {
+    # also match native backslash form just in case
+    $wtRegistered = ($wtPorcelain | Where-Object { $_ -match '^worktree ' } |
+                     ForEach-Object { $_.Substring(9).Replace('/', '\') }) -contains $WT
+}
+if (-not $wtRegistered) {
+    if (Test-Path $WT) {
+        Fail "worktree dir exists but is not registered: $WT  (remove it, then re-run; git worktree add will recreate it)"
+    }
+    Write-Step "Creating persistent worktree: $WT (branch hf-spaces)"
+    git worktree add $WT hf-spaces
+    if ($LASTEXITCODE -ne 0) { Fail "git worktree add failed" }
+} else {
+    Write-Step "Using existing worktree: $WT"
 }
 
-# 6. show status (display only, never used for diff judgment after 5/23)
-Write-Step "Status on hf-spaces:"
-git status --short
+# E: drive FS が ownership を記録しないため、worktree の gitdir が
+# "dubious ownership" で拒否される (2026-07-29 DryRun 検証で実測)。
+# safe.directory 例外を冪等に登録して自己修復する。
+$wtSlash = $WT -replace '\\', '/'
+$safeDirs = @(git config --global --get-all safe.directory 2>$null)
+if ($safeDirs -notcontains $wtSlash) {
+    Write-Step "Registering safe.directory exception: $wtSlash"
+    git config --global --add safe.directory $wtSlash
+}
+
+$wtBranch = (git -C $WT rev-parse --abbrev-ref HEAD).Trim()
+if ($wtBranch -ne "hf-spaces") {
+    Fail "worktree $WT is on '$wtBranch', expected hf-spaces. Fix: git -C `"$WT`" checkout hf-spaces"
+}
+
+# 5. reset the worktree to a clean hf-spaces HEAD (it is a machine-managed
+#    mirror; nothing hand-edited lives there, so hard reset + clean is safe)
+git -C $WT reset --hard -q
+git -C $WT clean -fdq
+
+# 6. checkout sync paths from master into the worktree
+Write-Step "Checking out $($allSyncPaths.Count) path(s) from master into worktree"
+git -C $WT checkout master --pathspec-from-file=$specFile
+if ($LASTEXITCODE -ne 0) { Fail "checkout from master into worktree failed" }
+
+# 7. show status (display only)
+Write-Step "Status on hf-spaces worktree:"
+git -C $WT status --short
 
 if ($DryRun) {
-    Write-Step "DryRun: status shown above. Reverting working tree and switching back to $origBranch (no commit/push)."
-    git checkout --force $origBranch
-    if ($autoStashed) {
-        Write-Step "Restoring stashed changes"
-        git stash pop
-    }
+    Write-Step "DryRun: status shown above. Reverting worktree (no commit/push). master tree untouched."
+    git -C $WT reset --hard -q
+    git -C $WT clean -fdq
     exit 0
 }
 
-# 7. commit. Bug fix (2026-05-23): diff 検出に依存せず、ガンガン add して
-#    commit を試みる。"nothing to commit" でも graceful に push 段階に進む。
+# 8. stage + commit. Verify the stage actually took (see weekly_post.ps1
+#    2026-07-29 silent-add incident) instead of blindly trusting git add.
 Write-Step "Committing"
-git add $SyncFiles
-if ($batchFiles.Count -gt 0) {
-    git add $batchFiles
+git -C $WT add --pathspec-from-file=$specFile
+if ($LASTEXITCODE -ne 0) { Fail "git add in worktree failed (exit $LASTEXITCODE)" }
+
+$staged = @(git -C $WT diff --cached --name-only)
+if ($staged.Count -gt 0) {
+    $msg = "sync: master $($masterSha.Substring(0,7))"
+    git -C $WT commit -m $msg
+    if ($LASTEXITCODE -ne 0) { Fail "git commit in worktree failed" }
+    Write-Host "    committed $($staged.Count) file(s)" -ForegroundColor Green
+} else {
+    Write-Host "    nothing to commit (worktree clean vs hf-spaces HEAD)" -ForegroundColor Yellow
 }
 
-$msg = "sync: master $($masterSha.Substring(0,7))"
-git commit -m $msg
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "    nothing to commit (working tree clean vs hf-spaces HEAD)" -ForegroundColor Yellow
-}
-
-# 8. push to HF (HF default branch is main)
-# commit が成功 or 失敗どちらでも、local hf-spaces が remote hf/main より進んでる
+# 9. push to HF (HF default branch is main)
+# commit の有無に関わらず、local hf-spaces が remote hf/main より進んでる
 # 場合はそれを push する (前回の push 失敗を必ずリカバリ)。
 git fetch hf main 2>$null
 $localSha  = (git rev-parse hf-spaces).Trim()
@@ -191,15 +226,4 @@ if ($localSha -ne $remoteSha) {
     Write-Step "Already in sync with hf/main (no push needed)."
 }
 
-# 9. switch back
-Write-Step "Switching back to $origBranch"
-git checkout $origBranch
-if ($autoStashed) {
-    Write-Step "Restoring stashed changes"
-    git stash pop
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "    stash pop conflicted; resolve manually (your changes are in 'git stash list')" -ForegroundColor Yellow
-    }
-}
-
-Write-Step "Done. Check build at https://huggingface.co/spaces/gutchi15300/pycaliAI"
+Write-Step "Done (master tree never left $origBranch). Check build at https://huggingface.co/spaces/gutchi15300/pycaliAI"

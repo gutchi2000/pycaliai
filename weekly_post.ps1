@@ -1,4 +1,4 @@
-##############################################################
+﻿##############################################################
 # weekly_post.ps1  --- post-race workflow
 #
 # Usage:
@@ -73,20 +73,60 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "      data\_horse_history.parquet updated." -ForegroundColor Green
 }
 
-# -- Step 3: git add --
+# -- Step 3: git add (verified) --
 Write-Host "[3/4] git add ..." -ForegroundColor Cyan
 # data/cowork_results.json は generate_results.py が更新する Cowork 集計。
 # これを add し忘れると HF/master に反映されず、ダッシュボードの累計 P/L が凍結する
 # (2026-05-26 凍結事故の原因)。必ず含める。
-git add $kekkaPath data/results.json data/live_results_2026.csv data/cowork_results.json
-
-# Cowork bets (if exists for this date) - 的中判定対象
+#
+# 2026-07-29 ガード追加: この git add が「staged:」表示にもかかわらず実際には
+# 何もステージせず、直後の commit が "no changes added to commit" で素通りする
+# 事故が慢性化していた (7/12 以降 3 週分の kekka/results/cowork_results が
+# 未コミットのまま集計凍結ガードをすり抜けた)。同じ add を手動で打つと成功する
+# ためタイミング/状態依存で単独原因は未確定。以後は add の結果を
+# `git diff --cached` で実測検証し、0 件なら 1 回リトライ、それでも 0 件かつ
+# 変更が残っているなら fail-hard (exit 1) で停止する。exit 1 は
+# weekly_nicegui.ps1 の fail-hard に乗り、HF 同期ごと中止される。
+$addTargets = @(
+    $kekkaPath.Replace('\','/'),
+    'data/results.json',
+    'data/live_results_2026.csv',
+    'data/cowork_results.json'
+)
 $coworkBetsDir = "reports\cowork_bets\$Date"
 if (Test-Path $coworkBetsDir) {
-    git add ("{0}/*" -f $coworkBetsDir.Replace('\','/'))
-    Write-Host "      staged: $kekkaPath + results.json + cowork_results.json + live_results_2026.csv + cowork_bets/$Date/" -ForegroundColor Green
+    $addTargets += "reports/cowork_bets/$Date"
+}
+
+function Invoke-GitAddVerified([string[]]$targets) {
+    # Out-Host: git add の stdout が関数戻り値 ($staged) に混入するのを防ぐ
+    git add -- $targets | Out-Host
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "git add exited with code $LASTEXITCODE"
+    }
+    return ,@(git diff --cached --name-only)
+}
+
+$staged  = Invoke-GitAddVerified $addTargets
+$pending = @(git status --porcelain -- $addTargets)
+if ($staged.Count -eq 0 -and $pending.Count -gt 0) {
+    Write-Warning "git add staged 0 files but $($pending.Count) change(s) are pending:"
+    $pending | ForEach-Object { Write-Host "      pending: $_" -ForegroundColor Yellow }
+    Write-Host "      retrying git add in 3s ..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 3
+    $staged = Invoke-GitAddVerified $addTargets
+    if ($staged.Count -eq 0) {
+        Write-Error ("git add staged nothing twice while changes are pending. " +
+            "Aborting before commit/push (fail-hard). Run manually and inspect: " +
+            "git add -- $($addTargets -join ' ')")
+        exit 1
+    }
+}
+
+if ($staged.Count -gt 0) {
+    Write-Host "      staged $($staged.Count) file(s): $($staged -join ', ')" -ForegroundColor Green
 } else {
-    Write-Host "      staged: $kekkaPath + results.json + cowork_results.json + live_results_2026.csv (no cowork_bets/$Date/)" -ForegroundColor Green
+    Write-Host "      nothing to stage (targets already committed) - commit will be skipped" -ForegroundColor Yellow
 }
 
 # -- Step 4: git commit & push --
@@ -94,7 +134,13 @@ Write-Host "[4/4] git commit & push ..." -ForegroundColor Cyan
 $y = $Date.Substring(0,4)
 $m = $Date.Substring(4,2)
 $d = $Date.Substring(6,2)
-git commit -m "add kekka $y-$m-$d / update results"
+if ($staged.Count -gt 0) {
+    git commit -m "add kekka $y-$m-$d / update results"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "git commit failed (staged $($staged.Count) file(s) but commit returned $LASTEXITCODE)."
+        exit 1
+    }
+}
 git pull --rebase --autostash origin master
 git push origin HEAD:master
 if ($LASTEXITCODE -ne 0) {
