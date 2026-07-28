@@ -61,6 +61,18 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "      live_results_2026.csv updated." -ForegroundColor Green
 
+# -- Step 2.5: 馬ごと履歴 parquet 更新 (serve 履歴特徴の 2026 追随) --
+# export_weekly_marks の hist_same_*/course_*/jockey_* 再計算が読む
+# data/_horse_history.parquet に今週の kekka を取り込む。失敗しても
+# 翌週 Phase A で「parquet が古い」warning が出るだけなので non-fatal。
+Write-Host "[2.5/4] Updating _horse_history.parquet ..." -ForegroundColor Cyan
+python build_horse_history.py
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "build_horse_history.py failed (non-fatal, continuing...)"
+} else {
+    Write-Host "      data\_horse_history.parquet updated." -ForegroundColor Green
+}
+
 # -- Step 3: git add --
 Write-Host "[3/4] git add ..." -ForegroundColor Cyan
 # data/cowork_results.json は generate_results.py が更新する Cowork 集計。

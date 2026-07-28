@@ -57,12 +57,13 @@ DEAD_CAT = {"騎手コード", "調教師コード"}
 
 # リネーム修正後 (補正 2026-06-11 午前 / 調教 同日午後) も本番で作れない列。
 # build_pl_calibrators_serve.py はこちらを使う (serve 特徴を増やしたら必ず更新+再fit)。
-SERVE_DEAD_NOW_PREFIX = ("hist_same_",)
-SERVE_DEAD_NOW_EXACT = {
-    "course_n_prev", "course_win_rate", "course_top3_rate",
-    "jockey_n_prev", "jockey_win_rate", "jockey_top3_rate",
-}
-SERVE_DEAD_NOW_CAT = {"騎手コード", "調教師コード"}
+# 2026-07-29: hist_same_*/course_*/jockey_*/騎手・調教師コード の 12 列は
+# serve_history_feats.py (data/_horse_history.parquet + 馬名JOIN) で回収済み
+# (test パリティ 100% / ◎複勝 +0.84pt, reports/validate_serve_history_feats.json)。
+# → serve 死は解消、マスクは空。残差は同名曖昧馬 ~1.4% の NaN のみ。
+SERVE_DEAD_NOW_PREFIX = ()
+SERVE_DEAD_NOW_EXACT: set[str] = set()
+SERVE_DEAD_NOW_CAT: set[str] = set()
 
 
 def evaluate(te: pd.DataFrame, payouts: dict, cals: dict | None) -> dict:

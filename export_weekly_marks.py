@@ -316,6 +316,33 @@ def main() -> int:
             else:
                 df[c] = np.nan
 
+    # ------ serve skew 残差回収: 履歴特徴を馬名 JOIN で再計算 ------
+    # hist_same_* / course_* / jockey_* / 騎手・調教師コード は週次CSVに無く
+    # 上で NaN 補完される (-9999 落ち) が、data/_horse_history.parquet
+    # (build_horse_history.py 生成) から学習と同一定義・leak-safe as-of で
+    # 再計算して埋める。失敗時は fail-open (従来どおり NaN のまま) —
+    # 埋まらない週は serve canary (baseline 更新後) が検知する。
+    try:
+        from serve_history_feats import fill_history_features
+        hist_stats = fill_history_features(df)
+        cov = hist_stats["coverage"]
+        logger.info(
+            f"[serve history] 解決 {hist_stats['hit']}/{len(df)} 頭 "
+            f"(新馬 {hist_stats['new']} / 曖昧 {hist_stats['ambiguous']}) "
+            f"騎手コード {hist_stats['jockey_code']} / "
+            f"調教師コード {hist_stats['trainer_code']} — "
+            f"cov: course_n_prev={cov['course_n_prev']*100:.0f}% "
+            f"jockey_n_prev={cov['jockey_n_prev']*100:.0f}% "
+            f"hist_cond={cov['hist_same_cond_count']*100:.0f}%")
+        hist_max = hist_stats.get("hist_max_date", 0)
+        if date_str.isdigit() and hist_max and int(date_str) - hist_max > 300:
+            # parquet が1ヶ月以上古い (Phase C の build_horse_history.py 漏れ)
+            logger.warning(
+                f"[serve history] parquet が古い (最終 {hist_max}): "
+                "python build_horse_history.py で更新推奨")
+    except Exception as e:
+        logger.warning(f"[serve history] 失敗 → 履歴特徴は従来どおり欠損: {e}")
+
     # ------ kako5 history + horse facts (advisor + 出走表 表示用) ------
     from kako5_summary import build_histories, build_horse_facts
     kako5_path = BASE / "data" / "kako5" / f"{date_str}.csv"

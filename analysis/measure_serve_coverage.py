@@ -49,6 +49,14 @@ for wk in WEEKS:
     if not p.exists(): continue
     df = parse_csv(p)
     df = df.rename(columns={k:v for k,v in _SERVE_RENAME.items() if k in df.columns and v in feats and v not in df.columns})
+    # serve 履歴特徴の回収 (export_weekly_marks と同じ経路) を再現してから測る
+    try:
+        from serve_history_feats import fill_history_features
+        from export_weekly_marks import ensure_date_column
+        df = ensure_date_column(df)
+        fill_history_features(df)
+    except Exception as e:
+        print(f"  [warn] serve history fill 失敗 (履歴特徴は0%扱い): {e}")
     for f in feats:
         cov = float(df[f].notna().mean()) if f in df.columns else 0.0
         percol[f].append(cov)
@@ -70,11 +78,12 @@ deadnames = dead.feat.tolist()
 
 # master_v2 照合: serve死だが master では生 = serve-skew / master でも死 = 常時死
 mcov = {}
-m = pd.read_csv(BASE/"data/master_v2_20130105-20251228.csv", encoding="utf-8-sig",
-                usecols=[c for c in deadnames], low_memory=False)
-for c in deadnames:
-    s = m[c].replace("", np.nan) if m[c].dtype == object else m[c]
-    mcov[c] = float(s.notna().mean())
+if deadnames:
+    m = pd.read_csv(BASE/"data/master_v2_20130105-20251228.csv", encoding="utf-8-sig",
+                    usecols=[c for c in deadnames], low_memory=False)
+    for c in deadnames:
+        s = m[c].replace("", np.nan) if m[c].dtype == object else m[c]
+        mcov[c] = float(s.notna().mean())
 
 print(f"\n--- serve死亡(<5%) {len(deadnames)}特徴: master での生死 ---")
 serveskew, alwaysdead = [], []
