@@ -89,6 +89,8 @@ if ($Schedule) {
     # 古いレース毎タスクを掃除してから今日のぶんを登録
     Get-ScheduledTask -TaskName 'PyCaLiAI_T10R_*' -ErrorAction SilentlyContinue |
         Unregister-ScheduledTask -Confirm:$false
+    Get-ScheduledTask -TaskName 'PyCaLiAI_T15R_*' -ErrorAction SilentlyContinue |
+        Unregister-ScheduledTask -Confirm:$false
 
     $lines = & $pyFull 't10_runner.py' $Date '--list-schedule' --lead-min $LeadMin
     $n = 0
@@ -116,6 +118,23 @@ if ($Schedule) {
             -Settings $set -Description "PyCaLiAI T-10 レース $rid ($post 発走)" -Force | Out-Null
         $n++
         Write-Host ("  登録 {0}  {1:HH:mm} 処理 → {2} 発走  ({3})" -f $taskName, $runAt, $post, $rid)
+
+        # T-15 直前補正印タスク (発走17分前取得 → push+デプロイで表示は T-15 前後)
+        $runAt15 = (Get-Date -Hour ([int]$ph) -Minute ([int]$pm) -Second 0).AddMinutes(-17)
+        if ($runAt15 -gt (Get-Date)) {
+            $act15 = New-ScheduledTaskAction -Execute 'powershell.exe' `
+                -Argument ("-NoProfile -ExecutionPolicy Bypass -File E:\PyCaLiAI\t15.ps1 " +
+                           "-Once $rid -Date $Date") `
+                -WorkingDirectory 'E:\PyCaLiAI'
+            $trg15 = New-ScheduledTaskTrigger -Once -At $runAt15
+            $trg15.EndBoundary = $runAt15.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss")
+            $set15 = New-ScheduledTaskSettingsSet -StartWhenAvailable -WakeToRun `
+                -ExecutionTimeLimit (New-TimeSpan -Minutes 10) `
+                -MultipleInstances IgnoreNew `
+                -DeleteExpiredTaskAfter (New-TimeSpan -Hours 6)
+            Register-ScheduledTask -TaskName "PyCaLiAI_T15R_$rid" -Action $act15 -Trigger $trg15 `
+                -Settings $set15 -Description "PyCaLiAI T-15 補正印 $rid ($post 発走)" -Force | Out-Null
+        }
     }
     Write-Host "[schedule] $n レースのタスクを登録 (WakeToRun)"
     # 朝一の変更情報チェック (前日発表の取消等をサイトへ即反映 + 生録 dump でパーサ検証材料を残す)

@@ -30,11 +30,15 @@ from pathlib import Path
 
 BASE = Path(__file__).parent
 OUT_DIR = BASE / "reports" / "live_odds"
-# sid 登録は見送り (2026-06-12 判断): 登録制度は公開ソフト向けで、個人利用のみの
-# 本ツールには形式が合わない。登録フォームのホームページ欄に公開ページを書くこと
-# 自体が再配信の自己申告になる藪蛇リスクもある。公開・配布する場合は要登録
-# (Sid 形式: 作者ID/ソフトウェアID/ソフト名/Ver — developer.jra-van.jp/t/topic/30)。
-SID = "UNKNOWN"
+# sid: data/jvlink_sid.txt があればその 1 行目を使う（2026-07-30〜: サイトに派生指標
+# =T-15補正印を公開するため sid 登録方針に転換。登録が下りたら sid をこのファイルに
+# 置くだけで有効化。Sid 形式: 作者ID/ソフトウェアID/ソフト名/Ver
+# — developer.jra-van.jp/t/topic/30）。無ければ従来どおり "UNKNOWN"（個人利用扱い）。
+try:
+    SID = (Path(__file__).parent / "data" / "jvlink_sid.txt").read_text(
+        encoding="utf-8").strip().splitlines()[0] or "UNKNOWN"
+except Exception:
+    SID = "UNKNOWN"
 
 
 def _digits(s):

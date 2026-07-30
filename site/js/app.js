@@ -116,6 +116,7 @@ async function loadDay(date) {
     } catch (e) { day.career = null; }
   }
   await loadChanges(date, day);
+  armChangesPolling(date, day);
   state.day = day;
   state.place = day.places[0] ?? null;
   const first = racesOf(state.place)[0];
@@ -138,11 +139,26 @@ async function loadChanges(date, day) {
   } catch (e) { /* noop */ }
 }
 
+let changesTimer = null;
+function armChangesPolling(date, day) {
+  // 開催当日にページを開きっぱなしでも T-15 補正印・取消等が届くよう 2 分毎に再取得
+  if (changesTimer) { clearInterval(changesTimer); changesTimer = null; }
+  const t = new Date();
+  const ymd = `${t.getFullYear()}${String(t.getMonth() + 1).padStart(2, "0")}${String(t.getDate()).padStart(2, "0")}`;
+  if (date !== ymd) return;
+  changesTimer = setInterval(async () => {
+    const prev = day.changes_fetched;
+    await loadChanges(date, day);
+    if (day.changes_fetched !== prev && state.day === day) renderRace();
+  }, 120000);
+}
+
 function applyChanges(day, ch) {
   day.changes_fetched = ch.fetched;
   for (const r of day.races) {
     const e = ch.races[r.race_id];
     if (!e) continue;
+    if (e.hosei?.marks?.length) r.hosei = e.hosei;
     if (e.time_change?.new && e.time_change.new !== r.start_time) {
       if (!r.start_time_old) r.start_time_old = r.start_time;
       r.start_time = e.time_change.new;
@@ -494,6 +510,27 @@ function honmeiVerdictEl(r) {
   </div>`;
 }
 
+function hoseiCard(r) {
+  // T-15 直前補正印 (changes_{date}.json 経由、t15.ps1/publish_hosei.py が生成)
+  if (r.hosei?.marks?.length) {
+    const chips = r.hosei.marks.map((m) => {
+      const h = r.horses.find((x) => x.umaban === m.umaban);
+      return `<span class="hs-chip"><b class="mark ${markCls(m.mark)}">${m.mark}</b>
+        <span class="hs-uma">${m.umaban}</span> ${esc(m.name || h?.name || "")}${m.chg ? `<i class="hs-star" title="朝のAI印から変動">＊</i>` : ""}</span>`;
+    }).join("");
+    return `<div class="card hosei-card">
+      <div class="hs-head"><b>⏱ 直前補正印</b><span class="hs-asof">${esc(r.hosei.asof || "")} 時点のオッズ情報を加味</span></div>
+      <div class="hs-marks">${chips}</div>
+      <div class="hs-note">朝のAI印（上表）に直前オッズの情報を混ぜて付け直した印。<b>＊</b>=朝の印から変動。過去2年の検証で ◎ の3着内率に +3pt 程度の改善を確認。</div>
+    </div>`;
+  }
+  if (r.result) return "";
+  return `<div class="card hosei-card pending">
+    <div class="hs-head"><b>⏱ 直前補正印</b></div>
+    <div class="hs-note">発走約15分前ごろに、直前オッズの情報を加味した補正印をここに表示します（開催日のみ・自動更新）。上表のAI印は朝の時点で固定です。</div>
+  </div>`;
+}
+
 function renderTable(r, flip = false) {
   const prevTops = new Map();
   if (flip) {
@@ -565,7 +602,8 @@ function renderTable(r, flip = false) {
         <span class="ta-r c-vs">市場</span>
       </div>
       ${rows}
-    </div>`;
+    </div>
+    ${hoseiCard(r)}`;
 
   $("#shutsuba").querySelectorAll(".hsort").forEach((b) => {
     b.onclick = (e) => {
