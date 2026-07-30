@@ -171,11 +171,13 @@ def assemble(date: str, buckets: dict) -> tuple[dict, dict]:
         weights = {}
         for r in by_pre.get("WH", []):
             weights.update(parse_wh(r))    # 最新録が上書き
-        if weights:
-            entry["weights"] = weights
+        # 馬体重はサイトへ出さない (2026-07-31 投稿ガイドライン「JV-Linkから取得した
+        # データは投稿できません」)。取消/騎手変更/時刻は JRA 自身が無料公開する
+        # 公知事実の表示として残す (誤情報防止目的、posting-support 照会対象)。
         if entry:
             races_site[rid] = entry
-        races_full[rid] = {"n_raw": {k: len(v) for k, v in by_pre.items()}, **entry}
+        races_full[rid] = {"n_raw": {k: len(v) for k, v in by_pre.items()},
+                           **entry, **({"weights": weights} if weights else {})}
     full = {"date": date, "fetched": fetched, "tentative": True, "races": races_full}
     site = {"date": date, "fetched": fetched, "races": races_site}
     return full, site

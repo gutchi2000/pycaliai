@@ -970,6 +970,39 @@ def build_results_json() -> dict:
     }
 
 
+# ---------------------------------------------------------------- 公開スクラブ
+def scrub_public(day: dict) -> dict:
+    """JRA-VAN 投稿ガイドライン対応 (2026-07-31): 公開 JSON から生データを落とす。
+
+    根拠 (jra-van.jp/info/post_guide.html 原文確認済み):
+      - 「投稿できないコンテンツ: 調教タイム」 → training_top5 / horses[].training
+      - 「JV-Linkから取得したデータは投稿できません」 → ライブ馬体重 (taiju)
+      - 「有料会員限定情報の過度な転載・公開」の禁止 → オッズ生値・複勝レンジ・
+        馬連ペアオッズ・払戻金全券種の網羅掲載、EV等オッズが逆算可能な数値
+    自作の予想・確率・印・集計 (表やグラフ) は OK 側 (出典表記はサイト footer)。
+    """
+    day.pop("training_top5", None)
+    day.pop("odds_asof", None)
+    for r in day.get("races", []):
+        res = r.get("result")
+        if res:
+            res.pop("pays", None)
+        for p in r.get("pairs", []) or []:
+            p.pop("umaren_odds", None)
+        vhs = (r.get("judgment") or {}).get("value_horses") or []
+        for v in vhs:
+            for k in ("ev_tan", "ev_fuku", "umami_tan", "umami_fuku"):
+                v.pop(k, None)
+        for h in r.get("horses", []) or []:
+            for k in ("odds", "fuku_low", "fuku_high", "ev_tan",
+                      "training", "taiju", "taiju_diff"):
+                h.pop(k, None)
+            um = h.get("umami")
+            if isinstance(um, dict):
+                h["umami"] = {k: um[k] for k in ("grade", "side") if k in um}
+    return day
+
+
 # ---------------------------------------------------------------- main
 def main() -> None:
     only_date = sys.argv[1] if len(sys.argv) > 1 else None
@@ -1011,6 +1044,7 @@ def main() -> None:
         if only_date is None or date_str == only_date:
             day = transform_bundle(path, cowork, wide_data, course_stats,
                                    ped_index, grade_map)
+            scrub_public(day)
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(day, f, ensure_ascii=False, separators=(",", ":"))
             # 分析カード(Explainability) を同時生成 (LLMは重いので既定OFF; EXPLAIN_LLM=1で有効)

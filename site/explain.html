@@ -66,7 +66,7 @@
     <a href="index.html" class="backlink">← 予想に戻る</a>
     <h1>🏇 レース分析カード <span class="badge">Explainability</span></h1>
     <label>開催日 <select id="dateSel"></select></label>
-    <span class="hint">勝率/対戦レーティング/脚質/馬場/展開 ＋ AI解説。馬券判断はご自身で。</span>
+    <span class="hint">勝率/対戦レーティング/脚質/馬場/展開 ＋ AI解説。馬券判断はご自身で。出典：TARGET frontier JV（JRA-VAN Data Lab.）のデータを基に独自分析・作成。</span>
   </div>
   <div id="venueTabs" style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;"></div>
   <div id="cards"></div>
@@ -80,7 +80,6 @@ async function getJSON(u){ const r = await fetch(u); if(!r.ok) throw new Error(u
 
 function horseRow(h){
   const mk = h.mark||"";
-  const evc = (h.ev!=null && h.ev>=1.0)?"ev-pos":"ev-neg";
   const vs = (h.elo_vs_field!=null)? (h.elo_vs_field>0?"+":"")+h.elo_vs_field : "–";
   const pos = h.pos_1c?`${h.pos_1c}→${h.pos_4c}`:"–";
   return `<tr>
@@ -91,8 +90,6 @@ function horseRow(h){
     <td>${h.p_top3_pct}%</td>
     <td>${fmtOdds(h.yoso_odds)}</td>
     <td>${fmtOdds(h.kijun_odds)}</td>
-    <td>${fmtOdds(h.real_odds)}</td>
-    <td class="${evc}">${h.ev!=null?h.ev:"–"}</td>
     <td>${J(h.elo)}</td>
     <td>${vs}</td>
     <td class="l">${J(h.kyaku)}</td>
@@ -125,7 +122,7 @@ function renderCard(c, idx){
     </div>
     <div class="twrap"><table>
       <thead><tr><th>印</th><th>馬番</th><th class="l">馬名</th><th>勝率</th><th>複勝</th>
-      <th>予想</th><th>基準</th><th>実</th><th>EV</th><th>RTG</th><th>vs</th><th class="l">脚質</th><th>位置</th><th>買</th></tr></thead>
+      <th>予想</th><th>基準</th><th>RTG</th><th>vs</th><th class="l">脚質</th><th>位置</th><th>買</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
     ${tmplBox}${narr}${ana}${res}</div></details>`;

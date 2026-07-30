@@ -158,7 +158,6 @@ function applyChanges(day, ch) {
   for (const r of day.races) {
     const e = ch.races[r.race_id];
     if (!e) continue;
-    if (e.hosei?.marks?.length) r.hosei = e.hosei;
     if (e.time_change?.new && e.time_change.new !== r.start_time) {
       if (!r.start_time_old) r.start_time_old = r.start_time;
       r.start_time = e.time_change.new;
@@ -177,10 +176,8 @@ function applyChanges(day, ch) {
         h.kawari = h.kawari || "*";
       }
     });
-    Object.entries(e.weights || {}).forEach(([u, w]) => {
-      const h = byUma.get(+u);
-      if (h && h.taiju == null) { h.taiju = w[0]; h.taiju_diff = w[1] || ""; }
-    });
+    // 馬体重(weights)/補正印(hosei) の反映は停止 (2026-07-31):
+    // 投稿ガイドライン「JV-Linkから取得したデータは投稿できません」対応。
   }
 }
 
@@ -337,9 +334,6 @@ function resultBanner(r) {
       <span class="res-n">${esc(h.name)}</span>
       ${h.mark ? `<span class="mark ${markCls(h.mark)}" style="font-size:13px">${h.mark}</span>` : ""}</span>`;
   }).join("");
-  const pays = res.pays || {};
-  const fuku = Object.entries(pays.fuku || {}).map(([u, v]) => `${u}番 ${yen(v)}`).join("・");
-  const wide = Object.entries(pays.wide || {}).map(([k, v]) => `${k} ${yen(v)}`).join("・");
   const honmei = r.horses.find((h) => h.mark === "◎");
   const hPos = honmei ? res.order[String(honmei.umaban)] : null;
   const hitChip = hPos === 1 ? `<span class="hitchip">◎ 1着的中</span>`
@@ -347,11 +341,6 @@ function resultBanner(r) {
     : honmei ? `<span class="hitchip miss">◎ ${hPos ?? "—"}着</span>` : "";
   return `<div class="resbar">
     <span class="res-t">RESULT</span>${top}${hitChip}
-    <span class="res-pays">
-      <i>単勝 ${yen(pays.tan)}</i>${fuku ? `<i>複勝 ${fuku}</i>` : ""}
-      <i>馬連 ${yen(pays.umaren)}</i>${wide ? `<i>ワイド ${wide}</i>` : ""}
-      <i>馬単 ${yen(pays.umatan)}</i><i>三連複 ${yen(pays.sanrenpuku)}</i>
-    </span>
   </div>`;
 }
 
@@ -401,11 +390,9 @@ function renderHeader(r) {
 const SORTS = {
   uma:   { key: (h) => h.umaban ?? 99, dir: 1 },
   ninki: { key: (h) => h.ninki ?? 99, dir: 1 },
-  odds:  { key: (h) => h.odds ?? 9999, dir: 1 },
   ai:    { key: (h) => h.ai_score ?? -1, dir: -1 },
   win:   { key: (h) => h.p_win ?? -1, dir: -1 },
   sho:   { key: (h) => h.p_sho ?? -1, dir: -1 },
-  ev:    { key: (h) => h.ev_tan ?? -1, dir: -1 },
 };
 
 function spark(h) {
@@ -510,26 +497,8 @@ function honmeiVerdictEl(r) {
   </div>`;
 }
 
-function hoseiCard(r) {
-  // T-15 直前補正印 (changes_{date}.json 経由、t15.ps1/publish_hosei.py が生成)
-  if (r.hosei?.marks?.length) {
-    const chips = r.hosei.marks.map((m) => {
-      const h = r.horses.find((x) => x.umaban === m.umaban);
-      return `<span class="hs-chip"><b class="mark ${markCls(m.mark)}">${m.mark}</b>
-        <span class="hs-uma">${m.umaban}</span> ${esc(m.name || h?.name || "")}${m.chg ? `<i class="hs-star" title="朝のAI印から変動">＊</i>` : ""}</span>`;
-    }).join("");
-    return `<div class="card hosei-card">
-      <div class="hs-head"><b>⏱ 直前補正印</b><span class="hs-asof">${esc(r.hosei.asof || "")} 時点のオッズ情報を加味</span></div>
-      <div class="hs-marks">${chips}</div>
-      <div class="hs-note">朝のAI印（上表）に直前オッズの情報を混ぜて付け直した印。<b>＊</b>=朝の印から変動。過去2年の検証で ◎ の3着内率に +3pt 程度の改善を確認。</div>
-    </div>`;
-  }
-  if (r.result) return "";
-  return `<div class="card hosei-card pending">
-    <div class="hs-head"><b>⏱ 直前補正印</b></div>
-    <div class="hs-note">発走約15分前ごろに、直前オッズの情報を加味した補正印をここに表示します（開催日のみ・自動更新）。上表のAI印は朝の時点で固定です。</div>
-  </div>`;
-}
+// T-15 直前補正印カードは掲載停止 (2026-07-31): JV-Link 由来データの投稿不可条項
+// (post_guide FAQ) に抵触するため。posting-support への照会結果次第で再開判断。
 
 function renderTable(r, flip = false) {
   const prevTops = new Map();
@@ -551,7 +520,6 @@ function renderTable(r, flip = false) {
     const isValue = valueSet.has(h.umaban) || h.vs_market === "under";
     const idx = h.ai_score == null ? "—"
       : Math.round((h.ai_score - sMin) / sRange * 100);
-    const ev = h.ev_tan;
     const resPos = hasRes ? r.result.order[String(h.umaban)] : null;
     const inTop3 = resPos != null && resPos <= 3;
     return `<div class="hrow ${flip ? "still" : ""} ${isHonmei ? "honmei" : ""} ${!h.mark ? "dim" : ""} ${isValue ? "value" : ""} ${inTop3 ? "intop3" : ""} ${h.scratched ? "scr" : ""}"
@@ -564,7 +532,6 @@ function renderTable(r, flip = false) {
         <span class="hsub">${levelChip(h)}${kyakuChip(h)}${esc(subLine(h))}</span>
       </span>
       <span class="c-ninki num ta-c">${h.ninki ?? "—"}</span>
-      <span class="odds num ta-r c-odds">${num(h.odds)}${ev != null && ev >= 1.2 ? `<span class="oddsev">EV ${ev.toFixed(2)}</span>` : ""}</span>
       <span class="pbar c-ai">
         <span class="aidx num ${h.ai_rank === 1 ? "top" : ""}">${idx}</span>
         <span class="bar"><i style="width:${idx === "—" ? 0 : idx}%;--i:${i}"></i></span>
@@ -587,14 +554,13 @@ function renderTable(r, flip = false) {
     <div class="sh-head">
       <span class="sh-title"><b>AI印</b>出走表</span>
       <span class="sh-note">行クリックで詳細 ／ 列見出しでソート ／ <b class="lvchip lv-S" style="margin:0">Lv</b>=馬レベル(近走成績・S〜D)
-        ／ バー色: <i class="legdot gold"></i>◎本命 <i class="legdot teal"></i>妙味(市場過小評価) <i class="legdot blue"></i>その他${state.day?.odds_asof ? ` ／ オッズ=${state.day.odds_asof} 時点の前売り` : ""}</span>
+        ／ バー色: <i class="legdot gold"></i>◎本命 <i class="legdot teal"></i>妙味(市場過小評価) <i class="legdot blue"></i>その他</span>
     </div>
     <div class="card htable ${hasRes ? "hasres" : "nores"}">
       <div class="hh">
         ${hasRes ? `<span class="c-res">着</span>` : ""}
         <span>${sortBtn("uma", "印")}</span><span>馬番</span><span>馬名・騎手</span>
         <span class="ta-c c-ninki">${sortBtn("ninki", "人気")}</span>
-        <span class="ta-r c-odds">${sortBtn("odds", "単オッズ")}</span>
         <span class="c-ai">${sortBtn("ai", "AI指数")}</span>
         <span class="ta-r">${sortBtn("win", "勝率")}</span>
         <span class="ta-r c-sho">${sortBtn("sho", "複勝圏")}</span>
@@ -602,8 +568,7 @@ function renderTable(r, flip = false) {
         <span class="ta-r c-vs">市場</span>
       </div>
       ${rows}
-    </div>
-    ${hoseiCard(r)}`;
+    </div>`;
 
   $("#shutsuba").querySelectorAll(".hsort").forEach((b) => {
     b.onclick = (e) => {
@@ -655,23 +620,21 @@ function renderExtras(r) {
       <span class="pair-h">${wk(hb)}${hb.mark ? `<b class="mark ${markCls(hb.mark)}">${hb.mark}</b>` : ""}</span>
       <span class="pair-v num">${pct(p.p_umaren)}<small>%</small></span>
       <span class="pair-v num">${pct(p.p_wide)}<small>%</small></span>
-      <span class="pair-v num odds-col">${p.umaren_odds != null ? num(p.umaren_odds) : "—"}<small>倍</small></span>
-      ${win ? `<span class="pair-win">的中 ${yen(r.result.pays.umaren)}</span>` : ""}
+      ${win ? `<span class="pair-win">2頭とも連対</span>` : ""}
     </div>`;
   }).join("");
 
   $("#extras").innerHTML = `<div class="ex-grid">
     <div class="card ex">
-      <div class="ex-t">馬連・ワイド 妙味 <small>AI確率 × 実オッズ・上位${(r.pairs || []).length}ペア</small></div>
+      <div class="ex-t">馬連・ワイド ペア確率 <small>AI算出・上位${(r.pairs || []).length}ペア</small></div>
       <div class="pair hh2">
         <span></span><span></span><span></span>
-        <span class="pair-v">馬連率</span><span class="pair-v">ワイド率</span><span class="pair-v odds-col">馬連オッズ</span>
+        <span class="pair-v">馬連率</span><span class="pair-v">ワイド率</span>
       </div>
       ${pairRows || `<div class="cw-empty">ペアデータなし</div>`}
-      ${(r.pairs || []).some((p) => p.umaren_odds != null) ? `<div class="pair-note">
+      <div class="pair-note">
         <b>馬連率/ワイド率</b>＝AIが算出した、その2頭が馬連/ワイドで的中する確率。
-        <b>馬連オッズ</b>＝実際に出ている馬連の配当（倍）。<u>率の割にオッズが高いペアが妙味</u>。
-      </div>` : ""}
+      </div>
     </div>
     ${realizedCard(r)}
   </div>`;
@@ -877,7 +840,6 @@ function openDrawer(umaban) {
     ["騎手", h.jockey ? `${esc(h.jockey)}${h.kawari ? " <i class='kw'>乗替</i>" : ""}` : "—"],
     ["斤量", h.kinryo ? num(h.kinryo) + " kg" : "—"],
     ["厩舎", h.trainer ? `${esc(h.shozoku ? h.shozoku + "・" : "")}${esc(h.trainer)}` : "—"],
-    ["馬体重", h.taiju ? `${h.taiju}${h.taiju_diff ? ` (${esc(h.taiju_diff)})` : ""}` : "—"],
     ["脚質", h.style ? esc(h.style) : "—"],
     ["馬レベル (近走成績)", h.level
       ? `<b class="lvchip lv-${h.level.tier}" style="margin-right:6px">${h.level.tier}</b>${h.level.score} <small>/100</small>`
@@ -907,10 +869,9 @@ function openDrawer(umaban) {
           <div class="dw-stat"><div class="v ${h.mark === "◎" ? "gold" : ""}">${pct(h.p_win)}%</div><div class="k">勝率</div></div>
           <div class="dw-stat"><div class="v">${pct(h.p_plc)}%</div><div class="k">連対率</div></div>
           <div class="dw-stat"><div class="v">${pct(h.p_sho)}%</div><div class="k">複勝圏</div></div>
-          <div class="dw-stat"><div class="v ${h.ev_tan >= 1.2 ? "teal" : ""}">${num(h.ev_tan, 2)}</div><div class="k">単勝EV</div></div>
+          <div class="dw-stat"><div class="v">${h.ninki ?? "—"}</div><div class="k">人気</div></div>
         </div>
-        <div class="dw-odds">単勝 <b class="num">${num(h.odds)}</b> 倍 ／
-          複勝 <b class="num">${num(h.fuku_low)}〜${num(h.fuku_high)}</b> 倍 ／ ${vsChip(h.vs_market)}</div>
+        <div class="dw-odds">市場評価: ${vsChip(h.vs_market)}</div>
         <div class="dw-info">${infoRows}</div>
       </div>
     </div>
@@ -923,7 +884,7 @@ function openDrawer(umaban) {
     <div class="dw-hsum">直近 <b class="num">${career.cur}</b> ・ 最高 <b class="num">${career.best}</b>
       ${career.rank ? ` ・ 現役ランキング <b class="num">${career.rank}</b> 位 <small>/ ${career.n_rank.toLocaleString()}頭</small>` : ""}</div>
     <div id="dwCareerChart" style="height:230px;margin:4px 0 2px"></div>` : ""}
-    <div class="dw-note">勝率・複勝圏は v6 calibrator 補正後の Plackett-Luce 確率。EV = 勝率 × 単勝オッズ。馬レベル・指数推移は各走の着順・人気(公開データ)から算出した 0-100 の相対指数。</div>`;
+    <div class="dw-note">勝率・複勝圏は v6 calibrator 補正後の Plackett-Luce 確率。馬レベル・指数推移は各走の着順・人気(公開データ)から算出した 0-100 の相対指数。</div>`;
 
   if (career) drawCareerChart(career);
   $("#dwClose").onclick = closeDrawer;
@@ -1006,13 +967,12 @@ const VIEWS = [
   { key: "shutsuba", label: "出走表" },
   { key: "bunseki", label: "全頭分析" },
   { key: "course", label: "コース" },
-  { key: "training", label: "調教" },
   { key: "pedigree", label: "血統" },
 ];
 const MARK_COLOR = { "◎": "#f5b942", "〇": "#d9e2f2", "○": "#d9e2f2", "▲": "#d08b4c", "△": "#8d9cba", "": "#46587e" };
 const RANK_COLOR = { SS: "#f5b942", S: "#2dd4a8", A: "#5ba0f5", B: "#8d9cba" };
 const UMAMI_COLOR = { S: "#f5b942", A: "#2dd4a8", B: "#5ba0f5", C: "#8d9cba", "罠": "#f2555a" };
-let umamiSort = "xroi";
+let umamiSort = "grade";
 
 function disposeCharts() {
   charts.forEach((c) => { try { c.dispose(); } catch (e) { /* noop */ } });
@@ -1054,13 +1014,13 @@ function rankBadge(rank) {
 
 /* ---------------- 全頭 UMAMI テーブル ---------------- */
 function umamiTableHtml(r) {
+  const GRADE_ORD = { S: 5, A: 4, B: 3, C: 2, D: 1 };
   const SORTS = {
-    xroi: (h) => h.umami?.xroi ?? -1,
+    grade: (h) => GRADE_ORD[h.umami?.grade] ?? -1,
     uma: (h) => -(h.umaban ?? 99),
-    evt: (h) => h.umami?.ev_tan ?? -1,
-    evf: (h) => h.umami?.ev_fuku ?? -1,
+    win: (h) => h.p_win ?? -1,
   };
-  const key = SORTS[umamiSort] ? umamiSort : "xroi";
+  const key = SORTS[umamiSort] ? umamiSort : "grade";
   const hs = [...r.horses].sort((a, b) => SORTS[key](b) - SORTS[key](a));
   const sb = (k, label) => `<button class="usort ${umamiSort === k ? "on" : ""}" data-uk="${k}">${label}${umamiSort === k ? " ▼" : ""}</button>`;
 
@@ -1068,30 +1028,26 @@ function umamiTableHtml(r) {
     const u = h.umami || {};
     const g = u.grade || "—";
     const gated = u.side == null;
-    const xroiTxt = u.xroi != null ? `${Math.round(u.xroi * 100)}<small>%</small>` : "—";
-    const xroiCls = u.xroi == null ? "" : u.xroi >= 0.8 ? "good" : u.xroi >= 0.72 ? "mid" : "low";
     return `<div class="um-row ${gated ? "gated" : ""} ${h.mark === "◎" ? "honmei" : ""}" data-uma="${h.umaban}">
       <span class="mark ${markCls(h.mark)}">${h.mark || "・"}</span>
       <span>${wk(h)}</span>
       <span class="um-name">${esc(h.name)}</span>
-      <span class="num ta-r um-odds">${num(h.odds)}</span>
-      <span class="num ta-r um-evt">${u.ev_tan != null ? u.ev_tan.toFixed(2) : "—"}</span>
-      <span class="num ta-r um-evf">${u.ev_fuku != null ? u.ev_fuku.toFixed(2) : "—"}</span>
-      <span class="num ta-r um-xroi ${xroiCls}">${xroiTxt}</span>
+      <span class="num ta-r um-evt">${pct(h.p_win)}<small>%</small></span>
+      <span class="num ta-r um-evf">${pct(h.p_sho, 0)}<small>%</small></span>
       <span class="ta-c"><span class="um-g" style="background:${UMAMI_COLOR[g] || "#46587e"}">${g}</span></span>
       <span class="um-side">${gated ? "—" : esc(u.side || "")}</span>
-      <span class="um-reason">${esc(u.reason || "")}</span>
+      <span class="um-reason">${vsChip(h.vs_market)}</span>
     </div>`;
   }).join("");
 
   return `<div class="card um-card">
-    <div class="an-t">🍣 全頭 UMAMI テーブル
-      <small>UMAMI = 実測補正後の期待回収率(xROI)。0.80=控除率中立、それ以上が勝負どころ。「罠」は妙味でも来る見込み薄</small></div>
+    <div class="an-t">🍣 全頭 妙味グレード
+      <small>AI確率と市場評価の乖離から算出した独自グレード。S/A=妙味、「罠」は妙味に見えても来る見込み薄</small></div>
     <div class="um-head">
       <span></span><span>${sb("uma", "馬番")}</span><span>馬名</span>
-      <span class="ta-r um-odds">単オッズ</span><span class="ta-r um-evt">${sb("evt", "EV単")}</span>
-      <span class="ta-r um-evf">${sb("evf", "EV複")}</span><span class="ta-r">${sb("xroi", "UMAMI")}</span>
-      <span class="ta-c">格</span><span class="um-side">推奨</span><span class="um-reason">理由</span>
+      <span class="ta-r um-evt">${sb("win", "勝率")}</span>
+      <span class="ta-r um-evf">複勝圏</span>
+      <span class="ta-c">${sb("grade", "格")}</span><span class="um-side">推奨</span><span class="um-reason">市場</span>
     </div>
     ${rows}
   </div>`;
@@ -1207,7 +1163,7 @@ function renderBunseki(r, vb) {
       backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e",
       textStyle: { color: "#edf1fb", fontSize: 12 },
       formatter: (p) => { const h = p.data.h; return `<b>${h.umaban} ${esc(h.name)}</b> ${h.mark || ""}<br>`
-        + `${h.ninki ?? "—"}番人気 / 単${num(h.odds)}倍<br>AI複勝圏 ${pct(h.p_sho)}% / 勝率 ${pct(h.p_win)}%<br>単EV ${num(h.ev_tan, 2)}`; },
+        + `${h.ninki ?? "—"}番人気<br>AI複勝圏 ${pct(h.p_sho)}% / 勝率 ${pct(h.p_win)}%`; },
     },
     xAxis: Object.assign({ name: "市場人気（左ほど上位人気）", nameLocation: "middle", nameGap: 30, min: 0.5, max: N + 0.5, interval: 1, inverse: false }, axisStyle()),
     yAxis: Object.assign({ name: "AI複勝圏率（%）", nameLocation: "middle", nameRotate: 90, nameGap: 34, min: 0 }, axisStyle()),
@@ -1387,62 +1343,7 @@ function renderCourse(r, vb) {
   barChart("ch-sex", cs.sex, { barWidth: "40%" });
 }
 
-/* ---------------- 調教 ---------------- */
-function lapMini(laps) {
-  if (!laps || !laps.length) return "";
-  const lo = Math.min(...laps), hi = Math.max(...laps);
-  const span = hi - lo || 1;
-  const n = laps.length;
-  return `<span class="lapmini" title="200mごとのラップ（右＝終い・高い＝速い）">${laps.map((l, i) => {
-    const h = 6 + (1 - (l - lo) / span) * 16; // 速い(小)=高い
-    return `<i class="${i === n - 1 ? "last" : ""}" style="height:${h.toFixed(0)}px" title="${l}秒"></i>`;
-  }).join("")}</span>`;
-}
-function renderTraining(r, vb) {
-  const top5 = state.day.training_top5 || [];
-  const top5Html = top5.length ? `<div class="card tr-top">
-    <div class="an-t">⚡ 今週の好調教 Best5 <small>坂路 終い200m が速い順（開催全体）</small></div>
-    <div class="tr-top-row">${top5.map((t, i) => `<div class="tr-top-c">
-      <span class="tr-rk">${i + 1}</span>
-      <div><div class="tr-top-n">${esc(t.name)}</div>
-        <div class="tr-top-m">${esc(t.place)}${t.rno}R・${t.umaban}番</div></div>
-      <span class="tr-top-v num">${num(t.lap1)}<small>終い</small></span>
-    </div>`).join("")}</div>
-  </div>` : "";
-
-  const rows = r.horses.map((h) => {
-    const t = h.training;
-    const hanro = t && t.hanro;
-    const wc = t && t.wc;
-    if (!hanro && !wc) {
-      return `<div class="tr-row none">
-        <span class="mark ${markCls(h.mark)}">${h.mark || "・"}</span>${wk(h)}
-        <span class="tr-name">${esc(h.name)}</span>
-        <span class="tr-na">追い切りデータなし</span></div>`;
-    }
-    const hanroHtml = hanro ? `<span class="tr-set"><b>坂路</b>
-      <span class="tr-kv">4F <em class="num">${num(hanro.t4f)}</em></span>
-      <span class="tr-kv">終い <em class="num">${num(hanro.lap1)}</em></span>
-      ${lapMini(hanro.laps)}<span class="tr-d">${esc((hanro.date || "").slice(4))}</span></span>` : "";
-    const wcHtml = wc ? `<span class="tr-set"><b>W</b>
-      <span class="tr-kv">5F <em class="num">${num(wc.f5)}</em></span>
-      <span class="tr-kv">終い <em class="num">${num(wc.lap1)}</em></span>
-      ${lapMini(wc.laps)}<span class="tr-d">${esc((wc.date || "").slice(4))}</span></span>` : "";
-    return `<div class="tr-row">
-      <span class="mark ${markCls(h.mark)}">${h.mark || "・"}</span>${wk(h)}
-      <span class="tr-name">${esc(h.name)}</span>
-      <span class="tr-sets">${hanroHtml}${wcHtml}</span></div>`;
-  }).join("");
-
-  const nCov = r.horses.filter((h) => h.training).length;
-  vb.innerHTML = `${top5Html}
-    <div class="card tr-list">
-      <div class="an-t">出走馬の最終追い切り <small>${nCov}/${r.horses.length}頭にデータ・坂路は美浦/栗東のみ</small></div>
-      <div class="tr-legend">読み方：<b>4F/5F</b>＝追い切り全体のタイム（短いほど速い）／<b>終い</b>＝ラスト200mのタイム／
-        <span class="lapmini lg"><i style="height:9px"></i><i style="height:13px"></i><i style="height:17px"></i><i class="last" style="height:21px"></i></span>＝200mごとのラップ（右が終い・棒が高いほど速い）</div>
-      ${rows}
-    </div>`;
-}
+/* 調教タブは撤去 (2026-07-31): JRA-VAN 投稿ガイドライン「投稿できないコンテンツ: 調教タイム」 */
 
 /* ---------------- 血統 ---------------- */
 function renderPedigree(r, vb) {
@@ -1587,8 +1488,6 @@ function renderView() {
     renderBunseki(r, vb);
   } else if (state.view === "course") {
     renderCourse(r, vb);
-  } else if (state.view === "training") {
-    renderTraining(r, vb);
   } else if (state.view === "pedigree") {
     renderPedigree(r, vb);
   }
@@ -1758,44 +1657,20 @@ function horseByUma(r, uma) {
 }
 
 function resultTableHtml(r) {
+  // 払戻金の全券種表は撤去 (2026-07-31 投稿ガイドライン対応)。着順+人気のみ表示。
   const res = r.result;
   if (!res) return "";
-  const pays = res.pays || {};
   const top3 = res.top3 || [];
-  const nin = (u) => { const h = horseByUma(r, u); return h && h.ninki != null ? `${h.ninki}番人気` : "—"; };
-  const wk2 = (u) => { const h = horseByUma(r, u); return h ? h.waku : "?"; };
-  const rows = [];
-  const add = (label, sel, pay, pop) => {
-    if (pay == null) return;
-    rows.push(`<tr><td class="rt2-l">${label}</td><td class="rt2-s">${sel}</td>
-      <td class="rt2-p num">${yen(pay)}</td><td class="rt2-n">${pop || ""}</td></tr>`);
-  };
-  if (top3[0] != null) add("単勝", top3[0], pays.tan, nin(top3[0]));
-  top3.forEach((u, i) => add(i === 0 ? "複勝" : "", u, (pays.fuku || {})[String(u)], nin(u)));
-  if (top3.length >= 2) add("枠連", `${wk2(top3[0])}-${wk2(top3[1])}`, pays.wakuren, "");
-  if (top3.length >= 2) add("馬連", `${Math.min(top3[0], top3[1])}-${Math.max(top3[0], top3[1])}`, pays.umaren, "");
-  if (top3.length >= 2) add("馬単", `${top3[0]}→${top3[1]}`, pays.umatan, "");
-  const wide = pays.wide || {};
-  let wfirst = true;
-  if (top3.length >= 3) {
-    [[0, 1], [0, 2], [1, 2]].forEach(([i, j]) => {
-      const a = Math.min(top3[i], top3[j]), b = Math.max(top3[i], top3[j]);
-      const p = wide[`${a}-${b}`];
-      if (p != null) { add(wfirst ? "ワイド" : "", `${a}-${b}`, p, ""); wfirst = false; }
-    });
-  }
-  if (top3.length >= 3) add("三連複", top3.slice(0, 3).slice().sort((a, b) => a - b).join("-"), pays.sanrenpuku, "");
-  if (top3.length >= 3) add("三連単", top3.slice(0, 3).join("→"), pays.sanrentan, "");
+  const nin = (u) => { const h = horseByUma(r, u); return h && h.ninki != null ? `${h.ninki}番人気` : ""; };
 
   const finish = top3.map((u, i) => {
     const h = horseByUma(r, u);
-    return `<span class="rt2-fin">${posBadge(i + 1)}${h ? wk(h) : ""}<b>${esc(h ? h.name : u)}</b>${h && h.mark ? `<span class="mark ${markCls(h.mark)}">${h.mark}</span>` : ""}</span>`;
+    return `<span class="rt2-fin">${posBadge(i + 1)}${h ? wk(h) : ""}<b>${esc(h ? h.name : u)}</b>${h && h.mark ? `<span class="mark ${markCls(h.mark)}">${h.mark}</span>` : ""}<small style="color:#8a97b5;margin-left:4px">${nin(u)}</small></span>`;
   }).join("");
 
   return `<div class="card rs-result">
     <div class="rs-sec">レース結果</div>
     <div class="rt2-finish">${finish}</div>
-    <table class="rt2"><tbody>${rows.join("")}</tbody></table>
   </div>`;
 }
 

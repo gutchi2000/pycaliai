@@ -105,8 +105,10 @@ def card_from_viewmodel(race, with_llm=False):
             "ban": h.get("umaban"), "name": h.get("name", ""),
             "mark": h.get("mark", "") or "",
             "p_win_pct": round(pw * 100, 1), "p_top3_pct": round(ps * 100, 1),
-            "yoso_odds": yoso, "kijun_odds": kijun, "real_odds": odds,
-            "ev": ev, "buy": bool(odds and kijun and odds >= kijun),
+            # 実オッズ/EV は公開カードに載せない (投稿ガイドライン: オッズ生値・
+            # 逆算可能数値の転載回避。buy 判定は加工結果なので残す)
+            "yoso_odds": yoso, "kijun_odds": kijun, "real_odds": None,
+            "ev": None, "buy": bool(odds and kijun and odds >= kijun),
             "elo": round(elo_v) if elo_v is not None else None, "elo_vs_field": vs,
             "glicko_mu": round(rt["mu"]) if rt.get("mu") is not None else None,
             "glicko_rd": round(rt["rd"]) if rt.get("rd") is not None else None,
@@ -136,7 +138,7 @@ def card_from_viewmodel(race, with_llm=False):
     cand = [v for v in vhs if v.get("umami_tan") or v.get("ev_tan")]
     if cand:
         v = max(cand, key=lambda x: (x.get("ev_tan") or 0))
-        ana = (f"{v.get('horse_name')}: 単勝EV{v.get('ev_tan')}・妙味{v.get('umami_grade', '–')}"
+        ana = (f"{v.get('horse_name')}: 妙味{v.get('umami_grade', '–')}"
                f"。AIが人気以上に評価。※大穴は構造的に弱いため中穴妙味として少額・抑え推奨。")
 
     jud = race.get("judgment") or {}
@@ -165,7 +167,7 @@ def card_from_viewmodel(race, with_llm=False):
         for h, hv_row in zip(horses[:3], by_rank[:3]):
             labels = [w.get("label") for w in (hv_row.get("why") or [])[:3] if w.get("label")]
             fl.append(f"{h['mark']}{h['name']}: 勝率{h['p_win_pct']}% 複勝圏{h['p_top3_pct']}% "
-                      f"脚質{h['kyaku']} 実{h['real_odds']}倍 EV{h['ev']} AI注目[{'/'.join(labels)}]。")
+                      f"脚質{h['kyaku']} AI注目[{'/'.join(labels)}]。")
         if ana:
             fl.append("特選穴馬データ: " + ana.split("※")[0])
         card["llm_narrative"] = _ollama("\n".join(fl) + "\n\n上記の事実だけで◎〇▲短評と穴一言を。")
