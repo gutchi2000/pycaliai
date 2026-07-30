@@ -115,12 +115,57 @@ async function loadDay(date) {
       day.career = await (await fetch(`data/career_${date}.json?v=${v}`)).json();
     } catch (e) { day.career = null; }
   }
+  await loadChanges(date, day);
   state.day = day;
   state.place = day.places[0] ?? null;
   const first = racesOf(state.place)[0];
   state.raceId = first ? first.race_id : null;
   renderNav();
   renderRace();
+}
+
+async function loadChanges(date, day) {
+  // 当日変更情報 (jvlink_changes.py 生成、開催日は intraday 更新) を day に重ねる。
+  // 無い日付は静かに無視。SPA fallback で 404 でも index.html+200 が返るため
+  // text で受けて JSON 形かを自前判定する。
+  try {
+    const resp = await fetch(`data/changes_${date}.json?t=` + Date.now());
+    const txt = await resp.text();
+    if (!txt.trim().startsWith("{")) return;
+    const ch = JSON.parse(txt);
+    if (ch.date !== date || !ch.races) return;
+    applyChanges(day, ch);
+  } catch (e) { /* noop */ }
+}
+
+function applyChanges(day, ch) {
+  day.changes_fetched = ch.fetched;
+  for (const r of day.races) {
+    const e = ch.races[r.race_id];
+    if (!e) continue;
+    if (e.time_change?.new && e.time_change.new !== r.start_time) {
+      if (!r.start_time_old) r.start_time_old = r.start_time;
+      r.start_time = e.time_change.new;
+      r.time_changed = true;
+    }
+    const byUma = new Map(r.horses.map((h) => [h.umaban, h]));
+    (e.cancels || []).forEach((c) => {
+      const h = byUma.get(c.umaban);
+      if (h) h.scratched = c.kind || "取消";
+    });
+    (e.jockey_changes || []).forEach((j) => {
+      const h = byUma.get(j.umaban);
+      if (h && j.jockey_to) {
+        if (!h.jockey_prev) h.jockey_prev = h.jockey;
+        h.jockey = j.jockey_to;
+        h.kawari = h.kawari || "*";
+      }
+    });
+    Object.entries(e.weights || {}).forEach(([u, w]) => {
+      const h = byUma.get(+u);
+      if (h && h.taiju == null) { h.taiju = w[0]; h.taiju_diff = w[1] || ""; }
+    });
+  }
 }
 
 function racesOf(place) {
@@ -307,7 +352,7 @@ function renderHeader(r) {
         <span class="rh-place">${esc(r.place)}</span>
         <span class="rh-rno">${r.rno}R</span>
         ${r.race_name ? `<span class="rh-name">${esc(r.race_name)}</span>` : ""}
-        ${r.start_time ? `<span class="rh-time num">${esc(r.start_time)} 発走</span>` : ""}
+        ${r.start_time ? `<span class="rh-time num">${esc(r.start_time)} 発走${r.time_changed ? `<i class="tchg" title="発走時刻変更 (旧 ${esc(r.start_time_old || "")})">変更</i>` : ""}</span>` : ""}
       </div>
       <div class="rh-sub">
         <span class="tdchip ${isTurf ? "turf" : "dirt"}">${esc(r.course)}</span>
@@ -472,13 +517,13 @@ function renderTable(r, flip = false) {
     const ev = h.ev_tan;
     const resPos = hasRes ? r.result.order[String(h.umaban)] : null;
     const inTop3 = resPos != null && resPos <= 3;
-    return `<div class="hrow ${flip ? "still" : ""} ${isHonmei ? "honmei" : ""} ${!h.mark ? "dim" : ""} ${isValue ? "value" : ""} ${inTop3 ? "intop3" : ""}"
+    return `<div class="hrow ${flip ? "still" : ""} ${isHonmei ? "honmei" : ""} ${!h.mark ? "dim" : ""} ${isValue ? "value" : ""} ${inTop3 ? "intop3" : ""} ${h.scratched ? "scr" : ""}"
         style="--i:${i}" data-uma="${h.umaban}" role="button" tabindex="0">
       ${hasRes ? `<span class="c-res">${posBadge(resPos)}</span>` : ""}
       <span class="mark ${markCls(h.mark)}">${h.mark || "・"}</span>
       <span>${wk(h)}</span>
       <span class="hcell">
-        <span class="hname">${esc(h.name)}</span>
+        <span class="hname">${esc(h.name)}${h.scratched ? `<i class="scrbadge">${esc(h.scratched)}</i>` : ""}</span>
         <span class="hsub">${levelChip(h)}${kyakuChip(h)}${esc(subLine(h))}</span>
       </span>
       <span class="c-ninki num ta-c">${h.ninki ?? "—"}</span>
@@ -807,6 +852,7 @@ function openDrawer(umaban) {
       ${wk(h)}
       <span class="dw-mark mark ${markCls(h.mark)}">${h.mark || ""}</span>
       <span class="dw-name">${esc(h.name)}</span>
+      ${h.scratched ? `<i class="scrbadge">${esc(h.scratched)}</i>` : ""}
       ${resPos != null ? posBadge(resPos) : ""}
       <span class="dw-sub2">${esc(h.sex)}${h.age ?? ""} ・ ${h.ninki ?? "—"}番人気 ・ AIランク #${h.ai_rank ?? "—"}</span>
     </div>

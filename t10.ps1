@@ -55,6 +55,11 @@ if ($Once -ne "") {
     }
     & $pyFull @argv
     $code = $LASTEXITCODE
+    # 当日変更情報 (取消/騎手変更/時刻/馬体重) をサイトへ反映 (レース毎 ≈30分間隔で更新)
+    try {
+        if ($Dry) { & powershell -NoProfile -File .\changes.ps1 -Date $Date -NoPush }
+        else      { & powershell -NoProfile -File .\changes.ps1 -Date $Date }
+    } catch { Write-Host "[changes] 例外: $_" }
     try { Stop-Transcript | Out-Null } catch {}
     exit $code
 }
@@ -113,6 +118,8 @@ if ($Schedule) {
         Write-Host ("  登録 {0}  {1:HH:mm} 処理 → {2} 発走  ({3})" -f $taskName, $runAt, $post, $rid)
     }
     Write-Host "[schedule] $n レースのタスクを登録 (WakeToRun)"
+    # 朝一の変更情報チェック (前日発表の取消等をサイトへ即反映 + 生録 dump でパーサ検証材料を残す)
+    try { & powershell -NoProfile -File .\changes.ps1 -Date $Date -DumpRaw } catch { Write-Host "[changes] 例外: $_" }
     & $pyFull -c "import t10_runner as t; t.notify('PyCaLiAI T-10 ${Date}: $n レースを各 T-$LeadMin で自動起動登録しました。スリープしても各レースで起床します。')" 2>$null
     try { Stop-Transcript | Out-Null } catch {}
     exit 0
