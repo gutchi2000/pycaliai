@@ -73,6 +73,25 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "      data\_horse_history.parquet updated." -ForegroundColor Green
 }
 
+# -- Step 2.7: 決済ドリフト係数の鮮度管理 (SettleAI Phase 0, 2026-07-31) --
+# reports/settle_drift.json が 28 日より古ければ live_odds 全量で再実測、
+# 毎週は --check で compute_bets の SETTLE_DRIFT_* 配線値との乖離を警告 (non-fatal)。
+Write-Host "[2.7/4] Settle drift freshness ..." -ForegroundColor Cyan
+$driftJson = "reports\settle_drift.json"
+$needRefit = (-not (Test-Path $driftJson)) -or
+             ((Get-Date) - (Get-Item $driftJson).LastWriteTime).Days -ge 28
+if ($needRefit) {
+    Write-Host "      settle_drift.json stale (>28d) - re-measuring ..." -ForegroundColor Yellow
+    python -m analysis.measure_settle_drift
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "measure_settle_drift failed (non-fatal, continuing...)"
+    }
+}
+python -m analysis.measure_settle_drift --check
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "settle drift check failed (non-fatal, continuing...)"
+}
+
 # -- Step 3: git add (verified) --
 Write-Host "[3/4] git add ..." -ForegroundColor Cyan
 # data/cowork_results.json は generate_results.py が更新する Cowork 集計。
