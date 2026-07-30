@@ -1000,6 +1000,10 @@ def scrub_public(day: dict) -> dict:
             um = h.get("umami")
             if isinstance(um, dict):
                 h["umami"] = {k: um[k] for k in ("grade", "side") if k in um}
+            # 過去走の上り3Fタイムは計時データの網羅転載色が強いので落とす
+            # (着順/人気/コース等の公知事実は残す)
+            for run in ((h.get("history") or {}).get("runs") or []):
+                run.pop("agari3f", None)
     return day
 
 

@@ -821,7 +821,6 @@ function openDrawer(umaban) {
       <td class="ta-c num">${u.ninki ?? "—"}<small>人気</small></td>
       <td>${esc(u.style || "—")}</td>
       <td class="ta-c">${esc(u.weight_change || "—")}</td>
-      <td class="ta-r num">${num(u.agari3f)}</td>
       <td class="ta-r num">${u.interval_weeks != null ? u.interval_weeks + "<small>週</small>" : "—"}</td>
     </tr>`;
   }).join("");
@@ -877,7 +876,7 @@ function openDrawer(umaban) {
     </div>
     <div class="dw-sec">近 5 走</div>
     ${runRows ? `<div class="rt-wrap"><table class="rt">
-      <thead><tr><th></th><th>コース</th><th>馬場</th><th>着</th><th>人気</th><th>クラス</th><th>脚質</th><th>上り3F</th><th>間隔</th></tr></thead>
+      <thead><tr><th></th><th>コース</th><th>馬場</th><th>着</th><th>人気</th><th>クラス</th><th>脚質</th><th>間隔</th></tr></thead>
       <tbody>${runRows}</tbody>
     </table></div>${histSummary}` : `<div class="cw-empty">出走歴なし（初出走）</div>`}
     ${career ? `<div class="dw-sec">指数推移（キャリア ${career.points.length} 走）</div>
