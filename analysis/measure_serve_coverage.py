@@ -40,7 +40,7 @@ def fam(c):
 
 model = joblib.load(BASE/"models/unified_rank_v6.pkl")
 feats = model["feature_cols"]
-WEEKS = ["20260613","20260606","20260531","20260524"]
+WEEKS = ["20260726","20260725","20260719","20260718"]
 
 baseline = {}   # feat -> median coverage across weeks
 percol = {f: [] for f in feats}
@@ -57,8 +57,11 @@ for wk in WEEKS:
         fill_history_features(df)
     except Exception as e:
         print(f"  [warn] serve history fill 失敗 (履歴特徴は0%扱い): {e}")
+    # canary と同一定義の実効カバレッジ ("__NaN__"/空文字=欠損, 定数列=0.0) で測る。
+    # 定義が食い違うと baseline 比較が無意味になるので必ず export 側の関数を使う。
+    from export_weekly_marks import feature_coverage
     for f in feats:
-        cov = float(df[f].notna().mean()) if f in df.columns else 0.0
+        cov = feature_coverage(df[f]) if f in df.columns else 0.0
         percol[f].append(cov)
     print(f"[{wk}] parsed {len(df):,}頭 / {df['レースID(新/馬番無)'].nunique()}R")
 

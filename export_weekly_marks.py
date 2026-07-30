@@ -124,6 +124,30 @@ def build_odds_from_od_csv(date_str: str):
     return tansho_idx, fuku_idx, umaren_idx
 
 
+def feature_coverage(s: pd.Series) -> float:
+    """serve canary 用の実効カバレッジ (監査 2026-07-30 議案3)。
+
+    旧 notna 率の死角2つを塞ぐ:
+    1. カテゴリ列は "__NaN__" 文字列初期化のため notna=100% で code map 全滅を
+       検知不能だった → "__NaN__"/空文字を欠損扱い。
+    2. 中央値フォールバックの定数刷り込み (前走馬体重=472 等 22 特徴) が
+       notna=100% で健全表示だった → 有効値が全行同一 (nunique<=1) なら情報ゼロ=0.0。
+       baseline 側も同定義で測るため、恒常定数は「既知 dead」扱いに落ち、
+       「baseline では変動していた特徴が今週定数化した」場合のみゲートが発火する。
+    """
+    if s is None or len(s) == 0:
+        return 0.0
+    if s.dtype == object:
+        ss = s.astype(str)
+        valid = s.notna() & (ss != "__NaN__") & (ss != "")
+    else:
+        valid = s.notna()
+    cov = float(valid.mean())
+    if cov > 0.0 and s[valid].nunique(dropna=True) <= 1:
+        return 0.0
+    return cov
+
+
 def ensure_date_column(df: pd.DataFrame) -> pd.DataFrame:
     """race_meta が "日付" を参照するため YYYYMMDD 文字列列を必ず作る。"""
     if "日付" in df.columns and df["日付"].astype(str).str.len().min() == 8:
@@ -524,7 +548,7 @@ def main() -> int:
             if exp is None or exp < 0.40:
                 continue   # 既知 dead / 監視対象外
             monitored += 1
-            cur = float(df[col].notna().mean()) if col in df.columns else 0.0
+            cur = feature_coverage(df[col]) if col in df.columns else 0.0
             if cur < 0.20 and cur < exp * 0.40:
                 silent_deaths.append(f"{col}({exp*100:.0f}%→{cur*100:.0f}%)")
         logger.info(f"[serve canary] 監視 {monitored} 特徴 / 無言死 {len(silent_deaths)}")

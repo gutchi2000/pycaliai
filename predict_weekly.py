@@ -535,12 +535,13 @@ def parse_csv(path: Path) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = med
 
-    # 斤量体重比 = 斤量 / 馬体重（馬体重 0 or 欠損のときは訓練中央値で補完）
+    # 斤量体重比 = 斤量 / 馬体重 × 100（学習側スケール ≈ 11.7。×100 を欠くと
+    # 馬体重が入る週に 0.117 vs 11.7 の分布外に飛ぶ。馬体重 0/欠損は訓練中央値補完）
     if "斤量体重比" not in df.columns:
         wt = pd.to_numeric(df["馬体重"], errors="coerce").replace(0, np.nan) if "馬体重" in df.columns else np.nan
         jk = pd.to_numeric(df["斤量"], errors="coerce") if "斤量" in df.columns else np.nan
         if isinstance(wt, pd.Series) and isinstance(jk, pd.Series):
-            df["斤量体重比"] = (jk / wt).fillna(11.8)
+            df["斤量体重比"] = (jk / wt * 100).fillna(11.8)
         else:
             df["斤量体重比"] = 11.8
 

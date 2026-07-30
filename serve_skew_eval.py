@@ -59,11 +59,21 @@ DEAD_CAT = {"騎手コード", "調教師コード"}
 # build_pl_calibrators_serve.py はこちらを使う (serve 特徴を増やしたら必ず更新+再fit)。
 # 2026-07-29: hist_same_*/course_*/jockey_*/騎手・調教師コード の 12 列は
 # serve_history_feats.py (data/_horse_history.parquet + 馬名JOIN) で回収済み
-# (test パリティ 100% / ◎複勝 +0.84pt, reports/validate_serve_history_feats.json)。
-# → serve 死は解消、マスクは空。残差は同名曖昧馬 ~1.4% の NaN のみ。
+# (test パリティ 98.6% 行で 100% 一致・残 1.4% は同名曖昧の安全側 NaN 降格 /
+#  ◎複勝 +0.84pt, reports/validate_serve_history_feats.json)。
+# 2026-07-30 監査 (B/C 独立到達): マスクを空にしたのは誤り。週次CSVから今も
+# 作れない当日条件系 14 列 (data/serve_feature_baseline.json の serve_dead) が
+# 残っており、空マスク fit は pl_calibrators_v6.pkl と同一物を生むだけだった
+# (serve 分布 ◎複勝 ECE 0.0143 vs serve-fit 期待 ~0.011)。dead14 を定義して再fit。
 SERVE_DEAD_NOW_PREFIX = ()
-SERVE_DEAD_NOW_EXACT: set[str] = set()
-SERVE_DEAD_NOW_CAT: set[str] = set()
+SERVE_DEAD_NOW_EXACT: set[str] = {
+    "前走レースID(新)", "前走レースID(新/馬番無)", "前走日付",
+    "前走走破タイム", "母馬", "Ｒ",
+}
+SERVE_DEAD_NOW_CAT: set[str] = {
+    "ブリンカー", "前好走", "前走場所", "指定条件",
+    "毛色", "芝(内・外)", "限定", "馬主(最新/仮想)",
+}
 
 
 def evaluate(te: pd.DataFrame, payouts: dict, cals: dict | None) -> dict:
