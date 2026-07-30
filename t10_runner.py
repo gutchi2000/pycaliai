@@ -362,8 +362,10 @@ def render_brain(brain: dict | None) -> tuple[list[str], list[str]]:
     ts = brain["tickets"]
     tot = sum(t["購入額"] for t in ts)
     note = f" {brain['note']}" if brain.get("note") else ""
-    con = [f"  🧠 俺のブレイン {len(ts)}点 ¥{tot:,}{note}"]
-    dis = [f"🧠 **俺のブレイン {len(ts)}点 ¥{tot:,}**{note}"]
+    import gutchi_brain
+    ver = f" v{gutchi_brain.BRAIN_VERSION}"
+    con = [f"  🧠 俺のブレイン{ver} {len(ts)}点 ¥{tot:,}{note}"]
+    dis = [f"🧠 **俺のブレイン{ver} {len(ts)}点 ¥{tot:,}**{note}"]
     for t in ts:
         con.append(f"     {t['馬券種']:3s} {t['買い目']:10s} ¥{t['購入額']:>5,}  {t.get('理由','')}")
         dis.append(f"{t['馬券種']} `{t['買い目']}` ¥{t['購入額']:,}  {t.get('理由','')}")

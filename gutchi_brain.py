@@ -3,24 +3,30 @@
 gutchi_brain.py — 決定論ポリシーエンジン (docs/gutchi_brain_policy.md の券種決定木)。
 ================================================================================
 入力 : bundle の 1レース (horses=印/ai_score/p_win/tansho_odds/fuku_odds/history)
-        + sat_bias (土曜の実現バイアス realized_bias["venues"]) で 枠×脚質 再重み
+        + sat_bias (土曜の実現バイアス realized_bias["venues"]) は 逆風フラグ/記号ゲートに使用
 出力 : 買い目 list [{"馬券種","買い目","購入額","理由"}]
 
-決定木 (2026-06-29, 6/21 函館12R ヒアリングで較正):
-  0. 見送り: 新馬 / 超混戦(団子が印以外まで続く) / ◎が逆風で代替も無し
-  1. バイアス再重み: 前残り日は 前脚質↑/後↓、内有利日は 内枠↑/外↓ で ai_score を±
+決定木 (2026-06-29 較正 / 2026-07-31 監査修正):
+  0. 見送り: 新馬 / 超混戦 chaos>=0.92 (★真の参加ゲート=構造分岐に関係なく冒頭で判定)
+  1. バイアス: スコア再重み(旧 apply_bias)は撤去済み。クロスデイ馬場バイアスの馬券効果は
+     実測ゼロ ([[project_crossday_trackbias_dead]])。生き残りは
+       - 逆風フラグ (◎後脚質 on 前残り日) → 券種形を軽く (三連複切り・ワイド広め)
+       - バイアス記号ゲート (bias_mode=True 時のみ、★レース限定参加)
+     の2つ。クラスター/構造判定は常に生AI指数で行う。
   2. ◎非分離(◎-〇 gap小) + 団子 → 上位N頭BOX(ワイド=安全/三連複=上振れ)、軸ナシ
   3. ◎が抜けてる →
        相手なし(◎-〇 > SECOND_WALL)     → 複勝1点 (◎妙味帯のみ単複)
        2頭(◎-〇近い)                     → 馬連+ワイド (2頭圧倒的なら ◎単勝+複勝両頭の保険)
        3頭+ (▲が BOX_WALL 内)            → 馬連流し + ワイドBOX(上位3) + 三連複1点
                                             ◎逆風なら 三連複カット + ワイド流し広め(軽め)
-  少頭数(≤5)×◎確勝 → 三連複(本線 + 上位4頭BOX)  ※三連単は禁止則で不使用
+  少頭数(≤5)×◎確勝 → 三連複(本線=◎込み + 上位4頭BOX)  ※三連単は禁止則で不使用
+  L3 規律層 (_discipline): トリガミ床(三連複の適応点数削り) + chalk-cap(堅い回は12点まで)
 取消: scratched で除外。 馬連=近い壁(WALL) / ワイドBOX=広い壁(BOX_WALL)。
 """
 from __future__ import annotations
-import statistics as _st
-from itertools import combinations
+from itertools import combinations, permutations
+
+BRAIN_VERSION = "0.2.0"   # 2026-07-31: chaos真見送り/未賭バグ修正/L3規律/apply_bias撤去
 
 # ---- パラメタ (6/21 函館 較正) ----
 WALL = 15          # 馬連/三連複の「近い相手」壁(pt)
@@ -34,6 +40,15 @@ FUKU_FLOOR = 1.5   # 単複の複勝倍率床
 TANSEN_LO, TANSEN_HI = 5.0, 7.5   # ◎単勝add の妙味帯(オッズ)
 SMALL_FIELD = 5    # 少頭数 (三連単解禁)
 BUDGET = 10000
+# ⚠ WALL/BOX_WALL/NO_AXIS_GAP/SECOND_WALL は per-race min-max 正規化指数上の絶対カット
+#   =スコアの散らばりで同じ着順順位でも券種形が変わる(2026-07-06 監査#4)。散らばり=確信の
+#   代理でもあるため v0.2 では仕様として維持。動かす時は simulate_brain_day で決済検証必須。
+
+# ---- L3 規律層 ([[project_trigami_floor_rule_validated]] の生き残り2規律) ----
+CHAOS_SKIP = 0.92    # 参加ゲート: field_chaos_score >= これ = 超混戦 → 真の見送り
+CHALK_CHAOS = 0.86   # chalk-cap: chaos < これ(堅い) なら総点数を CHALK_CAP に制限
+CHALK_CAP = 12
+TRIO_TAKEOUT = 0.775 # 三連複還元率。トリガミ床 kstar = ⌊0.775/p_fav⌋
 
 
 def _num(x):
@@ -82,11 +97,6 @@ def classify_style(history):      # build_site と同じ (新schema=style / 旧=
 def leg(h):                       # 脚質 前(逃先)/後(差追)。classify_style 基準(avg_pos でない)
     st = classify_style(h.get("history"))
     return None if st is None else ("前" if st in ("逃げ", "先行") else "後")
-
-
-def waku(u, fs):                  # 内/中/外
-    nd = (u - 1) / (fs - 1) if fs and fs > 1 else 0.5
-    return "内" if nd <= 0.33 else "外" if nd >= 0.67 else "中"
 
 
 def _fav_axes(vb):
@@ -140,29 +150,6 @@ def bias_symbol(horses, a_h, vb, fs):
     return "無印", None                            # ◎が中/脚質不明 → AI印のまま軽め
 
 
-def apply_bias(horses, vb, fs):
-    """土曜バイアス vb で 枠×脚質 適合を ai_score に ±。AI主・bias従(0.3σ/0.15σ)。"""
-    if not vb:
-        return
-    sc = [_num(h.get("ai_score")) or 0 for h in horses]
-    sd = _st.pstdev(sc) or 1.0
-    front = vb.get("front_rate", 0) >= 0.6
-    wk = vb.get("waku")
-    for h in horses:
-        d = 0.0
-        lg = leg(h)
-        if front and lg == "前":
-            d += 0.30 * sd
-        elif front and lg == "後":
-            d -= 0.30 * sd
-        w = waku(h["umaban"], fs)
-        if wk == "内":
-            d += 0.15 * sd if w == "内" else (-0.15 * sd if w == "外" else 0)
-        elif wk == "外":
-            d += 0.15 * sd if w == "外" else (-0.15 * sd if w == "内" else 0)
-        h["ai_score"] = (_num(h.get("ai_score")) or 0) + d
-
-
 def _t(kind, sel, yen, why):
     return {"馬券種": kind, "買い目": sel, "購入額": int(yen), "理由": why}
 
@@ -181,7 +168,53 @@ def _box_trio(members, per, why):
             for c in combinations(members, 3)]
 
 
-def build_tickets(race, sat_bias=None, scratched=None, budget=BUDGET, bias_mode=False):
+def _trio_prob(trio, p):
+    """Harville: 正規化 p_win から三連複組(3頭が上位3着)の確率 = 6順列の和。"""
+    s = 0.0
+    for x, y, z in permutations(trio):
+        d1 = 1.0 - p[x]
+        d2 = d1 - p[y]
+        if d1 <= 1e-9 or d2 <= 1e-9:
+            continue
+        s += p[x] * (p[y] / d1) * (p[z] / d2)
+    return s
+
+
+def _discipline(bets, horses, chaos):
+    """L3 規律層 (2026-07-31 配線)。
+    (a) トリガミ床(適応点数版): 三連複ブロックを kstar=⌊0.775/p_fav⌋ 点まで削る。
+        p_fav=最有力組の model 確率、0.775/p_fav=その組の market 払戻 proxy。
+        「最有力組が当たれば必ずブロックの元が取れる」点数に絞る=見送りでなく点数削り
+        (analysis/trigami_floor_gate.py の適応版と同型。model-implied proxy=serve一致)。
+    (b) chalk-cap: 堅いレース(chaos<0.86)は総点数 12 まで。低確率トリオ→末尾ワイドの順に落とす。
+    """
+    trios = [b for b in bets if b["馬券種"] == "三連複"]
+    if not trios and (chaos >= CHALK_CHAOS or len(bets) <= CHALK_CAP):
+        return bets
+    tot = sum((_num(h.get("p_win")) or 0.0) for h in horses) or 1.0
+    p = {h["umaban"]: (_num(h.get("p_win")) or 0.0) / tot for h in horses}
+    pr = {}
+    for b in trios:
+        trio = [int(x) for x in b["買い目"].split("-")]
+        pr[id(b)] = _trio_prob(trio, p) if all(u in p for u in trio) else 0.0
+    if len(trios) > 1:
+        p_fav = max(pr.values())
+        kstar = max(1, int(TRIO_TAKEOUT / p_fav)) if p_fav > 0 else len(trios)
+        if kstar < len(trios):
+            keep = {id(b) for b in sorted(trios, key=lambda b: -pr[id(b)])[:kstar]}
+            bets = [b for b in bets if b["馬券種"] != "三連複" or id(b) in keep]
+    if chaos < CHALK_CHAOS and len(bets) > CHALK_CAP:
+        drop = len(bets) - CHALK_CAP
+        order = sorted([b for b in bets if b["馬券種"] == "三連複"],
+                       key=lambda b: pr.get(id(b), 0.0))
+        order += [b for b in reversed(bets) if b["馬券種"] == "ワイド"]
+        kill = {id(b) for b in order[:drop]}
+        bets = [b for b in bets if id(b) not in kill]
+    return bets
+
+
+def build_tickets(race, sat_bias=None, scratched=None, budget=BUDGET, bias_mode=False,
+                  chaos_gate=True, discipline=True):
     scratched = scratched or set()
     horses = [h for h in race.get("horses", [])
               if _num(h.get("tansho_odds")) and h.get("umaban") not in scratched]
@@ -196,9 +229,16 @@ def build_tickets(race, sat_bias=None, scratched=None, budget=BUDGET, bias_mode=
     if "新馬" in klass:
         return []
 
+    chaos = _num((race.get("race_confidence") or {}).get("field_chaos_score")) or 0.5
+    # === 参加ゲート (2026-07-31 監査#3): 超混戦は構造分岐に関係なく真の見送り ===
+    #   旧実装は ◎非分離枝の内側にネストし、◎が抜けた高chaosレースでは発火しなかった。
+    if chaos_gate and chaos >= CHAOS_SKIP:
+        return []
+
     # === #1 バイアス ===
-    # ★構造(混戦/pair/trio)は「生AI指数」で判定する。bias でスコアは動かさない
-    #   (動かすと函1/3/8R の混戦判定が壊れる)。bias は逆風フラグ/相手の強調にだけ使う。
+    # ★構造(混戦/pair/trio)は「生AI指数」で判定する。スコア再重み(旧 apply_bias)は
+    #   クロスデイ馬場バイアスの馬券効果が実測ゼロにつき撤去(2026-07-31)。
+    #   bias は 逆風フラグ / bias_mode 記号ゲート にだけ使う。
     vb = (sat_bias or {}).get(f"{m.get('place')}|{surf}") if sat_bias else None
 
     idx = ai_index(horses)
@@ -208,6 +248,15 @@ def build_tickets(race, sat_bias=None, scratched=None, budget=BUDGET, bias_mode=
     # === バイアス記号(opt-in): ★(◎が有利脚質×有利枠)のレースだけ参加。⚠/無印/バイアス元なし=見送り ===
     if bias_mode and (not vb or bias_symbol(horses, a_h, vb, fs)[0] != "★"):
         return []
+
+    bets = _shape(race, horses, m, fs, idx, ranked, a_h, vb, budget)
+    if discipline and bets:
+        bets = _discipline(bets, horses, chaos)
+    return bets
+
+
+def _shape(race, horses, m, fs, idx, ranked, a_h, vb, budget):
+    """券種決定木の本体 (参加ゲート通過後)。"""
     a = a_h["umaban"]
     others = [h for h in ranked if h["umaban"] != a]
     g_ow = idx[a] - idx[others[0]["umaban"]] if others else 99
@@ -228,37 +277,47 @@ def build_tickets(race, sat_bias=None, scratched=None, budget=BUDGET, bias_mode=
     gyaku = bool(vb) and vb.get("front_rate", 0) >= 0.6 and leg(a_h) == "後"  # 逆風(◎後脚質 on 前残り日)
     hod0 = {h["umaban"]: (od(h)) for h in others}
 
-    # === 少頭数(≤5)×◎確勝級 → 三連複(本線 + 上位4頭BOX)。三連単は禁止則で不使用 ===
+    # === 少頭数(≤5)×◎確勝級 → 三連複(本線=◎込み + 上位4頭BOX)。三連単は禁止則で不使用 ===
     if fs <= SMALL_FIELD and (_num(a_h.get("p_win")) or 0) >= 0.30:
-        top = [h["umaban"] for h in sorted(horses, key=lambda h: -(_num(h.get("p_win")) or 0))]
+        # ◎を必ず本線に含める (旧: p_win top3 で◎不在化しえた=監査#4)
+        top = [a] + [h["umaban"] for h in
+                     sorted(horses, key=lambda h: -(_num(h.get("p_win")) or 0))
+                     if h["umaban"] != a]
         t3 = sorted(top[:3])
         extra = [sorted(c) for c in combinations(sorted(top[:4]), 3) if sorted(c) != t3]
+        if not extra:                                             # 3頭立て: 本線1点に全額 (旧: ¥6k未賭)
+            return [_t("三連複", "-".join(map(str, t3)), budget, "少頭数×◎確勝の本線")]
         hon = budget * 4 // 10                                    # 本線に4割
-        per = max(100, (budget - hon) // max(1, len(extra)) // 100 * 100) if extra else 0
+        per = max(100, (budget - hon) // len(extra) // 100 * 100)
         bets = [_t("三連複", "-".join(map(str, t3)), hon, "少頭数×◎確勝の本線")]
         bets += [_t("三連複", "-".join(map(str, c)), per, "上位4頭BOX(取りこぼし)") for c in extra]
         return bets
 
-    chaos = _num((race.get("race_confidence") or {}).get("field_chaos_score")) or 0.5
-
-    # === #4/#5 ◎非分離(◎-〇 gap小) + 塊 → 混戦。chaos≥0.92(印以外も競合)=見送り / 未満=上位N頭BOX ===
+    # === #4/#5 ◎非分離(◎-〇 gap小) + 塊 → 混戦 → 上位N頭BOX (超混戦は冒頭ゲートで見送り済) ===
     if g_ow <= NO_AXIS_GAP and len(clS) >= 3:
-        if chaos >= 0.92:                     # 超混戦(函8R 0.94)→見送り
-            return []
         N = sorted(clS[:5])
         nw = len(N) * (len(N) - 1) // 2
         nt = len(N) * (len(N) - 1) * (len(N) - 2) // 6
         if nw + nt <= budget // 1000:
-            return _box_wide(N, 1000, f"上位{len(N)}頭混戦ワイドBOX") + _box_trio(N, 1000, "混戦三連複BOX(上振れ)")
+            per = max(100, (budget // (nw + nt)) // 100 * 100)    # 予算を使い切る (旧: 固定¥1000でN=3時¥6k未賭)
+            return (_box_wide(N, per, f"上位{len(N)}頭混戦ワイドBOX")
+                    + _box_trio(N, per, "混戦三連複BOX(上振れ)"))
         per = max(100, (budget // max(1, nw)) // 100 * 100)
         return _box_wide(N, per, f"上位{len(N)}頭混戦ワイドBOX(安全)")
 
     # === #3 逆風(◎後 on 前残り日) → ◎-印上位ワイド流し広め + ◎-tight馬連 (三連複切り・軽め) ===
     if gyaku and sum(1 for u in hod0 if hod0[u] <= ANA_ODDS) >= 2:
         rel4 = [h["umaban"] for h in others if hod0[h["umaban"]] <= ANA_ODDS][:4]
-        bets = [_t("ワイド", _pair(a, r), 2000, "逆風◎軸ワイド流し") for r in rel4]
-        for r in rel4[:2]:                     # ◎-〇▲ 馬連 (印上位2頭)
-            bets.append(_t("馬連", _pair(a, r), 1000, "逆風◎-〇▲馬連"))
+        n_u = min(2, len(rel4))
+        unit = budget // (2 * len(rel4) + n_u)                    # ワイド:馬連=2:1 で予算按分 (旧: 相手<4で¥4-6k未賭)
+        w_amt = max(100, 2 * unit // 100 * 100)
+        u_amt = max(100, unit // 100 * 100)
+        rest = budget - w_amt * len(rel4) - u_amt * n_u
+        bets = [_t("ワイド", _pair(a, r),
+                   w_amt + (rest // 100 * 100 if i == 0 and rest >= 100 else 0),
+                   "逆風◎軸ワイド流し") for i, r in enumerate(rel4)]
+        for r in rel4[:n_u]:                   # ◎-〇▲ 馬連 (印上位2頭)
+            bets.append(_t("馬連", _pair(a, r), u_amt, "逆風◎-〇▲馬連"))
         return bets
 
     # === ◎が抜けてる ===
@@ -296,7 +355,12 @@ def build_tickets(race, sat_bias=None, scratched=None, budget=BUDGET, bias_mode=
 
     # === 3頭+ → ワイドBOX(上位3) + 馬連流し(◎-tight) + 三連複1点 ===
     box = sorted([a] + box_rel)
-    bets = _box_wide(box, 2000, "上位3頭ワイドBOX(基軸)")
+    # tight 相手が減った分はワイド基軸に載せて予算を使い切る (旧: tight=0 で¥2k未賭)
+    w_per = max(100, (budget - 1000 * len(tight_rel) - 2000) // 3 // 100 * 100)
+    rest = budget - 1000 * len(tight_rel) - 2000 - w_per * 3
+    bets = _box_wide(box, w_per, "上位3頭ワイドBOX(基軸)")
+    if rest >= 100:
+        bets[0]["購入額"] += rest // 100 * 100
     for r in tight_rel:
         bets.append(_t("馬連", _pair(a, r), 1000, "◎軸流し"))
     bets.append(_t("三連複", "-".join(map(str, box)), 2000, "3頭1点"))
