@@ -742,10 +742,37 @@ function tagCls(tag) {
   return "t-etc";
 }
 
+function tactSection(r) {
+  const t = r.tact;
+  if (!t) return "";
+  const settled = r.tact_settled || [];
+  if (!t.bets?.length) {
+    return `<div class="cw-title"><b>TACT</b>指数から見た推奨買い目</div>
+      <div class="card cw-empty">TACT はこのレース見送り（新馬・超混戦など）。</div>`;
+  }
+  const cards = t.bets.map((b, i) => {
+    const st = settled[i] || {};
+    const col = BET_COLOR[b.type] || "#97a4c2";
+    const cls = st.settled ? (st.is_win ? " won" : " lost") : "";
+    const amt = typeof b.amount === "number" ? b.amount.toLocaleString() : esc(b.amount);
+    return `<div class="card ticket${cls}" style="--bcol:${col};--i:${i}">
+      <div class="ticket-type">${esc(b.type)}${st.is_win ? `<span class="won-badge">的中</span>` : ""}</div>
+      <div class="ticket-sel">${esc(b.selection)}</div>
+      <div class="ticket-amt"><b>¥${amt}</b></div>
+      ${b.reason ? `<div class="ticket-reason">${esc(b.reason)}</div>` : ""}
+    </div>`;
+  }).join("");
+  return `<div class="cw-title"><b>TACT</b>指数から見た推奨買い目
+      <small class="cw-ver">v${esc(t.version || "")}</small></div>
+    <div class="bet-grid">${cards}</div>`;
+}
+
 function renderCowork(r) {
   const cw = r.cowork;
+  const tact = tactSection(r);
   if (!cw || (!cw.bets?.length && !cw.advisor?.length)) {
     $("#cowork").innerHTML = `<div class="cw">
+      ${tact}
       <div class="cw-title"><b>COWORK</b>買い目・AI上位馬の見解</div>
       <div class="card cw-empty">このレースの Cowork 出力はありません。</div>
     </div>`;
@@ -781,6 +808,7 @@ function renderCowork(r) {
   }).join("");
 
   $("#cowork").innerHTML = `<div class="cw">
+    ${tact}
     ${tickets ? `<div class="cw-title"><b>COWORK</b>買い目</div>
       <div class="bet-grid">${tickets}</div>` : ""}
     ${advisors ? `<div class="cw-title"><b>COWORK</b>AI上位馬の見解</div>

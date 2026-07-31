@@ -539,6 +539,28 @@ def _combos(selection: str, n: int, ordered: bool) -> list[tuple]:
     return out
 
 
+# ---------------------------------------------------------------- TACT (gutchi_brain)
+_TACT_ODDS_RE = re.compile(r"[（(]複[\d.]+[)）]")   # 理由文のオッズ値はガイドライン対応で落とす
+
+
+def build_tact(race: dict) -> dict | None:
+    """bundle の 1 レースに TACT (gutchi_brain 決定木) の推奨買い目を付ける。
+    bets=[] は見送り (新馬 / 超混戦 chaos ゲート)。engine 不在・例外時は None。"""
+    try:
+        from gutchi_brain import build_tickets, BRAIN_VERSION
+        tickets = build_tickets(race)
+    except Exception as e:
+        print(f"[tact skip] {race.get('race_id')}: {e}")
+        return None
+    return {
+        "version": BRAIN_VERSION,
+        "bets": [{"type": t["馬券種"], "selection": t["買い目"],
+                  "amount": t["購入額"],
+                  "reason": _TACT_ODDS_RE.sub("", t["理由"]).strip()}
+                 for t in tickets],
+    }
+
+
 def settle_bet(btype: str, selection: str, cost: float, res: dict) -> dict:
     """1 bet を決済。返り値 {is_win, payout(配当/100円), received, profit, settled}。
     settled=False は決済不能 (ワイド払戻未取込等) で集計外。compute_bet_pl と同ロジック。"""
@@ -826,11 +848,12 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
             "pairs": pairs_top(race),
             "horses": horses,
             "cowork": cowork.get(rid),
+            "tact": build_tact(race),
             "grade_scope": grade_map.get(rid),
             "result": results.get(rid),
         })
 
-        # Cowork 買い目を結果で決済 (的中/配当/収支)
+        # Cowork / TACT 買い目を結果で決済 (的中/配当/収支)
         cw = cowork.get(rid)
         res = results.get(rid)
         if cw and cw.get("bets") and res:
@@ -838,6 +861,12 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
                 settle_bet(b.get("type"), b.get("selection"),
                            float(b.get("amount") or 0), res)
                 for b in cw["bets"]
+            ]
+        tact = races_out[-1]["tact"]
+        if tact and tact.get("bets") and res:
+            races_out[-1]["tact_settled"] = [
+                settle_bet(b["type"], b["selection"], float(b["amount"]), res)
+                for b in tact["bets"]
             ]
 
     places_seen = {r["place"] for r in races_out}
