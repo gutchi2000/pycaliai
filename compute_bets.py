@@ -36,6 +36,7 @@ import argparse, bisect, io, json, math, sys
 from pathlib import Path
 
 BASE = Path(__file__).parent
+ENGINE_VERSION = "2026-07-31"   # bets.json スタンプ用 (挙動変更時に更新)
 BUDGET, MIN_BET, MAX_BET = 10000, 500, 7000
 CHAOS_Q = BASE / "data" / "chaos_quantiles.json"
 T10_BLEND = BASE / "data" / "t10_blend.json"
@@ -673,10 +674,16 @@ def fmt_hosei(hm: list[dict]) -> str:
     return "補正印(オッズblend): " + " ".join(parts)
 
 
-def apply_to_bets_json(date_str: str, computed: list[dict]) -> Path:
+def apply_to_bets_json(date_str: str, computed: list[dict], stamp: dict | None = None) -> Path:
     """spec §書込契約: reports/cowork_output/{date}_bets.json へ in-place merge。
     race_id 一致は置換・無ければ追加。書込前に既存を .bak へ退避 (validate と同方式)。
+    stamp: 各エントリに刻む来歴 {"model","engine","engine_version",...}
+    (2026-07-30 前提監査 P6「betsに生成主体のスタンプが無く因果切断」の解消)。
     """
+    if stamp:
+        import datetime as _dt
+        stamp = {**stamp, "stamped_at": _dt.datetime.now().isoformat(timespec="seconds")}
+        computed = [{**e, "stamp": stamp} for e in computed]
     out_dir = BASE / "reports" / "cowork_output"
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{date_str}_bets.json"
@@ -808,7 +815,11 @@ def main():
         if not mm:
             print("[ERROR] bundle 名から日付 (YYYYMMDD) を特定できず --apply 中止", file=sys.stderr)
             return 1
-        apply_to_bets_json(mm.group(1), out)
+        apply_to_bets_json(mm.group(1), out, stamp={
+            "model": d.get("model") if isinstance(d, dict) else None,
+            "engine": "compute_bets", "engine_version": ENGINE_VERSION,
+            "mode": ("fuku_hit" if args.fuku_hit else "plan" if args.plan else "default"),
+            "live": bool(live_dir)})
         print("※ 書込後は validate_cowork_bets.py --apply で見送り/内容ガードを必ず通すこと")
     else:
         print("\n(dry: 書込なし。--apply で reports/cowork_output/{date}_bets.json へ反映)")

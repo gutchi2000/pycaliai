@@ -12,7 +12,12 @@ simulate_plan_day.py は compute_bets を決済する(=prob-first 線)。こち�
 使い方:
   PYTHONUTF8=1 ./venv311/Scripts/python.exe simulate_brain_day.py            # 全16開催
   PYTHONUTF8=1 ./venv311/Scripts/python.exe simulate_brain_day.py 20260628   # 単日
-  ...--gate                # 3条件選別ゲート版(gutchi_brain の select_race=True)で回す
+  ...--gate                # バイアス記号ゲート版(bias_mode=True)で回す
+  ...--no-chaos-gate       # chaos>=0.92 の真見送り(2026-07-31配線)を切る (アブレーション)
+  ...--no-discipline       # L3規律層(トリガミ床+chalk-cap)を切る (アブレーション)
+
+判定はROIでなく トリガミ率/的中率/最大DD を主指標に、CI と power/MDE を併記する
+(2026-07-30 前提監査の教訓: 非有意=効果なし ではない)。
 """
 from __future__ import annotations
 import datetime as _dt
@@ -24,6 +29,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+import numpy as np
 import pandas as pd
 
 import gutchi_brain as GB
@@ -127,7 +133,7 @@ def settle(bet, ko, wide_pairs):
     return 0.0
 
 
-def run_day(date, gate, bykind, tally):
+def run_day(date, gate, bykind, tally, recs, bt_kw):
     bundle = json.loads((BASE / "reports" / "cowork_input" / f"{date}_bundle.json").read_text(encoding="utf-8"))
     races = bundle["races"]
     races = races if isinstance(races, list) else list(races.values())
@@ -137,7 +143,7 @@ def run_day(date, gate, bykind, tally):
     d_stake = d_ret = 0
     n_bet = n_miokuri = n_settled = 0
     for r in races:
-        kw = dict(sat_bias=sat_bias, budget=GB.BUDGET)
+        kw = dict(sat_bias=sat_bias, budget=GB.BUDGET, **bt_kw)
         if gate:
             kw["bias_mode"] = True
             # 記号の内訳を集計(★/⚠/無印)
@@ -162,12 +168,16 @@ def run_day(date, gate, bykind, tally):
         n_bet += 1
         n_settled += 1
         wp = wide.get((ko["place"], ko["R"]))
+        r_stake = r_ret = 0.0
         for b in tickets:
             pay = settle(b, ko, wp)
-            d_stake += b["購入額"]
-            d_ret += pay
+            r_stake += b["購入額"]
+            r_ret += pay
             k = bykind[b["馬券種"]]
             k[0] += b["購入額"]; k[1] += pay; k[2] += 1; k[3] += 1 if pay > 0 else 0
+        d_stake += r_stake
+        d_ret += r_ret
+        recs.append({"date": date, "stake": r_stake, "ret": r_ret, "pts": len(tickets)})
     roi = d_ret / d_stake * 100 if d_stake else 0
     tally["stake"] += d_stake; tally["ret"] += d_ret
     tally["bet"] += n_bet; tally["miokuri"] += n_miokuri
@@ -177,20 +187,56 @@ def run_day(date, gate, bykind, tally):
     return roi
 
 
+def race_stats(recs):
+    """レース粒度の主指標: 的中率 / トリガミ率(的中中) / 最大DD / ROI CI95(bootstrap) / MDE。"""
+    if not recs:
+        return None
+    st = np.array([r["stake"] for r in recs])
+    rt = np.array([r["ret"] for r in recs])
+    hit = rt > 0
+    trig = hit & (rt < st)                     # 当たったのにマイナス
+    net = rt - st
+    cum = np.cumsum(net)
+    peak = np.maximum.accumulate(np.concatenate([[0.0], cum]))[1:]
+    maxdd = float((peak - cum).max())
+    rng = np.random.default_rng(42)
+    n = len(recs)
+    idx = rng.integers(0, n, (4000, n))
+    boots = rt[idx].sum(axis=1) / np.where(st[idx].sum(axis=1) > 0, st[idx].sum(axis=1), 1)
+    lo, hi = np.percentile(boots, [2.5, 97.5]) * 100
+    se = float(boots.std() * 100)
+    return {
+        "n": n, "hit": float(hit.mean() * 100),
+        "trig_of_hit": float(trig.sum() / hit.sum() * 100) if hit.sum() else 0.0,
+        "clean": int((hit & (rt >= st)).sum()), "trig": int(trig.sum()),
+        "maxdd": maxdd, "ci": (float(lo), float(hi)), "se": se, "mde": 2.8 * se,
+    }
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     gate = "--gate" in sys.argv
+    bt_kw = {}
+    if "--no-chaos-gate" in sys.argv:
+        bt_kw["chaos_gate"] = False
+    if "--no-discipline" in sys.argv:
+        bt_kw["discipline"] = False
     dates = args or DEFAULT_DATES
 
     bykind = defaultdict(lambda: [0, 0.0, 0, 0])   # stake, ret, n, hit
     tally = {"stake": 0, "ret": 0.0, "bet": 0, "miokuri": 0, "races": 0}
+    recs = []
     print("=" * 96)
-    print(f"gutchi_brain 決済バックテスト  [{'3条件選別ゲートON' if gate else 'ゲートOFF=現行'}]  "
+    mode = "バイアス記号ゲートON" if gate else "現行"
+    for k, lab in (("chaos_gate", "chaos真見送りOFF"), ("discipline", "L3規律OFF")):
+        if bt_kw.get(k) is False:
+            mode += f" / {lab}"
+    print(f"gutchi_brain v{GB.BRAIN_VERSION} 決済バックテスト  [{mode}]  "
           f"選択=9時bundleオッズ / 採点=確定配当")
     print("=" * 96)
     for dt in dates:
         try:
-            run_day(dt, gate, bykind, tally)
+            run_day(dt, gate, bykind, tally, recs, bt_kw)
         except FileNotFoundError as e:
             print(f"{dt}  SKIP ({e.filename})")
 
@@ -210,6 +256,15 @@ def main():
           f"参加 {tally['bet']}  見送り {tally['miokuri']}  参加率 {part:.0f}%")
     print(f"  投資 ¥{int(st):,}  払戻 ¥{int(rt):,}  収支 ¥{int(rt-st):+,}  "
           f"**ROI {rt/st*100 if st else 0:.1f}%**")
+    s = race_stats(recs)
+    if s:
+        print(f"\n【主指標 (レース粒度, n={s['n']})】")
+        print(f"  的中率(何か当たった) {s['hit']:.1f}%   トリガミ率(的中中) {s['trig_of_hit']:.1f}% "
+              f"(トリガミ{s['trig']} / クリーン{s['clean']})")
+        print(f"  最大DD ¥{int(s['maxdd']):,} (通算収支カーブ)")
+        print(f"  ROI CI95 [{s['ci'][0]:.1f}, {s['ci'][1]:.1f}]%  SE {s['se']:.1f}pt  "
+              f"→ MDE(80%power/α5%)≈{s['mde']:.1f}pt")
+        print(f"  ※ 差が MDE 未満の改善/悪化は本標本では検出不能 (非有意=効果なし ではない)")
     print("=" * 96)
 
 
