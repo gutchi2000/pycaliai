@@ -25,13 +25,18 @@
 <script>/* データ先行fetch: app.js(defer)を待たずHTMLパース時点で開始 */
 window.__mfP=fetch("data/manifest.json?t="+Date.now()).then(r=>r.json());
 window.__rbP=fetch("data/realized_bias.json?t="+Date.now()).then(r=>r.json()).catch(()=>null);
+setTimeout(function(){document.body&&document.body.classList.remove("js-booting")},4000);
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
-<link rel="stylesheet" href="css/style.css?v=20260725t">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=optional" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=optional" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="css/style.css?v=20260801a">
 <style>
+/* CLS対策: 初期描画は動的セクションを不可視にし、全データ描画後に1フレームで表示
+   (未描画要素の移動はCLSに計上されないため、babaBias等の後入れ押し下げシフトが消える)。
+   app.js の revealUI() が js-booting を外す。保険として4秒で強制解除。 */
+.js-booting #venueTabs,.js-booting #babaBias,.js-booting #raceStrip,.js-booting #main{visibility:hidden}
 /* 馬場バイアス — 芝|ダ 2分割 + クッション/含水ゲージ(メンバーレベルバー準拠) */
 .baba-bias{margin:12px auto 0;max-width:var(--maxw);padding:0 var(--pad)}
 .baba-bias h3{font-size:15px;font-weight:700;color:var(--tx2);letter-spacing:.1em;margin:4px 2px 10px;display:flex;align-items:center;gap:9px}
@@ -105,7 +110,7 @@ window.__rbP=fetch("data/realized_bias.json?t="+Date.now()).then(r=>r.json()).ca
 .kchip em{font-size:calc(10px*var(--bfs))}
 </style>
 </head>
-<body>
+<body class="js-booting">
 <div class="bg-vignette" aria-hidden="true"></div>
 <div class="track-stripe"></div>
 
@@ -149,8 +154,8 @@ window.__rbP=fetch("data/realized_bias.json?t="+Date.now()).then(r=>r.json()).ca
 <div id="overlay"></div>
 <aside id="drawer" aria-label="馬詳細"></aside>
 
-<script defer src="js/baba.js?v=20260725t"></script>
-<script defer src="js/app.js?v=20260725t"></script>
+<script defer src="js/baba.js?v=20260801a"></script>
+<script defer src="js/app.js?v=20260801a"></script>
 <script defer id="echartsJs" src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
 </body>

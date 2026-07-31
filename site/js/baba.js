@@ -138,7 +138,8 @@
   // app.js(renderNav / setMode) から会場切替・モード切替の度に呼ばれる。
   window.renderBabaBias = draw;
 
-  fetch("data/baba_today.json?v=" + Date.now())
+  // app.js が初回 reveal 前に await できるよう promise を公開 (CLS対策)
+  window.__babaReady = fetch("data/baba_today.json?v=" + Date.now())
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) { babaData = d; draw(); })
     .catch(function () { });

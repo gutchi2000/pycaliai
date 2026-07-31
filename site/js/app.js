@@ -44,6 +44,11 @@ function yen(v) {
 }
 
 /* ---------------- boot ---------------- */
+function revealUI() {
+  // CLS対策: index.html が body.js-booting で動的セクションを不可視にしている。
+  // 初回描画が全部済んだ時点で1フレームで表示(エラー時も呼ぶこと)。2回目以降はno-op。
+  document.body.classList.remove("js-booting");
+}
 async function boot() {
   $("#raceHeader").innerHTML = `<div class="loading">LOADING…</div>`;
   let mf;
@@ -53,6 +58,7 @@ async function boot() {
     $("#raceHeader").innerHTML =
       `<div class="err">data/manifest.json を読めませんでした。<br>` +
       `python build_site.py を実行してから、HTTP サーバー経由で開いてください。</div>`;
+    revealUI();
     return;
   }
   state.manifest = mf;
@@ -104,6 +110,7 @@ async function loadDay(date) {
       day = await (await fetch(`data/${date}.json?v=${v}`)).json();
     } catch (e) {
       $("#raceHeader").innerHTML = `<div class="err">data/${date}.json を読めませんでした。</div>`;
+      revealUI();
       return;
     }
     dayCache.set(date, day);
@@ -121,8 +128,13 @@ async function loadDay(date) {
   state.place = day.places[0] ?? null;
   const first = racesOf(state.place)[0];
   state.raceId = first ? first.race_id : null;
+  // 初回revealの前に馬場バイアスのデータ到着を待つ(上限800ms)。reveal後の後入れ挿入=CLSを防ぐ
+  if (document.body.classList.contains("js-booting") && window.__babaReady) {
+    try { await Promise.race([window.__babaReady, new Promise((r) => setTimeout(r, 800))]); } catch (e) { /* noop */ }
+  }
   renderNav();
   renderRace();
+  revealUI();
 }
 
 async function loadChanges(date, day) {
