@@ -742,27 +742,57 @@ function tagCls(tag) {
   return "t-etc";
 }
 
+function tactGroups(bets, settled) {
+  // (馬券種, 理由) が同じ連続 bets をまとめ、BOX 買い (組合せ全通り) は
+  // 「ワイドBOX 1,4,11」の 1 行に畳む。
+  const combi = (n, k) => (k === 2 ? n * (n - 1) / 2 : n * (n - 1) * (n - 2) / 6);
+  const groups = [];
+  bets.forEach((b, i) => {
+    const st = settled[i] || {};
+    const last = groups[groups.length - 1];
+    if (last && last.type === b.type && last.reason === b.reason) {
+      last.sels.push(b.selection);
+      last.won = last.won || !!st.is_win;
+      last.done = last.done && st.settled === true;
+    } else {
+      groups.push({ type: b.type, reason: b.reason || "",
+                    sels: [b.selection], won: !!st.is_win, done: st.settled === true });
+    }
+  });
+  for (const g of groups) {
+    const k = g.type === "三連複" ? 3 : g.type === "ワイド" ? 2 : 0;
+    const nums = [...new Set(g.sels.flatMap((s) => String(s).split("-")))]
+      .map(Number).sort((a, b) => a - b);
+    if (k && g.sels.length > 1 && g.sels.length === combi(nums.length, k)) {
+      g.type += "BOX";
+      g.disp = nums.join(",");
+    } else {
+      g.disp = g.sels.join(" / ");
+    }
+  }
+  return groups;
+}
+
 function tactSection(r) {
   const t = r.tact;
   if (!t) return "";
-  const settled = r.tact_settled || [];
   if (!t.bets?.length) {
     return `<div class="cw-title"><b>TACT</b>指数から見た推奨買い目</div>
       <div class="card cw-empty">TACT はこのレース見送り（新馬・超混戦など）。</div>`;
   }
-  const cards = t.bets.map((b, i) => {
-    const st = settled[i] || {};
-    const col = BET_COLOR[b.type] || "#97a4c2";
-    const cls = st.settled ? (st.is_win ? " won" : " lost") : "";
-    return `<div class="card ticket${cls}" style="--bcol:${col};--i:${i}">
-      <div class="ticket-type">${esc(b.type)}${st.is_win ? `<span class="won-badge">的中</span>` : ""}</div>
-      <div class="ticket-sel">${esc(b.selection)}</div>
-      ${b.reason ? `<div class="ticket-reason">${esc(b.reason)}</div>` : ""}
+  const rows = tactGroups(t.bets, r.tact_settled || []).map((g, i) => {
+    const col = BET_COLOR[g.type.replace("BOX", "")] || "#97a4c2";
+    const cls = g.done ? (g.won ? " won" : " lost") : "";
+    return `<div class="tact-row${cls}" style="--bcol:${col};--i:${i}">
+      <span class="tact-type">${esc(g.type)}</span>
+      <span class="tact-sel num">${esc(g.disp)}</span>
+      <span class="tact-reason">${esc(g.reason)}</span>
+      ${g.won ? `<span class="won-badge">的中</span>` : ""}
     </div>`;
   }).join("");
   return `<div class="cw-title"><b>TACT</b>指数から見た推奨買い目
       <small class="cw-ver">v${esc(t.version || "")}</small></div>
-    <div class="bet-grid">${cards}</div>`;
+    <div class="card tact-card">${rows}</div>`;
 }
 
 function renderCowork(r) {
