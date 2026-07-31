@@ -739,12 +739,12 @@ button { font-family: inherit; color: inherit; background: none; border: none; c
 .cw-title::before { content: ""; width: 3px; height: 14px; border-radius: 2px; background: linear-gradient(180deg, var(--teal2), var(--teal)); }
 .cw-title b { color: var(--teal); }
 .cw-ver { font-size: 10px; font-weight: 600; color: var(--tx3); letter-spacing: .05em; }
-.tact-card { padding: 6px 14px; }
-.tact-row { display: flex; align-items: baseline; gap: 12px; padding: 8px 2px; border-left: 3px solid var(--bcol, #97a4c2); padding-left: 10px; margin: 6px 0; }
+.tact-tcard { padding: 10px 14px; }
+.tact-row { display: flex; align-items: baseline; gap: 10px; padding: 5px 0; }
 .tact-row.lost { opacity: .55; }
 .tact-row.won { background: rgba(245,185,66,.06); border-radius: 6px; }
-.tact-type { font-size: 12px; font-weight: 700; color: var(--bcol, #97a4c2); min-width: 74px; letter-spacing: .04em; }
 .tact-sel { font-size: 17px; font-weight: 800; color: var(--tx1); letter-spacing: .03em; }
+.tact-box { font-size: 10px; font-weight: 700; color: var(--bcol, #97a4c2); margin-left: 6px; letter-spacing: .08em; }
 .tact-reason { font-size: 11.5px; color: var(--tx3); margin-left: auto; text-align: right; }
 .cw-src { font-size: 12.5px; color: var(--tx3); font-weight: 400; letter-spacing: 0; }
 .adv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 8px; }

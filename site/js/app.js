@@ -780,19 +780,30 @@ function tactSection(r) {
     return `<div class="cw-title"><b>TACT</b>指数から見た推奨買い目</div>
       <div class="card cw-empty">TACT はこのレース見送り（新馬・超混戦など）。</div>`;
   }
-  const rows = tactGroups(t.bets, r.tact_settled || []).map((g, i) => {
-    const col = BET_COLOR[g.type.replace("BOX", "")] || "#97a4c2";
-    const cls = g.done ? (g.won ? " won" : " lost") : "";
-    return `<div class="tact-row${cls}" style="--bcol:${col};--i:${i}">
-      <span class="tact-type">${esc(g.type)}</span>
-      <span class="tact-sel num">${esc(g.disp)}</span>
-      <span class="tact-reason">${esc(g.reason)}</span>
-      ${g.won ? `<span class="won-badge">的中</span>` : ""}
+  // 券種ごとに 1 枠 (BOX 表記は tact-row 単位で維持)
+  const byType = new Map();
+  for (const g of tactGroups(t.bets, r.tact_settled || [])) {
+    const base = g.type.replace("BOX", "");
+    if (!byType.has(base)) byType.set(base, []);
+    byType.get(base).push(g);
+  }
+  const cards = [...byType.entries()].map(([base, gs], i) => {
+    const col = BET_COLOR[base] || "#97a4c2";
+    const rows = gs.map((g) => {
+      const cls = g.done ? (g.won ? " won" : " lost") : "";
+      return `<div class="tact-row${cls}">
+        <span class="tact-sel num">${esc(g.disp)}${g.type.endsWith("BOX") ? `<small class="tact-box">BOX</small>` : ""}</span>
+        <span class="tact-reason">${esc(g.reason)}</span>
+        ${g.won ? `<span class="won-badge">的中</span>` : ""}
+      </div>`;
+    }).join("");
+    return `<div class="card ticket tact-tcard" style="--bcol:${col};--i:${i}">
+      <div class="ticket-type">${esc(base)}</div>${rows}
     </div>`;
   }).join("");
   return `<div class="cw-title"><b>TACT</b>指数から見た推奨買い目
       <small class="cw-ver">v${esc(t.version || "")}</small></div>
-    <div class="card tact-card">${rows}</div>`;
+    <div class="bet-grid">${cards}</div>`;
 }
 
 function renderCowork(r) {
