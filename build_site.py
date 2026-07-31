@@ -554,8 +554,8 @@ def build_tact(race: dict) -> dict | None:
         return None
     return {
         "version": BRAIN_VERSION,
+        # 金額は出さない (買う人が決める)。買い目+定性理由のみ公開
         "bets": [{"type": t["馬券種"], "selection": t["買い目"],
-                  "amount": t["購入額"],
                   "reason": _TACT_ODDS_RE.sub("", t["理由"]).strip()}
                  for t in tickets],
     }
@@ -864,8 +864,9 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
             ]
         tact = races_out[-1]["tact"]
         if tact and tact.get("bets") and res:
+            # 金額非公開のため名目 ¥100 で決済 (的中判定バッジ用。収支は出さない)
             races_out[-1]["tact_settled"] = [
-                settle_bet(b["type"], b["selection"], float(b["amount"]), res)
+                settle_bet(b["type"], b["selection"], 100.0, res)
                 for b in tact["bets"]
             ]
 

@@ -754,11 +754,9 @@ function tactSection(r) {
     const st = settled[i] || {};
     const col = BET_COLOR[b.type] || "#97a4c2";
     const cls = st.settled ? (st.is_win ? " won" : " lost") : "";
-    const amt = typeof b.amount === "number" ? b.amount.toLocaleString() : esc(b.amount);
     return `<div class="card ticket${cls}" style="--bcol:${col};--i:${i}">
       <div class="ticket-type">${esc(b.type)}${st.is_win ? `<span class="won-badge">的中</span>` : ""}</div>
       <div class="ticket-sel">${esc(b.selection)}</div>
-      <div class="ticket-amt"><b>¥${amt}</b></div>
       ${b.reason ? `<div class="ticket-reason">${esc(b.reason)}</div>` : ""}
     </div>`;
   }).join("");
