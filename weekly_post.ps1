@@ -82,12 +82,12 @@ $needRefit = (-not (Test-Path $driftJson)) -or
              ((Get-Date) - (Get-Item $driftJson).LastWriteTime).Days -ge 28
 if ($needRefit) {
     Write-Host "      settle_drift.json stale (>28d) - re-measuring ..." -ForegroundColor Yellow
-    python -m analysis.measure_settle_drift
+    python -m analysis.measure_settle_drift --notify
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "measure_settle_drift failed (non-fatal, continuing...)"
     }
 }
-python -m analysis.measure_settle_drift --check
+python -m analysis.measure_settle_drift --check --notify
 if ($LASTEXITCODE -ne 0) {
     Write-Warning "settle drift check failed (non-fatal, continuing...)"
 }

@@ -90,7 +90,7 @@ def band_stats(rows, bands, label):
     return out
 
 
-def main():
+def main(send: bool = False):
     rows, kcache = [], {}
     fu_rows, wd_rows = [], []
     wk = load_wide_kekka()
@@ -169,11 +169,30 @@ def main():
     op.parent.mkdir(parents=True, exist_ok=True)
     json.dump(out, open(op, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
     print(f"[saved] {op}")
+    if send:
+        fu, wd = out.get("fukusho") or {}, out.get("wide") or {}
+        _notify(f"🔁 [settle-refit] 決済ドリフト係数を再実測 "
+                f"({out['period'][0]}〜{out['period'][1]}): "
+                f"単勝 n={n} ×{out['mean_mult']} CI{out['mult_ci95']} / "
+                f"複勝 n={fu.get('n')} ×{fu.get('mean_mult')} / "
+                f"ワイド n={wd.get('n')} ×{wd.get('mean_mult')}")
 
 
-def check_wired_tables():
+def _notify(text: str):
+    """Discord へ送信 (t10_runner.notify 再利用、未設定/失敗は非致命)。"""
+    try:
+        import sys
+        sys.path.insert(0, str(REPO))
+        from t10_runner import notify
+        notify(text)
+    except Exception as e:
+        print(f"  [notify] Discord 送信スキップ (非致命): {e}")
+
+
+def check_wired_tables(send: bool = False):
     """reports/settle_drift.json (最新実測) と compute_bets の配線係数を突合。
-    n>=60 の帯で乖離 >0.03 なら WARN (テーブル手動更新を促す)。exit code は常に 0。"""
+    n>=60 の帯で乖離 >0.03 なら WARN (テーブル手動更新を促す)。exit code は常に 0。
+    send=True で結果を Discord へも送る (weekly_post Step2.7 が使う)。"""
     import datetime
     op = REPO / "reports" / "settle_drift.json"
     if not op.exists():
@@ -193,6 +212,7 @@ def check_wired_tables():
               ["1-1.5", "1.5-2.5", "2.5-5", "5-999"], cb.SETTLE_DRIFT_FUKU),
              ("ワイド", (j.get("wide") or {}).get("bands", {}),
               ["1-3", "3-7", "7-15", "15-999"], cb.SETTLE_DRIFT_WIDE)]
+    msgs = []
     for name, bands, keys, table in specs:
         for key, (hi, wired) in zip(keys, table):
             b = bands.get(key)
@@ -200,13 +220,17 @@ def check_wired_tables():
                 continue
             meas = min(b["mult"], 1.0)  # 配線側は 1.0 クランプ方針
             if abs(meas - wired) > 0.03:
-                print(f"[settle-check] WARN {name} {key}倍帯: 実測×{b['mult']} "
-                      f"(n={b['n']}) vs 配線×{wired} — compute_bets の "
-                      f"SETTLE_DRIFT_* 更新を検討")
+                msgs.append(f"⚠️ [settle-check] WARN {name} {key}倍帯: 実測×{b['mult']} "
+                            f"(n={b['n']}) vs 配線×{wired} — compute_bets の "
+                            f"SETTLE_DRIFT_* 更新を検討")
                 warned = True
     if not warned:
-        print(f"[settle-check] OK 配線係数は最新実測と整合 (実測 {age_d} 日前, "
-              f"n={j.get('n')})")
+        msgs.append(f"✅ [settle-check] 決済ドリフト係数OK: 配線=最新実測と整合 "
+                    f"(実測 {age_d} 日前, n={j.get('n')})")
+    for m in msgs:
+        print(m)
+    if send:
+        _notify("\n".join(msgs))
 
 
 if __name__ == "__main__":
@@ -215,10 +239,12 @@ if __name__ == "__main__":
                     help="live_odds/kekka の読取元リポジトリ (省略時は自リポジトリ)")
     ap.add_argument("--check", action="store_true",
                     help="計測せず、既存 settle_drift.json と compute_bets 配線値を突合")
+    ap.add_argument("--notify", action="store_true",
+                    help="結果を Discord (notify_config.json webhook) へも送る")
     a = ap.parse_args()
     if a.base:
         BASE = Path(a.base)
     if a.check:
-        check_wired_tables()
+        check_wired_tables(send=a.notify)
     else:
-        main()
+        main(send=a.notify)
