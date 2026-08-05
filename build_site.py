@@ -1001,6 +1001,54 @@ def build_results_json() -> dict:
 
 
 # ---------------------------------------------------------------- 公開スクラブ
+# SHAP 根拠 (why[].value) に出してはいけない特徴。
+#   TARGET 独自指数 (補正タイム) / 調教タイム / 上り3F・着差などの計時データ。
+#   ※ 順位・回数・率は公知事実の加工なので残す (前走上り3F順 など)。
+_WHY_BLOCK_FEATS = frozenset({
+    "prev_hosei", "prev_hosei9",                       # TARGET 補正タイム (独自指数)
+    "trnH_Time1", "trnH_Time4", "trnH_Lap4",           # 坂路 調教タイム
+    "trnW_3F", "trnW_Lap1", "trnW_Lap3",               # WC 調教タイム
+    "kako5_avg_agari3f", "前走上り3F", "前走Ave-3F",     # 上り3F タイム
+    "前3F", "前PCI", "前走着差タイム",                    # ペース・着差の計時データ
+})
+
+# Cowork の地の文に混じるオッズ生値。
+#   例: "おいしい(単勝 5.9倍)" / "[T-10オッズ 単複14頭/ワイド91組/馬単182組]"
+_ODDS_PAREN_RE = re.compile(
+    r"[（(]\s*(?:単勝|複勝|ワイド|馬連|馬単|三連複|三連単|オッズ)?\s*[0-9]+(?:\.[0-9]+)?\s*倍[^）)]*[）)]"
+)
+_ODDS_BRACKET_RE = re.compile(r"[\[［][^\]］]*オッズ[^\]］]*[\]］]")
+# 数値+倍。直後の助詞まで一緒に食う ("1.8倍の断然人気"→"断然人気", "38倍と人気薄"→"人気薄")
+_ODDS_BARE_RE = re.compile(r"[0-9]+(?:\.[0-9]+)?\s*倍(?:台)?(?:の|と|で|から|まで)?")
+# 生値を抜いた跡に残る句読点の連なりを畳む
+_ARTIFACT_SUBS = (
+    (re.compile(r"[、,]\s*[。.]"), "。"),
+    (re.compile(r"[。.]\s*[。.]+"), "。"),
+    (re.compile(r"[（(]\s*[）)]"), ""),
+    (re.compile(r"[、,]\s*[、,]+"), "、"),
+    (re.compile(r"\s{2,}"), " "),
+)
+
+
+def _scrub_text(s):
+    """Cowork 生成文からオッズ生値を落とす (文意は残す)。
+
+    advisor のように list[dict] で来る欄があるので再帰で潜る。
+    """
+    if isinstance(s, list):
+        return [_scrub_text(x) for x in s]
+    if isinstance(s, dict):
+        return {k: _scrub_text(v) for k, v in s.items()}
+    if not isinstance(s, str):
+        return s
+    s = _ODDS_BRACKET_RE.sub("", s)
+    s = _ODDS_PAREN_RE.sub("", s)
+    s = _ODDS_BARE_RE.sub("", s)
+    for pat, rep in _ARTIFACT_SUBS:
+        s = pat.sub(rep, s)
+    return s.strip(" 、,").strip()
+
+
 def scrub_public(day: dict) -> dict:
     """JRA-VAN 投稿ガイドライン対応 (2026-07-31): 公開 JSON から生データを落とす。
 
@@ -1010,6 +1058,12 @@ def scrub_public(day: dict) -> dict:
       - 「有料会員限定情報の過度な転載・公開」の禁止 → オッズ生値・複勝レンジ・
         馬連ペアオッズ・払戻金全券種の網羅掲載、EV等オッズが逆算可能な数値
     自作の予想・確率・印・集計 (表やグラフ) は OK 側 (出典表記はサイト footer)。
+
+    2026-08-06 追加 (note 販売記事の生成時に発見した本番混入 2 経路):
+      - SHAP 根拠 why[].value に補正タイム/調教タイム/上り3F が生値で出ていた
+        (app.js の根拠バーが label + value を描画。8/2 単日で 305 件)
+      - Cowork の race_reason / bets[].reason にオッズ生値が地の文で入っていた
+        ("おいしい(単勝 5.9倍)" 等。8/2 単日で 136 件)
     """
     day.pop("training_top5", None)
     day.pop("odds_asof", None)
@@ -1017,6 +1071,31 @@ def scrub_public(day: dict) -> dict:
         res = r.get("result")
         if res:
             res.pop("pays", None)
+        cw = r.get("cowork")
+        if isinstance(cw, dict):
+            for k in ("race_reason", "race_label", "race_nature", "advisor"):
+                if k in cw:
+                    cw[k] = _scrub_text(cw[k])
+            for b in cw.get("bets") or []:
+                if isinstance(b, dict) and "reason" in b:
+                    b["reason"] = _scrub_text(b["reason"])
+
+        # ---- 買い目・枠格付け・見送り理由は note 有料記事の専売 (2026-08-06)
+        # 結果が出るまでは伏せ、確定後は「実績の正直開示」として出す。
+        # 予想そのもの (印・確率・レベル・妙味グレード・根拠) は無料のまま。
+        if not r.get("result"):
+            if isinstance(cw, dict):
+                for k in ("bets", "race_nature", "race_reason"):
+                    cw.pop(k, None)
+            tact = r.get("tact")
+            if isinstance(tact, dict):
+                tact.pop("bets", None)
+            jd = r.get("judgment")
+            if isinstance(jd, dict):
+                # value_horses (妙味馬) は予想側なので残す
+                for k in ("category", "headline", "detail",
+                          "kenshu_hint", "waku_tag"):
+                    jd.pop(k, None)
         for p in r.get("pairs", []) or []:
             p.pop("umaren_odds", None)
         vhs = (r.get("judgment") or {}).get("value_horses") or []
@@ -1027,6 +1106,14 @@ def scrub_public(day: dict) -> dict:
             for k in ("odds", "fuku_low", "fuku_high", "ev_tan",
                       "training", "taiju", "taiju_diff"):
                 h.pop(k, None)
+            # 根拠バーは「どの特徴がどれだけ押した/引いた」までは残し、
+            # 禁止カテゴリの特徴そのものを行ごと落とす (value だけ消すと
+            # app.js の value!=null フィルタで空行になり寄与も失われるため)
+            why = h.get("why")
+            if isinstance(why, list):
+                h["why"] = [w for w in why
+                            if not (isinstance(w, dict)
+                                    and w.get("feat") in _WHY_BLOCK_FEATS)]
             um = h.get("umami")
             if isinstance(um, dict):
                 h["umami"] = {k: um[k] for k in ("grade", "side") if k in um}
