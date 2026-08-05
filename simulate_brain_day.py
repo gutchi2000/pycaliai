@@ -15,6 +15,7 @@ simulate_plan_day.py は compute_bets を決済する(=prob-first 線)。こち�
   ...--gate                # バイアス記号ゲート版(bias_mode=True)で回す
   ...--no-chaos-gate       # chaos>=0.92 の真見送り(2026-07-31配線)を切る (アブレーション)
   ...--no-discipline       # L3規律層(トリガミ床+chalk-cap)を切る (アブレーション)
+  ...--strict              # 厳選モード(chaos<0.90∧dom1>=0.10のみ参加, opt-in, 前向き検証用)
 
 判定はROIでなく トリガミ率/的中率/最大DD を主指標に、CI と power/MDE を併記する
 (2026-07-30 前提監査の教訓: 非有意=効果なし ではない)。
@@ -221,6 +222,8 @@ def main():
         bt_kw["chaos_gate"] = False
     if "--no-discipline" in sys.argv:
         bt_kw["discipline"] = False
+    if "--strict" in sys.argv:
+        bt_kw["strict"] = True
     dates = args or DEFAULT_DATES
 
     bykind = defaultdict(lambda: [0, 0.0, 0, 0])   # stake, ret, n, hit
@@ -231,6 +234,8 @@ def main():
     for k, lab in (("chaos_gate", "chaos真見送りOFF"), ("discipline", "L3規律OFF")):
         if bt_kw.get(k) is False:
             mode += f" / {lab}"
+    if bt_kw.get("strict"):
+        mode += f" / 厳選(chaos<{GB.STRICT_CHAOS}∧dom1>={GB.STRICT_DOM1})"
     print(f"gutchi_brain v{GB.BRAIN_VERSION} 決済バックテスト  [{mode}]  "
           f"選択=9時bundleオッズ / 採点=確定配当")
     print("=" * 96)

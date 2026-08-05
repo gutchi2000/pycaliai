@@ -44,6 +44,13 @@ BUDGET = 10000
 #   =スコアの散らばりで同じ着順順位でも券種形が変わる(2026-07-06 監査#4)。散らばり=確信の
 #   代理でもあるため v0.2 では仕様として維持。動かす時は simulate_brain_day で決済検証必須。
 
+# ---- 厳選モード (opt-in, 2026-07-31 事前固定。前向き検証待ち=既定OFF) ----
+# 16開催512Rのin-sampleスイープでの参照値: chaos<0.90∧dom1>=0.10 → 74R(~7R/日)
+# ROI 88.6% CI[62,118] / 当ﾄﾘ 17.9% / DD ¥135k。どの厳格化セルもROI点推定は100%未達
+# =厳格化は「負けない」レバーであり「勝つ」レバーではない。採否は前向き n>=100 で判定。
+STRICT_CHAOS = 0.90  # 厳選: chaos < これ
+STRICT_DOM1 = 0.10   # 厳選: top1_dominance >= これ (◎独走レースのみ参加)
+
 # ---- L3 規律層 ([[project_trigami_floor_rule_validated]] の生き残り2規律) ----
 CHAOS_SKIP = 0.92    # 参加ゲート: field_chaos_score >= これ = 超混戦 → 真の見送り
 CHALK_CHAOS = 0.86   # chalk-cap: chaos < これ(堅い) なら総点数を CHALK_CAP に制限
@@ -214,7 +221,7 @@ def _discipline(bets, horses, chaos):
 
 
 def build_tickets(race, sat_bias=None, scratched=None, budget=BUDGET, bias_mode=False,
-                  chaos_gate=True, discipline=True):
+                  chaos_gate=True, discipline=True, strict=False):
     scratched = scratched or set()
     horses = [h for h in race.get("horses", [])
               if _num(h.get("tansho_odds")) and h.get("umaban") not in scratched]
@@ -234,6 +241,12 @@ def build_tickets(race, sat_bias=None, scratched=None, budget=BUDGET, bias_mode=
     #   旧実装は ◎非分離枝の内側にネストし、◎が抜けた高chaosレースでは発火しなかった。
     if chaos_gate and chaos >= CHAOS_SKIP:
         return []
+
+    # === 厳選モード (opt-in): 堅い×◎独走レースだけ参加 ===
+    if strict:
+        dom1 = _num((race.get("race_confidence") or {}).get("top1_dominance")) or 0.0
+        if chaos >= STRICT_CHAOS or dom1 < STRICT_DOM1:
+            return []
 
     # === #1 バイアス ===
     # ★構造(混戦/pair/trio)は「生AI指数」で判定する。スコア再重み(旧 apply_bias)は
