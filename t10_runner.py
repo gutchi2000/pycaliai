@@ -345,9 +345,13 @@ def brain_tickets(bundle: Path, rid16: str, date_str: str,
         note = " [T-10オッズ]" + note
 
     import gutchi_brain
+    # 厳選モード: 環境変数 BRAIN_STRICT=1 で opt-in (t10.ps1 側で設定。既定OFF=前向き検証待ち)
+    strict = os.environ.get("BRAIN_STRICT", "").strip() == "1"
+    if strict:
+        note += " [厳選]"
     tickets = gutchi_brain.build_tickets(
         race, sat_bias=sat_bias, scratched=scratched,
-        budget=int(budget) if budget else gutchi_brain.BUDGET)
+        budget=int(budget) if budget else gutchi_brain.BUDGET, strict=strict)
     return {"tickets": tickets, "note": note.strip(), "miokuri": not tickets}
 
 
