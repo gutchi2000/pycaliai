@@ -32,7 +32,7 @@ NiceGUI の 4 カード（市場一致 / ◎独走度 / 上位2頭集中 / 混�
   ✅ t10_runner.py / t10.ps1: 当日オーケストレータ (発走時刻→T-10 自動発火)。
 """
 from __future__ import annotations
-import argparse, bisect, io, json, math, sys
+import argparse, bisect, io, json, math, os, sys
 from pathlib import Path
 
 BASE = Path(__file__).parent
@@ -531,15 +531,19 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     #   c_pair(馬連優先・欠損時ワイド)、選抜は prob-first(:後段)。
     # ⚠ 規律 (2026-06-11): boost の点推定での弄りは禁止。cowork_results の roi_verdict
     #   が above/below_takeout になった時のみ boost 変更可 (単勝120%→96%回帰の再発防止)。
+    # ◎単勝は妙味(under)時のみ (2026-08-09 4-8月実測: 妙味◎単勝 ROI 91.6% n=163 vs
+    # 非妙味◎単勝 14.1% n=31。市場が◎を◎以上に買っている時の単勝は構造的に取れない)
+    hon_tan_ok = hon in value_bans
     if shape == "本命勝負" and hon and tai:
         # 本命勝負(◎独走/本線濃厚/固い): 馬単8点フォメを撤廃し馬連+ワイド並行へ全面置換
         # (2026-06-18 ユーザー指示。馬単は2/122=構造的回収不能 [[loss_forensics_842]]、
         #  馬連UMAMIが馬単に+6pt。固い本命race=◎軸の単複厚+◎-〇▲ペアに集約)。
-        c_tan(hon, 1.6); c_fuku(hon, 1.1)                 # 単勝◎厚 + 複勝◎
+        if hon_tan_ok: c_tan(hon, 1.6)
+        c_fuku(hon, 1.1)                                  # 複勝◎
         for r in rel_pair:
             c_pair(hon, r, 1.3)                           # ◎-〇▲ 馬連+ワイド並行(厚boost)
     elif shape == "◎軸" and hon:
-        c_tan(hon, 1.6)                                   # 単勝◎（最重視・実績120%）
+        if hon_tan_ok: c_tan(hon, 1.6)                    # 単勝◎（妙味時のみ・実績120%）
         for r in rel_pair:
             c_pair(hon, r, 1.1)                            # ◎-〇▲の馬連+ワイド並行(馬単撤廃)
         c_fuku(hon, 1.0)
@@ -556,7 +560,8 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
             c_fuku(hon, 1.2)
     else:  # 標準
         if hon:
-            c_tan(hon, 1.4); c_fuku(hon, 1.1)
+            if hon_tan_ok: c_tan(hon, 1.4)
+            c_fuku(hon, 1.1)
             for r in rel_pair:
                 c_pair(hon, r, 1.1)
 
@@ -568,8 +573,10 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
         for vb in value_bans:
             if (fld(vb, "tansho_odds") or 999) <= ANA_TAN_ODDS_CAP:
                 c_tan(vb, 1.3)
-            if hon and vb != hon:
-                c_pair(vb, hon, 1.2)
+            # vb-◎ ペア生成は撤去 (2026-08-09 4-8月実測: 妙味馬絡みワイド ROI 60.9%
+            # n=575/¥595k=最大出血ブロック、妙味馬絡み馬連 72.2% vs 印純ペア馬連 104.8%。
+            # 市場乖離はペアで獲れない=[[roi_max_doctrine]]。妙味は単複のみで獲る
+            # (妙味単勝 91.6% / 妙味複勝 86.1% は健全))
             c_fuku(vb, 1.1)
 
     # ---- 銘柄選抜: prob-first（gate_q2 実証, 2026-06-15 監査）----
@@ -618,7 +625,9 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     else:
         # 非本命勝負: ◎単複アンカー → prob-first ペア → 残り単複 の優先順で cap まで。
         floor = 0.80
-        cap = max(1, min(6, int(budget) // MIN_BET))
+        # cap 6→5 (2026-08-09 4-8月実測: レース内6点目以降 ROI 61.9%(直近4週)/
+        # 32.5-20.4%(全期間rank7-8)。点数削り=トリガミ床ルールと同方向の検証済みレバー)
+        cap = max(1, min(5, int(budget) // MIN_BET))
         # 馬連と並行(2026-06-18): 型別に prob-first 確保し交互配置(混合 prob-first だと
         # ワイド p_pair > 馬連 p_pair で全ワイドに倒れ「馬連並行」が消えるため)。
         _pu = sorted([c for c in cands if c[0] == "馬連"], key=lambda c: -_p(c))
@@ -643,8 +652,20 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
         if not chosen and cands:
             chosen = [max(cands, key=_p)]
 
-    # ---- 配分（EV×boost 重み、キャップ厳守）----
-    base = [amount_for_ev(c[4]) * c[6] for c in chosen]
+    # ---- 配分（キャップ厳守）----
+    # EVサイジング(amount_for_ev)は撤去 (2026-08-09 4-8月実測: レース内最厚rank1が
+    # ROI最悪 62.4%(直近)/73.5%(全期) < rank2-3。EVで厚くする=市場乖離に厚くする=
+    # optimizer's curse。[[ev_selection_harmful_probfirst]] の未完了follow-up回収)。
+    #   CB_ALLOC=p(既定): p×boost(単複アンカー厚め) / flat: boostのみ / ev: 旧挙動
+    #   リプレイA/B(4/18-8/9, 506R同条件): ev 74.1% < flat 76.4% < p 78.2%(全5ヶ月で
+    #   ev比プラス)。p配分は馬連ステークを自然に1/2以下へ圧縮し複勝アンカーに寄せる。
+    _alloc_mode = os.environ.get("CB_ALLOC", "p")
+    if _alloc_mode == "ev":
+        base = [amount_for_ev(c[4]) * c[6] for c in chosen]
+    elif _alloc_mode == "p":
+        base = [max(_p(c), 1e-4) * c[6] for c in chosen]
+    else:
+        base = [c[6] for c in chosen]
     amts = allocate(base, budget=int(budget))
     waku = bj.get("waku_tag") or "参加枠"
     bets = []
