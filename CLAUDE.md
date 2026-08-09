@@ -348,7 +348,7 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 - テーマ: `lab/experiments/ betting_lab/ bet_type_lab/ physics_gates/ backtest/ train/ audits/ features_dead/ pipelines_old/ sims/`
 - **移動スクリプトの再実行は root から** `python -m lab.<theme>.<name>`（cwd=root が sys.path に乗り `import utils` 等が解決。`python lab/…/x.py` の直叩きは不可）
 - 巨大生成物（`feats_1000.parquet` 686MB 等）・実験モデル・スクラッチは `.gitignore` 済み（**ディスクには残す**）
-- 現用ツール（`place_weekly.py` `participation_analyzer.py` `gutchi_brain.py` `keiba_card*.py` `build_bet_plan.py` 等）と本番エントリは **root 維持**
+- 現用ツール（`place_weekly.py` `participation_analyzer.py` `keiba_card*.py` `build_bet_plan.py` 等）と本番エントリは **root 維持**（`gutchi_brain.py` は 2026-08-09 退役・削除、TACT は topdown へ置換）
 - 注: 上の「ファイル役割マップ」内の一部実験スクリプト（`backtest_v2.py` `train_catboost.py` 等）は `lab/` 配下へ移動済み
 
 **残タスク**：
