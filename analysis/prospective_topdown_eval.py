@@ -77,34 +77,85 @@ def arm_summary(rs: list[dict]) -> dict:
     rt = sum(r["ret"] for r in rs)
     nb = sum(r["n_bets"] for r in rs)
     hi = sum(r["hits"] for r in rs)
-    pnl = np.cumsum([r["ret"] - r["stake"] for r in rs]) if rs else np.array([0.0])
+    cum = np.cumsum([r["ret"] - r["stake"] for r in rs]) if rs else np.array([0.0])
+    peak = np.maximum.accumulate(np.concatenate([[0.0], cum]))[1:]
+    dd = float((cum - peak).min()) if len(cum) else 0.0   # ピークからの最大下落 (<=0)
     return {"races": len(rs), "races_bet": sum(1 for r in rs if r["n_bets"] > 0),
             "bets": nb, "stake": round(st), "ret": round(rt), "pnl": round(rt - st),
             "roi": round(rt / st * 100, 2) if st > 0 else None,
             "hit_count": hi, "hit_rate": round(hi / nb * 100, 1) if nb else None,
-            "max_drawdown": round(float(pnl.min())) if len(pnl) else 0}
+            "max_drawdown": round(dd)}
+
+
+def by_nature(rs: list[dict]) -> dict:
+    """race_nature 別の集計 (shape 腕は 本命勝負/◎軸/広め流し/... に分解される)。"""
+    grp: dict[str, list[dict]] = {}
+    for r in rs:
+        grp.setdefault(r["nature"] or "?", []).append(r)
+    return {k: arm_summary(v) for k, v in sorted(grp.items())}
 
 
 def paired_bootstrap(td: list[dict], sh: list[dict], n_boot: int) -> dict:
-    """レース単位ペアリサンプルで ΔROI (pt) の分布を得る。両腕とも stake>0 の試行のみ有効。"""
+    """レース単位ペアリサンプルで ΔROI (pt) / Δprofit (円) の分布を得る。"""
     assert [r["race_id"] for r in td] == [r["race_id"] for r in sh], "pairing broken"
     n = len(td)
+    if n == 0:
+        return {"n_valid": 0}
     rng = np.random.default_rng(SEED)
     ts, tr = np.array([r["stake"] for r in td]), np.array([r["ret"] for r in td])
     ss, sr = np.array([r["stake"] for r in sh]), np.array([r["ret"] for r in sh])
-    deltas = []
+    d_roi, d_pnl = [], []
     for _ in range(n_boot):
         idx = rng.integers(0, n, n)
         a, b = ts[idx].sum(), ss[idx].sum()
+        d_pnl.append(float((tr[idx] - ts[idx]).sum() - (sr[idx] - ss[idx]).sum()))
         if a > 0 and b > 0:
-            deltas.append(tr[idx].sum() / a * 100 - sr[idx].sum() / b * 100)
-    d = np.array(deltas)
+            d_roi.append(tr[idx].sum() / a * 100 - sr[idx].sum() / b * 100)
+    d = np.array(d_roi); dp = np.array(d_pnl)
     if not len(d):
         return {"n_valid": 0}
-    return {"n_valid": int(len(d)), "delta_mean": round(float(d.mean()), 2),
-            "ci95": [round(float(np.percentile(d, 2.5)), 2),
-                     round(float(np.percentile(d, 97.5)), 2)],
+    return {"n_valid": int(len(d)),
+            "delta_roi_mean": round(float(d.mean()), 2),
+            "delta_roi_ci95": [round(float(np.percentile(d, 2.5)), 2),
+                               round(float(np.percentile(d, 97.5)), 2)],
+            "delta_pnl_mean": round(float(dp.mean())),
+            "delta_pnl_ci95": [round(float(np.percentile(dp, 2.5))),
+                               round(float(np.percentile(dp, 97.5)))],
             "p_improve": round(float((d > 0).mean()), 3)}
+
+
+def outlier_dependence(td: list[dict], sh: list[dict], n_boot: int) -> dict:
+    """ROI 一撃依存の点検: 各腕の最高払戻レースの寄与率 + そのレースを除いた
+    leave-one-out ΔROI 再計算 (topdown 側の最高払戻レースを両腕から外す)。"""
+    def top_share(rs):
+        tot = sum(r["ret"] for r in rs)
+        if tot <= 0 or not rs:
+            return None
+        best = max(rs, key=lambda r: r["ret"])
+        return {"race_id": best["race_id"], "date": best["date"], "ret": round(best["ret"]),
+                "share_of_total_return": round(best["ret"] / tot, 3)}
+    res = {"topdown_top_race": top_share(td), "shape_top_race": top_share(sh)}
+    if len(td) > 1:
+        drop = max(range(len(td)), key=lambda i: td[i]["ret"])
+        td2 = [r for i, r in enumerate(td) if i != drop]
+        sh2 = [r for i, r in enumerate(sh) if i != drop]
+        res["loo_drop_topdown_best"] = {
+            "topdown_roi": arm_summary(td2)["roi"], "shape_roi": arm_summary(sh2)["roi"],
+            "paired_bootstrap": paired_bootstrap(td2, sh2, n_boot)}
+    return res
+
+
+def coverage_check(dates: dict[str, dict]) -> list[dict]:
+    """週次監視 (規律7): 日付ごとの実績/shadow ペア成立状況。異常があれば warn を付ける。"""
+    rows = []
+    for dk, c in sorted(dates.items()):
+        warn = []
+        if c["shadow"] == 0:
+            warn.append("shadow 0R (t10 が --apply で走ったか確認)")
+        if c["paired"] < c["primary_topdown"]:
+            warn.append(f"未ペア {c['primary_topdown'] - c['paired']}R (shadow 欠落)")
+        rows.append({"date": dk, **c, **({"warn": warn} if warn else {})})
+    return rows
 
 
 def main() -> int:
@@ -117,6 +168,7 @@ def main() -> int:
     sh_dir = BASE / "reports" / "engine_shadow"
     co_dir = BASE / "reports" / "cowork_output"
     td_races, sh_races = [], []
+    cov: dict[str, dict] = {}
     for f in sorted(sh_dir.glob("????????_shadow.json")):
         date_key = f.stem[:8]
         if int(date_key) < args.start:
@@ -125,16 +177,23 @@ def main() -> int:
         bets_f = co_dir / f"{date_key}_bets.json"
         if not bets_f.exists():
             print(f"[warn] {date_key}: shadow はあるが bets.json 不在 — skip")
+            cov[date_key] = {"primary_topdown": 0, "shadow": len(shadow.get("races", [])),
+                             "paired": 0}
             continue
         prim = json.load(open(bets_f, encoding="utf-8"))
         prim_races = prim.get("bets", prim if isinstance(prim, list) else [])
         sh_by_rid = {str(e.get("race_id")): e for e in shadow.get("races", [])}
-        # ペア成立レースのみ (primary が topdown で shadow が存在する race)
+        # ペア成立レースのみ (primary が topdown/見送り で shadow が存在する race)
+        n_td = n_pair = 0
         for cd in prim_races:
             rid = str(cd.get("race_id"))
-            if rid in sh_by_rid and cd.get("race_nature") in ("topdown", "見送り"):
-                td_races.append((date_key, cd))
-                sh_races.append((date_key, sh_by_rid[rid]))
+            if cd.get("race_nature") in ("topdown", "見送り"):
+                n_td += 1
+                if rid in sh_by_rid:
+                    n_pair += 1
+                    td_races.append((date_key, cd))
+                    sh_races.append((date_key, sh_by_rid[rid]))
+        cov[date_key] = {"primary_topdown": n_td, "shadow": len(sh_by_rid), "paired": n_pair}
 
     if not td_races:
         print("[INFO] 前向きペアデータ 0R (開始日以降の shadow ログ未蓄積)。"
@@ -152,16 +211,26 @@ def main() -> int:
     res = {"experiment_id": "P1-TOPDOWN-PROSPECTIVE-2026",
            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "start_date": args.start, "paired_races_settled": len(td_s),
+           "coverage": coverage_check(cov),
            "topdown": arm_summary(td_s), "shape_shadow": arm_summary(sh_s),
-           "paired_bootstrap": paired_bootstrap(td_s, sh_s, args.n_boot)}
+           "topdown_by_nature": by_nature(td_s), "shape_by_nature": by_nature(sh_s),
+           "paired_bootstrap": paired_bootstrap(td_s, sh_s, args.n_boot),
+           "outlier_dependence": outlier_dependence(td_s, sh_s, args.n_boot)}
     nb = res["topdown"]["bets"]
     res["judgment_ready"] = nb >= 300
     if res["judgment_ready"]:
         pb = res["paired_bootstrap"]
         if pb.get("n_valid"):
-            d, lo, hi = pb["delta_mean"], pb["ci95"][0], pb["ci95"][1]
+            d = pb["delta_roi_mean"]; lo, hi = pb["delta_roi_ci95"]
             res["verdict"] = ("PASS" if d > 0 and lo > -2.0 else
                               "FAIL" if d < 0 and hi < 2.0 else "INCONCLUSIVE")
+            # ROI 一撃依存の注記 (判定基準は変えない。PASS が最高払戻1Rの除去で
+            # 消えるなら outlier_sensitive=true を付けて報告する)
+            loo = res["outlier_dependence"].get("loo_drop_topdown_best", {})
+            lpb = loo.get("paired_bootstrap", {})
+            if res["verdict"] == "PASS" and lpb.get("n_valid"):
+                ld, llo = lpb["delta_roi_mean"], lpb["delta_roi_ci95"][0]
+                res["outlier_sensitive"] = not (ld > 0 and llo > -2.0)
     else:
         res["verdict"] = f"PENDING (bets {nb}/300)"
 
