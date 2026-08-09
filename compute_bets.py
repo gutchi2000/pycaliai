@@ -86,6 +86,63 @@ def hosei_marks(horses: list[dict]) -> list[dict] | None:
 KIND_ORDER = {"単勝": 0, "複勝": 1, "ワイド": 2, "馬連": 3, "馬単": 4,
               "三連複": 5, "三連単": 6}
 
+# ============================================================
+# 完全トップダウンエンジン (2026-08-09 配線)
+#   印スロットを介さず、全馬 p_win → λ補正PL で全ペアの p_umaren/p_wide を
+#   計算し、確率順 + 適応トリガミ床で馬券を組む。CB_ENGINE=shape で旧経路。
+#   リプレイA/B (4/18-8/9, 実買付506R同条件・ペアブートストラップ):
+#     shape旧74.1% / shape+4修正 78.2% / topdown 83.6% (Δ+6.1pt CI95[-0.5,+12.8],
+#     P(Δ>0)=0.961)。構成要素は全て独立検証済 (prob-first / トリガミ床 / p配分 /
+#     複勝アンカー床)。λ検証: bundle厳密PL値との比 0.99±0.1 (バイアスなし)。
+# ============================================================
+HARVILLE_L = BASE / "data" / "harville_lambda.json"
+_HV_LAM = None
+
+
+def _harville_lambda():
+    global _HV_LAM
+    if _HV_LAM is None:
+        try:
+            d = json.loads(HARVILLE_L.read_text(encoding="utf-8"))
+            _HV_LAM = (float(d["lambda1"]), float(d["lambda2"]))
+        except Exception:
+            _HV_LAM = (0.8405, 0.7542)  # fit 2026-05-31〜07-11 の既定値
+    return _HV_LAM
+
+
+def pl_pair_probs(horses: list[dict]) -> tuple[dict, dict]:
+    """全ペアの ({(i,j): p_umaren}, {(i,j): p_wide})。Lo-Bacon-Shone λ補正 PL。"""
+    l1, l2 = _harville_lambda()
+    hs = [(int(h["umaban"]), float(h.get("p_win") or 0)) for h in horses
+          if _num(h.get("umaban")) is not None and (h.get("p_win") or 0) > 0]
+    if len(hs) < 3:
+        return {}, {}
+    ub = [u for u, _ in hs]
+    s = sum(x for _, x in hs)
+    p = [x / s for _, x in hs]
+    n = len(p)
+    q1 = [x ** l1 for x in p]
+    q2 = [x ** l2 for x in p]
+    S1, S2 = sum(q1), sum(q2)
+    um, wd = {}, {}
+    for a in range(n):
+        z1 = S1 - q1[a]
+        for b in range(n):
+            if b == a:
+                continue
+            pab = p[a] * q1[b] / z1
+            key = (min(ub[a], ub[b]), max(ub[a], ub[b]))
+            um[key] = um.get(key, 0.0) + pab
+            z2 = S2 - q2[a] - q2[b]
+            for c in range(n):
+                if c == a or c == b:
+                    continue
+                pabc = pab * q2[c] / z2
+                for x, y in ((a, b), (a, c), (b, c)):
+                    k2 = (min(ub[x], ub[y]), max(ub[x], ub[y]))
+                    wd[k2] = wd.get(k2, 0.0) + pabc
+    return um, wd
+
 # カード閾値（nicegui_app と一致）
 TH_TOP1_GO, TH_TOP1_OK = 0.75, 0.50      # ◎独走 / ◎やや優位
 TH_TOP2_GO, TH_TOP2_OK, TH_TOP2_LOW = 0.75, 0.50, 0.40  # 本線濃厚 / やや本線 / 分散
@@ -414,6 +471,70 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     market = _num(rc.get("ai_market_agreement")) or 0.0
     anaba = market < TH_MARKET_ANABA
     value_bans = [int(v["umaban"]) for v in bj.get("value_horses", []) if _num(v.get("umaban")) is not None]
+
+    # ---- 完全トップダウンエンジン (CB_ENGINE=topdown, 既定) ----
+    # §0 hard / §0b クリーン帯 / 予算降格 は上で適用済み。ここから先の印・shape・
+    # 妙味ヒューリスティクスを全てバイパスし、確率順+適応トリガミ床で組む。
+    if os.environ.get("CB_ENGINE", "topdown") == "topdown":
+        umP, wdP = pl_pair_probs(horses)
+        um_ = race.get("umaren_matrix", {}) or {}
+
+        def _umo(i, j):
+            v = _num(um_.get(f"{min(i, j)}-{max(i, j)}"))
+            return v if v and v > 0 else None
+
+        def _wdo(i, j):
+            lw = lwide.get((min(i, j), max(i, j)))
+            if lw:
+                return (lw[0] + lw[1]) / 2.0
+            o = _umo(i, j)
+            return o / 3.0 if o else None
+
+        tds = []  # (kind, sel, p, odds, floor_odds)
+        fc = sorted(((fld(u, "p_sho") or 0, u) for u in by_ban), reverse=True)
+        if fc and fc[0][0] > 0:
+            u = fc[0][1]
+            lo, hi = fld(u, "fuku_odds_low"), fld(u, "fuku_odds_high")
+            if lo and hi:
+                tds.append(["複勝", str(u), fc[0][0], (lo + hi) / 2, lo])
+        wc = sorted(((pv, k) for k, pv in wdP.items() if _wdo(*k)), reverse=True)
+        for pv, k in wc[:2]:
+            o = _wdo(*k)
+            if o <= 50:
+                tds.append(["ワイド", f"{k[0]}-{k[1]}", pv, o, o])
+        uc = sorted(((pv, k) for k, pv in umP.items()
+                     if _umo(*k) and _umo(*k) <= 50), reverse=True)
+        if uc:
+            k = uc[0][1]
+            tds.append(["馬連", f"{k[0]}-{k[1]}", uc[0][0], _umo(*k), _umo(*k)])
+        tc = sorted(((fld(u, "p_win") or 0, u) for u in by_ban
+                     if (fld(u, "tansho_odds") or 999) <= 30), reverse=True)
+        if tc and tc[0][0] > 0:
+            tds.append(["単勝", str(tc[0][1]), tc[0][0], fld(tc[0][1], "tansho_odds"),
+                        fld(tc[0][1], "tansho_odds")])
+        if not tds:
+            return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                    "race_reason": "topdown: 有効候補なし (オッズ欠損) のため見送り。",
+                    "bets": [], **({"hosei_marks": hosei} if hosei else {})}
+        # p比例配分 + 適応トリガミ床 (最安見込払戻 >= 総投資 まで低p点を削る。
+        # トリガミ−74%/クリーン勝ち+18% 実証のユーザールール適応点数版)
+        amts = allocate([c[2] for c in tds], budget=int(budget))
+        for _ in range(len(tds) - 1):
+            if min(c[4] * a for c, a in zip(tds, amts)) >= sum(amts):
+                break
+            tds.pop(min(range(len(tds)), key=lambda i: tds[i][2]))
+            amts = allocate([c[2] for c in tds], budget=int(budget))
+        bets = [{"馬券種": t, "買い目": sel, "購入額": int(a), "枠タグ": bj.get("waku_tag") or "参加枠",
+                 "理由": f"topdown p={p_:.3f}（{t} {o_:.1f}倍）"}
+                for (t, sel, p_, o_, _fo), a in zip(tds, amts)]
+        bets.sort(key=lambda b: (KIND_ORDER.get(b["馬券種"], 9), -b["購入額"]))
+        rr = (f"topdown全券種確率（混戦{chaos:.2f}/市場{market:+.2f}）で {len(bets)}点。"
+              f"{demote_note}{live_note}").rstrip()
+        return {"race_id": rid, "race_label": label, "race_nature": "topdown",
+                "race_reason": rr,
+                "confidence": {"top1_pct": round(top1, 3), "top2_pct": round(top2, 3),
+                               "chaos_pct": round(chaos, 3), "market": round(market, 3)},
+                "bets": bets, **({"hosei_marks": hosei} if hosei else {})}
 
     # ---- 形（shape）決定 ----
     if hon and tai and top1 >= TH_TOP1_GO and top2 >= TH_TOP2_GO and chaos <= TH_CHAOS_MID:
