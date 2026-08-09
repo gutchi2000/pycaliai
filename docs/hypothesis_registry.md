@@ -428,3 +428,36 @@ OOF r1/r2/r3 で組成した 単勝/複勝/馬連/ワイド の的中率・ROI�
 検定 → 全セルCI重複 (馬連的中12.6 vs 12.4% / ワイド27.0 vs 26.1% / ROI 77-84%帯)。
 「ダートは並びが読みやすい」仮説も否定。サーフェス条件付き戦略の扉は完全クローズ。
 2026ダート55%は放置が正解 (小標本への最適化=クリーン帯の二の舞を踏まない)。
+
+---
+
+## 仮説 P1-TOPDOWN-PROSPECTIVE-2026: topdown エンジン前向き検証
+
+**登録日:** 2026-08-10（結果確認前の事前登録）
+**登録者:** gutchi2000 + Claude (Fable 5)
+
+### 背景
+2026-08-09 に compute_bets.py 既定エンジンを topdown (p_win→λ補正PL→確率順+適応トリガミ床)
+に切替 (commit ee17596c46)。根拠のリプレイ (4/18-8/9, 506R, topdown 82.8% vs shape 74.1%,
+paired CI95[-0.5,+12.8], P(改善)=0.961) は **in-sample**。前向き実績ゼロ。
+
+### 仮説
+リプレイ改善 (Δ+8.7pt) の方向が未来データ (2026-08-15 以降の実運用) でも再現する。
+
+### 検証設計
+- Treatment: 本番 topdown 買い目 (reports/cowork_output/{date}_bets.json, ENGINE_VERSION>=2026-08-09)
+- Baseline: 同一レース・同一 T-10 オッズで同時生成される shape シャドー買い目
+  (reports/engine_shadow/{date}_shadow.json, compute_bets.py が --apply 時に自動併記)
+- 決済: 確定 kekka のみ。評価: analysis/prospective_topdown_eval.py
+  (レース単位 paired bootstrap 10,000回, seed=42)
+
+### 判定基準（事前固定）
+n_bets(topdown) >= 300 到達後に 1 回判定:
+- PASS: ΔROI > 0 かつ CI95下限 > -2pt
+- FAIL: ΔROI < 0 かつ CI95上限 < +2pt
+- INCONCLUSIVE: それ以外（必要追加 n を明示して継続）
+判定日まで topdown 固定運用（未来の結果でエンジンを選ばない）。
+FAIL 時の切り分け候補: replay 過学習 / regime 依存 / サンプル不足 / 実装差異(シャドーとreplayの条件差)。
+
+### ステータス
+PENDING (2026-08-10 時点 前向きペア 0R。初回データは 2026-08-15/16 開催週)

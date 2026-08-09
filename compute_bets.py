@@ -33,10 +33,11 @@ NiceGUI の 4 カード（市場一致 / ◎独走度 / 上位2頭集中 / 混�
 """
 from __future__ import annotations
 import argparse, bisect, io, json, math, os, sys
+from datetime import datetime
 from pathlib import Path
 
 BASE = Path(__file__).parent
-ENGINE_VERSION = "2026-07-31"   # bets.json スタンプ用 (挙動変更時に更新)
+ENGINE_VERSION = "2026-08-09"   # bets.json スタンプ用 (挙動変更時に更新。08-09=topdown既定化)
 BUDGET, MIN_BET, MAX_BET = 10000, 500, 7000
 CHAOS_Q = BASE / "data" / "chaos_quantiles.json"
 T10_BLEND = BASE / "data" / "t10_blend.json"
@@ -356,7 +357,10 @@ def compute_fuku_hit(race: dict, thr: float = FUKU_HIT_THR, stake: int = BUDGET,
 def compute_race_bets(race: dict, live_dir: Path | None = None,
                       max_age_min: float = 20.0, budget: int = BUDGET,
                       force_floor: bool = False,
-                      demote_budget: int | None = None) -> dict:
+                      demote_budget: int | None = None,
+                      engine: str | None = None) -> dict:
+    # engine: "topdown"/"shape" を明示指定 (None なら env CB_ENGINE, 既定 topdown)。
+    #   前向きA/B用のシャドー計算 (engine="shape") が本番買い目に影響しないための引数。
     # force_floor=True: §0b 参戦規律(クリーン帯ゲート)の「見送り」を緩める。プロ条件
     #   (週10R∧¥100k)を満たすため枠プランで使用。§0 hard(chaos>=0.92/少頭数/◎薄/odds欠)は維持。
     # demote_budget: force_floor 時の二段目。クリーン帯外レースは見送らない代わりに
@@ -475,7 +479,7 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     # ---- 完全トップダウンエンジン (CB_ENGINE=topdown, 既定) ----
     # §0 hard / §0b クリーン帯 / 予算降格 は上で適用済み。ここから先の印・shape・
     # 妙味ヒューリスティクスを全てバイパスし、確率順+適応トリガミ床で組む。
-    if os.environ.get("CB_ENGINE", "topdown") == "topdown":
+    if (engine or os.environ.get("CB_ENGINE", "topdown")) == "topdown":
         umP, wdP = pl_pair_probs(horses)
         um_ = race.get("umaren_matrix", {}) or {}
 
@@ -915,7 +919,12 @@ def main():
     live_dir = Path(args.live_odds_dir) if args.live_odds_dir else None
     if live_dir is not None:
         print(f"[live] T-10 モード: {live_dir} (鮮度 {args.max_age_min:.0f}分)")
-    out = []
+    # 前向きA/B: 本番エンジンが topdown のとき、旧 shape エンジンの買い目を
+    # シャドー計算して併記ログに残す (実買い目・bets.json 本体には一切不干渉)。
+    # 評価: analysis/prospective_topdown_eval.py (paired bootstrap)。
+    shadow_on = (os.environ.get("CB_ENGINE", "topdown") == "topdown"
+                 and not args.fuku_hit)
+    out, shadow_out = [], []
     for r in races:
         if args.fuku_hit:
             out.append(compute_fuku_hit(r, thr=args.fuku_hit_thr, stake=args.budget,
@@ -931,9 +940,17 @@ def main():
             #   (clean 77.6% < 帯外 87.9%)につき配線中止。再判定は2026後半データ蓄積後。
             out.append(compute_race_bets(r, live_dir=live_dir, max_age_min=args.max_age_min,
                                          budget=rb, force_floor=True))
+            if shadow_on:
+                shadow_out.append(compute_race_bets(
+                    r, live_dir=live_dir, max_age_min=args.max_age_min,
+                    budget=rb, force_floor=True, engine="shape"))
         else:
             out.append(compute_race_bets(r, live_dir=live_dir, max_age_min=args.max_age_min,
                                          budget=args.budget))
+            if shadow_on:
+                shadow_out.append(compute_race_bets(
+                    r, live_dir=live_dir, max_age_min=args.max_age_min,
+                    budget=args.budget, engine="shape"))
     n_bet = sum(1 for e in out if e["bets"]); tot = sum(b["購入額"] for e in out for b in e["bets"])
     shapes = {}
     for e in out: shapes[e["race_nature"]] = shapes.get(e["race_nature"], 0) + 1
@@ -962,6 +979,25 @@ def main():
             "engine": "compute_bets", "engine_version": ENGINE_VERSION,
             "mode": ("fuku_hit" if args.fuku_hit else "plan" if args.plan else "default"),
             "live": bool(live_dir)})
+        if shadow_out:
+            # シャドー(旧shape)を reports/engine_shadow/{date}_shadow.json へ in-place merge。
+            # t10_runner はレース毎 --race 呼び出しなので bets.json と同じ置換型マージ。
+            sh_dir = Path("reports/engine_shadow"); sh_dir.mkdir(parents=True, exist_ok=True)
+            sh_path = sh_dir / f"{mm.group(1)}_shadow.json"
+            try:
+                sh = json.load(open(sh_path, encoding="utf-8"))
+            except (FileNotFoundError, json.JSONDecodeError):
+                sh = {"primary_engine": "topdown", "shadow_engine": "shape", "races": []}
+            by_rid = {str(e.get("race_id")): e for e in sh.get("races", [])}
+            for e in shadow_out:
+                by_rid[str(e.get("race_id"))] = e
+            sh["races"] = sorted(by_rid.values(), key=lambda e: str(e.get("race_id")))
+            sh["engine_version"] = ENGINE_VERSION
+            sh["generated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            sh_tmp = sh_path.with_suffix(".tmp")
+            sh_tmp.write_text(json.dumps(sh, ensure_ascii=False, indent=2), encoding="utf-8")
+            sh_tmp.replace(sh_path)
+            print(f"[shadow] {sh_path.name}: shape併記 {len(shadow_out)}R (計{len(sh['races'])}R)")
         print("※ 書込後は validate_cowork_bets.py --apply で見送り/内容ガードを必ず通すこと")
     else:
         print("\n(dry: 書込なし。--apply で reports/cowork_output/{date}_bets.json へ反映)")
