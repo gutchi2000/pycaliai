@@ -540,20 +540,23 @@ def _combos(selection: str, n: int, ordered: bool) -> list[tuple]:
 
 
 # ---------------------------------------------------------------- TACT (gutchi_brain)
-_TACT_ODDS_RE = re.compile(r"[（(]複[\d.]+[)）]")   # 理由文のオッズ値はガイドライン対応で落とす
+# 理由文のオッズ値はガイドライン対応で落とす (旧brain「（複X.X）」/ topdown「（券種 X.X倍）」両対応)
+_TACT_ODDS_RE = re.compile(r"[（(](?:複[\d.]+|[^（）()]*?[\d.]+倍)[)）]")
 
 
 def build_tact(race: dict) -> dict | None:
-    """bundle の 1 レースに TACT (gutchi_brain 決定木) の推奨買い目を付ける。
-    bets=[] は見送り (新馬 / 超混戦 chaos ゲート)。engine 不在・例外時は None。"""
+    """bundle の 1 レースに TACT (topdown エンジン) の推奨買い目を付ける。
+    2026-08-09: gutchi_brain 決定木 (同一526RリプレイROI 72.4%) を本番と同一の
+    compute_bets topdown (82.8%) に置換 — note の買い目が実際の馬券ラインと一致する。
+    bets=[] は見送り (§0 hard / クリーン帯外)。engine 不在・例外時は None。"""
     try:
-        from gutchi_brain import build_tickets, BRAIN_VERSION
-        tickets = build_tickets(race)
+        from compute_bets import compute_race_bets
+        tickets = compute_race_bets(race, budget=10000, force_floor=True).get("bets") or []
     except Exception as e:
         print(f"[tact skip] {race.get('race_id')}: {e}")
         return None
     return {
-        "version": BRAIN_VERSION,
+        "version": "1.0td",
         # 金額は出さない (買う人が決める)。買い目+定性理由のみ公開
         "bets": [{"type": t["馬券種"], "selection": t["買い目"],
                   "reason": _TACT_ODDS_RE.sub("", t["理由"]).strip()}
