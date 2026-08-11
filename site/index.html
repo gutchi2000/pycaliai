@@ -274,16 +274,15 @@ addEventListener('DOMContentLoaded',function(){
   var brand=document.querySelector('.brand');
   if(brand){brand.style.cursor='pointer';brand.addEventListener('click',showLanding)}
 });
-/* 表紙: 最新開催データで開催ストリップ+メインレース端末を描画(土日更新に自動追従) */
+/* 表紙: 開催ストリップ+メインレース端末を描画(初期=最新開催、右上の開催日セレクタに追従) */
 (function(){
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
-  window.__mfP.then(function(mf){
-    var d=mf.dates&&mf.dates[0]; if(!d)return;
-    var ratingsP=fetch('data/race_ratings.json').then(function(r){return r.json()}).catch(function(){return null});
-    return Promise.all([fetch('data/'+d.date+'.json?t='+Date.now()).then(function(r){return r.json()}),ratingsP]).then(function(res){
+  var ratingsP=fetch('data/race_ratings.json').then(function(r){return r.json()}).catch(function(){return null});
+  function loadLanding(dateStr){
+    return Promise.all([fetch('data/'+dateStr+'.json?t='+Date.now()).then(function(r){return r.json()}),ratingsP]).then(function(res){
       var day=res[0], ratings=res[1];
       var races=day.races||[];
-      var ymd=d.date, wk=['日','月','火','水','木','金','土'][new Date(+ymd.slice(0,4),+ymd.slice(4,6)-1,+ymd.slice(6,8)).getDay()];
+      var ymd=dateStr, wk=['日','月','火','水','木','金','土'][new Date(+ymd.slice(0,4),+ymd.slice(4,6)-1,+ymd.slice(6,8)).getDay()];
       // メイン選定: 重賞/L格付レーティング表(race_ratings.json)で最高レートのレース。無ければ11R格上位フォールバック
       function rnorm(s){return String(s||'').normalize('NFKC').replace(/[\s　]/g,'').replace(/[（(][^）)]*[）)]/g,'').replace(/ステークス/g,'S').replace(/農林水産省賞典|産経賞|サンケイスポーツ賞|日本経済新聞杯|読売新聞杯|中日新聞杯?(?=杯)/g,'')}
       var rkeys=ratings?Object.keys(ratings).map(function(k){return{k:k,n:rnorm(k)}}):[];
@@ -377,8 +376,13 @@ addEventListener('DOMContentLoaded',function(){
         document.getElementById('lpMore').textContent='+ '+(day.places||[]).join('・')+' 全'+races.length+'レースの印と指数を無料公開中';
         document.getElementById('lpIndex').hidden=false;
       }
-    })
-  }).catch(function(){});
+    }).catch(function(){});
+  }
+  window.__mfP.then(function(mf){var d=mf.dates&&mf.dates[0];if(d)loadLanding(d.date)}).catch(function(){});
+  // 右上の開催日セレクタに追従
+  document.addEventListener('change',function(e){
+    if(e.target&&e.target.id==='dateSel'&&e.target.value)loadLanding(e.target.value);
+  });
 })();
 </script>
 <script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
