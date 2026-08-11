@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyCaLiAI — proto1 競馬新聞×データターミナル</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070b14; --bg2:#0c1222; --bg3:#111a2e;
+  --line:#1e2b4a; --line2:#32456e; --rule:#25335a;
+  --tx:#edf1fb; --tx2:#a9b6d3; --tx3:#7385a8;
+  --gold:#f5b942; --gold2:#ffd97a; --teal:#2dd4a8;
+  --red:#f2555a;
+  --mincho:"Shippori Mincho B1","Noto Serif JP",serif;
+  --sans:"Noto Sans JP",sans-serif;
+  --mono:"IBM Plex Mono","JetBrains Mono",monospace;
+  --r:2px;
+  --maxw:1160px; --pad:clamp(14px,3vw,28px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{overflow-x:clip}
+body{
+  background:var(--bg); color:var(--tx);
+  font-family:var(--sans); font-size:15.5px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+/* 紙面の刷りムラを思わせる極淡テクスチャ */
+body::before{content:"";position:fixed;inset:0;z-index:-1;
+  background:
+    radial-gradient(900px 420px at 50% -10%, rgba(245,185,66,.05), transparent 60%),
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(120,150,210,.012) 3px 4px);
+}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:0}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+::selection{background:rgba(245,185,66,.3)}
+
+/* ============ 題字バー(新聞マストヘッド) ============ */
+.masthead{border-bottom:3px double var(--rule);background:rgba(7,11,20,.9)}
+.mh-in{max-width:var(--maxw);margin:0 auto;padding:14px var(--pad) 12px;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:13px}
+.brand img{width:44px;height:44px;object-fit:contain;filter:drop-shadow(0 0 10px rgba(245,185,66,.35))}
+.brand-t{line-height:1.15}
+.brand-t .name{font-family:var(--mincho);font-weight:800;font-size:29px;letter-spacing:.06em;color:var(--gold2)}
+.brand-t .sub{font-size:11.5px;color:var(--tx3);letter-spacing:.3em;margin-top:2px}
+.mh-right{display:flex;align-items:center;gap:14px}
+.mh-date{font-family:var(--mincho);font-weight:700;font-size:15px;color:var(--tx2);letter-spacing:.08em;
+  border-left:1px solid var(--rule);border-right:1px solid var(--rule);padding:2px 14px}
+.mh-date b{color:var(--tx);font-size:18px}
+.live{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--teal);letter-spacing:.14em}
+.live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal)}
+
+/* ナビ(予想/成績/使い方) — 新聞の欄外見出し風 */
+.mh-nav{max-width:var(--maxw);margin:0 auto;padding:0 var(--pad);
+  display:flex;gap:0;border-top:1px solid var(--line)}
+.mh-nav a{font-family:var(--mincho);font-weight:700;font-size:14.5px;letter-spacing:.14em;
+  padding:9px 22px;color:var(--tx3);border-right:1px solid var(--line);position:relative}
+.mh-nav a:first-child{border-left:1px solid var(--line)}
+.mh-nav a.on{color:var(--gold2)}
+.mh-nav a.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--gold)}
+
+/* ============ 会場タブ = 縦組み ============ */
+.layout{max-width:var(--maxw);margin:0 auto;padding:22px var(--pad) 60px;
+  display:grid;grid-template-columns:auto 1fr;gap:clamp(16px,2.6vw,30px)}
+.venues{display:flex;flex-direction:column;gap:0;border-top:3px double var(--rule);align-self:start}
+.venues button{
+  writing-mode:vertical-rl; text-orientation:upright;
+  font-family:var(--mincho);font-weight:700;font-size:19px;letter-spacing:.32em;
+  color:var(--tx3);padding:20px 12px 16px;border-bottom:1px solid var(--line);
+  border-left:1px solid transparent;border-right:1px solid transparent;
+  min-height:118px;transition:color .15s}
+.venues button:hover{color:var(--tx2)}
+.venues button.on{color:var(--gold2);background:linear-gradient(180deg,rgba(245,185,66,.09),transparent 80%);
+  border-left:1px solid var(--rule);border-right:1px solid var(--rule)}
+.venues button .r{writing-mode:horizontal-tb;font-family:var(--mono);font-size:10px;color:var(--tx3);
+  letter-spacing:.05em;margin-top:9px;display:block}
+
+/* ============ 本文カラム ============ */
+.main{min-width:0}
+
+/* レース帯 */
+.racestrip{display:flex;gap:0;overflow-x:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+.racestrip button{flex:0 0 auto;padding:8px 13px 7px;border-right:1px solid var(--line);text-align:center;min-width:64px}
+.racestrip button:first-child{border-left:1px solid var(--line)}
+.racestrip .rn{font-family:var(--mono);font-weight:600;font-size:15px;color:var(--tx2)}
+.racestrip .rt{font-size:10px;color:var(--tx3);letter-spacing:.03em}
+.racestrip button.on{background:var(--bg3)}
+.racestrip button.on .rn{color:var(--gold2)}
+.racestrip button.on .rt{color:var(--tx2)}
+
+/* レース見出し(新聞の段見出し) */
+.race-head{margin-top:22px;padding:14px 0 12px;border-top:3px double var(--rule);border-bottom:1px solid var(--rule);
+  display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.rh-no{font-family:var(--mincho);font-weight:800;font-size:34px;color:var(--gold2);letter-spacing:.02em;line-height:1}
+.rh-no small{font-size:16px;color:var(--tx3);font-weight:700;margin-left:2px}
+.rh-name{font-family:var(--mincho);font-weight:700;font-size:21px;letter-spacing:.1em}
+.rh-meta{display:flex;gap:0;flex-wrap:wrap;font-size:13px;color:var(--tx2);margin-left:auto}
+.rh-meta span{padding:0 12px;border-left:1px solid var(--line2)}
+.rh-meta span:first-child{border-left:none}
+.rh-meta b{color:var(--tx);font-weight:500}
+.rh-meta .num{font-size:13.5px}
+
+/* 判定行 — 印1行講評 */
+.verdict{display:flex;gap:18px;flex-wrap:wrap;padding:10px 2px 0;font-size:13px;color:var(--tx2)}
+.verdict .k{color:var(--tx3);margin-right:6px}
+.verdict .teal{color:var(--teal)}
+.verdict .gold{color:var(--gold2)}
+
+/* ============ 出走表(新聞紙面) ============ */
+.paper{margin-top:16px;border:1px solid var(--rule);border-radius:var(--r);background:var(--bg2);overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:660px}
+thead th{font-family:var(--mincho);font-weight:700;font-size:12px;letter-spacing:.18em;color:var(--tx3);
+  padding:9px 10px;border-bottom:2px solid var(--rule);text-align:left;white-space:nowrap;background:var(--bg3)}
+thead th.c,td.c{text-align:center}
+thead th.r,td.r{text-align:right}
+tbody td{padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+tbody tr.honmei{background:linear-gradient(90deg,rgba(245,185,66,.07),transparent 62%)}
+
+/* 印 — 紙面の主役。明朝でデカく */
+td.mark{font-family:var(--mincho);font-size:27px;font-weight:800;line-height:1;width:52px;text-align:center;padding:6px 4px}
+.m-hon{color:var(--gold2);text-shadow:0 0 14px rgba(245,185,66,.5)}
+.m-tai{color:var(--tx)}
+.m-tan{color:var(--tx2)}
+.m-osae{color:var(--tx3);font-size:22px}
+
+/* 枠番 (JRA枠色) */
+.waku{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
+  font-family:var(--mono);font-weight:600;font-size:13px;border-radius:var(--r);border:1px solid rgba(255,255,255,.14)}
+.w1{background:#f5f5f5;color:#111}.w2{background:#1a1a1a;color:#eee}
+.w3{background:#d33;color:#fff}.w4{background:#26c;color:#fff}
+.w5{background:#fd5;color:#211}.w6{background:#2a5;color:#fff}
+.w7{background:#e82;color:#fff}.w8{background:#e58;color:#fff}
+.uma{font-family:var(--mono);font-weight:500;color:var(--tx2);width:30px;text-align:center}
+
+.hname{font-family:var(--mincho);font-weight:700;font-size:16.5px;letter-spacing:.05em}
+.hsub{font-size:11px;color:var(--tx3);margin-top:1px}
+.hsub em{font-style:normal;color:var(--tx2)}
+
+/* AI指数バー */
+.idx{display:flex;align-items:center;gap:9px;min-width:150px}
+.idx .v{font-family:var(--mono);font-weight:600;font-size:15px;width:34px;text-align:right}
+.idx .bar{flex:1;height:5px;background:var(--bg3);border-radius:0;min-width:70px}
+.idx .bar i{display:block;height:100%;background:linear-gradient(90deg,#8a6a24,var(--gold))}
+tr.honmei .idx .bar i{background:linear-gradient(90deg,var(--gold),var(--gold2))}
+
+.pct{font-family:var(--mono);font-size:13.5px;color:var(--tx2)}
+.pct b{font-weight:600;color:var(--tx)}
+.vsmkt{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;padding:1px 7px;border:1px solid var(--line2);border-radius:var(--r)}
+.vsmkt.val{color:var(--teal);border-color:rgba(45,212,168,.4)}
+.vsmkt.over{color:var(--tx3)}
+.ninki{font-family:var(--mono);font-size:13px;color:var(--tx3)}
+
+/* ============ 紙面下段: 総評 + 実績 ============ */
+.bottom{margin-top:34px;display:grid;grid-template-columns:1fr auto;gap:clamp(18px,3vw,40px);
+  border-top:3px double var(--rule);padding-top:20px}
+.soh h3, .rec h3{font-family:var(--mincho);font-weight:800;font-size:17px;letter-spacing:.22em;color:var(--tx);
+  margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.soh h3::after, .rec h3::after{content:"";flex:1;height:1px;background:var(--line2)}
+.soh p{font-size:14px;color:var(--tx2);max-width:60ch;line-height:1.9}
+.soh p b{color:var(--gold2);font-weight:700}
+.soh .prior{margin-top:14px;font-size:12.5px;color:var(--tx3);border-top:1px solid var(--line);padding-top:10px}
+.soh .prior .num{color:var(--tx2)}
+
+.rec{min-width:280px}
+.rec-row{display:flex;align-items:baseline;justify-content:space-between;gap:20px;
+  padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.rec-row:last-of-type{border-bottom:none}
+.rec-row .k{color:var(--tx3)}
+.rec-row .v{font-family:var(--mono);font-weight:600;font-size:19px;color:var(--tx)}
+.rec-row .v small{font-size:11px;color:var(--tx3);font-weight:400;margin-left:2px}
+.rec-row .v.teal{color:var(--teal)}
+.rec-note{font-size:11px;color:var(--tx3);margin-top:10px;line-height:1.7}
+
+/* ============ footer ============ */
+footer{border-top:1px solid var(--line);margin-top:10px}
+.ft-in{max-width:var(--maxw);margin:0 auto;padding:18px var(--pad) 26px;
+  display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--tx3)}
+.ft-in .num{font-size:11px}
+
+/* ============ mobile ============ */
+@media(max-width:720px){
+  .layout{grid-template-columns:1fr;gap:14px;padding-top:14px}
+  .venues{flex-direction:row;border-top:none;border-bottom:1px solid var(--line)}
+  .venues button{writing-mode:horizontal-tb;text-orientation:mixed;min-height:0;flex:1;
+    font-size:16px;letter-spacing:.2em;padding:10px 4px 8px;border-bottom:2px solid transparent}
+  .venues button.on{border-left:none;border-right:none;border-bottom:2px solid var(--gold);background:none}
+  .venues button .r{display:none}
+  .rh-no{font-size:28px}
+  .rh-name{font-size:18px}
+  .rh-meta{margin-left:0;width:100%;font-size:12px}
+  .bottom{grid-template-columns:1fr}
+  .rec{min-width:0}
+  .brand-t .name{font-size:24px}
+  .mh-nav a{padding:8px 14px;font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="mh-in">
+    <div class="brand">
+      <img src="../assets/brand/horse_mark.png" alt="PyCaLiAI">
+      <div class="brand-t">
+        <div class="name">PyCaLiAI</div>
+        <div class="sub">機械学習競馬予想紙</div>
+      </div>
+    </div>
+    <div class="mh-right">
+      <span class="live">MODEL v6 LIVE</span>
+      <div class="mh-date">二〇二六年 <b class="num">8.9</b> 日曜</div>
+    </div>
+  </div>
+  <nav class="mh-nav">
+    <a class="on" href="#">予想</a>
+    <a href="#">成績</a>
+    <a href="#">馬場</a>
+    <a href="#">使い方</a>
+  </nav>
+</header>
+
+<div class="layout">
+
+  <!-- 会場 縦組みタブ -->
+  <nav class="venues" aria-label="会場">
+    <button class="on">札幌<span class="r num">12R</span></button>
+    <button>新潟<span class="r num">12R</span></button>
+    <button>中京<span class="r num">12R</span></button>
+  </nav>
+
+  <main class="main">
+
+    <!-- レース帯 -->
+    <div class="racestrip">
+      <button class="on"><div class="rn">1R</div><div class="rt num">10:00</div></button>
+      <button><div class="rn">2R</div><div class="rt num">10:30</div></button>
+      <button><div class="rn">3R</div><div class="rt num">11:00</div></button>
+      <button><div class="rn">4R</div><div class="rt num">11:30</div></button>
+      <button><div class="rn">5R</div><div class="rt num">12:20</div></button>
+      <button><div class="rn">6R</div><div class="rt num">12:50</div></button>
+      <button><div class="rn">7R</div><div class="rt num">13:20</div></button>
+      <button><div class="rn">8R</div><div class="rt num">13:50</div></button>
+      <button><div class="rn">9R</div><div class="rt num">14:25</div></button>
+      <button><div class="rn">10R</div><div class="rt num">15:01</div></button>
+      <button><div class="rn">11R</div><div class="rt num">15:35</div></button>
+      <button><div class="rn">12R</div><div class="rt num">16:10</div></button>
+    </div>
+
+    <!-- レース見出し -->
+    <div class="race-head">
+      <div class="rh-no">1<small>R</small></div>
+      <div class="rh-name">サラ系二歳未勝利</div>
+      <div class="rh-meta">
+        <span>ダート <b class="num">1700m</b></span>
+        <span>発走 <b class="num">10:00</b></span>
+        <span>馬場 <b>稍重</b></span>
+        <span><b class="num">12</b>頭</span>
+      </div>
+    </div>
+    <div class="verdict">
+      <span><span class="k">難易度</span>標準</span>
+      <span><span class="k">波乱度</span><span class="num">64.6%</span></span>
+      <span><span class="k">妙味</span><span class="teal">あり（単勝・複勝に旨味）</span></span>
+      <span><span class="k">本命信頼</span><span class="gold">やや割れ</span></span>
+    </div>
+
+    <!-- 出走表 -->
+    <div class="paper">
+      <table>
+        <thead>
+          <tr>
+            <th class="c">印</th><th class="c">枠</th><th class="c">馬番</th>
+            <th>馬名</th><th>AI指数</th>
+            <th class="r">勝率</th><th class="r">複勝率</th>
+            <th class="c">妙味</th><th class="c">人気</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="honmei">
+            <td class="mark m-hon">◎</td>
+            <td class="c"><span class="waku w8">12</span></td><td class="uma">12</td>
+            <td><div class="hname">ロードクロンヌ</div><div class="hsub">牡2 <em>横山武史</em> 55.0 ／ 差し（栗）中内田充</div></td>
+            <td><div class="idx"><span class="v">100</span><span class="bar"><i style="width:100%"></i></span></div></td>
+            <td class="r pct"><b>18.3</b>%</td><td class="r pct"><b>45.1</b>%</td>
+            <td class="c"><span class="vsmkt val">妙味</span></td><td class="c ninki">3人気</td>
+          </tr>
+          <tr>
+            <td class="mark m-tai">〇</td>
+            <td class="c"><span class="waku w3">3</span></td><td class="uma">3</td>
+            <td><div class="hname">シンゼンノト</div><div class="hsub">牡2 <em>遠藤汰月</em> 52.0 ／ 先行（栗）荒川義之</div></td>
+            <td><div class="idx"><span class="v">92</span><span class="bar"><i style="width:92%"></i></span></div></td>
+            <td class="r pct"><b>16.8</b>%</td><td class="r pct"><b>42.6</b>%</td>
+            <td class="c"><span class="vsmkt val">妙味</span></td><td class="c ninki">6人気</td>
+          </tr>
+          <tr>
+            <td class="mark m-tan">▲</td>
+            <td class="c"><span class="waku w6">8</span></td><td class="uma">8</td>
+            <td><div class="hname">キタノヴェルデ</div><div class="hsub">牝2 <em>武豊</em> 54.0 ／ 先行（栗）杉山晴紀</div></td>
+            <td><div class="idx"><span class="v">85</span><span class="bar"><i style="width:85%"></i></span></div></td>
+            <td class="r pct"><b>14.2</b>%</td><td class="r pct"><b>38.9</b>%</td>
+            <td class="c"><span class="vsmkt over">順当</span></td><td class="c ninki">1人気</td>
+          </tr>
+          <tr>
+            <td class="mark m-osae">△</td>
+            <td class="c"><span class="waku w7">9</span></td><td class="uma">9</td>
+            <td><div class="hname">ハイビスカス</div><div class="hsub">牝2 <em>藤岡佑介</em> 54.0 ／ 差し（栗）友道康夫</div></td>
+            <td><div class="idx"><span class="v">71</span><span class="bar"><i style="width:71%"></i></span></div></td>
+            <td class="r pct"><b>10.2</b>%</td><td class="r pct"><b>31.4</b>%</td>
+            <td class="c"><span class="vsmkt val">妙味</span></td><td class="c ninki">7人気</td>
+          </tr>
+          <tr>
+            <td class="mark m-osae">△</td>
+            <td class="c"><span class="waku w4">5</span></td><td class="uma">5</td>
+            <td><div class="hname">シャムスクッカ</div><div class="hsub">牡2 <em>池添謙一</em> 55.0 ／ 中団（栗）矢作芳人</div></td>
+            <td><div class="idx"><span class="v">64</span><span class="bar"><i style="width:64%"></i></span></div></td>
+            <td class="r pct"><b>9.2</b>%</td><td class="r pct"><b>28.7</b>%</td>
+            <td class="c"><span class="vsmkt val">妙味</span></td><td class="c ninki">8人気</td>
+          </tr>
+          <tr>
+            <td class="mark"></td>
+            <td class="c"><span class="waku w1">1</span></td><td class="uma">1</td>
+            <td><div class="hname">ベイビーブラザー</div><div class="hsub">牡2 <em>吉田隼人</em> 55.0 ／ 差し（栗）安達昭夫</div></td>
+            <td><div class="idx"><span class="v">58</span><span class="bar"><i style="width:58%"></i></span></div></td>
+            <td class="r pct">9.2%</td><td class="r pct">28.3%</td>
+            <td class="c"><span class="vsmkt over">—</span></td><td class="c ninki">9人気</td>
+          </tr>
+          <tr>
+            <td class="mark"></td>
+            <td class="c"><span class="waku w5">7</span></td><td class="uma">7</td>
+            <td><div class="hname">カナデ</div><div class="hsub">牝2 <em>坂井瑠星</em> 54.0 ／ 先行（栗）藤原英昭</div></td>
+            <td><div class="idx"><span class="v">55</span><span class="bar"><i style="width:55%"></i></span></div></td>
+            <td class="r pct">9.2%</td><td class="r pct">27.9%</td>
+            <td class="c"><span class="vsmkt val">妙味</span></td><td class="c ninki">10人気</td>
+          </tr>
+          <tr>
+            <td class="mark"></td>
+            <td class="c"><span class="waku w7">10</span></td><td class="uma">10</td>
+            <td><div class="hname">テムファイア</div><div class="hsub">牡2 <em>松山弘平</em> 55.0 ／ 逃げ（栗）高柳大輔</div></td>
+            <td><div class="idx"><span class="v">43</span><span class="bar"><i style="width:43%"></i></span></div></td>
+            <td class="r pct">5.0%</td><td class="r pct">19.6%</td>
+            <td class="c"><span class="vsmkt over">—</span></td><td class="c ninki">11人気</td>
+          </tr>
+          <tr>
+            <td class="mark"></td>
+            <td class="c"><span class="waku w2">2</span></td><td class="uma">2</td>
+            <td><div class="hname">マーズエクレール</div><div class="hsub">牡2 <em>岩田康誠</em> 55.0 ／ 差し（栗）佐藤悠太</div></td>
+            <td><div class="idx"><span class="v">31</span><span class="bar"><i style="width:31%"></i></span></div></td>
+            <td class="r pct">6.0%</td><td class="r pct">22.6%</td>
+            <td class="c"><span class="vsmkt over">過剰</span></td><td class="c ninki">2人気</td>
+          </tr>
+          <tr>
+            <td class="mark"></td>
+            <td class="c"><span class="waku w4">4</span></td><td class="uma">4</td>
+            <td><div class="hname">スズカグラーテ</div><div class="hsub">牡2 <em>幸英明</em> 55.0 ／ 中団（栗）橋口慎介</div></td>
+            <td><div class="idx"><span class="v">18</span><span class="bar"><i style="width:18%"></i></span></div></td>
+            <td class="r pct">3.4%</td><td class="r pct">14.8%</td>
+            <td class="c"><span class="vsmkt over">—</span></td><td class="c ninki">12人気</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 下段: 総評 + 実績 -->
+    <div class="bottom">
+      <section class="soh">
+        <h3>本紙総評</h3>
+        <p><b>◎ロードクロンヌ</b>は指数最上位ながら3番人気に留まり単勝に妙味。相手は先行力の<b>〇シンゼンノト</b>が距離短縮で前進気配、6番人気なら押さえ得。1番人気▲キタノヴェルデは指数3位で過信禁物。混戦度は標準、AI市場一致度は低めで配当妙味の残るレース。</p>
+        <div class="prior">同クラス（未勝利・<span class="num">2,473</span>鞍）◎成績 ── 勝率 <span class="num">33.5%</span> ／ 連対 <span class="num">53.8%</span> ／ 複勝圏 <span class="num">67.1%</span></div>
+      </section>
+      <aside class="rec">
+        <h3>本紙実績</h3>
+        <div class="rec-row"><span class="k">◎ 複勝圏率（2026年）</span><span class="v teal">61.0<small>%</small></span></div>
+        <div class="rec-row"><span class="k">◎ 連対率</span><span class="v">45.2<small>%</small></span></div>
+        <div class="rec-row"><span class="k">対象レース数</span><span class="v">5,081<small>R</small></span></div>
+        <div class="rec-row"><span class="k">週次更新</span><span class="v">毎土日<small>朝</small></span></div>
+        <div class="rec-note">成績は的中・不的中を問わず全レースを集計して開示しています。予想は情報提供であり、馬券の購入は自己責任でお願いします。</div>
+      </aside>
+    </div>
+
+  </main>
+</div>
+
+<footer>
+  <div class="ft-in">
+    <span>© 2026 PyCaLiAI ── 機械学習による中央競馬予想</span>
+    <span class="num">DATA: JRA-VAN / MODEL: unified_rank_v6</span>
+  </div>
+</footer>
+
+</body>
+</html>

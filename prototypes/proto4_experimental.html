@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyCaLiAI — proto4 experimental</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   PyCaLiAI proto4 — “出馬表新聞 × ターミナル” 全面実験リデザイン
+   accent 1色ロック: --acc (turf lime)
+   radius 1スケールロック: --r 2px
+   ============================================================ */
+:root{
+  --bg:#0b0e0a;
+  --bg2:#111510;
+  --bg3:#171c15;
+  --ink:#f2f4ee;
+  --ink2:#a8b0a2;
+  --ink3:#6b7365;
+  --line:#242b21;
+  --line2:#394234;
+  --acc:#d3f34b;           /* 唯一のアクセント */
+  --acc-dim:rgba(211,243,75,.14);
+  --r:2px;
+  --serif:"Shippori Mincho B1","Hiragino Mincho ProN",serif;
+  --sans:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.7;
+  overflow-x:clip;
+}
+/* 罫線紙面: 縦のヘアライン(新聞段組の気配) */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:repeating-linear-gradient(90deg,transparent 0 calc(25% - 1px),rgba(168,176,162,.05) calc(25% - 1px) 25%);
+}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+
+/* ---------- reveal ---------- */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+.rv.on{opacity:1;transform:none}
+.rv.d1{transition-delay:.08s}.rv.d2{transition-delay:.16s}.rv.d3{transition-delay:.24s}
+@media(prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}}
+
+/* ---------- topbar: 左端に縦帯 ---------- */
+.rail{
+  position:fixed;left:0;top:0;bottom:0;width:52px;z-index:50;
+  border-right:1px solid var(--line);
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;
+  padding:14px 0;gap:18px;
+}
+.rail .lg{width:30px;height:30px;object-fit:contain;filter:grayscale(1) brightness(1.5)}
+.rail .vt{
+  writing-mode:vertical-rl;font-family:var(--mono);font-size:10px;letter-spacing:.42em;
+  color:var(--ink3);text-transform:uppercase;flex:1;display:flex;align-items:center;
+}
+.rail .dot{width:6px;height:6px;background:var(--acc);border-radius:0}
+main{margin-left:52px}
+@media(max-width:719px){
+  .rail{position:sticky;left:auto;width:auto;height:44px;flex-direction:row;border-right:0;border-bottom:1px solid var(--line);padding:0 14px;gap:12px}
+  .rail .vt{writing-mode:horizontal-tb;letter-spacing:.3em;justify-content:flex-start}
+  main{margin-left:0}
+}
+
+/* ---------- HERO: split・非対称・馬マーク大 ---------- */
+.hero{
+  position:relative;
+  display:grid;
+  grid-template-columns:minmax(0,7fr) minmax(0,5fr);
+  min-height:88vh;
+  border-bottom:1px solid var(--line);
+  overflow:clip;
+}
+.hero-copy{
+  padding:clamp(28px,6vw,90px) clamp(20px,4vw,64px) clamp(40px,6vw,72px);
+  display:flex;flex-direction:column;justify-content:flex-end;
+  position:relative;z-index:2;
+}
+.hero-kicker{
+  font-family:var(--mono);font-size:11px;letter-spacing:.34em;color:var(--acc);
+  border-left:2px solid var(--acc);padding-left:12px;margin-bottom:clamp(20px,4vh,44px);
+  animation:heroIn .8s .1s cubic-bezier(.2,.7,.2,1) both;
+}
+.hero h1{
+  font-family:var(--serif);font-weight:800;
+  font-size:clamp(38px,7.2vw,104px);
+  line-height:1.12;letter-spacing:.02em;
+  animation:heroIn .9s .22s cubic-bezier(.2,.7,.2,1) both;
+}
+.hero h1 em{font-style:normal;color:var(--acc)}
+.hero-sub{
+  margin-top:clamp(16px,3vh,30px);max-width:34em;color:var(--ink2);font-size:clamp(13px,1.2vw,16px);
+  animation:heroIn .9s .38s cubic-bezier(.2,.7,.2,1) both;
+}
+.hero-cta{
+  margin-top:clamp(22px,4vh,40px);display:flex;gap:14px;flex-wrap:wrap;align-items:center;
+  animation:heroIn .9s .5s cubic-bezier(.2,.7,.2,1) both;
+}
+.btn{
+  display:inline-flex;align-items:center;gap:10px;
+  font-weight:700;font-size:14px;padding:13px 26px;border-radius:var(--r);
+  background:var(--acc);color:#101302;border:1px solid var(--acc);
+  transition:transform .2s,box-shadow .2s;
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px -12px var(--acc)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line2)}
+.btn.ghost:hover{border-color:var(--acc);box-shadow:none;color:var(--acc)}
+@keyframes heroIn{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+
+.hero-visual{position:relative;border-left:1px solid var(--line);background:var(--bg2)}
+.hero-visual img{
+  position:absolute;right:-14%;bottom:-6%;width:130%;max-width:none;
+  filter:grayscale(1) brightness(1.28) contrast(1.06);
+  mix-blend-mode:screen;
+  opacity:.9;
+  animation:markIn 1.3s .15s cubic-bezier(.16,.8,.3,1) both;
+}
+@keyframes markIn{from{opacity:0;transform:translateX(6%) scale(.96)}to{opacity:.9;transform:none}}
+.hero-visual .tag{
+  position:absolute;left:18px;top:18px;z-index:2;
+  font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--ink3);
+}
+/* オーバーラップする実測チップ */
+.hero-chip{
+  position:absolute;left:-1px;bottom:clamp(30px,9vh,90px);z-index:3;
+  transform:translateX(-46%);
+  background:var(--bg);border:1px solid var(--line2);border-radius:var(--r);
+  padding:14px 20px;min-width:210px;
+  animation:heroIn 1s .7s cubic-bezier(.2,.7,.2,1) both;
+}
+.hero-chip .k{font-size:10px;font-family:var(--mono);letter-spacing:.24em;color:var(--ink3)}
+.hero-chip .v{font-family:var(--mono);font-size:30px;font-weight:600;color:var(--acc);line-height:1.2}
+.hero-chip .s{font-size:11px;color:var(--ink2)}
+@media(max-width:919px){
+  .hero{grid-template-columns:1fr;min-height:auto}
+  .hero-copy{order:2;padding-top:56px}
+  .hero-visual{order:1;border-left:0;border-bottom:1px solid var(--line);height:250px}
+  .hero-visual img{right:-12%;bottom:-30%;width:78%}
+  .hero-chip{left:18px;bottom:-28px;transform:none}
+}
+
+/* ---------- ticker: 本日の開催 ---------- */
+.ticker{
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:stretch;overflow-x:auto;
+  font-family:var(--mono);font-size:12px;white-space:nowrap;
+  scrollbar-width:none;
+}
+.ticker::-webkit-scrollbar{display:none}
+.ticker>div{padding:12px 22px;border-right:1px solid var(--line);color:var(--ink2)}
+.ticker b{color:var(--ink);font-weight:600}
+.ticker .lbl{color:var(--acc);letter-spacing:.2em}
+
+/* ---------- section scaffolding ---------- */
+section{padding:clamp(56px,9vw,120px) clamp(20px,4vw,64px);border-bottom:1px solid var(--line);position:relative}
+.sec-idx{
+  font-family:var(--mono);font-size:11px;color:var(--ink3);letter-spacing:.3em;margin-bottom:10px;
+}
+.sec-idx i{font-style:normal;color:var(--acc)}
+h2{
+  font-family:var(--serif);font-weight:800;font-size:clamp(26px,3.6vw,48px);
+  line-height:1.25;letter-spacing:.02em;margin-bottom:clamp(24px,4vw,48px);
+}
+
+/* ---------- 成績正直開示: 巨大数字の非対称段組 ---------- */
+.honest{background:var(--bg2)}
+.honest-grid{
+  display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(24px,4vw,64px);align-items:start;
+}
+.honest-note{color:var(--ink2);font-size:14px;max-width:32em}
+.honest-note strong{color:var(--ink)}
+.honest-note .fine{margin-top:14px;font-size:12px;color:var(--ink3);border-top:1px dashed var(--line2);padding-top:14px}
+.stat-stack{display:flex;flex-direction:column}
+.stat{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:16px;
+  padding:clamp(14px,2vw,22px) 0;border-top:1px solid var(--line2);
+}
+.stat:last-child{border-bottom:1px solid var(--line2)}
+.stat .lb{font-weight:700;font-size:clamp(13px,1.1vw,15px)}
+.stat .lb small{display:block;font-weight:400;font-size:11px;color:var(--ink3);font-family:var(--mono);letter-spacing:.12em}
+.stat .vl{
+  font-family:var(--mono);font-weight:600;line-height:1;
+  font-size:clamp(40px,5.6vw,84px);color:var(--ink);
+}
+.stat .vl small{font-size:.38em;color:var(--ink3);margin-left:4px}
+.stat.hi .vl{color:var(--acc)}
+@media(max-width:919px){.honest-grid{grid-template-columns:1fr}}
+
+/* ---------- 印の読み方: 横スクロール帯 ---------- */
+.marks-row{
+  display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);
+}
+.mk{
+  background:var(--bg);padding:22px 18px 20px;position:relative;
+}
+.mk:nth-child(odd){background:var(--bg2)}
+.mk .glyph{font-family:var(--serif);font-size:44px;line-height:1;color:var(--acc)}
+.mk:nth-child(n+3) .glyph{color:var(--ink)}
+.mk .nm{font-weight:700;margin-top:10px;font-size:14px}
+.mk .ds{font-size:12px;color:var(--ink2);margin-top:4px}
+.mk .pct{font-family:var(--mono);font-size:12px;color:var(--ink3);margin-top:12px}
+.mk .pct b{color:var(--ink);font-weight:600}
+@media(max-width:919px){
+  .marks-row{grid-template-columns:repeat(5,72vw);overflow-x:auto;scroll-snap-type:x mandatory}
+  .mk{scroll-snap-align:start}
+}
+
+/* ---------- レーススポットライト: 紙面オーバーラップ ---------- */
+.spot{padding-bottom:clamp(80px,12vw,160px)}
+.spot-wrap{position:relative;display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr)}
+.spot-head{
+  position:relative;z-index:2;align-self:start;
+  background:var(--acc);color:#101302;border-radius:var(--r);
+  padding:clamp(20px,2.6vw,36px);
+  margin:clamp(20px,3vw,48px) -70px 0 0;
+}
+.spot-head .rl{font-family:var(--mono);font-size:11px;letter-spacing:.28em;font-weight:600}
+.spot-head h3{font-family:var(--serif);font-weight:800;font-size:clamp(26px,3vw,44px);line-height:1.2;margin:8px 0 6px}
+.spot-head .meta{font-size:13px;font-weight:700}
+.spot-head .meta span+span::before{content:"／";opacity:.5;margin:0 4px}
+.spot-body{
+  background:var(--bg2);border:1px solid var(--line2);border-radius:var(--r);
+  padding:clamp(20px,2.6vw,36px) clamp(20px,2.6vw,36px) clamp(20px,2.6vw,36px) clamp(84px,9vw,120px);
+}
+.htable{width:100%;border-collapse:collapse;font-size:14px}
+.htable th{
+  font-family:var(--mono);font-weight:400;font-size:10px;letter-spacing:.2em;color:var(--ink3);
+  text-align:left;padding:0 10px 10px;border-bottom:1px solid var(--line2);
+}
+.htable td{padding:13px 10px;border-bottom:1px solid var(--line)}
+.htable tr:last-child td{border-bottom:0}
+.htable .m{font-family:var(--serif);font-size:20px;width:44px}
+.htable tr.top .m{color:var(--acc)}
+.htable .ub{font-family:var(--mono);color:var(--ink3);width:36px}
+.htable .hn{font-weight:700}
+.htable .hn small{display:block;font-weight:400;font-size:11px;color:var(--ink3)}
+.htable .pw{font-family:var(--mono);text-align:right}
+.htable .pw b{font-weight:600;color:var(--ink)}
+.bar{height:3px;background:var(--bg3);margin-top:5px;border-radius:var(--r);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--acc)}
+.vsm{font-family:var(--mono);font-size:10px;letter-spacing:.1em;padding:2px 8px;border:1px solid var(--line2);border-radius:var(--r);color:var(--ink2)}
+.vsm.under{border-color:var(--acc);color:var(--acc)}
+.spot-foot{margin-top:16px;font-size:12px;color:var(--ink3)}
+@media(max-width:919px){
+  .spot-wrap{grid-template-columns:1fr}
+  .spot-head{margin:0 0 -14px 0;width:min(92%,420px)}
+  .spot-body{padding:32px 16px 20px}
+  .htable .pw-col,.htable .vs-col{display:none}
+}
+
+/* ---------- レース一覧: 番組表インデックス ---------- */
+.idx-list{border-top:1px solid var(--line2)}
+.idx-row{
+  display:grid;grid-template-columns:70px 92px minmax(0,1fr) auto;gap:16px;align-items:center;
+  padding:18px 4px;border-bottom:1px solid var(--line);
+  transition:background .2s,padding-left .2s;
+}
+.idx-row:hover{background:var(--acc-dim);padding-left:14px}
+.idx-row .tm{font-family:var(--mono);font-size:13px;color:var(--ink2)}
+.idx-row .rn{font-family:var(--mono);font-size:20px;font-weight:600}
+.idx-row .rn small{font-size:11px;color:var(--ink3);margin-left:2px}
+.idx-row .nm{font-weight:700;font-size:15px}
+.idx-row .nm small{display:block;font-weight:400;font-size:11px;color:var(--ink3)}
+.idx-row .hm{font-family:var(--serif);font-size:14px;color:var(--ink2);white-space:nowrap}
+.idx-row .hm b{color:var(--acc);font-weight:600;margin-right:2px}
+.idx-more{margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--ink3);letter-spacing:.2em}
+@media(max-width:599px){
+  .idx-row{grid-template-columns:56px minmax(0,1fr);grid-template-rows:auto auto;gap:2px 12px}
+  .idx-row .tm{grid-row:2}
+  .idx-row .hm{grid-column:2;justify-self:start}
+}
+
+/* ---------- footer ---------- */
+footer{
+  padding:clamp(40px,6vw,72px) clamp(20px,4vw,64px);
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end;
+}
+footer .fbrand{font-family:var(--serif);font-weight:800;font-size:clamp(30px,5vw,64px);line-height:1.1}
+footer .fbrand em{font-style:normal;color:var(--acc)}
+footer .fnote{font-size:11px;color:var(--ink3);max-width:40em;margin-top:14px}
+footer .fmono{font-family:var(--mono);font-size:11px;color:var(--ink3);letter-spacing:.2em;text-align:right}
+@media(max-width:599px){footer{grid-template-columns:1fr}footer .fmono{text-align:left}}
+</style>
+</head>
+<body>
+
+<nav class="rail" aria-label="サイト">
+  <img class="lg" src="../assets/brand/horse_mark.png" alt="PyCaLiAI">
+  <span class="vt">PyCaLiAI&nbsp;/&nbsp;JRA&nbsp;AI&nbsp;FORECAST</span>
+  <span class="dot" aria-hidden="true"></span>
+</nav>
+
+<main>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="hero-copy">
+    <p class="hero-kicker">機械学習 × JRA中央競馬 — 毎週無料公開</p>
+    <h1>数字は、<br><span style="white-space:nowrap">嘘を<em>つかない</em>。</span></h1>
+    <p class="hero-sub">PyCaLiAIは13年分・約62万走のレースデータで学習したAIが、毎週の全レースにAI印とAI指数を付ける予想サイトです。当たった週も、外れた週も、成績はすべて開示します。</p>
+    <div class="hero-cta">
+      <a class="btn" href="#races">今週の出走表を見る</a>
+      <a class="btn ghost" href="#honest">成績を確認する</a>
+    </div>
+  </div>
+  <div class="hero-visual" aria-hidden="true">
+    <span class="tag">MODEL v6 / PLACKETT–LUCE</span>
+    <img src="../assets/brand/horse_mark.png" alt="">
+    <div class="hero-chip">
+      <div class="k">◎ TOP3率（実測）</div>
+      <div class="v num">62<small style="font-size:.5em">%</small></div>
+      <div class="s">本命が3着以内に入る割合</div>
+    </div>
+  </div>
+</header>
+
+<div class="ticker" aria-label="本日の開催">
+  <div class="lbl">2026.08.09&nbsp;SAT</div>
+  <div><b>札幌</b> 12R 芝/ダ</div>
+  <div><b>新潟</b> 12R 芝/ダ</div>
+  <div><b>中京</b> 12R 芝/ダ</div>
+  <div>メイン <b>UHB賞</b> 札幌11R 15:25</div>
+  <div>印・指数は前日夜に更新</div>
+</div>
+
+<!-- ============ 成績正直開示 ============ -->
+<section class="honest" id="honest">
+  <p class="sec-idx rv"><i>01</i> — HONEST RECORD</p>
+  <h2 class="rv">当たりだけを<br>切り抜かない。</h2>
+  <div class="honest-grid">
+    <div class="honest-note rv d1">
+      <p><strong>予想サイトの多くは、的中だけを並べます。</strong>PyCaLiAIは逆です。全レース・全買い目を記録し、回収率を信頼区間つきで公開しています。競馬には約20〜25%の控除率があり、「必ず儲かる」予想は存在しません。それでもAIがどこまで市場に迫れるか — その過程ごと見せるのがこのサイトです。</p>
+      <p class="fine">集計は毎開催後に自動更新。数値はモデル運用実績に基づく実測値で、投資助言ではありません。馬券の購入は自己責任でお願いします。</p>
+    </div>
+    <div class="stat-stack">
+      <div class="stat rv d1">
+        <div class="lb">検証レース数<small>RACES TRACKED / 2026</small></div>
+        <div class="vl num">620<small>R</small></div>
+      </div>
+      <div class="stat hi rv d2">
+        <div class="lb">◎ 複勝圏率<small>HONMEI TOP-3 HIT</small></div>
+        <div class="vl num">62<small>%</small></div>
+      </div>
+      <div class="stat rv d3">
+        <div class="lb">累計回収率<small>ROI / ALL BETS — 正直に赤字も出す</small></div>
+        <div class="vl num">69.5<small>%</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ AI印の読み方 ============ -->
+<section id="marks">
+  <p class="sec-idx rv"><i>02</i> — HOW TO READ</p>
+  <h2 class="rv">AI印は5段階。<br>根拠は確率で示す。</h2>
+  <div class="marks-row rv d1">
+    <div class="mk">
+      <div class="glyph">◎</div>
+      <div class="nm">本命</div>
+      <div class="ds">AIが最も高く評価した1頭</div>
+      <div class="pct num">3着内 <b>62%</b></div>
+    </div>
+    <div class="mk">
+      <div class="glyph">〇</div>
+      <div class="nm">対抗</div>
+      <div class="ds">本命に次ぐ評価</div>
+      <div class="pct num">3着内 <b>51%</b></div>
+    </div>
+    <div class="mk">
+      <div class="glyph">▲</div>
+      <div class="nm">単穴</div>
+      <div class="ds">展開次第で逆転まで</div>
+      <div class="pct num">3着内 <b>43%</b></div>
+    </div>
+    <div class="mk">
+      <div class="glyph">△</div>
+      <div class="nm">連下</div>
+      <div class="ds">ヒモに加えたい4番手</div>
+      <div class="pct num">3着内 <b>33%</b></div>
+    </div>
+    <div class="mk">
+      <div class="glyph">△</div>
+      <div class="nm">連下</div>
+      <div class="ds">押さえの5番手</div>
+      <div class="pct num">3着内 <b>25%</b></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ レーススポットライト ============ -->
+<section class="spot" id="spot">
+  <p class="sec-idx rv"><i>03</i> — TODAY'S FOCUS</p>
+  <h2 class="rv">札幌メイン、<br>AIはこう読んだ。</h2>
+  <div class="spot-wrap">
+    <div class="spot-head rv d1">
+      <p class="rl">SAPPORO 11R / 15:25発走</p>
+      <h3>UHB賞</h3>
+      <p class="meta"><span>芝1200m</span><span>オープン</span><span>16頭</span></p>
+    </div>
+    <div class="spot-body rv d2">
+      <table class="htable">
+        <thead>
+          <tr><th>印</th><th>馬番</th><th>馬名 / 騎手</th><th class="pw-col" style="text-align:right">勝率P</th><th class="vs-col">市場比</th></tr>
+        </thead>
+        <tbody>
+          <tr class="top">
+            <td class="m">◎</td><td class="ub num">10</td>
+            <td class="hn">ナムラクララ<small>浜中俊 / 1人気</small></td>
+            <td class="pw pw-col"><b>11.6%</b><div class="bar"><i style="width:100%"></i></div></td>
+            <td class="vs-col"><span class="vsm">over</span></td>
+          </tr>
+          <tr>
+            <td class="m">〇</td><td class="ub num">8</td>
+            <td class="hn">モズナナスター<small>古川奈穂 / 9人気</small></td>
+            <td class="pw pw-col"><b>10.2%</b><div class="bar"><i style="width:88%"></i></div></td>
+            <td class="vs-col"><span class="vsm under">under</span></td>
+          </tr>
+          <tr>
+            <td class="m">▲</td><td class="ub num">7</td>
+            <td class="hn">ジョーメッドヴィン<small>横山琉人 / 8人気</small></td>
+            <td class="pw pw-col"><b>9.2%</b><div class="bar"><i style="width:79%"></i></div></td>
+            <td class="vs-col"><span class="vsm under">under</span></td>
+          </tr>
+          <tr>
+            <td class="m">△</td><td class="ub num">3</td>
+            <td class="hn">ブラックチャリス<small>吉田隼人 / 2人気</small></td>
+            <td class="pw pw-col"><b>9.2%</b><div class="bar"><i style="width:79%"></i></div></td>
+            <td class="vs-col"><span class="vsm">over</span></td>
+          </tr>
+          <tr>
+            <td class="m">△</td><td class="ub num">6</td>
+            <td class="hn">シンバーシア<small>古川吉洋 / 12人気</small></td>
+            <td class="pw pw-col"><b>9.2%</b><div class="bar"><i style="width:79%"></i></div></td>
+            <td class="vs-col"><span class="vsm under">under</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="spot-foot">勝率PはAIモデルの推定値（Plackett–Luce）。「under」は市場人気よりAI評価が高い＝妙味候補。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ レース一覧 ============ -->
+<section id="races">
+  <p class="sec-idx rv"><i>04</i> — RACE INDEX</p>
+  <h2 class="rv">今週のレース。</h2>
+  <div class="idx-list rv d1">
+    <a class="idx-row" href="#">
+      <span class="tm num">14:50</span>
+      <span class="rn num">10<small>R</small></span>
+      <span class="nm">富良野特別<small>札幌 / ダート1700 / 2勝クラス</small></span>
+      <span class="hm"><b>◎</b>ベラジオワールド</span>
+    </a>
+    <a class="idx-row" href="#">
+      <span class="tm num">15:25</span>
+      <span class="rn num">11<small>R</small></span>
+      <span class="nm">UHB賞<small>札幌 / 芝1200 / オープン</small></span>
+      <span class="hm"><b>◎</b>ナムラクララ</span>
+    </a>
+    <a class="idx-row" href="#">
+      <span class="tm num">16:00</span>
+      <span class="rn num">12<small>R</small></span>
+      <span class="nm">石狩特別<small>札幌 / 芝1800 / 1勝クラス</small></span>
+      <span class="hm"><b>◎</b>ヴァロアーク</span>
+    </a>
+  </div>
+  <p class="idx-more rv d2">+ 札幌・新潟・中京 全36レースの印と指数を無料公開中</p>
+</section>
+
+</main>
+
+<footer>
+  <div>
+    <p class="fbrand">Py<em>CaLi</em>AI</p>
+    <p class="fnote">本サイトはAIによるレース予想の研究公開であり、的中や利益を保証するものではありません。20歳未満の方は馬券を購入できません。データ出典: JRA-VAN。</p>
+  </div>
+  <p class="fmono">PROTO4 / EXPERIMENTAL<br>© 2026 PyCaLiAI</p>
+</footer>
+
+<script>
+// スクロールreveal(軽量IntersectionObserver)
+const io=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("on");io.unobserve(e.target)}});
+},{threshold:.15,rootMargin:"0px 0px -8% 0px"});
+document.querySelectorAll(".rv").forEach(el=>io.observe(el));
+</script>
+</body>
+</html>

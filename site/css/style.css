@@ -183,9 +183,9 @@ body:not(.on-landing) #hero, body:not(.on-landing) #landing { display: none; }
 }
 .lp-mrow:last-child { border-bottom: 1px solid var(--line); }
 .lp-mrow .lpm-mk { font-size: clamp(24px, 3vw, 34px); color: var(--gold); width: 44px; text-align: center; }
-.lp-mrow .lpm-nm { font-weight: 700; font-size: 15px; width: 56px; }
-.lp-mrow .lpm-ds { flex: 1; color: var(--tx2); font-size: 13.5px; min-width: 0; }
-.lp-mrow .lpm-rt { font-size: 14px; font-weight: 600; color: var(--gold2); white-space: nowrap; }
+.lp-mrow .lpm-nm { font-weight: 700; font-size: 18px; width: 68px; }
+.lp-mrow .lpm-ds { flex: 1; color: var(--tx2); font-size: 16px; min-width: 0; }
+.lp-mrow .lpm-rt { font-size: 17px; font-weight: 600; color: var(--gold2); white-space: nowrap; }
 .lp-race-meta { font-family: var(--disp); font-size: 13.5px; letter-spacing: .1em; color: var(--tx2); margin: -6px 0 14px; }
 .lp-race-name { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
 .lp-race-name b { font-size: clamp(22px, 3vw, 34px); font-weight: 900; color: var(--tx); }
