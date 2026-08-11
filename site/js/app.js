@@ -883,7 +883,7 @@ function openDrawer(umaban) {
     const val = w.value == null ? "—" : (typeof w.value === "number" ? +(+w.value).toFixed(1) : esc(w.value));
     return `<div class="why ${neg ? "neg" : ""}" style="--i:${i}">
       <span class="wl">${esc(w.label)} <small>${val}</small></span>
-      <span class="bar"><i style="width:${width}%;--i:${i};${neg ? "" : "background:linear-gradient(90deg,#c98f1f,#ffd97a)"}"></i></span>
+      <span class="bar"><i style="width:${width}%;--i:${i};${neg ? "" : "background:linear-gradient(90deg,#cf9a35,#ffd97a)"}"></i></span>
       <span class="wv">${(w.contrib >= 0 ? "+" : "") + num(w.contrib, 2)}</span>
     </div>`;
   }).join("");
@@ -1010,7 +1010,7 @@ function drawCareerChart(car) {
       symbol: "circle", symbolSize: 10,
       emphasis: { scale: 1.3 },
       lineStyle: { color: "#f5b942", width: 2.5 },
-      itemStyle: { color: "#f5b942", borderColor: "#141c33", borderWidth: 1.5 },
+      itemStyle: { color: "#f5b942", borderColor: "#141a10", borderWidth: 1.5 },
       areaStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
           { offset: 0, color: "rgba(245,185,66,.30)" },
@@ -1229,9 +1229,9 @@ function renderBunseki(r, vb) {
   // --- scatter: x=人気(1→左), y=AI複勝圏率% ---
   const pts = hs.map((h) => ({
     value: [h.ninki ?? N, +( (h.p_sho ?? 0) * 100).toFixed(1)],
-    itemStyle: { color: MARK_COLOR[h.mark] ?? MARK_COLOR[""], borderColor: "#0b1322", borderWidth: 1 },
+    itemStyle: { color: MARK_COLOR[h.mark] ?? MARK_COLOR[""], borderColor: "#141c33", borderWidth: 1 },
     symbolSize: 10 + (h.p_win ?? 0) * 70,
-    label: { show: true, formatter: String(h.umaban), color: "#0b1322", fontSize: 10, fontFamily: "Oswald" },
+    label: { show: true, formatter: String(h.umaban), color: "#141c33", fontSize: 10, fontFamily: "IBM Plex Mono" },
     h,
   }));
   const avgSho = hs.reduce((s, h) => s + (h.p_sho ?? 0), 0) / Math.max(N, 1) * 100;
@@ -1304,7 +1304,7 @@ function renderBunseki(r, vb) {
         { type: "inside", startValue: zoomFrom },
         { type: "slider", startValue: zoomFrom, height: 20, bottom: legendH + 15,
           borderColor: "#32456e", backgroundColor: "rgba(50,69,110,.2)",
-          fillerColor: "rgba(245,185,66,.12)", handleStyle: { color: "#5a6d95" },
+          fillerColor: "rgba(245,185,66,.12)", handleStyle: { color: "#6b7565" },
           moveHandleStyle: { color: "#5a6d95" }, textStyle: { color: "#8a97b5", fontSize: 10 },
           dataBackground: { lineStyle: { color: "#3a4d75" }, areaStyle: { color: "rgba(58,77,117,.3)" } } },
       ],

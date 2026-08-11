@@ -16,7 +16,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#010E27">
+<meta name="theme-color" content="#070b14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -29,9 +29,9 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=optional" rel="stylesheet" media="print" onload="this.media='all'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=optional" rel="stylesheet"></noscript>
-<link rel="stylesheet" href="css/style.css?v=20260801a">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=optional" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=optional" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="css/style.css?v=20260811navy">
 <style>
 /* CLS対策: 初期描画は動的セクションを不可視にし、全データ描画後に1フレームで表示
    (未描画要素の移動はCLSに計上されないため、babaBias等の後入れ押し下げシフトが消える)。
@@ -110,13 +110,14 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 .kchip em{font-size:calc(10px*var(--bfs))}
 </style>
 </head>
-<body class="js-booting">
+<body class="js-booting on-landing">
 <div class="bg-vignette" aria-hidden="true"></div>
 <div class="track-stripe"></div>
 
 <header class="topbar">
   <div class="tb-in">
     <div class="brand">
+      <img class="brand-logo" src="icons/icon-96.png" alt="" width="30" height="30">
       <span class="brand-mark">Py<b>CaLi</b>AI</span>
       <span class="brand-ver">v6 marks</span>
     </div>
@@ -133,6 +134,94 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
     </div>
   </div>
 </header>
+
+<section class="hero" id="hero">
+  <div class="hero-in">
+    <div class="hero-copy">
+      <p class="hero-eyebrow">機械学習 × JRA中央競馬 — 毎週無料公開</p>
+      <h1 class="hero-h1">当たりも外れも、<br><span class="hl">全部見せる</span>。</h1>
+      <p class="hero-sub">13年分・約62万走で学習したAIが、毎週の全レースにAI印とAI指数を無料公開。都合のいい的中だけを切り抜く予想は、しません。成績はそのまま開示します。</p>
+      <div class="hero-cta">
+        <a class="btn-prime" href="#venueTabs">今週の出走表を見る</a>
+        <button class="btn-ghost" type="button" id="heroResults">成績を確認する</button>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <img src="img/horse_gold.png" alt="" loading="lazy" aria-hidden="true">
+      <div class="hero-spot" id="heroSpot" hidden>
+        <div class="hs-head">
+          <span class="hs-live">● LIVE</span>
+          <span class="hs-race" id="hsRace"></span>
+          <span class="hs-time num" id="hsTime"></span>
+        </div>
+        <div class="hs-body" id="hsBody"></div>
+        <div class="hs-foot">印・指数は前日夜更新／的中実績は成績タブで公開</div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-strip" id="heroStrip" hidden></div>
+</section>
+
+<div id="landing">
+  <section class="lp-sec">
+    <div class="lp-in lp-grid">
+      <div class="lp-txt">
+        <p class="lp-eyebrow">01 — HONEST RECORD</p>
+        <h2 class="lp-h2">当たりだけを<br>切り抜かない。</h2>
+        <p class="lp-copy">予想サイトの多くは、的中だけを並べます。PyCaLiAIは逆です。全レース・全買い目を記録し、回収率を信頼区間つきで公開しています。競馬には約20〜25%の控除率があり、「必ず儲かる」予想は存在しません。それでもAIがどこまで市場に迫れるか — その過程ごと見せるのがこのサイトです。</p>
+        <p class="lp-note">集計は毎開催後に自動更新。数値はモデル運用実績に基づく実測値で、投資助言ではありません。馬券の購入は自己責任でお願いします。</p>
+      </div>
+      <div class="lp-stats">
+        <div class="lp-stat">
+          <span class="k">検証レース数 <small>RACES TRACKED / 2026</small></span>
+          <span class="v num">620<small>R</small></span>
+        </div>
+        <div class="lp-stat">
+          <span class="k">◎ 複勝圏率 <small>HONMEI TOP-3 HIT</small></span>
+          <span class="v num">62<small>%</small></span>
+        </div>
+        <div class="lp-stat">
+          <span class="k">累計回収率 <small>ROI / ALL BETS — 正直に赤字も出す</small></span>
+          <span class="v num">69.5<small>%</small></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-sec lp-alt">
+    <div class="lp-in">
+      <p class="lp-eyebrow">02 — HOW TO READ</p>
+      <h2 class="lp-h2">AI印は5段階。<br>根拠は確率で示す。</h2>
+      <div class="lp-marks">
+        <div class="lp-mrow"><span class="lpm-mk">◎</span><span class="lpm-nm">本命</span><span class="lpm-ds">62万走が選んだ今日の最有力。3回に2回は馬券に絡む、軸はここから</span><span class="lpm-rt num">3着内 62%</span></div>
+        <div class="lp-mrow"><span class="lpm-mk">〇</span><span class="lpm-nm">対抗</span><span class="lpm-ds">◎が飛ぶ日の保険であり、相手筆頭。2頭軸ならこの組み合わせ</span><span class="lpm-rt num">3着内 51%</span></div>
+        <div class="lp-mrow"><span class="lpm-mk">▲</span><span class="lpm-nm">単穴</span><span class="lpm-ds">人気の盲点を突く一撃枠。ハマった日に配当を運んでくる</span><span class="lpm-rt num">3着内 43%</span></div>
+        <div class="lp-mrow"><span class="lpm-mk">△</span><span class="lpm-nm">連下</span><span class="lpm-ds">頭までは見ない。ただ2・3着なら十分——ワイドの相棒</span><span class="lpm-rt num">3着内 33%</span></div>
+        <div class="lp-mrow"><span class="lpm-mk">△</span><span class="lpm-nm">連下</span><span class="lpm-ds">堅い日には要らない。荒れる日にだけ効いてくる最後の押さえ</span><span class="lpm-rt num">3着内 25%</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-sec" id="lpFocus" hidden>
+    <div class="lp-in">
+      <p class="lp-eyebrow">03 — TODAY'S FOCUS</p>
+      <h2 class="lp-h2" id="lpFocusH2"></h2>
+      <p class="lp-race-meta num" id="lpFocusMeta"></p>
+      <p class="lp-race-name" id="lpFocusName"></p>
+      <div class="lp-focus-table" id="lpFocusTable"></div>
+      <p class="lp-note">勝率PはAIモデルの推定値（Plackett–Luce）。「under」は市場人気よりAI評価が高い＝妙味候補。</p>
+    </div>
+  </section>
+
+  <section class="lp-sec lp-alt" id="lpIndex" hidden>
+    <div class="lp-in">
+      <p class="lp-eyebrow">04 — RACE INDEX</p>
+      <h2 class="lp-h2">今日のメインレース</h2>
+      <div class="lp-idx" id="lpIdxRows"></div>
+      <a class="lp-more" href="#venueTabs" id="lpMore"></a>
+    </div>
+  </section>
+</div>
 
 <nav class="venues" id="venueTabs" aria-label="開催場"></nav>
 <section class="baba-bias" id="babaBias" hidden></section>
@@ -157,6 +246,140 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 <script defer src="js/baba.js?v=20260801a"></script>
 <script defer src="js/app.js?v=20260801a"></script>
 <script defer id="echartsJs" src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script>
+/* 表紙シート ⇔ アプリシートの切替 (初回=表紙のみ表示、CTA/レース行→アプリ、ロゴ→表紙) */
+addEventListener('DOMContentLoaded',function(){
+  var nav=document.getElementById('modeNav');
+  function showApp(){document.body.classList.remove('on-landing');scrollTo(0,0)}
+  function showLanding(){
+    var b=nav&&nav.querySelector('[data-mode="races"]');
+    if(b&&!b.classList.contains('on'))b.click();
+    document.body.classList.add('on-landing');scrollTo(0,0);
+  }
+  // 表紙内の #venueTabs 向けリンク(CTA/レース行/もっと見る)は全てアプリシートへ
+  document.addEventListener('click',function(e){
+    var a=e.target.closest('a[href="#venueTabs"]');
+    if(a){
+      e.preventDefault();showApp();
+      var rid=a.dataset.rid;
+      if(rid&&typeof selectRace==='function'){try{selectRace(rid)}catch(err){}}
+    }
+  });
+  var rbtn=document.getElementById('heroResults');
+  if(rbtn&&nav){rbtn.addEventListener('click',function(){showApp();var b=nav.querySelector('[data-mode="results"]');b&&b.click()})}
+  // モードナビを触ったら表紙を離れる
+  if(nav){nav.addEventListener('click',function(e){if(e.target.closest('[data-mode]'))document.body.classList.remove('on-landing')})}
+  // ロゴクリックで表紙へ戻る
+  var brand=document.querySelector('.brand');
+  if(brand){brand.style.cursor='pointer';brand.addEventListener('click',showLanding)}
+});
+/* 表紙: 最新開催データで開催ストリップ+メインレース端末を描画(土日更新に自動追従) */
+(function(){
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  window.__mfP.then(function(mf){
+    var d=mf.dates&&mf.dates[0]; if(!d)return;
+    var ratingsP=fetch('data/race_ratings.json').then(function(r){return r.json()}).catch(function(){return null});
+    return Promise.all([fetch('data/'+d.date+'.json?t='+Date.now()).then(function(r){return r.json()}),ratingsP]).then(function(res){
+      var day=res[0], ratings=res[1];
+      var races=day.races||[];
+      var ymd=d.date, wk=['日','月','火','水','木','金','土'][new Date(+ymd.slice(0,4),+ymd.slice(4,6)-1,+ymd.slice(6,8)).getDay()];
+      // メイン選定: 重賞/L格付レーティング表(race_ratings.json)で最高レートのレース。無ければ11R格上位フォールバック
+      function rnorm(s){return String(s||'').normalize('NFKC').replace(/[\s　]/g,'').replace(/[（(][^）)]*[）)]/g,'').replace(/ステークス/g,'S').replace(/農林水産省賞典|産経賞|サンケイスポーツ賞|日本経済新聞杯|読売新聞杯|中日新聞杯?(?=杯)/g,'')}
+      var rkeys=ratings?Object.keys(ratings).map(function(k){return{k:k,n:rnorm(k)}}):[];
+      function findRating(name){
+        if(!name||!ratings)return null;
+        var n=rnorm(name); if(n.length<3)return null;
+        for(var i=0;i<rkeys.length;i++){var e=rkeys[i];
+          if(e.n===n||e.n.indexOf(n)===0||n.indexOf(e.n)===0)return{name:e.k,grade:ratings[e.k].grade,rating:ratings[e.k].rating}}
+        return null;
+      }
+      var main=null, mainRt=null;
+      races.forEach(function(r){
+        var rt=findRating(r.race_name);
+        if(rt&&(!mainRt||rt.rating>mainRt.rating)){main=r;mainRt=rt}
+      });
+      if(!main){
+        var mains=races.filter(function(r){return r.rno===11});
+        main=mains.find(function(r){return /G[123I]/.test(r.race_name||'')})||mains.find(function(r){return r.race_name})||mains[0]||races[races.length-1];
+      }
+      // ストリップ
+      var strip=document.getElementById('heroStrip');
+      if(strip){
+        var per={}; races.forEach(function(r){per[r.place]=(per[r.place]||0)+1});
+        var cells=['<span class="hst-date num">'+ymd.slice(0,4)+'.'+ymd.slice(4,6)+'.'+ymd.slice(6,8)+' ('+wk+')</span>'];
+        (day.places||Object.keys(per)).forEach(function(p){cells.push('<span class="hst-v">'+esc(p)+' <b class="num">'+(per[p]||0)+'R</b></span>')});
+        if(main)cells.push('<span class="hst-main">メイン <b>'+esc(main.race_name||main.klass)+'</b> '+esc(main.place)+esc(main.rno)+'R <span class="num">'+esc(main.start_time)+'</span></span>');
+        strip.innerHTML=cells.join('<i class="hst-sep"></i>');
+        strip.hidden=false;
+      }
+      // メインレース端末
+      var spot=document.getElementById('heroSpot');
+      if(spot&&main&&main.horses){
+        document.getElementById('hsRace').textContent=(main.race_name||main.klass)+' / '+main.place+main.rno+'R';
+        document.getElementById('hsTime').textContent=main.start_time+' 発走';
+        var top=main.horses.slice().sort(function(a,b){return a.ai_rank-b.ai_rank}).slice(0,5);
+        document.getElementById('hsBody').innerHTML=top.map(function(h){
+          var pw=(h.p_win*100);
+          return '<div class="hs-row"><span class="hs-mk">'+esc(h.mark||'・')+'</span><span class="hs-nm">'+esc(h.name)+'</span>'+
+                 '<span class="hs-bar"><i style="width:'+Math.min(100,pw*2.2)+'%"></i></span>'+
+                 '<span class="hs-pw num">'+pw.toFixed(1)+'<small>%</small></span></div>'
+        }).join('');
+        spot.hidden=false;
+      }
+      // 03 TODAY'S FOCUS
+      var EN={'札幌':'SAPPORO','函館':'HAKODATE','福島':'FUKUSHIMA','新潟':'NIIGATA','東京':'TOKYO','中山':'NAKAYAMA','中京':'CHUKYO','京都':'KYOTO','阪神':'HANSHIN','小倉':'KOKURA'};
+      if(main&&main.horses&&document.getElementById('lpFocus')){
+        document.getElementById('lpFocusH2').innerHTML=esc(main.place)+'メイン、<br>AIはこう読んだ。';
+        document.getElementById('lpFocusMeta').textContent=(EN[main.place]||'')+' '+main.rno+'R / '+main.start_time+'発走';
+        document.getElementById('lpFocusName').innerHTML='<b>'+esc(main.race_name||main.klass)+'</b>'+(mainRt?'<i class="lp-grade '+esc(mainRt.grade)+'">'+esc(mainRt.grade)+'</i>':'')+'<span>'+esc(main.course)+(String(main.klass)===(mainRt&&mainRt.grade)?'':' '+esc(main.klass))+' '+esc(main.field_size)+'頭</span>';
+        var top5=main.horses.slice().sort(function(a,b){return a.ai_rank-b.ai_rank}).slice(0,5);
+        document.getElementById('lpFocusTable').innerHTML=
+          '<div class="lpf-row lpf-head"><span>印</span><span>馬番</span><span>馬名 / 騎手</span><span class="ta-r">勝率P</span><span class="ta-r">連対率</span><span class="ta-r">複勝率</span><span>市場比</span></div>'+
+          top5.map(function(h){
+            var vm=h.vs_market||'';
+            return '<div class="lpf-row"><span class="mk">'+esc(h.mark||'・')+'</span>'+
+              '<span class="ub num">'+esc(h.umaban)+'</span>'+
+              '<span class="nm"><b>'+esc(h.name)+'</b><small>'+esc(h.jockey)+' / '+esc(h.ninki)+'人気</small></span>'+
+              '<span class="pw num">'+(h.p_win*100).toFixed(1)+'%</span>'+
+              '<span class="p2 num">'+(h.p_plc*100).toFixed(1)+'%</span>'+
+              '<span class="p3 num">'+(h.p_sho*100).toFixed(1)+'%</span>'+
+              '<span class="vm '+esc(vm)+'">'+esc(vm||'—')+'</span></div>'
+          }).join('');
+        document.getElementById('lpFocus').hidden=false;
+      }
+      // 04 RACE INDEX: 各会場のメイン1本ずつ (レーティング最高 > 最終寄りのレース名付き > 11R/最終)
+      if(document.getElementById('lpIndex')){
+        var idx=(day.places||[]).map(function(p){
+          var rs=races.filter(function(r){return r.place===p});
+          var best=null,bestRt=null;
+          rs.forEach(function(r){var rt=findRating(r.race_name);if(rt&&(!bestRt||rt.rating>bestRt.rating)){best=r;bestRt=rt}});
+          if(!best){
+            var named=rs.filter(function(r){return r.race_name});
+            best=named.find(function(r){return r.rno===11})
+              ||named.filter(function(r){return r.rno<11}).sort(function(a,b){return b.rno-a.rno})[0]
+              ||rs.find(function(r){return r.rno===11})||named[0]||rs[rs.length-1];
+          }
+          return best?{r:best,rt:bestRt}:null;
+        }).filter(Boolean);
+        document.getElementById('lpIdxRows').innerHTML=idx.map(function(x){
+          var r=x.r, hon=(r.horses||[]).find(function(h){return h.mark==='◎'});
+          var cls=x.rt?x.rt.grade:(r.klass==='オープン'?'OP':r.klass);
+          return '<a class="lpi-row" href="#venueTabs" data-rid="'+esc(r.race_id)+'">'+
+            '<span class="tm num">'+esc(r.start_time)+'</span>'+
+            '<span class="rn num">'+esc(r.rno)+'R</span>'+
+            '<span class="nm"><b>'+esc(r.race_name||r.klass)+'</b></span>'+
+            '<span class="pl">'+esc(r.place)+'</span>'+
+            '<span class="co">'+esc(r.course)+'</span>'+
+            '<span class="lpi-grade'+(x.rt?'':' cls')+'">'+esc(cls)+'</span>'+
+            '<span class="hn">'+(hon?'◎'+esc(hon.name):'')+'</span></a>'
+        }).join('');
+        document.getElementById('lpMore').textContent='+ '+(day.places||[]).join('・')+' 全'+races.length+'レースの印と指数を無料公開中';
+        document.getElementById('lpIndex').hidden=false;
+      }
+    })
+  }).catch(function(){});
+})();
+</script>
 <script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
 </body>
 </html>
