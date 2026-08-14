@@ -12,18 +12,47 @@ short_description: AI 競馬予想 (NiceGUI 版)
 
 # 🏇 PyCaLiAI
 
-LightGBM v5 LambdaRank モデルで JRA 中央競馬の印付け (◎〇▲△△) と
-PL 確率を出し、Anthropic Cowork で馬券構築する個人運用システム。
-NiceGUI 版は **表示専用** (推論済データを読んで可視化)。
+LightGBM **v6** LambdaRank モデル (`unified_rank_v6.pkl`) で JRA 中央競馬の
+印付け (◎〇▲△△) と Plackett-Luce 確率を算出し、買い目は完全トップダウン
+エンジン (`compute_bets.py`, `CB_ENGINE=topdown`) が生成、Cowork (Claude) は
+narrative 論評を担当する個人運用システム。
 
-## NiceGUI 版でできること
+## 表示レイヤー（3系統）
 
-- 📋 出走表 (印 / 勝率 / 単勝EV / vs市場)
-- 🔍 全頭分析 (散布図 + レーダーチャート)
-- 🎫 Cowork 買い目 (race ごとに自動表示、予算 + 理由)
-- 📊 過去同コース成績 + 枠バイアス (master_v2 がある場合のみ)
+| 系統 | 状態 | URL / 起動 |
+|---|---|---|
+| **静的サイト** (HF Docker Space `pycaliai-umami`) | ✅ **本番** | https://pycaliai.com / https://gutchi15300-pycaliai-umami.hf.space |
+| NiceGUI (この Space / `nicegui_app.py`) | 🗄️ 旧本番（併行更新中） | https://gutchi15300-pycaliai.hf.space |
+| Streamlit (`app.py`) | 副系統 | Streamlit Cloud |
 
-## ローカルで動かす
+いずれも **表示専用**（推論済みデータを読んで可視化するだけ）。
+本番サイトのソースは `site/`、データ生成は `build_site.py`、
+デプロイは `sync-hf-umami.ps1`。
+
+## 週次運用（`weekly_nicegui.ps1` 1本で完結）
+
+```powershell
+.\weekly_nicegui.ps1            # Phase A: 土曜朝 (出走表 → 印/bundle → HF 同期)
+.\weekly_nicegui.ps1 -BetsOnly  # Phase B: Cowork 返答 (narrative) 反映後
+.\weekly_nicegui.ps1 -Post      # Phase C: 日曜夜 (結果集計 → HF 同期)
+```
+
+- TARGET 出力 CSV は `data/_inbox/` に放り込むだけ（`place_weekly.py` が自動振り分け。詳細は `data/_inbox/README.txt`）
+- 当日は T-10 自動ライン（タスクスケジューラ `PyCaLiAI_T10` → `t10.ps1`）が
+  発走10分前に JV-Link オッズ取得 → `compute_bets.py` → 検証 → 買い目表示。投票は人間が IPAT で行う
+
+## パイプライン概要
+
+```
+出走表 CSV
+  → export_weekly_marks.py --model v6   (印 + PL 確率 + calibration)
+  → reports/cowork_input/{date}_bundle.json
+  → compute_bets.py (topdown: 全馬 p_win → λ補正 PL → 確率順候補 → 適応トリガミ床)
+  → validate_cowork_bets.py (見送りガード強制, fail-closed)
+  → build_site.py → site/data/*.json → sync-hf-umami.ps1 (本番反映)
+```
+
+## ローカルで動かす（NiceGUI 版）
 
 ```powershell
 cd E:\PyCaLiAI
@@ -34,34 +63,18 @@ python nicegui_app.py
 
 ブラウザで `http://localhost:8080` を開く。
 
-## HuggingFace Spaces デプロイ
+## 主要データソース
 
-このリポジトリは HF Spaces (Docker SDK) でそのままデプロイ可能:
+- `data/weekly/{YYYYMMDD}.csv` — 週次出走表 (TARGET)
+- `reports/cowork_input/{YYYYMMDD}_bundle.json` — 印 + 確率 (`export_weekly_marks.py` 生成)
+- `reports/cowork_output/{YYYYMMDD}_bets.json` — 買い目 + narrative
+- `data/cowork_results.json` / `data/live_results_2026.csv` — 実績集計
+- `data/master_v2_*.csv` — 学習用マスター (約 515MB、ローカルのみ・HF 未配置)
 
-1. https://huggingface.co/new-space で新規 Space 作成
-2. SDK: **Docker**, リポジトリ: GitHub の URL を指定
-3. ビルド完了後 `https://huggingface.co/spaces/USERNAME/pycaliai` でアクセス
+## ドキュメント
 
-または既存の HF Space に直接 push:
-
-```bash
-git remote add hf https://huggingface.co/spaces/USERNAME/pycaliai
-git push hf master
-```
-
-## データソース
-
-NiceGUI 版が読むファイル:
-
-- `data/weekly/{YYYYMMDD}.csv` — 週次出走表
-- `reports/cowork_input/{YYYYMMDD}_bundle.json` — 印 + 確率 (weekly_cowork.ps1 で生成)
-- `reports/cowork_output/{YYYYMMDD}_bets.json` — Cowork からの買い目返答
-- `reports/cowork_bets/{YYYYMMDD}/{race_id}.json` — Streamlit で保存された個別買い目
-- `data/master_v2_*.csv` — 過去成績用 (約 390MB、Cloud には未配置、ローカルのみ)
-
-## 既存 Streamlit 版との関係
-
-このリポジトリには Streamlit 版 `app.py` も含まれる (Streamlit Cloud 用)。
-NiceGUI 版 `nicegui_app.py` は Streamlit と並行運用、お好みで選択。
-
-詳細は `docs/operation_roadmap.md` 参照。
+- 全体像・引き継ぎ: `CLAUDE.md`（最重要）
+- 週次フロー詳細: `WORKFLOW.md`
+- 買い目エンジン仕様: `docs/compute_bets_spec.md`
+- bundle スキーマ: `docs/marks_schema.md`
+- 実験スクリプト群: `lab/README.md`（root から `python -m lab.<theme>.<name>` で実行）
