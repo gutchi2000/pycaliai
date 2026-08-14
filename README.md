@@ -41,6 +41,18 @@ narrative 論評を担当する個人運用システム。
 - 当日は T-10 自動ライン（タスクスケジューラ `PyCaLiAI_T10` → `t10.ps1`）が
   発走10分前に JV-Link オッズ取得 → `compute_bets.py` → 検証 → 買い目表示。投票は人間が IPAT で行う
 
+### 週次フロー外の手動コマンド
+
+```powershell
+# note 有料記事ドラフト生成 (会場パック / 重賞単体、JRA-VAN 準拠スクラブ付き)
+python scripts/build_note_article.py 20260802
+# → reports/note/{date}/{会場}.md + _compliance_report.txt
+
+# 祝日(月)開催の T-10 手動起動 / テスト
+.\t10.ps1
+.\t10.ps1 20260614 -Dry
+```
+
 ## パイプライン概要
 
 ```
