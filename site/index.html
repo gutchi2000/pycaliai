@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PyCaLiAI — AI競馬予想</title>
-<meta name="description" content="機械学習でJRA中央競馬を予想するPyCaLiAI。毎週の出走表にAI印(◎〇▲△)とAI指数を無料公開。的中実績・回収率も正直に開示しています。">
+<meta name="description" content="機械学習でJRA中央競馬を予想するPyCaLiAI。毎週の出走表にAI印(◎〇▲△)とAI指数を無料公開。的中実績・回収率もそのまま公開しています。">
 <link rel="canonical" href="https://pycaliai.com/">
 <meta property="og:title" content="PyCaLiAI — AI競馬予想">
-<meta property="og:description" content="機械学習でJRA中央競馬を予想。毎週の出走表にAI印とAI指数を無料公開、成績も正直開示。">
+<meta property="og:description" content="機械学習でJRA中央競馬を予想。毎週の出走表にAI印とAI指数を無料公開、成績もそのまま公開。">
 <meta property="og:url" content="https://pycaliai.com/">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://pycaliai.com/apple-touch-icon.png">
@@ -139,8 +139,8 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
   <div class="hero-in">
     <div class="hero-copy">
       <p class="hero-eyebrow">機械学習 × JRA中央競馬 — 毎週無料公開</p>
-      <h1 class="hero-h1">当たりも外れも、<br><span class="hl">全部見せる</span>。</h1>
-      <p class="hero-sub">13年分・約62万走で学習したAIが、毎週の全レースにAI印とAI指数を無料公開。都合のいい的中だけを切り抜く予想は、しません。成績はそのまま開示します。</p>
+      <h1 class="hero-h1">毎週の全レースに、<br><span class="hl">AI印とAI指数</span></h1>
+      <p class="hero-sub">13年分・約62万走のレースデータで学習したAIの予想を、毎週無料で公開しています。成績は的中も外れも、そのまま集計して載せています。</p>
       <div class="hero-cta">
         <a class="btn-prime" href="#venueTabs">今週の出走表を見る</a>
         <button class="btn-ghost" type="button" id="heroResults">成績を確認する</button>
@@ -167,8 +167,8 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
     <div class="lp-in lp-grid">
       <div class="lp-txt">
         <p class="lp-eyebrow">01 — HONEST RECORD</p>
-        <h2 class="lp-h2">当たりだけを<br>切り抜かない。</h2>
-        <p class="lp-copy">予想サイトの多くは、的中だけを並べます。PyCaLiAIは逆です。全レース・全買い目を記録し、回収率を信頼区間つきで公開しています。競馬には約20〜25%の控除率があり、「必ず儲かる」予想は存在しません。それでもAIがどこまで市場に迫れるか — その過程ごと見せるのがこのサイトです。</p>
+        <h2 class="lp-h2">成績は、<br>そのまま載せています</h2>
+        <p class="lp-copy">全レース・全買い目を記録し、回収率を信頼区間つきで公開しています。当たった予想だけを選んで載せることはせず、外れた分も含めて集計しています。競馬には約20〜25%の控除率があり、「必ず儲かる」予想は存在しません。その前提のうえで、AIがどこまでやれるかを検証しているサイトです。</p>
         <p class="lp-note">集計は毎開催後に自動更新。数値はモデル運用実績に基づく実測値で、投資助言ではありません。馬券の購入は自己責任でお願いします。</p>
       </div>
       <div class="lp-stats">
@@ -181,7 +181,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
           <span class="v num">53.3<small>%</small></span>
         </div>
         <div class="lp-stat">
-          <span class="k">◎ 複勝回収率 <small>HONMEI PLACE ROI — 単勝は78.1%、控除率の壁ごと見せる</small></span>
+          <span class="k">◎ 複勝回収率 <small>HONMEI PLACE ROI — 単勝は78.1%</small></span>
           <span class="v num">84.2<small>%</small></span>
         </div>
       </div>
@@ -191,7 +191,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
   <section class="lp-sec lp-alt">
     <div class="lp-in">
       <p class="lp-eyebrow">02 — HOW TO READ</p>
-      <h2 class="lp-h2">AI印は5段階。<br>根拠は確率で示す。</h2>
+      <h2 class="lp-h2">AI印は5段階<br>根拠は確率で示す</h2>
       <div class="lp-marks">
         <div class="lp-mrow"><span class="lpm-mk">◎</span><span class="lpm-nm">本命</span><span class="lpm-ds">62万走が選んだ今日の最有力。3回に2回は馬券に絡む、軸はここから</span><span class="lpm-rt num">3着内 62%</span></div>
         <div class="lp-mrow"><span class="lpm-mk">〇</span><span class="lpm-nm">対抗</span><span class="lpm-ds">◎が飛ぶ日の保険であり、相手筆頭。2頭軸ならこの組み合わせ</span><span class="lpm-rt num">3着内 51%</span></div>
@@ -329,7 +329,7 @@ addEventListener('DOMContentLoaded',function(){
       // 03 TODAY'S FOCUS
       var EN={'札幌':'SAPPORO','函館':'HAKODATE','福島':'FUKUSHIMA','新潟':'NIIGATA','東京':'TOKYO','中山':'NAKAYAMA','中京':'CHUKYO','京都':'KYOTO','阪神':'HANSHIN','小倉':'KOKURA'};
       if(main&&main.horses&&document.getElementById('lpFocus')){
-        document.getElementById('lpFocusH2').innerHTML=esc(main.place)+'メイン、<br>AIはこう読んだ。';
+        document.getElementById('lpFocusH2').innerHTML=esc(main.place)+'メイン、<br>AIはこう読んだ';
         document.getElementById('lpFocusMeta').textContent=(EN[main.place]||'')+' '+main.rno+'R / '+main.start_time+'発走';
         document.getElementById('lpFocusName').innerHTML='<b>'+esc(main.race_name||main.klass)+'</b>'+(mainRt?'<i class="lp-grade '+esc(mainRt.grade)+'">'+esc(mainRt.grade)+'</i>':'')+'<span>'+esc(main.course)+(String(main.klass)===(mainRt&&mainRt.grade)?'':' '+esc(main.klass))+' '+esc(main.field_size)+'頭</span>';
         var top5=main.horses.slice().sort(function(a,b){return a.ai_rank-b.ai_rank}).slice(0,5);
