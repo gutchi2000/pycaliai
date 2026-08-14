@@ -87,8 +87,12 @@ foreach ($f in @("Dockerfile", "README.md", "server.py")) {
     if (-not (Test-Path (Join-Path $DOCKER $f))) { Fail "missing deploy\pycaliai-umami\$f" }
 }
 
-# 2. ensure a local clone of the Space exists
-if (-not (Test-Path (Join-Path $STAGE ".git"))) {
+# 2. ensure a local clone of the Space exists. Validate with git itself, not
+#    Test-Path: Windows TEMP cleanup can gut .git while leaving the folder in
+#    place (2026-08-15 incident) -- every later git call then fails and the
+#    script used to exit "no changes" with HF silently stale.
+git -C $STAGE rev-parse --git-dir *> $null
+if ($LASTEXITCODE -ne 0) {
     Step "clone Space: $SpaceUrl"
     if (Test-Path $STAGE) { Remove-Item $STAGE -Recurse -Force }
     git clone $SpaceUrl $STAGE
@@ -96,6 +100,7 @@ if (-not (Test-Path (Join-Path $STAGE ".git"))) {
 } else {
     Step "update existing clone (git pull)"
     git -C $STAGE pull --rebase
+    if ($LASTEXITCODE -ne 0) { Fail "git pull failed in staging clone; delete `"$STAGE`" and rerun" }
 }
 
 # 3. replace staging contents (keep .git): Dockerfile + README + site/
