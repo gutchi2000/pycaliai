@@ -1,0 +1,205 @@
+{
+  "experiment_id": "BET-TRIO-T10-CONSERVATIVE-PORTFOLIO-2026-v2",
+  "plan": "docs/plans/plan_trio_t10_conservative_portfolio_engine_v2.md",
+  "generated_at": "2026-08-18T23:50:07",
+  "collector_version": "trio-collector-2026-08-18.1",
+  "checks": [
+    {
+      "id": "P1",
+      "name": "0B35(O5) レコード意味",
+      "status": "PASS",
+      "detail": "蓄積O5 576R: 全スロット説明可 576R / 組数一致(C(登録,3)・C(出走,3)) 576R / 人気順とオッズ昇順が整合 576R / 的中組の倍率×100 = 公表払戻 574R / 3着同着 2R は倍率/k が公表額と ±2%内で一致 2R（丸め規則までは再現不可＝決済は公表額必須） / RT(0B35)実録と蓄積O5の完全一致 2/2R",
+      "layout": {
+        "body_offset": 40,
+        "stride": 15,
+        "slots": 816,
+        "fields": "組番6+オッズ6(1/10倍)+人気3",
+        "unpriced_mark": "オッズ欄 '*' または '-' 埋め",
+        "padding": "15桁空白（組番順の固定配置なので飛び飛びに出る）"
+      },
+      "stats": {
+        "races": 576,
+        "slots_ok": 576,
+        "combo_count_ok": 576,
+        "ninki_monotone_ok": 576,
+        "payout_match": 574,
+        "deadheat": 2,
+        "deadheat_split_ok": 2,
+        "rt_vs_stock_checked": 2,
+        "rt_vs_stock_same": 2
+      },
+      "notes": [],
+      "rt_vs_stock": [
+        [
+          "2026081601010801",
+          true,
+          364
+        ],
+        [
+          "2026081601010801",
+          true,
+          364
+        ]
+      ],
+      "caveat": "RT(0B35) 経路も実録で検証済（下記 rt_vs_stock）。ただし RT が返すのは常に最新断面なので、**T-10 時点**の断面そのものは開催日にしか取れない。"
+    },
+    {
+      "id": "P2",
+      "name": "時刻運用 (8〜12分前の証明)",
+      "status": "PASS",
+      "detail": "lead計算の単体テスト 5/5 合格 / 本番T-10実測 n=670 中央値10.0分 8〜12分内 666(99%) [p10=10.0 p90=10.0] / 発走時刻変更(TC)取込=True 二重起動LOCK=True 発走時刻不明=0件 / O5発表月日時分から時点を再構成できた断面 1/1",
+      "note": "collector は毎断面に (1) 自分の時計による lead_min と (2) O5 の発表月日時分による announce_lead_min の両方を記録し、窓外は in_window=False として残す（捨てない・粉飾しない）。価格の時点判定は (2) を正とする。RT 断面での窓内実績は開催日にのみ確定する。"
+    },
+    {
+      "id": "P3",
+      "name": "race 結合の一意性",
+      "status": "PASS",
+      "detail": "直近8開催: bundle 280R / kekka 288R / 16桁IDで結合できた 280R / T-10単勝あり 280R / 重複 0件",
+      "note": "0B35 側は race_key(=rec[11:27]) が要求 race_id と一致することを collector が毎回検査する"
+    },
+    {
+      "id": "P4",
+      "name": "取消・返還の識別",
+      "status": "PASS",
+      "detail": "取消のあった 25R 全てで「未発売組 = 取消馬を含む組」が厳密一致 (25/25)。発売中の組数も C(出走頭数,3) と一致。",
+      "note": "価格0/未発売('*')/空白padding の3態を parse_o5 が分離し、settle 側は取消馬を含む組を返還として決済する"
+    },
+    {
+      "id": "P5",
+      "name": "候補（順位・R・U0〜U3）の再現",
+      "status": "PASS",
+      "detail": "131R で本番 hosei_marks(blend上位5) を完全再現 131/131、同一入力の二度実行が完全一致 131/131。腕の組数分布 {'U0:4組': 131, 'U2:10組': 131, 'U3:10組': 111, 'U1:4組': 89, 'U1:10組': 42, 'U3:20組': 20}",
+      "note": "blend は候補プールの中心選定にのみ使用（§1）。確率・購入額には不使用"
+    },
+    {
+      "id": "P6",
+      "name": "PL 数学 (§3 全単体テスト)",
+      "status": "PASS",
+      "detail": "全 C(n,3) の q 総和 = 1 (n=3,4,6,10,18, 誤差<1e-9) / 馬番の並べ替えで q 不変 / 手計算例 (3頭=1 / 4頭均等=1/4 / 4頭[2,1,1,1]=0.1,0.3) と一致 / 取消後も再正規化される（総和1・組数C(4,3)・値は増加） / w の定数倍で q 不変 (exp(s-max) の実装が安全) / 既存 pl_probs.p_sanrenpuku と全 C(9,3) 組で一致 (<1e-12)",
+      "tests": [
+        {
+          "test": "_t_sum_to_one",
+          "ok": true,
+          "detail": "全 C(n,3) の q 総和 = 1 (n=3,4,6,10,18, 誤差<1e-9)"
+        },
+        {
+          "test": "_t_permutation_invariant",
+          "ok": true,
+          "detail": "馬番の並べ替えで q 不変"
+        },
+        {
+          "test": "_t_hand_examples",
+          "ok": true,
+          "detail": "手計算例 (3頭=1 / 4頭均等=1/4 / 4頭[2,1,1,1]=0.1,0.3) と一致"
+        },
+        {
+          "test": "_t_scratch_renormalize",
+          "ok": true,
+          "detail": "取消後も再正規化される（総和1・組数C(4,3)・値は増加）"
+        },
+        {
+          "test": "_t_weight_scale_invariance",
+          "ok": true,
+          "detail": "w の定数倍で q 不変 (exp(s-max) の実装が安全)"
+        },
+        {
+          "test": "_t_against_pl_probs",
+          "ok": true,
+          "detail": "既存 pl_probs.p_sanrenpuku と全 C(9,3) 組で一致 (<1e-12)"
+        }
+      ]
+    },
+    {
+      "id": "P7",
+      "name": "配分数学 (§6 人工ケース全件)",
+      "status": "PASS",
+      "detail": "EV<=1 の候補しかなければ見送り (NO_FEASIBLE_PORTFOLIO) / 薄い優位は B_cap<100 で見送り / E=1.02 なら B=2,000 に自動縮小 / E>=1.10 で上限 1万円まで張る (E=1.20→B=10,000) / 75%下限は eval_alloc で厳密に検出（違反配分を feasible にしない） / 100円格子・最低100円・上限1万円を全経路で強制 / 総当たり(2^5×100通り)と閉形式が全20ケースで一致。最適は常に1点＝75%床は不活性 / E=1.01→1,000 / 1.05→5,000 / 1.10→10,000 の B_cap 段階が設計書どおり",
+      "tests": [
+        {
+          "test": "_t_skip_when_no_edge",
+          "ok": true,
+          "detail": "EV<=1 の候補しかなければ見送り (NO_FEASIBLE_PORTFOLIO)"
+        },
+        {
+          "test": "_t_min_100_when_thin_edge",
+          "ok": true,
+          "detail": "薄い優位は B_cap<100 で見送り / E=1.02 なら B=2,000 に自動縮小"
+        },
+        {
+          "test": "_t_full_budget_at_E110",
+          "ok": true,
+          "detail": "E>=1.10 で上限 1万円まで張る (E=1.20→B=10,000)"
+        },
+        {
+          "test": "_t_floor75_enforced",
+          "ok": true,
+          "detail": "75%下限は eval_alloc で厳密に検出（違反配分を feasible にしない）"
+        },
+        {
+          "test": "_t_grid_and_bounds",
+          "ok": true,
+          "detail": "100円格子・最低100円・上限1万円を全経路で強制"
+        },
+        {
+          "test": "_t_exhaustive_matches_closed_form",
+          "ok": true,
+          "detail": "総当たり(2^5×100通り)と閉形式が全20ケースで一致。最適は常に1点＝75%床は不活性"
+        },
+        {
+          "test": "_t_scale_of_bcap",
+          "ok": true,
+          "detail": "E=1.01→1,000 / 1.05→5,000 / 1.10→10,000 の B_cap 段階が設計書どおり"
+        }
+      ]
+    },
+    {
+      "id": "P8",
+      "name": "未来遮断（結果・最終払戻・後続断面を読まない）",
+      "status": "PASS",
+      "detail": "決定経路 4 モジュールを AST 走査（docstring 除外）: 禁止参照 0件。O_low/q_low は「当該レースより前に確定した情報のみ」から作る規約を §4.2/§5.3 の実装時に同じ走査で担保する。"
+    },
+    {
+      "id": "P9",
+      "name": "raw 不変（追記専用）",
+      "status": "PASS",
+      "detail": "同一パスへの二度書きで上書きが起きない（2本目は __dup1 に退避）=True。manifest.jsonl 582行 / sha256付き 580行 (collector trio-collector-2026-08-18.1)"
+    },
+    {
+      "id": "P10",
+      "name": "決済（三連複払戻・不成立・返還）",
+      "status": "PASS",
+      "detail": "的中(按分)/取消返還/ハズレ を分けて決済 (500円→7,450円 等) / レース不成立は全額返還 (ROI=1.0、損益0) / 払戻不明の的中は ok=False で fail-closed（0円扱いにしない） / 実 kekka 288R で的中決済＝公表払戻に一致、非的中は lose/refund (曖昧同着 0R は除外)",
+      "tests": [
+        {
+          "test": "_t_hit_refund_lose",
+          "ok": true,
+          "detail": "的中(按分)/取消返還/ハズレ を分けて決済 (500円→7,450円 等)"
+        },
+        {
+          "test": "_t_void_refunds_all",
+          "ok": true,
+          "detail": "レース不成立は全額返還 (ROI=1.0、損益0)"
+        },
+        {
+          "test": "_t_unresolved_is_failclosed",
+          "ok": true,
+          "detail": "払戻不明の的中は ok=False で fail-closed（0円扱いにしない）"
+        },
+        {
+          "test": "_t_real_kekka_roundtrip",
+          "ok": true,
+          "detail": "実 kekka 288R で的中決済＝公表払戻に一致、非的中は lose/refund (曖昧同着 0R は除外)"
+        }
+      ]
+    }
+  ],
+  "phase0": {
+    "rt_snapshots": 0,
+    "valid": 0,
+    "in_window_8_12": 0,
+    "required": 100,
+    "pass": false,
+    "note": "RT(0B35) の T-10 断面。開催日に t10 と並走させて貯める"
+  },
+  "verdict": "PHASE0_NOT_STARTED — Preflight は 10/10 合格 (FAIL 0)。RT(0B35) の T-10 断面は 0/100R。設計書 §8.1/§9 により候補選択・EV・資金配分・ROI・本番接続へは進まない。"
+}
