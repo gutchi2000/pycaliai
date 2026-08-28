@@ -53,7 +53,8 @@ FORBIDDEN_PATTERNS = [
     (r"補正タイム", "TARGET 補正タイム"),
     (r"\bZI\b", "TARGET ZI 指数"),
     (r"PCI", "PCI 指数"),
-    (r"(坂路|ウッド|CW|美浦W|栗東坂路)", "調教タイム/調教施設"),
+    # ウッドは直前がカタカナなら馬名の一部 (ハリウッドメモリー/ナリノシャーウッド等) とみなし除外
+    (r"(坂路|(?<![ァ-ヶー])ウッド|CW|美浦W|栗東坂路)", "調教タイム/調教施設"),
     (r"調教タイム", "調教タイム"),
     (r"馬体重", "ライブ馬体重"),
     (r"上が?り3F", "上り3Fタイム"),
@@ -781,7 +782,9 @@ def advisor_block(r: dict) -> str:
     if not adv:
         return ""
     tag_ja = {"軸": "軸", "妙味": "妙味", "穴": "穴", "罠": "罠", None: "—"}
-    L = ["<details><summary>AI の各馬短評（クリックで開く）</summary>", "",
+    # open 必須: 閉じた <details> の中身はブラウザの全選択コピーに含まれず、
+    # note 貼付で短評が丸ごと欠落する (2026-08-15)
+    L = ["<details open><summary>AI の各馬短評</summary>", "",
          "※ 短評で取り上げる馬は、印（確率順の上位 5 頭）とは別に選んでいます。"
          "そのため印の付いていない馬が入ることがあります。", ""]
     for a in adv:
@@ -796,7 +799,7 @@ def load_tact(date: str) -> dict:
 
     site/data/{date}.json は scrub_public() 済みで、結果が出るまで cowork/tact の
     bets が落ちている (買い目はサイト非公開 = note 専売の仕様)。記事はレース前に
-    売るものなので、公開ペイロードではなく bundle から TACT (gutchi_brain) を
+    売るものなので、公開ペイロードではなく bundle から TACT (topdown エンジン) を
     その場で組み直す。理由文のオッズ除去は build_tact 側で済み、最終 md は
     audit_markdown() が再検査する。
     """
@@ -1080,6 +1083,13 @@ def day_wrap(day, place, settle):
     hit = sum(r["的中点数"] for r in rows)
     label = place if place else f"{len(day['places'])} 場合計"
     if not bet:
+        # 決済行ゼロには 2 通りある: (a) レース前 = 結果未着 (b) 結果は出たが全見送り。
+        # レース前記事で「全レース見送り」と出すのは誤り (2026-08-15 ユーザー指摘)
+        has_result = any((r.get("result") or {}).get("top3")
+                         for r in day["races"] if place is None or r["place"] == place)
+        if not has_result:
+            return (f"### この日の結果（{label}）\n\n"
+                    "レース結果が出次第、ここに追記します。\n")
         return f"### この日の結果（{label}）\n\nこの会場では買い目なし（全レース見送り）。\n"
     marks_hit = 0
     marks_n = 0
@@ -1135,12 +1145,14 @@ def main():
     print(f"md の表形式: {'KaTeX' if katex else 'Markdown'} / "
           f"note 貼付は .html をブラウザで開いて全選択コピー")
 
-    # 重賞単体パックは廃止 (2026-08-08 ユーザー決定)。商品は会場バラ (¥200) と
-    # 全場パック (¥400) の 2 本立て。重賞は所属会場の記事内に grade_section で
-    # フル収録されるので、単体 md は作らない (build_grade は残置・未使用)。
-    arts = [(PLACE_SLUG.get(p, p), build_venue(day, p, ms, settle, "¥200", show_result))
+    # 重賞単体パックは廃止 (2026-08-08 ユーザー決定)。商品は会場バラ (¥100) と
+    # 全場パック (¥100×会場数、3会場なら¥300) の 2 本立て (2026-08-15 値下げ)。
+    # 重賞は所属会場の記事内に grade_section でフル収録されるので、
+    # 単体 md は作らない (build_grade は残置・未使用)。
+    arts = [(PLACE_SLUG.get(p, p), build_venue(day, p, ms, settle, "¥100", show_result))
             for p in day["places"]]
-    arts.append(("all", build_all(day, ms, settle, "¥400", show_result)))
+    arts.append(("all", build_all(day, ms, settle,
+                                  f"¥{100 * len(day['places'])}", show_result)))
 
     written = []
     for slug, raw in arts:

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "policy_id": "topdown-serve34-p667-20260825",
+  "effective_from": "2026-08-29",
+  "model": "v6",
+  "engine": "topdown",
+  "engine_version": "2026-08-25",
+  "chaos_reference": {
+    "path": "data/chaos_quantiles.json",
+    "reference_id": "serve34-forward-policy-20260825",
+    "skip_percentile": 0.667
+  },
+  "hard_skip": {
+    "field_size_max": 7,
+    "hon_p_win_min": 0.05,
+    "require_hon_tansho_odds": true,
+    "fail_closed_on_missing": true
+  },
+  "artifacts": {
+    "rank_model": "models/unified_rank_v6.pkl",
+    "serve_calibrator": "models/pl_calibrators_v6_serve.pkl",
+    "serve_feature_baseline": "data/serve_feature_baseline.json"
+  },
+  "prospective": {
+    "experiment_id": "P1-TOPDOWN-SERVE34-P667-2026",
+    "start_date": 20260829,
+    "minimum_bets": 300
+  }
+}

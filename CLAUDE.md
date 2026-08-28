@@ -10,6 +10,23 @@
 
 ---
 
+## 📘 完全仕様書（2026-08-23 新設）
+
+外部 AI へのレビュー依頼・新規参画者の把握には **`docs/SPEC/`** を使う（本ファイルは要約）。
+
+| 巻 | 内容 |
+|---|---|
+| [Vol. I](docs/SPEC/VOL1_SYSTEM.md) | データ / 特徴量（120 特徴の gain×serve 三元表）/ モデル / 確率 / 印 / serve 層 |
+| [Vol. II](docs/SPEC/VOL2_BETTING_OPS.md) | compute_bets 完全仕様 / ガード / T-10 / 週次フロー / 決済集計 / 公開層 |
+| [Vol. III](docs/SPEC/VOL3_VALIDATION_AND_OPEN_PROBLEMS.md) | 死亡ルート台帳 / **欠陥台帳 P0-P3** / ガバナンス / 研究アジェンダ |
+| [Vol. IV](docs/SPEC/VOL4_CODE_REFERENCE.md) | 関数レベルのコードリファレンス |
+| [結合版](docs/SPEC/ALL_IN_ONE.md) | 外部 AI への一括投入用 |
+
+**新発見（要対応）**: 本番 v6 は学習 gain の **28.15%** を serve で失っている。
+うち **約 20.8% は回収可能**（Vol. III §5.2）。詳細は Vol. III の P0-1〜P0-4。
+
+---
+
 ## Claude への作業指示
 
 ### コンテキスト上限（重要）

@@ -17,6 +17,8 @@ chaos_quantiles.json 再生成用に、過去の週次 CSV (data/weekly/*.csv) �
   → 完了後: python build_chaos_quantiles.py --bundle-dir reports/_requant_bundles
 """
 from __future__ import annotations
+import argparse
+import concurrent.futures
 import subprocess
 import sys
 from pathlib import Path
@@ -27,36 +29,48 @@ OUT_ROOT = BASE / "reports" / "_requant_bundles"
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out-root", default=str(OUT_ROOT),
+                    help="再生成bundleの出力先。版ごとに新しいdirを使う")
+    ap.add_argument("--force", action="store_true",
+                    help="既存bundleも再生成する（履歴dirの指定時は注意）")
+    ap.add_argument("--jobs", type=int, default=1,
+                    help="並列export数。各日付は独立した出力先を使う")
+    args = ap.parse_args()
+    out_root = Path(args.out_root)
     csvs = sorted(p for p in WEEKLY.glob("*.csv")
                   if p.stem.isdigit() and len(p.stem) == 8)
-    OUT_ROOT.mkdir(parents=True, exist_ok=True)
+    out_root.mkdir(parents=True, exist_ok=True)
     print(f"[start] {len(csvs)} weekly CSV を再エクスポート")
-    ok, gate_fail, err = 0, 0, 0
-    for i, csv in enumerate(csvs, 1):
+    def export_one(item):
+        i, csv = item
         date = csv.stem
-        bundle = OUT_ROOT / f"{date}_bundle.json"
-        if bundle.exists():
-            print(f"  [{i}/{len(csvs)}] {date} skip (済)")
-            ok += 1
-            continue
+        bundle = out_root / f"{date}_bundle.json"
+        if bundle.exists() and not args.force:
+            return "ok", f"  [{i}/{len(csvs)}] {date} skip (済)"
         r = subprocess.run(
             [sys.executable, "export_weekly_marks.py",
              "--csv", str(csv), "--model", "v6",
-             "--out-dir", str(OUT_ROOT / date), "--shap-topk", "0"],
+             "--out-dir", str(out_root / date), "--shap-topk", "0"],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             cwd=BASE)
         if r.returncode == 0:
-            ok += 1
-            print(f"  [{i}/{len(csvs)}] {date} OK")
-        elif r.returncode == 2:
-            gate_fail += 1  # 品質ゲート (古い形式CSV等)。bundle は出ているが参考扱い
-            print(f"  [{i}/{len(csvs)}] {date} GATE_FAIL (bundle は生成済み)")
-        else:
-            err += 1
-            tail = (r.stderr or r.stdout or "").strip().splitlines()[-3:]
-            print(f"  [{i}/{len(csvs)}] {date} ERROR: {' / '.join(tail)}")
+            return "ok", f"  [{i}/{len(csvs)}] {date} OK"
+        if r.returncode == 2:
+            return "gate", f"  [{i}/{len(csvs)}] {date} GATE_FAIL (bundle は生成済み)"
+        tail = (r.stderr or r.stdout or "").strip().splitlines()[-3:]
+        return "err", f"  [{i}/{len(csvs)}] {date} ERROR: {' / '.join(tail)}"
+
+    ok, gate_fail, err = 0, 0, 0
+    jobs = max(1, int(args.jobs))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
+        for status, message in pool.map(export_one, enumerate(csvs, 1)):
+            print(message, flush=True)
+            ok += int(status == "ok")
+            gate_fail += int(status == "gate")
+            err += int(status == "err")
     print(f"\n[done] ok={ok} gate_fail={gate_fail} error={err}")
-    print(f"次: python build_chaos_quantiles.py --bundle-dir {OUT_ROOT}")
+    print(f"次: python build_chaos_quantiles.py --bundle-dir {out_root}")
 
 
 if __name__ == "__main__":

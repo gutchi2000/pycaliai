@@ -1,0 +1,358 @@
+{
+  "model": "v6",
+  "weeks": [
+    "20260726",
+    "20260725",
+    "20260719",
+    "20260718"
+  ],
+  "baseline_cov": {
+    "開催": 1.0,
+    "場所": 1.0,
+    "Ｒ": 1.0,
+    "枠番": 1.0,
+    "馬番": 1.0,
+    "芝・ダ": 1.0,
+    "距離": 1.0,
+    "コース区分": 0.299,
+    "芝(内・外)": 0.0,
+    "馬場状態": 1.0,
+    "天気": 1.0,
+    "クラス名": 1.0,
+    "トラックコード(JV)": 0.0,
+    "前走走破タイム": 0.0,
+    "前走着差タイム": 0.909,
+    "前1角": 0.408,
+    "前2角": 0.431,
+    "前3角": 0.902,
+    "前4角": 0.91,
+    "前走上り3F": 0.879,
+    "前走上り3F順": 0.874,
+    "前走確定着順": 0.909,
+    "前走日付": 0.0,
+    "前走場所": 0.0,
+    "前芝・ダ": 0.911,
+    "前距離": 0.911,
+    "前走馬場状態": 0.911,
+    "前走出走頭数": 0.0,
+    "前走競走種別": 0.0,
+    "前走トラックコード(JV)": 0.0,
+    "前走斤量": 0.911,
+    "前走馬体重": 0.0,
+    "前走馬体重増減": 0.0,
+    "前走Ave-3F": 0.874,
+    "前PCI": 0.0,
+    "前好走": 0.0,
+    "前走PCI3": 0.0,
+    "前走RPCI": 0.0,
+    "前走平均1Fタイム": 0.0,
+    "前走レースID(新)": 0.0,
+    "前走レースID(新/馬番無)": 0.0,
+    "種牡馬": 1.0,
+    "父タイプ名": 0.102,
+    "母馬": 0.0,
+    "母父馬": 1.0,
+    "母父タイプ名": 0.859,
+    "毛色": 0.0,
+    "騎手コード": 0.988,
+    "調教師コード": 0.965,
+    "馬主(最新/仮想)": 0.0,
+    "生産者": 0.0,
+    "年齢限定": 1.0,
+    "限定": 0.0,
+    "性別限定": 0.0,
+    "指定条件": 0.0,
+    "重量種別": 1.0,
+    "性別": 1.0,
+    "年齢": 1.0,
+    "斤量": 1.0,
+    "馬齢斤量差": 0.0,
+    "斤量体重比": 0.0,
+    "ブリンカー": 0.0,
+    "間隔": 0.773,
+    "休み明け～戦目": 0.0,
+    "出走頭数": 1.0,
+    "フルゲート頭数": 1.0,
+    "騎手年齢": 0.0,
+    "調教師年齢": 0.0,
+    "jockey_fuku30": 0.988,
+    "jockey_fuku90": 0.988,
+    "trainer_fuku30": 0.965,
+    "trainer_fuku90": 0.965,
+    "horse_fuku10": 0.731,
+    "horse_fuku30": 0.601,
+    "prev_pos_rel": 0.408,
+    "closing_power": 0.406,
+    "kako5_avg_pos": 0.91,
+    "kako5_std_pos": 0.91,
+    "kako5_best_pos": 0.91,
+    "kako5_avg_ninki": 0.91,
+    "kako5_pos_vs_ninki": 0.91,
+    "kako5_avg_agari3f": 0.902,
+    "kako5_best_agari3f": 0.902,
+    "kako5_same_td_ratio": 0.91,
+    "kako5_same_dist_ratio": 0.91,
+    "kako5_same_place_ratio": 0.91,
+    "kako5_pos_trend": 0.91,
+    "kako5_race_count": 1.0,
+    "kako5_expected_good_count": 0.91,
+    "kako5_upset_good_count": 0.91,
+    "kako5_hidden_good_count": 0.91,
+    "kako5_same_cond_best_pos": 0.765,
+    "hist_same_cond_best_pos": 0.784,
+    "hist_same_cond_top3_rate": 0.784,
+    "hist_same_cond_count": 0.784,
+    "hist_same_place_best_pos": 0.501,
+    "prev_hosei": 0.547,
+    "prev_hosei9": 0.547,
+    "trnH_Time1": 0.696,
+    "trnH_Time2": 0.696,
+    "trnH_Time3": 0.696,
+    "trnH_Time4": 0.696,
+    "trnH_Lap1": 0.696,
+    "trnH_Lap2": 0.696,
+    "trnH_Lap3": 0.696,
+    "trnH_Lap4": 0.696,
+    "trnH_days_ago": 0.696,
+    "trnW_5F": 0.453,
+    "trnW_4F": 0.521,
+    "trnW_3F": 0.521,
+    "trnW_Lap1": 0.521,
+    "trnW_Lap2": 0.521,
+    "trnW_Lap3": 0.521,
+    "trnW_days_ago": 0.521,
+    "course_n_prev": 1.0,
+    "course_win_rate": 0.392,
+    "course_top3_rate": 0.392,
+    "jockey_n_prev": 0.988,
+    "jockey_win_rate": 0.487,
+    "jockey_top3_rate": 0.487
+  },
+  "serve_dead": [
+    "トラックコード(JV)",
+    "ブリンカー",
+    "休み明け～戦目",
+    "前PCI",
+    "前好走",
+    "前走PCI3",
+    "前走RPCI",
+    "前走トラックコード(JV)",
+    "前走レースID(新)",
+    "前走レースID(新/馬番無)",
+    "前走出走頭数",
+    "前走場所",
+    "前走平均1Fタイム",
+    "前走日付",
+    "前走競走種別",
+    "前走走破タイム",
+    "前走馬体重",
+    "前走馬体重増減",
+    "性別限定",
+    "指定条件",
+    "斤量体重比",
+    "母馬",
+    "毛色",
+    "生産者",
+    "芝(内・外)",
+    "調教師年齢",
+    "限定",
+    "馬主(最新/仮想)",
+    "馬齢斤量差",
+    "騎手年齢"
+  ],
+  "serve_skew_recoverable": [
+    "トラックコード(JV)",
+    "休み明け～戦目",
+    "前PCI",
+    "前好走",
+    "前走PCI3",
+    "前走RPCI",
+    "前走トラックコード(JV)",
+    "前走レースID(新)",
+    "前走レースID(新/馬番無)",
+    "前走出走頭数",
+    "前走場所",
+    "前走平均1Fタイム",
+    "前走日付",
+    "前走競走種別",
+    "前走走破タイム",
+    "前走馬体重",
+    "前走馬体重増減",
+    "指定条件",
+    "斤量体重比",
+    "母馬",
+    "毛色",
+    "生産者",
+    "芝(内・外)",
+    "調教師年齢",
+    "限定",
+    "馬主(最新/仮想)",
+    "馬齢斤量差",
+    "騎手年齢"
+  ],
+  "always_dead_harmless": [],
+  "regression_candidates": [
+    {
+      "feature": "生産者",
+      "coverage": 0.0,
+      "gain_pct": 1.3714
+    },
+    {
+      "feature": "馬主(最新/仮想)",
+      "coverage": 0.0,
+      "gain_pct": 1.2676
+    },
+    {
+      "feature": "前走馬体重",
+      "coverage": 0.0,
+      "gain_pct": 1.1636
+    },
+    {
+      "feature": "斤量体重比",
+      "coverage": 0.0,
+      "gain_pct": 1.0074
+    },
+    {
+      "feature": "前走平均1Fタイム",
+      "coverage": 0.0,
+      "gain_pct": 0.9137
+    },
+    {
+      "feature": "前PCI",
+      "coverage": 0.0,
+      "gain_pct": 0.8573
+    },
+    {
+      "feature": "前走RPCI",
+      "coverage": 0.0,
+      "gain_pct": 0.8068
+    },
+    {
+      "feature": "前走出走頭数",
+      "coverage": 0.0,
+      "gain_pct": 0.6958
+    },
+    {
+      "feature": "調教師年齢",
+      "coverage": 0.0,
+      "gain_pct": 0.6583
+    },
+    {
+      "feature": "騎手年齢",
+      "coverage": 0.0,
+      "gain_pct": 0.6533
+    },
+    {
+      "feature": "前走PCI3",
+      "coverage": 0.0,
+      "gain_pct": 0.5645
+    },
+    {
+      "feature": "前走場所",
+      "coverage": 0.0,
+      "gain_pct": 0.5034
+    },
+    {
+      "feature": "前走馬体重増減",
+      "coverage": 0.0,
+      "gain_pct": 0.4958
+    },
+    {
+      "feature": "休み明け～戦目",
+      "coverage": 0.0,
+      "gain_pct": 0.4451
+    },
+    {
+      "feature": "前走日付",
+      "coverage": 0.0,
+      "gain_pct": 0.4276
+    },
+    {
+      "feature": "course_top3_rate",
+      "coverage": 0.392,
+      "gain_pct": 0.4061
+    },
+    {
+      "feature": "前走レースID(新)",
+      "coverage": 0.0,
+      "gain_pct": 0.3571
+    },
+    {
+      "feature": "父タイプ名",
+      "coverage": 0.102,
+      "gain_pct": 0.2479
+    },
+    {
+      "feature": "トラックコード(JV)",
+      "coverage": 0.0,
+      "gain_pct": 0.2351
+    },
+    {
+      "feature": "course_win_rate",
+      "coverage": 0.392,
+      "gain_pct": 0.2319
+    },
+    {
+      "feature": "前走トラックコード(JV)",
+      "coverage": 0.0,
+      "gain_pct": 0.227
+    },
+    {
+      "feature": "毛色",
+      "coverage": 0.0,
+      "gain_pct": 0.2217
+    },
+    {
+      "feature": "馬齢斤量差",
+      "coverage": 0.0,
+      "gain_pct": 0.2109
+    },
+    {
+      "feature": "前走競走種別",
+      "coverage": 0.0,
+      "gain_pct": 0.197
+    },
+    {
+      "feature": "指定条件",
+      "coverage": 0.0,
+      "gain_pct": 0.1719
+    },
+    {
+      "feature": "前好走",
+      "coverage": 0.0,
+      "gain_pct": 0.1293
+    },
+    {
+      "feature": "コース区分",
+      "coverage": 0.299,
+      "gain_pct": 0.1264
+    },
+    {
+      "feature": "限定",
+      "coverage": 0.0,
+      "gain_pct": 0.0974
+    },
+    {
+      "feature": "芝(内・外)",
+      "coverage": 0.0,
+      "gain_pct": 0.0578
+    },
+    {
+      "feature": "前走レースID(新/馬番無)",
+      "coverage": 0.0,
+      "gain_pct": 0.0543
+    },
+    {
+      "feature": "性別限定",
+      "coverage": 0.0,
+      "gain_pct": 0.0385
+    },
+    {
+      "feature": "ブリンカー",
+      "coverage": 0.0,
+      "gain_pct": 0.0385
+    }
+  ],
+  "dead_gain_pct": 14.8805,
+  "dead_gain_threshold_pct": 35.0
+}

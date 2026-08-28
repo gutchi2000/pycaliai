@@ -461,3 +461,51 @@ FAIL 時の切り分け候補: replay 過学習 / regime 依存 / サンプル�
 
 ### ステータス
 PENDING (2026-08-10 時点 前向きペア 0R。初回データは 2026-08-15/16 開催週)
+
+---
+
+## 仮説 P1-TOPDOWN-SERVE34-P667-2026: 本番一致・価格完全性付き再検証
+
+**登録日:** 2026-08-25（2026-08-29運用開始前）  
+**policy_id:** `topdown-serve34-p667-20260825`
+
+### 旧cohortの扱い
+
+P1-TOPDOWN-PROSPECTIVE-2026は186/300 bets、ROI 59.5%で停止する。これはFAIL判定ではない。
+serve配線修理により◎と参戦母集団が変わり、chaos見送りをraw 0.92から凍結分布p66.7へ
+再定義するため、以後と比較可能でない。旧186件を新cohortへ合算しない。
+
+### 仮説
+
+修理後serve成果物と凍結した選別度で生成したtopdownが、同一T-10価格で生成したshape
+shadowを前向き300 betsで上回る方向を示す。また、modelとT-10市場の正の残差帯ほど
+実勝率が市場確率を上回る。
+
+### 不変条件
+
+- 開始日2026-08-29、最低300 topdown bets、途中の閾値・券種・予算policy変更なし。
+- 実買い目、shape shadow、T-10価格、close価格、decisionのpolicy_idが全て一致。
+- decisionのmarket_sha256と追記専用T-10 snapshotが完全一致。1件でも欠損なら評価停止。
+- closeは発走後の最終市場参照点であり、約定価格やCLVとは呼ばない。
+- policyまたはartifact hashを変える場合は新IDを発行し、再度0から数える。
+
+### 主判定
+
+旧P1と同じ事前固定基準を継承する。300 bets到達後、レース単位paired bootstrap
+10,000回（seed=42）でΔROI=topdown−shapeを評価する。
+
+- PASS: ΔROI > 0 かつCI95下限 > -2pt
+- FAIL: ΔROI < 0 かつCI95上限 < +2pt
+- INCONCLUSIVE: それ以外
+
+### 副次評価（policy選択には使わない）
+
+- model / T-10市場 / close市場のBrier・log loss
+- 市場残差帯別の実勝率と市場確率
+- 選択馬のT-10→close市場確率ドリフト
+- 厳格見送り率、価格取得完全性、policy/hash不整合件数
+
+### ステータス
+
+PENDING (0/300 bets、開始前)。
+

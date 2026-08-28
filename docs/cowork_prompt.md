@@ -1,4 +1,4 @@
-# Cowork (Anthropic Desktop App) 投入プロンプト — narrative 専用版
+yaru# Cowork (Anthropic Desktop App) 投入プロンプト — narrative 専用版
 
 > **2026-06-12 全面改訂**。馬券構築 (bets/EV/金額/見送り) は Cowork から分離され、
 > 当日 T-10 にローカル `compute_bets.py` が JV-Link 生オッズで生成する
@@ -58,7 +58,7 @@ PyCaLiAI が各レースに対して印 (◎〇▲△△) + 確率 + 過去5走�
 原則 **全レース**。ただし以下の 4 条件 (ローカルコードの見送りハードゲートと同一) の
 **どれかに該当するレースは省略可** (`"advisor": []` でも可):
 
-1. `race_confidence.field_chaos_score >= 0.92`
+1. `field_chaos_score`を凍結分布で変換したpercentile `>= 0.667`（現行raw換算は0.858108。raw値をルールへ直書きしない）
 2. `race_meta.field_size <= 7`
 3. `tansho_odds(◎) is null`
 4. `p_win(◎) < 0.05`
@@ -85,10 +85,7 @@ PyCaLiAI が各レースに対して印 (◎〇▲△△) + 確率 + 過去5走�
     pos_trend (**正=形上昇** (recent が古いより着順上)、負=形下降),
     same_td_ratio, same_dist_ratio, same_place_ratio, deogure_count
   - runs[]: 1走前から順 (n_ago=1, 2, ...)
-    - place, td(芝/ダ/障), dist, track(良/稍/重/不), pos, ninki,
-      race_name(そのレースのクラス/名称: 新馬・未勝利・１勝ｸﾗｽ・G3等。
-      **格の文脈**: 同じ5着でも未勝利とG3では価値が違う。着順評価に必ず加味),
-      style(脚質=決手: 逃げ/先行/中団/差し/後方/追込/ﾏｸﾘ), agari3f
+    - place, td(芝/ダ/障), dist, track(良/稍/重/不), pos, ninki, style(脚質), agari3f
 - horses[].why (任意フィールド、**印馬 ◎〇▲△△ のみ**。SHAP による印の根拠):
   - top-6 の `{feat, label, value, contrib}` 配列 (contrib の絶対値降順)
     - label: 特徴の日本語名 (例「前走 補正タイム」「騎手 複勝率(直近90日)」)

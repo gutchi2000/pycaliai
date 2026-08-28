@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """topdown エンジン前向き検証 (Priority 1, 憲章 PYcALiAI_RESEARCH.md §21).
 
-Experiment ID: P1-TOPDOWN-PROSPECTIVE-2026
+Experiment ID: data/production_policy.json の prospective.experiment_id
 Hypothesis   : リプレイ改善 (topdown 82.8% vs shape 74.1%, in-sample) が
-               未来データ (2026-08-15 以降の実運用) でも再現する。
+               policy effective_from 以降の未来データ でも再現する。
 Baseline     : CB_ENGINE=shape (旧経路 + 構築層4修正) のシャドー買い目
                (reports/engine_shadow/{date}_shadow.json — 同一レース・同一 T-10 オッズ)。
 Treatment    : CB_ENGINE=topdown の実買い目 (reports/cowork_output/{date}_bets.json)。
@@ -16,10 +16,9 @@ Data         : 確定払戻 data/kekka/{date}.csv (generate_results の照合ロ
     INCONCLUSIVE : それ以外 (必要追加サンプルを報告して継続)
   未来の結果を見てエンジンを切り替えない (判定日まで topdown 固定)。
 Leakage check: shadow は本番と同一 T-10 スナップショットで同時生成 (未来オッズ不使用)。
-               決済は確定 kekka のみ。START_DATE=20260815 (topdown 既定化 08-09 20:46 より後の
-               最初の開催週) 以前は前向きに含めない。
+               決済は確定 kekka のみ。START_DATE と policy_id は data/production_policy.json で凍結し、異なる来歴を混ぜない。
 
-実行: python -m analysis.prospective_topdown_eval  [--start 20260815] [--n-boot 10000]
+実行: python -m analysis.prospective_topdown_eval  [--start YYYYMMDD] [--policy-id ID] [--n-boot 10000]
 出力: reports/prospective_topdown_eval.json + stdout サマリ
 """
 from __future__ import annotations
@@ -35,8 +34,11 @@ sys.path.insert(0, str(BASE))
 from generate_results import (  # noqa: E402
     load_kekka_all, get_race_kk, match_cowork_bet, parse_race_id_16, _safe_num,
 )
+from production_policy import load_policy  # noqa: E402
 
-START_DATE = 20260815   # 前向き開始日 (これ未満は in-sample/旧エンジン期間につき除外)
+_POLICY = load_policy()
+START_DATE = int(_POLICY["prospective"]["start_date"])
+EXPECTED_POLICY_ID = str(_POLICY["policy_id"])
 SEED = 42
 
 
@@ -162,18 +164,28 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--start", type=int, default=START_DATE)
     ap.add_argument("--n-boot", type=int, default=10000)
+    ap.add_argument("--policy-id", default=EXPECTED_POLICY_ID,
+                    help="このpolicy_idだけを集計する。不一致や欠損はエラー終了")
     args = ap.parse_args()
+    policy = load_policy()
+    expected_policy_id = str(args.policy_id)
+    minimum_bets = int(policy["prospective"]["minimum_bets"])
 
     kekka_cache = load_kekka_all()
     sh_dir = BASE / "reports" / "engine_shadow"
     co_dir = BASE / "reports" / "cowork_output"
     td_races, sh_races = [], []
     cov: dict[str, dict] = {}
+    lineage_errors: list[str] = []
     for f in sorted(sh_dir.glob("????????_shadow.json")):
         date_key = f.stem[:8]
         if int(date_key) < args.start:
             continue
         shadow = json.load(open(f, encoding="utf-8"))
+        root_policy_id = (shadow.get("policy") or {}).get("policy_id")
+        if shadow.get("races") and root_policy_id != expected_policy_id:
+            lineage_errors.append(
+                f"{date_key} shadow root policy={root_policy_id!r} expected={expected_policy_id!r}")
         bets_f = co_dir / f"{date_key}_bets.json"
         if not bets_f.exists():
             print(f"[warn] {date_key}: shadow はあるが bets.json 不在 — skip")
@@ -189,15 +201,35 @@ def main() -> int:
             rid = str(cd.get("race_id"))
             if cd.get("race_nature") in ("topdown", "見送り"):
                 n_td += 1
-                if rid in sh_by_rid:
-                    n_pair += 1
-                    td_races.append((date_key, cd))
-                    sh_races.append((date_key, sh_by_rid[rid]))
+                primary_pid = (cd.get("stamp") or {}).get("policy_id")
+                shadow_entry = sh_by_rid.get(rid)
+                shadow_pid = ((shadow_entry or {}).get("stamp") or {}).get("policy_id")
+                if primary_pid != expected_policy_id:
+                    lineage_errors.append(
+                        f"{date_key}/{rid} primary policy={primary_pid!r} expected={expected_policy_id!r}")
+                    continue
+                if shadow_entry is None:
+                    continue
+                if shadow_pid != expected_policy_id:
+                    lineage_errors.append(
+                        f"{date_key}/{rid} shadow policy={shadow_pid!r} expected={expected_policy_id!r}")
+                    continue
+                n_pair += 1
+                td_races.append((date_key, cd))
+                sh_races.append((date_key, shadow_entry))
         cov[date_key] = {"primary_topdown": n_td, "shadow": len(sh_by_rid), "paired": n_pair}
 
+    if lineage_errors:
+        print("[ERROR] 前向きcohortのpolicy混在/欠損を検出。集計を中止します。")
+        for msg in lineage_errors[:50]:
+            print(f"  - {msg}")
+        if len(lineage_errors) > 50:
+            print(f"  ...ほか {len(lineage_errors) - 50}件")
+        return 2
+
     if not td_races:
-        print("[INFO] 前向きペアデータ 0R (開始日以降の shadow ログ未蓄積)。"
-              "初回開催週 (2026-08-15/16) の T-10 実行後に再実行のこと。")
+        print(f"[INFO] 前向きペアデータ 0R (policy={expected_policy_id}, "
+              f"start={args.start})。開始日以降のT-10実行後に再実行のこと。")
         return 0
 
     td_s, sh_s = [], []
@@ -208,7 +240,8 @@ def main() -> int:
     keep = [i for i, r in enumerate(td_s) if r["settled"]]
     td_s = [td_s[i] for i in keep]; sh_s = [sh_s[i] for i in keep]
 
-    res = {"experiment_id": "P1-TOPDOWN-PROSPECTIVE-2026",
+    res = {"experiment_id": policy["prospective"]["experiment_id"],
+           "policy_id": expected_policy_id,
            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
            "start_date": args.start, "paired_races_settled": len(td_s),
            "coverage": coverage_check(cov),
@@ -217,7 +250,8 @@ def main() -> int:
            "paired_bootstrap": paired_bootstrap(td_s, sh_s, args.n_boot),
            "outlier_dependence": outlier_dependence(td_s, sh_s, args.n_boot)}
     nb = res["topdown"]["bets"]
-    res["judgment_ready"] = nb >= 300
+    res["minimum_bets"] = minimum_bets
+    res["judgment_ready"] = nb >= minimum_bets
     if res["judgment_ready"]:
         pb = res["paired_bootstrap"]
         if pb.get("n_valid"):
@@ -232,7 +266,7 @@ def main() -> int:
                 ld, llo = lpb["delta_roi_mean"], lpb["delta_roi_ci95"][0]
                 res["outlier_sensitive"] = not (ld > 0 and llo > -2.0)
     else:
-        res["verdict"] = f"PENDING (bets {nb}/300)"
+        res["verdict"] = f"PENDING (bets {nb}/{minimum_bets})"
 
     out = BASE / "reports" / "prospective_topdown_eval.json"
     out.write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")

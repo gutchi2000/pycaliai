@@ -9,9 +9,7 @@ t10_runner.py — 当日 T-10 自動馬券ライン（スケジューラ本体�
   2. compute_bets.py --race {rid16} --live-odds-dir --apply
        → reports/cowork_output/{date}_bets.json へ当該レースのみ in-place merge
   3. validate_cowork_bets.py --apply (見送りガード)
-  4. compute_bets(🎫 prob-first) と gutchi_brain(🧠 俺のブレイン) の買い目を併記表示
-     + ビープ（投票は人間が IPAT。ブレインは同一ライブオッズ/realized bias で算出した
-       比較用ラインで、bets.json には書かない = 見送りガードも通さない）
+  4. compute_bets(🎫 prob-first) の買い目を表示 + ビープ（投票は人間が IPAT）
 
 を実行する。NiceGUI (ローカル) は cowork_output を ui.timer で随時読むので
 画面にもそのまま反映される。HF への push は本ランナーでは行わない（手動）。
@@ -45,6 +43,8 @@ import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+
+from t10_safety import capture_close_price, force_skip
 
 BASE = Path(__file__).parent
 PY32 = ["py", "-3.12-32"]          # JV-Link は 32-bit COM
@@ -287,97 +287,10 @@ def run_cmd(cmd: list[str], timeout: int = 180) -> tuple[int, str]:
         return -1, str(e)
 
 
-def brain_tickets(bundle: Path, rid16: str, date_str: str,
-                  live_dir: Path | None, max_age_min: float,
-                  budget: int | None = None) -> dict | None:
-    """gutchi_brain (俺のブレイン) で同一レースの買い目を算出 (併走比較用)。
-    compute_bets と同じライブオッズ・realized bias を食わせ、bets.json には書かない。
-    返値: {"tickets":[...], "note":str, "miokuri":bool} / None(レース不在・bundle不能)。"""
-    import copy
-    try:
-        d = json.loads(bundle.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    race = next((r for r in d.get("races", [])
-                 if _rid16(r.get("race_id", "")) == rid16), None)
-    if race is None:
-        return None
-    race = copy.deepcopy(race)   # bundle を破壊しない
-
-    # realized bias (土→日クロスデイ): show_on_date == 今日 の時だけ一次シグナルに使う
-    sat_bias, note = None, ""
-    rb_path = BASE / "data" / "realized_bias.json"
-    if rb_path.exists():
-        try:
-            rb = json.loads(rb_path.read_text(encoding="utf-8"))
-            if rb.get("show_on_date") == date_str and rb.get("venues"):
-                sat_bias = rb["venues"]
-                note = f" +{rb.get('label', '実現')}"
-        except (OSError, ValueError):
-            pass
-
-    # ライブオッズ (compute_bets.load_live_odds と同一ソース) を horses にマージ
-    scratched: set = set()
-    if live_dir is not None:
-        from compute_bets import load_live_odds
-        live, why = load_live_odds(live_dir, rid16, max_age_min)
-        if live is None:      # compute_bets と同じ fail-safe 見送り
-            return {"tickets": [], "note": why, "miokuri": True}
-        live_tan = {int(k): v for k, v in (live.get("tansho") or {}).items()}
-        live_fuku = {int(k): v for k, v in (live.get("fukusho") or {}).items()}
-        for h in race.get("horses", []):
-            try:
-                b = int(h.get("umaban"))
-            except (TypeError, ValueError):
-                continue
-            if b in live_tan:
-                h["tansho_odds"] = live_tan[b]
-            if b in live_fuku:
-                h["fuku_odds_low"], h["fuku_odds_high"] = live_fuku[b]
-        if live_tan:          # 実オッズが取れた頭のみ生存 = ライブに居ない馬は取消扱い
-            for h in race.get("horses", []):
-                try:
-                    b = int(h.get("umaban"))
-                except (TypeError, ValueError):
-                    continue
-                if b not in live_tan:
-                    scratched.add(h.get("umaban"))
-        note = " [T-10オッズ]" + note
-
-    import gutchi_brain
-    # 厳選モード: 環境変数 BRAIN_STRICT=1 で opt-in (t10.ps1 側で設定。既定OFF=前向き検証待ち)
-    strict = os.environ.get("BRAIN_STRICT", "").strip() == "1"
-    if strict:
-        note += " [厳選]"
-    tickets = gutchi_brain.build_tickets(
-        race, sat_bias=sat_bias, scratched=scratched,
-        budget=int(budget) if budget else gutchi_brain.BUDGET, strict=strict)
-    return {"tickets": tickets, "note": note.strip(), "miokuri": not tickets}
 
 
-def render_brain(brain: dict | None) -> tuple[list[str], list[str]]:
-    """brain 結果 → (コンソール行, Discord行)。brain=None は空。"""
-    if brain is None:
-        return [], []
-    if brain.get("miokuri"):
-        note = f" ({brain['note']})" if brain.get("note") else ""
-        return ([f"  🧠 俺のブレイン: 見送り{note}"],
-                [f"🧠 **俺のブレイン: 見送り**{note}"])
-    ts = brain["tickets"]
-    tot = sum(t["購入額"] for t in ts)
-    note = f" {brain['note']}" if brain.get("note") else ""
-    import gutchi_brain
-    ver = f" v{gutchi_brain.BRAIN_VERSION}"
-    con = [f"  🧠 俺のブレイン{ver} {len(ts)}点 ¥{tot:,}{note}"]
-    dis = [f"🧠 **俺のブレイン{ver} {len(ts)}点 ¥{tot:,}**{note}"]
-    for t in ts:
-        con.append(f"     {t['馬券種']:3s} {t['買い目']:10s} ¥{t['購入額']:>5,}  {t.get('理由','')}")
-        dis.append(f"{t['馬券種']} `{t['買い目']}` ¥{t['購入額']:,}  {t.get('理由','')}")
-    return con, dis
-
-
-def show_race_bets(date_str: str, rid16: str, brain: dict | None = None):
-    """apply 後の bets.json (🎫 prob-first) を読み戻し、🧠 俺のブレインと併記表示 + Discord 通知。"""
+def show_race_bets(date_str: str, rid16: str):
+    """apply/validate 後の prob-first 買い目を読み戻して表示・通知する。"""
     path = BASE / "reports" / "cowork_output" / f"{date_str}_bets.json"
     if not path.exists():
         return
@@ -414,20 +327,7 @@ def show_race_bets(date_str: str, rid16: str, brain: dict | None = None):
             print(f"     {hosei_line}")
             cb.append(hosei_line)
 
-    con_b, dis_b = render_brain(brain)
-    for l in con_b:
-        print(l)
-
-    # Discord: 🎫 と 🧠 を 1 通に統合。2000 字上限に近い時だけ 2 通に分割。
-    if dis_b:
-        combined = "\n".join(cb + [""] + dis_b)
-        if len(combined) <= 1900:
-            notify(combined)
-        else:
-            notify("\n".join(cb))
-            notify("\n".join(dis_b))
-    else:
-        notify("\n".join(cb))
+    notify("\n".join(cb))
     if has_bets:
         beep()
 
@@ -448,16 +348,24 @@ def ensure_plan(date_str: str) -> None:
 
 
 def process_race(date_str: str, bundle: Path, rid16: str, label: str,
-                 max_age_min: float, dry: bool, budget: int | None = None) -> bool:
+                 max_age_min: float, dry: bool, budget: int | None = None,
+                 scheduled_post: datetime | None = None) -> bool:
     """T-10 処理 1 レース分。True=完了 (見送り含む)。budget=予算再計算 (Discord コマンド)。"""
     now = datetime.now().strftime("%H:%M:%S")
     tag = f" (予算¥{budget:,} 再計算)" if budget else ""
     print(f"\n[{now}] ▶ T-10 処理開始: {label} ({rid16}){tag}")
 
-    # 1. JV-Link ライブオッズ (32-bit)。失敗しても compute_bets が fail-safe 見送りにする
-    rc, out = run_cmd([*PY32, "jvlink_odds.py", "--race", rid16])
+    # 1. JV-Link T-10価格。取得失敗時は古い買い目を消して見送る。
+    jv_cmd = [*PY32, "jvlink_odds.py", "--race", rid16, "--stage", "t10"]
+    if scheduled_post:
+        jv_cmd += ["--scheduled-post", scheduled_post.isoformat()]
+    rc, out = run_cmd(jv_cmd)
     line = next((l for l in out.splitlines() if "[jvlink_odds]" in l), out.strip()[-200:])
     print(f"  [1/3] jvlink_odds (exit {rc}) {line}")
+    if rc != 0:
+        if not dry:
+            force_skip(date_str, rid16, label, "T-10価格取得失敗", notify)
+        return True
 
     # 2. compute_bets (当該レースのみ、ライブ必須モード)
     cmd = [sys.executable, "compute_bets.py", "--bundle", str(bundle),
@@ -475,32 +383,30 @@ def process_race(date_str: str, bundle: Path, rid16: str, label: str,
     print(f"  [2/3] compute_bets (exit {rc})")
     if rc != 0:
         print("       " + out.strip().replace("\n", "\n       ")[-500:])
+        if not dry:
+            force_skip(date_str, rid16, label, "買い目計算失敗", notify)
         return True   # 再試行しない (fail-safe 見送り扱い)
 
-    # gutchi_brain (俺のブレイン) 併走: compute_bets と同じライブオッズ/realized bias で比較買い目
-    brain = None
-    try:
-        brain = brain_tickets(bundle, rid16, date_str, LIVE_DIR, max_age_min, budget)
-    except Exception as ex:
-        print(f"  [brain] gutchi_brain 失敗 (非致命): {ex}")
 
     if dry:
-        # dry は compute_bets の出力 + 🧠 ブレインをそのまま見せる
+        # dry は compute_bets の出力をそのまま見せる
         for l in out.splitlines():
             if l.strip():
                 print("       " + l)
-        for l in render_brain(brain)[0]:
-            print(l)
         return True
 
-    # 3. 見送りガード (書込後は必ず通す契約。ブレインは bets.json 非書込なので対象外)
+    # 3. 見送りガード (書込後は必ず通す契約)
     rc, out = run_cmd([sys.executable, "validate_cowork_bets.py",
                        "--date", date_str, "--apply"])
     print(f"  [3/3] validate_cowork_bets (exit {rc})")
-    if rc == 1:
-        print("       ⚠ ガード実行不能: " + out.strip()[-300:])
+    if rc != 0:
+        reason = "見送りガード実行不能: " + out.strip()[-300:]
+        print("       ⚠ " + reason)
+        if not dry:
+            force_skip(date_str, rid16, label, reason, notify)
+        return True
 
-    show_race_bets(date_str, rid16, brain=brain)
+    show_race_bets(date_str, rid16)
     return True
 
 
@@ -517,6 +423,8 @@ def main():
     ap.add_argument("--poll-until", default=None,
                     help="--once 後、この時刻 HH:MM まで Discord 予算返信を受け付ける"
                          " (レース毎タスクが発走時刻を渡す)。省略時は即終了")
+    ap.add_argument("--close-delay-sec", type=int, default=60,
+                    help="発走予定時刻から何秒後に締切価格を保存するか")
     ap.add_argument("--list-schedule", action="store_true",
                     help="rid<TAB>発走HH:MM<TAB>label を出力して終了 (t10.ps1 -Schedule 用)")
     ap.add_argument("--wait-bundle", action="store_true",
@@ -584,11 +492,17 @@ def main():
         label = f"{rm.get('place','')}{rm.get('R','') or ''} {rm.get('course','')}".strip() or rid
         keep_awake(True)
         try:
-            process_race(date_str, bundle, rid, label, args.max_age_min, args.dry)
             # 発走時刻まで予算返信 (「2000円」) を受け付けて再計算
             until_hm = parse_hhmm(args.poll_until) if args.poll_until else None
+            until = (datetime.now().replace(hour=until_hm[0], minute=until_hm[1], second=0)
+                     if until_hm else None)
+            if until is None and not args.dry:
+                force_skip(date_str, rid, label, "予定発走時刻不明でclose取得不能", notify)
+                return 2
+            close_ok = True
+            process_race(date_str, bundle, rid, label, args.max_age_min, args.dry,
+                         scheduled_post=until)
             if until_hm and not args.dry:
-                until = datetime.now().replace(hour=until_hm[0], minute=until_hm[1], second=0)
                 poller = BotPoller()
                 if poller.enabled and datetime.now() < until:
                     print(f"[bot] 予算返信を {until:%H:%M} まで受付")
@@ -596,11 +510,19 @@ def main():
                         for b in poller.poll_budgets():
                             notify(f"🔁 {label} を予算 ¥{b:,} で再計算します…")
                             process_race(date_str, bundle, rid, label,
-                                         args.max_age_min, args.dry, budget=b)
+                                         args.max_age_min, args.dry, budget=b,
+                                         scheduled_post=until)
                         time.sleep(POLL_SEC)
+                wait_sec = max(0.0, (until - datetime.now()).total_seconds()
+                               + args.close_delay_sec)
+                if wait_sec:
+                    print(f"[close] {label}: 締切価格取得まで {wait_sec:.0f}秒待機")
+                    time.sleep(wait_sec)
+                close_ok = capture_close_price(
+                    rid, until.isoformat(), PY32, run_cmd, notify)
         finally:
             keep_awake(False)
-        return 0
+        return 0 if close_ok else 2
 
     # スケジュール構築 (1本ループ運用 -Routine 用。レース毎タスク運用では使わない)
     sched, missing = build_schedule(date_str, races, args.lead_min)
@@ -609,6 +531,8 @@ def main():
         print(f"[WARN] 発走時刻不明 {len(missing)}R (data/weekly/{date_str}.csv に無い) → スキップ:")
         for rid, label in missing:
             print(f"   {rid} {label}")
+            if not args.dry:
+                force_skip(date_str, rid, label, "発走時刻不明でT-10処理不能", notify)
     if not sched:
         print("[ERROR] スケジュール対象 0 レース"); return 1
 
@@ -626,23 +550,34 @@ def main():
     if not acquire_lock(args.force_lock):
         return 1
     poller = BotPoller() if not args.dry else None
-    last_post = sched[-1][0]
+    close_failures: set[str] = set()
     keep_awake(True)   # 1本ループ運用中はアイドルスリープ禁止 (凍結=取りこぼし防止)
     try:
         done: set[str] = set()
+        close_done: set[str] = set()
         last_proc: tuple | None = None   # 直近処理レース (rid, label, post_dt)
         while True:
             now = datetime.now()
             for pt, rid, label in sched:
-                if rid in done:
-                    continue
-                if now >= pt:
-                    print(f"[{now:%H:%M:%S}] ✗ {label} は発走済み ({pt:%H:%M}) → スキップ")
-                    done.add(rid)
-                elif now >= pt - lead:
-                    process_race(date_str, bundle, rid, label, args.max_age_min, args.dry)
-                    done.add(rid)
-                    last_proc = (rid, label, pt)
+                if rid not in done:
+                    if now >= pt:
+                        print(f"[{now:%H:%M:%S}] ✗ {label} は発走済み ({pt:%H:%M}) → スキップ")
+                        if not args.dry:
+                            force_skip(date_str, rid, label, "T-10処理時刻超過", notify)
+                        done.add(rid)
+                    elif now >= pt - lead:
+                        process_race(date_str, bundle, rid, label, args.max_age_min,
+                                     args.dry, scheduled_post=pt)
+                        done.add(rid)
+                        last_proc = (rid, label, pt)
+                close_due = args.dry or now >= pt + timedelta(seconds=args.close_delay_sec)
+                if rid in done and rid not in close_done and close_due:
+                    if not args.dry:
+                        ok = capture_close_price(
+                            rid, pt.isoformat(), PY32, run_cmd, notify)
+                        if not ok:
+                            close_failures.add(rid)
+                    close_done.add(rid)
             # Discord 返信の予算コマンド (「2000円」等) → 直近レースを新予算で再計算
             if poller:
                 for b in poller.poll_budgets():
@@ -655,18 +590,21 @@ def main():
                         continue
                     notify(f"🔁 {label} を予算 ¥{b:,} で再計算します…")
                     process_race(date_str, bundle, rid, label,
-                                 args.max_age_min, args.dry, budget=b)
-            # 全レース処理済みでも最終発走までは返信を受け付ける
-            if len(done) >= len(sched) and now >= last_post:
+                                 args.max_age_min, args.dry, budget=b,
+                                 scheduled_post=pt)
+            # 全レースの判断と締切価格の保存が終わるまで常駐する
+            if len(done) >= len(sched) and len(close_done) >= len(sched):
                 break
             time.sleep(POLL_SEC)
     finally:
         release_lock()
         keep_awake(False)
-    print(f"\n========== 全 {len(sched)}R 処理完了 ==========")
+    print(f"\n========== 全 {len(sched)}R 処理・締切価格保存完了 ==========")
     if not args.dry:
         notify(f"🏁 T-10 ライン {date_str}: 全 {len(sched)}R 処理完了")
-    return 0
+    if close_failures:
+        print(f"[ERROR] 締切価格取得失敗: {sorted(close_failures)}")
+    return 2 if missing or close_failures else 0
 
 
 if __name__ == "__main__":

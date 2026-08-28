@@ -539,7 +539,7 @@ def _combos(selection: str, n: int, ordered: bool) -> list[tuple]:
     return out
 
 
-# ---------------------------------------------------------------- TACT (gutchi_brain)
+# ---------------------------------------------------------------- TACT (topdown エンジン)
 # 理由文のオッズ値はガイドライン対応で落とす (旧brain「（複X.X）」/ topdown「（券種 X.X倍）」両対応)
 _TACT_ODDS_RE = re.compile(r"[（(](?:複[\d.]+|[^（）()]*?[\d.]+倍)[)）]")
 

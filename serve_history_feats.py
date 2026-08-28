@@ -45,6 +45,9 @@ NUM_FEATS = [
     "hist_same_cond_count", "hist_same_place_best_pos",
     "course_n_prev", "course_win_rate", "course_top3_rate",
     "jockey_n_prev", "jockey_win_rate", "jockey_top3_rate",
+    "horse_fuku10", "horse_fuku30",
+    "jockey_fuku30", "jockey_fuku90",
+    "trainer_fuku30", "trainer_fuku90",
 ]
 CAT_FEATS = ["騎手コード", "調教師コード"]
 
@@ -90,6 +93,43 @@ class _HistoryIndex:
                 "jockey": pd.to_numeric(g["jockey_code"], errors="coerce").to_numpy(np.float64),
             }
             self.by_name.setdefault(name, []).append(ent)
+        self.by_jockey = self._build_code_index(hist, "jockey_code")
+        self.by_trainer = self._build_code_index(hist, "trainer_code")
+
+    @staticmethod
+    def _build_code_index(hist: pd.DataFrame, code_col: str) -> dict[int, tuple[np.ndarray, np.ndarray]]:
+        """主体コード別の (日付, 着順) 列。日付未満だけを rolling 集計する。"""
+        if code_col not in hist.columns:
+            return {}
+        work = hist[["date", "pos", code_col]].copy()
+        work["code"] = pd.to_numeric(work[code_col], errors="coerce")
+        work = work.dropna(subset=["date", "code"])
+        out: dict[int, tuple[np.ndarray, np.ndarray]] = {}
+        for code, g in work.groupby("code", sort=False):
+            g = g.sort_values("date")
+            out[int(code)] = (
+                g["date"].to_numpy(np.int32),
+                pd.to_numeric(g["pos"], errors="coerce").to_numpy(np.float64),
+            )
+        return out
+
+    def rolling_rate(self, kind: str, code, race_date: int, window: int,
+                     min_periods: int = 5) -> float:
+        """レース日より前の直近 N 走複勝率。同行日を除き未来参照を防ぐ。"""
+        if pd.isna(code):
+            return np.nan
+        table = self.by_jockey if kind == "jockey" else self.by_trainer
+        values = table.get(int(code))
+        if values is None:
+            return np.nan
+        dates, pos = values
+        end = int(np.searchsorted(dates, race_date, side="left"))
+        start = max(0, end - window)
+        pos = pos[start:end]
+        if len(pos) < min_periods:
+            return np.nan
+        return float(np.mean(pos <= 3))
+
 
     def resolve(self, name: str, sire: str, birth_year) -> tuple[dict | None, str]:
         """→ (entity or None, status)  status: hit/new/ambiguous"""
@@ -160,6 +200,14 @@ def compute_row_feats(ent: dict, race_date: int, place: str, surface: str,
 
     surface = _SURF.get(str(surface).strip(), "")
     dist_v = float(dist) if pd.notna(dist) else np.nan
+    # --- horse_fuku10/30 (build_dataset.add_horse_rolling_stats と同じ窓/最小数) ---
+    for window, min_periods in ((10, 3), (30, 5)):
+        key = f"horse_fuku{window}"
+        if past is None or len(past["pos"]) < min_periods:
+            out[key] = np.nan
+        else:
+            pos = past["pos"][-window:]
+            out[key] = float(np.mean(pos <= 3))
 
     # --- hist_same_cond_* (parse_kako5: 同TD + 距離±200, 着順ありのみ) ---
     if past is not None and len(past["date"]) and surface and not np.isnan(dist_v):
@@ -304,6 +352,11 @@ def fill_history_features(df: pd.DataFrame, base: Path = BASE,
         if pd.notna(tc):
             trainer_code_col[i] = str(int(tc))
             stats["trainer_code"] += 1
+        for kind, prefix, code in (
+                ("jockey", "jockey", jc), ("trainer", "trainer", tc)):
+            for window in (30, 90):
+                num_out[f"{prefix}_fuku{window}"][i] = idx.rolling_rate(
+                    kind, code, race_date, window, min_periods=5)
 
         age = ages.loc[ix]
         birth_year = int(race_date // 10000 - age) if pd.notna(age) else None
@@ -314,8 +367,8 @@ def fill_history_features(df: pd.DataFrame, base: Path = BASE,
 
         feats = compute_row_feats(ent, race_date, places.loc[ix],
                                   surfs.loc[ix], dists.loc[ix], jc)
-        for c in NUM_FEATS:
-            num_out[c][i] = feats[c]
+        for c, value in feats.items():
+            num_out[c][i] = value
 
     for c in NUM_FEATS:
         df[c] = num_out[c]

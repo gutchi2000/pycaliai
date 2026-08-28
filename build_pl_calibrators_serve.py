@@ -13,9 +13,8 @@ test 2024-25 の serve 条件スコアで ECE を 現行cal vs serve-cal で比�
   ミスマッチで本番相当の ECE が複勝2.3倍/馬連1.8倍悪化している。
   → fit 自体を serve 条件スコアで行い、本番分布に整合させる。
 
-マスク: serve_skew_eval の死亡30特徴のうち prev_hosei/prev_hosei9 を除く
-28 numeric + 騎手/調教師コード。補正はリネーム修正 (commit 9c03247c) で
-本番でも生きるため fit 側でも生かす (将来の定常状態に整合)。
+マスク: data/serve_feature_baseline.json の coverage<40% を単一ソースにする。
+serve 特徴が復旧・欠落したら coverage を再測定してから本スクリプトを実行する。
 
 使い方: PYTHONUTF8=1 python build_pl_calibrators_serve.py
 出力  : models/pl_calibrators_v6_serve.pkl
@@ -38,8 +37,7 @@ from sklearn.isotonic import IsotonicRegression
 import pl_probs as PL
 import backtest_pl_ev as be
 from backtest_pl_ev import apply_encoders, load_payouts
-from serve_skew_eval import (SERVE_DEAD_NOW_PREFIX, SERVE_DEAD_NOW_EXACT,
-                             SERVE_DEAD_NOW_CAT, evaluate)
+from serve_skew_eval import evaluate, load_current_serve_mask
 
 warnings.filterwarnings("ignore")
 # 注意: serve_skew_eval が import 時に sys.stdout を TextIOWrapper でラップ済み。
@@ -59,18 +57,16 @@ COL_BAN = "馬番"
 
 def main():
     print("=" * 64)
-    print("build_pl_calibrators_serve.py  (fit=valid2023, serve28 マスク)")
+    print("build_pl_calibrators_serve.py  (fit=valid2023, baseline駆動マスク)")
     print("=" * 64)
 
     bundle = joblib.load(MODEL_PKL)
     model, feats, encs = bundle["model"], bundle["feature_cols"], bundle["encoders"]
 
-    # serve マスク (補正 prev_hosei* と調教 trnH_/trnW_ はリネーム修正済 → 生かす)
-    dead_num = [c for c in feats
-                if c.startswith(SERVE_DEAD_NOW_PREFIX) or c in SERVE_DEAD_NOW_EXACT]
-    dead_cat = [c for c in feats if c in SERVE_DEAD_NOW_CAT]
+    dead_num, dead_cat, baseline_meta = load_current_serve_mask(feats, encs)
     print(f"[mask] numeric={len(dead_num)} + cat={len(dead_cat)} "
-          f"(補正・調教は生かす)")
+          f"(coverage<40%, weeks={baseline_meta.get('weeks', [])}, "
+          f"dead_gain={baseline_meta.get('dead_gain_pct', '?')}%)")
 
     print(f"[load] {be.MASTER_CSV.name}")
     df = pd.read_csv(be.MASTER_CSV, encoding="utf-8-sig", low_memory=False)
@@ -165,6 +161,8 @@ def main():
         "fit_split": "valid=2023 (serve マスクスコア)",
         "serve_mask_numeric": dead_num,
         "serve_mask_cat": dead_cat,
+        "serve_baseline_weeks": baseline_meta.get("weeks", []),
+        "serve_baseline_dead_gain_pct": baseline_meta.get("dead_gain_pct"),
         "n_races": n_race,
         "seed": 42,
     }, OUT_PKL)
@@ -180,7 +178,15 @@ def main():
     print("[eval] serveスコア + serve-cal ...")
     res_serve = evaluate(scores_df, payouts, calibrators)
 
-    cmp = {"fit": "valid2023 serve28", "prod_cal": res_prod, "serve_cal": res_serve}
+    cmp = {
+        "fit": "valid2023 baseline-driven serve mask",
+        "serve_mask_numeric": dead_num,
+        "serve_mask_cat": dead_cat,
+        "serve_baseline_weeks": baseline_meta.get("weeks", []),
+        "serve_baseline_dead_gain_pct": baseline_meta.get("dead_gain_pct"),
+        "prod_cal": res_prod,
+        "serve_cal": res_serve,
+    }
     OUT_JSON.write_text(json.dumps(cmp, ensure_ascii=False, indent=2),
                         encoding="utf-8")
 

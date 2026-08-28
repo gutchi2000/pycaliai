@@ -7,6 +7,7 @@
 データファイル非依存 (合成入力のみ)。
 """
 import sys
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -15,6 +16,9 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from compute_bets import amount_for_ev, allocate, MIN_BET, MAX_BET, BUDGET
+import generate_results as gr
+import validate_cowork_bets as vcb
+from compute_bets import compute_race_bets
 from validate_cowork_bets import content_issues, skip_reasons
 from generate_results import get_cancelled, _bet_cis
 
@@ -57,6 +61,55 @@ class TestAllocate:
         amts = allocate([1.0])
         assert len(amts) == 1 and MIN_BET <= amts[0] <= MAX_BET
 
+    def test_infeasible_minimum_raises(self):
+        with pytest.raises(ValueError, match="minimum"):
+            allocate([1.0, 1.0, 1.0], budget=1000)
+
+    def test_budget_is_floored_to_100yen(self):
+        assert allocate([1.0], budget=1050) == [1000]
+
+
+class TestTopdownBudget:
+    def test_low_budget_never_overspends(self):
+        marks = {1: "◎", 2: "〇", 3: "▲", 4: "△"}
+        horses = []
+        for ban in range(1, 9):
+            horses.append({
+                "umaban": ban,
+                "mark": marks.get(ban, ""),
+                "p_win": 0.30 if ban == 1 else 0.10,
+                "p_sho": 0.70 if ban == 1 else 0.25,
+                "tansho_odds": 4.0 + ban,
+                "fuku_odds_low": 1.5 + ban / 10,
+                "fuku_odds_high": 1.7 + ban / 10,
+            })
+        race = {
+            "race_id": "2099010101010101",
+            "race_meta": {
+                "race_id": "2099010101010101",
+                "place": "東京",
+                "field_size": 8,
+            },
+            "race_confidence": {
+                "field_chaos_score": 0.50,
+                "top1_dominance": 0.0,
+                "top2_concentration": 0.0,
+                "ai_market_agreement": 0.5,
+            },
+            "buy_judgment": {},
+            "horses": horses,
+            "umaren_matrix": {
+                f"{i}-{j}": 20.0 for i in range(1, 9) for j in range(i + 1, 9)
+            },
+        }
+
+        out = compute_race_bets(
+            race, budget=1000, force_floor=True, engine="topdown")
+
+        assert out["race_nature"] == "topdown"
+        assert sum(b["購入額"] for b in out["bets"]) <= 1000
+        assert all(b["購入額"] >= MIN_BET for b in out["bets"])
+
 
 # ============================================================
 # validate_cowork_bets: 内容バリデーション
@@ -74,6 +127,11 @@ class TestContentIssues:
 
     def test_sanrentan_rejected(self):
         iss = content_issues({"馬券種": "三連単", "買い目": "1-2-3", "購入額": 1000},
+                             self.VALID)
+        assert any("廃止券種" in s for s in iss)
+
+    def test_umatan_rejected(self):
+        iss = content_issues({"馬券種": "馬単", "買い目": "1-2", "購入額": 1000},
                              self.VALID)
         assert any("廃止券種" in s for s in iss)
 
@@ -101,6 +159,31 @@ class TestContentIssues:
         iss = content_issues({"馬券種": "複勝", "買い目": "3", "購入額": 0},
                              self.VALID)
         assert any("非正" in s for s in iss)
+
+
+class TestValidatorFailClosed:
+    def test_bundle_missing_race_is_forced_to_skip(self, monkeypatch, tmp_path):
+        bundle = tmp_path / "20990101_bundle.json"
+        bets = tmp_path / "20990101_bets.json"
+        bundle.write_text(json.dumps({"races": []}), encoding="utf-8")
+        bets.write_text(json.dumps({"bets": [{
+            "race_id": "2099010101010101",
+            "race_label": "unknown",
+            "race_nature": "test",
+            "race_reason": "manual",
+            "bets": [{"馬券種": "単勝", "買い目": "1", "購入額": 1000}],
+        }]}), encoding="utf-8")
+        monkeypatch.setattr(
+            sys, "argv",
+            ["validate_cowork_bets.py", "--date", "20990101",
+             "--bets", str(bets), "--bundle", str(bundle), "--apply"],
+        )
+
+        assert vcb.main() == 0
+        saved = json.loads(bets.read_text(encoding="utf-8"))["bets"][0]
+        assert saved["bets"] == []
+        assert saved["race_nature"] == "見送り"
+        assert "bundle に race_id 不在" in saved["race_reason"]
 
 
 class TestSkipReasons:
@@ -168,6 +251,18 @@ class TestBetCis:
         """seed 固定なので同一入力 → 同一 CI (週次再実行で数値が揺れない)。"""
         df = self._settled(60, 3)
         assert _bet_cis(df) == _bet_cis(df)
+    def test_roi_bootstrap_clusters_by_race(self):
+        """同一レースの複数券を独立標本として扱わない。"""
+        df = pd.DataFrame({
+            "race_id": ["A"] * 10 + ["B"] * 10,
+            "購入額": [1000.0] * 20,
+            "返還": [0.0] * 20,
+            "払戻": [0.0] * 10 + [2000.0] * 10,
+            "的中": [0] * 10 + [1] * 10,
+        })
+        out = _bet_cis(df, n_boot=4000)
+        assert out["roi_ci95"] == [0.0, 200.0]
+
 
     def test_verdict_above_takeout(self):
         # 全 bet 的中・配当200 → ROI 200% で CI 下限が 80 を超える
@@ -178,6 +273,54 @@ class TestBetCis:
         # 全 bet 不的中 → ROI 0% で CI 上限が 80 未満
         out = _bet_cis(self._settled(50, 10**9))
         assert out["roi_verdict"] == "below_takeout"
+
+class TestCoworkUnsettled:
+    @staticmethod
+    def _race():
+        return {
+            "race_id": "2099010101010101",
+            "race_label": "test",
+            "bets": [{"馬券種": "単勝", "買い目": "1", "購入額": 1000}],
+        }
+
+    @staticmethod
+    def _patch_source(monkeypatch, tmp_path, race):
+        bets_dir = tmp_path / "cowork_bets"
+        bets_dir.mkdir()
+        monkeypatch.setattr(gr, "COWORK_BETS_DIR", bets_dir)
+        monkeypatch.setattr(gr, "COWORK_OUTPUT_DIR", tmp_path / "cowork_output")
+        monkeypatch.setattr(
+            gr, "_iter_cowork_race_dicts",
+            lambda: iter([("20990101", race, "test")]),
+        )
+
+    def test_unstarted_bet_is_not_counted_as_loss(self, monkeypatch, tmp_path):
+        race = self._race()
+        self._patch_source(monkeypatch, tmp_path, race)
+        monkeypatch.setattr(gr, "get_race_kk", lambda *a, **k: pd.DataFrame())
+
+        out = gr.aggregate_cowork_bets({})
+
+        assert out["total"]["bet"] == 0
+        assert out["total"]["bet_count"] == 0
+        assert out["by_type"]["単勝"]["bet"] == 0
+        assert out["bets"][0]["決着"] == "未開催"
+
+    def test_match_error_is_not_counted_as_loss(self, monkeypatch, tmp_path):
+        race = self._race()
+        self._patch_source(monkeypatch, tmp_path, race)
+        kk = _kekka_frame([(1, "1"), (2, "2"), (3, "3")])
+        monkeypatch.setattr(gr, "get_race_kk", lambda *a, **k: kk)
+
+        def fail_match(*args, **kwargs):
+            raise ValueError("bad payout")
+
+        monkeypatch.setattr(gr, "match_cowork_bet", fail_match)
+        out = gr.aggregate_cowork_bets({})
+
+        assert out["total"]["bet"] == 0
+        assert out["total"]["bet_count"] == 0
+        assert out["bets"][0]["決着"] == "照合失敗"
 
 
 # ============================================================

@@ -231,6 +231,21 @@ TYAKU_HORSE_COLS = [
     "同クラス:1着","同クラス:2着","同クラス:3着","同クラス:外","同クラス:連対率",
     "穴傾向","BESTタイム",
 ]
+# TARGET の着度数出力には 3 形式ある。
+# 55 列版だけが「馬体重」「増減」を持つ。53 列版は両列なし、
+# 52 列版はさらにレース単位で「単勝」列が省略される。
+# 同じ列名リストへ無理に zip すると中央平地成績以降がずれるため、
+# 実ヘッダーに合わせた別スキーマとして扱う。
+TYAKU_HORSE_COLS_53 = [
+    c for c in TYAKU_HORSE_COLS if c not in {"馬体重", "増減"}
+]
+TYAKU_HORSE_COLS_52 = [c for c in TYAKU_HORSE_COLS_53 if c != "単勝"]
+TYAKU_HORSE_SCHEMAS = {
+    52: TYAKU_HORSE_COLS_52,
+    53: TYAKU_HORSE_COLS_53,
+    55: TYAKU_HORSE_COLS,
+}
+
 
 
 def _load_tyaku(date_str: str) -> pd.DataFrame | None:
@@ -251,22 +266,38 @@ def _load_tyaku(date_str: str) -> pd.DataFrame | None:
 
     rows: list[dict] = []
     current_race_id: str | None = None
+    horse_like_rows = 0
+    unsupported_widths: dict[int, int] = {}
 
     for line in text.splitlines():
         cols = line.split(",")
         if len(cols) == 19 and cols[0] not in ("レースID(新)", ""):
             current_race_id = cols[0].strip()[:16]  # 16桁に切る
-        elif len(cols) == 55 and cols[0] not in ("枠番", "") and current_race_id:
-            row = dict(zip(TYAKU_HORSE_COLS, cols))
+        elif current_race_id and cols[0].strip().isdigit():
+            horse_like_rows += 1
+            schema = TYAKU_HORSE_SCHEMAS.get(len(cols))
+            if schema is None:
+                unsupported_widths[len(cols)] = unsupported_widths.get(len(cols), 0) + 1
+                continue
+            row = dict(zip(schema, cols))
             row["レースID(新/馬番無)"] = current_race_id
             rows.append(row)
 
     if not rows:
+        logger.warning(
+            f"着度数CSVをパースできません: {path.name} "
+            f"(馬行候補={horse_like_rows}, 未対応列数={unsupported_widths or 'なし'})"
+        )
         return None
+    if unsupported_widths or (horse_like_rows and len(rows) < horse_like_rows * 0.5):
+        logger.warning(
+            f"着度数CSVの一部行を無視: {path.name} "
+            f"(取得={len(rows)}/{horse_like_rows}, 未対応列数={unsupported_widths or 'なし'})"
+        )
 
     df = pd.DataFrame(rows)
     # 数値変換
-    for col in ["馬番","馬体重","増減",
+    for col in ["馬番","馬体重",
                 "中央平地全:1着","中央平地全:2着","中央平地全:3着","中央平地全:外",
                 "同コース:1着","同コース:2着","同コース:3着","同コース:外",
                 "同クラス:1着","同クラス:2着","同クラス:3着","同クラス:外"]:

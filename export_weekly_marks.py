@@ -124,7 +124,14 @@ def build_odds_from_od_csv(date_str: str):
     return tansho_idx, fuku_idx, umaren_idx
 
 
-def feature_coverage(s: pd.Series) -> float:
+# 開催日単位で正当に定数化しうるレース属性 (2026-08-07)。
+# 例: 全35R が 良(暫定)/晴(暫定) の快晴開催では 馬場状態/天気 が 1 値に潰れるが、
+# これはデータ死ではなく実態。定数=0.0 ルールを当てると canary が偽陽性で push を止める。
+# (baseline は多条件週の中央値で 100% なので閾値側では救えない)
+CONST_OK_COLS = {"馬場状態", "天気"}
+
+
+def feature_coverage(s: pd.Series, allow_constant: bool = False) -> float:
     """serve canary 用の実効カバレッジ (監査 2026-07-30 議案3)。
 
     旧 notna 率の死角2つを塞ぐ:
@@ -134,6 +141,8 @@ def feature_coverage(s: pd.Series) -> float:
        notna=100% で健全表示だった → 有効値が全行同一 (nunique<=1) なら情報ゼロ=0.0。
        baseline 側も同定義で測るため、恒常定数は「既知 dead」扱いに落ち、
        「baseline では変動していた特徴が今週定数化した」場合のみゲートが発火する。
+       ただし allow_constant=True の列 (CONST_OK_COLS) は開催日単位の定数が正常なので
+       非欠損率のみで測る。
     """
     if s is None or len(s) == 0:
         return 0.0
@@ -143,7 +152,7 @@ def feature_coverage(s: pd.Series) -> float:
     else:
         valid = s.notna()
     cov = float(valid.mean())
-    if cov > 0.0 and s[valid].nunique(dropna=True) <= 1:
+    if not allow_constant and cov > 0.0 and s[valid].nunique(dropna=True) <= 1:
         return 0.0
     return cov
 
@@ -303,6 +312,7 @@ def main() -> int:
     # 14 日超の調教だけ欠損になる。坂路カバレッジ 93.9% で実害は小さく、
     # 欠損分布の差は serve 条件 fit calibrator が吸収する。
     _SERVE_RENAME = {
+        "R": "Ｒ",
         "前走補正": "prev_hosei", "前走補9": "prev_hosei9",
         # 坂路 (H CSV: Time1=4F合計, Time2=3F, Time3=2F, Time4=1F)
         "trn_hanro_4f": "trnH_Time1", "trn_hanro_3f": "trnH_Time2",
@@ -548,7 +558,8 @@ def main() -> int:
             if exp is None or exp < 0.40:
                 continue   # 既知 dead / 監視対象外
             monitored += 1
-            cur = feature_coverage(df[col]) if col in df.columns else 0.0
+            cur = (feature_coverage(df[col], allow_constant=(col in CONST_OK_COLS))
+                   if col in df.columns else 0.0)
             if cur < 0.20 and cur < exp * 0.40:
                 silent_deaths.append(f"{col}({exp*100:.0f}%→{cur*100:.0f}%)")
         logger.info(f"[serve canary] 監視 {monitored} 特徴 / 無言死 {len(silent_deaths)}")
@@ -568,6 +579,30 @@ def main() -> int:
                     gate_errors.append(
                         f"serve特徴 {col} 非null率 {cov*100:.0f}% < {floor_cov*100:.0f}% "
                         f"(補正/調教リネーム破綻 or 列ズレ)")
+    # 差分 canary だけでは「baseline 作成時から恒常的に死んでいる特徴」を検知できない。
+    # 現在値の coverage<40% に属する model gain を毎回合算し、絶対水準も監視する。
+    try:
+        gain = np.asarray(model.feature_importance(importance_type="gain"), dtype=float)
+        gain_total = float(gain.sum())
+        dead_gain = 0.0
+        current_dead: list[str] = []
+        for col, g in zip(feats, gain):
+            cur = (feature_coverage(df[col], allow_constant=(col in CONST_OK_COLS))
+                   if col in df.columns else 0.0)
+            if g > 0 and cur < 0.40:
+                current_dead.append(col)
+                dead_gain += float(g)
+        dead_gain_pct = dead_gain / gain_total * 100.0 if gain_total else 0.0
+        logger.info(
+            f"[serve canary absolute] dead gain={dead_gain_pct:.2f}% "
+            f"({len(current_dead)}特徴, gate=35.00%)"
+        )
+        if dead_gain_pct > 35.0:
+            gate_errors.append(
+                f"serve死亡特徴のgain合計 {dead_gain_pct:.2f}% > 35.00% "
+                f"({', '.join(current_dead[:12])}{' ...' if len(current_dead) > 12 else ''})")
+    except Exception as e:
+        logger.warning(f"[serve canary absolute] gain集計失敗 ({e})")
 
     print()
     if gate_errors:

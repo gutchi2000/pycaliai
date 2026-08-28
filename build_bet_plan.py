@@ -22,14 +22,18 @@ from __future__ import annotations
 import io, json, sys
 from pathlib import Path
 
+from production_policy import hard_skip_reasons, load_policy, policy_stamp
+
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 BASE = Path(__file__).parent
 BUNDLE_DIR = BASE / "reports" / "cowork_input"
 OUTDIR = BASE / "reports" / "bet_plan"
 
-# 見送り閾値 (validate_cowork_bets.py と一致)
-CHAOS_SKIP = 0.92; FIELD_SIZE_SKIP = 7; PWIN_SKIP = 0.05
+_POLICY = load_policy()
+CHAOS_SKIP = float(_POLICY["chaos_reference"]["skip_percentile"])
+FIELD_SIZE_SKIP = int(_POLICY["hard_skip"]["field_size_max"])
+PWIN_SKIP = float(_POLICY["hard_skip"]["hon_p_win_min"])
 # 枠パラメタ
 SHOBU_MAX = 3;  SHOBU_YEN = 10000
 JUN_MAX = 4;    JUN_YEN_HI = 8000; JUN_YEN_LO = 5000
@@ -102,7 +106,8 @@ def load_races(date):
     for r in races:
         m = r.get("race_meta", {}); rc = r.get("race_confidence", {})
         horses = r.get("horses", [])
-        pwin_top = max((h.get("p_win") or 0.0 for h in horses), default=0.0)
+        hon = next((h for h in horses if h.get("mark") == "◎"), None)
+        pwin_top = (hon or {}).get("p_win") or 0.0
         course = m.get("course", "")
         surf = course[:1] if course else "?"
         out.append({
@@ -113,16 +118,18 @@ def load_races(date):
             "conf": conf_score(rc), "dom": rc.get("top1_dominance"),
             "concentration": rc.get("top2_concentration"), "chaos": rc.get("field_chaos_score"),
             "market": rc.get("ai_market_agreement"), "pwin_top": round(pwin_top, 4),
+            "hon": ({"mark": "◎", "p_win": (hon or {}).get("p_win"),
+                     "tansho_odds": (hon or {}).get("tansho_odds")} if hon else None),
             "judgment": (r.get("buy_judgment", {}) or {}).get("headline", ""),
         })
     return out
 
 
 def miokuri_reason(r):
-    if (r["chaos"] or 0) >= CHAOS_SKIP: return f"混戦{r['chaos']:.2f}≥{CHAOS_SKIP}"
-    if (r["field_size"] or 99) <= FIELD_SIZE_SKIP: return f"少頭数{r['field_size']}"
-    if (r["pwin_top"] or 0) < PWIN_SKIP: return f"◎薄い{r['pwin_top']:.2f}"
-    return None
+    reasons = hard_skip_reasons(
+        {"field_size": r.get("field_size")},
+        {"field_chaos_score": r.get("chaos")}, r.get("hon"))
+    return " / ".join(reasons) if reasons else None
 
 
 def jun_yen(rank, n):
@@ -194,10 +201,12 @@ def main():
         r["tier"] = "消化"; r["budget"] = amt; shouka.append(r)
         total_r += 1; total_y += amt
 
-    plan = {"date": date, "weekend": weekend,
+    plan = {"date": date, "weekend": weekend, "policy": policy_stamp(),
             "floor": {"min_races": min_races, "min_yen": min_yen},
             "rules": {"禁止": ["馬単", "三連単", "穴推奨の馬連", "高EVだけの馬連"],
-                       "見送り": [f"混戦≥{CHAOS_SKIP}", f"頭数≤{FIELD_SIZE_SKIP}", f"◎p_win<{PWIN_SKIP}"]},
+                       "見送り": [f"chaos percentile≥{CHAOS_SKIP}",
+                                    f"頭数≤{FIELD_SIZE_SKIP}",
+                                    "◎単勝オッズ欠損", f"◎p_win<{PWIN_SKIP}"]},
             "tiers": {
                 "勝負": [_row(r) for r in shobu], "準勝負": [_row(r) for r in jun],
                 "消化": [_row(r) for r in shouka], "見送り": [_row(r) for r in miokuri]},
@@ -209,7 +218,8 @@ def main():
     # サマリ
     log("=" * 78)
     log(f"枠プラン {date}  floor: {min_races}R∧¥{min_yen:,} {'(週末)' if weekend else '(1日)'}")
-    log(f"禁止: 馬単/三連単/穴馬連/EV単独馬連   見送り: 混戦≥{CHAOS_SKIP}∨頭数≤{FIELD_SIZE_SKIP}∨◎<{PWIN_SKIP}")
+    log(f"禁止: 馬単/三連単/穴馬連/EV単独馬連   見送り: "
+        f"chaos pct≥{CHAOS_SKIP}∨頭数≤{FIELD_SIZE_SKIP}∨◎odds欠損∨◎<{PWIN_SKIP}")
     log("=" * 78)
     for tier, rows in [("勝負", shobu), ("準勝負", jun), ("消化", shouka)]:
         sub = sum(r["budget"] for r in rows)

@@ -14,7 +14,7 @@ serve skew 残差回収 (hist_same_* / course_* / jockey_* / 騎手・調教師�
 
   出力:
     data/_horse_history.parquet   ... 1行=1走 (ped_id, name, sire, birth_year,
-                                      date, place, surface, dist, pos, jockey_code)
+                                      date, place, surface, dist, pos, jockey_code, trainer_code)
     data/serve_code_maps.json     ... {"jockey": {名前: コード}, "trainer": {...}}
 
 serve 側 (serve_history_feats.py) はこの parquet を馬名+父名/生年で引き、
@@ -132,7 +132,7 @@ def build_code_maps() -> dict:
 def load_master_history() -> pd.DataFrame:
     log(f"master 読み込み: {MASTER_CSV.name}")
     cols = ["血統登録番号", "馬名", "日付", "場所", "芝・ダ", "距離",
-            "着順", "騎手コード", "種牡馬", "年齢"]
+            "着順", "騎手コード", "調教師コード", "種牡馬", "年齢"]
     m = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", usecols=cols,
                     low_memory=False)
     log(f"  {len(m):,} 行")
@@ -147,6 +147,7 @@ def load_master_history() -> pd.DataFrame:
         "dist":   pd.to_numeric(m["距離"], errors="coerce"),
         "pos":    pd.to_numeric(m["着順"], errors="coerce"),
         "jockey_code": pd.to_numeric(m["騎手コード"], errors="coerce"),
+        "trainer_code": pd.to_numeric(m["調教師コード"], errors="coerce"),
         "age":    pd.to_numeric(m["年齢"], errors="coerce"),
     })
     out = out.dropna(subset=["ped_id", "date"]).copy()
@@ -203,7 +204,8 @@ def parse_weekly_light(path: Path) -> pd.DataFrame:
     return df
 
 
-def load_2026_history(master_max_date: int, jockey_map: dict) -> pd.DataFrame:
+def load_2026_history(master_max_date: int, jockey_map: dict,
+                      trainer_map: dict) -> pd.DataFrame:
     rows: list[pd.DataFrame] = []
     kekka_files = sorted(KEKKA_DIR.glob("*.csv"))
     for kp in kekka_files:
@@ -245,8 +247,9 @@ def load_2026_history(master_max_date: int, jockey_map: dict) -> pd.DataFrame:
         merged["date"] = np.int32(d)
         merged["birth_year"] = (d // 10000 - merged["age"]).astype("Int32")
         merged["jockey_code"] = merged["jockey_name"].map(jockey_map).astype("float64")
+        merged["trainer_code"] = merged["trainer_name"].map(trainer_map).astype("float64")
         rows.append(merged[["name", "sire", "birth_year", "date", "place",
-                            "surface", "dist", "pos", "jockey_code"]])
+                            "surface", "dist", "pos", "jockey_code", "trainer_code"]])
     if not rows:
         return pd.DataFrame()
     out = pd.concat(rows, ignore_index=True)
@@ -309,12 +312,14 @@ def main() -> int:
     log(f"  master 最終日: {master_max}")
 
     log("\n[3/4] 2026 補完 (kekka × weekly)")
-    sup = load_2026_history(master_max, maps["jockey"])
+    sup = load_2026_history(master_max, maps["jockey"], maps["trainer"])
     if len(sup):
         jc_cov = sup["jockey_code"].notna().mean() * 100
-        log(f"  2026 補完: {len(sup):,} 行 "
+        tc_cov = sup["trainer_code"].notna().mean() * 100
+        log(
+            f"  2026 補完: {len(sup):,} 行 "
             f"({int(sup['date'].min())}〜{int(sup['date'].max())}, "
-            f"騎手コード被覆 {jc_cov:.1f}%)")
+            f"騎手コード被覆 {jc_cov:.1f}% / 調教師コード被覆 {tc_cov:.1f}%)")
         sup = resolve_2026_ped_ids(sup, mh)
         hist = pd.concat([mh, sup], ignore_index=True)
     else:

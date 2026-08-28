@@ -236,9 +236,11 @@ if ($Post) {
             $genDate = $Matches[1]
             $today = Get-Date -Format "yyyy-MM-dd"
             if ($genDate -eq $today) { OK "cowork_results.json generated_at=$genDate (当日)" }
-            else { Warn "cowork_results.json generated_at=$genDate が当日でない! 集計凍結の可能性。generate_results.py のログを確認" }
+            else { Fail "cowork_results.json generated_at=$genDate が当日でない! 集計凍結の可能性。HF 同期を中止します。" }
+        } else {
+            Fail "cowork_results.json の generated_at を読めません。HF 同期を中止します。"
         }
-    } catch { Warn "cowork_results.json の generated_at 確認に失敗 (非致命)" }
+    } catch { Fail "cowork_results.json の generated_at 確認に失敗。HF 同期を中止します: $($_.Exception.Message)" }
 
     if (-not $SkipHF) {
         Step "[2/3] sync-hf.ps1 (NiceGUI Space)"

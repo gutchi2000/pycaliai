@@ -128,7 +128,7 @@ def parse_o4(rec: str) -> dict:
 
 def fetch_race(race_key: str) -> dict:
     from datetime import datetime
-    fetched = datetime.now().isoformat(timespec="seconds")
+    fetched = datetime.now().isoformat(timespec="milliseconds")
     recs = [r for r in fetch_records(race_key, "0B31") if r.startswith("O1")]
     if not recs:
         return {"race_id": race_key, "fetched": fetched,
@@ -177,6 +177,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--race", required=True, help="16桁 race_key（例 2026060705030211）")
     ap.add_argument("--validate", help="bundle.json パスを渡すと単勝を照合表示")
+    ap.add_argument("--stage", choices=("t10", "close", "manual"), default="manual",
+                    help="前向き価格ログの観測時点")
+    ap.add_argument("--scheduled-post", default=None,
+                    help="予定発走 HH:MM。価格snapshotの監査メタデータ")
     ap.add_argument("--dump-raw", action="store_true",
                     help="0B31/0B33/0B34 の生レコードを reports/live_odds/raw/ に保存"
                          " (ワイド/馬単パーサ確定用。土曜に1回でOK)")
@@ -187,10 +191,18 @@ def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     (OUT_DIR / f"{args.race}.json").write_text(
         json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        from forward_prices import archive_market_snapshot
+        archived = archive_market_snapshot(
+            res, args.stage, scheduled_post=args.scheduled_post)
+    except Exception as exc:
+        print(f"[jvlink_odds][ERROR] forward price保存失敗: {exc}")
+        return 2
     print(f"[jvlink_odds] race={args.race} ok={res['ok']} "
           f"単勝{len(res.get('tansho',{}))}頭 複勝{len(res.get('fukusho',{}))}頭 "
           f"ワイド{len(res.get('wide',{}))}組 馬単{len(res.get('umatan',{}))}組 "
           f"overround={res.get('overround_tan')} {res.get('reason','')}")
+    print(f"[forward_price] {args.stage} -> {archived}")
     if args.validate:
         d = json.load(open(args.validate, encoding="utf-8"))
         races = d.get("races", [])

@@ -55,25 +55,29 @@ DEAD_EXACT_NUM = {
 }
 DEAD_CAT = {"騎手コード", "調教師コード"}
 
-# リネーム修正後 (補正 2026-06-11 午前 / 調教 同日午後) も本番で作れない列。
-# build_pl_calibrators_serve.py はこちらを使う (serve 特徴を増やしたら必ず更新+再fit)。
-# 2026-07-29: hist_same_*/course_*/jockey_*/騎手・調教師コード の 12 列は
-# serve_history_feats.py (data/_horse_history.parquet + 馬名JOIN) で回収済み
-# (test パリティ 98.6% 行で 100% 一致・残 1.4% は同名曖昧の安全側 NaN 降格 /
-#  ◎複勝 +0.84pt, reports/validate_serve_history_feats.json)。
-# 2026-07-30 監査 (B/C 独立到達): マスクを空にしたのは誤り。週次CSVから今も
-# 作れない当日条件系 14 列 (data/serve_feature_baseline.json の serve_dead) が
-# 残っており、空マスク fit は pl_calibrators_v6.pkl と同一物を生むだけだった
-# (serve 分布 ◎複勝 ECE 0.0143 vs serve-fit 期待 ~0.011)。dead14 を定義して再fit。
-SERVE_DEAD_NOW_PREFIX = ()
-SERVE_DEAD_NOW_EXACT: set[str] = {
-    "前走レースID(新)", "前走レースID(新/馬番無)", "前走日付",
-    "前走走破タイム", "母馬", "Ｒ",
-}
-SERVE_DEAD_NOW_CAT: set[str] = {
-    "ブリンカー", "前好走", "前走場所", "指定条件",
-    "毛色", "芝(内・外)", "限定", "馬主(最新/仮想)",
-}
+SERVE_COVERAGE_THRESHOLD = 0.40
+
+
+def load_current_serve_mask(feats, encoders, baseline_path: Path | None = None):
+    """実測baselineを単一ソースにして現在のserve死亡特徴を返す。"""
+    path = baseline_path or (BASE / "data" / "serve_feature_baseline.json")
+    if not path.exists():
+        raise FileNotFoundError(
+            f"serve baseline 未生成: {path} "
+            "(python -m analysis.measure_serve_coverage を先に実行)")
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    base_cov = raw.get("baseline_cov")
+    if not isinstance(base_cov, dict):
+        raise ValueError(f"serve baseline の baseline_cov が不正: {path}")
+    missing = [c for c in feats if c not in base_cov]
+    if missing:
+        raise ValueError(
+            f"serve baseline にモデル特徴が不足 ({len(missing)}): {missing[:10]}")
+    dead = [c for c in feats if float(base_cov[c]) < SERVE_COVERAGE_THRESHOLD]
+    cat_cols = set(encoders)
+    dead_cat = [c for c in dead if c in cat_cols]
+    dead_num = [c for c in dead if c not in cat_cols]
+    return dead_num, dead_cat, raw
 
 
 def evaluate(te: pd.DataFrame, payouts: dict, cals: dict | None) -> dict:
@@ -208,13 +212,9 @@ def main():
         scenarios[f"回収+{gname}"] = (rec_num, rec_cat)
     scenarios["回収+リネーム18(調教+補正)"] = (
         [c for c in dead_numeric if c not in rename18_num], dead_cat)
-    # 現状 (2026-06-15): リネーム18(補正/調教)は serve 復活済み。実際に本番で死ぬのは
-    # SERVE_DEAD_NOW の12個 (hist_same×4 + course×3 + jockey×3 + 騎手/調教師コード×2)。
-    # この行が「いま本番が出荷している」◎複勝圏率/ECE の直接値 (回収+リネーム18 と一致する想定)。
-    serve_dead_num = [c for c in dead_numeric
-                      if c.startswith(SERVE_DEAD_NOW_PREFIX) or c in SERVE_DEAD_NOW_EXACT]
-    serve_dead_cat = [c for c in dead_cat if c in SERVE_DEAD_NOW_CAT]
-    scenarios["現状(serve12死)"] = (serve_dead_num, serve_dead_cat)
+    # 現状は実測baselineを単一ソースにする。serve特徴の増減後にコード定数を直す必要はない。
+    serve_dead_num, serve_dead_cat, _ = load_current_serve_mask(feats, encs)
+    scenarios["現状(baseline死)"] = (serve_dead_num, serve_dead_cat)
 
     results = {}
     for name, (mn, mc) in scenarios.items():

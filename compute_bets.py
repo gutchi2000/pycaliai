@@ -32,14 +32,18 @@ NiceGUI の 4 カード（市場一致 / ◎独走度 / 上位2頭集中 / 混�
   ✅ t10_runner.py / t10.ps1: 当日オーケストレータ (発走時刻→T-10 自動発火)。
 """
 from __future__ import annotations
-import argparse, bisect, io, json, math, os, sys
+import argparse, io, json, math, os, sys
 from datetime import datetime
 from pathlib import Path
 
+from production_policy import (
+    hard_skip_reasons, load_policy, percentile as policy_percentile,
+    policy_stamp,
+)
+
 BASE = Path(__file__).parent
-ENGINE_VERSION = "2026-08-09"   # bets.json スタンプ用 (挙動変更時に更新。08-09=topdown既定化)
+ENGINE_VERSION = str(load_policy()["engine_version"])
 BUDGET, MIN_BET, MAX_BET = 10000, 500, 7000
-CHAOS_Q = BASE / "data" / "chaos_quantiles.json"
 T10_BLEND = BASE / "data" / "t10_blend.json"
 
 # T-10 補正印 (2026-07-03): u = log(p_win) + λ·log(π) 降順の上位5頭に印を付け直す。
@@ -149,7 +153,6 @@ TH_TOP1_GO, TH_TOP1_OK = 0.75, 0.50      # ◎独走 / ◎やや優位
 TH_TOP2_GO, TH_TOP2_OK, TH_TOP2_LOW = 0.75, 0.50, 0.40  # 本線濃厚 / やや本線 / 分散
 TH_CHAOS_HARD, TH_CHAOS_MID = 0.75, 0.50  # カオス / 混戦（パーセンタイル）
 TH_MARKET_ANABA = 0.30                    # 市場乖離→妙味
-CHAOS_RAW_SKIP = 0.92                     # §0 hard 見送り（生値）
 # §0b 参戦規律フェイルセーフ (2026-06-18): chaos_pct(=field_chaos_score=正規化エントロピーの
 # 過去分布百分位) がこの閾値を超えるレースは見送る。OOS検証 (2024fit→2025eval,
 # analysis/test_race_selection_oos.py): クリーン帯=エントロピー下位1/3(chaos_pct<=0.33)のみ
@@ -213,33 +216,9 @@ def settle_fuku(o):
 def settle_wide(o):
     return _settle(o, SETTLE_DRIFT_WIDE)
 
-_QT = None
-def _qtab():
-    global _QT
-    if _QT is None:
-        try:
-            _QT = json.loads(CHAOS_Q.read_text(encoding="utf-8")).get("quantiles", {})
-        except Exception:
-            _QT = {}
-    return _QT
-
 def pct(raw, key):
-    """生値→過去分布パーセンタイル(0-1)。テーブル欠如時は None (fail-safe)。
-
-    旧実装は生値をそのまま返したが、chaos 生値域は [0.80,1.0] に圧縮されている
-    ため「テーブル破損 → 全レース chaos_pct>0.75 → カオス薄に倒れる」事故になる
-    (audit 2026-06-11)。None を返して呼び出し側で見送りに倒す。
-    """
-    t = _qtab().get(key)
-    if not t or len(t) < 2:
-        return None
-    raw = float(raw or 0)
-    if raw <= t[0]: return 0.0
-    if raw >= t[-1]: return 1.0
-    i = bisect.bisect_right(t, raw)
-    lo, hi = t[i - 1], t[i]
-    frac = 0.0 if hi == lo else (raw - lo) / (hi - lo)
-    return (i - 1 + frac) / (len(t) - 1)
+    """本番policyが固定する参照分布上のpercentile。"""
+    return policy_percentile(raw, key)
 
 
 def _num(x):
@@ -258,19 +237,31 @@ def amount_for_ev(ev):
 
 
 def allocate(weights, budget=BUDGET, mn=MIN_BET, mx=MAX_BET):
+    """100円単位で確率比例配分する。実現不能な最低額は呼出側のバグとして拒否する。"""
     n = len(weights)
-    if n == 0: return []
-    s = sum(weights) or 1.0
-    amts = [min(mx, max(mn, int(round(budget * w / s / 100)) * 100)) for w in weights]
+    if n == 0:
+        return []
+    budget = int(budget) // 100 * 100
+    if budget < n * mn:
+        raise ValueError(f"budget {budget} < minimum {n * mn} for {n} tickets")
+    clean = [float(w) for w in weights]
+    if any(not math.isfinite(w) or w < 0 for w in clean):
+        raise ValueError(f"weights must be finite and non-negative: {weights}")
+    if sum(clean) <= 0:
+        clean = [1.0] * n
+    s = sum(clean)
+    amts = [min(mx, max(mn, int(round(budget * w / s / 100)) * 100)) for w in clean]
     for _ in range(6000):
         d = budget - sum(amts)
-        if d == 0: break
+        if d == 0:
+            break
         step = 100 if d > 0 else -100
-        order = sorted(range(n), key=lambda i: (-weights[i] if d > 0 else weights[i]))
+        order = sorted(range(n), key=lambda i: (-clean[i] if d > 0 else clean[i]))
         for i in order:
             na = amts[i] + step
             if mn <= na <= mx:
-                amts[i] = na; break
+                amts[i] = na
+                break
         else:
             break
     return amts
@@ -331,12 +322,11 @@ def compute_fuku_hit(race: dict, thr: float = FUKU_HIT_THR, stake: int = BUDGET,
 
     hon = next((h for h in horses
                 if h.get("mark") == "◎" and _num(h.get("umaban")) is not None), None)
-    if hon is None:
+    gate_reasons = hard_skip_reasons(
+        {**rm, "field_size": field}, race.get("race_confidence", {}), hon)
+    if gate_reasons:
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",
-                "race_reason": "◎不在のため複勝特化対象外。", "bets": []}
-    if field < 5:
-        return {"race_id": rid, "race_label": label, "race_nature": "見送り",
-                "race_reason": "少頭数(<5)で複勝対象外。", "bets": []}
+                "race_reason": " / ".join(gate_reasons) + " のため見送り。", "bets": []}
     pwin = _num(hon.get("p_win"))
     if pwin is None or pwin < thr:
         pw_s = f"{pwin:.3f}" if pwin is not None else "NA"
@@ -372,6 +362,11 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     field = _num(rm.get("field_size")) or len(horses)
     rid = str(race.get("race_id") or rm.get("race_id") or "")
     label = f"{rm.get('place','')}{rm.get('course','')} {rm.get('race_name','')}".strip()
+    budget = int(budget) // 100 * 100
+    if budget < MIN_BET:
+        return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                "race_reason": f"予算¥{budget:,}が最低購入額¥{MIN_BET:,}未満のため見送り。",
+                "bets": []}
 
     # ---- T-10 ライブオッズ (spec §入力2): 指定時は必須 = 読めなければ fail-safe 見送り ----
     live_note = ""
@@ -434,18 +429,12 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     san = (marks.get("▲") or [None])[0]
     osae = marks.get("△", [])
 
-    chaos_raw = _num(rc.get("field_chaos_score")) or 0.0
-    pwin_hon, tan_hon = fld(hon, "p_win"), fld(hon, "tansho_odds")
-
     # ---- §0 hard 見送り ----
-    skip = None
-    if chaos_raw >= CHAOS_RAW_SKIP: skip = f"極度カオス(chaos {chaos_raw:.3f}>=0.92)"
-    elif field <= 7: skip = "少頭数(<=7)"
-    elif hon is None or tan_hon is None: skip = "本命オッズ未取得"
-    elif pwin_hon is not None and pwin_hon < 0.05: skip = "本命勝率<0.05"
-    if skip:
+    gate_reasons = hard_skip_reasons(
+        {**rm, "field_size": field}, rc, by_ban.get(hon) if hon is not None else None)
+    if gate_reasons:
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",
-                "race_reason": f"{skip} のため見送り。", "bets": [],
+                "race_reason": " / ".join(gate_reasons) + " のため見送り。", "bets": [],
                 **({"hosei_marks": hosei} if hosei else {})}
 
     # ---- カード値（パーセンタイル + market 生値）----
@@ -494,6 +483,11 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
             o = _umo(i, j)
             return o / 3.0 if o else None
 
+        def _wdo_floor(i, j):
+            """トリガミ判定はレンジ中点でなく最悪ケースの下限を使う。"""
+            lw = lwide.get((min(i, j), max(i, j)))
+            return float(lw[0]) if lw else _wdo(i, j)
+
         tds = []  # (kind, sel, p, odds, floor_odds)
         fc = sorted(((fld(u, "p_sho") or 0, u) for u in by_ban), reverse=True)
         if fc and fc[0][0] > 0:
@@ -505,7 +499,7 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
         for pv, k in wc[:2]:
             o = _wdo(*k)
             if o <= 50:
-                tds.append(["ワイド", f"{k[0]}-{k[1]}", pv, o, o])
+                tds.append(["ワイド", f"{k[0]}-{k[1]}", pv, o, _wdo_floor(*k)])
         uc = sorted(((pv, k) for k, pv in umP.items()
                      if _umo(*k) and _umo(*k) <= 50), reverse=True)
         if uc:
@@ -522,6 +516,9 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
                     "bets": [], **({"hosei_marks": hosei} if hosei else {})}
         # p比例配分 + 適応トリガミ床 (最安見込払戻 >= 総投資 まで低p点を削る。
         # トリガミ−74%/クリーン勝ち+18% 実証のユーザールール適応点数版)
+        while len(tds) > 1 and len(tds) * MIN_BET > budget:
+            # 低予算時に全点MIN_BETで予算超過しないよう、最低確率候補から事前に落とす。
+            tds.pop(min(range(len(tds)), key=lambda i: tds[i][2]))
         amts = allocate([c[2] for c in tds], budget=int(budget))
         for _ in range(len(tds) - 1):
             if min(c[4] * a for c, a in zip(tds, amts)) >= sum(amts):
@@ -826,10 +823,11 @@ def apply_to_bets_json(date_str: str, computed: list[dict], stamp: dict | None =
     stamp: 各エントリに刻む来歴 {"model","engine","engine_version",...}
     (2026-07-30 前提監査 P6「betsに生成主体のスタンプが無く因果切断」の解消)。
     """
-    if stamp:
-        import datetime as _dt
-        stamp = {**stamp, "stamped_at": _dt.datetime.now().isoformat(timespec="seconds")}
-        computed = [{**e, "stamp": stamp} for e in computed]
+    import datetime as _dt
+    authoritative = policy_stamp()
+    stamp = {**(stamp or {}), **authoritative,
+             "stamped_at": _dt.datetime.now().isoformat(timespec="seconds")}
+    computed = [{**e, "stamp": stamp} for e in computed]
     out_dir = BASE / "reports" / "cowork_output"
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{date_str}_bets.json"
@@ -968,17 +966,27 @@ def main():
             print("   " + fmt_hosei(e["hosei_marks"]))
 
     if args.apply:
-        m = None
         import re as _re
         mm = _re.search(r"(\d{8})", Path(args.bundle).name)
         if not mm:
             print("[ERROR] bundle 名から日付 (YYYYMMDD) を特定できず --apply 中止", file=sys.stderr)
             return 1
-        apply_to_bets_json(mm.group(1), out, stamp={
+        mode = "fuku_hit" if args.fuku_hit else "plan" if args.plan else "default"
+        run_stamp = {**policy_stamp(),
             "model": d.get("model") if isinstance(d, dict) else None,
             "engine": "compute_bets", "engine_version": ENGINE_VERSION,
-            "mode": ("fuku_hit" if args.fuku_hit else "plan" if args.plan else "default"),
-            "live": bool(live_dir)})
+            "mode": mode, "live": bool(live_dir)}
+        if live_dir is not None:
+            try:
+                from forward_price_integration import archive_compute_decisions
+                archived = archive_compute_decisions(
+                    races, out, shadow_out, live_dir, mode=mode, stamp=run_stamp,
+                    pair_probability_fn=pl_pair_probs)
+            except Exception as exc:
+                print(f"[ERROR] forward decision保存失敗 → apply中止: {exc}", file=sys.stderr)
+                return 1
+            print(f"[forward_price] decision {len(archived)}件を保存")
+        apply_to_bets_json(mm.group(1), out, stamp=run_stamp)
         if shadow_out:
             # シャドー(旧shape)を reports/engine_shadow/{date}_shadow.json へ in-place merge。
             # t10_runner はレース毎 --race 呼び出しなので bets.json と同じ置換型マージ。
@@ -988,11 +996,22 @@ def main():
                 sh = json.load(open(sh_path, encoding="utf-8"))
             except (FileNotFoundError, json.JSONDecodeError):
                 sh = {"primary_engine": "topdown", "shadow_engine": "shape", "races": []}
+            current_policy = policy_stamp()
+            old_policy_id = (sh.get("policy") or {}).get("policy_id")
+            if sh.get("races") and old_policy_id != current_policy["policy_id"]:
+                print(f"[ERROR] shadow policy混在: {old_policy_id} != "
+                      f"{current_policy['policy_id']}", file=sys.stderr)
+                return 1
             by_rid = {str(e.get("race_id")): e for e in sh.get("races", [])}
+            shadow_stamp = {**run_stamp, "engine": "shape",
+                            "primary_engine": "topdown",
+                            "stamped_at": datetime.now().isoformat(timespec="seconds")}
             for e in shadow_out:
-                by_rid[str(e.get("race_id"))] = e
+                stamped = {**e, "stamp": shadow_stamp}
+                by_rid[str(e.get("race_id"))] = stamped
             sh["races"] = sorted(by_rid.values(), key=lambda e: str(e.get("race_id")))
             sh["engine_version"] = ENGINE_VERSION
+            sh["policy"] = current_policy
             sh["generated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             sh_tmp = sh_path.with_suffix(".tmp")
             sh_tmp.write_text(json.dumps(sh, ensure_ascii=False, indent=2), encoding="utf-8")

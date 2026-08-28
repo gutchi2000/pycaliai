@@ -16,6 +16,7 @@ from predict_weekly import parse_csv
 
 # export_weekly_marks の _SERVE_RENAME と同一
 _SERVE_RENAME = {
+    "R": "Ｒ",
     "前走補正": "prev_hosei", "前走補9": "prev_hosei9",
     "trn_hanro_4f": "trnH_Time1", "trn_hanro_3f": "trnH_Time2",
     "trn_hanro_2f": "trnH_Time3", "trn_hanro_1f": "trnH_Time4",
@@ -40,6 +41,10 @@ def fam(c):
 
 model = joblib.load(BASE/"models/unified_rank_v6.pkl")
 feats = model["feature_cols"]
+gain = np.asarray(model["model"].feature_importance(importance_type="gain"), dtype=float)
+gain_total = float(gain.sum())
+gain_pct = {f: (float(v) / gain_total * 100.0 if gain_total else 0.0)
+            for f, v in zip(feats, gain)}
 WEEKS = ["20260726","20260725","20260719","20260718"]
 
 baseline = {}   # feat -> median coverage across weeks
@@ -59,9 +64,10 @@ for wk in WEEKS:
         print(f"  [warn] serve history fill 失敗 (履歴特徴は0%扱い): {e}")
     # canary と同一定義の実効カバレッジ ("__NaN__"/空文字=欠損, 定数列=0.0) で測る。
     # 定義が食い違うと baseline 比較が無意味になるので必ず export 側の関数を使う。
-    from export_weekly_marks import feature_coverage
+    from export_weekly_marks import feature_coverage, CONST_OK_COLS
     for f in feats:
-        cov = feature_coverage(df[f]) if f in df.columns else 0.0
+        cov = (feature_coverage(df[f], allow_constant=(f in CONST_OK_COLS))
+               if f in df.columns else 0.0)
         percol[f].append(cov)
     print(f"[{wk}] parsed {len(df):,}頭 / {df['レースID(新/馬番無)'].nunique()}R")
 
@@ -70,7 +76,8 @@ for f in feats:
 
 # ファミリー別サマリ
 print(f"\n{'='*70}\nserve カバレッジ (直近{len([w for w in WEEKS if (BASE/'data/weekly'/(w+'.csv')).exists()])}週 中央値)\n{'='*70}")
-fdf = pd.DataFrame({"feat": feats, "coverage": [baseline[f] for f in feats], "fam":[fam(f) for f in feats]})
+fdf = pd.DataFrame({"feat": feats, "coverage": [baseline[f] for f in feats],
+                    "gain_pct": [gain_pct[f] for f in feats], "fam":[fam(f) for f in feats]})
 summ = fdf.groupby("fam").agg(n=("feat","size"), avg=("coverage","mean"),
                               alive=("coverage", lambda s:(s>=0.4).sum()), dead=("coverage", lambda s:(s<0.05).sum()))
 summ["avg"]=(summ["avg"]*100).round(0)
@@ -78,6 +85,9 @@ print(summ.sort_values("avg").to_string())
 
 dead = fdf[fdf["coverage"]<0.05].sort_values(["fam","feat"])
 deadnames = dead.feat.tolist()
+regression = fdf[(fdf["coverage"] < 0.40) & (fdf["gain_pct"] > 0)].copy()
+regression = regression.sort_values("gain_pct", ascending=False)
+dead_gain_pct = float(regression["gain_pct"].sum())
 
 # master_v2 照合: serve死だが master では生 = serve-skew / master でも死 = 常時死
 mcov = {}
@@ -101,8 +111,17 @@ for _,r in dead.iterrows():
     print(f"   serve{r['coverage']*100:4.0f}% / master{mc*100:4.0f}%  [{r['fam']}] {r['feat']}  {tag}")
 
 print(f"\n[要約] serve死={len(deadnames)}: ★serve-skew(回収可)={len(serveskew)} / 常時死(無害)={len(alwaysdead)}")
+print(f"[絶対水準] gain>0 かつ serve coverage<40%: "
+      f"{len(regression)}特徴 / gain {dead_gain_pct:.2f}%")
+for _, r in regression.head(15).iterrows():
+    print(f"   gain={r['gain_pct']:5.2f}% / cov={r['coverage']*100:4.0f}%  {r['feat']}")
+regression_rows = [{"feature": r["feat"], "coverage": round(float(r["coverage"]), 3),
+                    "gain_pct": round(float(r["gain_pct"]), 4)} for _, r in regression.iterrows()]
 out = {"model":"v6","weeks":WEEKS,"baseline_cov":baseline,
        "serve_dead":deadnames,"serve_skew_recoverable":sorted(serveskew),
-       "always_dead_harmless":sorted(alwaysdead)}
+       "always_dead_harmless":sorted(alwaysdead),
+       "regression_candidates": regression_rows,
+       "dead_gain_pct": round(dead_gain_pct, 4),
+       "dead_gain_threshold_pct": 35.0}
 (BASE/"data"/"serve_feature_baseline.json").write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding="utf-8")
 print(f"[saved] data/serve_feature_baseline.json")

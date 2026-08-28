@@ -185,7 +185,8 @@ def get_winner(race_kk: pd.DataFrame) -> int | None:
 
 
 def _bet_cis(settled: pd.DataFrame, n_boot: int = 2000, seed: int = 42) -> dict:
-    """券種別の信頼区間。hit_ci95=Wilson (的中率), roi_ci95=bootstrap (実効投資加重 ROI)。
+    """券種別の信頼区間。hit_ci95=Wilson (的中率)、roi_ci95=レース単位
+    cluster bootstrap (実効投資加重 ROI)。race_id が無い旧入力だけ bet 単位へフォールバック。
 
     roi_verdict: 95%CI と控除率 80% の位置関係。
       above_takeout  = CI 下限 > 80  (真に控除率超の証拠)
@@ -207,11 +208,26 @@ def _bet_cis(settled: pd.DataFrame, n_boot: int = 2000, seed: int = 42) -> dict:
     hit_ci = [round(max(0.0, center - half) * 100, 1),
               round(min(1.0, center + half) * 100, 1)]
 
-    # bootstrap ROI (bet 単位リサンプル、投資加重。seed 固定で決定的)
+    # 同一レース内の馬券は結果が相関するため、race_id があればレースを再抽出する。
+    # bet 単位 bootstrap は分散を過小評価するので、旧形式の入力だけに限定する。
+    unit_cost, unit_ret = cost, ret
+    if "race_id" in settled.columns:
+        work = pd.DataFrame({"cost": cost, "ret": ret}, index=settled.index)
+        keys = settled["race_id"].astype("string")
+        missing = keys.isna() | (keys.str.strip() == "")
+        if missing.any():
+            keys = keys.astype(object)
+            keys.loc[missing] = [f"__ticket_{i}" for i in work.index[missing]]
+        work["race_id"] = keys.to_numpy()
+        clusters = work.groupby("race_id", sort=False, dropna=False)[["cost", "ret"]].sum()
+        unit_cost = clusters["cost"].to_numpy(dtype=float)
+        unit_ret = clusters["ret"].to_numpy(dtype=float)
+
     rng = np.random.default_rng(seed)
-    idx = rng.integers(0, n, size=(n_boot, n))
-    boot_cost = cost[idx].sum(axis=1)
-    boot_ret = ret[idx].sum(axis=1)
+    n_units = len(unit_cost)
+    idx = rng.integers(0, n_units, size=(n_boot, n_units))
+    boot_cost = unit_cost[idx].sum(axis=1)
+    boot_ret = unit_ret[idx].sum(axis=1)
     valid = boot_cost > 0
     rois = np.full(n_boot, np.nan)
     rois[valid] = boot_ret[valid] / boot_cost[valid] * 100
@@ -978,6 +994,7 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
             btype = b.get("馬券種", "?")
             sel = str(b.get("買い目", ""))
             hit, payout_per_100, refund_ratio = (False, 0.0, 0.0)
+            settlement = "未開催" if race_kk.empty else "確定"
             if not race_kk.empty:
                 try:
                     hit, payout_per_100, refund_ratio = match_cowork_bet(
@@ -986,16 +1003,20 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
                     )
                 except Exception as e:
                     log.warning(f"bet 照合失敗 {rid} {btype} {sel}: {e}")
+                    settlement = "照合失敗"
 
             # 取消・除外馬を含む組は返還 (実効投資から除く)。全額損失計上だと
             # 券種別 ROI が系統的に過小になる (audit 2026-06-11)
-            refund = amount * refund_ratio
-            eff_amount = amount - refund
-            ret = (amount * payout_per_100 / 100.0) if hit else 0.0
-            race_bet += eff_amount
-            race_ret += ret
-            if hit:
-                race_hits += 1
+            # 未開催・照合例外は払戻0の損失にせず、決済対象から完全に除外する。
+            refund = ret = 0.0
+            if settlement == "確定":
+                refund = amount * refund_ratio
+                eff_amount = amount - refund
+                ret = (amount * payout_per_100 / 100.0) if hit else 0.0
+                race_bet += eff_amount
+                race_ret += ret
+                if hit:
+                    race_hits += 1
 
             bet_records.append({
                 "date":     date_key,
@@ -1008,7 +1029,7 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
                 "返還":     _safe_round(refund),
                 "払戻":     _safe_round(ret),
                 "的中":     int(hit),
-                "決着":     "未開催" if race_kk.empty else "確定",
+                "決着":     settlement,
             })
 
         races_out.append({
@@ -1033,8 +1054,9 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
     n_races    = len(races_out)
     n_pass     = sum(1 for r in races_out if r["点数"] == 0)
     n_settled  = sum(1 for r in races_out if r["決着"] == "確定")
-    bet_count  = len(bet_records)
-    hit_count  = sum(b["的中"] for b in bet_records)
+    settled_records = [b for b in bet_records if b["決着"] == "確定"]
+    bet_count  = len(settled_records)
+    hit_count  = sum(b["的中"] for b in settled_records)
 
     # 馬券種別
     by_type: dict = {}
@@ -1043,9 +1065,9 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
         for btype, grp in bdf.groupby("馬券種"):
             settled = grp[grp["決着"] == "確定"]
             # 実効投資 = 購入額 − 返還 (取消馬絡みの組は投資から除外)
-            bet = int(grp["購入額"].sum() - grp["返還"].sum())
-            ret = int(grp["払戻"].sum())
-            hits = int(grp["的中"].sum())
+            bet = int(settled["購入額"].sum() - settled["返還"].sum())
+            ret = int(settled["払戻"].sum())
+            hits = int(settled["的中"].sum())
             n = len(settled)
             by_type[btype] = {
                 "bet": bet, "ret": ret,
@@ -1058,7 +1080,10 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
             # 単勝 30bets ROI120.8% → 445bets で 96.3% に回帰した事故の構造対策。
             # 規律: boost/全廃などのポリシー変更は「roi_ci95 が控除率 (≈80%) を
             # 片側に外れたときだけ」行う。点推定での判断は禁止。
-            if n >= 10:
+            # CI の標本単位はレース。10枚ではなく10レースを最低条件にする。
+            n_ci_units = (settled["race_id"].nunique()
+                          if "race_id" in settled.columns else n)
+            if n_ci_units >= 10:
                 by_type[btype].update(_bet_cis(settled))
 
     # 会場別 / 週次 (確定レースのみ集計)
@@ -1066,6 +1091,7 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
     weekly: list = []
     if races_out:
         rdf = pd.DataFrame(races_out)
+        rdf = rdf[rdf["決着"] == "確定"].copy()
         rdf["日付_dt"] = pd.to_datetime(rdf["date"], format="%Y%m%d", errors="coerce")
         # 会場別
         bpdf = rdf.groupby("場所", sort=True).agg(

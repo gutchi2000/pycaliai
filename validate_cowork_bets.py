@@ -48,14 +48,11 @@ import re
 import sys
 from pathlib import Path
 
+from production_policy import hard_skip_reasons
+
 BASE = Path(__file__).resolve().parent
 INPUT_DIR = BASE / "reports" / "cowork_input"
 OUTPUT_DIR = BASE / "reports" / "cowork_output"
-
-# --- 見送り閾値 (docs/cowork_prompt.md 絶対禁則 2 と一致させること) ---
-CHAOS_SKIP = 0.92      # field_chaos_score >= これ → 見送り
-FIELD_SIZE_SKIP = 7    # field_size <= これ → 見送り
-PWIN_SKIP = 0.05       # ◎ p_win < これ → 見送り
 
 
 def _stdout_utf8() -> None:
@@ -76,31 +73,12 @@ def find_hon(horses: list[dict]) -> dict | None:
 
 def skip_reasons(race_meta: dict, race_conf: dict, hon: dict | None) -> list[str]:
     """この race が満たす見送り条件のリストを返す (空なら買い対象)。"""
-    reasons: list[str] = []
-
-    chaos = race_conf.get("field_chaos_score")
-    if chaos is not None and chaos >= CHAOS_SKIP:
-        reasons.append(f"chaos {chaos:.3f} >= {CHAOS_SKIP}")
-
-    fs = race_meta.get("field_size")
-    if fs is not None and fs <= FIELD_SIZE_SKIP:
-        reasons.append(f"field_size {fs} <= {FIELD_SIZE_SKIP}")
-
-    if hon is None:
-        reasons.append("◎ なし (tansho 不明)")
-    else:
-        if hon.get("tansho_odds") is None:
-            reasons.append("◎ tansho_odds is null")
-        pw = hon.get("p_win")
-        if pw is not None and pw < PWIN_SKIP:
-            reasons.append(f"◎ p_win {pw:.3f} < {PWIN_SKIP}")
-
-    return reasons
+    return hard_skip_reasons(race_meta, race_conf, hon)
 
 
 # --- content バリデーション (馬番実在・券種・金額。LLM/人為ミスの購入指示化を防ぐ) ---
-ALLOWED_KINDS = {"単勝", "複勝", "ワイド", "馬連", "馬単", "三連複"}
-REJECTED_KINDS = {"三連単"}     # CLAUDE.md: 三連単は廃止済み
+ALLOWED_KINDS = {"単勝", "複勝", "ワイド", "馬連", "三連複"}
+REJECTED_KINDS = {"馬単", "三連単"}  # 方向系券種は本番運用で廃止済み
 BET_UNIT = 100
 MAX_BET_PER = 10000             # 1 点あたり上限 (Cowork 手動なので compute_bets の 7000 より緩め)
 
@@ -224,6 +202,7 @@ def main() -> int:
     under_skips: list[dict] = []  # 買えるのに見送っていた (警告のみ)
     bought_ok = 0                 # 正しく買い
     missing_bundle: list[str] = []  # bundle に無い race_id
+    unverified_races: list[dict] = []  # bundle 不在なのに bets がある race (fail-closed)
     content_violations: list[dict] = []  # 馬番不在/不正券種/金額異常/重複 (見送り条件とは別軸)
 
     for race in bet_races:
@@ -231,6 +210,8 @@ def main() -> int:
         brace = bundle.get(rid)
         if brace is None:
             missing_bundle.append(rid)
+            if race.get("bets"):
+                unverified_races.append(race)
             continue
         hon = find_hon(brace.get("horses", []))
         reasons = skip_reasons(brace.get("race_meta", {}),
@@ -282,6 +263,8 @@ def main() -> int:
     print(f"  警告(見送り→買える): {len(under_skips)}")
     if missing_bundle:
         print(f"  bundle 不在 race  : {len(missing_bundle)} {missing_bundle}")
+    if unverified_races:
+        print(f"  ★未検証買い race  : {len(unverified_races)} (bundle 不在のため強制見送り対象)")
     print("-" * 64)
 
     if violations:
@@ -310,7 +293,7 @@ def main() -> int:
                   f"← {' , '.join(cv['issues'])}")
     print("=" * 64)
 
-    if not violations and not content_violations:
+    if not violations and not content_violations and not unverified_races:
         return 0
 
     if not args.apply:
@@ -319,6 +302,8 @@ def main() -> int:
             todo.append(f"見送り違反 {len(violations)} race の bets を []")
         if content_violations:
             todo.append("内容違反/重複 bet を除去")
+        if unverified_races:
+            todo.append(f"bundle 不在 {len(unverified_races)} race の bets を []")
         print(f"\n--apply を付けると {' / '.join(todo)} に書き換えます。")
         return 2
 
@@ -334,6 +319,15 @@ def main() -> int:
             f"[自動見送り: {cond}] " + orig_reason
         ).strip()
         # advisor / grade_scope はそのまま残す (narrative は有用)
+
+    # (1b) bundle に無い race は馬番・オッズ・見送り条件を検証不能なので強制見送り。
+    for race in unverified_races:
+        orig_reason = race.get("race_reason", "")
+        race["bets"] = []
+        race["race_nature"] = "見送り"
+        race["race_reason"] = (
+            "[自動見送り: bundle に race_id 不在で検証不能] " + orig_reason
+        ).strip()
 
     # (2) content 違反/重複 bet を除去 (見送り矯正で [] になった race は自然に対象外)
     #     内容違反(馬番不在/不正券種/金額) → 全除去 / 重複 → 1 個目を残し 2 個目以降を除去
@@ -369,7 +363,7 @@ def main() -> int:
     bets_path.write_text(
         json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    print(f"\n[APPLIED] 見送り違反 {len(violations)} race を [] に / "
+    print(f"\n[APPLIED] 見送り違反 {len(violations)} + 未検証 {len(unverified_races)} race を [] に / "
           f"内容違反・重複 {n_removed} bet を除去しました。")
     print(f"  元ファイル退避 : {bak.name}")
     print(f"  修正後保存     : {bets_path.name}")
