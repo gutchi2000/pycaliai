@@ -78,6 +78,55 @@ if ($sitePending) {
 }
 }
 
+# 1.6 deploy site/ to Cloudflare Workers ourselves (pycaliai.com).
+#     The dashboard's Workers Builds (GitHub push -> auto deploy) silently
+#     stopped firing after 2026-08-17: pushes landed on GitHub but no build
+#     ran, so pycaliai.com served 12-day-old data while HF was fresh (found
+#     2026-08-29). A push is no longer trusted to publish -- we upload the
+#     assets directly, the same way the HF Space is pushed below.
+#     Idempotent: wrangler uploads only changed assets (~5s for a week).
+#     Best-effort: a wrangler failure must never block the HF publish.
+#     Auth is a stored OAuth token; if it expires, run: npx wrangler login
+if ($DryRun) {
+    Step "DryRun: skip wrangler deploy"
+} else {
+    Step "wrangler deploy (Cloudflare pycaliai.com)"
+    if (-not (Get-Command npx -ErrorAction SilentlyContinue)) {
+        Write-Host "  npx not found; pycaliai.com stays stale. Install Node, then: npx wrangler deploy" -ForegroundColor Yellow
+    } else {
+        Push-Location $ROOT
+        & npx --yes wrangler@4 deploy
+        $wrExit = $LASTEXITCODE
+        Pop-Location
+        if ($wrExit -ne 0) {
+            Write-Host "  wrangler deploy failed (exit $wrExit); pycaliai.com stays stale." -ForegroundColor Yellow
+            Write-Host "  fix: npx wrangler login  then: npx wrangler deploy" -ForegroundColor Yellow
+        }
+    }
+}
+
+# 1.7 verify pycaliai.com really serves what we just built. Silent staleness
+#     is the failure mode that went unnoticed for 12 days, so say it out loud
+#     instead of assuming the deploy worked. -Encoding UTF8 is required:
+#     PS 5.1 reads BOM-less UTF-8 as ANSI, which mangles the Japanese place
+#     names, breaks ConvertFrom-Json and would cry STALE on every run.
+if (-not $DryRun) {
+    Step "verify pycaliai.com built_at"
+    try {
+        $localBuilt = (Get-Content (Join-Path $SITE "data\manifest.json") -Raw -Encoding UTF8 | ConvertFrom-Json).built_at
+        $cb = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        $liveBuilt = (Invoke-RestMethod -Uri "https://pycaliai.com/data/manifest.json?cb=$cb" -TimeoutSec 30).built_at
+        if ($liveBuilt -eq $localBuilt) {
+            Write-Host "  OK: pycaliai.com built_at = $liveBuilt" -ForegroundColor Green
+        } else {
+            Write-Host "  STALE: pycaliai.com built_at = $liveBuilt (local = $localBuilt)" -ForegroundColor Red
+            Write-Host "  retry: npx wrangler deploy" -ForegroundColor Red
+        }
+    } catch {
+        Write-Host "  verify skipped ($($_.Exception.Message))" -ForegroundColor Yellow
+    }
+}
+
 foreach ($f in @("index.html", "explain.html", "css\style.css", "js\app.js", "data\manifest.json",
                  "manifest.webmanifest", "sw.js", "apple-touch-icon.png", "favicon.ico",
                  "icons\icon-192.png", "icons\icon-512.png")) {
