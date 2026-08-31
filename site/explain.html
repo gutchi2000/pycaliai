@@ -10,19 +10,19 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#010E27">
+<meta name="theme-color" content="#070b14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="PyCaLiAI">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=20260725a">
 <style>
   .wrap{max-width:var(--maxw);margin:0 auto;padding:var(--pad);}
   .ehead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 18px;}
   .ehead h1{font-family:var(--disp);font-weight:600;font-size:1.4rem;margin:0;color:var(--tx);}
-  select{background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:8px;padding:6px 10px;font-family:var(--sans);}
-  .card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:0;margin:0 0 12px;overflow:hidden;}
+  select{background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:var(--r-pill);padding:6px 10px;font-family:var(--sans);}
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-md);padding:0;margin:0 0 12px;overflow:hidden;}
   .ctitle{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:12px 18px;cursor:pointer;list-style:none;user-select:none;}
   .ctitle::-webkit-details-marker{display:none;}
   .ctitle::before{content:"▸";color:var(--tx3);font-size:.8rem;align-self:center;transition:transform .15s;}
@@ -35,7 +35,7 @@
   .ctitle .jdg{color:var(--teal2);font-size:.8rem;}
   .cbody{padding:12px 18px 16px;}
   .toolbar{display:flex;gap:10px;margin:0 0 14px;}
-  .toolbar button{background:var(--bg3);color:var(--tx2);border:1px solid var(--line2);border-radius:8px;padding:5px 12px;font-family:var(--sans);font-size:.8rem;cursor:pointer;}
+  .toolbar button{background:var(--bg3);color:var(--tx2);border:1px solid var(--line2);border-radius:var(--r-pill);padding:5px 12px;font-family:var(--sans);font-size:.8rem;cursor:pointer;}
   .toolbar button:hover{border-color:var(--gold);color:var(--gold2);}
   .meta{display:flex;gap:18px;flex-wrap:wrap;color:var(--tx2);font-size:.82rem;margin-bottom:12px;}
   .meta b{color:var(--teal2);font-weight:600;}
@@ -54,8 +54,8 @@
   .res{color:var(--tx2);font-size:.82rem;margin-top:10px;}
   .res b{color:var(--gold2);}
   .hint{color:var(--tx3);font-size:.8rem;margin:6px 0 0;}
-  .badge{display:inline-block;background:var(--bg3);border:1px solid var(--line2);border-radius:6px;padding:2px 8px;font-size:.75rem;color:var(--tx2);}
-  .backlink{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:8px;padding:6px 12px;text-decoration:none;font-family:var(--sans);font-size:.85rem;font-weight:500;}
+  .badge{display:inline-block;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--r-pill);padding:2px 8px;font-size:.75rem;color:var(--tx2);}
+  .backlink{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:var(--r-pill);padding:6px 12px;text-decoration:none;font-family:var(--sans);font-size:.85rem;font-weight:500;}
   .backlink:hover{border-color:var(--gold);color:var(--gold2);}
 </style>
 </head>
@@ -64,7 +64,7 @@
 <div class="wrap">
   <div class="ehead">
     <a href="index.html" class="backlink">← 予想に戻る</a>
-    <h1>🏇 レース分析カード <span class="badge">Explainability</span></h1>
+    <h1>レース分析カード <span class="badge">Explainability</span></h1>
     <label>開催日 <select id="dateSel"></select></label>
     <span class="hint">勝率/対戦レーティング/脚質/馬場/展開 ＋ AI解説。馬券判断はご自身で。出典：TARGET frontier JV（JRA-VAN Data Lab.）のデータを基に独自分析・作成。</span>
   </div>
