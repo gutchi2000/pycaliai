@@ -180,6 +180,8 @@ data: 13–15px / 1.4 — tabular-nums where the value is compared column-to-col
 
 Do not make Application/Data headings 48–72px. Large typography is reserved for Marketing surfaces only.
 
+The type scale defines core reusable tokens. Component-specific values explicitly defined elsewhere in this document may use intermediate sizes when required by hierarchy or density.
+
 ---
 
 ## 7. Spacing
