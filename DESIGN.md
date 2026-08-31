@@ -182,6 +182,8 @@ Do not make Application/Data headings 48–72px. Large typography is reserved fo
 
 The type scale defines core reusable tokens. Component-specific values explicitly defined elsewhere in this document may use intermediate sizes when required by hierarchy or density.
 
+The nominal minimum type size for standard UI text is 12px. Dense, width-constrained secondary metadata may use a smaller size when necessary to preserve complete information and avoid truncation. Such exceptions must be justified by rendered-content measurement using representative real data — not assumed. Do not increase secondary metadata size when doing so causes meaningful content clipping.
+
 ---
 
 ## 7. Spacing
@@ -370,6 +372,8 @@ right alignment for numeric values
 sticky header
 subtle row separators (navy, §9)
 40–44px row height
+
+40–44px is the preferred row height for single-line dense data rows. Compound race rows containing a primary horse-name line plus secondary metadata may exceed this range when required for readability and hierarchy. Do not compress multi-line race rows solely to satisfy the nominal 40–44px target.
 
 Horse name is primary text.
 
