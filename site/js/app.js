@@ -400,15 +400,15 @@ function renderHeader(r) {
         <span class="mchip">${r.field_size}頭</span>
         ${baba ? `<span class="mchip">${esc(weather)} / ${esc(baba)}</span>` : ""}
       </div>
+      ${cmdPickHtml(honmei)}
+      ${cmdStateHtml(j, conf, r.field_size)}
+      ${j.category ? `<div class="judge">
+        <span class="jbadge ${jv.cls}">${jv.label}</span>
+        ${j.headline ? `<span class="jdetail"><b>${esc(j.headline)}</b>　${esc(j.detail || "")}</span>` : ""}
+        ${j.hardness ? `<span class="jtag">${esc(j.hardness)}</span>` : ""}
+        ${j.waku_tag ? `<span class="jtag">${esc(j.waku_tag)}</span>` : ""}
+      </div>` : ""}
     </div>
-    ${cmdPickHtml(honmei)}
-    ${cmdStateHtml(j, conf, r.field_size)}
-    ${j.category ? `<div class="judge">
-      <span class="jbadge ${jv.cls}">${jv.label}</span>
-      ${j.headline ? `<span class="jdetail"><b>${esc(j.headline)}</b>　${esc(j.detail || "")}</span>` : ""}
-      ${j.hardness ? `<span class="jtag">${esc(j.hardness)}</span>` : ""}
-      ${j.waku_tag ? `<span class="jtag">${esc(j.waku_tag)}</span>` : ""}
-    </div>` : ""}
     <div class="gauges">
       ${donut("本命優位", conf.top1_dominance, "#f5b942")}
       ${donut("上位集中", conf.top2_concentration, "#5ba0f5")}

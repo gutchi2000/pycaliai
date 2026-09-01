@@ -493,22 +493,23 @@ body:not(.on-landing) #hero, body:not(.on-landing) #landing { display: none; }
 .tdchip.dirt { color: #e0c9a6; background: rgba(190,155,110,.13); border: 1px solid rgba(190,155,110,.38); }
 .mchip { font-size: 14.5px; color: var(--tx2); border: 1px solid var(--line2); border-radius: var(--r-pill); padding: 2px 13px; background: rgba(255,255,255,.02); }
 
-/* Command Header (Structure B, Phase 5B-2): ◎ pick headline + restrained state line. */
-.cmd-pick { flex-basis: 100%; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
-.cmd-pick .mark.m1 { font-size: 30px; }
-.cmd-name { font-family: var(--disp); font-size: 23px; font-weight: 600; color: var(--tx); line-height: 1.15; }
-.cmd-stats { display: flex; gap: 22px; margin-left: auto; }
-.cmd-stat { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
-.cmd-stat b { font-size: 28px; font-weight: 600; color: var(--gold2); }
-.cmd-stat b small { font-size: 15px; font-weight: 500; margin-left: 1px; }
-.cmd-lab { font-size: 11px; color: var(--tx3); letter-spacing: .12em; margin-top: 3px; }
-.cmd-state { flex-basis: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 0 0; padding-bottom: 13px; border-bottom: 1px solid var(--border-subtle); font-size: 13px; color: var(--tx2); }
-.cmd-tag { color: var(--tx3); border: 1px solid var(--line2); border-radius: var(--r-pill); padding: 1px 12px; font-size: 12.5px; }
+/* Command Header (Structure B, Phase 5C-3 compact hybrid): ◎ pick headline + state line,
+   integrated into .rh-main (left column) so gauges stay upper-right, not a separate full-width row. */
+.cmd-pick { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-top: 9px; }
+.cmd-pick .mark.m1 { font-size: 22px; }
+.cmd-name { font-family: var(--disp); font-size: 17px; font-weight: 600; color: var(--tx); line-height: 1.15; }
+.cmd-stats { display: flex; gap: 14px; }
+.cmd-stat { display: flex; align-items: baseline; gap: 3px; line-height: 1; }
+.cmd-stat b { font-size: 20px; font-weight: 600; color: var(--gold2); }
+.cmd-stat b small { font-size: 12px; font-weight: 500; margin-left: 1px; }
+.cmd-lab { font-size: 10px; color: var(--tx3); letter-spacing: .1em; }
+.cmd-state { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 5px 0 0; font-size: 12.5px; color: var(--tx2); }
+.cmd-tag { color: var(--tx3); border: 1px solid var(--line2); border-radius: var(--r-pill); padding: 1px 11px; font-size: 12px; }
 .cmd-kv b { color: var(--tx); font-weight: 600; margin-left: 4px; }
 .cmd-kv b small { color: var(--tx3); font-weight: 400; }
-.cmd-sep { width: 1px; height: 11px; background: var(--line2); }
+.cmd-sep { width: 1px; height: 10px; background: var(--line2); }
 
-.judge { flex-basis: 100%; margin-top: 14px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.judge { margin-top: 9px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .jbadge { font-size: 15.5px; font-weight: 700; letter-spacing: .08em; padding: 3px 16px; border-radius: var(--r-pill); }
 .jbadge.go { background: linear-gradient(120deg, var(--teal2), var(--teal)); color: #04342c; box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 3px 12px -4px rgba(127,201,164,.45); }
 .jbadge.caution { background: linear-gradient(120deg, #ffd28a, var(--amber)); color: #432a04; box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 3px 12px -4px rgba(240,161,50,.45); }
@@ -533,7 +534,7 @@ body:not(.on-landing) #hero, body:not(.on-landing) #landing { display: none; }
 .pr-i b { font-weight: 700; margin-right: 3px; color: var(--tx2); }
 .pr-i .m1c { color: var(--gold); }
 
-.gauges { display: flex; gap: 16px; margin-top: 14px; flex-shrink: 0; }
+.gauges { display: flex; gap: 16px; margin-left: auto; flex-shrink: 0; }
 .gauge { display: flex; flex-direction: column; align-items: center; width: 70px; position: relative; }
 .gauge svg { transform: rotate(-90deg); }
 .g-track { fill: none; stroke: var(--card2); stroke-width: 5; }
@@ -1291,11 +1292,11 @@ body.drawer-open { overflow: hidden; }
   .rh { padding: 12px 13px; }
   .rh-place, .rh-rno { font-size: 26px; }
   .rh-name { font-size: 24px; }
-  .cmd-pick .mark.m1 { font-size: 25px; }
-  .cmd-name { font-size: 19px; }
-  .cmd-stats { gap: 16px; }
-  .cmd-stat b { font-size: 24px; }
-  .cmd-stat b small { font-size: 13px; }
+  .cmd-pick .mark.m1 { font-size: 19px; }
+  .cmd-name { font-size: 15px; }
+  .cmd-stats { gap: 10px; }
+  .cmd-stat b { font-size: 18px; }
+  .cmd-stat b small { font-size: 11px; }
   .ex-grid { grid-template-columns: 1fr; }
   .an-grid, .cc-grid { grid-template-columns: 1fr; }
   .chart { height: 300px; }
