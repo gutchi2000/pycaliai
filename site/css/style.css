@@ -720,10 +720,10 @@ body:not(.on-landing) #hero, body:not(.on-landing) #landing { display: none; }
 .htable { overflow: visible; }
 .hh, .hrow { display: grid; gap: 9px; align-items: center; padding: 7px 14px; }
 .htable.hasres .hh, .htable.hasres .hrow {
-  grid-template-columns: 40px 32px 56px minmax(0,1fr) 44px 158px 70px 62px 78px 64px;
+  grid-template-columns: 40px 32px 56px minmax(0,1fr) 44px 158px 70px 62px 78px;
 }
 .htable.nores .hh, .htable.nores .hrow {
-  grid-template-columns: 32px 56px minmax(0,1fr) 44px 158px 70px 62px 78px 64px;
+  grid-template-columns: 32px 56px minmax(0,1fr) 44px 158px 70px 62px 78px;
 }
 .hh {
   position: sticky; top: 56px; z-index: 5;
@@ -1189,7 +1189,7 @@ body.drawer-open { overflow: hidden; }
 .um-card { padding: 16px 16px 8px; margin-top: 12px; }
 .um-head, .um-row {
   display: grid;
-  grid-template-columns: 30px 52px minmax(96px, 1.1fr) 56px 56px 42px 56px minmax(0, 2fr);
+  grid-template-columns: 30px 52px minmax(96px, 1.1fr) 56px 56px 42px 56px;
   gap: 9px; align-items: center; padding: 8px 6px;
 }
 .um-head { font-size: 12px; color: var(--tx3); border-bottom: 1px solid var(--line2); padding-bottom: 7px; }
@@ -1272,20 +1272,20 @@ body.drawer-open { overflow: hidden; }
 @media (max-width: 1000px) {
   .c-spark { display: none; }
   .htable.hasres .hh, .htable.hasres .hrow {
-    grid-template-columns: 40px 32px 56px minmax(0,1fr) 42px 150px 70px 62px 64px;
+    grid-template-columns: 40px 32px 56px minmax(0,1fr) 42px 150px 70px 62px;
   }
   .htable.nores .hh, .htable.nores .hrow {
-    grid-template-columns: 32px 56px minmax(0,1fr) 42px 150px 70px 62px 64px;
+    grid-template-columns: 32px 56px minmax(0,1fr) 42px 150px 70px 62px;
   }
 }
 @media (max-width: 880px) {
   .gauges { margin-left: 0; flex-basis: 100%; justify-content: space-between; gap: 6px; }
   .c-sho, .c-ninki { display: none; }
   .htable.hasres .hh, .htable.hasres .hrow {
-    grid-template-columns: 36px 30px 52px minmax(0,1fr) 134px 66px 62px;
+    grid-template-columns: 36px 30px 52px minmax(0,1fr) 134px 66px;
   }
   .htable.nores .hh, .htable.nores .hrow {
-    grid-template-columns: 30px 52px minmax(0,1fr) 134px 66px 62px;
+    grid-template-columns: 30px 52px minmax(0,1fr) 134px 66px;
   }
   .hh, .hrow { gap: 7px; padding: 7px 10px; }
   .rh { padding: 12px 13px; }
@@ -1337,11 +1337,11 @@ body.drawer-open { overflow: hidden; }
   .aidx { width: auto; min-width: 0; font-size: 14px; text-align: center; }
   .c-ai .hsort { font-size: 9px; }
   .htable.hasres .hh, .htable.hasres .hrow {
-    grid-template-columns: 18px 16px 24px minmax(0,1fr) 32px 34px 32px;
+    grid-template-columns: 18px 16px 24px minmax(0,1fr) 32px 34px;
     gap: 4px; padding: 7px 5px;
   }
   .htable.nores .hh, .htable.nores .hrow {
-    grid-template-columns: 18px 26px minmax(0,1fr) 34px 36px 34px;
+    grid-template-columns: 18px 26px minmax(0,1fr) 34px 36px;
     gap: 4px; padding: 7px 5px;
   }
   .hh { font-size: 11px; top: 54px; }

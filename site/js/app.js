@@ -577,7 +577,6 @@ function renderTable(r, flip = false) {
       <span class="pwin num ta-r">${pct(h.p_win)}<small>%</small></span>
       <span class="psho num ta-r c-sho">${pct(h.p_sho, 0)}<small>%</small></span>
       <span class="c-spark ta-c">${spark(h)}</span>
-      <span class="ta-r c-vs">${vsChip(h.vs_market)}</span>
     </div>`;
   }).join("");
 
@@ -602,7 +601,6 @@ function renderTable(r, flip = false) {
         <span class="ta-r">${sortBtn("win", "勝率")}</span>
         <span class="ta-r c-sho">${sortBtn("sho", "複勝圏")}</span>
         <span class="ta-c c-spark">近5走</span>
-        <span class="ta-r c-vs">市場</span>
       </div>
       ${rows}
     </div>`;
@@ -1140,7 +1138,6 @@ function umamiTableHtml(r) {
       <span class="num ta-r um-evf">${pct(h.p_sho, 0)}<small>%</small></span>
       <span class="ta-c"><span class="um-g" style="background:${UMAMI_COLOR[g] || "#46587e"}">${g}</span></span>
       <span class="um-side">${gated ? "—" : esc(u.side || "")}</span>
-      <span class="um-reason">${vsChip(h.vs_market)}</span>
     </div>`;
   }).join("");
 
@@ -1151,7 +1148,7 @@ function umamiTableHtml(r) {
       <span></span><span>${sb("uma", "馬番")}</span><span>馬名</span>
       <span class="ta-r um-evt">${sb("win", "勝率")}</span>
       <span class="ta-r um-evf">複勝圏</span>
-      <span class="ta-c">${sb("grade", "格")}</span><span class="um-side">推奨</span><span class="um-reason">市場</span>
+      <span class="ta-c">${sb("grade", "格")}</span><span class="um-side">推奨</span>
     </div>
     ${rows}
   </div>`;
