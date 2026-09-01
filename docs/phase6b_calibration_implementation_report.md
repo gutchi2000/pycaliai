@@ -1,6 +1,7 @@
 # PyCaLiAI Phase 6B — Model Reliability / Calibration Implementation Report
 
-> Implements 6B-0 through 6B-2 and 6B-5. 6B-3 (horse-level reliability popover) deferred — see §16. Not committed — left for review.
+> Implements 6B-0 through 6B-2 and 6B-5. 6B-3 (horse-level reliability popover) deferred — see §16.
+> **Extended post-review — see §18.** Your review required this to be framed explicitly as a *new* evaluation scope (not a re-display of the existing ◎/○-only ECE figures already cited in CLAUDE.md/audit_marks.py) and required five specific QA checks before commit; both are addressed in §18. Committed as an isolated `design: Phase 6B Model Reliability / calibration view` commit, after Phase 5C-3 and Phase 6A per your explicit ordering.
 > Date: 2026-09-01
 
 ---
@@ -92,37 +93,29 @@ Clean on a genuinely fresh tab (confirmed). **One thing investigated and ruled o
 
 Mobile screenshot (375×812) captured showing the expanded section: header, scope line, WIN chart (gold, 6 points, diagonal-hugging), full bin table, TOP3 chart (teal, 9 points) beginning below. Desktop confirmed via DOM extraction rather than an image (same known deep-scroll rendering limitation as prior phases, given this section sits below 447 hit-cards) — values cross-checked exactly against the mobile screenshot and the Python output.
 
-## 14. `git diff --stat`
+## 14. `git diff --stat` — resolved (see §18)
+
+The commit-sequencing question is resolved: split into three isolated commits (5C-3 → 6A → 6B) via hunk-level reconstruction, verified byte-for-byte against the final working tree before each commit. This phase's isolated diff, as actually committed:
 
 ```
-$ git diff --stat -- site/js/app.js site/css/style.css site/index.html
- site/css/style.css |  94 +++++++++++++++++++++++++------
- site/index.html    |   4 +-
- site/js/app.js     | 171 ++++++++++++++++++++++++++++++++++++++++++++++++++---
- 3 files changed, 240 insertions(+), 29 deletions(-)
+$ git diff --stat HEAD~1..HEAD
+ build_calibration.py                              | 217 (new file)
+ docs/phase6b_calibration_implementation_report.md | 132 (new file)
+ site/css/style.css                                |  30 +++
+ site/data/calibration.json                        | 168 (new file)
+ site/index.html                                   |   4 +-
+ site/js/app.js                                     |  77 +++++++++
+ 6 files changed, 626 insertions(+), 2 deletions(-)
 ```
-
-This is cumulative with Phase 5C-3 and Phase 6A, still uncommitted — the same commit-sequencing question raised in the Phase 6A report remains open.
 
 ## 15. `git status --porcelain`
 
-```
-$ git status --porcelain -- site/ build_calibration.py build_forecast_history.py
- M site/css/style.css
- M site/index.html
- M site/js/app.js
-?? build_calibration.py
-?? build_forecast_history.py
-?? site/data/calibration.json
-?? site/data/forecast_history/
-```
-
-Not committed, per instruction.
+Committed as `design: Phase 6B Model Reliability / calibration view`. See §18 for the full commit list and verification.
 
 ## 16. Known limitations
 
 - **6B-3 (horse-level reliability popover) deferred, not implemented.** The brief says "only implement if it can reuse the same calibration dataset cleanly" — cleanly reusing it per-horse would mean, for a given displayed WIN%, looking up which bin it falls in and showing that bin's aggregate stats. This is straightforward to *compute* but I did not want to add a new interactive affordance (tooltip/popover) to the Command Header or shutsuba table in the same pass as everything else already shipped this turn, given the brief's own repeated caution against cluttering the header/first-viewport. Flagged as a small, well-scoped follow-up rather than built speculatively.
-- Same weekly-automation-wiring question as Phase 6A: `build_calibration.py` must currently be run manually (naturally, once per Sunday after results land, i.e. as part of Phase C, not Phase A).
+- Same weekly-automation-wiring question as Phase 6A: `build_calibration.py` must currently be run manually. A hook location has been proposed and reported separately for approval (see §18) — notably, its *actual* dependency turned out not to be `generate_results.py` (which never touches `site/data/`) but `build_site.py`'s own re-run once kekka lands, so the natural hook is the same script as Phase 6A's (`sync-hf-umami.ps1`), not `weekly_post.ps1`.
 - Coverage is naturally v6-only (27 dates) — will grow every week going forward as more settled race days accumulate; no code change needed for that growth, just re-running the script.
 
 ## 17. PASS/FAIL
@@ -130,3 +123,29 @@ Not committed, per instruction.
 **PASS.** No existing feature touched beyond appending to `renderResults()`'s output. No new metric invented — the ECE definition and bin scheme are copied verbatim from the project's own existing, already-relied-upon audit tool. Sample size (`n`) is shown for every single bin, in both the table and via dot size in the chart, with zero-sample bins simply omitted rather than shown as a misleading zero. No compliance issue found in the generated public JSON.
 
 **Per the brief's own "stop and verify" instruction, stopping here — Phase 6C (WHY ◎ > ○) has not been started.**
+
+## 18. Addendum — new evaluation scope framing + final QA (post-review)
+
+Your review required two things before commit, both addressed here rather than left as prose-only claims:
+
+**1. Explicit "new evaluation scope" framing.** The population-scope decision was already explained in §2 above, but you required it stated as a formal, unmistakable distinction from the ◎/○-only ECE numbers already cited elsewhere in this project (CLAUDE.md, `audit_marks.py`'s own output) — not merely implied. Added:
+- `build_calibration.py`'s docstring now has a dedicated section spelling out exactly what's reused unchanged (metric formula, 10-bin scheme) versus what changed (population: ◎/○ slots → every horse in every settled v6 race), and states outright that the resulting ECE values are **not comparable to** and **must never be described as** the same figure as CLAUDE.md's "複勝(◎) ECE -32%" line.
+- `calibration.json` itself now carries an explicit `evaluation_scope` object (`description`, `population`, `metric`, `differs_from`, `win_and_top3_evaluated_independently`) — so a reader of the JSON alone, not just the docstring, can't mistake this for the historical ◎/○ evaluation.
+- The frontend scope line now carries a `新規の評価範囲` badge, and the disclosure note explicitly tells the reader not to directly compare these numbers against the ◎ hit-rate figures shown earlier on the same page.
+- Live-verified on desktop: badge renders inline next to the scope line; numbers (WIN ECE 0.77pt, TOP3 ECE 1.29pt, n=12,117 both) are byte-identical to the pre-rework values, confirming this was a pure labeling/metadata addition with no change to the underlying computation.
+
+**2. Five-point final QA, verified rather than assumed:**
+
+| # | Check | How verified |
+|---|---|---|
+| 1 | Non-starters/scratches not scored as losses | Traced upstream to `build_site.py`'s `order` dict construction: a row's `着順` is parsed via `_int()`, which returns `None` for any non-numeric code (取消/除外/中止); the row is skipped *before* `r["order"][str(uma)]` is ever set. So a scratched horse simply has no key in `order` — `build_calibration.py`'s `order.get(str(uma)) is None → continue` guard excludes it, not counts it as a loss. Comment added at the guard site documenting this traced guarantee. |
+| 2 | `p_sho`/TOP3 definition consistent across the full evaluation set | Single definition, one place: `1 if int(pos) <= 3 else 0`, applied uniformly in `collect()`'s one loop — no per-race or per-date branching. |
+| 3 | Displayed sample counts reconcile exactly with included source rows | Added two runtime `assert`s (not just eyeballing): `sum(bin.n) == n_horses_win` and `== n_horses_sho`. Confirmed passing on the real re-run: bins sum to 12,117 on both sides, exact match. |
+| 4 | Evaluation period + model-version scope recorded | Already present via `generated_at_scope` (`model_version`, `date_from`, `date_to`, `n_dates`, `n_races`); now also echoed in the new `evaluation_scope` block (item 1 above). |
+| 5 | WIN and TOP3 evaluated independently | Two separate arrays (`win_p`/`win_y` vs `sho_p`/`sho_y`), two separate `expected_calibration_error()` calls. Added an `assert len(win_p) == len(sho_p)` to confirm they're drawn from the identical population (every append happens in the same loop iteration) even though computed independently. |
+
+All four assertions pass on the real data; the script also now prints a `[6B QA] ...: PASS` line for each of the four checks above, so this isn't a one-time claim — it's re-verified every time the script runs. Re-ran for real after these changes: identical WIN/TOP3 ECE and bin values to the pre-rework run (0.0077 / 0.0129), confirming this was additive verification, not a computation change.
+
+**Automation hook — proposed, not implemented.** See Phase 6A's §18 for the full reasoning: `build_calibration.py`'s actual data dependency is `site/data/{date}.json`'s `result.order`, populated by `build_site.py` — not `data/results.json`/`data/cowork_results.json` (what `generate_results.py` writes, and what "the Results dataset" most naturally refers to). `generate_results.py` never touches `site/data/`. So the technically-correct hook is the same script as 6A's (`sync-hf-umami.ps1`, right after its `build_site.py` call), gated to a `-RebuildCalibration` switch passed only from `weekly_nicegui.ps1`'s `-Post` phase (since only by then has `build_site.py` picked up the week's newly-settled kekka). This is flagged explicitly because it diverges from the literal instruction to hook this "after settled results feeding the Results dataset have been updated" (i.e. after `generate_results.py`) — that location doesn't actually work, since `site/data/{date}.json` doesn't yet have the new results at that point in `weekly_post.ps1`. Not yet implemented — awaiting review.
+
+**Commit**: landed as its own isolated commit, `design: Phase 6B Model Reliability / calibration view`, positioned after Phase 6A per your explicit ordering.

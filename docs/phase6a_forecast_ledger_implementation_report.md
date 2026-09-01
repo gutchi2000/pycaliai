@@ -1,7 +1,7 @@
 # PyCaLiAI Phase 6A — Forecast Ledger Implementation Report
 
 > Implements Option A from the 6A-0 audit (`docs/phase6a0_forecast_history_audit.md`), confirmed by you: a single immutable, timestamped forecast record per race (6A-1, 6A-4, 6A-5), surfaced as a new "予測記録" tab. 6A-3's multi-point timeline chart and 6A-6 (What Changed) are **not implemented** — both require multiple forecast points per race, which the audit found don't exist in the current pipeline; nothing was invented to manufacture them.
-> Not committed — left for review, per instruction. See §14/§15 for an important note on commit sequencing.
+> **Superseded in part by a provenance rework — see §18.** The single-`generated_at`-field design described in §3/§9 below was replaced before commit with an explicit `provenance`/`captured_at`/`source_generated_at`/`source_generated_at_basis` schema, after review found the original design couldn't distinguish a genuine pre-race capture from a same-day-or-later backfill. §14/§15's commit-sequencing question was resolved: committed as an isolated `design: Phase 6A Forecast Ledger` commit, after Phase 5C-3 and before Phase 6B, per your explicit ordering.
 > Date: 2026-09-01
 
 ---
@@ -61,7 +61,7 @@ Verified live at 375×812 (screenshot captured, see §13): tab, header, state li
 | `race_state.chaos` (`confidence.field_chaos_score`) | same | yes (model output) | no | yes (header gauge) | yes — race-state context |
 | `race_state.member_level` | same | yes (derived from public results) | no | yes (header card) | yes — race-state context |
 | `model_version` | `reports/cowork_input/{date}_bundle.json` | yes | no | yes (site footer) | yes — provenance |
-| `generated_at` | wall-clock at first write | n/a | no | no (new) | yes — the whole point of a ledger |
+| `provenance`, `captured_at`, `source_generated_at`, `source_generated_at_basis` | see §18 (provenance rework) — superseded the single `generated_at` field originally listed here | n/a | no | no (new) | yes — the whole point of a ledger |
 
 Inspected the 70 generated files directly (§10) for the explicit forbidden-key list from the brief (`odds`, `ev_tan`, `market probability`, `vs_market`, `training`, plus this project's own `hosei_marks`/`taiju`/`fuku_low`/`fuku_high`/`umaren_odds`) — none present, confirmed both by the whitelist-only construction and the runtime `assert_public_safe()` check (which would have raised and aborted the write had any of these appeared).
 
@@ -84,35 +84,27 @@ Clean, confirmed via a fresh single-click tab. Network requests to `data/forecas
 
 Mobile screenshot (375×812, settled race, Race Replay view) captured and visually confirms: gold "確定予測" label, timestamp/model-version metadata, CHAOS/member-level state line, the full sorted horse table with graceful name truncation, the immutability disclosure note, the dashed separator, and the distinctly-styled RESULT section below it. Desktop was verified via DOM text extraction (see §7) rather than a screenshot image, due to this environment's known deep-scroll rendering limitation — the *content* was directly confirmed identical in substance to the mobile screenshot (same values, same structure), just not captured as a desktop image.
 
-## 14. `git diff --stat`
+## 14. `git diff --stat` / commit sequencing — resolved (see §18)
+
+The commit-sequencing question originally raised here (Phase 5C-3's header changes and this phase's forecast-tab changes were stacked, uncommitted, in the same working tree) was resolved exactly as you instructed: the three phases were split into isolated commits via hunk-level reconstruction (verified byte-for-byte against the final working tree before each commit), in the order 5C-3 → 6A → 6B. This phase's isolated diff, as actually committed:
 
 ```
-$ git diff --stat -- site/js/app.js site/css/style.css site/index.html
- site/css/style.css | 65 +++++++++++++++++++++++++-----------
- site/index.html    |  4 +--
- site/js/app.js     | 96 +++++++++++++++++++++++++++++++++++++++++++++++++-----
- 3 files changed, 136 insertions(+), 29 deletions(-)
+$ git diff --stat HEAD~2..HEAD~1 -- site/js/app.js site/css/style.css site/index.html build_forecast_history.py
+ build_forecast_history.py |  91 (new file)
+ site/css/style.css        |  27 +++++++++++++++
+ site/index.html           |   4 +-
+ site/js/app.js            |  91 +++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, insertions only except index.html's cache-bust bump
 ```
-
-**Important**: this diff includes both Phase 5C-3's still-uncommitted compact-header changes *and* this phase's forecast-tab changes, stacked in the same working tree — Phase 5C-3 was implemented and reported but never explicitly committed before this Phase 6 spec arrived. They are not entangled at the *feature* level (different functions, different selectors, no shared lines), but a plain `git diff` right now shows both together. Before committing anything, please confirm whether you want Phase 5C-3 committed first as its own commit (as originally planned) and this phase's changes committed separately on top, per the brief's own requested commit boundaries (`feat: add forecast snapshot history` / `feat: add Forecast Timeline / Race Replay`) — I did not decide this unilaterally.
 
 ## 15. `git status --porcelain`
 
-```
-$ git status --porcelain -- site/ build_forecast_history.py
- M site/css/style.css
- M site/index.html
- M site/js/app.js
-?? build_forecast_history.py
-?? site/data/forecast_history/
-```
-
-Not committed, per instruction.
+Committed as `design: Phase 6A Forecast Ledger (append-only forecast history)`. See §18 for the full commit list and verification.
 
 ## 16. Known limitations
 
 - **6A-3's multi-point timeline and 6A-6 (What Changed) are not implemented** — per the confirmed audit finding, there is currently only one legitimate forecast-generation point per race, so a "how did it change" view has nothing to compare. If a second compliant generation point is ever introduced, both become straightforward additions on top of this same storage format.
-- **Not wired into weekly automation** — must be run manually until you decide where it should hook into `sync-hf-umami.ps1` (see §3).
+- **Not wired into weekly automation** — must be run manually. A specific hook location (inside `sync-hf-umami.ps1`, immediately after its existing `build_site.py` call, gated to only pass `--live` from Phase A's own invocation) has been proposed and reported separately for your approval; not implemented yet (see §18).
 - **6A verification checklist, explicit status**:
 
 | Check | Status |
@@ -136,4 +128,23 @@ Not committed, per instruction.
 
 ## 17. PASS/FAIL
 
-**PASS**, within the confirmed reduced scope (Option A). No production regression found. Two things need your decision before this goes further: the commit-sequencing question in §14, and whether/how to wire `build_forecast_history.py` into weekly automation (§3, §16).
+**PASS**, within the confirmed reduced scope (Option A). No production regression found. Two things needed your decision before this went further: the commit-sequencing question in §14, and whether/how to wire `build_forecast_history.py` into weekly automation (§3, §16) — both addressed in §18.
+
+## 18. Addendum — provenance rework (post-review correction)
+
+Your review of the first pass found the single-`generated_at`-field design insufficient: it recorded only *when this script wrote the file*, with no way to tell "captured before the race" apart from "backfilled today by reading an old archived file." Fixed before any commit, by replacing that one field with four:
+
+- **`provenance`**: `"live_generation"` (this run was explicitly invoked with `--live` as part of a genuine same-day Phase-A run) or `"archived_bundle_backfill"` (the default — read an already-existing `site/data/{date}.json` at some later point).
+- **`captured_at`**: wall-clock time this script wrote the record. Never claimed to be the original forecast time.
+- **`source_generated_at`**: a best-effort estimate of when the forecast content actually first went public, or `null` if it can't be proven — never guessed.
+- **`source_generated_at_basis`**: how `source_generated_at` was derived. `"git_first_commit_content_verified"` — found `site/data/{date}.json`'s earliest git commit via `git log --follow`, then confirmed (via `git show <hash>:<path>`) that every race's `mark`/`p_win`/`p_sho` in that commit is byte-identical to current content, i.e. nothing has changed since — making that commit's timestamp a trustworthy proxy. `"content_diverged_from_earliest_known_commit"` or `"no_git_history"` otherwise, with `source_generated_at` left `null`.
+
+The frontend (`renderForecast()` in `app.js`) surfaces this directly rather than only in metadata: a badge ("事後記録（アーカイブから復元）" for backfill / "レース当日リアルタイム記録" for live), a "予測確定 …（記録改ざん検証済）" line when the git-verified basis applies, a separate "台帳記録 …" line for `captured_at`, and a disclosure note that explicitly states a backfilled record is not proof the ledger was locked pre-race.
+
+**Full re-audit of every currently-generated ledger file** (both dates, 70 race files + 2 `_index.json`): all 70 classify as `provenance=archived_bundle_backfill`, `source_generated_at_basis=git_first_commit_content_verified` — verified programmatically (not sampled) by loading every file and tallying `(provenance, source_generated_at_basis)`. `20260830`'s `source_generated_at` = `2026-08-29T22:49:01+09:00`; `20260816`'s = `2026-08-15T23:16:07+09:00` (confirmed to be the *earliest* of several commits touching that date's file, not a later refresh). No `live_generation` records exist yet — expected, since `--live` has never actually been invoked from automation (it isn't wired in yet, see below).
+
+Live-verified on both desktop (1440×900) and mobile (375×812) against `20260816`: badge, predicted-at line, captured-at line, and disclosure note all render exactly as designed, with a clean console (the one 404 seen — `data/changes_20260816.json` — is this project's pre-existing, unrelated day-of-changes overlay correctly finding nothing for a historical date, not a regression).
+
+**Automation hook — proposed, not implemented** (per your instruction to report before touching unattended automation): `build_forecast_history.py`'s true dependency is `site/data/{date}.json`, which `sync-hf-umami.ps1` produces via its own `build_site.py` call (line ~54) — `weekly_post.ps1` never touches `site/data/`. Proposed change: add a `-Date` and `-Live` param to `sync-hf-umami.ps1`; call `build_forecast_history.py $Date $(if($Live){'--live'})` immediately after its `build_site.py` step, before any commit/deploy step. `weekly_nicegui.ps1`'s Phase A block would pass `-Date $Date -Live`; BetsOnly/Post would pass `-Date $Date` only (no `-Live`) — so if Phase A's capture is ever missed, a later phase's call still captures the race, but honestly as a backfill rather than mislabeling it live. Not yet implemented — awaiting your review alongside the Phase 6B hook proposal.
+
+**Commit**: landed as its own isolated commit, `design: Phase 6A Forecast Ledger (append-only forecast history)`, positioned after Phase 5C-3 and before Phase 6B per your explicit ordering — reconstructed via hunk-level surgery on a scratch copy and verified byte-for-byte against the final working tree before commit, not a squash of the stacked working-tree diff.
