@@ -1055,6 +1055,13 @@ body.drawer-open { overflow: hidden; }
 .dw-name { font-size: 26px; font-weight: 700; }
 .dw-mark { font-size: 22px; }
 .dw-sub2 { font-size: 16px; color: var(--tx2); margin-left: 4px; }
+.dw-cmpadd { margin: 8px 0 2px; }
+.dw-cmp-btn {
+  font-size: 12px; font-weight: 600; color: var(--tx2); background: var(--card2);
+  border: 1px solid var(--line2); border-radius: var(--r-pill); padding: 5px 13px; cursor: pointer;
+}
+.dw-cmp-btn.on { color: var(--gold2); border-color: color-mix(in srgb, var(--gold) 45%, transparent); background: color-mix(in srgb, var(--gold) 10%, var(--card2)); }
+.dw-cmp-btn:disabled { color: var(--tx3); cursor: default; opacity: .7; }
 .dw-ped { font-size: 16px; color: var(--tx3); margin-bottom: 12px; }
 .dw-top { display: grid; grid-template-columns: 1.05fr 1fr; gap: 8px 30px; margin-bottom: 4px; }
 .dw-top.solo { grid-template-columns: 1fr; }
@@ -1212,13 +1219,25 @@ body.drawer-open { overflow: hidden; }
 .fl-mk.m4 .mk-mark { color: #8a97b5; }
 .fl-mk.m0 { opacity: .72; }
 .fl-mk.m0 .mk-num { color: var(--tx3); }
-.fl-tip {
-  position: absolute; bottom: calc(100% + 7px); left: 50%; transform: translateX(-50%);
-  background: #0d1220; border: 1px solid var(--line2); border-radius: 6px;
-  padding: 6px 10px; font-size: 11.5px; line-height: 1.5; white-space: nowrap;
-  color: var(--tx2); opacity: 0; pointer-events: none; transition: opacity .12s; z-index: 5;
+/* 7B-1: 馬名はデフォルト非表示。pointer:fine (デスクトップ相当) でのみ表示 — クリック挙動の
+   isPointerFine 判定と同じデバイス能力シグナルを使い、JSでの出し分けをCSS側にも揃える。
+   モバイルは従来通りマーク+馬番のみの compact マーカー。 */
+.fl-mk .mk-name { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .fl-mk { max-width: 172px; }
+  .fl-mk .mk-name {
+    display: inline-block; margin-left: 2px; color: var(--tx2);
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
 }
-.fl-mk:hover .fl-tip { opacity: 1; }
+/* 7B-1: ツールチップ клип修正 — .fl-cols の overflow:hidden (角丸クリップ用) に巻き込まれない
+   よう、document.body 直下の position:fixed 単一要素として JS (showFlowTip/hideFlowTip) が
+   衝突回避付きで配置する。ここでは見た目のみ定義し、位置は一切指定しない。 */
+.fl-tip-float {
+  position: fixed; display: none; background: #0d1220; border: 1px solid var(--line2);
+  border-radius: 6px; padding: 6px 10px; font-size: 11.5px; line-height: 1.5;
+  white-space: nowrap; color: var(--tx2); z-index: 200; pointer-events: none;
+}
 .fl-unk { margin-top: 10px; padding: 10px; background: rgba(108,112,134,.1); border-radius: var(--r-sm); border: 1px solid var(--line); }
 .fl-unk-h { color: var(--tx3); font-size: 12px; margin-bottom: 6px; }
 .fl-selected {
@@ -1294,33 +1313,53 @@ body.drawer-open { overflow: hidden; }
   border-top: 1px dashed var(--line2);
 }
 
-/* ---------------- ◎〇比較 (Phase 6C: なぜ◎が〇より高評価か)
+/* ---------------- 馬比較 (Phase 6C-2: 6C「◎〇分析」の一般化, 2〜3頭)
    .cmp-side は openDrawer() の .why/.bar/.wv と同じ値・同じ視覚言語を再利用し、
-   ラベルを行ごとに1回へ集約しただけ (2頭分を並べるための最小限のレイアウト差分)。
-   Δ(寄与差)は並べ替えにのみ使い、UIには一切表示しない。 ---------------- */
+   ラベルを行ごとに1回へ集約しただけ。.cmp-pair は flex(flex:1 の子)なので
+   2頭・3頭どちらでも自動的に等分され、CSS側の変更なしにNの一般化に対応する。
+   タグ色は FLOW の .fl-mk と同じ markCls() 由来の m0〜m4 トークンを再利用する
+   (◎=gold固定ではなく、選ばれた馬のマークに応じて色が決まる)。
+   寄与差/最大絶対寄与などの並べ替えキーは並べ替えにのみ使い、UIには一切表示しない。 ---------------- */
 .cmp-card { padding: 18px 20px; }
 .cmp-head { font-size: 16px; font-weight: 700; color: var(--gold2); letter-spacing: .04em; }
 .cmp-sub { font-size: 12.5px; color: var(--tx3); margin-top: 6px; line-height: 1.6; }
-.cmp-legend { display: flex; gap: 18px; margin: 12px 0 4px; font-size: 12.5px; color: var(--tx2); }
-.cmp-legend span { display: flex; align-items: center; gap: 6px; }
-.cmp-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-.cmp-dot.dot-h { background: var(--gold); }
-.cmp-dot.dot-m { background: #d9e2f2; }
+.cmp-selrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.cmp-chip {
+  display: flex; align-items: center; gap: 7px; padding: 6px 8px 6px 10px;
+  border-radius: var(--r-card); background: rgba(0,0,0,.18); border: 1px solid var(--line2);
+  font-size: 12.5px;
+}
+.cmp-chip-name { color: var(--tx); font-weight: 600; white-space: nowrap; }
+.cmp-chip-stats { color: var(--tx3); white-space: nowrap; }
+.cmp-chip-x {
+  background: transparent; border: none; color: var(--tx3); cursor: pointer;
+  font-size: 13px; line-height: 1; padding: 2px 4px; border-radius: 4px;
+}
+.cmp-chip-x:hover { color: var(--tx); background: rgba(255,255,255,.06); }
+.cmp-addrow { margin-top: 8px; }
+.cmp-add-sel {
+  font-size: 12.5px; color: var(--tx2); background: var(--card2); border: 1px solid var(--line2);
+  border-radius: var(--r-pill); padding: 5px 12px; cursor: pointer;
+}
+.cmp-limit { font-size: 12px; color: var(--tx3); }
+.cmp-nodata { font-size: 12px; color: var(--tx3); margin: 4px 0 10px; }
 .cmp-row { padding: 12px 0; border-top: 1px solid var(--line); }
 .cmp-row:first-of-type { border-top: none; padding-top: 14px; }
 .cmp-label { font-size: 13.5px; font-weight: 600; color: var(--tx2); margin-bottom: 8px; }
-.cmp-pair { display: flex; gap: 20px; }
+.cmp-pair { display: flex; gap: 16px; flex-wrap: wrap; }
 .cmp-side { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
-.cmp-side-tag { font-size: 13px; font-weight: 900; width: 16px; text-align: center; flex: none; }
-.cmp-side-h .cmp-side-tag { color: var(--gold); }
-.cmp-side-m .cmp-side-tag { color: #d9e2f2; }
+.cmp-side-tag { font-size: 13px; font-weight: 900; min-width: 16px; text-align: center; flex: none; }
+.cmp-side.m1 .cmp-side-tag { color: var(--gold); }
+.cmp-side.m2 .cmp-side-tag { color: #d9e2f2; }
+.cmp-side.m3 .cmp-side-tag { color: #d08b4c; }
+.cmp-side.m4 .cmp-side-tag { color: #8a97b5; }
+.cmp-side.m0 .cmp-side-tag { color: var(--tx3); }
 .cmp-side-val { font-family: var(--disp); font-size: 12.5px; color: var(--tx3); max-width: 64px; flex: none; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cmp-side .bar { height: 6px; }
 .cmp-side.neg .bar i { background: linear-gradient(90deg, #a83a3e, #f3989b); }
 .cmp-side .wv { font-family: var(--disp); font-size: 13.5px; width: 42px; text-align: right; color: var(--tx2); flex: none; }
 .cmp-onesided { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--line2); }
 .cmp-onesided-h { font-size: 11.5px; color: var(--tx3); letter-spacing: .04em; margin-bottom: 6px; }
-.cmp-onesided .why { margin-bottom: 6px; opacity: .85; }
 
 /* ---------------- 全頭 UMAMI テーブル ---------------- */
 .um-card { padding: 16px 16px 8px; margin-top: 12px; }

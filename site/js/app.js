@@ -903,6 +903,25 @@ function renderCowork(r) {
 }
 
 /* ---------------- drawer ---------------- */
+// 馬比較への追加ボタン。openDrawer() 自体は再描画するだけで、比較選択状態
+// (state.compareSel, getCompareSelection/compareAdd/compareRemove) は
+// 馬比較セクションのものをそのまま再利用する — 別の選択ステートは持たない。
+function wireDrawerCompareBtn(r, h) {
+  const btn = document.getElementById("dwCmpBtn");
+  if (!btn) return;
+  const sel = getCompareSelection(r);
+  const inCompare = sel.includes(h.umaban);
+  const full = sel.length >= 3 && !inCompare;
+  btn.disabled = full;
+  btn.textContent = inCompare ? "✓ 比較に追加済み" : (full ? "比較は最大3頭まで" : "＋ 比較に追加");
+  btn.classList.toggle("on", inCompare);
+  btn.onclick = () => {
+    if (btn.disabled) return;
+    if (inCompare) compareRemove(r, h.umaban); else compareAdd(r, h.umaban);
+    openDrawer(h.umaban);  // ボタン状態を反映して再描画するだけ
+  };
+}
+
 function openDrawer(umaban) {
   const r = currentRace();
   const h = r.horses.find((x) => x.umaban === umaban);
