@@ -20,6 +20,7 @@ const state = {
 const dayCache = new Map();
 let charts = [];
 let resultsData = null;
+let calibrationData;   // undefined=未fetch, null=無し(404), obj=Phase 6B calibration.json
 let realizedBias = null;   // data/realized_bias.json (直近開催の実現トラックバイアス)
 
 /* ---------------- utils ---------------- */
@@ -1709,6 +1710,75 @@ function rsDate(d8) {
   return `${+d8.slice(4, 6)}/${+d8.slice(6, 8)}`;
 }
 
+/* ---------------- MODEL RELIABILITY (Phase 6B: 校正診断) ----------------
+   data/calibration.json = build_calibration.py の出力。ECE定義・10等幅ビンは
+   audit_marks.py (v6本番化判断で使用中の指標) と完全同一実装をそのまま踏襲。
+   このセクション自体は既存の HONEST RECORD を置き換えない・常時展開もしない
+   (details要素で折りたたみ、初回表示の縦幅に影響させない)。 */
+function reliabilitySvg(bins, color) {
+  const W = 236, H = 200, PADL = 30, PADB = 22, PADT = 10, PADR = 10;
+  const plotW = W - PADL - PADR, plotH = H - PADT - PADB;
+  const X = (v) => PADL + v * plotW;
+  const Y = (v) => (H - PADB) - v * plotH;
+  const withN = bins.filter((b) => b.n);
+  const maxN = Math.max(...withN.map((b) => b.n), 1);
+  const pts = withN.map((b) => {
+    const r = 2.5 + 7 * Math.sqrt(b.n / maxN);
+    return `<circle cx="${X(b.mean_pred).toFixed(1)}" cy="${Y(b.actual_rate).toFixed(1)}" r="${r.toFixed(1)}"
+      fill="${color}" fill-opacity=".82"><title>予測 ${(b.mean_pred * 100).toFixed(1)}% ／ 実測 ${(b.actual_rate * 100).toFixed(1)}% ／ n=${b.n.toLocaleString()}</title></circle>`;
+  }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="cal-svg" role="img" aria-label="キャリブレーション図">
+    <line x1="${X(0)}" y1="${Y(0)}" x2="${X(1)}" y2="${Y(1)}" class="cal-diag"/>
+    <line x1="${PADL}" y1="${H - PADB}" x2="${W - PADR}" y2="${H - PADB}" class="cal-axis"/>
+    <line x1="${PADL}" y1="${H - PADB}" x2="${PADL}" y2="${PADT}" class="cal-axis"/>
+    ${pts}
+    <text x="${PADL}" y="${H - 6}" class="cal-tick">0%</text>
+    <text x="${W - PADR}" y="${H - 6}" text-anchor="end" class="cal-tick">100%</text>
+    <text x="4" y="${H - PADB + 3}" class="cal-tick">0</text>
+    <text x="4" y="${PADT + 6}" class="cal-tick">100</text>
+  </svg>`;
+}
+
+function calibrationBinRows(bins) {
+  return bins.filter((b) => b.n).map((b) => `<tr>
+    <td>${(b.bin_lo * 100).toFixed(0)}–${(b.bin_hi * 100).toFixed(0)}%</td>
+    <td class="num ta-r">${(b.mean_pred * 100).toFixed(1)}%</td>
+    <td class="num ta-r">${(b.actual_rate * 100).toFixed(1)}%</td>
+    <td class="num ta-r">${b.n.toLocaleString()}</td>
+  </tr>`).join("");
+}
+
+function calibrationSectionHtml() {
+  if (!calibrationData) return "";
+  const c = calibrationData;
+  const sc = c.generated_at_scope || {};
+  return `<details class="card cal-card">
+    <summary class="cal-sum">MODEL RELIABILITY <small>予測確率は実際の的中率と一致しているか</small></summary>
+    <div class="cal-body">
+      <div class="cal-scope">評価対象: model ${esc(sc.model_version || "—")} ・ ${esc(sc.date_from || "?")}〜${esc(sc.date_to || "?")}
+        (${sc.n_dates ?? "?"}日 / ${(sc.n_races ?? 0).toLocaleString()}R) ・ 全出走馬 ${(c.n_horses_win ?? 0).toLocaleString()}頭対象
+        <span class="cal-scope-badge">新規の評価範囲</span></div>
+      <div class="cal-grid">
+        <div class="cal-col">
+          <div class="cal-h">WIN 較正 <small>ECE ${(c.win.ece * 100).toFixed(2)}pt ・ n=${c.n_horses_win.toLocaleString()}</small></div>
+          ${reliabilitySvg(c.win.bins, "#f5b942")}
+          <table class="cal-tbl"><thead><tr><th>予測範囲</th><th class="ta-r">平均予測</th><th class="ta-r">実測</th><th class="ta-r">n</th></tr></thead>
+            <tbody>${calibrationBinRows(c.win.bins)}</tbody></table>
+        </div>
+        <div class="cal-col">
+          <div class="cal-h">TOP3 較正 <small>ECE ${(c.sho.ece * 100).toFixed(2)}pt ・ n=${c.n_horses_sho.toLocaleString()}</small></div>
+          ${reliabilitySvg(c.sho.bins, "#2dd4a8")}
+          <table class="cal-tbl"><thead><tr><th>予測範囲</th><th class="ta-r">平均予測</th><th class="ta-r">実測</th><th class="ta-r">n</th></tr></thead>
+            <tbody>${calibrationBinRows(c.sho.bins)}</tbody></table>
+        </div>
+      </div>
+      <div class="cal-note">点は「予測確率×実測的中率」。対角線に近いほど確率がそのまま信頼できる。点の大きさ=標本数(n)。
+        ECE = 10等分ビンの加重平均絶対誤差（audit_marks.py と同一定義・同一ビン方式）。n が小さいビンは参考程度に。
+        <br>この集計は全出走馬を対象とした新しい評価範囲です。指標の定義とビン方式は既存のものと同一ですが、集計対象は◎・〇印に限定した従来の的中率とは異なり、母集団を全出走馬に拡張しています。上記「成績」の◎的中率とは対象範囲が異なるため、数値を直接比較しないでください。</div>
+    </div>
+  </details>`;
+}
+
 async function renderResults() {
   const rm = $("#resultsMain");
   rm.innerHTML = `<div class="rs-wrap"><div class="loading">LOADING…</div></div>`;
@@ -1720,6 +1790,12 @@ async function renderResults() {
       rm.innerHTML = `<div class="rs-wrap"><div class="err">data/results.json を読めませんでした。</div></div>`;
       return;
     }
+  }
+  if (calibrationData === undefined) {
+    try {
+      const v = encodeURIComponent(state.manifest?.built_at || "0");
+      calibrationData = await (await fetch(`data/calibration.json?v=${v}`)).json();
+    } catch (e) { calibrationData = null; }
   }
   const a = resultsData.agg || {};
   const hits = resultsData.hits || [];
@@ -1825,6 +1901,7 @@ async function renderResults() {
       </select>
     </div>
     <div class="hit-grid" id="hitGrid">${hits.length ? hitGridHtml() : `<div class="cw-empty">的中データがありません。</div>`}</div>
+    ${calibrationSectionHtml()}
   </div>`;
 
   const grid = rm.querySelector("#hitGrid");
