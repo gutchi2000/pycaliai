@@ -109,19 +109,72 @@ if ($RebuildCalibration) {
     }
 }
 
+# 1.4 SAFETY GATE (added 2026-09-02, after a scheduled run of this script swept an
+#     agent's uncommitted, unreviewed site/js/app.js + site/css/style.css into an
+#     automated "site: data refresh" commit and pushed it before review).
+#
+#     Audited, exhaustive list of what this pipeline's OWN generators can write under
+#     site/ -- traced from source, not guessed:
+#       build_site.py            -> site/data/{8-digit-date}.json, manifest.json,
+#                                    results.json, explain/*.json (+ its manifest),
+#                                    baba_today.json, realized_bias.json
+#       build_horse_career.py    -> site/data/career_{8-digit-date}.json  (called by build_site.py)
+#       build_forecast_history.py-> site/data/forecast_history/**/*.json  (step 1.2, -Date only)
+#       build_calibration.py     -> site/data/calibration.json            (step 1.3, -RebuildCalibration only)
+#     Explicitly NOT this pipeline's output (must never be swept in even if dirty):
+#       site/js/*, site/css/*, site/*.html, site/icons/*, site/manifest.webmanifest,
+#       site/sw.js -- all hand-authored source.
+#       site/data/changes_*.json -- written and committed independently by changes.ps1
+#       (single-file `git add`, its own commit) -- if that hasn't landed yet, it is
+#       exactly the kind of "unexpected dirty file" this gate should also stop on.
+$SiteAllowPatterns = @(
+    '^site/data/\d{8}\.json$',
+    '^site/data/manifest\.json$',
+    '^site/data/results\.json$',
+    '^site/data/explain/.*\.json$',
+    '^site/data/baba_today\.json$',
+    '^site/data/realized_bias\.json$',
+    '^site/data/career_\d{8}\.json$',
+    '^site/data/forecast_history/.*\.json$',
+    '^site/data/calibration\.json$'
+)
+$siteStatusLines = git -C $ROOT status --porcelain -- site
+$siteDirtyPaths = @()
+foreach ($line in $siteStatusLines) {
+    if (-not $line) { continue }
+    $p = $line.Substring(3).Trim() -replace '^"|"$', '' -replace '\\', '/'
+    $siteDirtyPaths += $p
+}
+$offenders = @($siteDirtyPaths | Where-Object {
+    $path = $_
+    -not (@($SiteAllowPatterns | Where-Object { $path -match $_ })).Count
+})
+if ($offenders.Count -gt 0) {
+    Write-Host ""
+    Write-Host "ABORT: site/ has changes outside the audited data-refresh allowlist." -ForegroundColor Red
+    Write-Host "  This scheduled job only ever commits generated data output. The file(s)" -ForegroundColor Red
+    Write-Host "  below look like hand-authored source (or something else unexpected) and" -ForegroundColor Red
+    Write-Host "  were left completely untouched -- nothing was reset, stashed, or committed:" -ForegroundColor Red
+    $offenders | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
+    Write-Host "  Commit or otherwise resolve these yourself, then rerun this script." -ForegroundColor Red
+    Fail "unattended commit/push refused -- see file list above"
+}
+
 # 1.5 commit regenerated site/ to master and push origin (GitHub -> Cloudflare
 #     Workers auto-deploy for pycaliai.com). Without this, pycaliai.com keeps
 #     serving the last COMMITTED site/data while HF (pushed from the working
 #     tree below) is fresh -- the 2026-07-25 stale-homepage incident.
 #     Best-effort: a GitHub outage must not block the HF publish.
+#     Staging is the exact $siteDirtyPaths list from the gate above (already proven
+#     allowlist-only) -- never a directory-wide `git add site`, even now that the
+#     gate has passed, so this can't silently widen later if the gate is ever loosened.
 if ($DryRun) {
     Step "DryRun: skip commit/push of site/ to origin"
 } else {
 Step "commit site/ + push origin master (Cloudflare pycaliai.com)"
-git -C $ROOT add site 2>$null
-$sitePending = git -C $ROOT status --porcelain -- site
-if ($sitePending) {
-    git -C $ROOT commit -m "site: data refresh (sync-hf-umami)" -- site
+if ($siteDirtyPaths.Count -gt 0) {
+    git -C $ROOT add -- $siteDirtyPaths 2>$null
+    git -C $ROOT commit -m "site: data refresh (sync-hf-umami)" -- $siteDirtyPaths
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  site commit failed; pycaliai.com may stay stale" -ForegroundColor Yellow
     } else {
@@ -202,6 +255,14 @@ if ($LASTEXITCODE -ne 0) {
     git clone $SpaceUrl $STAGE
     if ($LASTEXITCODE -ne 0) { Fail "clone failed. Create the Space first on HF (New Space -> Docker)." }
 } else {
+    # Staging is a disposable mirror -- step 3 wipes everything but .git and
+    # rebuilds it every run anyway. Force it clean before pulling so a prior
+    # -DryRun (which stages via `add -A` then exits without committing) or an
+    # interrupted run can never block this one.
+    Step "reset staging clone to clean state"
+    git -C $STAGE reset --hard HEAD *> $null
+    git -C $STAGE clean -fd *> $null
+
     Step "update existing clone (git pull)"
     git -C $STAGE pull --rebase
     if ($LASTEXITCODE -ne 0) { Fail "git pull failed in staging clone; delete `"$STAGE`" and rerun" }
