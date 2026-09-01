@@ -1645,11 +1645,111 @@ async function renderForecast(r, vb) {
   ${resultHtml}`;
 }
 
+/* ---------------- ◎〇分析 (Phase 6C: モデルが◎を〇より高く評価した要因) ----------------
+   openDrawer() が使う h.why[] ({feat,label,value,contrib}) をそのまま再利用する。
+   新しい説明ロジック・新しい寄与度の計算は一切行わない — feat をキーに2頭分の
+   同じ要因を並べて表示するだけ。寄与差(diff)は「どの要因を上に出すか」の
+   並べ替え専用の値であり、UIには一切表示しない (新指標を作らないため)。
+   マークの判定は markCls() を再利用し (m1=◎, m2=〇)、独自の文字比較はしない。
+   タブ自体は ◎〇 双方が存在し、かつ少なくとも片方に使える why[] がある時だけ
+   表示する (両方とも説明データが無い開催で「開いても何もない」タブを出さない)。 */
+function honmeiHorse(r) { return (r.horses || []).find((h) => markCls(h.mark) === "m1"); }
+function maruHorse(r) { return (r.horses || []).find((h) => markCls(h.mark) === "m2"); }
+function hasUsableWhy(h) { return (h?.why || []).some((w) => w.value != null && w.feat); }
+
+function whyByFeat(h) {
+  const m = new Map();
+  (h?.why || []).forEach((w) => { if (w.value != null && w.feat) m.set(w.feat, w); });
+  return m;
+}
+
+function cmpSideHtml(w, tagMark, cls) {
+  const neg = (w.contrib ?? 0) < 0;
+  const val = w.value == null ? "—" : (typeof w.value === "number" ? +(+w.value).toFixed(1) : esc(w.value));
+  const contribStr = (w.contrib >= 0 ? "+" : "") + num(w.contrib, 2);
+  return { neg, val, contribStr, html: (width) => `<div class="cmp-side ${cls} ${neg ? "neg" : ""}">
+      <span class="cmp-side-tag">${esc(tagMark)}</span>
+      <span class="cmp-side-val num">${val}</span>
+      <span class="bar"><i style="width:${width}%;${neg ? "" : "background:linear-gradient(90deg,#cf9a35,#ffd97a)"}"></i></span>
+      <span class="wv">${contribStr}</span>
+    </div>` };
+}
+
+function renderCompare(r, vb) {
+  const honmei = honmeiHorse(r);
+  const maru = maruHorse(r);
+  if (!honmei || !maru) {
+    vb.innerHTML = `<div class="card cw-empty">このレースには◎と〇の両方の印がないため比較できません。</div>`;
+    return;
+  }
+  const hMap = whyByFeat(honmei);
+  const mMap = whyByFeat(maru);
+  if (hMap.size === 0 && mMap.size === 0) {
+    vb.innerHTML = `<div class="card cw-empty">このレースには特徴量寄与の説明データがありません（分析カード対応前の開催です）。</div>`;
+    return;
+  }
+
+  const feats = new Set([...hMap.keys(), ...mMap.keys()]);
+  const both = [], honmeiOnly = [], maruOnly = [];
+  feats.forEach((f) => {
+    const hw = hMap.get(f), mw = mMap.get(f);
+    if (hw && mw) both.push({ label: hw.label || mw.label, hw, mw, diff: Math.abs((hw.contrib ?? 0) - (mw.contrib ?? 0)) });
+    else if (hw) honmeiOnly.push({ label: hw.label, w: hw });
+    else if (mw) maruOnly.push({ label: mw.label, w: mw });
+  });
+  both.sort((a, b) => b.diff - a.diff);  // 差の大きい要因を上に。diff自体は表示しない。
+  const shown = both.slice(0, 6);
+
+  const maxC = Math.max(
+    ...shown.flatMap((x) => [Math.abs(x.hw.contrib ?? 0), Math.abs(x.mw.contrib ?? 0)]),
+    ...honmeiOnly.slice(0, 3).map((x) => Math.abs(x.w.contrib ?? 0)),
+    ...maruOnly.slice(0, 3).map((x) => Math.abs(x.w.contrib ?? 0)),
+    0.001
+  );
+  const barWidth = (w) => (Math.abs(w.contrib ?? 0) / maxC * 100).toFixed(0);
+
+  const rows = shown.map((x) => `<div class="cmp-row">
+      <div class="cmp-label">${esc(x.label)}</div>
+      <div class="cmp-pair">
+        ${cmpSideHtml(x.hw, honmei.mark, "cmp-side-h").html(barWidth(x.hw))}
+        ${cmpSideHtml(x.mw, maru.mark, "cmp-side-m").html(barWidth(x.mw))}
+      </div>
+    </div>`).join("");
+
+  const oneSidedBlock = (list, ownerMark, cls) => {
+    if (!list.length) return "";
+    return `<div class="cmp-onesided">
+      <div class="cmp-onesided-h">${esc(ownerMark)}のみに計上された要因（比較対象の寄与データなし）</div>
+      ${list.slice(0, 3).map((x) => `<div class="cmp-row">
+        <div class="cmp-label">${esc(x.label)}</div>
+        <div class="cmp-pair">${cmpSideHtml(x.w, ownerMark, cls).html(barWidth(x.w))}</div>
+      </div>`).join("")}
+    </div>`;
+  };
+
+  vb.innerHTML = `<div class="card cmp-card">
+    <div class="cmp-head">モデルが◎をより高く評価した主な要因</div>
+    <div class="cmp-sub">◎ ${esc(honmei.name)} と 〇 ${esc(maru.name)} が持つ特徴量寄与（AIの根拠）を、同じ要因ごとに並べたものです。数値は各馬の予測に対するモデル内部の寄与度であり、着順や結果の原因を説明するものではありません。</div>
+    <div class="cmp-legend">
+      <span><i class="cmp-dot dot-h"></i>${esc(honmei.mark)} ${esc(honmei.name)}</span>
+      <span><i class="cmp-dot dot-m"></i>${esc(maru.mark)} ${esc(maru.name)}</span>
+    </div>
+    ${rows || `<div class="cw-empty">◎〇に共通して計上された特徴がありません</div>`}
+    ${oneSidedBlock(honmeiOnly, honmei.mark, "cmp-side-h")}
+    ${oneSidedBlock(maruOnly, maru.mark, "cmp-side-m")}
+  </div>`;
+}
+
 /* ---------------- view machinery ---------------- */
 function viewsFor(r) {
   const vs = [...VIEWS];
   if (r && r.grade_scope) vs.splice(1, 0, { key: "grade", label: "🏆 重賞" });
   if (r && state.day?.forecastIds?.has(r.race_id)) vs.push({ key: "forecast", label: "予測記録" });
+  const cmpHonmei = r && honmeiHorse(r);
+  const cmpMaru = r && maruHorse(r);
+  if (cmpHonmei && cmpMaru && (hasUsableWhy(cmpHonmei) || hasUsableWhy(cmpMaru))) {
+    vs.push({ key: "compare", label: "◎〇分析" });
+  }
   return vs;
 }
 
@@ -1677,6 +1777,10 @@ function renderView() {
   if (!r) { vb.innerHTML = `<div class="err">レースがありません</div>`; return; }
   if (state.view === "grade" && !r.grade_scope) state.view = "shutsuba";
   if (state.view === "forecast" && !state.day?.forecastIds?.has(r.race_id)) state.view = "shutsuba";
+  if (state.view === "compare") {
+    const ch = honmeiHorse(r), cm = maruHorse(r);
+    if (!(ch && cm && (hasUsableWhy(ch) || hasUsableWhy(cm)))) state.view = "shutsuba";
+  }
   if (state.view === "shutsuba") {
     vb.innerHTML = `<section id="shutsuba"></section><section id="extras"></section><section id="cowork"></section>`;
     renderTable(r); renderExtras(r); renderCowork(r);
@@ -1690,6 +1794,8 @@ function renderView() {
     renderPedigree(r, vb);
   } else if (state.view === "forecast") {
     renderForecast(r, vb);
+  } else if (state.view === "compare") {
+    renderCompare(r, vb);
   }
 }
 

@@ -1243,6 +1243,34 @@ body.drawer-open { overflow: hidden; }
   border-top: 1px dashed var(--line2);
 }
 
+/* ---------------- ◎〇比較 (Phase 6C: なぜ◎が〇より高評価か)
+   .cmp-side は openDrawer() の .why/.bar/.wv と同じ値・同じ視覚言語を再利用し、
+   ラベルを行ごとに1回へ集約しただけ (2頭分を並べるための最小限のレイアウト差分)。
+   Δ(寄与差)は並べ替えにのみ使い、UIには一切表示しない。 ---------------- */
+.cmp-card { padding: 18px 20px; }
+.cmp-head { font-size: 16px; font-weight: 700; color: var(--gold2); letter-spacing: .04em; }
+.cmp-sub { font-size: 12.5px; color: var(--tx3); margin-top: 6px; line-height: 1.6; }
+.cmp-legend { display: flex; gap: 18px; margin: 12px 0 4px; font-size: 12.5px; color: var(--tx2); }
+.cmp-legend span { display: flex; align-items: center; gap: 6px; }
+.cmp-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.cmp-dot.dot-h { background: var(--gold); }
+.cmp-dot.dot-m { background: #d9e2f2; }
+.cmp-row { padding: 12px 0; border-top: 1px solid var(--line); }
+.cmp-row:first-of-type { border-top: none; padding-top: 14px; }
+.cmp-label { font-size: 13.5px; font-weight: 600; color: var(--tx2); margin-bottom: 8px; }
+.cmp-pair { display: flex; gap: 20px; }
+.cmp-side { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.cmp-side-tag { font-size: 13px; font-weight: 900; width: 16px; text-align: center; flex: none; }
+.cmp-side-h .cmp-side-tag { color: var(--gold); }
+.cmp-side-m .cmp-side-tag { color: #d9e2f2; }
+.cmp-side-val { font-family: var(--disp); font-size: 12.5px; color: var(--tx3); max-width: 64px; flex: none; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmp-side .bar { height: 6px; }
+.cmp-side.neg .bar i { background: linear-gradient(90deg, #a83a3e, #f3989b); }
+.cmp-side .wv { font-family: var(--disp); font-size: 13.5px; width: 42px; text-align: right; color: var(--tx2); flex: none; }
+.cmp-onesided { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--line2); }
+.cmp-onesided-h { font-size: 11.5px; color: var(--tx3); letter-spacing: .04em; margin-bottom: 6px; }
+.cmp-onesided .why { margin-bottom: 6px; opacity: .85; }
+
 /* ---------------- 全頭 UMAMI テーブル ---------------- */
 .um-card { padding: 16px 16px 8px; margin-top: 12px; }
 .um-head, .um-row {
@@ -1342,6 +1370,8 @@ body.drawer-open { overflow: hidden; }
   .fc-name { font-size: 13.5px; }
   .fc-win, .fc-sho { font-size: 13px; }
   .cal-grid { grid-template-columns: 1fr; gap: 20px; }
+  .cmp-pair { flex-direction: column; gap: 8px; }
+  .cmp-side-val { max-width: 110px; }
   .c-sho, .c-ninki { display: none; }
   .htable.hasres .hh, .htable.hasres .hrow {
     grid-template-columns: 36px 30px 52px minmax(0,1fr) 134px 66px;
