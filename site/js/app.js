@@ -16,6 +16,8 @@ const state = {
   sortAsc: true,
   view: "shutsuba",
   mode: "races",
+  flowMode: "list",   // Phase 7B: 想定隊列 の LIST/FLOW 表示切替 (既定は LIST=既存本番)
+  compareSel: { raceId: null, umaban: [] },  // Phase 6C-2: 馬比較の選択状態。レース変更で必ずリセット。
 };
 const dayCache = new Map();
 let charts = [];
@@ -967,6 +969,7 @@ function openDrawer(umaban) {
       ${resPos != null ? posBadge(resPos) : ""}
       <span class="dw-sub2">${esc(h.sex)}${h.age ?? ""} ・ ${h.ninki ?? "—"}番人気 ・ AIランク #${h.ai_rank ?? "—"}</span>
     </div>
+    <div class="dw-cmpadd"><button class="dw-cmp-btn" id="dwCmpBtn"></button></div>
     <div class="dw-ped">父 <b>${esc(ped.sire || "—")}</b> ／ 母父 <b>${esc(ped.broodmare_sire || "—")}</b>
       ${ped.broodmare_sire_type ? `（${esc(ped.broodmare_sire_type)}）` : ""}</div>
     <div class="dw-top ${(whyHtml || isFirstRun) ? "" : "solo"}">
@@ -998,6 +1001,7 @@ function openDrawer(umaban) {
 
   if (career) drawCareerChart(career);
   $("#dwClose").onclick = closeDrawer;
+  wireDrawerCompareBtn(r, h);
   $("#overlay").classList.add("show");
   $("#drawer").classList.add("show");
   document.body.classList.add("drawer-open");
@@ -1233,6 +1237,151 @@ function taikeiHtml(r) {
     </div></div>`;
 }
 
+/* ---------------- FLOW / 脚質フロー (Phase 7B: 想定隊列の compact prototype) ----------------
+   taikeiHtml() (LIST) の分類コードは一切変更しない — LIST は既存本番のまま。FLOW は
+   同じ h.style を独立に再分類する (共有ヘルパー化はあえて見送り。理由: LIST への
+   影響ゼロを最優先するため。ドリフトリスクは既知 — 7A audit §11 参照)。
+   カテゴリ内の並びは umaban 昇順のみ (LIST と同じ決定的ソート)。モデルの順位付けでは
+   ない — 7A audit で「horse-to-horse の連続順序を裏付けるフィールドは存在しない」と
+   確認済み。p_win はマーカーの大きさに反映しない (FLOW は確率ランキングではなく
+   脚質構成の可視化)。H/M/S ペース判定 (Hペース/Sペース/Mペース) は LIST 側にのみ残し、
+   FLOW では表示しない — 既存の client-side カウント分類の意味的な重みを増やさない。 */
+function flowGroups(horses) {
+  const ORDER = ["逃げ", "先行", "差し", "追込"];
+  const groups = { "逃げ": [], "先行": [], "差し": [], "追込": [], "不明": [] };
+  horses.forEach((h) => groups[ORDER.includes(h.style) ? h.style : "不明"].push(h));
+  Object.keys(groups).forEach((k) => groups[k].sort((a, b) => (a.umaban ?? 99) - (b.umaban ?? 99)));
+  return { groups, ORDER };
+}
+
+function flowMarkerHtml(h) {
+  const cls = markCls(h.mark);
+  // 馬名は常にDOMへ出す。表示可否はCSS側の (hover:hover) and (pointer:fine) に任せる
+  // (デスクトップ/タッチをJSで出し分けず、デバイス能力ベースで一貫させる — クリック挙動の
+  // isPointerFine 判定と同じシグナルを使う)。
+  return `<div class="fl-mk ${cls}" data-uma="${h.umaban}">
+      ${h.mark ? `<span class="mk-mark">${esc(h.mark)}</span>` : ""}
+      <span class="mk-num">${h.umaban}</span>
+      <span class="mk-name">${esc(h.name)}</span>
+    </div>`;
+}
+
+// 7B-1: ツールチップは document.body 直下の単一フローティング要素にする。
+// 原因: .fl-cols に丸角クリップ用の overflow:hidden があり、以前の「.fl-mk の子要素として
+// 絶対配置」実装は上端の行でツールチップが overflow:hidden に切られていた。position:fixed +
+// JS計測配置にすることでこの overflow クリップを構造的に回避しつつ、上/下・左右の
+// 衝突回避配置を行う。
+let _flowTipEl = null;
+function ensureFlowTip() {
+  if (!_flowTipEl) {
+    _flowTipEl = document.createElement("div");
+    _flowTipEl.className = "fl-tip-float";
+    document.body.appendChild(_flowTipEl);
+  }
+  return _flowTipEl;
+}
+function showFlowTip(markerEl, cardEl, h) {
+  const tip = ensureFlowTip();
+  const styleLabel = h.style ? esc(h.style) : "脚質不明";
+  tip.innerHTML = `${esc(h.umaban)} ${esc(h.name)}<br>WIN ${pct(h.p_win)}% ・ TOP3 ${pct(h.p_sho, 0)}% ・ ${styleLabel}`;
+  tip.style.visibility = "hidden";
+  tip.style.display = "block";
+  const mr = markerEl.getBoundingClientRect();
+  const cr = (cardEl || document.body).getBoundingClientRect();
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  const GAP = 8;
+  let top = mr.top - th - GAP;                 // 既定: マーカーの上
+  if (top < Math.max(cr.top, 0) + 4) top = mr.bottom + GAP;  // 上に収まらなければ下に反転
+  let left = mr.left + mr.width / 2 - tw / 2;
+  const minLeft = Math.max(cr.left, 0) + 4;
+  const maxLeft = Math.min(cr.right, window.innerWidth) - tw - 4;
+  left = Math.max(minLeft, Math.min(left, maxLeft));
+  tip.style.top = `${Math.max(top, 4)}px`;
+  tip.style.left = `${left}px`;
+  tip.style.visibility = "visible";
+}
+function hideFlowTip() {
+  if (_flowTipEl) _flowTipEl.style.display = "none";
+}
+
+function flowHtml(r) {
+  const horses = r.horses || [];
+  if (!horses.length) return "";
+  const { groups, ORDER } = flowGroups(horses);
+  const cols = ORDER.map((k) => `<div class="fl-col">
+      <div class="fl-col-h">${k}<span class="fl-col-n">${groups[k].length}</span></div>
+      <div class="fl-markers">${groups[k].map(flowMarkerHtml).join("") || `<div class="fl-col-empty">―</div>`}</div>
+    </div>`).join("");
+  const unk = groups["不明"];
+  const unkHtml = unk.length ? `<div class="fl-unk">
+      <div class="fl-unk-h">脚質不明 (${unk.length})</div>
+      <div class="fl-markers">${unk.map(flowMarkerHtml).join("")}</div>
+    </div>` : "";
+  return `<div class="fl-cols">${cols}</div>${unkHtml}<div class="fl-selected"></div>`;
+}
+
+// LIST/FLOW 切替の外枠。taikeiHtml() の戻り値そのものは一切書き換えない
+// (LIST モードでは taikeiHtml(r) をそのまま挿入するだけ)。
+function taikeiFlowWrapHtml(r) {
+  const mode = state.flowMode || "list";
+  const toggle = `<div class="fl-toggle">
+      <button class="fl-tbtn ${mode === "flow" ? "on" : ""}" data-mode="flow">FLOW</button>
+      <button class="fl-tbtn ${mode === "list" ? "on" : ""}" data-mode="list">LIST</button>
+    </div>`;
+  const body = mode === "flow"
+    ? `<div class="card fl-card"><div class="fl-title">FLOW <small>脚質フロー・カテゴリ表示 (プロトタイプ)</small></div>${flowHtml(r)}</div>`
+    : taikeiHtml(r);
+  return `<div id="tkFlowWrap">${toggle}${body}</div>`;
+}
+
+// FLOW のマーカー選択/クリック挙動は openDrawer() を再利用するのみ — 別の詳細UIは作らない。
+function wireFlowMarkers(wrap, r) {
+  hideFlowTip();  // 前回の render で残った浮遊ツールチップを必ず隠す (wrap ごと差し替わるため)
+  const isPointerFine = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const cardEl = wrap.querySelector(".fl-card") || wrap;
+  const strip = wrap.querySelector(".fl-selected");
+  let selectedUma = null;
+  const showStrip = (h) => {
+    if (!strip) return;
+    strip.innerHTML = `<span class="mark ${markCls(h.mark)}">${esc(h.mark) || "・"}</span>
+      <span class="fl-sel-name">${esc(h.umaban)} ${esc(h.name)}</span>
+      <span class="fl-sel-stats">WIN ${pct(h.p_win)}% ・ TOP3 ${pct(h.p_sho, 0)}%</span>`;
+    strip.onclick = () => openDrawer(h.umaban);
+  };
+  wrap.querySelectorAll(".fl-mk").forEach((mk) => {
+    const uma = +mk.dataset.uma;
+    const h = r.horses.find((x) => x.umaban === uma);
+    if (!h) return;
+    if (isPointerFine) {
+      mk.addEventListener("mouseenter", () => showFlowTip(mk, cardEl, h));
+      mk.addEventListener("mouseleave", hideFlowTip);
+    }
+    mk.onclick = () => {
+      if (isPointerFine) { openDrawer(uma); return; }
+      if (selectedUma === uma) { openDrawer(uma); return; }
+      wrap.querySelectorAll(".fl-mk.sel").forEach((m) => m.classList.remove("sel"));
+      mk.classList.add("sel");
+      selectedUma = uma;
+      showStrip(h);
+    };
+  });
+}
+
+function wireTaikeiFlow(r) {
+  hideFlowTip();
+  const wrap = document.getElementById("tkFlowWrap");
+  if (!wrap) return;
+  wrap.querySelectorAll(".tk-chip").forEach((c) => { c.onclick = () => openDrawer(+c.dataset.uma); });
+  wrap.querySelectorAll(".fl-tbtn").forEach((b) => {
+    b.onclick = () => {
+      state.flowMode = b.dataset.mode;
+      wrap.outerHTML = taikeiFlowWrapHtml(r);
+      wireTaikeiFlow(r);
+    };
+  });
+  if ((state.flowMode || "list") === "flow") wireFlowMarkers(wrap, r);
+}
+
 /* ---------------- 全頭分析 ---------------- */
 function renderBunseki(r, vb) {
   vb.innerHTML = `<div class="card anc">
@@ -1384,8 +1533,8 @@ function renderBunseki(r, vb) {
 
 /* ---------------- コース ---------------- */
 function renderCourse(r, vb) {
-  const taikei = taikeiHtml(r);
-  const wireTaikei = () => vb.querySelectorAll(".tk-chip").forEach((c) => { c.onclick = () => openDrawer(+c.dataset.uma); });
+  const taikei = taikeiFlowWrapHtml(r);
+  const wireTaikei = () => wireTaikeiFlow(r);
   const key = `${r.place}|${r.course}`;
   const cs = state.day.courses ? state.day.courses[key] : null;
   if (!cs) {
@@ -1645,17 +1794,22 @@ async function renderForecast(r, vb) {
   ${resultHtml}`;
 }
 
-/* ---------------- ◎〇分析 (Phase 6C: モデルが◎を〇より高く評価した要因) ----------------
+/* ---------------- 馬比較 (Phase 6C-2: 6C「◎〇分析」の一般化) ----------------
    openDrawer() が使う h.why[] ({feat,label,value,contrib}) をそのまま再利用する。
-   新しい説明ロジック・新しい寄与度の計算は一切行わない — feat をキーに2頭分の
-   同じ要因を並べて表示するだけ。寄与差(diff)は「どの要因を上に出すか」の
-   並べ替え専用の値であり、UIには一切表示しない (新指標を作らないため)。
-   マークの判定は markCls() を再利用し (m1=◎, m2=〇)、独自の文字比較はしない。
-   タブ自体は ◎〇 双方が存在し、かつ少なくとも片方に使える why[] がある時だけ
-   表示する (両方とも説明データが無い開催で「開いても何もない」タブを出さない)。 */
+   新しい説明ロジック・新しい寄与度の計算は一切行わない。2〜3頭を選択可能にし、
+   ◎/〇 固定だった前段 (6C) の比較対象をユーザー選択に一般化しただけ。
+   選択状態は state.compareSel = {raceId, umaban[]} — レースが変わったら必ず
+   リセットする (レースをまたいで選択を持ち越さない)。
+   並べ替えルール (§3.5, ドキュメント化):
+     - 選択2頭: 6C から変更なし。両者に計上された要因を |寄与差| 降順。差の値
+       自体はUIに一切出さない (並べ替え専用)。
+     - 選択3頭: 新指標を作らないため、3頭の組み合わせ差分は計算しない。
+       「選択馬の中で絶対値が最大の寄与」で降順ソートする、非対称的な新スコアを
+       持ち込まない決定的なフォールバック。
+   説明データが無い選択馬 (h.why が空) は比較行から除外し、「説明データなし」と
+   個別に明示する — 0 として偽装しない。 */
 function honmeiHorse(r) { return (r.horses || []).find((h) => markCls(h.mark) === "m1"); }
 function maruHorse(r) { return (r.horses || []).find((h) => markCls(h.mark) === "m2"); }
-function hasUsableWhy(h) { return (h?.why || []).some((w) => w.value != null && w.feat); }
 
 function whyByFeat(h) {
   const m = new Map();
@@ -1663,93 +1817,157 @@ function whyByFeat(h) {
   return m;
 }
 
-function cmpSideHtml(w, tagMark, cls) {
+// レース変更時に必ずリセット。初回オープン時のみ ◎〇 を事前選択 (6C の workflow を維持)。
+function getCompareSelection(r) {
+  if (state.compareSel.raceId !== r.race_id) {
+    const pre = [];
+    const h1 = honmeiHorse(r), h2 = maruHorse(r);
+    if (h1) pre.push(h1.umaban);
+    if (h2) pre.push(h2.umaban);
+    state.compareSel = { raceId: r.race_id, umaban: pre };
+  }
+  return state.compareSel.umaban;
+}
+function compareAdd(r, umaban) {
+  const sel = getCompareSelection(r);
+  if (sel.includes(umaban) || sel.length >= 3) return false;
+  sel.push(umaban);
+  return true;
+}
+function compareRemove(r, umaban) {
+  const sel = getCompareSelection(r);
+  const i = sel.indexOf(umaban);
+  if (i >= 0) sel.splice(i, 1);
+}
+
+function cmpSideHtml(h, w, maxC) {
   const neg = (w.contrib ?? 0) < 0;
   const val = w.value == null ? "—" : (typeof w.value === "number" ? +(+w.value).toFixed(1) : esc(w.value));
   const contribStr = (w.contrib >= 0 ? "+" : "") + num(w.contrib, 2);
-  return { neg, val, contribStr, html: (width) => `<div class="cmp-side ${cls} ${neg ? "neg" : ""}">
-      <span class="cmp-side-tag">${esc(tagMark)}</span>
+  const width = (Math.abs(w.contrib ?? 0) / maxC * 100).toFixed(0);
+  return `<div class="cmp-side ${markCls(h.mark)} ${neg ? "neg" : ""}">
+      <span class="cmp-side-tag">${esc(h.mark) || esc(h.umaban)}</span>
       <span class="cmp-side-val num">${val}</span>
       <span class="bar"><i style="width:${width}%;${neg ? "" : "background:linear-gradient(90deg,#cf9a35,#ffd97a)"}"></i></span>
       <span class="wv">${contribStr}</span>
-    </div>` };
+    </div>`;
 }
 
-function renderCompare(r, vb) {
-  const honmei = honmeiHorse(r);
-  const maru = maruHorse(r);
-  if (!honmei || !maru) {
-    vb.innerHTML = `<div class="card cw-empty">このレースには◎と〇の両方の印がないため比較できません。</div>`;
-    return;
-  }
-  const hMap = whyByFeat(honmei);
-  const mMap = whyByFeat(maru);
-  if (hMap.size === 0 && mMap.size === 0) {
-    vb.innerHTML = `<div class="card cw-empty">このレースには特徴量寄与の説明データがありません（分析カード対応前の開催です）。</div>`;
-    return;
-  }
+// §3.5 の並べ替えルールをここに実装。withData=説明データがある選択馬のみ。
+function compareExplanation(horses) {
+  const withData = [], noData = [];
+  horses.forEach((h) => { (whyByFeat(h).size > 0 ? withData : noData).push(h); });
+  const maps = withData.map(whyByFeat);
 
-  const feats = new Set([...hMap.keys(), ...mMap.keys()]);
-  const both = [], honmeiOnly = [], maruOnly = [];
-  feats.forEach((f) => {
-    const hw = hMap.get(f), mw = mMap.get(f);
-    if (hw && mw) both.push({ label: hw.label || mw.label, hw, mw, diff: Math.abs((hw.contrib ?? 0) - (mw.contrib ?? 0)) });
-    else if (hw) honmeiOnly.push({ label: hw.label, w: hw });
-    else if (mw) maruOnly.push({ label: mw.label, w: mw });
+  const allFeats = new Set();
+  maps.forEach((m) => m.forEach((_, f) => allFeats.add(f)));
+
+  const shared = [], partial = [];
+  allFeats.forEach((f) => {
+    const entries = withData.map((h, i) => maps[i].get(f) || null);
+    const present = entries.filter(Boolean);
+    const label = present[0].label;
+    if (withData.length >= 2 && present.length === withData.length) {
+      const rankKey = withData.length === 2
+        ? Math.abs((entries[0].contrib ?? 0) - (entries[1].contrib ?? 0))   // 2頭: 6C と同一
+        : Math.max(...present.map((w) => Math.abs(w.contrib ?? 0)));         // 3頭: 最大絶対寄与 (フォールバック)
+      shared.push({ label, horses: withData, entries, rankKey });
+    } else {
+      partial.push({ label, horses: withData, entries });
+    }
   });
-  both.sort((a, b) => b.diff - a.diff);  // 差の大きい要因を上に。diff自体は表示しない。
-  const shown = both.slice(0, 6);
+  shared.sort((a, b) => b.rankKey - a.rankKey);
+  return { withData, noData, shared: shared.slice(0, 6), partial };
+}
 
-  const maxC = Math.max(
-    ...shown.flatMap((x) => [Math.abs(x.hw.contrib ?? 0), Math.abs(x.mw.contrib ?? 0)]),
-    ...honmeiOnly.slice(0, 3).map((x) => Math.abs(x.w.contrib ?? 0)),
-    ...maruOnly.slice(0, 3).map((x) => Math.abs(x.w.contrib ?? 0)),
-    0.001
-  );
-  const barWidth = (w) => (Math.abs(w.contrib ?? 0) / maxC * 100).toFixed(0);
-
-  const rows = shown.map((x) => `<div class="cmp-row">
-      <div class="cmp-label">${esc(x.label)}</div>
-      <div class="cmp-pair">
-        ${cmpSideHtml(x.hw, honmei.mark, "cmp-side-h").html(barWidth(x.hw))}
-        ${cmpSideHtml(x.mw, maru.mark, "cmp-side-m").html(barWidth(x.mw))}
-      </div>
-    </div>`).join("");
-
-  const oneSidedBlock = (list, ownerMark, cls) => {
-    if (!list.length) return "";
-    return `<div class="cmp-onesided">
-      <div class="cmp-onesided-h">${esc(ownerMark)}のみに計上された要因（比較対象の寄与データなし）</div>
-      ${list.slice(0, 3).map((x) => `<div class="cmp-row">
-        <div class="cmp-label">${esc(x.label)}</div>
-        <div class="cmp-pair">${cmpSideHtml(x.w, ownerMark, cls).html(barWidth(x.w))}</div>
-      </div>`).join("")}
+function compareChipHtml(h) {
+  return `<div class="cmp-chip">
+      <span class="mark ${markCls(h.mark)}">${esc(h.mark) || "・"}</span>
+      <span class="cmp-chip-name">${esc(h.umaban)} ${esc(h.name)}</span>
+      <span class="cmp-chip-stats">WIN ${pct(h.p_win)}% ・ TOP3 ${pct(h.p_sho, 0)}% ・ ${h.style ? esc(h.style) : "脚質不明"}</span>
+      <button class="cmp-chip-x" data-uma="${h.umaban}" aria-label="比較から削除">✕</button>
     </div>`;
-  };
+}
+
+function renderHorseCompare(r, vb) {
+  const selUma = getCompareSelection(r);
+  const horses = selUma.map((u) => r.horses.find((h) => h.umaban === u)).filter(Boolean);
+  const remaining = r.horses.filter((h) => !selUma.includes(h.umaban));
+
+  const addControl = horses.length < 3
+    ? `<select class="cmp-add-sel">
+        <option value="">＋ 馬を追加</option>
+        ${remaining.map((h) => `<option value="${h.umaban}">${h.mark ? esc(h.mark) + " " : ""}${h.umaban} ${esc(h.name)}</option>`).join("")}
+      </select>`
+    : `<span class="cmp-limit">最大3頭まで選択中</span>`;
+
+  const header = `<div class="cmp-selrow">${horses.map(compareChipHtml).join("")}</div>
+    <div class="cmp-addrow">${addControl}</div>`;
+
+  if (horses.length < 2) {
+    vb.innerHTML = `<div class="card cmp-card">
+      <div class="cmp-head">馬比較</div>
+      <div class="cmp-sub">2〜3頭を選んで、AIの評価根拠（特徴量寄与）を比較します。</div>
+      ${header}
+      <div class="cw-empty">${horses.length === 0 ? "比較する馬を選んでください。" : "もう1頭選んで比較を開始してください。"}</div>
+    </div>`;
+    wireCompareControls(r, vb);
+    return;
+  }
+
+  const { withData, noData, shared, partial } = compareExplanation(horses);
+  let body;
+  if (withData.length === 0) {
+    body = `<div class="cw-empty">選択した馬に特徴量寄与の説明データがありません（分析カード対応前の開催、または無印馬などデータ対象外の可能性があります）。</div>`;
+  } else {
+    const allEntries = [...shared.flatMap((x) => x.entries), ...partial.flatMap((x) => x.entries.filter(Boolean))];
+    const maxC = Math.max(...allEntries.map((w) => Math.abs(w.contrib ?? 0)), 0.001);
+    const sharedRows = shared.map((x) => `<div class="cmp-row">
+        <div class="cmp-label">${esc(x.label)}</div>
+        <div class="cmp-pair">${x.horses.map((h, i) => cmpSideHtml(h, x.entries[i], maxC)).join("")}</div>
+      </div>`).join("");
+    const partialRows = partial.length ? `<div class="cmp-onesided">
+        <div class="cmp-onesided-h">一部の馬のみに計上された要因（比較対象の寄与データなし）</div>
+        ${partial.slice(0, 4).map((x) => `<div class="cmp-row">
+          <div class="cmp-label">${esc(x.label)}</div>
+          <div class="cmp-pair">${x.horses.map((h, i) => x.entries[i] ? cmpSideHtml(h, x.entries[i], maxC) : "").join("")}</div>
+        </div>`).join("")}
+      </div>` : "";
+    const noDataNote = noData.length
+      ? `<div class="cmp-nodata">${noData.map((h) => `${h.mark ? esc(h.mark) + " " : ""}${esc(h.umaban)} ${esc(h.name)}: 説明データなし`).join(" ・ ")}</div>`
+      : "";
+    body = `${noDataNote}${sharedRows || `<div class="cw-empty">選択した馬に共通して計上された特徴がありません</div>`}${partialRows}`;
+  }
 
   vb.innerHTML = `<div class="card cmp-card">
-    <div class="cmp-head">モデルが◎をより高く評価した主な要因</div>
-    <div class="cmp-sub">◎ ${esc(honmei.name)} と 〇 ${esc(maru.name)} が持つ特徴量寄与（AIの根拠）を、同じ要因ごとに並べたものです。数値は各馬の予測に対するモデル内部の寄与度であり、着順や結果の原因を説明するものではありません。</div>
-    <div class="cmp-legend">
-      <span><i class="cmp-dot dot-h"></i>${esc(honmei.mark)} ${esc(honmei.name)}</span>
-      <span><i class="cmp-dot dot-m"></i>${esc(maru.mark)} ${esc(maru.name)}</span>
-    </div>
-    ${rows || `<div class="cw-empty">◎〇に共通して計上された特徴がありません</div>`}
-    ${oneSidedBlock(honmeiOnly, honmei.mark, "cmp-side-h")}
-    ${oneSidedBlock(maruOnly, maru.mark, "cmp-side-m")}
+    <div class="cmp-head">馬比較</div>
+    <div class="cmp-sub">選択した馬が持つ特徴量寄与（AIの根拠）を、同じ要因ごとに並べたものです。数値は各馬の予測に対するモデル内部の寄与度であり、着順や結果の原因を説明するものではありません。</div>
+    ${header}
+    ${body}
   </div>`;
+  wireCompareControls(r, vb);
+}
+
+function wireCompareControls(r, vb) {
+  vb.querySelectorAll(".cmp-chip-x").forEach((b) => {
+    b.onclick = () => { compareRemove(r, +b.dataset.uma); renderHorseCompare(r, vb); };
+  });
+  const addSel = vb.querySelector(".cmp-add-sel");
+  if (addSel) {
+    addSel.onchange = () => {
+      const uma = +addSel.value;
+      if (uma) { compareAdd(r, uma); renderHorseCompare(r, vb); }
+    };
+  }
 }
 
 /* ---------------- view machinery ---------------- */
 function viewsFor(r) {
   const vs = [...VIEWS];
   if (r && r.grade_scope) vs.splice(1, 0, { key: "grade", label: "🏆 重賞" });
-  if (r && state.day?.forecastIds?.has(r.race_id)) vs.push({ key: "forecast", label: "予測記録" });
-  const cmpHonmei = r && honmeiHorse(r);
-  const cmpMaru = r && maruHorse(r);
-  if (cmpHonmei && cmpMaru && (hasUsableWhy(cmpHonmei) || hasUsableWhy(cmpMaru))) {
-    vs.push({ key: "compare", label: "◎〇分析" });
-  }
+  // 予測記録: Phase 7B-4 の情報設計判断により通常のレース分析タブから撤去。
+  // renderForecast()・Forecast Ledger 本体・fetch は一切削除していない — 到達導線のみ削除。
+  if (r && (r.horses || []).length >= 2) vs.push({ key: "compare", label: "馬比較" });
   return vs;
 }
 
@@ -1777,10 +1995,7 @@ function renderView() {
   if (!r) { vb.innerHTML = `<div class="err">レースがありません</div>`; return; }
   if (state.view === "grade" && !r.grade_scope) state.view = "shutsuba";
   if (state.view === "forecast" && !state.day?.forecastIds?.has(r.race_id)) state.view = "shutsuba";
-  if (state.view === "compare") {
-    const ch = honmeiHorse(r), cm = maruHorse(r);
-    if (!(ch && cm && (hasUsableWhy(ch) || hasUsableWhy(cm)))) state.view = "shutsuba";
-  }
+  if (state.view === "compare" && (r.horses || []).length < 2) state.view = "shutsuba";
   if (state.view === "shutsuba") {
     vb.innerHTML = `<section id="shutsuba"></section><section id="extras"></section><section id="cowork"></section>`;
     renderTable(r); renderExtras(r); renderCowork(r);
@@ -1795,7 +2010,7 @@ function renderView() {
   } else if (state.view === "forecast") {
     renderForecast(r, vb);
   } else if (state.view === "compare") {
-    renderCompare(r, vb);
+    renderHorseCompare(r, vb);
   }
 }
 

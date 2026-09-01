@@ -1179,6 +1179,57 @@ body.drawer-open { overflow: hidden; }
 .tk-foot { margin-top: 13px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; color: var(--tx3); font-size: 13px; }
 .tk-adv { color: var(--amber); font-weight: 800; font-size: 14px; }
 
+/* ---------------- FLOW / 脚質フロー (Phase 7B: 想定隊列 compact prototype) ---------------- */
+.fl-toggle { display: inline-flex; border: 1px solid var(--line2); border-radius: var(--r-pill); padding: 2px; margin-bottom: 10px; gap: 2px; }
+.fl-tbtn { font-size: 11.5px; font-weight: 700; letter-spacing: .04em; color: var(--tx3); background: transparent; border: none; border-radius: var(--r-pill); padding: 4px 14px; cursor: pointer; }
+.fl-tbtn.on { color: #15151f; background: linear-gradient(120deg, var(--gold2), var(--gold)); }
+.fl-card { border: 1px solid var(--line); }
+.fl-title { font-size: 18px; font-weight: 800; color: var(--tx); margin-bottom: 12px; }
+.fl-title small { font-size: 12px; font-weight: 400; color: var(--tx3); margin-left: 6px; }
+.fl-cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: rgba(0,0,0,.18); border-radius: var(--r-card); overflow: hidden; }
+.fl-col { padding: 10px 8px; border-right: 1px solid var(--line); }
+.fl-col:last-child { border-right: none; }
+.fl-col-h { font-size: 12.5px; font-weight: 700; color: var(--tx2); text-align: center; margin-bottom: 8px; }
+.fl-col-n { color: var(--tx3); font-weight: 400; margin-left: 4px; }
+.fl-col-empty { text-align: center; color: var(--tx3); font-size: 12px; padding: 8px 0; }
+.fl-markers { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+.fl-mk {
+  position: relative; display: inline-flex; align-items: center; gap: 2px;
+  padding: 4px 7px; border-radius: var(--r-pill); border: 1px solid var(--line2);
+  background: var(--card2); font-family: var(--disp); font-size: 12px; cursor: pointer;
+  transition: border-color .12s, background .12s;
+}
+.fl-mk:hover, .fl-mk.sel { border-color: var(--tx3); }
+.fl-mk.sel { outline: 2px solid var(--gold2); outline-offset: 1px; }
+.fl-mk .mk-mark { font-weight: 900; font-size: 12.5px; }
+.fl-mk .mk-num { color: var(--tx2); }
+.fl-mk.m1 { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--card2)); }
+.fl-mk.m1 .mk-mark { color: var(--gold); }
+.fl-mk.m1 .mk-num { color: var(--tx); font-weight: 700; }
+.fl-mk.m2 .mk-mark { color: #d9e2f2; }
+.fl-mk.m2 { border-color: #d9e2f2; }
+.fl-mk.m3 .mk-mark { color: #d08b4c; }
+.fl-mk.m4 .mk-mark { color: #8a97b5; }
+.fl-mk.m0 { opacity: .72; }
+.fl-mk.m0 .mk-num { color: var(--tx3); }
+.fl-tip {
+  position: absolute; bottom: calc(100% + 7px); left: 50%; transform: translateX(-50%);
+  background: #0d1220; border: 1px solid var(--line2); border-radius: 6px;
+  padding: 6px 10px; font-size: 11.5px; line-height: 1.5; white-space: nowrap;
+  color: var(--tx2); opacity: 0; pointer-events: none; transition: opacity .12s; z-index: 5;
+}
+.fl-mk:hover .fl-tip { opacity: 1; }
+.fl-unk { margin-top: 10px; padding: 10px; background: rgba(108,112,134,.1); border-radius: var(--r-sm); border: 1px solid var(--line); }
+.fl-unk-h { color: var(--tx3); font-size: 12px; margin-bottom: 6px; }
+.fl-selected {
+  display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 9px 12px;
+  border-radius: var(--r-card); background: rgba(0,0,0,.18); border: 1px solid var(--line2);
+  font-size: 13px; cursor: pointer;
+}
+.fl-selected:empty { display: none; }
+.fl-sel-name { color: var(--tx); font-weight: 600; }
+.fl-sel-stats { color: var(--tx3); margin-left: auto; }
+
 /* ---------------- 重賞 Grade Scope ---------------- */
 .vt-grade.on::after { background: linear-gradient(90deg, #ffd97a, #f5b942); }
 .vt-grade { color: var(--gold2); }
