@@ -356,6 +356,28 @@ function resultBanner(r) {
   </div>`;
 }
 
+/* Command Header (Structure B, Phase 5B-2): ◎/WIN/TOP3 headline + restrained state line.
+   Only fields already publicly rendered elsewhere in the app (see docs/design_phase5b_audit.md §2). */
+function cmdPickHtml(honmei) {
+  if (!honmei) return "";
+  return `<div class="cmd-pick">
+    <span class="mark cmd-mark ${markCls(honmei.mark)}">${honmei.mark}</span>
+    <span class="cmd-name">${esc(honmei.name)}</span>
+    <span class="cmd-stats">
+      <span class="cmd-stat"><b class="num">${pct(honmei.p_win)}<small>%</small></b><small class="cmd-lab">WIN</small></span>
+      <span class="cmd-stat"><b class="num">${pct(honmei.p_sho, 0)}<small>%</small></b><small class="cmd-lab">TOP3</small></span>
+    </span>
+  </div>`;
+}
+function cmdStateHtml(j, conf, fieldSize) {
+  const parts = [];
+  if (j.hardness) parts.push(`<span class="cmd-tag">${esc(j.hardness)}</span>`);
+  if (conf.field_chaos_score != null) parts.push(`<span class="cmd-kv">CHAOS <b class="num">${pct(conf.field_chaos_score, 0)}<small>%</small></b></span>`);
+  if (fieldSize != null) parts.push(`<span class="cmd-kv">FIELD <b class="num">${fieldSize}<small>頭</small></b></span>`);
+  if (!parts.length) return "";
+  return `<div class="cmd-state">${parts.join('<i class="cmd-sep"></i>')}</div>`;
+}
+
 function renderHeader(r) {
   const j = r.judgment || {};
   const jv = judgeView(j);
@@ -363,6 +385,7 @@ function renderHeader(r) {
   const conf = r.confidence || {};
   const baba = (r.baba || "").replace("(暫定)", "");
   const weather = (r.weather || "").replace("(暫定)", "");
+  const honmei = r.horses.find((h) => h.mark === "◎");
   $("#raceHeader").innerHTML = `<div class="card rh">
     <div class="rh-main">
       <div class="rh-title">
@@ -377,12 +400,14 @@ function renderHeader(r) {
         <span class="mchip">${r.field_size}頭</span>
         ${baba ? `<span class="mchip">${esc(weather)} / ${esc(baba)}</span>` : ""}
       </div>
-      <div class="judge">
-        <span class="jbadge ${jv.cls}">${jv.label}</span>
-        ${j.headline ? `<span class="jdetail"><b>${esc(j.headline)}</b>　${esc(j.detail || "")}</span>` : ""}
-        ${j.hardness ? `<span class="jtag">${esc(j.hardness)}</span>` : ""}
-        ${j.waku_tag ? `<span class="jtag">${esc(j.waku_tag)}</span>` : ""}
-      </div>
+    </div>
+    ${cmdPickHtml(honmei)}
+    ${cmdStateHtml(j, conf, r.field_size)}
+    <div class="judge">
+      <span class="jbadge ${jv.cls}">${jv.label}</span>
+      ${j.headline ? `<span class="jdetail"><b>${esc(j.headline)}</b>　${esc(j.detail || "")}</span>` : ""}
+      ${j.hardness ? `<span class="jtag">${esc(j.hardness)}</span>` : ""}
+      ${j.waku_tag ? `<span class="jtag">${esc(j.waku_tag)}</span>` : ""}
     </div>
     <div class="gauges">
       ${donut("本命優位", conf.top1_dominance, "#f5b942")}
@@ -949,7 +974,6 @@ function openDrawer(umaban) {
           <div class="dw-stat"><div class="v">${pct(h.p_sho)}%</div><div class="k">複勝圏</div></div>
           <div class="dw-stat"><div class="v">${h.ninki ?? "—"}</div><div class="k">人気</div></div>
         </div>
-        <div class="dw-odds">市場評価: ${vsChip(h.vs_market)}</div>
         <div class="dw-info">${infoRows}</div>
       </div>
     </div>
@@ -968,6 +992,7 @@ function openDrawer(umaban) {
   $("#dwClose").onclick = closeDrawer;
   $("#overlay").classList.add("show");
   $("#drawer").classList.add("show");
+  document.body.classList.add("drawer-open");
   $("#drawer").scrollTop = 0;
 }
 let dwCareerChart = null;
@@ -1023,6 +1048,7 @@ function drawCareerChart(car) {
 function closeDrawer() {
   $("#overlay").classList.remove("show");
   $("#drawer").classList.remove("show");
+  document.body.classList.remove("drawer-open");
   if (dwCareerChart) { try { dwCareerChart.dispose(); } catch (e) { /* noop */ } dwCareerChart = null; }
 }
 $("#overlay").onclick = closeDrawer;
