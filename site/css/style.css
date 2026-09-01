@@ -502,13 +502,13 @@ body:not(.on-landing) #hero, body:not(.on-landing) #landing { display: none; }
 .cmd-stat b { font-size: 28px; font-weight: 600; color: var(--gold2); }
 .cmd-stat b small { font-size: 15px; font-weight: 500; margin-left: 1px; }
 .cmd-lab { font-size: 11px; color: var(--tx3); letter-spacing: .12em; margin-top: 3px; }
-.cmd-state { flex-basis: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 0 0; font-size: 13px; color: var(--tx2); }
+.cmd-state { flex-basis: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 8px 0 0; padding-bottom: 13px; border-bottom: 1px solid var(--border-subtle); font-size: 13px; color: var(--tx2); }
 .cmd-tag { color: var(--tx3); border: 1px solid var(--line2); border-radius: var(--r-pill); padding: 1px 12px; font-size: 12.5px; }
 .cmd-kv b { color: var(--tx); font-weight: 600; margin-left: 4px; }
 .cmd-kv b small { color: var(--tx3); font-weight: 400; }
 .cmd-sep { width: 1px; height: 11px; background: var(--line2); }
 
-.judge { flex-basis: 100%; margin-top: 14px; padding-top: 13px; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.judge { flex-basis: 100%; margin-top: 14px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .jbadge { font-size: 15.5px; font-weight: 700; letter-spacing: .08em; padding: 3px 16px; border-radius: var(--r-pill); }
 .jbadge.go { background: linear-gradient(120deg, var(--teal2), var(--teal)); color: #04342c; box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 3px 12px -4px rgba(127,201,164,.45); }
 .jbadge.caution { background: linear-gradient(120deg, #ffd28a, var(--amber)); color: #432a04; box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 3px 12px -4px rgba(240,161,50,.45); }
