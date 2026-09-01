@@ -122,6 +122,15 @@ async function loadDay(date) {
       day.career = await (await fetch(`data/career_${date}.json?v=${v}`)).json();
     } catch (e) { day.career = null; }
   }
+  if (day.forecastIds === undefined) {
+    // Phase 6A: この日にレコード済みの race_id 一覧 (予測記録タブの表示可否判定用)。
+    // 本体(各レースの中身)はタブを開いた時に遅延fetchする — ここは軽量な有無チェックのみ。
+    const v = encodeURIComponent(state.manifest?.built_at || "0");
+    try {
+      const idx = await (await fetch(`data/forecast_history/${date}/_index.json?v=${v}`)).json();
+      day.forecastIds = new Set(idx.race_ids || []);
+    } catch (e) { day.forecastIds = new Set(); }
+  }
   await loadChanges(date, day);
   armChangesPolling(date, day);
   state.day = day;
@@ -1550,10 +1559,89 @@ function renderGrade(r, vb) {
   </div>`;
 }
 
+/* ---------------- 予測記録 (Phase 6A: 発走前に確定した予測の恒久記録) ---------------- */
+// site/data/forecast_history/{date}/{race_id}.json を遅延fetch。上流の内部行やオッズは
+// 一切通らない (build_forecast_history.py が公開済みフィールドのみで生成)。
+// 結果(r.result)は別ソースから読むだけで、このスナップショット自体は書き換えない。
+function fcDateTime(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return esc(iso);
+  const p2 = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+}
+
+async function renderForecast(r, vb) {
+  vb.innerHTML = `<div class="card skel">${`<div class="skel-bar"></div>`.repeat(4)}</div>`;
+  const v = encodeURIComponent(state.manifest?.built_at || "0");
+  let snap;
+  try {
+    snap = await (await fetch(`data/forecast_history/${state.day.date}/${r.race_id}.json?v=${v}`)).json();
+  } catch (e) {
+    vb.innerHTML = `<div class="card cw-empty">この開催日の予測記録はまだありません。</div>`;
+    return;
+  }
+  const rs = snap.race_state || {};
+  const stateParts = [];
+  if (rs.chaos != null) stateParts.push(`<span class="cmd-kv">CHAOS <b class="num">${pct(rs.chaos, 0)}<small>%</small></b></span>`);
+  if (rs.member_level?.tier) stateParts.push(`<span class="cmd-kv">メンバー <b class="num">${esc(rs.member_level.tier)}</b> ${esc(rs.member_level.label || "")}</span>`);
+
+  const horses = [...(snap.horses || [])].sort((a, b) => (b.p_win ?? -1) - (a.p_win ?? -1));
+  const rows = horses.map((h) => `<div class="fc-row">
+      <span class="mark ${markCls(h.mark)}">${esc(h.mark) || "・"}</span>
+      <span class="fc-uma num">${esc(h.umaban)}</span>
+      <span class="fc-name">${esc(h.name)}</span>
+      <span class="fc-win num ta-r">${pct(h.p_win)}<small>%</small></span>
+      <span class="fc-sho num ta-r">${pct(h.p_sho, 0)}<small>%</small></span>
+    </div>`).join("");
+
+  const res = r.result;
+  const resultHtml = res ? (() => {
+    const byPos = {};
+    Object.entries(res.order || {}).forEach(([u, p]) => { byPos[p] = +u; });
+    const rows2 = [1, 2, 3].map((p) => {
+      const u = byPos[p];
+      const h = horses.find((x) => x.umaban === u);
+      if (!h) return "";
+      return `<span class="res-h">${posBadge(p)}
+        <span class="res-n">${esc(h.name)}</span>
+        ${h.mark ? `<span class="mark ${markCls(h.mark)}" style="font-size:13px">${esc(h.mark)}</span>` : ""}</span>`;
+    }).join("");
+    return `<div class="fc-result-sep">結果（レース確定後）</div>
+      <div class="card fc-result"><div class="resbar"><span class="res-t">RESULT</span>${rows2}</div></div>`;
+  })() : `<div class="fc-pending">未確定（このレースはまだ発走していません）</div>`;
+
+  const isLive = snap.provenance === "live_generation";
+  const provLine = isLive
+    ? `<span class="fc-prov fc-prov-live">レース当日リアルタイム記録</span>`
+    : `<span class="fc-prov fc-prov-backfill">事後記録（アーカイブから復元）</span>`;
+  const predictedLine = snap.source_generated_at
+    ? `予測確定 ${fcDateTime(snap.source_generated_at)}${snap.source_generated_at_basis === "git_first_commit_content_verified" ? "（記録改ざん検証済）" : ""}`
+    : `予測確定日時 不明（検証可能な記録なし）`;
+
+  vb.innerHTML = `<div class="card fc-card">
+    <div class="fc-head">
+      <span class="fc-lock">確定予測</span>
+      <span class="fc-meta">${predictedLine}${snap.model_version ? ` ・ model ${esc(snap.model_version)}` : ""}</span>
+    </div>
+    <div class="fc-prov-row">${provLine}<span class="fc-prov-sub">台帳記録 ${fcDateTime(snap.captured_at)}</span></div>
+    ${stateParts.length ? `<div class="fc-state">${stateParts.join("")}</div>` : ""}
+    <div class="fc-table">
+      <div class="fc-row fc-hh"><span>印</span><span>馬番</span><span>馬名</span><span class="ta-r">勝率</span><span class="ta-r">複勝圏</span></div>
+      ${rows}
+    </div>
+    <div class="fc-note">${isLive
+      ? "発走前に生成・記録された予測です。結果を知ってから書き換えることはできません（追記専用の記録）。"
+      : "この記録は既存の公開データを後日読み込んで台帳化したものです。予測内容（印・確率）自体は上記「予測確定」時点から変更されていないことを検証済みですが、台帳への記録自体はレース発走前にリアルタイムで行われたものではありません。"}</div>
+  </div>
+  ${resultHtml}`;
+}
+
 /* ---------------- view machinery ---------------- */
 function viewsFor(r) {
   const vs = [...VIEWS];
   if (r && r.grade_scope) vs.splice(1, 0, { key: "grade", label: "🏆 重賞" });
+  if (r && state.day?.forecastIds?.has(r.race_id)) vs.push({ key: "forecast", label: "予測記録" });
   return vs;
 }
 
@@ -1580,6 +1668,7 @@ function renderView() {
   const vb = $("#viewbody");
   if (!r) { vb.innerHTML = `<div class="err">レースがありません</div>`; return; }
   if (state.view === "grade" && !r.grade_scope) state.view = "shutsuba";
+  if (state.view === "forecast" && !state.day?.forecastIds?.has(r.race_id)) state.view = "shutsuba";
   if (state.view === "shutsuba") {
     vb.innerHTML = `<section id="shutsuba"></section><section id="extras"></section><section id="cowork"></section>`;
     renderTable(r); renderExtras(r); renderCowork(r);
@@ -1591,6 +1680,8 @@ function renderView() {
     renderCourse(r, vb);
   } else if (state.view === "pedigree") {
     renderPedigree(r, vb);
+  } else if (state.view === "forecast") {
+    renderForecast(r, vb);
   }
 }
 
