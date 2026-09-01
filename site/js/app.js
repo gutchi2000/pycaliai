@@ -17,7 +17,7 @@ const state = {
   view: "shutsuba",
   mode: "races",
   flowMode: "list",   // Phase 7B: 想定隊列 の LIST/FLOW 表示切替 (既定は LIST=既存本番)
-  compareSel: { raceId: null, umaban: [] },  // Phase 6C-2: 馬比較の選択状態。レース変更で必ずリセット。
+  compareSel: { raceId: null, umaban: [] },  // Phase 6C-2: 印馬比較の選択状態。レース変更で必ずリセット。印馬のみ。
 };
 const dayCache = new Map();
 let charts = [];
@@ -903,9 +903,12 @@ function renderCowork(r) {
 }
 
 /* ---------------- drawer ---------------- */
-// 馬比較への追加ボタン。openDrawer() 自体は再描画するだけで、比較選択状態
+// 印馬比較への追加ボタン。無印馬は openDrawer() のテンプレート自体が
+// .dw-cmpadd を出力しないため、ここに来る時点で h は常に印馬。
+// (isMarkedHorse を二重チェックはしない — テンプレート側の条件と一致させる。)
+// openDrawer() 自体は再描画するだけで、比較選択状態
 // (state.compareSel, getCompareSelection/compareAdd/compareRemove) は
-// 馬比較セクションのものをそのまま再利用する — 別の選択ステートは持たない。
+// 印馬比較セクションのものをそのまま再利用する — 別の選択ステートは持たない。
 function wireDrawerCompareBtn(r, h) {
   const btn = document.getElementById("dwCmpBtn");
   if (!btn) return;
@@ -988,7 +991,7 @@ function openDrawer(umaban) {
       ${resPos != null ? posBadge(resPos) : ""}
       <span class="dw-sub2">${esc(h.sex)}${h.age ?? ""} ・ ${h.ninki ?? "—"}番人気 ・ AIランク #${h.ai_rank ?? "—"}</span>
     </div>
-    <div class="dw-cmpadd"><button class="dw-cmp-btn" id="dwCmpBtn"></button></div>
+    ${isMarkedHorse(h) ? `<div class="dw-cmpadd"><button class="dw-cmp-btn" id="dwCmpBtn"></button></div>` : ""}
     <div class="dw-ped">父 <b>${esc(ped.sire || "—")}</b> ／ 母父 <b>${esc(ped.broodmare_sire || "—")}</b>
       ${ped.broodmare_sire_type ? `（${esc(ped.broodmare_sire_type)}）` : ""}</div>
     <div class="dw-top ${(whyHtml || isFirstRun) ? "" : "solo"}">
@@ -1813,12 +1816,18 @@ async function renderForecast(r, vb) {
   ${resultHtml}`;
 }
 
-/* ---------------- 馬比較 (Phase 6C-2: 6C「◎〇分析」の一般化) ----------------
+/* ---------------- 印馬比較 (Phase 6C-2: 6C「◎〇分析」の一般化、印馬限定) ----------------
    openDrawer() が使う h.why[] ({feat,label,value,contrib}) をそのまま再利用する。
    新しい説明ロジック・新しい寄与度の計算は一切行わない。2〜3頭を選択可能にし、
    ◎/〇 固定だった前段 (6C) の比較対象をユーザー選択に一般化しただけ。
+   このタブは「PyCaLiAI 自身が印を付けた馬」同士の比較であり、無印馬を含む
+   汎用の全馬比較ツールではない (レビュー指摘により訂正) — 選択可能な馬は
+   isMarkedHorse() で判定し、◎○▲△ を決め打ちしない (☆等の将来の印にも
+   自然に対応する非ハードコードな判定)。
    選択状態は state.compareSel = {raceId, umaban[]} — レースが変わったら必ず
-   リセットする (レースをまたいで選択を持ち越さない)。
+   リセットする (レースをまたいで選択を持ち越さない)。タブを開く・レースを
+   変える・状態を再利用するたびに getCompareSelection() が無印馬を必ず除去する
+   (旧・無印馬選択可能版からの持ち越し状態のマイグレーション)。
    並べ替えルール (§3.5, ドキュメント化):
      - 選択2頭: 6C から変更なし。両者に計上された要因を |寄与差| 降順。差の値
        自体はUIに一切出さない (並べ替え専用)。
@@ -1826,9 +1835,16 @@ async function renderForecast(r, vb) {
        「選択馬の中で絶対値が最大の寄与」で降順ソートする、非対称的な新スコアを
        持ち込まない決定的なフォールバック。
    説明データが無い選択馬 (h.why が空) は比較行から除外し、「説明データなし」と
-   個別に明示する — 0 として偽装しない。 */
+   個別に明示する — 0 として偽装しない (印馬であっても分析カード対応前の開催
+   では why が無いことがあり、その場合も同様に扱う)。 */
 function honmeiHorse(r) { return (r.horses || []).find((h) => markCls(h.mark) === "m1"); }
 function maruHorse(r) { return (r.horses || []).find((h) => markCls(h.mark) === "m2"); }
+// 印の有無だけで判定する — ◎○▲△ の列挙に依存しない。将来 ☆ 等の印が
+// 追加されても自然に「印馬」として扱われる。
+function isMarkedHorse(h) { return !!(h && h.mark && String(h.mark).trim()); }
+// 初期選択の補充順のみに使う既存の印階層 (◎>〇>▲>△)。並べ替えUIの新指標ではなく、
+// このプロジェクトが既に持つ印の優先順位をそのまま流用するだけ。未知の印は最下位。
+function markTier(m) { return { "◎": 1, "〇": 2, "○": 2, "▲": 3, "△": 4 }[m] ?? 5; }
 
 function whyByFeat(h) {
   const m = new Map();
@@ -1836,19 +1852,33 @@ function whyByFeat(h) {
   return m;
 }
 
-// レース変更時に必ずリセット。初回オープン時のみ ◎〇 を事前選択 (6C の workflow を維持)。
+// レース変更時に必ずリセット。◎○ を優先事前選択し (6C の workflow を維持)、
+// 2頭に満たなければ印階層順で印馬を補充する (新ランキングではなく既存の印順)。
+// 末尾でサニタイズ (無印馬の除去) を毎回必ず実行する — レース変更の有無を問わず。
 function getCompareSelection(r) {
   if (state.compareSel.raceId !== r.race_id) {
+    const marked = (r.horses || []).filter(isMarkedHorse);
     const pre = [];
     const h1 = honmeiHorse(r), h2 = maruHorse(r);
-    if (h1) pre.push(h1.umaban);
-    if (h2) pre.push(h2.umaban);
+    if (h1 && isMarkedHorse(h1)) pre.push(h1.umaban);
+    if (h2 && isMarkedHorse(h2)) pre.push(h2.umaban);
+    if (pre.length < 2) {
+      marked
+        .filter((h) => !pre.includes(h.umaban))
+        .sort((a, b) => markTier(a.mark) - markTier(b.mark) || (a.umaban ?? 99) - (b.umaban ?? 99))
+        .forEach((h) => { if (pre.length < 2) pre.push(h.umaban); });
+    }
     state.compareSel = { raceId: r.race_id, umaban: pre };
   }
+  // サニタイズ: 印馬以外 (旧実装からの持ち越しを含む) を必ず除去する。
+  const eligible = new Set((r.horses || []).filter(isMarkedHorse).map((h) => h.umaban));
+  state.compareSel.umaban = state.compareSel.umaban.filter((u) => eligible.has(u));
   return state.compareSel.umaban;
 }
 function compareAdd(r, umaban) {
   const sel = getCompareSelection(r);
+  const h = (r.horses || []).find((x) => x.umaban === umaban);
+  if (!h || !isMarkedHorse(h)) return false;
   if (sel.includes(umaban) || sel.length >= 3) return false;
   sel.push(umaban);
   return true;
@@ -1911,12 +1941,13 @@ function compareChipHtml(h) {
 function renderHorseCompare(r, vb) {
   const selUma = getCompareSelection(r);
   const horses = selUma.map((u) => r.horses.find((h) => h.umaban === u)).filter(Boolean);
-  const remaining = r.horses.filter((h) => !selUma.includes(h.umaban));
+  // 追加候補は印馬のみ (isMarkedHorse) — 無印馬はここに一切出さない。
+  const remaining = r.horses.filter((h) => isMarkedHorse(h) && !selUma.includes(h.umaban));
 
   const addControl = horses.length < 3
     ? `<select class="cmp-add-sel">
         <option value="">＋ 馬を追加</option>
-        ${remaining.map((h) => `<option value="${h.umaban}">${h.mark ? esc(h.mark) + " " : ""}${h.umaban} ${esc(h.name)}</option>`).join("")}
+        ${remaining.map((h) => `<option value="${h.umaban}">${esc(h.mark)} ${h.umaban} ${esc(h.name)}</option>`).join("")}
       </select>`
     : `<span class="cmp-limit">最大3頭まで選択中</span>`;
 
@@ -1925,10 +1956,10 @@ function renderHorseCompare(r, vb) {
 
   if (horses.length < 2) {
     vb.innerHTML = `<div class="card cmp-card">
-      <div class="cmp-head">馬比較</div>
-      <div class="cmp-sub">2〜3頭を選んで、AIの評価根拠（特徴量寄与）を比較します。</div>
+      <div class="cmp-head">印馬比較</div>
+      <div class="cmp-sub">PyCaLiAI が印を付けた馬の中から2〜3頭を選んで、AIの評価根拠（特徴量寄与）を比較します。</div>
       ${header}
-      <div class="cw-empty">${horses.length === 0 ? "比較する馬を選んでください。" : "もう1頭選んで比較を開始してください。"}</div>
+      <div class="cw-empty">${horses.length === 0 ? "比較する印馬を選んでください。" : "もう1頭選んで比較を開始してください。"}</div>
     </div>`;
     wireCompareControls(r, vb);
     return;
@@ -1937,7 +1968,7 @@ function renderHorseCompare(r, vb) {
   const { withData, noData, shared, partial } = compareExplanation(horses);
   let body;
   if (withData.length === 0) {
-    body = `<div class="cw-empty">選択した馬に特徴量寄与の説明データがありません（分析カード対応前の開催、または無印馬などデータ対象外の可能性があります）。</div>`;
+    body = `<div class="cw-empty">選択した馬に特徴量寄与の説明データがありません（分析カード対応前の開催の可能性があります）。</div>`;
   } else {
     const allEntries = [...shared.flatMap((x) => x.entries), ...partial.flatMap((x) => x.entries.filter(Boolean))];
     const maxC = Math.max(...allEntries.map((w) => Math.abs(w.contrib ?? 0)), 0.001);
@@ -1959,8 +1990,8 @@ function renderHorseCompare(r, vb) {
   }
 
   vb.innerHTML = `<div class="card cmp-card">
-    <div class="cmp-head">馬比較</div>
-    <div class="cmp-sub">選択した馬が持つ特徴量寄与（AIの根拠）を、同じ要因ごとに並べたものです。数値は各馬の予測に対するモデル内部の寄与度であり、着順や結果の原因を説明するものではありません。</div>
+    <div class="cmp-head">印馬比較</div>
+    <div class="cmp-sub">選択した印馬が持つ特徴量寄与（AIの根拠）を、同じ要因ごとに並べたものです。数値は各馬の予測に対するモデル内部の寄与度であり、着順や結果の原因を説明するものではありません。</div>
     ${header}
     ${body}
   </div>`;
@@ -1986,7 +2017,8 @@ function viewsFor(r) {
   if (r && r.grade_scope) vs.splice(1, 0, { key: "grade", label: "🏆 重賞" });
   // 予測記録: Phase 7B-4 の情報設計判断により通常のレース分析タブから撤去。
   // renderForecast()・Forecast Ledger 本体・fetch は一切削除していない — 到達導線のみ削除。
-  if (r && (r.horses || []).length >= 2) vs.push({ key: "compare", label: "馬比較" });
+  // 印馬 (isMarkedHorse) が2頭以上いる時だけ表示 — 無印馬を含めた頭数ではない。
+  if (r && (r.horses || []).filter(isMarkedHorse).length >= 2) vs.push({ key: "compare", label: "印馬比較" });
   return vs;
 }
 
@@ -2014,7 +2046,7 @@ function renderView() {
   if (!r) { vb.innerHTML = `<div class="err">レースがありません</div>`; return; }
   if (state.view === "grade" && !r.grade_scope) state.view = "shutsuba";
   if (state.view === "forecast" && !state.day?.forecastIds?.has(r.race_id)) state.view = "shutsuba";
-  if (state.view === "compare" && (r.horses || []).length < 2) state.view = "shutsuba";
+  if (state.view === "compare" && (r.horses || []).filter(isMarkedHorse).length < 2) state.view = "shutsuba";
   if (state.view === "shutsuba") {
     vb.innerHTML = `<section id="shutsuba"></section><section id="extras"></section><section id="cowork"></section>`;
     renderTable(r); renderExtras(r); renderCowork(r);
