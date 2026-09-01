@@ -200,7 +200,10 @@ if ($BetsOnly) {
         & .\sync-hf.ps1
         Step "[3/3] sync-hf-umami.ps1 (static 本番サイト pycaliai-umami)"
         if (Test-Path 'sync-hf-umami.ps1') {
-            & .\sync-hf-umami.ps1
+            # -Date without -Live: Phase A already captured the ledger (or should have).
+            # This is only a safety net so a missed Phase A capture still gets backfilled
+            # honestly, never upgraded to live_generation after the fact.
+            & .\sync-hf-umami.ps1 -Date $Date
             if ($LASTEXITCODE -ne 0) { Warn "sync-hf-umami.ps1 returned non-zero" }
         } else {
             Warn "sync-hf-umami.ps1 not found; skipping umami push"
@@ -242,12 +245,32 @@ if ($Post) {
         }
     } catch { Fail "cowork_results.json の generated_at 確認に失敗。HF 同期を中止します: $($_.Exception.Message)" }
 
+    # --- wide residual shadow (v3 前向き, 実弾0円) の決済品質チェック -----------
+    # シャドーは本番ラインではないので Fail させない。ただし「ワイド払戻CSVの
+    # 置き忘れで数週ぶん静かに欠落」を防ぐため、毎週ここで可視化する。
+    # ワイド払戻は data/_inbox/ に放り込めば place_weekly.py が自動追記する。
+    if (Test-Path 'reports\wide_residual_shadow') {
+        Step "[1b/3] wide residual shadow 前向き評価 (実弾0円)"
+        $ev = & .\venv311\Scripts\python.exe analysis\evaluate_wide_residual_forward.py 2>&1
+        $evRc = $LASTEXITCODE
+        $ev | Select-Object -Last 12 | ForEach-Object { Write-Host "    $_" }
+        if ($evRc -ne 0) {
+            Warn "wide residual 前向き評価が exit $evRc。ワイド払戻CSV(data/_inbox/)の投入漏れ・来歴不一致を確認すること (シャドーのため HF 同期は継続)"
+        } else {
+            OK "wide residual shadow 決済OK"
+        }
+    }
+
     if (-not $SkipHF) {
         Step "[2/3] sync-hf.ps1 (NiceGUI Space)"
         & .\sync-hf.ps1
         Step "[3/3] sync-hf-umami.ps1 (static 本番サイト pycaliai-umami)"
         if (Test-Path 'sync-hf-umami.ps1') {
-            & .\sync-hf-umami.ps1
+            # -RebuildCalibration: weekly_post.ps1 above already landed this week's kekka,
+            # and sync-hf-umami.ps1's own build_site.py (step 1) folds it into
+            # site/data/*.json's result.order before build_calibration.py reads it (step 1.3).
+            # -Date (no -Live): safety-net forecast-ledger backfill only, same as BetsOnly.
+            & .\sync-hf-umami.ps1 -Date $Date -RebuildCalibration
             if ($LASTEXITCODE -ne 0) { Warn "sync-hf-umami.ps1 returned non-zero" }
         } else {
             Warn "sync-hf-umami.ps1 not found; skipping umami push"
@@ -399,7 +422,9 @@ if ($SkipHF) {
     if (-not (Test-Path 'sync-hf-umami.ps1')) {
         Warn "sync-hf-umami.ps1 not found; skipping umami push"
     } else {
-        & .\sync-hf-umami.ps1
+        # -Live: this IS the genuine same-day Phase-A run -- the only place allowed to
+        # create a live_generation forecast-ledger record (see sync-hf-umami.ps1 step 1.2).
+        & .\sync-hf-umami.ps1 -Date $Date -Live
         if ($LASTEXITCODE -ne 0) {
             Warn "sync-hf-umami.ps1 returned non-zero"
         }

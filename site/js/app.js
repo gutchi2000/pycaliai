@@ -1616,9 +1616,16 @@ async function renderForecast(r, vb) {
   const provLine = isLive
     ? `<span class="fc-prov fc-prov-live">レース当日リアルタイム記録</span>`
     : `<span class="fc-prov fc-prov-backfill">事後記録（アーカイブから復元）</span>`;
-  const predictedLine = snap.source_generated_at
-    ? `予測確定 ${fcDateTime(snap.source_generated_at)}${snap.source_generated_at_basis === "git_first_commit_content_verified" ? "（記録改ざん検証済）" : ""}`
-    : `予測確定日時 不明（検証可能な記録なし）`;
+  // isLive: captured_at 自体が生成直後の記録なので「予測確定」と呼んで良い。
+  // backfill: 確実に言えるのは「Git履歴上、この内容が確認できた時点」までであり、
+  // それより前に生成されていた可能性を否定できない (=生成時刻の証明ではない)。
+  // 改ざん検知はこのプロジェクト自身のGit履歴との内容突合であり、外部検証可能な
+  // 耐タンパー保証ではないため、そのように言い切らない。
+  const predictedLine = isLive
+    ? `予測確定 ${fcDateTime(snap.captured_at)}`
+    : (snap.archive_observed_at && snap.archive_observed_at_basis === "git_first_commit_content_verified"
+        ? `Git履歴から当時の内容を確認済み（${fcDateTime(snap.archive_observed_at)}時点）`
+        : `確定時刻不明（検証可能な記録なし）`);
 
   vb.innerHTML = `<div class="card fc-card">
     <div class="fc-head">

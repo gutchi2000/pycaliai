@@ -20,38 +20,49 @@ design as unable to distinguish "this was genuinely captured before the race" fr
 "this was backfilled today by reading an old archived file") -----------------------
 
 Every record carries:
-  captured_at              wall-clock time THIS script wrote the record. Not a claim
-                            about when the forecast was originally computed.
-  provenance                "live_generation"          — this run was explicitly
-                                                           invoked (--live) as part of
-                                                           the real, same-day Phase-A
-                                                           pipeline.
-                             "archived_bundle_backfill" — the default. This run read
-                                                           an already-existing
-                                                           site/data/{date}.json at
-                                                           some later point; the
-                                                           forecast content is
-                                                           accurate (verified below),
-                                                           but this record is NOT
-                                                           proof the Ledger itself was
-                                                           locked before the race.
-  source_generated_at       Best-effort estimate of when the underlying forecast
-                            content actually first became public, OR null if it
-                            cannot be established (never guessed/inferred without a
-                            checkable basis — see source_generated_at_basis).
-  source_generated_at_basis How source_generated_at was derived:
+  captured_at                wall-clock time THIS script wrote the record. Not a claim
+                              about when the forecast was originally computed.
+  provenance                  "live_generation"          — this run was explicitly
+                                                             invoked (--live) as part of
+                                                             the real, same-day Phase-A
+                                                             pipeline.
+                               "archived_bundle_backfill" — the default. This run read
+                                                             an already-existing
+                                                             site/data/{date}.json at
+                                                             some later point; the
+                                                             forecast content is
+                                                             accurate (verified below),
+                                                             but this record is NOT
+                                                             proof the Ledger itself was
+                                                             locked before the race.
+  archive_observed_at         For archived_bundle_backfill only: the timestamp of the
+                              earliest git commit in which this exact forecast content
+                              (mark/p_win/p_sho, verified byte-identical to current —
+                              see archive_observed_at_basis) is found. This is NOT a
+                              claim about when the forecast was generated — the true
+                              generation moment could be earlier (e.g. the file could
+                              have sat uncommitted before that commit). It is evidence
+                              of an upper bound: the content already existed by this
+                              time. Null if no such evidence can be established (never
+                              guessed/inferred without a checkable basis — see
+                              archive_observed_at_basis). Deliberately NOT named
+                              *_generated_at — a prior version of this schema used that
+                              name and implied a stronger, unprovable claim.
+  archive_observed_at_basis   How archive_observed_at was derived:
                               "git_first_commit_content_verified" — found this file's
                                   earliest git commit, AND confirmed every race's
                                   mark/p_win/p_sho in that commit is byte-identical to
                                   the current content (i.e. nothing has changed since
-                                  that commit) — so that commit's timestamp is a
-                                  trustworthy proxy for "when this forecast became
-                                  public."
+                                  that commit) — so that commit's timestamp is usable
+                                  as upper-bound evidence. This is content-diff
+                                  verification against this project's own git history,
+                                  not an externally verifiable/tamper-proof guarantee —
+                                  described to the user as exactly that and no more.
                               "content_diverged_from_earliest_known_commit" — a git
                                   history exists but the earliest commit's content for
                                   this race differs from current — cannot vouch for
                                   when the CURRENT content originated, so
-                                  source_generated_at is left null rather than
+                                  archive_observed_at is left null rather than
                                   guessed.
                               "no_git_history" — site/data/{date}.json isn't tracked
                                   in git (or git isn't available) — null.
@@ -128,8 +139,11 @@ def _mark_tuple(r: dict) -> list:
             for h in (r.get("horses") or [])]
 
 
-def resolve_source_provenance(rid: str, r_current: dict, first_iso: str | None,
-                               first_day: dict | None) -> tuple[str | None, str]:
+def resolve_archive_evidence(rid: str, r_current: dict, first_iso: str | None,
+                              first_day: dict | None) -> tuple[str | None, str]:
+    """archive_observed_at / archive_observed_at_basis を返す。証拠(evidence)であって
+    生成時刻の主張ではない — 呼び出し側もこの2値をそのまま generated_at 系の名前で
+    扱わないこと。"""
     if first_iso is None:
         return None, "no_git_history"
     r_old = None
@@ -152,15 +166,15 @@ def horse_snapshot(h: dict) -> dict:
 
 
 def race_snapshot(r: dict, model_version: str | None, captured_at: str, provenance: str,
-                   source_generated_at: str | None, source_basis: str) -> dict:
+                   archive_observed_at: str | None, archive_observed_at_basis: str) -> dict:
     conf = r.get("confidence") or {}
     ml = r.get("member_level") or {}
     return {
         "race_id": r.get("race_id"),
         "provenance": provenance,
         "captured_at": captured_at,
-        "source_generated_at": source_generated_at,
-        "source_generated_at_basis": source_basis,
+        "archive_observed_at": archive_observed_at,
+        "archive_observed_at_basis": archive_observed_at_basis,
         "model_version": model_version,
         "race_state": {
             "chaos": conf.get("field_chaos_score"),
@@ -224,13 +238,13 @@ def main() -> int:
         if out_path.exists():
             skipped += 1
             continue
-        src_at, src_basis = resolve_source_provenance(rid, r, first_iso, first_day)
-        basis_counts[src_basis] = basis_counts.get(src_basis, 0) + 1
-        snap = race_snapshot(r, model_version, captured_at, provenance, src_at, src_basis)
+        evidence_at, evidence_basis = resolve_archive_evidence(rid, r, first_iso, first_day)
+        basis_counts[evidence_basis] = basis_counts.get(evidence_basis, 0) + 1
+        snap = race_snapshot(r, model_version, captured_at, provenance, evidence_at, evidence_basis)
         assert_public_safe(snap)
         if args.dry:
             print(f"[dry] would write {out_path.relative_to(BASE)}  provenance={provenance} "
-                  f"source_generated_at={src_at} ({src_basis})")
+                  f"archive_observed_at={evidence_at} ({evidence_basis})")
         else:
             out_dir.mkdir(parents=True, exist_ok=True)
             out_path.write_text(json.dumps(snap, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -248,7 +262,7 @@ def main() -> int:
     print(f"[forecast_history] {date_str}: {written} 件新規{'(dry)' if args.dry else '書込'} / "
           f"{skipped} 件は既存のためスキップ(immutable) / provenance={provenance}")
     for basis, n in basis_counts.items():
-        print(f"    source_generated_at_basis={basis}: {n} 件")
+        print(f"    archive_observed_at_basis={basis}: {n} 件")
     return 0
 
 

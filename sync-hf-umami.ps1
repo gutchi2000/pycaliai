@@ -22,7 +22,16 @@
 [CmdletBinding()]
 param(
     [string]$SpaceUrl = "https://huggingface.co/spaces/gutchi15300/pycaliai-umami",
-    [switch]$DryRun
+    [switch]$DryRun,
+    [string]$Date = "",           # YYYYMMDD -- drives the Forecast Ledger hook below (1.2). Omit to skip it.
+    [switch]$Live,                # forwarded to build_forecast_history.py --live -- ONLY from weekly_nicegui.ps1's
+                                   # Phase A call. BetsOnly/Post must pass -Date without -Live: build_forecast_history.py
+                                   # is write-once/idempotent, so if Phase A's own hook is ever missed, a later recovery
+                                   # run here still captures the race, but honestly as archived_bundle_backfill --
+                                   # never upgraded to live_generation after the fact.
+    [switch]$RebuildCalibration   # run build_calibration.py after build_site.py below -- ONLY from weekly_nicegui.ps1's
+                                   # Phase C call, once this run's build_site.py has picked up the week's newly-placed
+                                   # kekka into site/data/*.json's result.order (Phase A/BetsOnly must not pass this).
 )
 $ErrorActionPreference = "Continue"
 # $PSScriptRoot is empty when run inline; fall back to cwd so Join-Path is safe.
@@ -53,6 +62,52 @@ try {
 Step "build_site.py (regenerate data)"
 & (Join-Path $ROOT "venv311\Scripts\python.exe") (Join-Path $ROOT "build_site.py")
 if ($LASTEXITCODE -ne 0) { Fail "build_site.py failed" }
+
+# 1.2 Forecast Ledger capture (Phase 6A, design commit 8e27e9c3f0). Must run right here:
+#     immediately after build_site.py's fresh site/data/{date}.json above, before any
+#     commit/deploy step below -- build_site.py is the only thing that produces that
+#     file, and the ledger must never see odds-mixed/T-10 data (this script never touches
+#     reports/live_odds or reports/cowork_output, so that separation holds by construction).
+#     Non-fatal: a ledger-capture failure must not block the actual site deploy, but must
+#     not be silently swallowed either -- printed in full, with a red FAIL line on nonzero exit.
+if ($Date) {
+    $dayJson = Join-Path $SITE "data\$Date.json"
+    if (Test-Path $dayJson) {
+        $liveArgs = @()
+        $liveLabel = ""
+        if ($Live) { $liveArgs = @("--live"); $liveLabel = " --live" }
+        Step "build_forecast_history.py $Date$liveLabel"
+        $fhOut = & (Join-Path $ROOT "venv311\Scripts\python.exe") (Join-Path $ROOT "build_forecast_history.py") $Date @liveArgs 2>&1
+        $fhExit = $LASTEXITCODE
+        $fhOut | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+        if ($fhExit -ne 0) {
+            Write-Host "  FAIL: build_forecast_history.py exited $fhExit (forecast ledger NOT updated for $Date; deploy continues)" -ForegroundColor Red
+        } else {
+            Write-Host "  OK: forecast ledger up to date for $Date" -ForegroundColor Green
+        }
+    } else {
+        Write-Host "  skip forecast ledger: site\data\$Date.json not found" -ForegroundColor DarkGray
+    }
+} else {
+    Write-Host "  skip forecast ledger: no -Date given" -ForegroundColor DarkGray
+}
+
+# 1.3 Model Reliability / calibration rebuild (Phase 6B, design commit 9cf44e79b5). Only
+#     meaningful once build_site.py above has folded this week's newly-placed kekka into
+#     site/data/*.json's result.order -- i.e. only from -RebuildCalibration (Phase C).
+#     No date arg: the script itself scans every site/data/*.json and re-derives the full
+#     v6-to-date population each run. Same non-fatal-but-loud failure handling as 1.2.
+if ($RebuildCalibration) {
+    Step "build_calibration.py (model reliability rebuild)"
+    $calOut = & (Join-Path $ROOT "venv311\Scripts\python.exe") (Join-Path $ROOT "build_calibration.py") 2>&1
+    $calExit = $LASTEXITCODE
+    $calOut | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+    if ($calExit -ne 0) {
+        Write-Host "  FAIL: build_calibration.py exited $calExit (calibration.json NOT updated; deploy continues)" -ForegroundColor Red
+    } else {
+        Write-Host "  OK: calibration.json rebuilt" -ForegroundColor Green
+    }
+}
 
 # 1.5 commit regenerated site/ to master and push origin (GitHub -> Cloudflare
 #     Workers auto-deploy for pycaliai.com). Without this, pycaliai.com keeps
