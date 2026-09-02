@@ -1889,16 +1889,76 @@ function compareRemove(r, umaban) {
   if (i >= 0) sel.splice(i, 1);
 }
 
+// feat 名 (正準列名) から「率」系かどうかを判定する。ラベル文字列ではなく feat 側で判定し、
+// 未知の値でも誤って率扱いしないようにする。marks_shap.py の FEAT_LABELS に登場する率系 feat
+// (jockey_fuku30 等) と一致するパターンのみ対象 — value は 0〜1 の生の割合として保存されている。
+function isRateFeat(feat) {
+  if (!feat) return false;
+  return /(?:_fuku\d+|_win_rate|_top3_rate|_rentai_rate|_ratio)$/.test(String(feat));
+}
+// feat (正準名) → 単位サフィックス。marks_shap.py の FEAT_LABELS / master CSV の生列名と
+// 突き合わせて確認済みの feat のみ列挙する (ラベル文字列の部分一致などの脆い推測はしない)。
+// 未収録の feat は下の formatWhyValue() が素の数値/文字列にフォールバックする。
+const _WHY_UNIT_SUFFIX = {
+  // 距離 (m)
+  "距離": "m", "前距離": "m",
+  // 通過順・コーナー通過順 (何番手にいたか)
+  "kako5_avg_pos": "番手", "kako5_std_pos": "番手", "kako5_best_pos": "番手",
+  "kako5_same_cond_best_pos": "番手", "hist_same_cond_best_pos": "番手",
+  "hist_same_place_best_pos": "番手",
+  "前1角": "番手", "前2角": "番手", "前3角": "番手", "前4角": "番手",
+  // 人気順
+  "kako5_avg_ninki": "番人気", "人気": "番人気",
+  // 確定着順・上り3F順
+  "前走確定着順": "着", "前走上り3F順": "位",
+  // 年齢
+  "年齢": "歳", "騎手年齢": "歳", "調教師年齢": "歳", "馬齢": "歳",
+  // 重量 (kg)
+  "斤量": "kg", "前走斤量": "kg", "体重": "kg", "前走馬体重": "kg",
+  "前走馬体重増減": "kg", "馬齢斤量差": "kg",
+  // 間隔・経過日数・戦目
+  "間隔": "週", "休み明け～戦目": "戦目",
+  "trnH_days_ago": "日", "trnW_days_ago": "日",
+  // 走数 (出走した回数) / 好走回数
+  "kako5_race_count": "走", "hist_same_cond_count": "走",
+  "course_n_prev": "走", "jockey_n_prev": "走",
+  "kako5_expected_good_count": "回", "kako5_upset_good_count": "回",
+  "kako5_hidden_good_count": "回",
+};
+// 性別は marks_shap.py 側でエンコード前の元値 (「牡」「牝」「セ」) を復元済みなのでほぼ素通しだが、
+// 万一コード値のまま来た場合の保険としてマッピングを持つ。
+const _WHY_GENDER_MAP = { "牡": "牡", "牝": "牝", "セ": "セ", "0": "牡", "1": "牝", "2": "セ" };
+function _whyNumTrim(v) { return +(+v).toFixed(1); }
+// why[] の 1 エントリを初見ユーザーにも意味が伝わる表示文字列へ変換する中央集約フォーマッタ。
+// feat (正準特徴名) で種別判定するのが基本方針— ラベル文字列の部分一致には頼らない。
+// 未収録の feat は「数値そのまま/文字列そのまま」の安全側フォールバックに留め、憶測で単位を付けない。
+function formatWhyValue(feat, label, value) {
+  if (value == null) return "—";
+  const f = String(feat || "");
+  if (typeof value === "number") {
+    if (isRateFeat(f)) {
+      const r = Math.round(value * 1000) / 10; // 0〜1 の割合 → %、小数第1位まで
+      return (Number.isInteger(r) ? r : r.toFixed(1)) + "%";
+    }
+    const unit = _WHY_UNIT_SUFFIX[f];
+    if (unit) return _whyNumTrim(value) + unit;
+    return String(_whyNumTrim(value));
+  }
+  if (f === "性別") return _WHY_GENDER_MAP[String(value)] ?? esc(value);
+  return esc(value);
+}
 function cmpSideHtml(h, w, maxC) {
   const neg = (w.contrib ?? 0) < 0;
-  const val = w.value == null ? "—" : (typeof w.value === "number" ? +(+w.value).toFixed(1) : esc(w.value));
+  const val = formatWhyValue(w.feat, w.label, w.value);
   const contribStr = (w.contrib >= 0 ? "+" : "") + num(w.contrib, 2);
   const width = (Math.abs(w.contrib ?? 0) / maxC * 100).toFixed(0);
   return `<div class="cmp-side ${markCls(h.mark)} ${neg ? "neg" : ""}">
-      <span class="cmp-side-tag">${esc(h.mark) || esc(h.umaban)}</span>
-      <span class="cmp-side-val num">${val}</span>
+      <div class="cmp-side-head">
+        <span class="cmp-side-tag">${esc(h.mark) || esc(h.umaban)}</span>
+        <span class="cmp-metric-val num">${val}</span>
+      </div>
       <span class="bar"><i style="width:${width}%;${neg ? "" : "background:linear-gradient(90deg,#cf9a35,#ffd97a)"}"></i></span>
-      <span class="wv">${contribStr}</span>
+      <div class="cmp-side-ai"><span class="cmp-metric-lbl">AI寄与</span><span class="wv">${contribStr}</span></div>
     </div>`;
 }
 
@@ -1992,6 +2052,7 @@ function renderHorseCompare(r, vb) {
   vb.innerHTML = `<div class="card cmp-card">
     <div class="cmp-head">印馬比較</div>
     <div class="cmp-sub">選択した印馬が持つ特徴量寄与（AIの根拠）を、同じ要因ごとに並べたものです。数値は各馬の予測に対するモデル内部の寄与度であり、着順や結果の原因を説明するものではありません。</div>
+    <div class="cmp-legend">AI寄与：その特徴がモデル評価を押し上げた/下げた度合い。勝率の増減そのものではありません。</div>
     ${header}
     ${body}
   </div>`;
