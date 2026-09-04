@@ -42,7 +42,14 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 .baba-bias h3{font-size:15px;font-weight:700;color:var(--tx2);letter-spacing:.1em;margin:4px 2px 10px;display:flex;align-items:center;gap:9px}
 .baba-bias h3::before{content:"";width:3px;height:14px;border-radius:2px;background:linear-gradient(180deg,var(--gold2),var(--gold))}
 .baba-bias h3 .sub{font-size:12px;color:var(--tx3);font-weight:400;letter-spacing:0}
-.baba-grid{display:grid;gap:12px}
+.baba-compact{display:flex;flex-direction:column;gap:8px}
+.bc-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:9px 12px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--bg2)}
+.bc-vname{font-size:13px;color:var(--tx);flex:none}
+.bc-item{display:inline-flex;align-items:center;gap:7px;flex:none}
+.bc-cond{font-size:12px;color:var(--tx2)}
+.baba-toggle{margin-top:10px;font-size:12px;color:var(--tx2);background:transparent;border:1px solid var(--line2);border-radius:var(--r-pill);padding:6px 16px;cursor:pointer;transition:all .18s}
+.baba-toggle:hover{border-color:var(--gold);color:var(--gold2)}
+.baba-grid{display:grid;gap:12px;margin-top:12px}
 .baba-card{border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px 16px;background:linear-gradient(180deg,rgba(255,255,255,.032),rgba(255,255,255,0) 34%),var(--bg2);box-shadow:var(--shadow-card)}
 .baba-vname{font-weight:700;font-size:14px;color:var(--tx);margin:0 0 10px}
 .baba-split{display:grid;grid-template-columns:1fr 1fr;gap:18px}
@@ -96,6 +103,8 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 .baba-bias h3{font-size:calc(15px*var(--bfs))}
 .baba-bias h3 .sub{font-size:calc(12px*var(--bfs))}
 .baba-vname{font-size:calc(14px*var(--bfs))}
+.bc-vname{font-size:calc(13px*var(--bfs))}
+.bc-cond{font-size:calc(12px*var(--bfs))}
 .bsurf-tag{font-size:calc(12px*var(--bfs))}
 .bsurf-band{font-size:calc(13.5px*var(--bfs))}
 .cg-z{font-size:calc(10.5px*var(--bfs))}
@@ -225,8 +234,8 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 </div>
 
 <nav class="venues" id="venueTabs" aria-label="開催場"></nav>
-<section class="baba-bias" id="babaBias" hidden></section>
 <nav class="races" id="raceStrip" aria-label="レース選択"></nav>
+<section class="baba-bias" id="babaBias" hidden></section>
 
 <main id="main">
   <section id="raceHeader"></section>
@@ -244,7 +253,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 <div id="overlay"></div>
 <aside id="drawer" aria-label="馬詳細"></aside>
 
-<script defer src="js/baba.js?v=20260801a"></script>
+<script defer src="js/baba.js?v=20260902a"></script>
 <script defer src="js/app.js?v=20260902e"></script>
 <script defer id="echartsJs" src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <script>

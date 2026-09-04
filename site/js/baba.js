@@ -15,6 +15,7 @@
       + "-" + String(d.getDate()).padStart(2, "0");
   }
   var babaData = null;   // fetch 結果のキャッシュ（会場切替の度に再fetchしないため）
+  var expanded = false;  // 詳細カードの開閉状態。会場切替をまたいでユーザーの選択を保持する。
 
   // --- ゲージ位置 -------------------------------------------------------------
   function clampPct(p) { return Math.max(3, Math.min(97, p)); }
@@ -113,6 +114,28 @@
       + '<div class="baba-split">' + shibaHalf(v) + dirtHalf(v) + "</div></div>";
   }
 
+  // --- コンパクト要約 (2026-09-02: 全カードを開かなくても状態/主バイアスが分かるように) ---
+  // 既存の band/favoredStyle() の値をそのまま流用するだけで、新しい判定ロジックは追加しない。
+  function compactChip(b) {
+    var s = favoredStyle(b);
+    return s
+      ? '<span class="kchip ' + s.cls + '">' + s.txt + (s.lv ? "<em>" + s.lv + "</em>" : "") + "</span>"
+      : '<span class="kchip flat">—</span>';
+  }
+  function compactItem(tag, label, cond, b) {
+    return '<span class="bc-item"><span class="bsurf-tag ' + tag + '">' + label + "</span>"
+      + '<span class="bc-cond">' + esc(cond) + "</span>"
+      + compactChip(b) + "</span>";
+  }
+  function venueCompact(v) {
+    var shibaCond = v.cushion_firmness || (v.shiba_bias && v.shiba_bias.band) || "—";
+    var dirtCond = (v.dirt_bias && v.dirt_bias.band) || "—";
+    return '<div class="bc-row"><b class="bc-vname">' + esc(v.venue) + "</b>"
+      + compactItem("shiba", "芝", shibaCond, v.shiba_bias)
+      + compactItem("dirt", "ダート", dirtCond, v.dirt_bias)
+      + "</div>";
+  }
+
   function draw() {
     var el = document.getElementById("babaBias");
     if (!el) return;
@@ -124,6 +147,7 @@
     var vs = place ? d.venues.filter(function (v) { return v.venue === place; }) : [];
     if (!vs.length) { el.hidden = true; return; }
     var cards = vs.map(venueCard).join("");
+    var compact = vs.map(venueCompact).join("");
     // 当日測定がまだ掲載されていない早朝は前日値が最新。正直に「前日測定」と示す。
     var stale = (d.is_measured_today === false);
     var head = stale ? "🏇 馬場バイアス（前日測定）" : "🏇 今日の馬場バイアス";
@@ -131,8 +155,22 @@
       ? ' <span class="sub">' + esc(d.measured_label) + " 測定"
         + (stale ? "・本日値は発表待ち" : "") + " / 過去10年実測</span>"
       : "";
-    el.innerHTML = "<h3>" + head + note + '</h3><div class="baba-grid">' + cards + "</div>";
+    el.innerHTML = "<h3>" + head + note + '</h3>'
+      + '<div class="baba-compact">' + compact + '</div>'
+      + '<button class="baba-toggle" type="button" id="babaToggleBtn" aria-expanded="' + expanded + '">'
+        + (expanded ? "閉じる ▴" : "詳細を見る ▾") + "</button>"
+      + '<div class="baba-grid"' + (expanded ? "" : " hidden") + ">" + cards + "</div>";
     el.hidden = false;
+    var btn = document.getElementById("babaToggleBtn");
+    var grid = el.querySelector(".baba-grid");
+    if (btn && grid) {
+      btn.onclick = function () {
+        expanded = !expanded;
+        grid.hidden = !expanded;
+        btn.textContent = expanded ? "閉じる ▴" : "詳細を見る ▾";
+        btn.setAttribute("aria-expanded", String(expanded));
+      };
+    }
   }
 
   // app.js(renderNav / setMode) から会場切替・モード切替の度に呼ばれる。
