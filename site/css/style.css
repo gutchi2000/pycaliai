@@ -1376,8 +1376,8 @@ body.drawer-open { overflow: hidden; }
   grid-template-columns: 30px 52px minmax(96px, 1.1fr) 56px 56px 42px 56px;
   gap: 9px; align-items: center; padding: 8px 6px;
 }
-.um-head { font-size: 12px; color: var(--tx3); border-bottom: 1px solid var(--line2); padding-bottom: 7px; }
-.usort { font-size: 12px; color: var(--tx3); padding: 0; }
+.um-head { font-size: 14.4px; color: var(--tx3); border-bottom: 1px solid var(--line2); padding-bottom: 7px; }
+.usort { font-size: 14.4px; color: var(--tx3); padding: 0; }
 .usort:hover { color: var(--tx); }
 .usort.on { color: var(--gold2); }
 .um-row { border-top: 1px solid var(--line); cursor: pointer; transition: background .15s; }
@@ -1386,17 +1386,17 @@ body.drawer-open { overflow: hidden; }
 .um-row:hover { background: rgba(255,255,255,.04); box-shadow: inset 3px 0 0 var(--line2); }
 .um-row.honmei { background: linear-gradient(90deg, rgba(245,185,66,.08), transparent 55%); }
 .um-row.gated { opacity: .58; }
-.um-row .mark { font-size: 15px; }
-.um-name { font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.um-row .num { font-size: 15px; }
-.um-xroi { font-size: 17px; font-weight: 500; color: var(--tx2); }
+.um-row .mark { font-size: 18px; }
+.um-name { font-size: 17.4px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.um-row .num { font-size: 18px; }
+.um-xroi { font-size: 20.4px; font-weight: 500; color: var(--tx2); }
 .um-xroi.good { color: var(--teal2); }
 .um-xroi.mid { color: var(--gold2); }
 .um-xroi.low { color: var(--tx3); }
-.um-xroi small { font-size: 9px; color: var(--tx3); }
-.um-g { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; border-radius: 6px; font-family: var(--disp); font-size: 12.5px; font-weight: 600; color: #131008; }
-.um-side { font-size: 12.5px; color: var(--tx2); }
-.um-reason { font-size: 14.5px; color: var(--tx); line-height: 1.55; overflow: hidden; }
+.um-xroi small { font-size: 10.8px; color: var(--tx3); }
+.um-g { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; border-radius: 6px; font-family: var(--disp); font-size: 15px; font-weight: 600; color: #131008; }
+.um-side { font-size: 15px; color: var(--tx2); }
+.um-reason { font-size: 17.4px; color: var(--tx); line-height: 1.55; overflow: hidden; }
 
 /* ---------------- コースタブ ---------------- */
 .cc-head { padding: 16px; margin-top: 12px; }
@@ -1515,10 +1515,10 @@ body.drawer-open { overflow: hidden; }
     gap: 5px; padding: 8px 2px;
   }
   .um-evt, .um-evf, .um-reason { display: none; }
-  .um-name { font-size: 13.5px; }
-  .um-row .num { font-size: 13.5px; }
-  .um-xroi { font-size: 16px; }
-  .um-side { font-size: 11.5px; }
+  .um-name { font-size: 16.2px; }
+  .um-row .num { font-size: 16.2px; }
+  .um-xroi { font-size: 19.2px; }
+  .um-side { font-size: 13.8px; }
   .tr-sets { margin-left: 0; flex-basis: 100%; }
   .res-pays { margin-left: 0; }
 }
