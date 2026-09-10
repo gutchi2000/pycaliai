@@ -90,8 +90,13 @@ def convert_finish(series: pd.Series) -> pd.Series:
 def add_rolling_stats(master: pd.DataFrame) -> pd.DataFrame:
     """騎手・調教師の直近N走複勝率を時系列リークなしで追加する。
 
-    shift(1) を使うことで「当該レースより前のレース」のみを参照し、
-    データリークを防ぐ。
+    主体（騎手/調教師）×レース単位に集約してから shift(1) することで、
+    同一レースに同じ騎手/調教師の馬が複数頭出走しても、当該レースの
+    結果が互いの特徴量に混入しないようにする。
+    旧実装は行（馬）単位で shift していたため、同一レース内で後の馬番の
+    特徴量に先の馬番の当該レース結果が漏れるリークがあった
+    （2026-09-07 ASTRA-01 で発見・修正。Vol. III 欠陥台帳参照。
+    調教師側で 21,539 行 / 626,774 行が影響。騎手は1レース1頭のため無影響）。
     追加列: jockey_fuku30, jockey_fuku90, trainer_fuku30, trainer_fuku90
     """
     logger.info("騎手・調教師ローリング成績を計算中...")
@@ -100,15 +105,30 @@ def add_rolling_stats(master: pd.DataFrame) -> pd.DataFrame:
         ["日付", "発走時刻", "レースID(新/馬番無)", "馬番"]
     ).reset_index(drop=True)
 
+    race_col = "レースID(新/馬番無)"
     for code_col, prefix in [("騎手コード", "jockey"), ("調教師コード", "trainer")]:
+        # 主体×レース単位に集約（同一レースの複数頭は「事前」値を共有すべきで、
+        # 個別の行として rolling window に二重計上してはならない）
+        race_level = (
+            master.groupby([code_col, race_col], sort=False)
+            .agg(_date=("日付", "first"), _time=("発走時刻", "first"),
+                 _flag=("fukusho_flag", "mean"))
+            .reset_index()
+            .sort_values([code_col, "_date", "_time"])
+        )
         for window in [30, 90]:
             col = f"{prefix}_fuku{window}"
-            master[col] = (
-                master.groupby(code_col, sort=False)["fukusho_flag"]
+            race_level[col] = (
+                race_level.groupby(code_col, sort=False)["_flag"]
                 .transform(
                     lambda x: x.shift(1).rolling(window, min_periods=5).mean()
                 )
             )
+            merged = master[[code_col, race_col]].merge(
+                race_level[[code_col, race_col, col]],
+                on=[code_col, race_col], how="left",
+            )
+            master[col] = merged[col].values
             na_cnt = master[col].isna().sum()
             logger.info(f"  {col}: NaN={na_cnt:,}件（キャリア浅い等）")
 
