@@ -828,7 +828,7 @@ function tactGroups(bets, settled) {
 let betTickerTimer = null;
 let betTickerSignature = "";
 function betTickerDeadline(r) {
-  if (!r.tact?.bets?.length || r.result) return NaN;
+  if (!r.tact || (!r.tact.bets?.length && !r.tact.skip_reason) || r.result) return NaN;
   if (r.tact.is_preview) return Date.now() + tactExpiryMs(r.tact);
   const date = String(state.day?.date || "");
   const hm = /^(\d{1,2}):(\d{2})$/.exec(String(r.start_time || ""));
@@ -848,9 +848,14 @@ function renderBetTicker() {
   const signature = JSON.stringify(items.map(({r}) => [r.race_id,r.tact]));
   if (signature !== betTickerSignature) {
     const link = (r, duplicate = false) => {
-      const kinds = [...new Set(r.tact.bets.map(b => b.type))].join("・");
-      return `<a class="bet-ticker-link" href="#cowork" data-bet-rid="${esc(r.race_id)}"${duplicate ? ' aria-hidden="true" tabindex="-1"' : ''}>
-        <em>${r.tact.is_preview ? "速報" : "確定"}</em><b>${esc(r.place)}${esc(r.rno)}R 買い目公開中！</b><small>${esc(kinds)} →</small></a>`;
+      const t = r.tact;
+      const isSkip = !t.bets?.length;
+      const headline = isSkip ? `${esc(r.place)}${esc(r.rno)}R 買い目無し`
+                               : `${esc(r.place)}${esc(r.rno)}R 買い目公開中！`;
+      const detail = isSkip ? esc(t.skip_reason || "見送り")
+                             : esc([...new Set(t.bets.map(b => b.type))].join("・"));
+      return `<a class="bet-ticker-link${isSkip ? ' bet-ticker-skip' : ''}" href="#cowork" data-bet-rid="${esc(r.race_id)}"${duplicate ? ' aria-hidden="true" tabindex="-1"' : ''}>
+        <em>${t.is_preview ? "速報" : "確定"}</em><b>${headline}</b><small>${detail} →</small></a>`;
     };
     // Repeat short lists to avoid a mostly empty strip; only the first copy is focusable.
     const repeats = Math.max(1, Math.ceil(3 / items.length));
@@ -910,8 +915,11 @@ function tactSection(r) {
   if (!t) return "";
   if (t.is_preview && tactExpiryMs(t) <= 0) return "";
   if (!t.bets?.length) {
+    // 生成側 (_public_skip_reason / _public_vote_skip_reason) が返す文言は既に
+    // 「〜のため見送り」/「見送り」の形で完結しているので、ここでは前置きを足さない。
+    const reason = t.skip_reason ? esc(t.skip_reason) : "見送り（新馬・超混戦など）";
     return `<div class="cw-title"><b>TACT</b>指数から見た推奨買い目</div>
-      <div class="card cw-empty">TACT はこのレース見送り（新馬・超混戦など）。</div>`;
+      <div class="card cw-empty">${reason}。</div>`;
   }
   // 券種ごとに 1 枠 (BOX 表記は tact-row 単位で維持)
   const byType = new Map();
