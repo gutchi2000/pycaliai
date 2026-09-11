@@ -847,36 +847,22 @@ function renderBetTicker() {
   if (!items.length) { track.innerHTML = ""; betTickerSignature = ""; return; }
   const signature = JSON.stringify(items.map(({r}) => [r.race_id,r.tact]));
   if (signature !== betTickerSignature) {
-    const link = (r, duplicate = false) => {
+    const link = (r) => {
       const t = r.tact;
       const isSkip = !t.bets?.length;
       const headline = isSkip ? `${esc(r.place)}${esc(r.rno)}R 買い目無し`
                                : `${esc(r.place)}${esc(r.rno)}R 買い目公開中！`;
       const detail = isSkip ? esc(t.skip_reason || "見送り")
                              : esc([...new Set(t.bets.map(b => b.type))].join("・"));
-      return `<a class="bet-ticker-link${isSkip ? ' bet-ticker-skip' : ''}" href="#cowork" data-bet-rid="${esc(r.race_id)}"${duplicate ? ' aria-hidden="true" tabindex="-1"' : ''}>
-        <em>${t.is_preview ? "速報" : "確定"}</em><b>${headline}</b><small>${detail} →</small></a>`;
+      return `<a class="bet-ticker-link${isSkip ? ' bet-ticker-skip' : ''}" href="#cowork" data-bet-rid="${esc(r.race_id)}">
+        <em>${t.is_preview ? "速報" : "確定"}</em><b>${headline}</b><small>${detail}</small></a>`;
     };
-    // Repeat short lists to avoid a mostly empty strip; only the first copy is focusable.
-    const repeats = Math.max(1, Math.ceil(3 / items.length));
-    const group = Array.from({length:repeats}, (_,i) => items.map(({r}) => link(r,i>0)).join("")).join("");
-    const duplicate = Array.from({length:repeats}, () => items.map(({r}) => link(r,true)).join("")).join("");
-    track.innerHTML = `<div class="bet-ticker-group">${group}</div><div class="bet-ticker-group" aria-hidden="true">${duplicate}</div>`;
-    track.style.setProperty("--ticker-duration", `${Math.max(24, items.length * repeats * 9)}s`);
+    track.innerHTML = items.map(({r}) => link(r)).join("");
     betTickerSignature = signature;
   }
   betTickerTimer = setTimeout(renderBetTicker, Math.min(items[0].until-now+80,2147483000));
 }
 document.addEventListener("click", event => {
-  const pause = event.target.closest("#betTickerPause");
-  if (pause) {
-    const bar = $("#betTicker"), paused = bar.dataset.paused !== "true";
-    bar.dataset.paused = String(paused);
-    pause.setAttribute("aria-pressed", String(paused));
-    pause.setAttribute("aria-label", paused ? "案内の動きを再開する" : "案内の動きを止める");
-    pause.textContent = paused ? "再開" : "一時停止";
-    return;
-  }
   const link = event.target.closest("[data-bet-rid]");
   if (!link) return;
   event.preventDefault();
