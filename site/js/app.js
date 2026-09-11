@@ -248,6 +248,7 @@ function posBadge(pos) {
 
 /* ---------------- nav ---------------- */
 function renderNav() {
+  renderBetTicker();
   const vt = $("#venueTabs");
   vt.innerHTML = state.day.places.map((p) => {
     const n = racesOf(p).length;
@@ -822,6 +823,76 @@ function tactGroups(bets, settled) {
 
 // T-20速報の期限切れを検知して再描画するための保留タイマー (renderCowork の
 // 呼び出しごとに張り直すので常に最新の1本だけが生きている)。
+// The announcement strip lists every upcoming race with currently visible TACT bets.
+// It has its own expiry timer so an unselected race also disappears on time.
+let betTickerTimer = null;
+let betTickerSignature = "";
+function betTickerDeadline(r) {
+  if (!r.tact?.bets?.length || r.result) return NaN;
+  if (r.tact.is_preview) return Date.now() + tactExpiryMs(r.tact);
+  const date = String(state.day?.date || "");
+  const hm = /^(\d{1,2}):(\d{2})$/.exec(String(r.start_time || ""));
+  if (!/^\d{8}$/.test(date) || !hm || +hm[1] > 23 || +hm[2] > 59) return NaN;
+  return Date.parse(`${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}T${hm[1].padStart(2,"0")}:${hm[2]}:00+09:00`);
+}
+function renderBetTicker() {
+  const bar = $("#betTicker"), track = $("#betTickerTrack");
+  if (!bar || !track) return;
+  clearTimeout(betTickerTimer);
+  const now = Date.now();
+  const items = (state.day?.races || []).map(r => ({r, until:betTickerDeadline(r)}))
+    .filter(item => Number.isFinite(item.until) && item.until > now)
+    .sort((a,b) => a.until - b.until || String(a.r.race_id).localeCompare(String(b.r.race_id)));
+  bar.hidden = items.length === 0;
+  if (!items.length) { track.innerHTML = ""; betTickerSignature = ""; return; }
+  const signature = JSON.stringify(items.map(({r}) => [r.race_id,r.tact]));
+  if (signature !== betTickerSignature) {
+    const link = (r, duplicate = false) => {
+      const kinds = [...new Set(r.tact.bets.map(b => b.type))].join("・");
+      return `<a class="bet-ticker-link" href="#cowork" data-bet-rid="${esc(r.race_id)}"${duplicate ? ' aria-hidden="true" tabindex="-1"' : ''}>
+        <em>${r.tact.is_preview ? "速報" : "確定"}</em><b>${esc(r.place)}${esc(r.rno)}R 買い目公開中！</b><small>${esc(kinds)} →</small></a>`;
+    };
+    // Repeat short lists to avoid a mostly empty strip; only the first copy is focusable.
+    const repeats = Math.max(1, Math.ceil(3 / items.length));
+    const group = Array.from({length:repeats}, (_,i) => items.map(({r}) => link(r,i>0)).join("")).join("");
+    const duplicate = Array.from({length:repeats}, () => items.map(({r}) => link(r,true)).join("")).join("");
+    track.innerHTML = `<div class="bet-ticker-group">${group}</div><div class="bet-ticker-group" aria-hidden="true">${duplicate}</div>`;
+    track.style.setProperty("--ticker-duration", `${Math.max(24, items.length * repeats * 9)}s`);
+    betTickerSignature = signature;
+  }
+  betTickerTimer = setTimeout(renderBetTicker, Math.min(items[0].until-now+80,2147483000));
+}
+document.addEventListener("click", event => {
+  const pause = event.target.closest("#betTickerPause");
+  if (pause) {
+    const bar = $("#betTicker"), paused = bar.dataset.paused !== "true";
+    bar.dataset.paused = String(paused);
+    pause.setAttribute("aria-pressed", String(paused));
+    pause.setAttribute("aria-label", paused ? "案内の動きを再開する" : "案内の動きを止める");
+    pause.textContent = paused ? "再開" : "一時停止";
+    return;
+  }
+  const link = event.target.closest("[data-bet-rid]");
+  if (!link) return;
+  event.preventDefault();
+  const r = state.day?.races.find(r => String(r.race_id) === link.dataset.betRid);
+  if (!r || !(betTickerDeadline(r) > Date.now())) { renderBetTicker(); return; }
+  document.body.classList.remove("on-landing");
+  setMode("races");
+  state.place = r.place;
+  state.raceId = r.race_id;
+  state.view = "shutsuba";
+  renderNav();
+  renderRace();
+  requestAnimationFrame(() => {
+    const target = $("#cowork");
+    if (!target) return;
+    target.setAttribute("tabindex","-1");
+    target.focus({preventScroll:true});
+    target.scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
+  });
+});
+
 let tactExpiryTimer = null;
 
 // T-20速報(is_preview)は発走前だけ「現在の推奨」として出す。expires_at が
@@ -1142,6 +1213,7 @@ document.addEventListener("keydown", (e) => {
 // タブへ戻った瞬間に T-20 速報の期限切れを取りこぼしなく反映する。
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible") return;
+  renderBetTicker();   // 同じ理由 (バックグラウンドタブでの setTimeout 間引き) でチッカーも復帰時に取りこぼしなく反映
   if (state.view !== "shutsuba") return;
   const r = currentRace();
   if (r) renderCowork(r);

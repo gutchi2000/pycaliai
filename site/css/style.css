@@ -1618,3 +1618,23 @@ body.drawer-open { overflow: hidden; }
 .hs-star { font-style: normal; color: var(--amber); font-weight: 700; margin-left: 1px; }
 .hs-note { font-size: 11px; color: #8a97b5; line-height: 1.5; }
 
+
+/* Upcoming published bets: a clickable, pausable announcement strip. */
+.bet-ticker { border-top:1px solid rgba(245,185,66,.18); background:linear-gradient(90deg,#242014,#121a25 38%,#171c27); }
+.bet-ticker-inner { max-width:var(--maxw); margin:auto; padding:0 var(--pad); display:flex; align-items:center; gap:14px; min-height:48px; }
+.bet-ticker-label { flex:none; font-size:14px; font-weight:700; letter-spacing:.06em; color:var(--gold2); }
+.bet-ticker-window { flex:1; min-width:0; overflow:hidden; mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent); }
+.bet-ticker-track { display:flex; width:max-content; animation:bet-ticker-slide var(--ticker-duration,28s) linear infinite; will-change:transform; }
+.bet-ticker-group { display:flex; flex:none; align-items:center; gap:40px; padding-right:40px; }
+.bet-ticker-link { display:inline-flex; flex:none; align-items:center; gap:10px; min-height:46px; padding:0 4px; white-space:nowrap; color:var(--tx); text-decoration:none; font-size:15px; }
+.bet-ticker-link b { font-weight:700; }
+.bet-ticker-link small { font-size:13px; color:var(--tx2); }
+.bet-ticker-link em { font-style:normal; font-size:12px; border:1px solid rgba(245,185,66,.32); border-radius:4px; color:var(--gold2); padding:1px 5px; }
+.bet-ticker-link:hover b { color:var(--gold2); text-decoration:underline; text-underline-offset:4px; }
+.bet-ticker-link:focus-visible,.bet-ticker-pause:focus-visible { outline:2px solid var(--gold2); outline-offset:-2px; }
+.bet-ticker-pause { flex:none; border:1px solid var(--line2); border-radius:5px; padding:5px 8px; font-size:12px; color:var(--tx2); background:rgba(255,255,255,.03); cursor:pointer; }
+.bet-ticker:hover .bet-ticker-track,.bet-ticker:focus-within .bet-ticker-track,.bet-ticker[data-paused="true"] .bet-ticker-track { animation-play-state:paused; }
+#cowork { scroll-margin-top:180px; }
+@keyframes bet-ticker-slide { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+@media(max-width:560px) { .bet-ticker-inner{gap:8px;min-height:44px}.bet-ticker-label{font-size:12px;letter-spacing:0}.bet-ticker-link{font-size:14px;gap:7px;min-height:44px}.bet-ticker-link small{font-size:12px}.bet-ticker-pause{font-size:12px;padding:4px 6px} }
+@media(prefers-reduced-motion:reduce) { .bet-ticker-track{animation:none;transform:none;will-change:auto}.bet-ticker-window{overflow-x:auto;mask-image:none}.bet-ticker-group[aria-hidden="true"],.bet-ticker-link[aria-hidden="true"],.bet-ticker-pause{display:none} }
