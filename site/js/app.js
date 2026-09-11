@@ -848,8 +848,10 @@ function tactSection(r) {
       <div class="ticket-type">${esc(base)}</div>${rows}
     </div>`;
   }).join("");
+  const previewNote = t.is_preview
+    ? `<small class="cw-ver" style="margin-left:6px">速報(T-20)・最終と異なる場合あり</small>` : "";
   return `<div class="cw-title"><b>TACT</b>指数から見た推奨買い目
-      <small class="cw-ver">v${esc(t.version || "")}</small></div>
+      <small class="cw-ver">v${esc(t.version || "")}</small>${previewNote}</div>
     <div class="bet-grid">${cards}</div>`;
 }
 
