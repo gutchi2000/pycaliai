@@ -98,37 +98,56 @@ class _HistoryIndex:
 
     @staticmethod
     def _build_code_index(hist: pd.DataFrame, code_col: str) -> dict[int, tuple[np.ndarray, np.ndarray]]:
-        """主体コード別の (日付, 着順) 列。日付未満だけを rolling 集計する。"""
+        """主体コード別の (日付, 複勝フラグ) 列。日付未満だけを rolling 集計する。
+
+        P0-5整合(2026-09-07): 同一レースに同一主体(騎手/調教師)が複数頭出走した
+        場合、学習側 (build_dataset.add_rolling_stats) と同じくレース単位で
+        1カウントに集約してから rolling する。旧実装は馬(行)単位のままで、
+        学習側だけレース単位に修正されていたため train/serve で定義が
+        ズレていた。race_id 列が無い旧 parquet ではフォールバックとして
+        従来通り行単位のまま扱う（要 build_horse_history.py 再実行）。
+        """
         if code_col not in hist.columns:
             return {}
         work = hist[["date", "pos", code_col]].copy()
+        if "race_id" in hist.columns:
+            work["race_id"] = hist["race_id"]
         work["code"] = pd.to_numeric(work[code_col], errors="coerce")
         work = work.dropna(subset=["date", "code"])
+        work["flag"] = (pd.to_numeric(work["pos"], errors="coerce") <= 3).astype(float)
+        if "race_id" in work.columns and work["race_id"].notna().any():
+            race_level = (
+                work.groupby(["code", "race_id"], sort=False)
+                .agg(date=("date", "first"), flag=("flag", "mean"))
+                .reset_index()
+            )
+        else:
+            race_level = work[["code", "date", "flag"]]
         out: dict[int, tuple[np.ndarray, np.ndarray]] = {}
-        for code, g in work.groupby("code", sort=False):
+        for code, g in race_level.groupby("code", sort=False):
             g = g.sort_values("date")
             out[int(code)] = (
                 g["date"].to_numpy(np.int32),
-                pd.to_numeric(g["pos"], errors="coerce").to_numpy(np.float64),
+                g["flag"].to_numpy(np.float64),
             )
         return out
 
     def rolling_rate(self, kind: str, code, race_date: int, window: int,
                      min_periods: int = 5) -> float:
-        """レース日より前の直近 N 走複勝率。同行日を除き未来参照を防ぐ。"""
+        """レース日より前の直近 N 走(レース単位)複勝率。同日を除き未来参照を防ぐ。"""
         if pd.isna(code):
             return np.nan
         table = self.by_jockey if kind == "jockey" else self.by_trainer
         values = table.get(int(code))
         if values is None:
             return np.nan
-        dates, pos = values
+        dates, flags = values
         end = int(np.searchsorted(dates, race_date, side="left"))
         start = max(0, end - window)
-        pos = pos[start:end]
-        if len(pos) < min_periods:
+        flags = flags[start:end]
+        if len(flags) < min_periods:
             return np.nan
-        return float(np.mean(pos <= 3))
+        return float(np.mean(flags))
 
 
     def resolve(self, name: str, sire: str, birth_year) -> tuple[dict | None, str]:

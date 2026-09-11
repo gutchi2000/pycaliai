@@ -132,7 +132,8 @@ def build_code_maps() -> dict:
 def load_master_history() -> pd.DataFrame:
     log(f"master 読み込み: {MASTER_CSV.name}")
     cols = ["血統登録番号", "馬名", "日付", "場所", "芝・ダ", "距離",
-            "着順", "騎手コード", "調教師コード", "種牡馬", "年齢"]
+            "着順", "騎手コード", "調教師コード", "種牡馬", "年齢",
+            "レースID(新/馬番無)"]
     m = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", usecols=cols,
                     low_memory=False)
     log(f"  {len(m):,} 行")
@@ -149,6 +150,10 @@ def load_master_history() -> pd.DataFrame:
         "jockey_code": pd.to_numeric(m["騎手コード"], errors="coerce"),
         "trainer_code": pd.to_numeric(m["調教師コード"], errors="coerce"),
         "age":    pd.to_numeric(m["年齢"], errors="coerce"),
+        # P0-5整合(2026-09-07): レースID保持。同一レースに同一騎手/調教師が
+        # 複数頭出走した場合、serve側のrolling集計を学習側(add_rolling_stats)
+        # と同じくレース単位で1カウントに揃えるため必須。
+        "race_id": m["レースID(新/馬番無)"].astype(str),
     })
     out = out.dropna(subset=["ped_id", "date"]).copy()
     out["ped_id"] = out["ped_id"].astype(np.int64)
@@ -248,8 +253,10 @@ def load_2026_history(master_max_date: int, jockey_map: dict,
         merged["birth_year"] = (d // 10000 - merged["age"]).astype("Int32")
         merged["jockey_code"] = merged["jockey_name"].map(jockey_map).astype("float64")
         merged["trainer_code"] = merged["trainer_name"].map(trainer_map).astype("float64")
+        merged["race_id"] = merged["rid16"]
         rows.append(merged[["name", "sire", "birth_year", "date", "place",
-                            "surface", "dist", "pos", "jockey_code", "trainer_code"]])
+                            "surface", "dist", "pos", "jockey_code", "trainer_code",
+                            "race_id"]])
     if not rows:
         return pd.DataFrame()
     out = pd.concat(rows, ignore_index=True)
