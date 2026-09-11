@@ -25,7 +25,7 @@ import json
 import re
 import sys
 import unicodedata
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 try:
@@ -37,6 +37,8 @@ except Exception:  # umami / audit json 不在でもサイト生成は継続
 ROOT = Path(__file__).resolve().parent
 BUNDLE_DIR = ROOT / "reports" / "cowork_input"
 COWORK_OUT_DIR = ROOT / "reports" / "cowork_output"
+MASTERS_VOTE_DIR = ROOT / "reports" / "masters_vote"
+SITE_PREVIEW_DIR = ROOT / "reports" / "masters_vote_site"
 WEEKLY_DIR = ROOT / "data" / "weekly"
 KEKKA_DIR = ROOT / "data" / "kekka"
 TRAINING_DIR = ROOT / "data" / "training"
@@ -361,6 +363,180 @@ def load_all_cowork() -> dict[str, dict]:
     return out
 
 
+# bet_id 識別コード → 券種 (masters_vote_spec.md §1)。本システムが使うのはワイド/馬連バラ買いのみ。
+_MV_BTYPE = {"b5": "ワイド", "b4": "馬連"}
+_MV_BETID_RE = re.compile(r"^(b\d+)_c0_(\d+)_(\d+)$")
+
+
+def _mv_ticket(bet_id, money) -> dict | None:
+    m = _MV_BETID_RE.match(str(bet_id or ""))
+    if not m:
+        return None
+    prefix, a, b = m.groups()
+    btype = _MV_BTYPE.get(prefix)
+    if not btype:
+        return None
+    return {"type": btype, "selection": f"{a}-{b}", "amount": float(money or 0)}
+
+
+def load_all_masters_vote() -> dict[str, dict]:
+    """学生大会 (masters_vote) の実投票ログ → race_id 別の実買い目。
+
+    2026-09-07: サイトの公開買い目・成績は本番運用が masters_vote に一本化された
+    ため、compute_bets (topdown) のシミュレーション値ではなくこの実投票をそのまま
+    公開する ([[project_tact_published_line]] の後継)。`*_would_have.json` は
+    shadow 検証用ファイルで実投票ではないため除外。未投票 (見送り/hard_gate) の
+    レースは出力しない (見送りは load_masters_vote_skips で拾う)。"""
+    out: dict[str, dict] = {}
+    if not MASTERS_VOTE_DIR.exists():
+        return out
+    for p in sorted(MASTERS_VOTE_DIR.glob("2026*.json")):
+        if "would_have" in p.stem:
+            continue
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for r in data.get("races", []):
+            if not r.get("voted"):
+                continue
+            rid = str(r.get("race_id") or "")[:16]
+            if not rid:
+                continue
+            payload = r.get("payload") or {}
+            arm = str(r.get("arm") or "")
+            bets = []
+            for b in payload.get("bet") or []:
+                t = _mv_ticket(b.get("bet_id"), b.get("money"))
+                if t:
+                    t["reason"] = f"大会仕様({arm})" if arm else "大会仕様"
+                    bets.append(t)
+            if bets:
+                out[rid] = {
+                    "race_label": str(r.get("label", "")),
+                    "race_nature": "", "race_reason": "",
+                    "bets": bets, "advisor": [],
+                    "source": p.name, "arm": arm,
+                }
+    return out
+
+
+def _public_vote_skip_reason(reason: str) -> str:
+    """masters_vote (実投票, T-4) の voted=False ログ理由 → 公開用の日本語。
+
+    生の reason には内部の運用ミス表現 ("enabled=false のため未送信 (設定ミス)")
+    等も混じるため、既知パターンだけ意味のある文言にし、それ以外は汎用「見送り」に
+    畳む (内部事情を読者に見せない)。"""
+    r = str(reason or "")
+    if r.startswith("hard_gate:"):
+        return "参加条件を満たさず見送り（混戦度・頭数・◎信頼度など）"
+    if "頭数不足" in r:
+        return "頭数不足のため見送り"
+    if "オッズ欠損" in r or "ペア外" in r:
+        return "判定材料不足のため見送り"
+    if "残差" in r:
+        return "対象条件に該当せず見送り"
+    if "期限" in r:
+        return "投票手続きの都合により見送り"
+    return "見送り"
+
+
+def load_masters_vote_skips() -> dict[str, str]:
+    """大会側 (masters_vote, T-4) が最終的に「見送り」と決めたレース → 公開用理由文。
+
+    voted=False のログを拾う (hard_gate 見送り・投票API失敗等、いずれも大会側の
+    最終判断)。load_all_masters_vote() (voted=True の実買い目) と合わせて、
+    「投票フェーズがまだ来ていない」(=T-20速報を現在の推奨として出してよい) と
+    「もう最終的に確定した」(=T-20速報はもう推奨として残さず、確定結果に置き換える)
+    を区別する。([[project_note_paid_predictions]] 撤廃後の T-20 サイト速報,
+    2026-09-11 新設・2026-09-12 見送り理由の公開に対応)"""
+    out: dict[str, str] = {}
+    if not MASTERS_VOTE_DIR.exists():
+        return out
+    for p in sorted(MASTERS_VOTE_DIR.glob("2026*.json")):
+        if "would_have" in p.stem:
+            continue
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for r in data.get("races", []):
+            if r.get("voted"):
+                continue
+            rid = str(r.get("race_id") or "")[:16]
+            if rid:
+                out[rid] = _public_vote_skip_reason(r.get("reason"))
+    return out
+
+
+def load_all_site_preview() -> dict[str, dict]:
+    """T-20 サイト公開プレビュー (t20_site_bets.py 生成)。
+
+    実投票 (masters_vote, T-4) と同じ大会仕様ロジック (aite_switch_tickets) で
+    T-20 のオッズから計算するが、実投票そのものではない (submit しない・API に
+    は一切触れない・オッズは reason に残さない)。実投票がまだ無く、かつ大会側の
+    最終判断も出ていないレースだけ TACT のフォールバック表示に使う
+    (transform_bundle 側で masters_vote 優先・最終見送り/失敗があれば非表示)。
+
+    2026-09-11: レース単位ファイル (reports/masters_vote_site/{date}/{rid}.json)
+    に変更 (同時刻帯の複数レースが並行して書く日別マージ JSON だと後勝ちで
+    互いの結果を消し合っていた)。
+
+    2026-09-11: 生成時点では発走前でも、公開 (sync-hf-umami.ps1) がロック待ち等で
+    遅れて実際にこの関数が呼ばれる頃には発走を過ぎていることがあるため、ここでも
+    scheduled_post を見て再検査する (t20_site_bets.py 側の生成時チェックだけに
+    依存しない、ビルドの都度効く防御)。
+
+    2026-09-11b: fail-closed に修正。scheduled_post が欠損・不正な形式の場合は
+    「まだ発走前と確認できていない」として除外する (以前は欠損時 `if sp:` が
+    False になって検査自体をスキップし通過、不正形式も except で握りつぶして
+    通過していた — どちらも安全側と逆だった)。有効な速報は expires_at として
+    tz付き ISO 文字列をそのまま公開 JSON へ引き継ぐ (フロントエンドの
+    期限切れ非表示判定用)。
+
+    2026-09-12: 見送り (t20_site_bets.py が skip=True で書いたエントリ、
+    「オッズ取得・判定は正常に完了したがモデル/ルールが見送りと判断した」場合)
+    も公開する。技術的失敗 (オッズ取得失敗・鮮度NG等、skip も bets も無い)
+    は従来通り非公開のまま。"""
+    out: dict[str, dict] = {}
+    if not SITE_PREVIEW_DIR.exists():
+        return out
+    now = datetime.now(timezone.utc)
+    for p in sorted(SITE_PREVIEW_DIR.glob("2026*/*.json")):
+        if p.suffix != ".json" or p.stem.startswith("."):
+            continue
+        try:
+            r = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        rid = str(r.get("race_id") or p.stem)[:16]
+        bets = r.get("bets") or []
+        skip = bool(r.get("skip"))
+        if not rid or (not bets and not skip):
+            continue  # 技術的失敗 (公開判定に至っていない) -> 除外
+        sp = r.get("scheduled_post")
+        if not sp:
+            continue  # 有効期限欠損 -> fail-closed で除外
+        try:
+            sp_dt = datetime.fromisoformat(str(sp))
+            if now >= sp_dt:
+                continue  # 発走を過ぎた速報はもう「現在の推奨/判定」として出さない
+        except (ValueError, TypeError):
+            continue  # 不正な形式 (naive/壊れたISO等) -> fail-closed で除外
+        entry = {
+            "race_label": str(r.get("label", "")),
+            "bets": bets,
+            "source": f"{p.parent.name}/{p.name}",
+            "is_preview": True,
+            "expires_at": str(sp),
+        }
+        if skip:
+            entry["skip"] = True
+            entry["skip_reason"] = str(r.get("why") or "見送り")
+        out[rid] = entry
+    return out
+
+
 def _parse_one_grade_scope(path: Path) -> dict[str, dict]:
     """1 ファイルの top-level 'grade_scope' (重賞 LLM 詳細見解) を race_id 別に。"""
     try:
@@ -539,29 +715,40 @@ def _combos(selection: str, n: int, ordered: bool) -> list[tuple]:
     return out
 
 
-# ---------------------------------------------------------------- TACT (topdown エンジン)
-# 理由文のオッズ値はガイドライン対応で落とす (旧brain「（複X.X）」/ topdown「（券種 X.X倍）」両対応)
-_TACT_ODDS_RE = re.compile(r"[（(](?:複[\d.]+|[^（）()]*?[\d.]+倍)[)）]")
+# ---------------------------------------------------------------- TACT (大会仕様 = masters_vote)
+def build_tact(mv_entry: dict | None) -> dict | None:
+    """bundle の 1 レースに TACT (公開買い目 or 見送り表示) を付ける。
 
+    2026-09-07: compute_bets topdown のシミュレーション値から、本番運用が実際に
+    使っている学生大会 masters_vote の実投票ログに置換 ([[project_tact_published_line]]
+    の後継、topdown はサイトから撤去)。
 
-def build_tact(race: dict) -> dict | None:
-    """bundle の 1 レースに TACT (topdown エンジン) の推奨買い目を付ける。
-    2026-08-09: gutchi_brain 決定木 (同一526RリプレイROI 72.4%) を本番と同一の
-    compute_bets topdown (82.8%) に置換 — note の買い目が実際の馬券ラインと一致する。
-    bets=[] は見送り (§0 hard / クリーン帯外)。engine 不在・例外時は None。"""
-    try:
-        from compute_bets import compute_race_bets
-        tickets = compute_race_bets(race, budget=10000, force_floor=True).get("bets") or []
-    except Exception as e:
-        print(f"[tact skip] {race.get('race_id')}: {e}")
+    2026-09-12: 「見送り」も判定結果として明示する (mv_entry["skip"]=True)。
+    買い目・見送りのどちらでも無い (判定自体がまだ無い/技術的失敗) は None のまま
+    (何も表示しない)。"""
+    if not mv_entry:
         return None
-    return {
-        "version": "1.0td",
-        # 金額は出さない (買う人が決める)。買い目+定性理由のみ公開
-        "bets": [{"type": t["馬券種"], "selection": t["買い目"],
-                  "reason": _TACT_ODDS_RE.sub("", t["理由"]).strip()}
-                 for t in tickets],
-    }
+    has_bets = bool(mv_entry.get("bets"))
+    is_skip = bool(mv_entry.get("skip"))
+    if not has_bets and not is_skip:
+        return None
+    out = {"version": "1.0mv"}
+    if has_bets:
+        out["bets"] = [{"type": b["type"], "selection": b["selection"],
+                        "reason": b.get("reason", "")}
+                       for b in mv_entry["bets"]]
+    else:
+        out["bets"] = []
+        out["skip_reason"] = str(mv_entry.get("skip_reason") or "見送り")
+    if mv_entry.get("is_preview"):
+        out["is_preview"] = True
+        # 確定した実投票 (is_preview なし) には期限の概念が無いので付けない。
+        # load_all_site_preview 側で既に欠損/期限切れ/不正形式を fail-closed で
+        # 弾いているため、ここに来る expires_at は常にタイムゾーン付きの
+        # 有効な将来時刻の ISO 文字列 (フロントエンドは自前でも再検証すること)。
+        if mv_entry.get("expires_at"):
+            out["expires_at"] = mv_entry["expires_at"]
+    return out
 
 
 def settle_bet(btype: str, selection: str, cost: float, res: dict) -> dict:
@@ -723,7 +910,13 @@ def compute_member_level(klass: str, horse_levels: list) -> dict | None:
 
 # ---------------------------------------------------------------- bundle 変換
 def transform_bundle(path: Path, cowork: dict, wide_data: dict,
-                     course_stats: dict, ped_index, grade_map: dict) -> dict:
+                     course_stats: dict, ped_index, grade_map: dict,
+                     masters_vote: dict | None = None,
+                     site_preview: dict | None = None,
+                     masters_vote_skips: dict[str, str] | None = None) -> dict:
+    masters_vote = masters_vote or {}
+    site_preview = site_preview or {}
+    masters_vote_skips = masters_vote_skips or {}
     with open(path, encoding="utf-8") as f:
         bundle = json.load(f)
 
@@ -850,14 +1043,33 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
             "judgment": race.get("buy_judgment", {}),
             "pairs": pairs_top(race),
             "horses": horses,
-            "cowork": cowork.get(rid),
-            "tact": build_tact(race),
+            "cowork": None,  # 下で mv 優先の実買い目に差し替え
+            "tact": build_tact(
+                # 優先順位: 実投票の買い目 > 実投票の見送り(確定) > T-20速報
+                # (買い目/見送りいずれも) > 何も無し。大会側が最終的に見送りと
+                # 決めていたら T-20 速報はもう現在の推奨/判定として出さず、
+                # 確定した見送り理由に置き換える (2026-09-12)。
+                masters_vote.get(rid)
+                or (({"skip": True, "skip_reason": masters_vote_skips[rid]})
+                    if rid in masters_vote_skips else site_preview.get(rid))
+            ),
             "grade_scope": grade_map.get(rid),
             "result": results.get(rid),
         })
 
-        # Cowork / TACT 買い目を結果で決済 (的中/配当/収支)
+        # 2026-08-29 (学生大会開始) 以降は実運用が masters_vote (大会仕様) に一本化
+        # されたため、cowork_output の bets (旧 topdown/compute_bets 由来) は使わず
+        # narrative (race_reason/advisor) だけ流用し bets は実投票側 (無ければ空=見送り)
+        # で上書きする。大会開始より前の日付は当時の実運用そのものなので変更しない。
+        mv = masters_vote.get(rid)
         cw = cowork.get(rid)
+        if date_str >= "20260829":
+            if cw:
+                cw = dict(cw)
+                cw["bets"] = mv["bets"] if mv else []
+            elif mv:
+                cw = dict(mv)
+        races_out[-1]["cowork"] = cw
         res = results.get(rid)
         if cw and cw.get("bets") and res:
             races_out[-1]["bets_settled"] = [
@@ -1082,23 +1294,18 @@ def scrub_public(day: dict) -> dict:
             for b in cw.get("bets") or []:
                 if isinstance(b, dict) and "reason" in b:
                     b["reason"] = _scrub_text(b["reason"])
+        tact0 = r.get("tact")
+        if isinstance(tact0, dict):
+            for b in tact0.get("bets") or []:
+                if isinstance(b, dict) and "reason" in b:
+                    b["reason"] = _scrub_text(b["reason"])
 
-        # ---- 買い目・枠格付け・見送り理由は note 有料記事の専売 (2026-08-06)
-        # 結果が出るまでは伏せ、確定後は「実績の正直開示」として出す。
-        # 予想そのもの (印・確率・レベル・妙味グレード・根拠) は無料のまま。
-        if not r.get("result"):
-            if isinstance(cw, dict):
-                for k in ("bets", "race_nature", "race_reason"):
-                    cw.pop(k, None)
-            tact = r.get("tact")
-            if isinstance(tact, dict):
-                tact.pop("bets", None)
-            jd = r.get("judgment")
-            if isinstance(jd, dict):
-                # value_horses (妙味馬) は予想側なので残す
-                for k in ("category", "headline", "detail",
-                          "kenshu_hint", "waku_tag"):
-                    jd.pop(k, None)
+        # 2026-09-10: note 有料記事の専売ゲート撤廃 (note 販売が振るわず、読者が
+        # 発走前に間に合う形で買い目を見られることを優先する方針に転換。
+        # [[project_note_paid_predictions]] は過去の設計として記録のみ残す)。
+        # 発走前でも tact/cowork の bets・reason 等はそのまま公開する。
+        # オッズ生値の混入防止 (JRA-VAN 投稿ガイドライン) は上の _scrub_text /
+        # 個別 pop (odds, umaren_odds 等) で別途担保しているので、ここでは触らない。
         for p in r.get("pairs", []) or []:
             p.pop("umaren_odds", None)
         vhs = (r.get("judgment") or {}).get("value_horses") or []
@@ -1153,11 +1360,18 @@ def main() -> None:
         sys.exit(1)
 
     cowork = load_all_cowork()
+    masters_vote = load_all_masters_vote()
+    masters_vote_skips = load_masters_vote_skips()
+    site_preview = load_all_site_preview()
     grade_map = load_all_grade_scope()
     wide_data = parse_wide_kekka()
     course_stats = load_course_stats()
     ped_index = load_pedigree_index()
-    print(f"cowork_output: {len(cowork)} races / grade_scope: {len(grade_map)} races / "
+    n_preview_skip = sum(1 for v in site_preview.values() if v.get("skip"))
+    print(f"cowork_output: {len(cowork)} races / masters_vote(実投票): {len(masters_vote)} races "
+          f"(確定見送り{len(masters_vote_skips)}races) / "
+          f"site_preview(T-20): {len(site_preview)} races (うち見送り{n_preview_skip}) / "
+          f"grade_scope: {len(grade_map)} races / "
           f"wide_kekka: {len(wide_data)} races / course_stats: {len(course_stats)} courses / "
           f"pedigree: {'OK' if ped_index else '無し'}")
 
@@ -1167,7 +1381,8 @@ def main() -> None:
         out_path = SITE_DATA_DIR / f"{date_str}.json"
         if only_date is None or date_str == only_date:
             day = transform_bundle(path, cowork, wide_data, course_stats,
-                                   ped_index, grade_map)
+                                   ped_index, grade_map, masters_vote, site_preview,
+                                   masters_vote_skips)
             scrub_public(day)
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(day, f, ensure_ascii=False, separators=(",", ":"))

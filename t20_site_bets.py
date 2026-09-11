@@ -155,6 +155,21 @@ def _public_reason(why: str) -> str:
     return "大会仕様(T-20速報)"
 
 
+def _public_skip_reason(why: str) -> str:
+    """aite_switch_tickets が正常に判定を終えた上で「見送り」を返した場合の
+    公開用理由文 (2026-09-12)。masters_vote.aite_switch_tickets の戻り値は
+    この 4 パターンで尽きる (production_policy.hard_skip_reasons / 本関数の
+    冒頭チェック由来)。数値の生値は含めない。"""
+    w = str(why or "")
+    if w.startswith("hard_gate:"):
+        return "参加条件を満たさず見送り（混戦度・頭数・◎信頼度など）"
+    if "頭数不足" in w:
+        return "頭数不足のため見送り"
+    if "オッズ欠損" in w or "ペア外" in w:
+        return "判定材料不足のため見送り"
+    return "見送り"
+
+
 def tickets_to_bets(tickets: list[dict]) -> list[dict]:
     """masters_vote.aite_switch_tickets() の生 ticket → 公開用 {type, selection, reason}。
 
@@ -279,9 +294,10 @@ def process_race(date_str: str, rid: str, label: str, dry: bool,
 
     try:
         tickets, why = mv.aite_switch_tickets(race, market)
+        computed_ok = True
     except Exception as exc:
         print(f"  [2/2] 買い目計算失敗: {exc}")
-        tickets, why = [], "計算失敗"
+        tickets, why, computed_ok = [], "計算失敗", False
 
     # 発走時刻の再チェック: ここまでの JV-Link 取得+判定計算にも実時間がかかるため、
     # プロセス開始時点では発走前でも、判定が終わった今は発走を過ぎているかもしれない。
@@ -293,13 +309,26 @@ def process_race(date_str: str, rid: str, label: str, dry: bool,
             _save_entry(date_str, rid, entry)
         return
 
-    entry["bets"] = tickets_to_bets(tickets)
-    entry["why"] = _public_reason(why) if tickets else why
-    print(f"  [2/2] {len(entry['bets'])}点  ({why})")
+    if tickets:
+        entry["bets"] = tickets_to_bets(tickets)
+        entry["why"] = _public_reason(why)
+    elif computed_ok:
+        # オッズ取得・判定そのものは正常に完了した上で、モデル/ルールが「見送り」
+        # と判断したケース (取得失敗等の技術的な理由ではない)。2026-09-12:
+        # 見送りも「判定結果」として公開する (以前は非公開・無表示だった)。
+        entry["skip"] = True
+        entry["why"] = _public_skip_reason(why)
+    else:
+        entry["why"] = why  # 計算例外 (技術的失敗) は非公開のまま
+    print(f"  [2/2] {len(entry['bets'])}点 skip={entry.get('skip', False)}  ({why})")
 
     if dry:
         return
     _save_entry(date_str, rid, entry)
+    # 買い目 or 見送り = 公開すべき判定結果が出たときだけサイトを更新する。
+    # 技術的失敗 (bets=[] かつ skip=False) は前回同様、公開しない (無風のまま次に委ねる)。
+    if not (entry["bets"] or entry.get("skip")):
+        return
     # publish_to_site already swallows subprocess-level failures internally, but this
     # extra guard makes it structurally impossible for a publish problem (of any kind)
     # to fail this race's Scheduled Task -- the ticket entry above is already durably
