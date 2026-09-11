@@ -820,9 +820,24 @@ function tactGroups(bets, settled) {
   return groups;
 }
 
+// T-20速報の期限切れを検知して再描画するための保留タイマー (renderCowork の
+// 呼び出しごとに張り直すので常に最新の1本だけが生きている)。
+let tactExpiryTimer = null;
+
+// T-20速報(is_preview)は発走前だけ「現在の推奨」として出す。expires_at が
+// 欠損・不正な形式なら「期限不明」として既に期限切れ扱いにする (fail-closed)。
+// 確定した実投票 (is_preview が無いもの) には期限の概念が無いので常に有効。
+function tactExpiryMs(t) {
+  if (!t.is_preview) return Infinity;
+  if (!t.expires_at) return -Infinity;
+  const ts = Date.parse(t.expires_at);
+  return Number.isNaN(ts) ? -Infinity : ts - Date.now();
+}
+
 function tactSection(r) {
   const t = r.tact;
   if (!t) return "";
+  if (t.is_preview && tactExpiryMs(t) <= 0) return "";
   if (!t.bets?.length) {
     return `<div class="cw-title"><b>TACT</b>指数から見た推奨買い目</div>
       <div class="card cw-empty">TACT はこのレース見送り（新馬・超混戦など）。</div>`;
@@ -858,6 +873,27 @@ function tactSection(r) {
 function renderCowork(r) {
   const cw = r.cowork;
   const tact = tactSection(r);
+
+  // ページを開いたまま T-20 速報の期限 (発走時刻) を迎えたら、リロードなしで
+  // 「現在の推奨」表示から消す。前回張ったタイマーは必ず解除してから張り直す
+  // (レース切り替え・タブ切り替えのたびに renderCowork が呼ばれるため、放置
+  // すると古い r を指すタイマーが積み重なる)。
+  clearTimeout(tactExpiryTimer);
+  tactExpiryTimer = null;
+  if (r.tact?.is_preview) {
+    const ms = tactExpiryMs(r.tact);
+    if (Number.isFinite(ms) && ms > 0) {
+      // setTimeout の上限 (約24.8日) を超える delay は即時発火扱いになる仕様が
+      // あるため念のため clamp。実際の速報は発走20分前生成でこれよりずっと短い。
+      const delay = Math.min(ms + 250, 2147483000);
+      tactExpiryTimer = setTimeout(() => {
+        if (currentRace()?.race_id === r.race_id && state.view === "shutsuba") {
+          renderCowork(r);
+        }
+      }, delay);
+    }
+  }
+
   if (!cw || (!cw.bets?.length && !cw.advisor?.length)) {
     $("#cowork").innerHTML = `<div class="cw">
       ${tact}
@@ -1100,6 +1136,15 @@ document.addEventListener("keydown", (e) => {
   const next = idx + (e.key === "ArrowRight" ? 1 : -1);
   if (next < 0 || next >= flat.length) return;
   selectRace(flat[next].race_id);
+});
+
+// タブが非表示の間はブラウザが setTimeout を間引く/遅延させることがあるため、
+// タブへ戻った瞬間に T-20 速報の期限切れを取りこぼしなく反映する。
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  if (state.view !== "shutsuba") return;
+  const r = currentRace();
+  if (r) renderCowork(r);
 });
 
 /* ================= 全頭分析 / コース / 調教 / 血統 ================= */
