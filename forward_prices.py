@@ -69,10 +69,14 @@ def archive_market_snapshot(market: dict, stage: str, *,
                             root: Path = FORWARD_ROOT) -> Path:
     """JV-Link観測を不変スナップショットとして保存する。
 
-    stage は `t10` / `close` / `manual`。同一秒・同一内容の再実行は同じファイルへ
+    stage は `t10` / `t20` / `vote` / `close` / `manual`。`vote` は学生大会の投票時点
+    (発走 4 分前) の観測で、本番 T-10 の cohort とは別物として保存する。`t20` は
+    サイト公開プレビュー (t20_site_bets.py) 専用で、こちらも T-10/vote/close の
+    どの cohort とも混ぜない (2026-09-11 追加)。
+    同一秒・同一内容の再実行は同じファイルへ
     冪等書込、内容が違えばhash suffixが変わり履歴を失わない。
     """
-    if stage not in {"t10", "close", "manual"}:
+    if stage not in {"t10", "t20", "vote", "close", "manual"}:
         raise ValueError(f"未知のprice stage: {stage}")
     rid = _rid16(market.get("race_id"))
     if len(rid) != 16:
@@ -127,6 +131,7 @@ def _pair_key(value: str) -> tuple[int, int] | None:
 
 def build_decision_record(race: dict, market: dict, primary: dict,
                           shadow: dict | None, *, mode: str,
+                          residual_shadow: dict | None = None,
                           model_umaren: dict[tuple[int, int], float] | None = None,
                           model_wide: dict[tuple[int, int], float] | None = None,
                           stamp: dict | None = None) -> dict:
@@ -193,6 +198,7 @@ def build_decision_record(race: dict, market: dict, primary: dict,
         "pairs": pair_rows,
         "primary": primary,
         "shadow": shadow,
+        "wide_residual_shadow": residual_shadow,
     }
     record["record_sha256"] = payload_sha256(record)
     return record

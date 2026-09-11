@@ -39,9 +39,63 @@ $ROOT = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
 $SITE = Join-Path $ROOT "site"
 $DOCKER = Join-Path $ROOT "deploy\pycaliai-umami"
 $STAGE = Join-Path $env:TEMP "pycaliai_umami_deploy"
+$LOCK = Join-Path $ROOT "reports\.locks\sync_hf_umami.lock"
 
 function Step($m) { Write-Host "==> $m" -ForegroundColor Cyan }
-function Fail($m) { Write-Host "ERROR: $m" -ForegroundColor Red; exit 1 }
+$Script:HfLockStream = $null
+function Release-HfLock {
+    if ($Script:HfLockStream) {
+        try { $Script:HfLockStream.Close() } catch {}   # DeleteOnClose removes the file here
+        $Script:HfLockStream = $null
+    }
+}
+function Fail($m) { Write-Host "ERROR: $m" -ForegroundColor Red; Release-HfLock; exit 1 }
+
+# ---------------------------------------------------------------------------
+# Cross-process lock (added 2026-09-11, hardened 2026-09-11b): this script
+# regenerates site/ (via build_site.py), stages into a SHARED clone dir
+# ($STAGE) and pushes to GitHub/HF/Cloudflare. It is now called from several
+# independent triggers that can legitimately overlap -- multiple T-20
+# site-bet races firing minutes apart (t20_site_bets.py), baba_daily.ps1,
+# weekly_nicegui.ps1 -- and a second concurrent run would corrupt $STAGE
+# (reset/clean/pull racing with another run's add/commit) and can race on
+# the main repo's git index too.
+#
+# This is a TRUE OS-level exclusive lock held for the entire run, not a
+# create-then-immediately-close marker file checked by mtime age: the
+# FileStream below is opened with FileOptions.DeleteOnClose and kept open
+# in $Script:HfLockStream for the whole script (closed only by
+# Release-HfLock, called from every exit path). A second process's
+# FileMode.CreateNew fails with IOException for as long as this handle
+# stays open -- i.e. for as long as this process is actually alive and
+# running, not for some estimated "stale" duration. There is deliberately
+# NO staleness-based stealing: Windows closes (and DeleteOnClose then
+# removes) the handle the instant a holder process exits for ANY reason,
+# including a crash or an unhandled exception, so an abandoned lock cannot
+# persist -- "the file still exists and can't be recreated" IS the holder's
+# liveness proof, not an inference from a timestamp. A waiting process that
+# still cannot acquire it after the timeout below simply skips this run
+# (its data is picked up by the next successful publish) rather than assume
+# the real holder is dead and attempt to steal.
+# ---------------------------------------------------------------------------
+New-Item -ItemType Directory -Force (Split-Path $LOCK) | Out-Null
+$lockDeadline = (Get-Date).AddMinutes(12)
+while (-not $Script:HfLockStream) {
+    try {
+        $Script:HfLockStream = New-Object System.IO.FileStream(
+            $LOCK, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::ReadWrite,
+            [System.IO.FileShare]::None, 4096, [System.IO.FileOptions]::DeleteOnClose)
+        $idBytes = [System.Text.Encoding]::UTF8.GetBytes("$PID $(Get-Date -Format o)")
+        $Script:HfLockStream.Write($idBytes, 0, $idBytes.Length)
+        $Script:HfLockStream.Flush()
+    } catch [System.IO.IOException] {
+        if ((Get-Date) -ge $lockDeadline) {
+            Write-Host "SKIP: another sync-hf-umami.ps1 run is still active (12min wait, holder alive -- not stealing). This run's data will be picked up by the next successful publish." -ForegroundColor Yellow
+            exit 0
+        }
+        Start-Sleep -Seconds 5
+    }
+}
 
 # 0. best-effort: refresh today's track bias so a deploy NEVER ships last week's
 #    baba (baba.js hides any baba whose date != viewer's today, so a stale file
@@ -138,7 +192,13 @@ $SiteAllowPatterns = @(
     '^site/data/forecast_history/.*\.json$',
     '^site/data/calibration\.json$'
 )
-$siteStatusLines = git -C $ROOT status --porcelain -- site
+#     --untracked-files=all: without this, git collapses a brand-new directory
+#     (e.g. a first-ever site/data/forecast_history/{date}/ from build_forecast_history.py)
+#     into a single "?? site/data/forecast_history/20260905/" line with no .json
+#     suffix, which never matches the per-file allowlist regexes below and trips
+#     a false-positive ABORT every time that generator writes a genuinely new
+#     date directory (found 2026-09-05).
+$siteStatusLines = git -C $ROOT status --porcelain --untracked-files=all -- site
 $siteDirtyPaths = @()
 foreach ($line in $siteStatusLines) {
     if (-not $line) { continue }
@@ -309,6 +369,7 @@ git -C $STAGE add -A
 $pending = git -C $STAGE status --porcelain
 if (-not $pending) {
     Step "no changes (nothing to push)"
+    Release-HfLock
     exit 0
 }
 
@@ -316,6 +377,7 @@ if ($DryRun) {
     Step "DryRun: staging assembled. diff:"
     git -C $STAGE status --short
     Write-Host "  (no push performed)" -ForegroundColor Yellow
+    Release-HfLock
     exit 0
 }
 
@@ -331,3 +393,4 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Step "done. Docker build takes ~1-2 min, then live: $SpaceUrl"
+Release-HfLock
