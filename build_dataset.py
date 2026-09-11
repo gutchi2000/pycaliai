@@ -88,28 +88,18 @@ def convert_finish(series: pd.Series) -> pd.Series:
 # 特徴量エンジニアリング
 # =========================================================
 def add_rolling_stats(master: pd.DataFrame) -> pd.DataFrame:
-    """騎手・調教師の直近N走複勝率を時系列リークなしで追加する（C1: 最小修正）。
+    """騎手・調教師の直近N走複勝率を時系列リークなしで追加する。
 
-    過去30/90「馬走」という window の意味（行レベル counting）を維持したまま、
-    同一レースに同じ騎手/調教師の馬が複数頭出走した場合に、当該レースの結果が
-    互いの特徴量に混入するリークだけを取り除く。
+    主体（騎手/調教師）×レース単位に集約してから shift(1) することで、
+    同一レースに同じ騎手/調教師の馬が複数頭出走しても、当該レースの
+    結果が互いの特徴量に混入しないようにする。
     旧実装は行（馬）単位で shift していたため、同一レース内で後の馬番の
     特徴量に先の馬番の当該レース結果が漏れるリークがあった
-    （2026-09-07 ASTRA-01 で発見。Vol. III 欠陥台帳 P0-5 参照。
+    （2026-09-07 ASTRA-01 で発見・修正。Vol. III 欠陥台帳参照。
     調教師側で 21,539 行 / 626,774 行が影響。騎手は1レース1頭のため無影響）。
-
-    実装: 同一(主体, レース)ブロックの shift(1) 値は、そのブロックの**先頭行**では
-    既に正しい（直前の別レースのみを参照するため）。ブロック内の他の馬にもこの
-    先頭値をそのまま配布する（NaN の場合も含めて配布、pandas の `.first()`/
-    `transform("first")` は既定でNaNをスキップするため使わない＝位置ベースで
-    先頭行を特定し merge で配る）ことで、window の行カウント意味を変えずに
-    リークだけを消す。2026-09-11、C1（最小修正）として本番反映
-    （旧: 主体×レース単位に集約するC2実装。Vol. III §5.1o-s 参照。窓の意味を
-    「直近30/90行」から「直近30/90distinct races」に変えてしまうため、C1に変更）。
-
     追加列: jockey_fuku30, jockey_fuku90, trainer_fuku30, trainer_fuku90
     """
-    logger.info("騎手・調教師ローリング成績を計算中... (C1: 最小修正)")
+    logger.info("騎手・調教師ローリング成績を計算中...")
     # 日付・発走時刻・レース内馬番 の順でソートして時系列を正確に保つ
     master = master.sort_values(
         ["日付", "発走時刻", "レースID(新/馬番無)", "馬番"]
@@ -117,26 +107,28 @@ def add_rolling_stats(master: pd.DataFrame) -> pd.DataFrame:
 
     race_col = "レースID(新/馬番無)"
     for code_col, prefix in [("騎手コード", "jockey"), ("調教師コード", "trainer")]:
+        # 主体×レース単位に集約（同一レースの複数頭は「事前」値を共有すべきで、
+        # 個別の行として rolling window に二重計上してはならない）
+        race_level = (
+            master.groupby([code_col, race_col], sort=False)
+            .agg(_date=("日付", "first"), _time=("発走時刻", "first"),
+                 _flag=("fukusho_flag", "mean"))
+            .reset_index()
+            .sort_values([code_col, "_date", "_time"])
+        )
         for window in [30, 90]:
             col = f"{prefix}_fuku{window}"
-            # Step 1: 旧アルゴリズム(行レベル shift、リーク混入)を計算。
-            # 同一レース内の複数頭がいる場合、ブロック先頭行の値は既に正しい。
-            master[col] = (
-                master.groupby(code_col, sort=False)["fukusho_flag"]
-                .transform(lambda x: x.shift(1).rolling(window, min_periods=5).mean())
+            race_level[col] = (
+                race_level.groupby(code_col, sort=False)["_flag"]
+                .transform(
+                    lambda x: x.shift(1).rolling(window, min_periods=5).mean()
+                )
             )
-            # Step 2: 同一(code_col, race_col)ブロックの先頭行の値を、ブロック内
-            # 全馬に配布する(位置ベース、NaNも含めて配布=pandasの.first()の
-            # NaNスキップ挙動を避ける)。
-            pos_in_block = master.groupby([code_col, race_col], sort=False).cumcount()
-            is_first = (pos_in_block == 0).values
-            first_vals = master.loc[is_first, [code_col, race_col, col]].rename(
-                columns={col: "__first_val__"})
-            assert not first_vals.duplicated(subset=[code_col, race_col]).any(), (
-                f"{col}: (主体, レース) の先頭行特定に重複が発生(ロジック不整合)")
             merged = master[[code_col, race_col]].merge(
-                first_vals, on=[code_col, race_col], how="left")
-            master[col] = merged["__first_val__"].values
+                race_level[[code_col, race_col, col]],
+                on=[code_col, race_col], how="left",
+            )
+            master[col] = merged[col].values
             na_cnt = master[col].isna().sum()
             logger.info(f"  {col}: NaN={na_cnt:,}件（キャリア浅い等）")
 
