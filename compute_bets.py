@@ -153,13 +153,10 @@ TH_TOP1_GO, TH_TOP1_OK = 0.75, 0.50      # ◎独走 / ◎やや優位
 TH_TOP2_GO, TH_TOP2_OK, TH_TOP2_LOW = 0.75, 0.50, 0.40  # 本線濃厚 / やや本線 / 分散
 TH_CHAOS_HARD, TH_CHAOS_MID = 0.75, 0.50  # カオス / 混戦（パーセンタイル）
 TH_MARKET_ANABA = 0.30                    # 市場乖離→妙味
-# §0b 参戦規律フェイルセーフ (2026-06-18): chaos_pct(=field_chaos_score=正規化エントロピーの
-# 過去分布百分位) がこの閾値を超えるレースは見送る。OOS検証 (2024fit→2025eval,
-# analysis/test_race_selection_oos.py): クリーン帯=エントロピー下位1/3(chaos_pct<=0.33)のみ
-# ◎複勝ROI~90%/単勝85%/top3 76% と控除床(80%)を明確に超える。mid(0.33-0.67)80.8% /
-# chaotic(0.67-)82.5% は床近傍=参戦しても負けを増やすだけ。「最も負けない線」=クリーン帯に絞る。
-# 0.33=クリーン帯のみ(=2/3を見送り) / 0.50=+mid / 1.0=ゲート無効(従来挙動)。
-CLEAN_BAND_MAX = 0.33
+# §0b 旧 p33 クリーン帯ゲートは、2026 as-served で効果が符号反転したため撤回済み。
+# production_policy の hard gate と同じ単一ソースを参照し、ここで独自に母集団を狭めない。
+# hard_skip_reasons() は境界を含む >=、下の互換機構は > なので実効判定は常に hard gate 側。
+CLEAN_BAND_MAX = float(load_policy()["chaos_reference"]["skip_percentile"])
 
 # 参戦規律の二段化 (機構のみ, ★配線中止 2026-07-23): 枠プラン(force_floor)でクリーン帯外を
 # 消化枠水準へ予算降格する仕組み。2024-25実測+5.31ptだったが 2026 as-served 再検証
@@ -167,14 +164,19 @@ CLEAN_BAND_MAX = 0.33
 # main からは demote_budget を渡していない(旧挙動)。再判定は2026後半データ蓄積後。
 DEMOTE_BUDGET = 2000
 
-# 複勝特化(的中率)モード (--fuku-hit): ◎の p_win(bundle値) が閾値以上のレースだけ ◎複勝を flat 購入。
-# 設計操作点(offline v6 OOS 2024-25, analysis/hit_rate_frontier.py): 信頼度上位~20%帯 →
-#   的中~80% / 回収~92% (valid2023も一致)。控除床(回収100%)は越えない＝「最も負けない高的中」。
-# ★閾値は serve(bundle) の p_win 分布に合わせて設定: 本番bundle の p_win は offline より低スケール
-#   (中央値 0.13 vs offline ~0.25)。offline絶対値(0.36)では発火0.8%なので、serve実分布で
-#   上位~20%(週~15R)になる 0.21 を既定とする (reports/cowork_input/*_bundle 655R で実測)。
-# ※的中/回収 80/92% は offline 射影。serve スケール差があるため、実 serve 結果での前向き検証が必須。
-FUKU_HIT_THR = 0.21
+# 複勝特化モード (--fuku-hit): ◎の p_win が閾値以上のレースだけ ◎複勝を flat 購入。
+# ★2026-09-17 既定を 0.21 → 0.00 (ゲート撤廃) に変更。
+#   根拠: analysis/null_policy_2026.py (2026 as-served 1353R = bundle実出力 × 実kekka)。
+#   p_win ゲートを締めるほど「的中率は上がるが ROI は単調に落ちる」ことが実測で確定:
+#     thr=0.00 発火100%  的中51.1%  ROI 83.4% CI[77.7,89.2]   ← 既定
+#     thr=0.21 発火 38%  的中58.2%  ROI 80.1% CI[73.5,86.9]   ← 旧既定 (-3.3pt)
+#     thr=0.30 発火 11%  的中61.5%  ROI 76.7%
+#     thr=0.40 発火  4%  的中56.2%  ROI 67.7%
+#   設計時の offline 射影「上位20%帯 → 的中80%/回収92%」は serve に転移しなかった
+#   (2024-25 offline の自信度勾配 [[project_race_selection_confidence_place]] は
+#    2026 serve では符号が反転。同種の regime 反転は clean-band ゲートでも既発生)。
+#   ゲートを残したい場合のみ --fuku-thr で明示指定する。
+FUKU_HIT_THR = 0.00
 
 # 決済ドリフト補正 (2026-07-31 再fit: analysis/measure_settle_drift.py,
 # reports/live_odds 462勝者 06-07〜07-26 T-10→確定): 勝者オッズは T-10比 平均 -7.8%
@@ -305,7 +307,7 @@ def compute_fuku_hit(race: dict, thr: float = FUKU_HIT_THR, stake: int = BUDGET,
     horses = race.get("horses", [])
     field = _num(rm.get("field_size")) or len(horses)
     rid = str(race.get("race_id") or rm.get("race_id") or "")
-    label = f"{rm.get('place','')}{rm.get('course','')} {rm.get('race_name','')}".strip()
+    label = race_label(rid, rm)
 
     # T-10 ライブ複勝オッズ (任意・表示用。選択は確率ベースなので odds 非依存)
     if live_dir is not None:
@@ -344,6 +346,21 @@ def compute_fuku_hit(race: dict, thr: float = FUKU_HIT_THR, stake: int = BUDGET,
             "race_reason": reason, "bets": [bet]}
 
 
+
+def race_label(rid: str, rm: dict) -> str:
+    """表示用ラベル。「札幌 6R 芝2000 レース名」形式。
+
+    R は race_meta に無いので race_id 末尾2桁から取る (site/data の rno と
+    105/105 一致を実測、2026-08-27)。取れない場合は R を省いた従来形に落とす。
+    """
+    place, course = str(rm.get("place", "")), str(rm.get("course", ""))
+    name = str(rm.get("race_name", "") or "")
+    tail = str(rid or "")[-2:]
+    rno = int(tail) if tail.isdigit() and int(tail) else None
+    head = f"{place} {rno}R {course}" if rno else f"{place}{course}"
+    return f"{head} {name}".strip()
+
+
 def compute_race_bets(race: dict, live_dir: Path | None = None,
                       max_age_min: float = 20.0, budget: int = BUDGET,
                       force_floor: bool = False,
@@ -361,7 +378,7 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     horses = race.get("horses", [])
     field = _num(rm.get("field_size")) or len(horses)
     rid = str(race.get("race_id") or rm.get("race_id") or "")
-    label = f"{rm.get('place','')}{rm.get('course','')} {rm.get('race_name','')}".strip()
+    label = race_label(rid, rm)
     budget = int(budget) // 100 * 100
     if budget < MIN_BET:
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",
@@ -789,6 +806,15 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     else:
         base = [c[6] for c in chosen]
     amts = allocate(base, budget=int(budget))
+    # ---- 複勝スターク上限 (2026-09-17) ----
+    # 実台帳 474R の複勝を賭け金帯で切ると ROI は単調に悪化する:
+    #   ≤1500円 77.3% / 2501-4000円 78.7% / 4001-6000円 62.1% / 6001円~ 61.8%(全複勝資金の35%)
+    # 均等額化した場合の paired block bootstrap は +8.2pt CI95[+1.38,+15.13] P(Δ>0)=0.99。
+    # 独立母集団(2026 as-served 1353R)でも p_win 比例配分は均等比 -2.0pt で符号一致。
+    # = 「確信があるほど厚く張る」が複勝では逆効果。余剰は再配分せず張らない(負け縮小)。
+    _place_cap = int(os.environ.get("CB_PLACE_CAP", "3000"))
+    if _place_cap > 0:
+        amts = [min(a, _place_cap) if c[0] == "複勝" else a for c, a in zip(chosen, amts)]
     waku = bj.get("waku_tag") or "参加枠"
     bets = []
     for c, amt in zip(chosen, amts):
@@ -922,7 +948,7 @@ def main():
     # 評価: analysis/prospective_topdown_eval.py (paired bootstrap)。
     shadow_on = (os.environ.get("CB_ENGINE", "topdown") == "topdown"
                  and not args.fuku_hit)
-    out, shadow_out = [], []
+    out, shadow_out, residual_shadow_out = [], [], []
     for r in races:
         if args.fuku_hit:
             out.append(compute_fuku_hit(r, thr=args.fuku_hit_thr, stake=args.budget,
@@ -949,6 +975,23 @@ def main():
                 shadow_out.append(compute_race_bets(
                     r, live_dir=live_dir, max_age_min=args.max_age_min,
                     budget=args.budget, engine="shape"))
+    # 事前登録wide residual v3は実買い目から独立したshadow。T-10入力がある場合だけ
+    # 計算し、欠落・policy不整合はapplyごとfail-closedにする。
+    if live_dir is not None and not args.fuku_hit:
+        from wide_residual_shadow import compute_shadow
+        for r in races:
+            rid16 = _re2.sub(r"\D", "", str(r.get("race_id", "")))[:16]
+            market_path = live_dir / f"{rid16}.json"
+            try:
+                market = json.loads(market_path.read_text(encoding="utf-8"))
+                residual_shadow_out.append(compute_shadow(
+                    r, market, pair_probability_fn=pl_pair_probs))
+            except Exception as exc:
+                if args.apply:
+                    print(f"[ERROR] wide residual shadow生成失敗 → apply中止: {exc}",
+                          file=sys.stderr)
+                    return 1
+                print(f"[warn] wide residual shadow生成失敗: {exc}", file=sys.stderr)
     n_bet = sum(1 for e in out if e["bets"]); tot = sum(b["購入額"] for e in out for b in e["bets"])
     shapes = {}
     for e in out: shapes[e["race_nature"]] = shapes.get(e["race_nature"], 0) + 1
@@ -981,7 +1024,8 @@ def main():
                 from forward_price_integration import archive_compute_decisions
                 archived = archive_compute_decisions(
                     races, out, shadow_out, live_dir, mode=mode, stamp=run_stamp,
-                    pair_probability_fn=pl_pair_probs)
+                    pair_probability_fn=pl_pair_probs,
+                    residual_shadow=residual_shadow_out)
             except Exception as exc:
                 print(f"[ERROR] forward decision保存失敗 → apply中止: {exc}", file=sys.stderr)
                 return 1
@@ -1017,6 +1061,13 @@ def main():
             sh_tmp.write_text(json.dumps(sh, ensure_ascii=False, indent=2), encoding="utf-8")
             sh_tmp.replace(sh_path)
             print(f"[shadow] {sh_path.name}: shape併記 {len(shadow_out)}R (計{len(sh['races'])}R)")
+        if residual_shadow_out:
+            from wide_residual_shadow import merge_daily_shadow
+            wr_path = Path("reports/wide_residual_shadow") / f"{mm.group(1)}_shadow.json"
+            merge_daily_shadow(wr_path, residual_shadow_out)
+            n_trigger = sum(bool(row.get("triggered")) for row in residual_shadow_out)
+            print(f"[shadow] {wr_path.name}: wide residual {len(residual_shadow_out)}R "
+                  f"(発火{n_trigger}R)")
         print("※ 書込後は validate_cowork_bets.py --apply で見送り/内容ガードを必ず通すこと")
     else:
         print("\n(dry: 書込なし。--apply で reports/cowork_output/{date}_bets.json へ反映)")
