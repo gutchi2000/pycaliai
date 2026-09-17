@@ -117,22 +117,52 @@ def parse_weekly_csv(path: Path) -> pd.DataFrame:
 # hosei 辞書（18桁ID → 補正タイム）
 # =========================================================
 def load_hosei_lookup() -> dict[str, tuple]:
+    """18桁レースID → (そのレース自身の 補9, 補正)。
+
+    ★2026-09-17 修正 (off-by-one)。
+    呼び出し側は「前走の 18桁ID」でこの辞書を引き、得た値を今走の prev_hosei として
+    書き出す。したがってこの辞書の値は **そのレース自身の補正タイム**(列名「補正」/「補9」)
+    でなければならない。従来は「前走補正」/「前走補9」を読んでいたため、serve の
+    prev_hosei は実際には **前々走** の補正タイムになっていた。
+
+    実証 (analysis/verify_hosei_offbyone.py, n=464,424):
+      H[今走].前走補正 == H[前走].補正        → 100.00%  (学習側 prev_hosei の定義)
+      H[今走].前走補正 == H[前走].前走補正     →   5.85%  (従来 serve が入れていた値)
+      ズレていた行 94.15% / 平均絶対差 7.95
+    影響 (analysis/hosei_bug_impact.py): ◎の勝率 29.58% → 27.04%、top3 60.75% → 58.30%。
+    prev_hosei は v6 の gain 第2位 (7.47%)。誤った値を入れるのは
+    「特徴を捨てる」(27.87%) より悪い。
+
+    注意: 週次生成の H_{date}.csv には「補正」列が無い (前走補正しか持たない) ため、
+    値の供給源になれない。ここでは 補正 列を持つ hosei マスターだけを読む。
+    2026 以降に前走があった馬を引くには TARGET から hosei マスターの再エクスポートが要る。
+    """
     lookup: dict[str, tuple] = {}
+    n_files = 0
     for f in sorted(HOSEI_DIR.glob("H_*.csv")):
         for enc in ["cp932", "utf-8-sig", "utf-8"]:
             try:
+                head = pd.read_csv(f, encoding=enc, nrows=0)
+                if "補正" not in head.columns or "補9" not in head.columns:
+                    break  # 週次生成ファイル: 自身の補正を持たないので使えない
                 df = pd.read_csv(f, encoding=enc,
-                                 usecols=["レースID(新)", "前走補9", "前走補正"],
+                                 usecols=["レースID(新)", "補9", "補正"],
                                  dtype={"レースID(新)": str})
-                for _, row in df.iterrows():
-                    rid = str(row["レースID(新)"]).strip().zfill(18)
-                    h9 = float(row["前走補9"])  if pd.notna(row["前走補9"])  else None
-                    hc = float(row["前走補正"]) if pd.notna(row["前走補正"]) else None
-                    lookup[rid] = (h9, hc)
+                rid = df["レースID(新)"].astype(str).str.strip().str.zfill(18)
+                h9 = pd.to_numeric(df["補9"], errors="coerce")
+                hc = pd.to_numeric(df["補正"], errors="coerce")
+                for r, a, b in zip(rid, h9, hc):
+                    lookup[r] = (None if pd.isna(a) else float(a),
+                                 None if pd.isna(b) else float(b))
+                n_files += 1
                 break
             except Exception:
                 continue
-    log.info(f"hosei lookup: {len(lookup):,} エントリ読み込み")
+    log.info(f"hosei lookup: {len(lookup):,} エントリ / {n_files} ファイル読み込み "
+             f"(列=補正・補9)")
+    if n_files == 0:
+        log.error("hosei マスター (補正列を持つ H_*.csv) が見つからない。"
+                  "prev_hosei は全馬欠損になる。")
     return lookup
 
 

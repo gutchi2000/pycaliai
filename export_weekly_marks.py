@@ -579,6 +579,38 @@ def main() -> int:
                     gate_errors.append(
                         f"serve特徴 {col} 非null率 {cov*100:.0f}% < {floor_cov*100:.0f}% "
                         f"(補正/調教リネーム破綻 or 列ズレ)")
+    # ---- 絶対基準 canary (2026-09-17 追加) ----
+    # 上の canary は baseline_cov = 「最近の serve 週」を正常とみなす自己参照なので、
+    # 「ずっと劣化したまま」は永久に鳴らない。実例: prev_hosei は学習時 85.4% 充足だが
+    # baseline が 46.3% に固定され、floor 20% を割らないため一度も鳴らなかった
+    # (gain 7.47% = v6 第2位の特徴)。学習 split の充足率を絶対基準として併記監視する。
+    # 生成: analysis/add_train_cov_baseline.py
+    if baseline_path.exists():
+        try:
+            _bj = json.load(open(baseline_path, encoding="utf-8")) or {}
+            _tcov, _gain = _bj.get("train_cov", {}), _bj.get("gain_pct", {})
+        except Exception:
+            _tcov, _gain = {}, {}
+        _degraded, _lost_gain = [], 0.0
+        for col in feats:
+            t = _tcov.get(col)
+            if not t or t < 0.40:
+                continue
+            cur = (feature_coverage(df[col], allow_constant=(col in CONST_OK_COLS))
+                   if col in df.columns else 0.0)
+            if cur < 0.70 * t:
+                g = float(_gain.get(col, 0.0))
+                _lost_gain += g * (1.0 - cur / t)
+                _degraded.append(f"{col}(学習{t*100:.0f}%→serve{cur*100:.0f}%, gain{g:.1f}%)")
+        if _degraded:
+            logger.warning(
+                f"[serve 絶対canary] 学習比で劣化 {len(_degraded)}特徴 / "
+                f"失っている gain 約 {_lost_gain:.1f}%: " + ", ".join(_degraded[:8])
+                + (" ..." if len(_degraded) > 8 else ""))
+            logger.warning("  → 診断: python -m analysis.serve_coverage_gap_table")
+        else:
+            logger.info("[serve 絶対canary] 学習比の劣化なし")
+
     # 差分 canary だけでは「baseline 作成時から恒常的に死んでいる特徴」を検知できない。
     # 現在値の coverage<40% に属する model gain を毎回合算し、絶対水準も監視する。
     try:
