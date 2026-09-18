@@ -44,8 +44,78 @@
     },
     {
       "race_id": "2026091306040402",
-      "race_label": "中山芝2000 未勝利",
-      "bets": [],
+      "race_label": "中山 2R 芝2000",
+      "race_nature": "topdown",
+      "race_reason": "topdown全券種確率（混戦0.17/市場+0.78）で 1点。 [T-10オッズ 単複10頭/ワイド45組/馬単90組]",
+      "confidence": {
+        "top1_pct": 0.46,
+        "top2_pct": 0.919,
+        "chaos_pct": 0.169,
+        "market": 0.778
+      },
+      "bets": [
+        {
+          "馬券種": "複勝",
+          "買い目": "8",
+          "購入額": 7000,
+          "枠タグ": "参加枠",
+          "理由": "topdown p=0.745（複勝 1.1倍）"
+        }
+      ],
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 8,
+          "horse_name": "シュートザワークス",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 3,
+          "horse_name": "テキサス",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 2,
+          "horse_name": "マイネルリシャール",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 7,
+          "horse_name": "ウィナーズチェック",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 4,
+          "horse_name": "サンタンヌ",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "topdown-serve34-p667-20260825",
+        "policy_schema_version": 1,
+        "policy_sha256": "7f85eca76c89a7442ea9216d4e44e20c27e3d8e09748a08fd741dcdd6583d133",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "de6c11a2450056ba6ef6577bc3146ce82b8ded2cc7c14b6d1898e2db51db8f1c"
+        },
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-08-25",
+        "mode": "plan",
+        "live": true,
+        "stamped_at": "2026-09-13T10:25:02"
+      },
       "advisor": [
         {
           "umaban": 8,
@@ -86,8 +156,78 @@
     },
     {
       "race_id": "2026091306040403",
-      "race_label": "中山ダ1200 未勝利",
-      "bets": [],
+      "race_label": "中山 3R ダート1200",
+      "race_nature": "topdown",
+      "race_reason": "topdown全券種確率（混戦0.35/市場+0.79）で 1点。 [T-10オッズ 単複16頭/ワイド120組/馬単240組]",
+      "confidence": {
+        "top1_pct": 0.527,
+        "top2_pct": 0.741,
+        "chaos_pct": 0.349,
+        "market": 0.785
+      },
+      "bets": [
+        {
+          "馬券種": "複勝",
+          "買い目": "6",
+          "購入額": 3000,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.583（複勝 1.1倍）"
+        }
+      ],
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 6,
+          "horse_name": "ラフエルガ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 7,
+          "horse_name": "アレックスケー",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 12,
+          "horse_name": "キセキノユニコーン",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 10,
+          "horse_name": "パレスラン",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 1,
+          "horse_name": "ブレイヴアーサー",
+          "orig_mark": ""
+        }
+      ],
+      "stamp": {
+        "policy_id": "topdown-serve34-p667-20260825",
+        "policy_schema_version": 1,
+        "policy_sha256": "7f85eca76c89a7442ea9216d4e44e20c27e3d8e09748a08fd741dcdd6583d133",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "de6c11a2450056ba6ef6577bc3146ce82b8ded2cc7c14b6d1898e2db51db8f1c"
+        },
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-08-25",
+        "mode": "plan",
+        "live": true,
+        "stamped_at": "2026-09-13T10:55:02"
+      },
       "advisor": [
         {
           "umaban": 6,
@@ -177,8 +317,85 @@
     },
     {
       "race_id": "2026091306040405",
-      "race_label": "中山芝1800 新馬",
-      "bets": [],
+      "race_label": "中山 5R 芝1800",
+      "race_nature": "topdown",
+      "race_reason": "topdown全券種確率（混戦0.63/市場+0.74）で 2点。 [T-10オッズ 単複11頭/ワイド55組/馬単110組]",
+      "confidence": {
+        "top1_pct": 0.469,
+        "top2_pct": 0.631,
+        "chaos_pct": 0.634,
+        "market": 0.736
+      },
+      "bets": [
+        {
+          "馬券種": "複勝",
+          "買い目": "9",
+          "購入額": 2000,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.583（複勝 2.0倍）"
+        },
+        {
+          "馬券種": "ワイド",
+          "買い目": "2-9",
+          "購入額": 1000,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.282（ワイド 5.4倍）"
+        }
+      ],
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 9,
+          "horse_name": "サトノアニマ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 2,
+          "horse_name": "ラルコ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 5,
+          "horse_name": "コッディ",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 6,
+          "horse_name": "コスモコリウス",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 11,
+          "horse_name": "スローブギ",
+          "orig_mark": ""
+        }
+      ],
+      "stamp": {
+        "policy_id": "topdown-serve34-p667-20260825",
+        "policy_schema_version": 1,
+        "policy_sha256": "7f85eca76c89a7442ea9216d4e44e20c27e3d8e09748a08fd741dcdd6583d133",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "de6c11a2450056ba6ef6577bc3146ce82b8ded2cc7c14b6d1898e2db51db8f1c"
+        },
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-08-25",
+        "mode": "plan",
+        "live": true,
+        "stamped_at": "2026-09-13T12:15:03"
+      },
       "advisor": [
         {
           "umaban": 9,
@@ -219,8 +436,78 @@
     },
     {
       "race_id": "2026091306040406",
-      "race_label": "中山ダ1800 未勝利",
-      "bets": [],
+      "race_label": "中山 6R ダート1800",
+      "race_nature": "topdown",
+      "race_reason": "topdown全券種確率（混戦0.42/市場+0.71）で 1点。 [T-10オッズ 単複16頭/ワイド120組/馬単240組]",
+      "confidence": {
+        "top1_pct": 0.907,
+        "top2_pct": 0.634,
+        "chaos_pct": 0.424,
+        "market": 0.706
+      },
+      "bets": [
+        {
+          "馬券種": "複勝",
+          "買い目": "9",
+          "購入額": 6000,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.658（複勝 1.2倍）"
+        }
+      ],
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 9,
+          "horse_name": "ホウオウファミリー",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 8,
+          "horse_name": "ルシアージュ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 13,
+          "horse_name": "フィクセルリリア",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 2,
+          "horse_name": "ヨーゼフ",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 15,
+          "horse_name": "ゴールデンダガー",
+          "orig_mark": ""
+        }
+      ],
+      "stamp": {
+        "policy_id": "topdown-serve34-p667-20260825",
+        "policy_schema_version": 1,
+        "policy_sha256": "7f85eca76c89a7442ea9216d4e44e20c27e3d8e09748a08fd741dcdd6583d133",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "de6c11a2450056ba6ef6577bc3146ce82b8ded2cc7c14b6d1898e2db51db8f1c"
+        },
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-08-25",
+        "mode": "plan",
+        "live": true,
+        "stamped_at": "2026-09-13T12:45:03"
+      },
       "advisor": [
         {
           "umaban": 9,
@@ -310,8 +597,92 @@
     },
     {
       "race_id": "2026091306040408",
-      "race_label": "中山ダ1200 1勝",
-      "bets": [],
+      "race_label": "中山 8R ダート1200",
+      "race_nature": "topdown",
+      "race_reason": "topdown全券種確率（混戦0.59/市場+0.75）で 3点。 [T-10オッズ 単複16頭/ワイド120組/馬単240組]",
+      "confidence": {
+        "top1_pct": 0.65,
+        "top2_pct": 0.327,
+        "chaos_pct": 0.594,
+        "market": 0.753
+      },
+      "bets": [
+        {
+          "馬券種": "単勝",
+          "買い目": "14",
+          "購入額": 700,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.228（単勝 6.2倍）"
+        },
+        {
+          "馬券種": "複勝",
+          "買い目": "14",
+          "購入額": 1800,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.534（複勝 2.0倍）"
+        },
+        {
+          "馬券種": "ワイド",
+          "買い目": "6-14",
+          "購入額": 500,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.160（ワイド 13.0倍）"
+        }
+      ],
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 16,
+          "horse_name": "グランルチャドール",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "〇",
+          "umaban": 14,
+          "horse_name": "シルフレイ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "▲",
+          "umaban": 13,
+          "horse_name": "ラルフテソーロ",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 10,
+          "horse_name": "エルムラント",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 6,
+          "horse_name": "リラキトス",
+          "orig_mark": "〇"
+        }
+      ],
+      "stamp": {
+        "policy_id": "topdown-serve34-p667-20260825",
+        "policy_schema_version": 1,
+        "policy_sha256": "7f85eca76c89a7442ea9216d4e44e20c27e3d8e09748a08fd741dcdd6583d133",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "de6c11a2450056ba6ef6577bc3146ce82b8ded2cc7c14b6d1898e2db51db8f1c"
+        },
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-08-25",
+        "mode": "plan",
+        "live": true,
+        "stamped_at": "2026-09-13T13:45:02"
+      },
       "advisor": [
         {
           "umaban": 14,
@@ -359,8 +730,78 @@
     },
     {
       "race_id": "2026091306040409",
-      "race_label": "中山芝1800 2勝 習志野特別",
-      "bets": [],
+      "race_label": "中山 9R 芝1800 習志野特別",
+      "race_nature": "topdown",
+      "race_reason": "topdown全券種確率（混戦0.17/市場+0.95）で 1点。 [T-10オッズ 単複11頭/ワイド55組/馬単110組]",
+      "confidence": {
+        "top1_pct": 0.838,
+        "top2_pct": 0.968,
+        "chaos_pct": 0.173,
+        "market": 0.955
+      },
+      "bets": [
+        {
+          "馬券種": "複勝",
+          "買い目": "2",
+          "購入額": 7000,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.775（複勝 1.4倍）"
+        }
+      ],
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 2,
+          "horse_name": "ブルーマエストロ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 1,
+          "horse_name": "イベントホライゾン",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 3,
+          "horse_name": "トレサフィール",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 7,
+          "horse_name": "グロスビーク",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 11,
+          "horse_name": "マイネルアレス",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "topdown-serve34-p667-20260825",
+        "policy_schema_version": 1,
+        "policy_sha256": "7f85eca76c89a7442ea9216d4e44e20c27e3d8e09748a08fd741dcdd6583d133",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "de6c11a2450056ba6ef6577bc3146ce82b8ded2cc7c14b6d1898e2db51db8f1c"
+        },
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-08-25",
+        "mode": "plan",
+        "live": true,
+        "stamped_at": "2026-09-13T14:15:02"
+      },
       "advisor": [
         {
           "umaban": 2,
@@ -401,8 +842,78 @@
     },
     {
       "race_id": "2026091306040410",
-      "race_label": "中山ダ1200 3勝 初風Ｓ",
-      "bets": [],
+      "race_label": "中山 10R ダート1200 初風Ｓ",
+      "race_nature": "topdown",
+      "race_reason": "topdown全券種確率（混戦0.37/市場+0.92）で 1点。 [T-10オッズ 単複10頭/ワイド45組/馬単90組]",
+      "confidence": {
+        "top1_pct": 0.375,
+        "top2_pct": 0.91,
+        "chaos_pct": 0.367,
+        "market": 0.915
+      },
+      "bets": [
+        {
+          "馬券種": "複勝",
+          "買い目": "9",
+          "購入額": 7000,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.658（複勝 1.6倍）"
+        }
+      ],
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 9,
+          "horse_name": "アシャカトベ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 10,
+          "horse_name": "イリフィ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 8,
+          "horse_name": "ワンダラー",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 5,
+          "horse_name": "アデランテ",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 2,
+          "horse_name": "ドンレパルス",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "topdown-serve34-p667-20260825",
+        "policy_schema_version": 1,
+        "policy_sha256": "7f85eca76c89a7442ea9216d4e44e20c27e3d8e09748a08fd741dcdd6583d133",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "de6c11a2450056ba6ef6577bc3146ce82b8ded2cc7c14b6d1898e2db51db8f1c"
+        },
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-08-25",
+        "mode": "plan",
+        "live": true,
+        "stamped_at": "2026-09-13T14:55:03"
+      },
       "advisor": [
         {
           "umaban": 9,
@@ -499,8 +1010,85 @@
     },
     {
       "race_id": "2026091306040412",
-      "race_label": "中山ダ1800 2勝",
-      "bets": [],
+      "race_label": "中山 12R ダート1800",
+      "race_nature": "topdown",
+      "race_reason": "topdown全券種確率（混戦0.46/市場+0.66）で 2点。 [T-10オッズ 単複13頭/ワイド78組/馬単156組]",
+      "confidence": {
+        "top1_pct": 0.853,
+        "top2_pct": 0.664,
+        "chaos_pct": 0.463,
+        "market": 0.659
+      },
+      "bets": [
+        {
+          "馬券種": "単勝",
+          "買い目": "9",
+          "購入額": 1800,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.336（単勝 5.7倍）"
+        },
+        {
+          "馬券種": "複勝",
+          "買い目": "9",
+          "購入額": 3200,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.621（複勝 1.9倍）"
+        }
+      ],
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 4,
+          "horse_name": "ジェイエルモーダル",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "〇",
+          "umaban": 9,
+          "horse_name": "ナイトスラッガー",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "▲",
+          "umaban": 7,
+          "horse_name": "ラストレガシー",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "△",
+          "umaban": 12,
+          "horse_name": "コーリンカルベラ",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 11,
+          "horse_name": "ブレードサクセス",
+          "orig_mark": ""
+        }
+      ],
+      "stamp": {
+        "policy_id": "topdown-serve34-p667-20260825",
+        "policy_schema_version": 1,
+        "policy_sha256": "7f85eca76c89a7442ea9216d4e44e20c27e3d8e09748a08fd741dcdd6583d133",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "de6c11a2450056ba6ef6577bc3146ce82b8ded2cc7c14b6d1898e2db51db8f1c"
+        },
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-08-25",
+        "mode": "plan",
+        "live": true,
+        "stamped_at": "2026-09-13T16:20:03"
+      },
       "advisor": [
         {
           "umaban": 9,
@@ -722,8 +1310,78 @@
     },
     {
       "race_id": "2026091309040406",
-      "race_label": "阪神ダ1800 未勝利",
-      "bets": [],
+      "race_label": "阪神 6R ダート1800",
+      "race_nature": "topdown",
+      "race_reason": "topdown全券種確率（混戦0.40/市場+0.69）で 1点。 [T-10オッズ 単複15頭/ワイド105組/馬単210組]",
+      "confidence": {
+        "top1_pct": 0.901,
+        "top2_pct": 0.659,
+        "chaos_pct": 0.404,
+        "market": 0.693
+      },
+      "bets": [
+        {
+          "馬券種": "複勝",
+          "買い目": "7",
+          "購入額": 7000,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.658（複勝 1.2倍）"
+        }
+      ],
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 7,
+          "horse_name": "ビッグヒーロー",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 9,
+          "horse_name": "ゴールデンドラゴン",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 11,
+          "horse_name": "プレデンシア",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 13,
+          "horse_name": "ナムラヴンダー",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 5,
+          "horse_name": "タガノアルテミス",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "topdown-serve34-p667-20260825",
+        "policy_schema_version": 1,
+        "policy_sha256": "7f85eca76c89a7442ea9216d4e44e20c27e3d8e09748a08fd741dcdd6583d133",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "de6c11a2450056ba6ef6577bc3146ce82b8ded2cc7c14b6d1898e2db51db8f1c"
+        },
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-08-25",
+        "mode": "plan",
+        "live": true,
+        "stamped_at": "2026-09-13T12:30:02"
+      },
       "advisor": [
         {
           "umaban": 7,
@@ -764,8 +1422,85 @@
     },
     {
       "race_id": "2026091309040407",
-      "race_label": "阪神ダ1400 1勝",
-      "bets": [],
+      "race_label": "阪神 7R ダート1400",
+      "race_nature": "topdown",
+      "race_reason": "topdown全券種確率（混戦0.55/市場+0.80）で 2点。 [T-10オッズ 単複16頭/ワイド120組/馬単240組]",
+      "confidence": {
+        "top1_pct": 0.639,
+        "top2_pct": 0.33,
+        "chaos_pct": 0.551,
+        "market": 0.803
+      },
+      "bets": [
+        {
+          "馬券種": "単勝",
+          "買い目": "5",
+          "購入額": 900,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.228（単勝 4.0倍）"
+        },
+        {
+          "馬券種": "複勝",
+          "買い目": "5",
+          "購入額": 2100,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.534（複勝 1.9倍）"
+        }
+      ],
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 5,
+          "horse_name": "ゲタリア",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 13,
+          "horse_name": "ヴォンドゥ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 6,
+          "horse_name": "ジューンアゲイン",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 16,
+          "horse_name": "ウォーターパラディ",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 10,
+          "horse_name": "フレイムスター",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "topdown-serve34-p667-20260825",
+        "policy_schema_version": 1,
+        "policy_sha256": "7f85eca76c89a7442ea9216d4e44e20c27e3d8e09748a08fd741dcdd6583d133",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "de6c11a2450056ba6ef6577bc3146ce82b8ded2cc7c14b6d1898e2db51db8f1c"
+        },
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-08-25",
+        "mode": "plan",
+        "live": true,
+        "stamped_at": "2026-09-13T13:00:03"
+      },
       "advisor": [
         {
           "umaban": 5,
@@ -806,8 +1541,78 @@
     },
     {
       "race_id": "2026091309040408",
-      "race_label": "阪神ダ1800 1勝",
-      "bets": [],
+      "race_label": "阪神 8R ダート1800",
+      "race_nature": "topdown",
+      "race_reason": "topdown全券種確率（混戦0.64/市場+0.82）で 1点。 [T-10オッズ 単複12頭/ワイド66組/馬単132組]",
+      "confidence": {
+        "top1_pct": 0.692,
+        "top2_pct": 0.483,
+        "chaos_pct": 0.636,
+        "market": 0.818
+      },
+      "bets": [
+        {
+          "馬券種": "複勝",
+          "買い目": "2",
+          "購入額": 3000,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.534（複勝 1.6倍）"
+        }
+      ],
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 2,
+          "horse_name": "ココロヅヨサ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 3,
+          "horse_name": "アスクガンバーレ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 11,
+          "horse_name": "サンライズオスカー",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 5,
+          "horse_name": "メイショウソウテン",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 8,
+          "horse_name": "アビラーシャ",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "topdown-serve34-p667-20260825",
+        "policy_schema_version": 1,
+        "policy_sha256": "7f85eca76c89a7442ea9216d4e44e20c27e3d8e09748a08fd741dcdd6583d133",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "de6c11a2450056ba6ef6577bc3146ce82b8ded2cc7c14b6d1898e2db51db8f1c"
+        },
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-08-25",
+        "mode": "plan",
+        "live": true,
+        "stamped_at": "2026-09-13T13:30:02"
+      },
       "advisor": [
         {
           "umaban": 2,
@@ -855,8 +1660,78 @@
     },
     {
       "race_id": "2026091309040409",
-      "race_label": "阪神芝2000 2勝 能勢特別",
-      "bets": [],
+      "race_label": "阪神 9R 芝2000 能勢特別",
+      "race_nature": "topdown",
+      "race_reason": "topdown全券種確率（混戦0.33/市場+0.97）で 1点。 [T-10オッズ 単複11頭/ワイド55組/馬単110組]",
+      "confidence": {
+        "top1_pct": 0.889,
+        "top2_pct": 0.724,
+        "chaos_pct": 0.329,
+        "market": 0.973
+      },
+      "bets": [
+        {
+          "馬券種": "複勝",
+          "買い目": "5",
+          "購入額": 7000,
+          "枠タグ": "参加枠",
+          "理由": "topdown p=0.759（複勝 1.2倍）"
+        }
+      ],
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 5,
+          "horse_name": "タンテドヴィーヴル",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 10,
+          "horse_name": "ミッキージャンプ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 2,
+          "horse_name": "マジョレルブルー",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 7,
+          "horse_name": "シーミハットク",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 4,
+          "horse_name": "ダイヤモンドハンズ",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "topdown-serve34-p667-20260825",
+        "policy_schema_version": 1,
+        "policy_sha256": "7f85eca76c89a7442ea9216d4e44e20c27e3d8e09748a08fd741dcdd6583d133",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "de6c11a2450056ba6ef6577bc3146ce82b8ded2cc7c14b6d1898e2db51db8f1c"
+        },
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-08-25",
+        "mode": "plan",
+        "live": true,
+        "stamped_at": "2026-09-13T14:00:02"
+      },
       "advisor": [
         {
           "umaban": 5,
@@ -988,8 +1863,92 @@
     },
     {
       "race_id": "2026091309040412",
-      "race_label": "阪神ダ1200 2勝",
-      "bets": [],
+      "race_label": "阪神 12R ダート1200",
+      "race_nature": "topdown",
+      "race_reason": "topdown全券種確率（混戦0.56/市場+0.93）で 3点。 [T-10オッズ 単複14頭/ワイド91組/馬単182組]",
+      "confidence": {
+        "top1_pct": 0.312,
+        "top2_pct": 0.667,
+        "chaos_pct": 0.561,
+        "market": 0.934
+      },
+      "bets": [
+        {
+          "馬券種": "単勝",
+          "買い目": "14",
+          "購入額": 700,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.259（単勝 6.2倍）"
+        },
+        {
+          "馬券種": "複勝",
+          "買い目": "14",
+          "購入額": 1500,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.534（複勝 2.5倍）"
+        },
+        {
+          "馬券種": "ワイド",
+          "買い目": "9-14",
+          "購入額": 800,
+          "枠タグ": "妙味枠",
+          "理由": "topdown p=0.292（ワイド 9.6倍）"
+        }
+      ],
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 7,
+          "horse_name": "アオイレーギーナ",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "〇",
+          "umaban": 14,
+          "horse_name": "ユウトザレン",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "▲",
+          "umaban": 4,
+          "horse_name": "カーリキュー",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 9,
+          "horse_name": "メイショウドライブ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "△",
+          "umaban": 8,
+          "horse_name": "ベンダバール",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "topdown-serve34-p667-20260825",
+        "policy_schema_version": 1,
+        "policy_sha256": "7f85eca76c89a7442ea9216d4e44e20c27e3d8e09748a08fd741dcdd6583d133",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "de6c11a2450056ba6ef6577bc3146ce82b8ded2cc7c14b6d1898e2db51db8f1c"
+        },
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-08-25",
+        "mode": "plan",
+        "live": true,
+        "stamped_at": "2026-09-13T16:00:03"
+      },
       "advisor": [
         {
           "umaban": 14,
