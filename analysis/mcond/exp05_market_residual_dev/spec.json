@@ -1,0 +1,95 @@
+{
+ "experiment_id": "exp05_market_residual_dev",
+ "hypothesis_id": "market_conditional_second_stage_tabular_residual",
+ "created_at": "2026-09-19",
+ "base_document": "EXP05 spec (pasted by user, ChatGPT-authored), following EXP04 M2 finding",
+ "prior_art_audit": "PRIOR_ART_AUDIT.md",
+ "data_audit": "DATA_AUDIT.md",
+ "locked_period_audit": "LOCKED_PERIOD_AUDIT.md",
+ "hypothesis": "v6の出力と市場確率を基準にしたうえで、時点安全な表特徴を使う第2段残差モデル(M4/M5)は、v6+市場だけのモデル(M3)より確率予測を改善するか。改善が2023-2025で見られたとしても2026年をロックできないため確証ではなく探索的評価として報告する",
+ "data_hashes_sha256_16": {
+  "data/_research/mcond/base.parquet": "e2d229082d9b604b",
+  "data/_research/mcond/exp04_candidates.parquet": "d9ab250fa4506864",
+  "data/_research/mcond/exp05_design.parquet": "442040281209c7d3",
+  "models/pl_calibrators_v6.pkl": "a08da05124c489c0",
+  "models/unified_rank_v6.pkl": "db2ffe65ee27fb90",
+  "data/serve_feature_baseline.json": "8824c85efcd6818c"
+ },
+ "candidate_features": {
+  "source": "EXP04 exp04_candidates.parquet (145列, C1=133/C2=8/C3=4)、EXP05独自の追加エンジニアリングは無し",
+  "F_full_n": 145,
+  "F_serve_n": 117,
+  "F_serve_definition": "F-full - (serve_feature_baseline.json の serve_dead 30列に由来するC1列)。DATA_AUDIT.md §2参照",
+  "new_derived_features": ["score_gap_to_top", "score_gap_to_second", "score_percentile_in_race",
+   "field_score_dispersion", "calibrated_v6_probability(_win)", "lp_cal_top3(_win)=logit(calibrated)"]
+ },
+ "calibration": {
+  "method": "IsotonicRegression(out_of_bounds='clip', y_min=0, y_max=1)、本番build_pl_calibrators.pyと同一設定",
+  "fit_period": "2016-2021 (train)、本番pl_calibrators_v6.pklはvalid=2023でfitのため2023年評価には使わず自前で再fit",
+  "targets": ["win (v6_pwin -> win)", "top3 (v6_p3 -> top3)"]
+ },
+ "models": {
+  "M0": "outcome ~ f_mkt (logit(market_probability))、freefit LogisticRegression",
+  "M1": "outcome ~ lp_cal_top3 + f_mkt、freefit LogisticRegression",
+  "M2": "M1 + v6_score(生スコア) + rank_v6",
+  "M3": "M2 + score_gap_to_top + score_gap_to_second + score_percentile_in_race + field_score_dispersion",
+  "M4": "offset(logit(M3の予測確率)) + F_serve、offset係数固定1、L2正則化 (exp04methods.fit_offset_logit流用)",
+  "M5": "offset(logit(M3の予測確率)) + F_full、同上",
+  "M6": "Benter型対照。w=exp(alpha*log(v6_pwin)+beta*log(market_pi))をtrain期間winレースのrace内softmax尤度でMLE fit (Nelder-Mead)。topは3着内はpl_top3(Harville)で導出、win自体はw/sum(w)",
+  "note_B1_B2_B3": "spec本文の§3 B1/B2/B3は§11のM1/M2/M3とそれぞれ同一定義。重複fitはせずM1/M2/M3の結果をB1/B2/B3として流用する(重複回避、事前登録)"
+ },
+ "offset_model": {"coefficient_on_offset": 1, "residual_regularization": "L2, C in {0.01,0.1,1.0}, C selected by sel=2022 logloss"},
+ "primary_target": "top3",
+ "secondary_target": "win (M0-M6を並行して学習、比較のみ、主判定には使わない)",
+ "primary_metric": "馬単位logloss、開催日ブロックbootstrap 2000回 (analysis.mcond.evaluate.delta_boot)",
+ "splits": {
+  "train": "2016-2021",
+  "sel_C_selection": "2022",
+  "development_period_exploratory": "2023, 2024, 2025 (EXP04で仮説発見に使用済みのため最終証拠にしない)",
+  "locked_2026": "実施しない。LOCKED_PERIOD_AUDIT.mdで不可と判定 (前売市場オッズ時系列が2025-12-28で終了、2026年のv6生スコア・F-full特徴が永続化されていない)",
+  "prospective_shadow": "実施しない。wide_residual_shadowと同型のプロトコルを再利用する新policyの作成が次の一手(本セッションでは着手しない)"
+ },
+ "gate0_data_health": {
+  "requires": ["v6base既存OOF/本番OOSをそのまま使用(自前training無し)", "市場オッズ取得時刻確定(pre=31-40分前, evaluate/market.pyと同じ)",
+   "sel/train期間のみを前処理・C選択に使用", "F-serveの定義根拠を明記", "2026年ロック可否の判定を明記",
+   "予測対象と払戻結合の安定性(fpay, inner joinのみ保持)", "2026年TARGET欠損監査済み(LOCKED_PERIOD_AUDIT.md)"]
+ },
+ "gate1_reproduce_exp04": {
+  "description": "EXP04の中心的発見(全候補プール通常学習がv6+市場を一貫して上回る)をEXP05のM5(offset(M3)+F-full) vs M1で再現できるか。合否は実装整合性の確認であり採用判定ではない",
+  "compare": "M5 vs M1",
+  "periods": ["confirm_2023", "oos_2024", "oos_2025"],
+  "criterion": "全期間でΔlogloss<0"
+ },
+ "gate2_exploratory": {
+  "note": "2026非ロックのため探索的。2023 99%CIでの合否は参考情報として算出するが最終確証としない",
+  "primary_compare": "M4 vs M3 (serve-safe表特徴の追加情報、主判定)",
+  "secondary_compares": ["M5 vs M4 (フル特徴 vs serve特徴、実運用可能性)", "M4 vs M6 (Benter型対照との差)"],
+  "ci_level": 0.99,
+  "breakdowns": ["venue (競馬場)", "popularity_band (市場人気帯 rank_mkt_pre)", "drop_top100_race (上位100R除外)"]
+ },
+ "gate3_conditional_calibration": {
+  "regions": ["model_higher_than_market", "edge_top10pct", "edge_top5pct", "popularity_band_1/2-3/4-6/7+",
+   "rank_mismatch_v6_higher", "rank_mismatch_market_higher", "per_race_max_edge_horse", "maru_honmei_v6_top1"],
+  "diagnostics": ["mean_pred", "actual_rate", "calibration_gap", "brier", "edge_decile_monotonicity"],
+  "note": "探索的(2026非ロックのため)。optimizer's curse再現(edge大→較正ギャップ拡大)の有無を確認する"
+ },
+ "gate4_economic_exploratory": {
+  "rules": {"R1": "複勝100円均等: p_M4/市場p3_pre >= 1.15 (EXP01-04と同一閾値の流用、新規探索なし)",
+   "R2": "複勝100円均等: 各レースでp_M4最大の1頭"},
+  "compare_against": ["M1", "M3"],
+  "settlement": "確定複勝配当(fpay)",
+  "ci": "開催日ブロックbootstrap 1000回",
+  "note": "探索的。2026非ロックのため「黒字化を確認済み」という主張はしない"
+ },
+ "tie_diagnosis": {
+  "description": "spec §20。calibrated_v6_probabilityのレース内最大タイ率を計測し、B1/B2/B3(=M1/M2/M3)の改善がタイのあるレースに偏っていないか確認する",
+  "output": "out/tie_diagnosis.json"
+ },
+ "stop_rules": [
+  "Gate0 FAIL -> 中止",
+  "Gate1で方向が再現しない場合、原因を特定するまでGate2以降を確定的結論として扱わない(探索は続けてよいが『改善』を主張しない)",
+  "2026を開封する前提条件が揃わない限りGate2以降は探索的ラベルを外さない",
+  "M4がM3を(探索的にも)明確に上回らない場合、GBDT/NN化・特徴追加・閾値再探索・人気帯専用モデル・◎専用モデルへ進まない(spec §23)",
+  "利益差が出なければ本番接続しない"
+ ]
+}
