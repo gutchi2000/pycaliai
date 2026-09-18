@@ -1,0 +1,163 @@
+{
+ "n_v6_features": 120,
+ "n_excluded": 15,
+ "n_kept": 105,
+ "excluded": {
+  "前走レースID(新)": [
+   "R3識別子"
+  ],
+  "前走レースID(新/馬番無)": [
+   "R3識別子"
+  ],
+  "父タイプ名": [
+   "R2期間内シフト(年別被覆差0.847>0.3)"
+  ],
+  "馬主(最新/仮想)": [
+   "R4上書き列(EXP01/EXP02監査で確認済み)"
+  ],
+  "指定条件": [
+   "R2期間内シフト(年別被覆差0.742>0.3)"
+  ],
+  "kako5_avg_ninki": [
+   "R1恒常欠損(通算被覆0.000<0.05)"
+  ],
+  "kako5_pos_vs_ninki": [
+   "R1恒常欠損(通算被覆0.000<0.05)"
+  ],
+  "kako5_upset_good_count": [
+   "R1恒常欠損(通算被覆0.000<0.05)"
+  ],
+  "trnW_5F": [
+   "R2期間内シフト(年別被覆差0.818>0.3)"
+  ],
+  "trnW_4F": [
+   "R2期間内シフト(年別被覆差0.970>0.3)"
+  ],
+  "trnW_3F": [
+   "R2期間内シフト(年別被覆差0.970>0.3)"
+  ],
+  "trnW_Lap1": [
+   "R2期間内シフト(年別被覆差0.970>0.3)"
+  ],
+  "trnW_Lap2": [
+   "R2期間内シフト(年別被覆差0.970>0.3)"
+  ],
+  "trnW_Lap3": [
+   "R2期間内シフト(年別被覆差0.970>0.3)"
+  ],
+  "trnW_days_ago": [
+   "R2期間内シフト(年別被覆差0.970>0.3)"
+  ]
+ },
+ "kept": [
+  "開催",
+  "場所",
+  "Ｒ",
+  "枠番",
+  "馬番",
+  "芝・ダ",
+  "距離",
+  "コース区分",
+  "芝(内・外)",
+  "馬場状態",
+  "天気",
+  "クラス名",
+  "トラックコード(JV)",
+  "前走走破タイム",
+  "前走着差タイム",
+  "前1角",
+  "前2角",
+  "前3角",
+  "前4角",
+  "前走上り3F",
+  "前走上り3F順",
+  "前走確定着順",
+  "前走日付",
+  "前走場所",
+  "前芝・ダ",
+  "前距離",
+  "前走馬場状態",
+  "前走出走頭数",
+  "前走競走種別",
+  "前走トラックコード(JV)",
+  "前走斤量",
+  "前走馬体重",
+  "前走馬体重増減",
+  "前走Ave-3F",
+  "前PCI",
+  "前好走",
+  "前走PCI3",
+  "前走RPCI",
+  "前走平均1Fタイム",
+  "種牡馬",
+  "母馬",
+  "母父馬",
+  "母父タイプ名",
+  "毛色",
+  "騎手コード",
+  "調教師コード",
+  "生産者",
+  "年齢限定",
+  "限定",
+  "性別限定",
+  "重量種別",
+  "性別",
+  "年齢",
+  "斤量",
+  "馬齢斤量差",
+  "斤量体重比",
+  "ブリンカー",
+  "間隔",
+  "休み明け～戦目",
+  "出走頭数",
+  "フルゲート頭数",
+  "騎手年齢",
+  "調教師年齢",
+  "jockey_fuku30",
+  "jockey_fuku90",
+  "trainer_fuku30",
+  "trainer_fuku90",
+  "horse_fuku10",
+  "horse_fuku30",
+  "prev_pos_rel",
+  "closing_power",
+  "kako5_avg_pos",
+  "kako5_std_pos",
+  "kako5_best_pos",
+  "kako5_avg_agari3f",
+  "kako5_best_agari3f",
+  "kako5_same_td_ratio",
+  "kako5_same_dist_ratio",
+  "kako5_same_place_ratio",
+  "kako5_pos_trend",
+  "kako5_race_count",
+  "kako5_expected_good_count",
+  "kako5_hidden_good_count",
+  "kako5_same_cond_best_pos",
+  "hist_same_cond_best_pos",
+  "hist_same_cond_top3_rate",
+  "hist_same_cond_count",
+  "hist_same_place_best_pos",
+  "prev_hosei",
+  "prev_hosei9",
+  "trnH_Time1",
+  "trnH_Time2",
+  "trnH_Time3",
+  "trnH_Time4",
+  "trnH_Lap1",
+  "trnH_Lap2",
+  "trnH_Lap3",
+  "trnH_Lap4",
+  "trnH_days_ago",
+  "course_n_prev",
+  "course_win_rate",
+  "course_top3_rate",
+  "jockey_n_prev",
+  "jockey_win_rate",
+  "jockey_top3_rate"
+ ],
+ "rules": {
+  "R1_min_total_coverage": 0.05,
+  "R2_max_year_shift": 0.3
+ }
+}

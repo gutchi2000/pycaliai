@@ -1,0 +1,127 @@
+{
+ "experiment_id": "MCOND-EXP04-INVARIANT-INFO",
+ "hypothesis_id": "H-INVARIANT-INFO-2026",
+ "created_at": "2026-09-19",
+ "commit_hash": "この JSON を含むコミット (run.py が実行時に git から取得して記録)",
+ "base_document": "docs/research/NEXT_GEN_RESEARCH_PLAN_20260918.md",
+ "prior_art_audit": "PRIOR_ART_AUDIT.md (判定: 実装する。domain adaptation/IRM/group DRO/leave-one-env-out/年度別係数安定性は該当コードなし)",
+ "data_audit": "DATA_AUDIT.md, data_audit.py (R1-R4機械規則) + features.py (R5-R7型付け規則)",
+ "hypothesis": "年度・競馬場・馬場×距離帯が変わっても効果方向が安定している特徴を学習期間内だけで選別すると、通常の一括学習よりも未来期間の予測と市場に対する追加情報が安定するか。因果関係の証明は目的としない。",
+ "data_hashes_sha256_16": {
+  "data/master_v2_20130105-20251228.csv": "b8032d1bd78176a9",
+  "data/_research/mcond/base.parquet": "e2d229082d9b604b",
+  "data/_research/mcond/exp01_features.parquet": "9a9e0c45ee4c49f5",
+  "data/_research/mcond/exp02_features.parquet": "cb098fadfffc2982",
+  "data/_research/mcond/exp03_features.parquet": "f7605186c05bd2ef",
+  "data/_research/mcond/exp04_candidates.parquet": "d9ab250fa4506864",
+  "out/data_audit.json": "9e89458275d0740b"
+ },
+ "environments": {
+  "E1_year": "calendar_year (rid16[:4])",
+  "E2_racecourse": "rid16[8:10] を10場名へマップ",
+  "E3_surface_distband": "芝/ダ × 距離帯(≤1400/1401-1800/1801-2200/≥2201, exp02_dynamic_skill_dev.dyn_skill.dist_band を流用)",
+  "min_level_races": 1000,
+  "merge_rule": "TRAIN期間(2016-2021)のレース数がmin_level_races未満の水準は、その軸専用の 'other' 区分へ統合。統合の要否・対象はTRAIN実測のみで決め、confirm/exploratoryは見ない (environments.py)",
+  "excluded_axis": "クラスは主環境に使わない (クラス別は感度分析のみ)"
+ },
+ "candidate_features": {
+  "C1": "v6の120時点安全特徴から R1(恒常欠損<5%)/R2(年別被覆差>30pt)/R3(識別子)/R4(馬主上書き)/R5(高基数カテゴリ>15水準)/R6(数値変換不能)を除外し、残りを数値化 (低基数カテゴリはone-hot、クラス名のみ既存の序数エンコードclass_name_to_ordを使用=R7)。133列。詳細 out/feature_typing.json",
+  "C2": "EXP01 spec.json features.raw_choice の8列 (逸脱指標は含めない)",
+  "C3": "EXP02 T1の dyn_skill_mu・horse_skill_minus_field (不確実性・T2・相互作用は含めない) + EXP03の raw_career_runs・raw_days_since。4列",
+  "total": 145,
+  "missing_handling": "各foldのtrain平均・標準偏差で標準化し、欠損は標準化後0 (train平均) で埋める。欠損自体をモデルに教えるフラグは追加しない (シンプルな残差モデルに留める)"
+ },
+ "offset_model": {
+  "definition": "base_logit = logit(v6_p3) + logit(mkt_p3_pre) (係数はどちらも1固定、EXP01-03と同一)",
+  "market_snapshot": "pre (確定31-38分前、analysis/mcond/market.py)",
+  "final_odds_used_as_feature": false
+ },
+ "residual_model": {
+  "objective": "L2正則化ロジスティック回帰 (offsetの係数=1固定, β のみ学習)。methods.fit_offset_logit",
+  "C_grid": [0.01, 0.1, 1.0],
+  "C_selection": "selection年(2022)のlogloss最小",
+  "notes": "offsetを無視した全結果の再学習ではなく、offsetからの残差をβで説明する形に統一 (仕様§7)"
+ },
+ "I1_env_stability_selection": {
+  "method": "methods.env_stability_select",
+  "univariate_fit": "各候補特徴を単変量でoffset-logitフィット (Newton法, methods.fit_univariate)",
+  "axis_stability_rule": "各軸(E1/E2/E3)のレベルのうちTRAIN内でmin_level_races(=300, 単変量フィット用の下限。環境定義のmin_level_races=1000とは別に、単変量回帰が安定する最低サンプル数として別途設定)以上のものだけを見て、train全体の符号との一致率 >= 70% かつ 最大効果レベルの寄与シェア(|効果|の合計に占める最大値の割合) < 50%",
+  "bootstrap_rule": "開催日ブロックbootstrap 200回、train全体で単変量係数を再フィットし符号が一致する割合 >= 90%",
+  "multiplicity": "bootstrap符号一致率から作った擬似p値 (2*min(正の割合,負の割合)) にBenjamini-Hochberg FDR (q=0.10) を適用",
+  "selected_feature_model": "選ばれた特徴だけでL2正則化offset-logitを結合フィット (C選択は上記と同じ)"
+ },
+ "I2_env_robust_learning": {
+  "method": "Group-DRO (Sagawa et al. 2020) の交互最適化。methods.group_dro_fit",
+  "groups": "E1/E2/E3の全レベル(train内でmin_group=200以上)を1つの重み分布で管理",
+  "eta": 1.0,
+  "n_outer": 15,
+  "candidate_set": "C1+C2+C3全て (M2と同じ、特徴選別はしない)",
+  "l2": "M2のC選択と同じグリッドから、selection年のlogloss最小で選ぶ (通常フィットに合わせる)",
+  "single_method_note": "他のrobust手法(worst-group正則化等)は試していない。仕様§8により総当たりしない"
+ },
+ "pooled_topk_M5": {
+  "method": "methods.pooled_topk。環境安定性を使わず、train全体でのWald |t統計量| が大きい上位k特徴 (kはM3の選択数)",
+  "selection_uses": "train(2016-2021)のみ。confirm/exploratoryは使わない"
+ },
+ "models": {
+  "M0": "logit(mkt_p3_pre) のみ",
+  "M1": "offset (v6+市場) のみ、追加特徴なし",
+  "M2": "offset + 全候補(C1+C2+C3)の通常L2正則化回帰",
+  "M3": "offset + I1で選ばれた特徴のL2正則化回帰",
+  "M4": "offset + 全候補のGroup-DRO学習 (I2)",
+  "M5": "offset + 通常選択top-k (k=|M3の特徴数|) のL2正則化回帰"
+ },
+ "primary_target": "top3",
+ "primary_metric": "馬単位 logloss、開催日ブロックbootstrap 2000回",
+ "worst_env_metrics": ["最悪年度損失", "最悪競馬場損失", "最悪馬場距離帯損失", "環境間損失の標準偏差(3軸それぞれ)"],
+ "non_inferiority_margin": {"definition": "全体logloss(confirm2023)がM1比で+0.0005を超えて悪化しない (事前固定)",
+                            "use": "robust-only判定 (Gate2の頑健性のみの扱い) の条件の一つ"},
+ "splits": {"train": [2016, 2021], "selection": [2022, 2022], "confirm": [2023, 2023],
+            "exploratory_oos": [2024, 2025],
+            "note": "2024-25は再利用済み期間での探索的OOS (EXP01-03と同じ)"},
+ "leave_one_environment_out": {
+  "scope": "学習期間(2016-2021)内のみ。最終testの代わりではなく安定性診断",
+  "method": "計算量の都合で、I1選別(特徴集合そのものの再選定)はやり直さず、train全体で選ばれた特徴集合Sを固定したまま、除外対象環境を除いたtrainでβ(M1/M2/M3)の係数だけを再フィットし、除外した環境で評価する。この簡略化は事前に明記する (『同じ特徴が、見ていない環境でも効き続けるか』を見る診断であり、『特徴選別手順自体の環境間安定性』の再現ではない)",
+  "levels": "E1は6年度全て, E2は統合後の水準全て, E3は統合後の水準全て (spec通り包括的に実施)"
+ },
+ "gate0": ["C1候補が全て時点安全(結果・払戻・オッズ・上書き列を含まない)", "馬主等の上書き列を含まない",
+           "オッズ取得時点確定(pre)", "base.parquetとの結合率>=98%", "環境ラベルの欠損<1%",
+           "各主環境がmin_level_races以上(統合後)", "6-9月のTARGET欠損の影響なし(2016-2025 masterのみ使用のため該当せず)",
+           "期間途中の収集仕様変更を特徴が識別していない(R2規則で機械的除外済み)"],
+ "gate1": {
+  "not_1_2_env_only": "選択特徴の効果が1-2環境水準だけに由来していない (I1のmax_share<0.50条件で保証)",
+  "not_duplicate": "選択特徴間の|相関| > 0.95 のペアが選択特徴の30%を超えない",
+  "not_offset_proxy": "選択特徴と logit(v6_p3), logit(mkt_p3_pre) との|相関| < 0.95",
+  "not_missingness_proxy": "選択特徴と『その特徴自身の欠損フラグ』『年度ダミー』との|相関| < 0.7",
+  "bootstrap_reproducible": "I1のbootstrap選択(200回)のうち、最終選択集合の特徴が選ばれる頻度の中央値 >= 0.5",
+  "fold_selection_stable": "外側foldは1つ(train2016-2021固定)なので、この項目はleave-one-year-out(6分割)での選択数の変動係数<0.5で代替。計算量の都合でこの診断のみbootstrapを30回に簡略化(本選択は200回のまま)",
+  "effect_direction_stable": "I1のaxis_stability条件そのもの (spec.I1参照)"
+ },
+ "gate2A_additional_info": {"comparison": "M3 vs M1", "requires": "confirm(2023) Δlogloss<0 かつ 97.5%CI上限<0 (単独主比較なのでBonferroniなし、95%を使う場合はここに明記)、実際は多重比較(2A/2B/2C/2D)をまとめてBonferroni4分割 97.5%目安ではなく99%CIを使う",
+                            "ci_level": 0.99},
+ "gate2B_vs_pooled": {"comparison": "M3 vs M2", "ci_level": 0.99, "requires": "confirm(2023) Δ<0 かつ99%CI上限<0"},
+ "gate2C_vs_topk": {"comparison": "M3 vs M5", "ci_level": 0.99, "requires": "confirm(2023) Δ<0 かつ99%CI上限<0"},
+ "gate2D_reproducibility": {
+  "requires": ["2023・2024・2025で効果方向(M3 vs M2)が一致", "E2の全水準のうち3/4以上でΔ<0 (特定競馬場だけに依存しない)",
+               "E3の全水準のうち3/4以上でΔ<0", "市場順位帯{1,2-3,4-6,7+}のうち3/4以上でΔ<0",
+               "上位100レース(改善寄与順)を除いてもΔ<0"],
+  "note": "仕様原案にあった『改善に寄与する上位50頭を除いてもΔ<0』は、このデータフレームに馬個体ID(hid)が無く実装しなかった。レース単位の除外(上位100レース)で少数サンプル依存の大部分はカバーできると判断し、この1項目のみ簡略化した (評価実行前に決定・記載)"
+ },
+ "gate2_verdict_rules": {
+  "2A_fail": "M3の追加情報なし → 仮説終了",
+  "2A_pass_2B_or_2C_fail": "追加情報はあるが、不変選別固有の価値なし",
+  "2A_2B_2C_pass_2D_fail": "頑健でない (環境・部分集合依存) → 採用しない",
+  "all_pass": "PASS",
+  "robust_only": "M4がM2比で最悪環境損失を複数軸で改善し、かつ全体損失がnon_inferiority_marginを超えて悪化しない場合、M3の主判定とは独立に『robust-only』として記録 (利益モデル候補としては扱わない)"
+ },
+ "gate3_economic": {
+  "run_only_if": "Gate2A/2B/2C/2Dが全てPASSした場合のみ (robust-onlyはGate3へ進まない)",
+  "model_used": "M3",
+  "rules": {"R1": "複勝100円均等: p_M3/市場p3_pre >= 1.15 (EXP01-03と同一)", "R2": "複勝100円均等: 各レースでp_M3最大の1頭"},
+  "compare_against": ["M1", "M2", "v6◎複勝均等"],
+  "settlement": "確定複勝配当", "profit_claim_requires": "未使用期間(2026-10以降)での再現"
+ },
+ "stop_rules": ["Gate0/Gate1 FAIL → 中止", "Gate2A/2B/2CのいずれかFAIL → 環境区分・安定性閾値・正則化・候補特徴を変更して再探索しない。I1がFAILしても別の不変学習アルゴリズムを順に試さない",
+                "M4だけ良くてもI2は主結果に昇格しない (事前登録どおりの判定に従う)", "Gate2全PASSでもGate3で利益差なし → 本番接続しない",
+                "終了後の次候補は今回の失敗理由を見て別途決める。自動的にEXP05へ進まない"]
+}
