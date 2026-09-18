@@ -17,6 +17,8 @@ build_bp.py — 行動予測方式の逸脱 (surprisal = -log P(実際の行動 
 from __future__ import annotations
 from pathlib import Path
 
+import argparse
+
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
@@ -32,10 +34,21 @@ PARAMS = dict(num_leaves=31, learning_rate=0.05, n_estimators=300, min_child_sam
 EPS = 1e-4
 
 
+# 厳格版 (仕様 §7 を文字どおり読む): 過去のレース結果に由来する文脈を行動モデルから外す
+STRICT_DROP = ["ctx_prev_fin", "ctx_prev_margin", "ctx_prev_jq"]
+
+
 def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--strict", action="store_true",
+                    help="前走着順・前走着差・前走騎手の過去成績を行動モデルの入力から外す")
+    args = ap.parse_args()
+    out = OUT.with_name("exp01_features_bp_strict.parquet") if args.strict else OUT
     f = pd.read_parquet(IN)
     f["year"] = f["date"].dt.year
     ctx = [c for c in f.columns if c.startswith("ctx_")]
+    if args.strict:
+        ctx = [c for c in ctx if c not in STRICT_DROP]
     print(f"rows={len(f):,}  文脈特徴 {len(ctx)} 本")
     for a, k in ACTIONS.items():
         f[f"bp_{a[2:]}_s"] = np.nan
@@ -57,8 +70,8 @@ def main() -> None:
 
     bcols = [f"bp_{a[2:]}_s" for a in ACTIONS]
     f["bp_total"] = f[bcols].sum(axis=1, min_count=len(bcols))
-    f.to_parquet(OUT, index=False)
-    print(f"saved -> {OUT}")
+    f.to_parquet(out, index=False)
+    print(f"saved -> {out}  (文脈 {len(ctx)} 本{'、厳格版' if args.strict else ''})")
     print(f[f.year >= 2016].groupby("year")[bcols + ["bp_total"]].mean().round(3).to_string())
 
 
