@@ -1,0 +1,50 @@
+{
+ "tie_rates": {
+  "calibrated_v6_probability_win (レース内最大タイ)": {
+   "n_races": 34545,
+   "tie_rate": 0.04996381531335939,
+   "mean_tied_horses_when_tied": 2.086326767091541
+  },
+  "calibrated_v6_probability (top3, レース内最大タイ)": {
+   "n_races": 34545,
+   "tie_rate": 0.03850050658561297,
+   "mean_tied_horses_when_tied": 2.0466165413533837
+  },
+  "v6_score (生スコア, レース内最大タイ)": {
+   "n_races": 34545,
+   "tie_rate": 0.0,
+   "mean_tied_horses_when_tied": 0.0
+  },
+  "v6_pwin (生PL勝率, レース内最大タイ)": {
+   "n_races": 34545,
+   "tie_rate": 0.0,
+   "mean_tied_horses_when_tied": 0.0
+  }
+ },
+ "tie_rate_production_calibrator_2024_2025": {
+  "n_races": 6908,
+  "tie_rate": 0.08077591198610307,
+  "mean_tied_horses_when_tied": 2.1164874551971327
+ },
+ "note_B1_B2_B3": "B1=M1, B2=M2, B3=M3 (run.py の model_compare.csv を参照、ここでは重複fitしない)",
+ "top1_accuracy_by_tie": {
+  "tied": {
+   "n_races": 1330,
+   "top1_top3_rate": 0.5135338345864662
+  },
+  "not_tied": {
+   "n_races": 33215,
+   "top1_top3_rate": 0.6053289176576848
+  }
+ },
+ "brier_by_tie": {
+  "tied": {
+   "n": 18015,
+   "brier": 0.139757222365048
+  },
+  "not_tied": {
+   "n": 459623,
+   "brier": 0.1376169697155532
+  }
+ }
+}

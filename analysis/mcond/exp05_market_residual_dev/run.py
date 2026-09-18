@@ -210,7 +210,7 @@ def economic_r1r2(df, p_model, mask, day, tag, other_preds: dict):
         boots = np.array([d.sample(len(d), replace=True, random_state=int(rng.integers(1 << 30))).sum()
                           for _ in range(1000)])
         ci = (float(np.quantile((boots + stake) / stake, 0.025)), float(np.quantile((boots + stake) / stake, 0.975)))
-        return {"n_bet": n_bet, "n_races": int(pd.Series(day[m]).nunique()), "stake_yen": stake,
+        return {"n_bet": n_bet, "n_race_days": int(pd.Series(day[m]).nunique()), "stake_yen": stake,
                "payout_yen": payout, "roi_pct": 100 * roi, "roi_ci95_pct": [100 * ci[0], 100 * ci[1]]}
 
     r1 = settle(edge >= 1.15)
@@ -222,6 +222,8 @@ def economic_r1r2(df, p_model, mask, day, tag, other_preds: dict):
     for other_name, other_p in other_preds.items():
         other_edge = other_p / df["mkt_p3_pre"].to_numpy()
         out[f"R1_edge_flat100_{other_name}"] = settle(other_edge >= 1.15)
+        other_top_idx = df.assign(_p=other_p).loc[mask].groupby("rid16")["_p"].idxmax()
+        out[f"R2_race_top1_flat100_{other_name}"] = settle(df.index.isin(other_top_idx))
     return out
 
 
