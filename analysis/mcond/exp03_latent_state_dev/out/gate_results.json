@@ -1,0 +1,569 @@
+{
+ "experiment_id": "MCOND-EXP03-LATENT-STATE",
+ "commit": "3716d370d2787cb48c4f814dfb116915f87e0df2",
+ "spec_uncommitted_changes": false,
+ "inputs": {
+  "base.parquet": "e2d229082d9b604b",
+  "exp03_features.parquet": "f7605186c05bd2ef",
+  "exp02_features.parquet": "cb098fadfffc2982"
+ },
+ "selected_hyper": {
+  "halflife_days": 180.0,
+  "tau2_a": 0.0025,
+  "qs": 2.0,
+  "beta": 1.0417
+ },
+ "innovation_choice": {
+  "persistence_spearman": {
+   "z": 0.34315394679593964,
+   "zq": 0.34822392541598324
+  },
+  "choice": "B",
+  "n_pairs": 181722
+ },
+ "n_rows": 477638,
+ "n_races": 34545,
+ "gate0": {
+  "pass": true,
+  "join_rate": 1.0,
+  "exp02_coverage": 1.0,
+  "raw_days_coverage": 0.902499382377449
+ },
+ "gate1": {
+  "pass": true,
+  "checks": [
+   {
+    "check": "G1a 休養で状態が0へ",
+    "value": {
+     "abs_s_gt180": 0.07532131902752412,
+     "abs_s_le30": 0.19080763137768236
+    },
+    "pass": true
+   },
+   {
+    "check": "G1b 能力より速く動く (連続2走の自己相関)",
+    "value": {
+     "s": 0.8628638630714863,
+     "a": 0.9756023655538052
+    },
+    "pass": true
+   },
+   {
+    "check": "G1c 2成分がほぼ完全相関でない",
+    "value": {
+     "corr_a_s": 0.6201884393814073
+    },
+    "pass": true
+   },
+   {
+    "check": "G1d 前走着順だけで決まらない",
+    "value": {
+     "r2": 0.4194628688211508
+    },
+    "pass": true
+   },
+   {
+    "check": "G1e 休養日数だけで決まらない",
+    "value": {
+     "r2": 0.004599799848725494
+    },
+    "pass": true
+   },
+   {
+    "check": "G1f 発散しない",
+    "value": {
+     "finite": true,
+     "max_abs_s": 1.7073725494097822,
+     "limit": 10.0
+    },
+    "pass": true
+   },
+   {
+    "check": "G1g 年で尺度が変わらない",
+    "value": {
+     "cv": 0.035575531943589964,
+     "sd_by_year": {
+      "2016": 0.2036,
+      "2017": 0.2031,
+      "2018": 0.2026,
+      "2019": 0.1969,
+      "2020": 0.1907,
+      "2021": 0.1894,
+      "2022": 0.1939,
+      "2023": 0.1929,
+      "2024": 0.1862,
+      "2025": 0.185
+     }
+    },
+    "pass": true
+   },
+   {
+    "check": "G1h 決定論的",
+    "value": "test_time_safety.test_deterministic PASS (README の実行ログ)",
+    "pass": true
+   }
+  ]
+ },
+ "C_selected": {
+  "M0": 0.1,
+  "M1": 0.1,
+  "M2": 0.1,
+  "M3": 0.1,
+  "M4": 0.1,
+  "M5": 0.1,
+  "M6": 0.1
+ },
+ "coef": {
+  "M0": {
+   "f_mkt": 1.3022
+  },
+  "M1": {
+   "f_v6": 0.3379,
+   "f_mkt": 1.0245
+  },
+  "M2": {
+   "f_v6": 0.3177,
+   "f_mkt": 1.0383,
+   "raw_career_runs": -0.0016,
+   "raw_runs_180d": 0.0725,
+   "raw_days_since": -0.0261,
+   "raw_layoff_flag": 0.0078,
+   "raw_short_flag": -0.007,
+   "raw_prev_fin": 0.0741,
+   "raw_prev_fin_q": -0.0753,
+   "raw_prev_margin": 0.0113,
+   "raw_last3_finq_mean": -0.0068
+  },
+  "M3": {
+   "f_v6": 0.2878,
+   "f_mkt": 1.0416,
+   "raw_career_runs": -0.0516,
+   "raw_runs_180d": 0.0707,
+   "raw_days_since": 0.0308,
+   "raw_layoff_flag": 0.0077,
+   "raw_short_flag": -0.0054,
+   "raw_prev_fin": 0.0779,
+   "raw_prev_fin_q": -0.047,
+   "raw_prev_margin": 0.0194,
+   "raw_last3_finq_mean": 0.0307,
+   "dyn_skill_mu": 0.0247,
+   "dyn_skill_sigma": -0.0815,
+   "dyn_skill_conservative": 0.0437,
+   "dyn_skill_rank_in_race": -0.016,
+   "dyn_skill_gap_to_top": -0.0082,
+   "dyn_skill_gap_to_field_mean": 0.0353,
+   "dyn_skill_last_change": 0.0665,
+   "dyn_skill_days_since_update": -0.0538,
+   "dyn_skill_num_updates": -0.0516,
+   "field_skill_mean": -0.0004,
+   "field_skill_std": -0.0419,
+   "field_skill_max": 0.0146,
+   "field_skill_top3_mean": -0.0174,
+   "field_uncertainty_mean": 0.0167,
+   "horse_skill_minus_field": 0.0364,
+   "horse_skill_percentile": -0.0219,
+   "race_difficulty": 0.0052
+  },
+  "M4": {
+   "f_v6": 0.2689,
+   "f_mkt": 1.0436,
+   "raw_career_runs": -0.0413,
+   "raw_runs_180d": 0.0767,
+   "raw_days_since": 0.0229,
+   "raw_layoff_flag": 0.0085,
+   "raw_short_flag": -0.0027,
+   "raw_prev_fin": 0.075,
+   "raw_prev_fin_q": 0.0057,
+   "raw_prev_margin": 0.0317,
+   "raw_last3_finq_mean": 0.0785,
+   "dyn_skill_mu": 0.0179,
+   "dyn_skill_sigma": -0.0814,
+   "dyn_skill_conservative": 0.0378,
+   "dyn_skill_rank_in_race": 0.0044,
+   "dyn_skill_gap_to_top": -0.0059,
+   "dyn_skill_gap_to_field_mean": 0.0214,
+   "dyn_skill_last_change": -0.0052,
+   "dyn_skill_days_since_update": -0.0285,
+   "dyn_skill_num_updates": -0.0413,
+   "field_skill_mean": 0.0039,
+   "field_skill_std": -0.0328,
+   "field_skill_max": 0.0106,
+   "field_skill_top3_mean": -0.0182,
+   "field_uncertainty_mean": 0.0234,
+   "horse_skill_minus_field": 0.0235,
+   "horse_skill_percentile": -0.0275,
+   "race_difficulty": -0.0147,
+   "persistent_ability_mu": 0.0262,
+   "persistent_ability_change": 0.0015,
+   "latent_short_state_mu": 0.0374,
+   "latent_short_state_sigma": 0.0019,
+   "latent_short_state_abs": -0.0798,
+   "latent_state_days_since_update": -0.0285,
+   "latent_state_decay_ratio": -0.0166,
+   "last_performance_innovation": 0.1071,
+   "innovation_ewma": 0.027,
+   "combined_ability_state": 0.0268,
+   "combined_rank_in_race": -0.0073,
+   "state_rank_in_race": -0.0258,
+   "state_minus_field_mean": 0.0703
+  },
+  "M5": {
+   "f_v6": 0.2803,
+   "f_mkt": 1.0414,
+   "raw_career_runs": -0.0473,
+   "raw_runs_180d": 0.0778,
+   "raw_days_since": 0.0297,
+   "raw_layoff_flag": 0.0084,
+   "raw_short_flag": -0.0034,
+   "raw_prev_fin": 0.0478,
+   "raw_prev_fin_q": -0.0474,
+   "raw_prev_margin": 0.0279,
+   "raw_last3_finq_mean": 0.0437,
+   "dyn_skill_mu": 0.0296,
+   "dyn_skill_sigma": -0.0568,
+   "dyn_skill_conservative": 0.0413,
+   "dyn_skill_rank_in_race": -0.0076,
+   "dyn_skill_gap_to_top": -0.0142,
+   "dyn_skill_gap_to_field_mean": 0.0312,
+   "dyn_skill_last_change": 0.0647,
+   "dyn_skill_days_since_update": -0.0516,
+   "dyn_skill_num_updates": -0.0473,
+   "field_skill_mean": 0.0107,
+   "field_skill_std": -0.0332,
+   "field_skill_max": 0.014,
+   "field_skill_top3_mean": -0.0077,
+   "field_uncertainty_mean": 0.0284,
+   "horse_skill_minus_field": 0.0316,
+   "horse_skill_percentile": -0.0147,
+   "race_difficulty": -0.0108,
+   "ewm_pos": 0.0633,
+   "ewm_pos_vs_prev": 0.0061,
+   "ewm_agari": -0.0322,
+   "ewm_agari_vs_prev": 0.0022,
+   "ewm_rpci": 0.0413,
+   "ewm_rpci_vs_prev": 0.013,
+   "ewm_chakusa": 0.0124,
+   "ewm_chakusa_vs_prev": -0.0142,
+   "ewm_hosei": 0.1042,
+   "ewm_hosei_vs_prev": -0.0139,
+   "ewm_pci": -0.0484,
+   "ewm_pci_vs_prev": -0.0086,
+   "ewm_avg1f": 0.0157,
+   "ewm_avg1f_vs_prev": 0.011
+  },
+  "M6": {
+   "f_v6": 0.2624,
+   "f_mkt": 1.0412,
+   "raw_career_runs": -0.0423,
+   "raw_runs_180d": 0.087,
+   "raw_days_since": 0.02,
+   "raw_layoff_flag": 0.0111,
+   "raw_short_flag": -0.0002,
+   "raw_prev_fin": 0.049,
+   "raw_prev_fin_q": -0.0008,
+   "raw_prev_margin": 0.0369,
+   "raw_last3_finq_mean": 0.0994,
+   "dyn_skill_mu": 0.0218,
+   "dyn_skill_sigma": -0.0748,
+   "dyn_skill_conservative": 0.0393,
+   "dyn_skill_rank_in_race": 0.0109,
+   "dyn_skill_gap_to_top": -0.0096,
+   "dyn_skill_gap_to_field_mean": 0.0167,
+   "dyn_skill_last_change": -0.0086,
+   "dyn_skill_days_since_update": -0.0278,
+   "dyn_skill_num_updates": -0.0423,
+   "field_skill_mean": 0.014,
+   "field_skill_std": -0.0247,
+   "field_skill_max": 0.0109,
+   "field_skill_top3_mean": -0.0101,
+   "field_uncertainty_mean": 0.0419,
+   "horse_skill_minus_field": 0.0177,
+   "horse_skill_percentile": -0.0196,
+   "race_difficulty": -0.0291,
+   "ewm_pos": 0.0539,
+   "ewm_pos_vs_prev": 0.0195,
+   "ewm_agari": -0.0305,
+   "ewm_agari_vs_prev": -0.0038,
+   "ewm_rpci": 0.0457,
+   "ewm_rpci_vs_prev": 0.011,
+   "ewm_chakusa": 0.0141,
+   "ewm_chakusa_vs_prev": -0.0194,
+   "ewm_hosei": 0.1037,
+   "ewm_hosei_vs_prev": -0.014,
+   "ewm_pci": -0.0496,
+   "ewm_pci_vs_prev": -0.0084,
+   "ewm_avg1f": 0.0178,
+   "ewm_avg1f_vs_prev": 0.0137,
+   "persistent_ability_mu": 0.0309,
+   "persistent_ability_change": -0.0003,
+   "latent_short_state_mu": 0.0203,
+   "latent_short_state_sigma": 0.0162,
+   "latent_short_state_abs": -0.0734,
+   "latent_state_days_since_update": -0.0278,
+   "latent_state_decay_ratio": -0.0144,
+   "last_performance_innovation": 0.1165,
+   "innovation_ewma": 0.0183,
+   "combined_ability_state": 0.0309,
+   "combined_rank_in_race": -0.0036,
+   "state_rank_in_race": -0.0262,
+   "state_minus_field_mean": 0.0795
+  }
+ },
+ "gate2": [
+  {
+   "compare": "M4 vs M3",
+   "confirm_2023": {
+    "delta": -0.00016671398669667055,
+    "ci_lo": -0.0003727689737556546,
+    "ci_hi": 4.627653803313449e-05,
+    "p_improve": 0.9635,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -4.231896512884211e-05,
+    "ci_lo": -0.00024828412234368893,
+    "ci_hi": 0.00017237764379640774,
+    "p_improve": 0.663,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -0.00014738471053109885,
+    "ci_lo": -0.00039612815475699296,
+    "ci_hi": 9.583364006175566e-05,
+    "p_improve": 0.9165,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.0009929950219218432,
+    "2-3": 0.00021143032840209819,
+    "4-6": -2.5160498788199674e-05,
+    "7+": -0.0001281248070050191
+   },
+   "exclude_short": -0.00012119205080920529,
+   "exclude_layoff": -0.00011998449813753225,
+   "exclude_top1pct_state": -0.00011723134882950429,
+   "conditions": {
+    "confirm_ci": false,
+    "year_signs": true,
+    "popband": true,
+    "not_short_only": true,
+    "not_layoff_only": true,
+    "not_extreme_state": true
+   },
+   "pass": false
+  },
+  {
+   "compare": "M6 vs M5",
+   "confirm_2023": {
+    "delta": -0.00020067725508131527,
+    "ci_lo": -0.00040230939762076064,
+    "ci_hi": -2.264066697407316e-06,
+    "p_improve": 0.988,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -5.468160039872091e-05,
+    "ci_lo": -0.00025991937659706224,
+    "ci_hi": 0.00015954244238164717,
+    "p_improve": 0.715,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -0.0001629860171817316,
+    "ci_lo": -0.0004057613824902721,
+    "ci_hi": 8.258086234447878e-05,
+    "p_improve": 0.935,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.0011063608046876622,
+    "2-3": 0.00014081949798143035,
+    "4-6": -9.321225843558867e-05,
+    "7+": -0.00010510240253359512
+   },
+   "exclude_short": -0.00014458296510774782,
+   "exclude_layoff": -0.00014127227965570136,
+   "exclude_top1pct_state": -0.00013563825278923062,
+   "conditions": {
+    "confirm_ci": true,
+    "year_signs": true,
+    "popband": true,
+    "not_short_only": true,
+    "not_layoff_only": true,
+    "not_extreme_state": true
+   },
+   "pass": true
+  },
+  {
+   "compare": "M5 vs M3",
+   "confirm_2023": {
+    "delta": -5.2432206596201276e-05,
+    "ci_lo": -0.00019546357440144643,
+    "ci_hi": 9.052024548314192e-05,
+    "p_improve": 0.785,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -8.893365662304181e-05,
+    "ci_lo": -0.00023734452147908255,
+    "ci_hi": 5.3045823828599615e-05,
+    "p_improve": 0.91,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -0.0001062969934832924,
+    "ci_lo": -0.0002748369292569202,
+    "ci_hi": 5.9315491322874594e-05,
+    "p_improve": 0.929,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.0003297673688553365,
+    "2-3": -2.8579371663491628e-05,
+    "4-6": 2.898242428023248e-07,
+    "7+": -9.68072438276791e-05
+   },
+   "exclude_short": -9.400901978302086e-05,
+   "exclude_layoff": -8.355579615667937e-05,
+   "exclude_top1pct_state": -8.41166866081998e-05,
+   "conditions": {
+    "confirm_ci": false,
+    "year_signs": true,
+    "popband": true,
+    "not_short_only": true,
+    "not_layoff_only": true,
+    "not_extreme_state": true
+   },
+   "pass": false
+  },
+  {
+   "compare": "M3 vs M2",
+   "confirm_2023": {
+    "delta": -0.0003465103629337066,
+    "ci_lo": -0.0007003650454431938,
+    "ci_hi": -3.0197577945577286e-07,
+    "p_improve": 0.9875,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -0.0002849544767496402,
+    "ci_lo": -0.0006118297550105311,
+    "ci_hi": 3.960182093841646e-05,
+    "p_improve": 0.9735,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -0.00030170861168335103,
+    "ci_lo": -0.0006135561870898369,
+    "ci_hi": 2.1712895969987392e-05,
+    "p_improve": 0.981,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.0008752146989324909,
+    "2-3": 8.220758784516253e-05,
+    "4-6": -0.0005429982255365682,
+    "7+": -0.00024949474676821834
+   },
+   "exclude_short": -0.0003545709492704456,
+   "exclude_layoff": -0.00030814562564015737,
+   "exclude_top1pct_state": -0.0002960402584825697,
+   "conditions": {
+    "confirm_ci": true,
+    "year_signs": true,
+    "popband": true,
+    "not_short_only": true,
+    "not_layoff_only": true,
+    "not_extreme_state": true
+   },
+   "pass": true
+  },
+  {
+   "compare": "M2 vs M1",
+   "confirm_2023": {
+    "delta": -0.00047509555248387666,
+    "ci_lo": -0.0007145610153040753,
+    "ci_hi": -0.00019989962861589926,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -0.00017865792704392278,
+    "ci_lo": -0.0004011141938211867,
+    "ci_hi": 5.811433071207876e-05,
+    "p_improve": 0.962,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -0.00040498222229595163,
+    "ci_lo": -0.0006575152276428368,
+    "ci_hi": -0.0001679204287191744,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.0009900653711976595,
+    "2-3": -0.0006049724656251528,
+    "4-6": 3.522308061779279e-05,
+    "7+": -0.00035704586263852063
+   },
+   "exclude_short": -0.0003650018392583325,
+   "exclude_layoff": -0.00021252027166161844,
+   "exclude_top1pct_state": -0.00035760752751807183,
+   "conditions": {
+    "confirm_ci": true,
+    "year_signs": true,
+    "popband": true,
+    "not_short_only": true,
+    "not_layoff_only": true,
+    "not_extreme_state": true
+   },
+   "pass": true
+  },
+  {
+   "compare": "M1 vs M0",
+   "confirm_2023": {
+    "delta": -0.0016508660633170378,
+    "ci_lo": -0.002296308640826848,
+    "ci_hi": -0.0009900795340421203,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -0.002795935772036055,
+    "ci_lo": -0.0034845845314870195,
+    "ci_hi": -0.0020803452281283573,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -0.0029749522121888415,
+    "ci_lo": -0.0036472692453500084,
+    "ci_hi": -0.0022389547369371615,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.0034293421640883568,
+    "2-3": -0.004334049991661672,
+    "4-6": -0.002398107171666238,
+    "7+": -0.0018923347223197481
+   },
+   "exclude_short": -0.00233373030491619,
+   "exclude_layoff": -0.0024721447162564967,
+   "exclude_top1pct_state": -0.0024615186305226655,
+   "conditions": {
+    "confirm_ci": true,
+    "year_signs": true,
+    "popband": true,
+    "not_short_only": true,
+    "not_layoff_only": true,
+    "not_extreme_state": true
+   },
+   "pass": true
+  }
+ ],
+ "gate2_verdict": "Gate 2 FAIL: EXP02 能力と生の近走情報の後に、短期状態の追加情報なし → 仮説終了",
+ "gate3": "未実施 (M4 vs M3 が FAIL のため)",
+ "verdict": "Gate 2 FAIL: EXP02 能力と生の近走情報の後に、短期状態の追加情報なし → 仮説終了"
+}

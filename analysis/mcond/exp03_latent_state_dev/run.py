@@ -61,14 +61,18 @@ def load():
 
 
 def gate1(allf: pd.DataFrame, hp) -> tuple[bool, list]:
-    f = allf[(allf.date.dt.year >= 2016)].copy()
+    # ★行の並び順を hid,date に統一してから groupby().shift() を使う。
+    #   shift の結果は「入力フレームの行順」で返るため、s/a を元の (未ソート) 順序のまま
+    #   ラグ系列と別々にブール選択すると、両者の並び順が食い違い np.corrcoef が無関係な
+    #   行同士をペアにしてしまう (発見: 手動再計算で ac_a が -0.006 → 0.976 に訂正)。
+    f = allf[(allf.date.dt.year >= 2016)].sort_values(["hid", "date"]).reset_index(drop=True)
     s, a = f["latent_short_state_mu"], f["persistent_ability_mu"]
     chk = []
     n3 = f["_n_updates"] >= 3
     ds = f["latent_state_days_since_update"]
     a1, a2 = f.loc[n3 & (ds > 180), "latent_short_state_abs"].median(), f.loc[n3 & (ds <= 30), "latent_short_state_abs"].median()
     chk.append(("G1a 休養で状態が0へ", {"abs_s_gt180": a1, "abs_s_le30": a2}, bool(a1 < a2)))
-    g = f.sort_values(["hid", "date"]).groupby("hid")
+    g = f.groupby("hid")
     lag_s, lag_a = g["latent_short_state_mu"].shift(1), g["persistent_ability_mu"].shift(1)
     ok = lag_s.notna()
     ac_s = float(np.corrcoef(s[ok], lag_s[ok])[0, 1])
