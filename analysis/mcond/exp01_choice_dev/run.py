@@ -301,7 +301,63 @@ def economic(df, P, use):
                          "roi": float(fpay[mm].sum() / (100 * n) * 100) if n else np.nan})
     e = pd.DataFrame(rows)
     e.to_csv(OUT / "economic.csv", index=False, encoding="utf-8-sig")
-    return e.to_dict("records")
+
+    # ---- 仕様 §13.3 の詳細 (2023-25 合算・ルール別。ルール・閾値は上と同じで変えない) ----
+    det = []
+    pooled = (yr >= 2023) & (yr <= 2025)
+    day = df["rid16"].str[:8].to_numpy()
+    band = pd.cut(df["rank_mkt_pre"], [0, 1, 3, 6, 99], labels=["1", "2-3", "4-6", "7+"]).astype(str).to_numpy()
+    sel = {}
+    for name in ["M1", use]:
+        p = P[name]
+        ratio = p / df["mkt_p3_pre"].to_numpy()
+        d = pd.DataFrame({"rid": df.rid16, "p": p})
+        r2 = np.zeros(len(df), bool)
+        r2[d.groupby("rid").p.idxmax().to_numpy()] = True
+        sel[(name, "R1")] = ratio >= 1.15
+        sel[(name, "R2")] = r2
+    for rule in ["R1", "R2"]:
+        for name in ["M1", use]:
+            m = sel[(name, rule)] & pooled
+            stake = np.where(m, 100.0, 0.0)
+            ret = np.where(m, fpay, 0.0)
+            g = pd.DataFrame({"s": stake, "r": ret, "day": day})[pooled]
+            byday = g.groupby("day")[["s", "r"]].sum().sort_index()
+            cum = (byday["r"] - byday["s"]).cumsum()
+            mdd = float((cum - cum.cummax()).min())
+            prof = pd.DataFrame({"rid": df.rid16[m], "pl": ret[m] - 100.0}).groupby("rid")["pl"].sum()
+            top10 = float(prof.sort_values(ascending=False).head(10).clip(lower=0).sum())
+            total_ret = float(ret[m].sum())
+            rng = np.random.default_rng(0)
+            s_, r_ = byday["s"].to_numpy(), byday["r"].to_numpy()
+            bs = [r_[i].sum() / s_[i].sum() * 100 for i in (rng.integers(0, len(s_), len(s_)) for _ in range(2000))]
+            row = {"rule": rule, "model": name, "period": "2023-25", "bets": int(m.sum()),
+                   "stake": float(stake[m].sum()), "return": total_ret,
+                   "roi": float(total_ret / stake[m].sum() * 100), "roi_ci95": [float(np.quantile(bs, .025)), float(np.quantile(bs, .975))],
+                   "max_drawdown_yen": mdd, "top10_race_return_share": top10 / total_ret if total_ret else np.nan}
+            for bnd in ["1", "2-3", "4-6", "7+"]:
+                mb = m & (band == bnd)
+                row[f"roi_band_{bnd}"] = float(fpay[mb].sum() / (100 * mb.sum()) * 100) if mb.sum() else np.nan
+            det.append(row)
+        # M1 との差 (同じ開催日ブロックの paired bootstrap)
+        a, b = sel[(use, rule)] & pooled, sel[("M1", rule)] & pooled
+        g = pd.DataFrame({"day": day, "sa": np.where(a, 100.0, 0), "ra": np.where(a, fpay, 0),
+                          "sb": np.where(b, 100.0, 0), "rb": np.where(b, fpay, 0)})[pooled].groupby("day").sum()
+        rng = np.random.default_rng(1)
+        diffs = []
+        for _ in range(2000):
+            i = rng.integers(0, len(g), len(g))
+            x = g.iloc[i].sum()
+            diffs.append(x.ra / x.sa * 100 - x.rb / x.sb * 100)
+        x = g.sum()
+        det.append({"rule": rule, "model": f"{use}-M1", "period": "2023-25",
+                    "roi_diff_pt": float(x.ra / x.sa * 100 - x.rb / x.sb * 100),
+                    "roi_diff_ci95": [float(np.quantile(diffs, .025)), float(np.quantile(diffs, .975))]})
+    pd.DataFrame(det).to_csv(OUT / "economic_detail.csv", index=False, encoding="utf-8-sig")
+    print("\n[Gate 3 詳細 2023-25 合算]")
+    for r in det:
+        print("  ", {k: (round(v, 3) if isinstance(v, float) else v) for k, v in r.items()})
+    return {"by_year": e.to_dict("records"), "detail": det}
 
 
 if __name__ == "__main__":
