@@ -69,6 +69,70 @@ function Fail($msg) {
 }
 
 # =================================================================
+# calibrator_shadow_eval.py の週次フック (P0-3 確認試験用シャドー処理)
+#   本番のbundle/kekka生成が終わった直後に score/settle を呼ぶだけ。
+#   本番の出力・終了コードには一切影響させない (fail-open)。
+#   タイムアウト/失敗は reports\calibrator_shadow_pipeline.log にのみ記録する。
+#   呼び出し側は「本番の前段処理が成功した場合にのみ」このヘルパーを呼ぶこと
+#   (Fail() は exit 1 で即終了するため、前段が失敗すればこの関数自体に到達しない
+#    = 古いbundle/kekkaでシャドー処理が走ることはない)。
+# =================================================================
+function Invoke-ShadowStep {
+    param(
+        [string]$Label,
+        [string[]]$PyArgs,
+        [int]$TimeoutSec = 300,
+        [string]$LogPath = "reports\calibrator_shadow_pipeline.log"  # テスト時に差し替え可能
+    )
+    $shadowLog = $LogPath
+    $prevExit = $LASTEXITCODE
+    $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Step "[shadow] calibrator_shadow_eval $($PyArgs -join ' ') (本番結果には影響しません)"
+    try {
+        if (-not (Test-Path '.\venv311\Scripts\python.exe')) {
+            Add-Content -Path $shadowLog -Value "$ts [$Label] SKIPPED: venv311 python not found"
+            Warn "shadow[$Label]: venv311 が見つからないためスキップ (本番には影響なし)"
+        } else {
+            $cwd = (Get-Location).Path
+            $job = Start-Job -ScriptBlock {
+                param($cwd, $argList)
+                Set-Location $cwd
+                $env:PYTHONIOENCODING = "utf-8"
+                & '.\venv311\Scripts\python.exe' -m analysis.calibrator_shadow_eval @argList 2>&1 |
+                    ForEach-Object { $_.ToString() }
+                "___SHADOW_EXITCODE___$LASTEXITCODE"
+            } -ArgumentList $cwd, $PyArgs
+
+            $done = Wait-Job $job -Timeout $TimeoutSec
+            if (-not $done) {
+                Stop-Job $job -ErrorAction SilentlyContinue
+                Remove-Job $job -Force -ErrorAction SilentlyContinue
+                Add-Content -Path $shadowLog -Value "$ts [$Label] TIMEOUT after ${TimeoutSec}s (args: $($PyArgs -join ' '))"
+                Warn "shadow[$Label]: ${TimeoutSec}秒でタイムアウト (本番には影響なし、詳細は $shadowLog)"
+            } else {
+                $output = @(Receive-Job $job)
+                Remove-Job $job -Force -ErrorAction SilentlyContinue
+                $exitLine = $output | Where-Object { $_ -match '^___SHADOW_EXITCODE___' } | Select-Object -Last 1
+                $exitCode = if ($exitLine) { ($exitLine -replace '___SHADOW_EXITCODE___', '').Trim() } else { "unknown" }
+                if ($exitCode -ne "0") {
+                    $tail = ($output | Where-Object { $_ -notmatch '^___SHADOW_EXITCODE___' } | Select-Object -Last 30) -join "`n"
+                    Add-Content -Path $shadowLog -Value "$ts [$Label] FAILED exit=$exitCode (args: $($PyArgs -join ' '))`n$tail`n---"
+                    Warn "shadow[$Label]: exit $exitCode (本番には影響なし、詳細は $shadowLog)"
+                } else {
+                    Add-Content -Path $shadowLog -Value "$ts [$Label] OK (args: $($PyArgs -join ' '))"
+                    OK "shadow[$Label] 完了"
+                }
+            }
+        }
+    } catch {
+        Add-Content -Path $shadowLog -Value "$ts [$Label] EXCEPTION: $($_.Exception.Message)"
+        Warn "shadow[$Label]: 例外発生 (本番には影響なし、詳細は $shadowLog): $($_.Exception.Message)"
+    }
+    # 本番側の後続 $LASTEXITCODE チェックに影響させない
+    $global:LASTEXITCODE = $prevExit
+}
+
+# =================================================================
 # Step 0: intake auto-sort  (data\_inbox\ -> weekly / kako5 / kekka / training / bias)
 #   place_weekly.py を週次フローに前置。data\_inbox\ に放り込んだ TARGET エクスポートを
 #   ファイル名(S/K/H-/W-/OD) と中身(15列=結果 / 174列=払戻→実現バイアス自動生成) で
@@ -245,6 +309,13 @@ if ($Post) {
         }
     } catch { Fail "cowork_results.json の generated_at 確認に失敗。HF 同期を中止します: $($_.Exception.Message)" }
 
+    # -- Shadow: 結果ファイルの更新が確認できた直後にだけ settle する。
+    #    Fail() は即 exit するため、weekly_post.ps1 失敗時や generated_at 不整合時は
+    #    ここに到達しない (=結果未確定のまま決済することはない)。
+    #    settle は全週分を毎回re-チェックする設計なので --weeks 指定は不要
+    #    (結果未着分は自然に未決済のまま残り、次回実行時に再試行される)。
+    Invoke-ShadowStep -Label "settle" -PyArgs @("settle") -TimeoutSec 120
+
     # --- wide residual shadow (v3 前向き, 実弾0円) の決済品質チェック -----------
     # シャドーは本番ラインではないので Fail させない。ただし「ワイド払戻CSVの
     # 置き忘れで数週ぶん静かに欠落」を防ぐため、毎週ここで可視化する。
@@ -324,8 +395,13 @@ if ($WithPredict -and -not $SkipPredict) {
 }
 
 # -- Step 3: bundle.json (NiceGUI required) --
+# CB_HOSEI_PROXY=1: TARGET の補正タイム再エクスポートは恒久的に不可能と確定 (2026-09-18)。
+# prev_hosei/prev_hosei9 (v6 gain 第2位) を前走着差タイム等からの推定で埋める
+# (analysis/prev_hosei_proxy.py、本物の値がある馬には触らない)。
 Step "[3/5] export_weekly_marks.py (model=$Model) -> bundle.json"
+$env:CB_HOSEI_PROXY = "1"
 python export_weekly_marks.py --csv $csvPath --model $Model
+Remove-Item Env:\CB_HOSEI_PROXY -ErrorAction SilentlyContinue
 if ($LASTEXITCODE -ne 0) {
     Fail "export_weekly_marks.py failed. NiceGUI needs the bundle."
 }
@@ -336,6 +412,12 @@ if (Test-Path $bundlePath) {
 } else {
     Fail "bundle.json not created at $bundlePath"
 }
+
+# -- Shadow: この日付の bundle が今まさに書き終わった直後にだけ score する。
+#    Fail() は即 exit するため、上のどちらかで失敗していればここには到達しない
+#    (=前段が失敗した日付で古いbundleを代用してscoreすることはない)。
+#    --weeks を明示し、全履歴自動列挙はしない (P0-3 確認試験, 本番出力には無関係)。
+Invoke-ShadowStep -Label "score" -PyArgs @("score", "--weeks", $Date) -TimeoutSec 300
 
 # -- Step 3b: course_stats.json (NiceGUI コース分析タブ用、master_v2 から
 #             集計、HF にも同期される ~600KB の事前計算ファイル) --

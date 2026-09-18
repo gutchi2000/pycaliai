@@ -404,7 +404,7 @@ def main() -> int:
                 basis = Xp["前走着差タイム"].notna().to_numpy() if "前走着差タイム" in Xp else na
                 fill = na & basis
                 if fill.any():
-                    cur = cur.to_numpy(dtype=float)
+                    cur = cur.to_numpy(dtype=float, copy=True)
                     cur[fill] = reg.predict(Xp[fill])
                     df[t] = cur
                 logger.info(f"[hosei proxy] {t}: 本物 {100*(~na).mean():.0f}% + 推定 "
