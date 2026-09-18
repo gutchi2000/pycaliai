@@ -1,0 +1,204 @@
+{
+ "experiment_id": "MCOND-EXP01-CHOICE-DEV",
+ "hypothesis_id": "H-CHOICE-DEV-2026",
+ "created_at": "2026-09-18",
+ "commit_hash": "この JSON を含むコミットのハッシュ (run.py が実行時に git から取得して結果に記録する)",
+ "base_document": "docs/research/NEXT_GEN_RESEARCH_PLAN_20260918.md",
+ "hypothesis": "現行v6の予測と購入判断時点の市場確率を既に与えた後でも、陣営の選択が通常行動から外れている度合いは、馬の3着以内に関する追加情報を持つ。",
+ "changes_from_plan_document": [
+  "市場確率の時点: 計画書は当日9時としていたが、本番の購入判断(T-10)より前に取れる最後の価格である『発走約35分前(pre)』を主検定に使う。9時(am9)は感度分析。",
+  "主目的変数: 計画書は1着だったが、本仕様書(実装仕様 §10)に従い3着以内を主、1着を副とする。",
+  "前走の着順・着差は、対象レース前に確定した公知情報として『通常行動』の文脈にのみ使う。仕様 §7 の『着順を行動モデルの入力に使わない』は予測対象レースの着順と解釈した。"
+ ],
+ "population": {
+  "years": [
+   2016,
+   2025
+  ],
+  "rows": "base.parquet (v6時点安全スコアと市場preがある出走) ∩ exp01_features (直前行が master の前走日付と一致する出走)",
+  "exclusions": [
+   "取消・除外 (着順0)",
+   "前走連結が確認できない出走 (新馬・障害/地方を挟んだ馬・2013年初登場)",
+   "頭数5未満"
+  ]
+ },
+ "market": {
+  "snapshot": "pre",
+  "definition": "当日の区分1のうち確定の15分以上前で最も遅いもの (中央値35分前)",
+  "odds": "単勝",
+  "prob": "1/odds をレース内で比例正規化 (overround 除去)、出走馬のみで再正規化",
+  "top3_prob": "Plackett-Luce (Harville)",
+  "sensitivity": "am9"
+ },
+ "v6": {
+  "2015-2023": "data/_research/mcond/oof_scores_c1master.parquet: exp_oof_scores.py の手順 (train<=Y-2, early stop Y-1) を P0-5 修正後 (C1) の master で再生成。本番C1の学習重み(sample_weight_alpha)は含まない近似",
+  "2024-2025": "本番 unified_rank_v6 (train<=2022)",
+  "temperature": "OOF=2022で推定 / 本番=2023で推定",
+  "excluded": "data/oof_scores_v6params.parquet (2026-07-23): P0-5 修正前 master 由来 (trainer_fuku30/90 の同一レース内リーク 3.4% 行) のため使用しない"
+ },
+ "splits": {
+  "train": [
+   2016,
+   2021
+  ],
+  "selection": [
+   2022,
+   2022
+  ],
+  "confirm": [
+   2023,
+   2023
+  ],
+  "exploratory_oos": [
+   2024,
+   2025
+  ],
+  "note": "2024-25 は過去の研究で多数回開封済み。『再利用済み期間での探索的OOS』と呼ぶ"
+ },
+ "features": {
+  "raw_choice": [
+   "raw_log_int",
+   "raw_dist_chg",
+   "raw_venue_chg",
+   "raw_surface_chg",
+   "raw_cls_chg",
+   "raw_jockey_same",
+   "raw_jq_delta",
+   "raw_jt_pair"
+  ],
+  "deviation_simple": [
+   "ss_int_z",
+   "ss_int_horse_z",
+   "ss_dist_z",
+   "ss_venue_s",
+   "ss_surface_s",
+   "ss_cls_s",
+   "ss_jockey_s",
+   "ss_total"
+  ],
+  "deviation_behavior": [
+   "bp_interval_s",
+   "bp_dist_s",
+   "bp_venue_s",
+   "bp_surface_s",
+   "bp_cls_s",
+   "bp_jockey_s",
+   "bp_total"
+  ],
+  "excluded": [
+   "馬主(最新/仮想): キャリア中に値が変わる馬が0.0% = 最新値で上書きされている"
+  ]
+ },
+ "models": {
+  "M0": [
+   "logit(mkt_p3_pre)"
+  ],
+  "M1": [
+   "logit(v6_p3)",
+   "logit(mkt_p3_pre)"
+  ],
+  "M2": [
+   "M1",
+   "raw_choice"
+  ],
+  "M3": [
+   "M1",
+   "deviation_simple",
+   "deviation_behavior"
+  ],
+  "M4": [
+   "M1",
+   "raw_choice",
+   "deviation_simple",
+   "deviation_behavior"
+  ],
+  "M5": [
+   "M1",
+   "ss_total",
+   "bp_total",
+   "disagree",
+   "disagree*ss_total",
+   "disagree*bp_total"
+  ],
+  "disagree_definition": "|rank_v6 - rank_mkt_pre| >= 3 (馬単位、事前固定)",
+  "model_class": "ロジスティック回帰 L2、C は selection 年で {0.1,1,10} から選択、train のみで学習"
+ },
+ "primary_target": "top3",
+ "primary_metric": "馬単位 logloss (開催日ブロック bootstrap 2000回)",
+ "secondary_targets": [
+  "win",
+  "v6 の◎ (rank_v6==1) の top3",
+  "disagree==1 の馬の top3"
+ ],
+ "secondary_metrics": [
+  "Brier",
+  "ECE",
+  "AUC",
+  "レース内最上位馬の3着内率"
+ ],
+ "gate1_representation": {
+  "abs_spearman_with_n_prev_runs_lt": 0.5,
+  "abs_spearman_with_trainer_n_prior_lt": 0.5,
+  "top1pct_small_trainer_share_max_ratio": 3.0,
+  "small_trainer_definition": "trainer_n_prior < 30",
+  "r2_total_on_raw_lt": 0.9,
+  "coverage_min_each_year": 0.95,
+  "applies_to": [
+   "ss_total",
+   "bp_total"
+  ]
+ },
+ "gate2_market_conditional": {
+  "primary_comparisons": [
+   "M3 vs M1",
+   "M4 vs M1"
+  ],
+  "multiplicity": "Bonferroni 2比較 → 97.5% CI",
+  "pass_vs_M1_all_of": [
+   "confirm(2023): Δlogloss < 0 かつ 97.5% CI 上限 < 0",
+   "2024 と 2025 のそれぞれで Δlogloss 点推定 < 0",
+   "2023-25 合算: Δ改善への寄与が大きい上位20調教師を除いても Δ < 0",
+   "2023-25 合算: 市場順位帯 {1, 2-3, 4-6, 7+} のうち 3帯以上で Δ < 0"
+  ],
+  "unique_value_vs_M2": "上と同じ4条件を M4 vs M2 で満たすこと",
+  "verdict_rules": {
+   "M1に負けない or 条件未達": "FAIL: 市場条件付き追加情報なし",
+   "M1に勝つがM2に勝てない": "選択情報は有効だが、逸脱モデル固有の価値はなし",
+   "M1にもM2にも勝つ": "PASS"
+  },
+  "note": "係数の有意性だけでは採用しない。OOS の logloss 改善を必須とする"
+ },
+ "gate3_economic": {
+  "run_only_if": "Gate 2 で M3 か M4 が M1 に PASS",
+  "model_used": "PASS したもの (両方なら M4)",
+  "rules": {
+   "R1": "複勝100円均等: p_model / mkt_p3_pre >= 1.15 の馬 (閾値は事前固定・探索しない)",
+   "R2": "複勝100円均等: 各レースで p_model 最大の1頭"
+  },
+  "settlement": "確定複勝配当 (kekka_v2)。オッズ・払戻は特徴量に使わない",
+  "baselines": [
+   "同ルールの M1",
+   "v6 の◎ 複勝均等額",
+   "市場1番人気 複勝均等額"
+  ],
+  "report": [
+   "購入件数",
+   "的中件数",
+   "総購入額",
+   "総払戻",
+   "ROI",
+   "年度別ROI",
+   "人気帯別ROI",
+   "最大ドローダウン",
+   "利益上位10レース集中度",
+   "開催日ブロック bootstrap CI",
+   "M1 との差"
+  ],
+  "profit_claim_requires": "未使用期間 (2026-10以降の前向き) での再現。2024-25 は再利用済みなので黒字の根拠にしない"
+ },
+ "stop_rules": [
+  "Gate 0 のいずれか (オッズ時点不明 / 未来混入 / ID 整合不可 / 行数不足 / v6結合不安定) → 中止",
+  "Gate 1 の条件を1つでも満たさない → 中止",
+  "Gate 2 FAIL → パラメータ調整を繰り返さず終了。次は計画書の候補A' (動的能力) へ"
+ ]
+}

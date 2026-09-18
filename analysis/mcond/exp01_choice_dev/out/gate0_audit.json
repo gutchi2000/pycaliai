@@ -1,0 +1,66 @@
+{
+ "owner_change_rate": 0.0,
+ "trainer_change_rate": 0.17357077713243413,
+ "jockey_change_rate": 0.9842557480919695,
+ "n_horses_5plus_runs": 41666,
+ "trainer_switch_count_dist": {
+  "0": 34434,
+  "1": 6313,
+  "2": 794,
+  "3": 111,
+  "4": 9,
+  "5": 5
+ },
+ "chain_ok_rate_by_year": {
+  "2013": 0.7657,
+  "2014": 0.8843,
+  "2015": 0.8856,
+  "2016": 0.8848,
+  "2017": 0.8813,
+  "2018": 0.8769,
+  "2019": 0.8683,
+  "2020": 0.8774,
+  "2021": 0.8788,
+  "2022": 0.8735,
+  "2023": 0.8723,
+  "2024": 0.8703,
+  "2025": 0.8707
+ },
+ "market_pre_min_before_final": {
+  "median": 35.0,
+  "p01": 31.0,
+  "p99": 40.0,
+  "races": 44907
+ },
+ "market_pre_overround_median": 1.2601647899911201,
+ "market_am9_min_before_final": {
+  "median": 250.0,
+  "p01": 33.0,
+  "p99": 456.0,
+  "races": 44882
+ },
+ "market_am9_overround_median": 1.2596680394721482,
+ "market_pre_is_before_T10": true,
+ "v6_source_by_year": {
+  "2015": "oof",
+  "2016": "oof",
+  "2017": "oof",
+  "2018": "oof",
+  "2019": "oof",
+  "2020": "oof",
+  "2021": "oof",
+  "2022": "oof",
+  "2023": "oof",
+  "2024": "prod",
+  "2025": "prod"
+ },
+ "v6_tau_by_source": {
+  "oof": 0.8451328952818176,
+  "prod": 0.8654867745633152
+ },
+ "prior_use_2024_25": {
+  "report_json": 48,
+  "py_files": 161,
+  "status": "再利用済み期間 (探索的OOSとしてのみ扱う)"
+ }
+}
