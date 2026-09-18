@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import os
 import logging
 import sys
 import warnings
@@ -376,6 +377,40 @@ def main() -> int:
                 "python build_horse_history.py で更新推奨")
     except Exception as e:
         logger.warning(f"[serve history] 失敗 → 履歴特徴は従来どおり欠損: {e}")
+
+    # ------ prev_hosei 代替推定 (2026-09-18) ------
+    # TARGET の補正タイムは 2026-05-31 で止まっており、それ以降に前走がある馬は
+    # prev_hosei (v6 gain 第2位 7.47%) が欠損する。前走着差タイム/前走確定着順/前走上り3F
+    # 等 (週次CSV の生の事実、補正指数とは独立) から学習した推定器で欠損馬だけ埋める。
+    # 採用ゲート (analysis/prev_hosei_proxy.py, offline 10,365R): test R²=0.954、
+    # ◎勝率 欠損 27.87% → 本物+欠損だけ推定 29.34% (本物 29.58%)、McNemar p=0.0001。
+    # 本物の値がある馬には触らない。
+    # ★既定OFF: 2026-06〜09 実レース 885R では効果を確認できず (◎勝率 +0.34pt, top3 -0.56pt,
+    #   McNemar p=0.80, analysis/validate_hosei_proxy_live.py)。CB_HOSEI_PROXY=1 で有効化。
+    proxy_path = BASE / "models" / "prev_hosei_proxy.pkl"
+    if os.environ.get("CB_HOSEI_PROXY", "0") == "1" and proxy_path.exists():
+        try:
+            from backtest_pl_ev import apply_encoders
+            pb = joblib.load(proxy_path)
+            xc = pb["xcols"]
+            Xp = apply_encoders(df[[c for c in xc]].copy(), encs)
+            Xp = Xp[xc].apply(pd.to_numeric, errors="coerce")
+            for t, reg in pb["models"].items():
+                if t not in df.columns:
+                    df[t] = np.nan
+                cur = pd.to_numeric(df[t], errors="coerce")
+                na = cur.isna().to_numpy()
+                # 推定の根拠 (前走着差タイム) が無い馬は埋めない = 新馬などは欠損のまま
+                basis = Xp["前走着差タイム"].notna().to_numpy() if "前走着差タイム" in Xp else na
+                fill = na & basis
+                if fill.any():
+                    cur = cur.to_numpy(dtype=float)
+                    cur[fill] = reg.predict(Xp[fill])
+                    df[t] = cur
+                logger.info(f"[hosei proxy] {t}: 本物 {100*(~na).mean():.0f}% + 推定 "
+                            f"{100*fill.mean():.0f}% → 充足 {100*((~na)|fill).mean():.0f}%")
+        except Exception as e:
+            logger.warning(f"[hosei proxy] 失敗 → prev_hosei は欠損のまま: {e}")
 
     # ------ kako5 history + horse facts (advisor + 出走表 表示用) ------
     from kako5_summary import build_histories, build_horse_facts

@@ -116,6 +116,49 @@ def parse_weekly_csv(path: Path) -> pd.DataFrame:
 # =========================================================
 # hosei 辞書（18桁ID → 補正タイム）
 # =========================================================
+def _is_weekly_output(f: Path) -> bool:
+    """このスクリプトが吐いた週次ファイル (H_YYYYMMDD.csv) か。"""
+    stem = f.stem[2:]
+    return len(stem) == 8 and stem.isdigit()
+
+
+def load_direct_prev_lookup() -> dict[str, tuple]:
+    """18桁レースID(今走) → (前走補9, 前走補正)。
+
+    学習側 build_master_v2.py:68-70 と同一定義。TARGET から出した hosei
+    エクスポート (H_開始-終了.csv) が今走キーで 前走補正 を持っているので、
+    前走を辿らずにそのまま使える = off-by-one が構造的に起こらない経路。
+    週次生成ファイルは自分の出力なので除外する。
+    """
+    lookup: dict[str, tuple] = {}
+    n_files = 0
+    for f in sorted(HOSEI_DIR.glob("H_*.csv")):
+        if _is_weekly_output(f):
+            continue
+        for enc in ["cp932", "utf-8-sig", "utf-8"]:
+            try:
+                head = pd.read_csv(f, encoding=enc, nrows=0)
+                if "前走補正" not in head.columns or "前走補9" not in head.columns:
+                    break
+                df = pd.read_csv(f, encoding=enc,
+                                 usecols=["レースID(新)", "前走補9", "前走補正"],
+                                 dtype={"レースID(新)": str})
+                rid = df["レースID(新)"].astype(str).str.strip().str.zfill(18)
+                h9 = pd.to_numeric(df["前走補9"], errors="coerce")
+                hc = pd.to_numeric(df["前走補正"], errors="coerce")
+                for r, a, b in zip(rid, h9, hc):
+                    if pd.isna(a) and pd.isna(b):
+                        continue
+                    lookup[r] = (None if pd.isna(a) else float(a),
+                                 None if pd.isna(b) else float(b))
+                n_files += 1
+                break
+            except Exception:
+                continue
+    log.info(f"直接引き lookup: {len(lookup):,} エントリ / {n_files} ファイル (今走キー×前走補正)")
+    return lookup
+
+
 def load_hosei_lookup() -> dict[str, tuple]:
     """18桁レースID → (そのレース自身の 補9, 補正)。
 
@@ -140,6 +183,8 @@ def load_hosei_lookup() -> dict[str, tuple]:
     lookup: dict[str, tuple] = {}
     n_files = 0
     for f in sorted(HOSEI_DIR.glob("H_*.csv")):
+        if _is_weekly_output(f):
+            continue
         for enc in ["cp932", "utf-8-sig", "utf-8"]:
             try:
                 head = pd.read_csv(f, encoding=enc, nrows=0)
@@ -265,17 +310,35 @@ def main() -> None:
     log.info(f"  {len(df)} 頭 / {df['レースID(新)'].nunique()} レース")
 
     # ── Step 2: hosei 辞書構築 ────────────────────────────
+    # 2a) 直接引き: 「今走の18桁ID → 前走補正」を持つ hosei エクスポートがあれば
+    #     そのまま使う。これは学習側 (build_master_v2: H[今走].前走補正) と
+    #     完全に同じ定義なので、前走を辿る処理そのものが不要になり off-by-one も起き得ない。
+    direct = load_direct_prev_lookup()
+    # 2b) 連鎖引き: 直接引きに無い馬だけ、前走18桁ID → そのレース自身の「補正」で補う。
     hosei_lookup = load_hosei_lookup()
 
     # ── Step 3: 各馬の前走を kekka で特定 → hosei で補正タイム取得 ──
     rows: list[dict] = []
     cnt_hit = cnt_no_prev = cnt_no_kekka = cnt_no_hosei = 0
 
+    cnt_direct = 0
+
     for _, horse in df.iterrows():
         horse_name  = str(horse.get("馬名", "")).strip()
         current_ban = horse.get("馬番")
         race_id_16  = str(horse.get("レースID(新)", "")).strip()[:16]
         date_s      = str(horse.get("日付S", ""))
+
+        # ── 直接引き (学習と同一定義)。当たればこの馬は前走を辿る必要がない ──
+        if pd.notna(current_ban):
+            cur18 = race_id_16 + str(int(current_ban)).zfill(2)
+            ent = direct.get(cur18)
+            if ent is not None and not (ent[0] is None and ent[1] is None):
+                rows.append({"レースID(新)": cur18, "馬番": int(current_ban),
+                             "前走補9": ent[0], "前走補正": ent[1]})
+                cnt_direct += 1
+                cnt_hit += 1
+                continue
 
         # 前走情報がない（初出走など）
         prev_m = horse.get("前走月")
@@ -327,10 +390,17 @@ def main() -> None:
     total_prev = cnt_hit + cnt_no_kekka + cnt_no_hosei
     coverage = cnt_hit / total_prev * 100 if total_prev > 0 else 0
     log.info(
-        f"結果: 成功={cnt_hit}  前走なし={cnt_no_prev}  "
+        f"結果: 成功={cnt_hit} (直接引き={cnt_direct} / 前走連鎖={cnt_hit - cnt_direct})  "
+        f"前走なし={cnt_no_prev}  "
         f"kekka未照合={cnt_no_kekka}  hosei未照合={cnt_no_hosei}  "
         f"カバレッジ={coverage:.1f}%"
     )
+    # 学習時 prev_hosei 充足率は 85.4%。出走全頭に対する実効カバレッジを見ておく
+    eff = cnt_hit / len(df) * 100 if len(df) else 0
+    log.info(f"  出走全頭に対する実効カバレッジ={eff:.1f}% (学習時 85.4%)")
+    if eff < 60:
+        log.warning("  ★ 学習時より大幅に低い。hosei マスターの期間が足りていない可能性。"
+                    "TARGET から 補正/前走補正 を含む最新エクスポートを取り直すこと。")
 
     if not rows:
         log.warning("取得できたデータが0件。ファイルを生成しません。")
