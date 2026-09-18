@@ -1,0 +1,103 @@
+{
+ "experiment_id": "exp05_forward_shadow",
+ "hypothesis_id": "exp05_M4_vs_M3_forward_replication",
+ "created_at": "2026-09-19",
+ "base_document": "EXP05-F spec (pasted by user, ChatGPT-authored)",
+ "data_source_audit": "DATA_SOURCE_AUDIT.md",
+ "model_freeze": "MODEL_FREEZE.md",
+ "evidence_level_statement": "2023-2025はEXP04で仮説発見・EXP05で再評価済みのため『未使用期間』『完全な外部検証』ではない。EXP05の結果は頑健な開発結果。前向き保存された未来データのみを最終確認とする。過去2026年データは31-38分市場スナップショットが1件も無いため『準確認的な時系列OOS』にすらできない(DATA_SOURCE_AUDIT.md)。EXP05-Fは前向き観測ゼロから開始する。",
+ "frozen_model": {
+  "artifact": "out/frozen_model.joblib",
+  "artifact_sha256_16": "57ba31bd51bf3bc0",
+  "horse_state_sha256_16": "8f0294e044c26b7f",
+  "train_end_date": "2025-12-28",
+  "n_rows_final_fit": 477638,
+  "C_M1": 0.1, "C_M3": 0.1, "C_M4": 0.01,
+  "tau_2026_estimate": 0.8622466414757302,
+  "M1_definition": "logit(calibrated_v6_probability) + logit(market_probability)",
+  "M3_definition": "M1 + v6_score + v6_rank + score_gap_to_top + score_gap_to_second + score_percentile_in_race + field_score_dispersion",
+  "M4_definition": "offset(logit(M3の予測)) + F_serve(117列), offset係数固定1, L2正則化",
+  "no_reoptimization": "GBDT/NN化・特徴追加削除・正則化再探索・人気帯/月別/◎専用モデルは行わない (spec §5)"
+ },
+ "F_serve_cols_n": 117,
+ "F_serve_source": "analysis/mcond/exp05_market_residual_dev/out/feature_lists.json のF_serveをそのまま使用",
+ "feature_typing_sha256_16": "8c03f4e96df5c86b",
+ "known_limitations": [
+  "dyn_skill_mu/horse_skill_minus_field/raw_career_runsは2025年末状態からの馬名一致による繰越 (2026年の既走分は未反映、MODEL_FREEZE.md #2)",
+  "raw_jockey_same/raw_cls_chg/raw_jq_delta/raw_jt_pair (C2の4/8列) は週次CSV単体では算出不能、常にNaN (MODEL_FREEZE.md #3)",
+  "前走日付/前好走/限定/ブリンカー (C1の4/117列) は2026-09-19の実データ検証で欠損確認 (MODEL_FREEZE.md #4)",
+  "tauは2026-09-11の本番v6再学習後のデータが無く2024年本番スコアで代用 (MODEL_FREEZE.md #1)"
+ ],
+ "market_snapshot": {
+  "target_lead_min": 35,
+  "valid_window_min": [31, 38],
+  "stage_tag": "exp05fs_t35",
+  "storage": "reports/exp05fs_odds/ (専用、t10/t20/vote/closeと混在しない)",
+  "no_fallback_to_other_timepoints": true,
+  "additional_collection_non_primary": "T-10/T-20/close等の副次収集は将来の研究用に許可されるが主モデルの入力には使わない (spec §8)"
+ },
+ "purchase_rules_R1_R2": {
+  "R1": "複勝100円均等: p_M4/market_probability >= 1.15 (EXP01-05と同一閾値、新規探索なし)",
+  "R2": "複勝100円均等: 各レースでp_M4最大の1頭",
+  "settlement": "確定複勝配当",
+  "no_threshold_reexploration": true
+ },
+ "required_sample_size": {
+  "method": "race-level 1標本z検定の必要標本数。σ=EXP05 2023-2025のM4-M3 Δlogloss race平均のSD=0.017744、効果量=min(EXP05観測全体Δの50%=0.000749, 年度別最小|Δ|(2023)=0.001320)=0.000749、両側α=0.01、検出力80% (z_{0.995}=2.576, z_{0.80}=0.842)",
+  "formula": "n = (z_alpha/2 + z_power)^2 * sigma^2 / effect^2",
+  "computed_n_races": 6558,
+  "floor_conditions": ["12開催週以上", "500レース以上", "計算された必要レース数以上"],
+  "final_required_races": 6600,
+  "note": "1開催週あたり約250-300レースなので6600レースは概ね22-26開催週(5-6ヶ月)相当。途中経過でのROI評価は禁止 (spec §16)"
+ },
+ "primary_comparison": "M4 vs M3",
+ "primary_metric": "レース単位で集約したtop3 log loss差 (bootstrap: race_day単位クラスタ, 10000回)",
+ "secondary_metrics": ["Brier", "ECE", "AUC", "レース内順位", "1着予測(M1相当의win版)", "M4 vs M1", "月別/競馬場別/人気帯別差"],
+ "gate1_reproduction": {
+  "pass": ["M4がM3より主log lossを改善", "99%信頼区間上限が0未満", "月別の大半で効果方向が一致",
+   "特定競馬場だけに依存しない", "特定人気帯だけに依存しない", "invalidレース除外前後で方向が一致",
+   "少数の極端予測に依存しない"],
+  "fail_action": "EXP05仮説を終了。モデル・特徴・正則化を変更して再試行しない"
+ },
+ "gate2_calibration": {
+  "regions": ["model_higher_than_market", "edge_top10pct", "edge_top5pct", "per_race_max_edge_horse",
+   "maru_honmei(v6_rank1)", "popularity_band"],
+  "pass": ["予測確率と実的中率の差が許容範囲内", "edge増加に対し実的中率が逆方向へ悪化しない",
+   "一部の人気帯だけに依存しない", "optimizer's curse型の単調悪化がない"]
+ },
+ "gate3_economic": {
+  "run_after": "Gate1・Gate2通過後のみ",
+  "threshold_exceed": "ROI(M4)-ROI(M3)>0 かつ レース単位bootstrap 99%CI下限>0",
+  "profitability": "ROI(M4)>100% かつ ROIの99%CI下限>100%",
+  "outputs": ["購入件数", "的中件数", "総購入額", "総払戻", "ROI", "M1との差", "M3との差", "月別ROI",
+   "競馬場別ROI", "人気帯別ROI", "最大ドローダウン", "最大連敗", "利益上位10レース集中度",
+   "◎複勝均等額との比較"]
+ },
+ "interim_monitoring_allowed": ["データ収集成功率", "時刻遵守率(31-38分窓内率)", "欠損率", "schema drift",
+  "モデル実行成功率", "重複レコード", "結果結合率"],
+ "interim_monitoring_forbidden": ["モデル別ROIによる途中停止", "edge帯別当たり外れでの閾値変更",
+  "人気帯別モデル変更", "特定競馬場の除外", "M4の再学習"],
+ "non_interference": {
+  "production_lines_untouched": ["t10_runner.py (本番T-10)", "t20_site_bets.py (サイトT-20)",
+   "masters_vote.py (大会T-4)", "compute_bets.py", "weekly_nicegui.ps1"],
+  "isolated_storage": ["reports/exp05fs_odds/", "data/_research/mcond/exp05fs_features/",
+   "data/_research/mcond/exp05fs_predictions/", "data/_research/mcond/exp05fs_results/"],
+  "shared_but_additive_only_changes": [
+   "jvlink_odds.py: --stage choicesに'exp05fs_t35'を追加 (既存stageの動作は不変, tests/test_forward_prices.py で確認)",
+   "forward_prices.py: archive_market_snapshotの許可stage集合に'exp05fs_t35'を追加 (同上)"],
+  "failure_mode": "market_snapshot.py/predict_and_store.pyの例外はlogs/exp05fs_errors.logに記録し非0終了するが、他の週次タスクをブロックしない設計 (専用タスク・専用プロセス)"
+ },
+ "completion_condition_this_session": [
+  "2026年データ在庫監査完了 (DATA_SOURCE_AUDIT.md)",
+  "EXP05モデル凍結完了 (MODEL_FREEZE.md, out/frozen_model.joblib)",
+  "市場スナップショット取得コード実装完了 (market_snapshot.py, 実データでの起動確認はJV-Link稼働時間内に要実施)",
+  "117特徴を予測時点で生成可能 (feature_snapshot.py, 2026-09-19実データで109/117列を確認)",
+  "append-only予測保存が動作 (predict_and_store.py, test_forward_shadow.pyで重複防止を確認)",
+  "仮想買い目が結果前に保存される (R1/R2をpredict_and_store.py内で計算・保存)",
+  "結果結合が別処理で動作 (join_results.py, 2026-09-06 kekkaで確認)",
+  "テスト用レースでend-to-end確認 (2026091906040501、合成市場データで検証、本物のsub-31-38分オッズでの検証は次回開催)",
+  "本番買い目へ影響しない (非干渉設計、専用ディレクトリ・専用stage・専用テストで確認)",
+  "最初の前向き開催を待てる状態"
+ ],
+ "not_yet_done": ["最初の前向きGate1/2/3評価", "Windows タスクスケジューラへの本登録 (ユーザー確認待ち, README.md参照)"]
+}

@@ -15,14 +15,17 @@ jvlink_odds.py — JV-Link 速報オッズ取得（32-bit 専用ブリッジ）
     ※旧 stride10 は 5頭ごとに1スロットずれる誤パーサだった (2026-06-12 修正)。
   O3 ワイド: pos40 起点 stride17 = 組番(4)+lo(5)+hi(5)+人気(3)、/10。153組+票数計11。
   O4 馬単  : pos40 起点 stride13 = 組番(4)+odds(6)+人気(3)、/10。306組+票数計11。
+  O2 馬連  : pos40 起点 stride13 = 組番(4)+odds(6)+人気(3)、/10（O4 と同一レイアウト。
+    2026-09-06 実データで確認: 組番が 01-02,01-03,...,12-13 と昇順で並び、パース件数が
+    C(出走頭数,2) に厳密一致（13頭立てで78組）。単一値でレンジ無し = O4 と同型）。
 
-データ仕様(RT): 0B31 単複枠 / 0B33 ワイド / 0B34 馬単 （馬連=不使用）
+データ仕様(RT): 0B31 単複枠 / 0B32 馬連 / 0B33 ワイド / 0B34 馬単
 
 出力: reports/live_odds/{race_id}.json
   {race_id, fetched, ok, tansho:{ban:odds}, fukusho:{ban:[low,high]},
-   wide:{"i-j":[low,high]}, umatan:{"i>j":odds}, overround_tan}
+   wide:{"i-j":[low,high]}, umaren:{"i-j":odds}, umatan:{"i>j":odds}, overround_tan}
 fail-safe: overround(単勝 Σ1/odds) が [1.0,1.5] 外 / 録なし → ok=false（compute_bets 側で見送り）
-           ワイド/馬単は取れなくても ok 判定に影響しない（compute_bets が推定にフォールバック）
+           ワイド/馬連/馬単は取れなくても ok 判定に影響しない（compute_bets が推定にフォールバック）
 """
 from __future__ import annotations
 import argparse, json, re, sys
@@ -109,6 +112,24 @@ def parse_o3(rec: str) -> dict:
     return out
 
 
+def parse_o2(rec: str) -> dict:
+    """O2(馬連) → {"i-j":odds} (i<j、順不同)。
+    pos40 起点 stride13 = 組番(4)+odds(6)+人気(3)、/10（O4 と同一レイアウト、
+    raw 突合で確定 2026-09-06。C(18,2)=153 組が上限）。"""
+    out = {}
+    R0, STRIDE, NMAX = 40, 13, 153   # C(18,2)
+    for k in range(NMAX):
+        s = R0 + k * STRIDE
+        kumi = rec[s:s + 4]
+        if not kumi.strip() or not kumi.isdigit():
+            continue
+        i, j = int(kumi[:2]), int(kumi[2:])
+        v = _digits(rec[s + 4:s + 10])
+        if i and j and v and v > 0:
+            out[f"{min(i, j)}-{max(i, j)}"] = round(v / 10.0, 1)
+    return out
+
+
 def parse_o4(rec: str) -> dict:
     """O4(馬単) → {"i>j":odds} (i=1着, j=2着)。
     pos40 起点 stride13 = 組番(4)+odds(6)+人気(3)、/10（raw 突合で確定 2026-06-12）。"""
@@ -137,9 +158,12 @@ def fetch_race(race_key: str) -> dict:
     tan = o1["tansho"]
     over = sum(1.0 / o for o in tan.values() if o > 1.0) if tan else 0.0
     ok = bool(tan) and (1.0 <= over <= 1.5)
-    # ワイド/馬単は取れなくても ok 判定に影響しない (compute_bets が推定にフォールバック)
-    wide, umatan = {}, {}
+    # ワイド/馬連/馬単は取れなくても ok 判定に影響しない (compute_bets が推定にフォールバック)
+    wide, umaren, umatan = {}, {}, {}
     try:
+        r2 = [r for r in fetch_records(race_key, "0B32") if r.startswith("O2")]
+        if r2:
+            umaren = parse_o2(r2[-1])
         r3 = [r for r in fetch_records(race_key, "0B33") if r.startswith("O3")]
         if r3:
             wide = parse_o3(r3[-1])
@@ -152,19 +176,19 @@ def fetch_race(race_key: str) -> dict:
     return {"race_id": race_key, "fetched": fetched,
             "ok": ok, "overround_tan": round(over, 3),
             "reason": "" if ok else f"overround {over:.3f} 異常 or 単勝空",
-            **o1, "wide": wide, "umatan": umatan}
+            **o1, "wide": wide, "umaren": umaren, "umatan": umatan}
 
 
 def dump_raw(race_key: str) -> None:
-    """0B31/0B33/0B34 の生レコードを reports/live_odds/raw/ に保存する。
+    """0B31/0B32/0B33/0B34 の生レコードを reports/live_odds/raw/ に保存する。
 
-    用途: ワイド(0B33)/馬単(0B34) のパーサ位置確定 (audit 2026-06-11 残課題)。
-    土曜のレース時間帯に 1 回実行して raw を残せば、確定オッズと突合して
-    オフラインでパーサを書ける。複勝 pos269 暫定の最終検証にも使う。
+    用途: ワイド(0B33)/馬連(0B32)/馬単(0B34) のパーサ位置確定 (audit 2026-06-11 残課題、
+    馬連は 2026-09-06 追加)。土曜のレース時間帯に 1 回実行して raw を残せば、
+    確定オッズと突合してオフラインでパーサを書ける。複勝 pos269 暫定の最終検証にも使う。
     """
     raw_dir = OUT_DIR / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
-    for spec in ("0B31", "0B33", "0B34"):
+    for spec in ("0B31", "0B32", "0B33", "0B34"):
         recs = fetch_records(race_key, spec)
         p = raw_dir / f"{race_key}_{spec}.txt"
         p.write_text("\n".join(recs), encoding="utf-8", errors="replace")
@@ -177,19 +201,23 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--race", required=True, help="16桁 race_key（例 2026060705030211）")
     ap.add_argument("--validate", help="bundle.json パスを渡すと単勝を照合表示")
-    ap.add_argument("--stage", choices=("t10", "close", "manual"), default="manual",
-                    help="前向き価格ログの観測時点")
+    ap.add_argument("--stage", choices=("t10", "t20", "vote", "close", "manual", "exp05fs_t35"),
+                    default="manual", help="前向き価格ログの観測時点")
+    ap.add_argument("--out-dir", default=None,
+                    help="{race}.json の出力先 (既定 reports/live_odds)。学生大会の "
+                         "T-4 取得は本番 T-10 スナップを上書きしないよう別 dir を使う")
     ap.add_argument("--scheduled-post", default=None,
                     help="予定発走 HH:MM。価格snapshotの監査メタデータ")
     ap.add_argument("--dump-raw", action="store_true",
-                    help="0B31/0B33/0B34 の生レコードを reports/live_odds/raw/ に保存"
+                    help="0B31/0B32/0B33/0B34 の生レコードを reports/live_odds/raw/ に保存"
                          " (ワイド/馬単パーサ確定用。土曜に1回でOK)")
     args = ap.parse_args()
     if args.dump_raw:
         dump_raw(args.race)
     res = fetch_race(args.race)
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    (OUT_DIR / f"{args.race}.json").write_text(
+    out_dir = Path(args.out_dir) if args.out_dir else OUT_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / f"{args.race}.json").write_text(
         json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
     try:
         from forward_prices import archive_market_snapshot
@@ -200,7 +228,8 @@ def main():
         return 2
     print(f"[jvlink_odds] race={args.race} ok={res['ok']} "
           f"単勝{len(res.get('tansho',{}))}頭 複勝{len(res.get('fukusho',{}))}頭 "
-          f"ワイド{len(res.get('wide',{}))}組 馬単{len(res.get('umatan',{}))}組 "
+          f"ワイド{len(res.get('wide',{}))}組 馬連{len(res.get('umaren',{}))}組 "
+          f"馬単{len(res.get('umatan',{}))}組 "
           f"overround={res.get('overround_tan')} {res.get('reason','')}")
     print(f"[forward_price] {args.stage} -> {archived}")
     if args.validate:
