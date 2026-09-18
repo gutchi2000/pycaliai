@@ -1,0 +1,1037 @@
+{
+ "experiment_id": "MCOND-EXP02-DYNAMIC-SKILL",
+ "commit": "02084801f3c655d2b5a3dee4089288e4db8cdd00",
+ "spec_uncommitted_changes": false,
+ "inputs": {
+  "base.parquet": "e2d229082d9b604b",
+  "exp02_features.parquet": "cb098fadfffc2982"
+ },
+ "build_meta": {
+  "beta": 2.0833,
+  "tau2_per_day": 0.005
+ },
+ "n_rows": 477638,
+ "n_races": 34545,
+ "gate0": {
+  "pass": true,
+  "join_rate_vs_base": 1.0,
+  "coverage_elo": 1.0,
+  "coverage_glicko": 1.0,
+  "warmup_years": [
+   2013,
+   2015
+  ],
+  "time_safety_tests": "test_time_safety.py 4本 / test_boundary.py 7本 (実行ログは README)"
+ },
+ "gate1": {
+  "pass": true,
+  "checks": [
+   {
+    "check": "G1a 着順で平均が動く",
+    "value": {
+     "by_prev_fin": {
+      "1.0": 1.8578,
+      "2.0": 1.6272,
+      "3.0": 1.4059,
+      "4.0": 1.1779,
+      "5.0": 0.939,
+      "6.0": 0.6747,
+      "7.0": 0.3883,
+      "8.0": 0.0909,
+      "9.0": -0.2011,
+      "10.0": -0.4905
+     },
+     "spearman": -0.9999999999999999
+    },
+    "pass": "True"
+   },
+   {
+    "check": "G1b 履歴で不確実性が減る",
+    "value": {
+     "0": 8.3333,
+     "1": 8.1626,
+     "2": 7.9437,
+     "3-5": 7.6584,
+     "6-10": 7.174,
+     "11-20": 6.3091,
+     "21+": 5.2129
+    },
+    "pass": true
+   },
+   {
+    "check": "G1c 長期休養で不確実性が増える",
+    "value": {
+     "gt180": 7.258456617401735,
+     "le60": 7.173983710035939
+    },
+    "pass": true
+   },
+   {
+    "check": "G1d 新馬が極端値でない",
+    "value": {
+     "mean_percentile": 0.476789041750205
+    },
+    "pass": true
+   },
+   {
+    "check": "G1e 直近着順・クラス・出走数の写しでない",
+    "value": {
+     "abs_spearman": {
+      "pf": 0.4037132079659953,
+      "cls": 0.5453349848231999,
+      "dyn_skill_num_updates": 0.559608183801926
+     },
+     "r2": 0.4878597107214634
+    },
+    "pass": true
+   },
+   {
+    "check": "G1f 年・競馬場で尺度が崩れない",
+    "value": {
+     "cv_year": 0.12237304351241522,
+     "cv_place": 0.15945236256449566,
+     "by_year": {
+      "2016": 2.348,
+      "2017": 2.168,
+      "2018": 2.003,
+      "2019": 1.757,
+      "2020": 1.675,
+      "2021": 1.683,
+      "2022": 1.907,
+      "2023": 1.778,
+      "2024": 1.655,
+      "2025": 1.828
+     }
+    },
+    "pass": true
+   }
+  ]
+ },
+ "C_selected": {
+  "M0": 0.1,
+  "M1": 0.1,
+  "M2": 0.1,
+  "M3": 0.1,
+  "M4": 1.0,
+  "M5": 0.1,
+  "M6": 10.0
+ },
+ "coef": {
+  "M0": {
+   "f_mkt": 1.3022
+  },
+  "M1": {
+   "f_v6": 0.3379,
+   "f_mkt": 1.0245
+  },
+  "M2": {
+   "f_v6": 0.2655,
+   "f_mkt": 1.0052,
+   "elo_T1M1_horse": 0.1013,
+   "elo_T1M1_level": 0.0159,
+   "elo_T1M1_vs": 0.1282,
+   "elo_T1M1_prevlevel": 0.0368,
+   "elo_T1M2_horse": -0.0722,
+   "elo_T1M2_level": -0.0297,
+   "elo_T1M2_vs": -0.0779,
+   "elo_T1M2_prevlevel": 0.0982,
+   "elo_T2M1_horse": -0.072,
+   "elo_T2M1_level": 0.0222,
+   "elo_T2M1_vs": -0.1439,
+   "elo_T2M1_prevlevel": -0.1842,
+   "elo_T2M2_horse": 0.0237,
+   "elo_T2M2_level": -0.1125,
+   "elo_T2M2_vs": 0.2136,
+   "elo_T2M2_prevlevel": 0.1444,
+   "g2_mu": 0.025,
+   "g2_rd": -0.0198,
+   "g2_cons": 0.0279
+  },
+  "M3": {
+   "f_v6": 0.2744,
+   "f_mkt": 1.0394,
+   "dyn_skill_mu": 0.0177,
+   "dyn_skill_sigma": -0.1544,
+   "dyn_skill_conservative": 0.0573,
+   "dyn_skill_rank_in_race": -0.0085,
+   "dyn_skill_gap_to_top": -0.0012,
+   "dyn_skill_gap_to_field_mean": 0.0371,
+   "dyn_skill_last_change": 0.0362,
+   "dyn_skill_days_since_update": -0.0443,
+   "dyn_skill_num_updates": -0.1477,
+   "field_skill_mean": -0.012,
+   "field_skill_std": -0.0263,
+   "field_skill_max": 0.0143,
+   "field_skill_top3_mean": -0.0092,
+   "field_uncertainty_mean": 0.0319,
+   "horse_skill_minus_field": 0.0357,
+   "horse_skill_percentile": -0.0041,
+   "race_difficulty": 0.0001
+  },
+  "M4": {
+   "f_v6": 0.229,
+   "f_mkt": 1.0129,
+   "elo_T1M1_horse": 0.1744,
+   "elo_T1M1_level": 0.1008,
+   "elo_T1M1_vs": 0.1462,
+   "elo_T1M1_prevlevel": 0.037,
+   "elo_T1M2_horse": -0.1209,
+   "elo_T1M2_level": -0.0864,
+   "elo_T1M2_vs": -0.0854,
+   "elo_T1M2_prevlevel": 0.1163,
+   "elo_T2M1_horse": -0.0145,
+   "elo_T2M1_level": 0.1486,
+   "elo_T2M1_vs": -0.2106,
+   "elo_T2M1_prevlevel": -0.2126,
+   "elo_T2M2_horse": 0.0093,
+   "elo_T2M2_level": -0.1627,
+   "elo_T2M2_vs": 0.2636,
+   "elo_T2M2_prevlevel": 0.179,
+   "g2_mu": 0.0257,
+   "g2_rd": -0.0438,
+   "g2_cons": 0.0401,
+   "dyn_skill_mu": -0.027,
+   "dyn_skill_sigma": -0.1881,
+   "dyn_skill_conservative": 0.0273,
+   "dyn_skill_rank_in_race": -0.0443,
+   "dyn_skill_gap_to_top": 0.0272,
+   "dyn_skill_gap_to_field_mean": 0.0217,
+   "dyn_skill_last_change": 0.0502,
+   "dyn_skill_days_since_update": -0.0416,
+   "dyn_skill_num_updates": -0.1994,
+   "field_skill_mean": -0.06,
+   "field_skill_std": -0.0627,
+   "field_skill_max": -0.0011,
+   "field_skill_top3_mean": -0.0495,
+   "field_uncertainty_mean": 0.0282,
+   "horse_skill_minus_field": 0.0321,
+   "horse_skill_percentile": -0.0671,
+   "race_difficulty": -0.0182
+  },
+  "M5": {
+   "f_v6": 0.2701,
+   "f_mkt": 1.04,
+   "dyn_skill_mu": 0.0058,
+   "dyn_skill_sigma": -0.1048,
+   "dyn_skill_conservative": 0.0335,
+   "dyn_skill_rank_in_race": 0.0139,
+   "dyn_skill_gap_to_top": 0.0032,
+   "dyn_skill_gap_to_field_mean": 0.0293,
+   "dyn_skill_last_change": 0.033,
+   "dyn_skill_days_since_update": -0.0426,
+   "dyn_skill_num_updates": -0.1728,
+   "field_skill_mean": -0.0211,
+   "field_skill_std": -0.0259,
+   "field_skill_max": 0.0076,
+   "field_skill_top3_mean": -0.0155,
+   "field_uncertainty_mean": 0.0261,
+   "horse_skill_minus_field": 0.0306,
+   "horse_skill_percentile": -0.0095,
+   "race_difficulty": 0.0035,
+   "condition_skill_mu": 0.0007,
+   "condition_skill_sigma": -0.0621,
+   "condition_skill_minus_global": 0.0698,
+   "condition_skill_rank_in_race": -0.0345
+  },
+  "M6": {
+   "f_v6": 0.2782,
+   "f_mkt": 1.1376,
+   "dyn_skill_mu": 0.0129,
+   "dyn_skill_sigma": -0.1726,
+   "dyn_skill_conservative": 0.058,
+   "dyn_skill_rank_in_race": -0.0442,
+   "dyn_skill_gap_to_top": 0.0014,
+   "dyn_skill_gap_to_field_mean": 0.0333,
+   "dyn_skill_last_change": 0.0382,
+   "dyn_skill_days_since_update": -0.0431,
+   "dyn_skill_num_updates": -0.1471,
+   "field_skill_mean": -0.0151,
+   "field_skill_std": -0.0172,
+   "field_skill_max": 0.0122,
+   "field_skill_top3_mean": -0.022,
+   "field_uncertainty_mean": 0.0531,
+   "horse_skill_minus_field": 0.0398,
+   "horse_skill_percentile": -0.0357,
+   "race_difficulty": 0.0277,
+   "i_dis_sigma": 0.0156,
+   "i_dis_mf": 0.0004,
+   "i_mkt_sigma": -0.0951
+  }
+ },
+ "gate2": [
+  {
+   "compare": "M3 vs M1",
+   "confirm_2023": {
+    "delta": -0.0007399285920418154,
+    "ci_lo": -0.001156968760375365,
+    "ci_hi": -0.00031679331405529517,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -0.00049770638152539,
+    "ci_lo": -0.0008614444812438299,
+    "ci_hi": -0.00015207200565529956,
+    "p_improve": 0.9995,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -0.0006666147367161032,
+    "ci_lo": -0.0010528464598616905,
+    "ci_hi": -0.00023729021717344985,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.001618299952834322,
+    "2-3": -0.0004305388012461619,
+    "4-6": -0.0006602608403020736,
+    "7+": -0.0005506679091720063
+   },
+   "drop_top100_horses_delta": -0.0002394729441370646,
+   "exclude_nupd_le2_delta": -0.0006644533123853636,
+   "conditions": {
+    "confirm_ci": true,
+    "year_signs": true,
+    "popband": true,
+    "few_horses": true,
+    "history": true
+   },
+   "pass": true
+  },
+  {
+   "compare": "M4 vs M2",
+   "confirm_2023": {
+    "delta": -0.0005971500775920633,
+    "ci_lo": -0.0008513892150218831,
+    "ci_hi": -0.00034051685498748485,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -0.00037347812437477296,
+    "ci_lo": -0.0006102451009774181,
+    "ci_hi": -0.00013720937069386773,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -0.00039454863749554804,
+    "ci_lo": -0.0007093617939200509,
+    "ci_hi": -7.857930721756894e-05,
+    "p_improve": 0.997,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.0009210678724128955,
+    "2-3": -0.0002027261688704578,
+    "4-6": -0.0005929999783655773,
+    "7+": -0.0004065064610342288
+   },
+   "drop_top100_horses_delta": -0.00019692123030176886,
+   "exclude_nupd_le2_delta": -0.00044278140109560416,
+   "conditions": {
+    "confirm_ci": true,
+    "year_signs": true,
+    "popband": true,
+    "few_horses": true,
+    "history": true
+   },
+   "pass": true
+  },
+  {
+   "compare": "M2 vs M1",
+   "confirm_2023": {
+    "delta": -0.000527154223539764,
+    "ci_lo": -0.0010030483315499113,
+    "ci_hi": -8.591779850648194e-05,
+    "p_improve": 0.995,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -0.0005029962174375243,
+    "ci_lo": -0.0008930703547636004,
+    "ci_hi": -9.43599882912202e-05,
+    "p_improve": 0.9975,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -0.0004497317402155763,
+    "ci_lo": -0.000858140121011673,
+    "ci_hi": -2.1885357994378426e-06,
+    "p_improve": 0.9875,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.002288579414890171,
+    "2-3": -7.722757775282198e-05,
+    "4-6": -0.0003971555741805429,
+    "7+": -0.0004049571355011727
+   },
+   "drop_top100_horses_delta": -9.725468262610579e-05,
+   "exclude_nupd_le2_delta": -0.0006744597114414492,
+   "conditions": {
+    "confirm_ci": true,
+    "year_signs": true,
+    "popband": true,
+    "few_horses": true,
+    "history": true
+   },
+   "pass": true
+  },
+  {
+   "compare": "M5 vs M1",
+   "confirm_2023": {
+    "delta": -0.0007118839466044431,
+    "ci_lo": -0.0011104811269357219,
+    "ci_hi": -0.00030239376897842676,
+    "p_improve": 0.9995,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -0.0005359259198266293,
+    "ci_lo": -0.0009282272217875436,
+    "ci_hi": -0.0001590486704370868,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -0.000714163658265617,
+    "ci_lo": -0.0011251578469409253,
+    "ci_hi": -0.00026467165457436467,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.001753252533154969,
+    "2-3": -0.0002829271736334039,
+    "4-6": -0.0006957415742340187,
+    "7+": -0.0005919745430324876
+   },
+   "drop_top100_horses_delta": -0.00022863909565798887,
+   "exclude_nupd_le2_delta": -0.0006835643872951103,
+   "conditions": {
+    "confirm_ci": true,
+    "year_signs": true,
+    "popband": true,
+    "few_horses": true,
+    "history": true
+   },
+   "pass": true
+  },
+  {
+   "compare": "M6 vs M1",
+   "confirm_2023": {
+    "delta": -0.0008530852527195409,
+    "ci_lo": -0.0012680677517676957,
+    "ci_hi": -0.0004382129590619401,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -0.0005366389365375925,
+    "ci_lo": -0.0008966779752255842,
+    "ci_hi": -0.00018446282594487807,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -0.0007066749657905601,
+    "ci_lo": -0.0011016556747052754,
+    "ci_hi": -0.00029826184790935896,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.0021244108163703066,
+    "2-3": -0.0003637761672677705,
+    "4-6": -0.000660244341316191,
+    "7+": -0.0006163214122864896
+   },
+   "drop_top100_horses_delta": -0.0003065538439528923,
+   "exclude_nupd_le2_delta": -0.0007311200660659084,
+   "conditions": {
+    "confirm_ci": true,
+    "year_signs": true,
+    "popband": true,
+    "few_horses": true,
+    "history": true
+   },
+   "pass": true
+  },
+  {
+   "compare": "M5 vs M3",
+   "confirm_2023": {
+    "delta": 2.8044645437372376e-05,
+    "ci_lo": -8.171464600466233e-05,
+    "ci_hi": 0.00014076910903867878,
+    "p_improve": 0.2975,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -3.821953830123933e-05,
+    "ci_lo": -0.00014647120632830976,
+    "ci_hi": 6.8874557635153e-05,
+    "p_improve": 0.77,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -4.754892154951385e-05,
+    "ci_lo": -0.00014498072069621393,
+    "ci_hi": 4.409161590375045e-05,
+    "p_improve": 0.8775,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.00013495258032064744,
+    "2-3": 0.00014761162761275806,
+    "4-6": -3.5480733931945165e-05,
+    "7+": -4.130663386048134e-05
+   },
+   "drop_top100_horses_delta": 0.0001171606260884165,
+   "exclude_nupd_le2_delta": -1.9111074909746673e-05,
+   "conditions": {
+    "confirm_ci": false,
+    "year_signs": true,
+    "popband": true,
+    "few_horses": false,
+    "history": true
+   },
+   "pass": false
+  },
+  {
+   "compare": "M6 vs M3",
+   "confirm_2023": {
+    "delta": -0.00011315666067772531,
+    "ci_lo": -0.00019209514349769684,
+    "ci_hi": -3.495639176546747e-05,
+    "p_improve": 0.999,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -3.893255501220255e-05,
+    "ci_lo": -0.00010920645090373434,
+    "ci_hi": 3.379349504567113e-05,
+    "p_improve": 0.878,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -4.0060229074456804e-05,
+    "ci_lo": -0.00011332671382474473,
+    "ci_hi": 2.8671999876553407e-05,
+    "p_improve": 0.908,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.0005061108635359848,
+    "2-3": 6.676263397839162e-05,
+    "4-6": 1.6498985882519515e-08,
+    "7+": -6.565350311448343e-05
+   },
+   "drop_top100_horses_delta": -4.5740775270094477e-07,
+   "exclude_nupd_le2_delta": -6.666675368054464e-05,
+   "conditions": {
+    "confirm_ci": true,
+    "year_signs": true,
+    "popband": false,
+    "few_horses": true,
+    "history": true
+   },
+   "pass": false
+  },
+  {
+   "compare": "M1 vs M0",
+   "confirm_2023": {
+    "delta": -0.0016508660633170378,
+    "ci_lo": -0.002296308640826848,
+    "ci_hi": -0.0009900795340421203,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "oos_2024": {
+    "delta": -0.002795935772036055,
+    "ci_lo": -0.0034845845314870195,
+    "ci_hi": -0.0020803452281283573,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "oos_2025": {
+    "delta": -0.0029749522121888415,
+    "ci_lo": -0.0036472692453500084,
+    "ci_hi": -0.0022389547369371615,
+    "p_improve": 1.0,
+    "level": 0.975
+   },
+   "popband_delta": {
+    "1": -0.0034293421640883568,
+    "2-3": -0.004334049991661672,
+    "4-6": -0.002398107171666238,
+    "7+": -0.0018923347223197481
+   },
+   "drop_top100_horses_delta": -0.0019155266710526456,
+   "exclude_nupd_le2_delta": -0.00282042359685319,
+   "conditions": {
+    "confirm_ci": true,
+    "year_signs": true,
+    "popband": true,
+    "few_horses": true,
+    "history": true
+   },
+   "pass": true
+  }
+ ],
+ "gate2_verdict": "EXP02 固有の追加情報あり (M3>M1 かつ M4>M2)",
+ "gate3": {
+  "table": [
+   {
+    "model": "M1",
+    "rule": "R1",
+    "period": "2023",
+    "bets": 9278,
+    "hits": 1150,
+    "stake": 927800,
+    "return": 641090.0,
+    "roi": 69.09786591937917,
+    "roi_ci_lo": 62.74167080806005,
+    "roi_ci_hi": 75.40831189552796,
+    "max_drawdown": -283400.0,
+    "top10_share": 0.07602676691260198,
+    "roi_1": 89.33333333333333,
+    "roi_2-3": 81.66666666666667,
+    "roi_4-6": 70.31914893617022,
+    "roi_7+": 68.42762387826765
+   },
+   {
+    "model": "M1",
+    "rule": "R1",
+    "period": "2024",
+    "bets": 8712,
+    "hits": 1211,
+    "stake": 871200,
+    "return": 657390.0,
+    "roi": 75.45798898071625,
+    "roi_ci_lo": 69.16568341121496,
+    "roi_ci_hi": 81.98291934301669,
+    "max_drawdown": -220320.0,
+    "top10_share": 0.0770775338839958,
+    "roi_1": 70.0,
+    "roi_2-3": 80.7741935483871,
+    "roi_4-6": 75.43103448275862,
+    "roi_7+": 75.23795912533943
+   },
+   {
+    "model": "M1",
+    "rule": "R1",
+    "period": "2025",
+    "bets": 8432,
+    "hits": 1255,
+    "stake": 843200,
+    "return": 633110.0,
+    "roi": 75.08420303605313,
+    "roi_ci_lo": 69.07085252575692,
+    "roi_ci_hi": 81.58585086943107,
+    "max_drawdown": -206750.0,
+    "top10_share": 0.07117246608014405,
+    "roi_1": 107.41935483870968,
+    "roi_2-3": 79.32975871313673,
+    "roi_4-6": 71.42375168690958,
+    "roi_7+": 75.5178735105408
+   },
+   {
+    "model": "M1",
+    "rule": "R1",
+    "period": "2023-25",
+    "bets": 26422,
+    "hits": 3616,
+    "stake": 2642200,
+    "return": 1931590.0,
+    "roi": 73.10536673983802,
+    "roi_ci_lo": 69.67176511421124,
+    "roi_ci_hi": 76.68883015442455,
+    "max_drawdown": -706600.0,
+    "top10_share": 0.035670095620706256,
+    "roi_1": 94.57627118644068,
+    "roi_2-3": 80.44633368756642,
+    "roi_4-6": 72.40811455847256,
+    "roi_7+": 72.85795026375283
+   },
+   {
+    "model": "M1",
+    "rule": "R2",
+    "period": "2023",
+    "bets": 3456,
+    "hits": 2183,
+    "stake": 345600,
+    "return": 291150.0,
+    "roi": 84.24479166666666,
+    "roi_ci_lo": 82.00753004179728,
+    "roi_ci_hi": 86.4196034875054,
+    "max_drawdown": -53720.0,
+    "top10_share": 0.0063884595569294175,
+    "roi_1": 84.86319218241042,
+    "roi_2-3": 80.82228116710876,
+    "roi_4-6": 16.666666666666664,
+    "roi_7+": NaN
+   },
+   {
+    "model": "M1",
+    "rule": "R2",
+    "period": "2024",
+    "bets": 3453,
+    "hits": 2254,
+    "stake": 345300,
+    "return": 297310.0,
+    "roi": 86.10194034173183,
+    "roi_ci_lo": 84.06668877242625,
+    "roi_ci_hi": 88.14039639582761,
+    "max_drawdown": -46840.0,
+    "top10_share": 0.006491540815983317,
+    "roi_1": 86.474609375,
+    "roi_2-3": 83.05405405405405,
+    "roi_4-6": 84.54545454545455,
+    "roi_7+": NaN
+   },
+   {
+    "model": "M1",
+    "rule": "R2",
+    "period": "2025",
+    "bets": 3455,
+    "hits": 2222,
+    "stake": 345500,
+    "return": 293580.0,
+    "roi": 84.97250361794501,
+    "roi_ci_lo": 82.8493098769401,
+    "roi_ci_hi": 87.21208268145769,
+    "max_drawdown": -51380.0,
+    "top10_share": 0.005620273860617208,
+    "roi_1": 84.76729153199742,
+    "roi_2-3": 86.75213675213675,
+    "roi_4-6": 86.0,
+    "roi_7+": NaN
+   },
+   {
+    "model": "M1",
+    "rule": "R2",
+    "period": "2023-25",
+    "bets": 10364,
+    "hits": 6659,
+    "stake": 1036400,
+    "return": 882040.0,
+    "roi": 85.10613662678502,
+    "roi_ci_lo": 83.85068281022821,
+    "roi_ci_hi": 86.33951015871759,
+    "max_drawdown": -153630.0,
+    "top10_share": 0.0026529409097093104,
+    "roi_1": 85.36704200952794,
+    "roi_2-3": 83.46994535519126,
+    "roi_4-6": 64.66666666666666,
+    "roi_7+": NaN
+   },
+   {
+    "model": "M4",
+    "rule": "R1",
+    "period": "2023",
+    "bets": 11628,
+    "hits": 1731,
+    "stake": 1162800,
+    "return": 855200.0,
+    "roi": 73.54661162710698,
+    "roi_ci_lo": 68.04328233066433,
+    "roi_ci_hi": 79.08017493644624,
+    "max_drawdown": -305500.0,
+    "top10_share": 0.06966791393826005,
+    "roi_1": 93.52941176470588,
+    "roi_2-3": 81.47424511545293,
+    "roi_4-6": 76.38837638376384,
+    "roi_7+": 72.27123998646057
+   },
+   {
+    "model": "M4",
+    "rule": "R1",
+    "period": "2024",
+    "bets": 10863,
+    "hits": 1710,
+    "stake": 1086300,
+    "return": 846060.0,
+    "roi": 77.88456227561447,
+    "roi_ci_lo": 72.28384166173818,
+    "roi_ci_hi": 84.41258321561355,
+    "max_drawdown": -248640.0,
+    "top10_share": 0.062395102002222064,
+    "roi_1": 85.9375,
+    "roi_2-3": 85.36964980544747,
+    "roi_4-6": 77.7443967572723,
+    "roi_7+": 77.42092457420925
+   },
+   {
+    "model": "M4",
+    "rule": "R1",
+    "period": "2025",
+    "bets": 10458,
+    "hits": 1759,
+    "stake": 1045800,
+    "return": 783670.0,
+    "roi": 74.93497800726716,
+    "roi_ci_lo": 70.43169034774547,
+    "roi_ci_hi": 79.61194074059848,
+    "max_drawdown": -258930.0,
+    "top10_share": 0.05582707006775811,
+    "roi_1": 94.16666666666667,
+    "roi_2-3": 87.87052810902895,
+    "roi_4-6": 75.76036866359446,
+    "roi_7+": 73.58813537174964
+   },
+   {
+    "model": "M4",
+    "rule": "R1",
+    "period": "2023-25",
+    "bets": 32949,
+    "hits": 5200,
+    "stake": 3294900,
+    "return": 2484930.0,
+    "roi": 75.4174633524538,
+    "roi_ci_lo": 72.34838901577113,
+    "roi_ci_hi": 78.49521339697861,
+    "max_drawdown": -805360.0,
+    "top10_share": 0.030781551190576798,
+    "roi_1": 91.66666666666666,
+    "roi_2-3": 84.93389423076924,
+    "roi_4-6": 76.61849261849262,
+    "roi_7+": 74.38995795601554
+   },
+   {
+    "model": "M4",
+    "rule": "R2",
+    "period": "2023",
+    "bets": 3456,
+    "hits": 2191,
+    "stake": 345600,
+    "return": 292410.0,
+    "roi": 84.609375,
+    "roi_ci_lo": 82.40439097953104,
+    "roi_ci_hi": 86.74589551196065,
+    "max_drawdown": -52140.0,
+    "top10_share": 0.006360931568687801,
+    "roi_1": 85.0133422281521,
+    "roi_2-3": 82.20224719101124,
+    "roi_4-6": 73.84615384615385,
+    "roi_7+": NaN
+   },
+   {
+    "model": "M4",
+    "rule": "R2",
+    "period": "2024",
+    "bets": 3453,
+    "hits": 2271,
+    "stake": 345300,
+    "return": 299040.0,
+    "roi": 86.60295395308427,
+    "roi_ci_lo": 84.49864712831804,
+    "roi_ci_hi": 88.55864889984647,
+    "max_drawdown": -45110.0,
+    "top10_share": 0.006186463349384698,
+    "roi_1": 86.64238410596028,
+    "roi_2-3": 85.86288416075651,
+    "roi_4-6": 106.0,
+    "roi_7+": NaN
+   },
+   {
+    "model": "M4",
+    "rule": "R2",
+    "period": "2025",
+    "bets": 3455,
+    "hits": 2223,
+    "stake": 345500,
+    "return": 293070.0,
+    "roi": 84.82489146164978,
+    "roi_ci_lo": 82.72196843220006,
+    "roi_ci_hi": 87.01473085450355,
+    "max_drawdown": -52090.0,
+    "top10_share": 0.005322960384890982,
+    "roi_1": 85.35976015989341,
+    "roi_2-3": 81.19266055045871,
+    "roi_4-6": 83.52941176470588,
+    "roi_7+": NaN
+   },
+   {
+    "model": "M4",
+    "rule": "R2",
+    "period": "2023-25",
+    "bets": 10364,
+    "hits": 6685,
+    "stake": 1036400,
+    "return": 884520.0,
+    "roi": 85.34542647626398,
+    "roi_ci_lo": 84.03962559838398,
+    "roi_ci_hi": 86.60173856830792,
+    "max_drawdown": -150830.0,
+    "top10_share": 0.0025437525437525437,
+    "roi_1": 85.6740576496674,
+    "roi_2-3": 83.0521472392638,
+    "roi_4-6": 86.0,
+    "roi_7+": NaN
+   },
+   {
+    "model": "v6◎複勝",
+    "rule": "flat",
+    "period": "2023",
+    "bets": 3456,
+    "hits": 2043,
+    "stake": 345600,
+    "return": 283090.0,
+    "roi": 81.91261574074075,
+    "roi_ci_lo": 79.44134394052507,
+    "roi_ci_hi": 84.25409065141207,
+    "max_drawdown": -62120.0,
+    "top10_share": 0.010102794164400014,
+    "roi_1": 85.44125063035804,
+    "roi_2-3": 81.69258920402562,
+    "roi_4-6": 69.62145110410096,
+    "roi_7+": 36.507936507936506
+   },
+   {
+    "model": "v6◎複勝",
+    "rule": "flat",
+    "period": "2024",
+    "bets": 3453,
+    "hits": 2135,
+    "stake": 345300,
+    "return": 297520.0,
+    "roi": 86.16275702287865,
+    "roi_ci_lo": 83.9971923867058,
+    "roi_ci_hi": 88.34053046029284,
+    "max_drawdown": -47290.0,
+    "top10_share": 0.011797526216724925,
+    "roi_1": 87.35148514851485,
+    "roi_2-3": 84.30086788813887,
+    "roi_4-6": 88.6890243902439,
+    "roi_7+": 67.05882352941175
+   },
+   {
+    "model": "v6◎複勝",
+    "rule": "flat",
+    "period": "2025",
+    "bets": 3455,
+    "hits": 2089,
+    "stake": 345500,
+    "return": 290130.0,
+    "roi": 83.9739507959479,
+    "roi_ci_lo": 81.470593640717,
+    "roi_ci_hi": 86.53736054940069,
+    "max_drawdown": -55140.0,
+    "top10_share": 0.009409575018095336,
+    "roi_1": 85.86084306754698,
+    "roi_2-3": 84.3336355394379,
+    "roi_4-6": 80.27863777089783,
+    "roi_7+": 35.333333333333336
+   },
+   {
+    "model": "v6◎複勝",
+    "rule": "flat",
+    "period": "2023-25",
+    "bets": 10364,
+    "hits": 6267,
+    "stake": 1036400,
+    "return": 870740.0,
+    "roi": 84.01582400617522,
+    "roi_ci_lo": 82.66043999120525,
+    "roi_ci_hi": 85.42676484117533,
+    "max_drawdown": -165580.0,
+    "top10_share": 0.004421526517674621,
+    "roi_1": 86.22572002679169,
+    "roi_2-3": 83.43025054129292,
+    "roi_4-6": 79.63842975206612,
+    "roi_7+": 47.01570680628272
+   },
+   {
+    "model": "市場1番人気複勝",
+    "rule": "flat",
+    "period": "2023",
+    "bets": 3456,
+    "hits": 2172,
+    "stake": 345600,
+    "return": 293030.0,
+    "roi": 84.78877314814814,
+    "roi_ci_lo": 82.5290977000806,
+    "roi_ci_hi": 86.97702372218146,
+    "max_drawdown": -51690.0,
+    "top10_share": 0.007917278094393066,
+    "roi_1": 84.78877314814814,
+    "roi_2-3": NaN,
+    "roi_4-6": NaN,
+    "roi_7+": NaN
+   },
+   {
+    "model": "市場1番人気複勝",
+    "rule": "flat",
+    "period": "2024",
+    "bets": 3453,
+    "hits": 2216,
+    "stake": 345300,
+    "return": 293800.0,
+    "roi": 85.08543295684912,
+    "roi_ci_lo": 82.98247015143416,
+    "roi_ci_hi": 87.1134633177904,
+    "max_drawdown": -50560.0,
+    "top10_share": 0.007215793056501021,
+    "roi_1": 85.08543295684912,
+    "roi_2-3": NaN,
+    "roi_4-6": NaN,
+    "roi_7+": NaN
+   },
+   {
+    "model": "市場1番人気複勝",
+    "rule": "flat",
+    "period": "2025",
+    "bets": 3455,
+    "hits": 2207,
+    "stake": 345500,
+    "return": 295190.0,
+    "roi": 85.43849493487699,
+    "roi_ci_lo": 83.42516358099914,
+    "roi_ci_hi": 87.46808430696223,
+    "max_drawdown": -49770.0,
+    "top10_share": 0.007656085910769335,
+    "roi_1": 85.43849493487699,
+    "roi_2-3": NaN,
+    "roi_4-6": NaN,
+    "roi_7+": NaN
+   },
+   {
+    "model": "市場1番人気複勝",
+    "rule": "flat",
+    "period": "2023-25",
+    "bets": 10364,
+    "hits": 6595,
+    "stake": 1036400,
+    "return": 882020.0,
+    "roi": 85.10420686993439,
+    "roi_ci_lo": 83.87739210671366,
+    "roi_ci_hi": 86.33129142414859,
+    "max_drawdown": -153500.0,
+    "top10_share": 0.003378608194825514,
+    "roi_1": 85.10420686993439,
+    "roi_2-3": NaN,
+    "roi_4-6": NaN,
+    "roi_7+": NaN
+   }
+  ],
+  "diff": [
+   {
+    "rule": "R1",
+    "compare": "M4 - M1",
+    "roi_diff_pt": 2.3120966126157754,
+    "ci_lo": -0.027002024271935793,
+    "ci_hi": 4.726358318622169
+   },
+   {
+    "rule": "R2",
+    "compare": "M4 - M1",
+    "roi_diff_pt": 0.2392898494789648,
+    "ci_lo": -0.44426373219235804,
+    "ci_hi": 0.9651394318464955
+   }
+  ]
+ },
+ "verdict": "EXP02 固有の追加情報あり (M3>M1 かつ M4>M2)"
+}
