@@ -1,0 +1,108 @@
+{
+ "experiment_id": "MCOND-EXP03-LATENT-STATE",
+ "hypothesis_id": "H-LATENT-STATE-2026",
+ "created_at": "2026-09-18",
+ "commit_hash": "この JSON を含むコミット (build.py / run.py が実行時に git から取得して記録)",
+ "prior_art_audit": "PRIOR_ART_AUDIT.md (判定: 実装する。EWMA は走数ベースの生値平均で、相手補正・期待差・2成分・日数での平均回帰・不確実性を持たない)",
+ "hypothesis": "EXP02 の対戦能力・出走回数・休養日数・単純な近走成績をすべて考慮した後でも、過去走の予想外の好走・凡走から逐次推定した短期状態 (latent_short_state) は、v6 と発走約35分前の市場に対する3着内の追加情報を持つ。",
+ "data_hashes_sha256_16": {
+  "data/master_v2_20130105-20251228.csv": "b8032d1bd78176a9",
+  "data/_research/mcond/base.parquet": "e2d229082d9b604b",
+  "data/_research/mcond/exp02_features.parquet": "cb098fadfffc2982"
+ },
+ "state_model": {
+  "observation": "走りの強さ = a + s + ノイズ(β)。1レースの全着順を1観測とする Weng–Lin PL (γ=1) を a+s に適用し、平均変化と分散縮小を成分の分散比で配分",
+  "ability": "a_prior = a, var_a_prior = var_a + τa²·Δt (ランダムウォーク)",
+  "short_state": "ρ = exp(−ln2·Δt/HL), s_prior = ρ·s, var_s_prior = ρ²·var_s + qs²·(1−ρ²) (0 へ戻る AR(1)、定常分散 qs²)",
+  "initial": "a ~ N(25,(25/3)²) (EXP02 と同じ尺度), s ~ N(0, qs²)",
+  "identification": ["s の長期平均は0", "s は日数で0へ回帰", "τa² は小さく a は遅い", "qs² は1走あたりの a の変化より大きく取れる", "a は EXP02 と同じ初期分布・尺度", "符号・尺度は全期間共通"],
+  "smoothing": "禁止 (filtering のみ)",
+  "same_day": "その日の全レースを前日までの状態で予測し、日の終わりにまとめて更新 (EXP02 と同じ)",
+  "rank": "master の出走行のみ、同着は同順位、着差・補正タイム・市場オッズは使わない"
+ },
+ "innovation": {
+  "candidates": {"A": "z = Ω/√Δ (更新前の a+s に対する PL スコア残差を Fisher 情報で標準化)",
+                 "B": "期待順位分位 − 実順位分位 (期待順位はペアの PL 勝率の和)"},
+  "choice_rule": "選択したハイパーパラメータで、60日以内の連続2走の innovation の順位相関 (2016-2021) が大きい方",
+  "ewma": "更新時 ew ← ρ·ew_前回 + (1−ρ)·z (ρ は状態と同じ半減期)、初走は z。予測時点では ρ(経過日数)·ew",
+  "market_odds": "使わない"
+ },
+ "hyperparameter_selection": {
+  "grid": {"halflife_days": [30, 90, 180], "tau2_a": [0.0025, 0.005], "qs": [2.0, 4.0], "beta": [1.0417, 2.0833]},
+  "criterion": "2016-2021 の次走勝ち予測対数尤度 (a+s の softmax、日単位バッチの更新前状態) の平均が最大",
+  "reference_no_state": "qs=0.001 (状態なし) も計算して記録するが選択対象外",
+  "edge_rule": "最適値が格子の端でも評価後に格子を広げない",
+  "uses": "着順のみ。v6・市場・ROI・2024-25 の結果は使わない"
+ },
+ "warmup": "2013-01-05 〜 2015-12-31 (評価しない)",
+ "population": {"years": [2016, 2025], "rows": "base.parquet (v6 と市場preがある出走) の頭数5以上、新馬を含む全出走馬"},
+ "splits": {"train": [2016, 2021], "selection": [2022, 2022], "confirm": [2023, 2023], "exploratory_oos": [2024, 2025],
+            "note": "2024-25 は再利用済み期間での探索的OOS"},
+ "features": {
+  "raw_recency_experience": ["raw_career_runs", "raw_runs_180d", "raw_days_since", "raw_layoff_flag", "raw_short_flag",
+                             "raw_prev_fin", "raw_prev_fin_q", "raw_prev_margin", "raw_last3_finq_mean"],
+  "raw_notes": "出走回数は master (2013-) の過去行数、前走日数は master の前走日付、休養=180日超、短間隔=14日以内、直近3走は master の過去行の着順/頭数",
+  "exp02_dynamic_skill": "exp02 spec.json features.T1 の17列 (data/_research/mcond/exp02_features.parquet)",
+  "latent_short_state": ["persistent_ability_mu", "persistent_ability_change", "latent_short_state_mu",
+                         "latent_short_state_sigma", "latent_short_state_abs", "latent_state_days_since_update",
+                         "latent_state_decay_ratio", "last_performance_innovation", "innovation_ewma",
+                         "combined_ability_state", "combined_rank_in_race", "state_rank_in_race", "state_minus_field_mean"],
+  "existing_ewma": ["ewm_pos", "ewm_pos_vs_prev", "ewm_agari", "ewm_agari_vs_prev", "ewm_rpci", "ewm_rpci_vs_prev",
+                    "ewm_chakusa", "ewm_chakusa_vs_prev", "ewm_hosei", "ewm_hosei_vs_prev", "ewm_pci", "ewm_pci_vs_prev",
+                    "ewm_avg1f", "ewm_avg1f_vs_prev"],
+  "existing_ewma_note": "exp_recency_ewm.py と同じ定義 (前走値の走数ベース EWMA, halflife=1.8走) を master から再生成。補正タイムを含むが対照のみ"
+ },
+ "models": {
+  "M0": ["logit(mkt_p3_pre)"],
+  "M1": ["logit(v6_p3)", "logit(mkt_p3_pre)"],
+  "M2": ["M1", "raw_recency_experience"],
+  "M3": ["M2", "exp02_dynamic_skill"],
+  "M4": ["M3", "latent_short_state"],
+  "M5": ["M3", "existing_ewma"],
+  "M6": ["M5", "latent_short_state"],
+  "model_class": "ロジスティック回帰 L2、C は 2022 で {0.1,1,10} から選択、train (2016-2021) のみで学習。train の平均・標準偏差で標準化、欠損は0"
+ },
+ "primary_target": "top3",
+ "primary_metric": "馬単位 logloss、開催日ブロック bootstrap 2000回",
+ "secondary": ["Brier", "ECE", "AUC", "レース内順位相関", "1着", "v6◎の top3", "AI・市場不一致 (|rank_v6−rank_mkt|≥3)",
+               "短間隔 (≤14日)", "長期休養明け (>180日)", "若齢 (3歳以下)", "出走履歴の多い馬 (出走回数≥15)"],
+ "gate0": ["EXP02 特徴と時点安全に結合 (評価母集団の98%超)", "innovation は更新前の状態で計算 (時点安全テスト)",
+           "同日結果の混入なし (時点安全テスト)", "ウォームアップ 2013-2015", "欠損は train 平均で補完 (固定)",
+           "補正タイムはモデル本体で不使用"],
+ "gate1": {
+  "G1a_decay": "出走回数≥3 の馬で、休養180日超の |s| 中央値 < 30日以内の中央値",
+  "G1b_faster_than_ability": "同じ馬の連続2走での自己相関: s < a",
+  "G1c_not_collinear": "|corr(a, s)| < 0.9",
+  "G1d_not_prev_finish": "s を 前走着順・前走着順分位 で線形回帰した R² < 0.5",
+  "G1e_not_days": "s を 前走からの日数・log(日数) で線形回帰した R² < 0.5",
+  "G1f_no_divergence": "すべて有限、|s| の最大 ≤ 5·qs",
+  "G1g_scale_stable": "年ごと (2016-2025) の s の標準偏差の変動係数 < 0.3",
+  "G1h_deterministic": "test_time_safety.test_deterministic が PASS"
+ },
+ "gate2": {
+  "primary": "M4 vs M3",
+  "unique_vs_ewma": "M6 vs M5",
+  "multiplicity": "Bonferroni 2比較 → 97.5% CI",
+  "pass_all_of": ["confirm(2023): Δlogloss < 0 かつ 97.5% CI 上限 < 0",
+                  "2024 と 2025 のそれぞれで Δ < 0",
+                  "2023-25 合算: 市場順位帯 {1, 2-3, 4-6, 7+} のうち 3帯以上で Δ < 0",
+                  "2023-25 合算: 短間隔 (≤14日) を除いても Δ < 0",
+                  "2023-25 合算: 長期休養明け (>180日) を除いても Δ < 0",
+                  "2023-25 合算: |latent_short_state_mu| 上位1% を除いても Δ < 0"],
+  "verdict": {"M4 vs M3 FAIL": "仮説終了",
+              "M4 PASS, M6 FAIL": "短期情報は有効だが状態モデル固有の価値はなし (既存 EWMA で十分)",
+              "両方 PASS": "状態モデル固有の追加情報あり"}
+ },
+ "gate3_economic": {
+  "run_only_if": "M4 vs M3 が PASS",
+  "model_used": "M6 vs M5 も PASS なら M6 と M5 を比較、そうでなければ M4 と M3 を比較",
+  "rules": {"R1": "複勝100円均等: p_model / mkt_p3_pre >= 1.15 (EXP01/02 と同一)", "R2": "複勝100円均等: 各レースで p_model 最大の1頭"},
+  "settlement": "確定複勝配当",
+  "report": ["購入件数", "的中件数", "ROI", "比較モデルとの差", "年度別ROI", "人気帯別ROI", "間隔別ROI", "最大ドローダウン",
+             "利益上位10レース集中度", "開催日ブロック bootstrap CI", "v6◎複勝均等との比較"],
+  "profit_claim_requires": "未使用期間 (2026-10以降の前向き) での再現"
+ },
+ "stop_rules": ["Gate 0 / Gate 1 FAIL → 中止",
+                "Gate 2 FAIL → 半減期・状態数・分散・モデル形式を追加して再探索しない (Kalman→HMM、2状態→3状態 等も禁止)。次は『年度・競馬場・条件をまたいで残る不変情報の選別』",
+                "Gate 2 PASS でも Gate 3 で利益差なし → 研究結果として保存、本番接続しない"]
+}
