@@ -1,0 +1,114 @@
+{
+ "experiment_id": "MCOND-EXP02-DYNAMIC-SKILL",
+ "hypothesis_id": "H-DYN-SKILL-2026",
+ "created_at": "2026-09-18",
+ "commit_hash": "この JSON を含むコミット (build.py / run.py が実行時に git から取得して記録)",
+ "base_document": "docs/research/NEXT_GEN_RESEARCH_PLAN_20260918.md",
+ "prior_art_audit": "PRIOR_ART_AUDIT.md (判定: 実装する。固有価値は M4 vs M2 で判定)",
+ "hypothesis": "多頭数の過去対戦から時点安全に推定した能力と不確実性は、現行v6と発走約35分前の市場確率を考慮した後にも、3着以内に関する追加情報を持つ。",
+ "data_hashes_sha256_16": {
+  "data/master_v2_20130105-20251228.csv": "b8032d1bd78176a9",
+  "data/_research/mcond/base.parquet": "e2d229082d9b604b",
+  "data/elo_feats.parquet": "792a414eef92e3ef",
+  "data/glicko_feats.parquet": "90b70c0848649cb3",
+  "data/_research/mcond/exp01_features.parquet": "9a9e0c45ee4c49f5"
+ },
+ "model_definition": {
+  "update": "Weng & Lin (2011) Plackett-Luce 版。1レースの全着順を1観測とする閉形式更新。dyn_skill.py の docstring の式",
+  "gamma": "1 (Laplace 近似で Fisher 情報を精度に加算する形)。OpenSkill 既定の sqrt(var)/c は多頭数で分散がほぼ減らないため、評価前に 2013 ウォームアップの記述統計だけを見て変更",
+  "kappa": 0.0001,
+  "prior": "全馬共通 N(25, (25/3)^2)。階層初期値は使わない",
+  "time_change": "予測時点で var += tau2_per_day × 前回更新からの日数",
+  "T1": "全条件共通の能力 1成分",
+  "T2": "全体 g + 芝ダ効果 + 距離帯効果 (≤1400/1401-1800/1801-2200/≥2201)。効果の初期分布 N(0,(25/9)^2)、ドリフトなし。条件能力で更新し、平均変化と分散縮小を成分の分散比で配分。効果の分散は探索しない",
+  "smoothing": "禁止 (filtering のみ)",
+  "same_day": "その日の全レースを前日までの状態から予測し、日の終わりにまとめて更新",
+  "margin": "着差は使わない (順位のみ)"
+ },
+ "rank_exceptions": {
+  "取消・除外・競走中止": "master に行が無い (kekka では着順0, 2013-2025 で 5,167 行)。対戦参加者に含めない",
+  "同着": "同順位として扱う (A_q で按分)。1,241 レース",
+  "失格・降着": "確定着順のとおり (番号が飛ぶレース 26 件はそのまま)",
+  "頭数不足": "評価では頭数5未満を除外。能力の更新は全レースで行う",
+  "海外馬・転入馬・初出走": "履歴が無い馬として共通初期分布から開始"
+ },
+ "warmup": "2013-01-05 〜 2015-12-31 は能力推定のみ。評価しない",
+ "hyperparameter_selection": {
+  "grid": {"beta": [2.0833, 4.1667, 8.3333], "tau2_per_day": [0.005, 0.02, 0.08]},
+  "criterion": "T1 の次走勝ち予測の対数尤度 (日単位バッチの更新前状態で softmax(mu/c) の勝ち馬確率、同着は平均) の 2016-2021 レース平均が最大",
+  "uses": "着順のみ。v6・市場・ROI は使わない"
+ },
+ "population": {"years": [2016, 2025], "rows": "base.parquet (v6 と市場preがある出走) の頭数5以上。新馬を含む全出走馬"},
+ "splits": {"train": [2016, 2021], "selection": [2022, 2022], "confirm": [2023, 2023], "exploratory_oos": [2024, 2025],
+            "note": "2024-25 は再利用済み期間での探索的OOS"},
+ "features": {
+  "T1": ["dyn_skill_mu", "dyn_skill_sigma", "dyn_skill_conservative", "dyn_skill_rank_in_race", "dyn_skill_gap_to_top",
+         "dyn_skill_gap_to_field_mean", "dyn_skill_last_change", "dyn_skill_days_since_update", "dyn_skill_num_updates",
+         "field_skill_mean", "field_skill_std", "field_skill_max", "field_skill_top3_mean", "field_uncertainty_mean",
+         "horse_skill_minus_field", "horse_skill_percentile", "race_difficulty"],
+  "T2": ["condition_skill_mu", "condition_skill_sigma", "condition_skill_minus_global", "condition_skill_rank_in_race"],
+  "existing_rating": ["elo_T1M1_horse", "elo_T1M1_level", "elo_T1M1_vs", "elo_T1M1_prevlevel",
+                      "elo_T1M2_horse", "elo_T1M2_level", "elo_T1M2_vs", "elo_T1M2_prevlevel",
+                      "elo_T2M1_horse", "elo_T2M1_level", "elo_T2M1_vs", "elo_T2M1_prevlevel",
+                      "elo_T2M2_horse", "elo_T2M2_level", "elo_T2M2_vs", "elo_T2M2_prevlevel",
+                      "g2_mu", "g2_rd", "g2_cons"],
+  "existing_rating_note": "レースレベル v2 の生成物は現存しない (補正タイム依存でもある) ため M2 は ELO 16列 + Glicko 3列",
+  "conservative_definition": "mu - 2*sigma"
+ },
+ "models": {
+  "M0": ["logit(mkt_p3_pre)"],
+  "M1": ["logit(v6_p3)", "logit(mkt_p3_pre)"],
+  "M2": ["M1", "existing_rating"],
+  "M3": ["M1", "T1"],
+  "M4": ["M1", "existing_rating", "T1"],
+  "M5": ["M1", "T1", "T2"],
+  "M6": ["M3", "disagree*dyn_skill_sigma", "disagree*horse_skill_minus_field", "logit(mkt_p3_pre)*dyn_skill_sigma"],
+  "disagree": "|rank_v6 - rank_mkt_pre| >= 3 (EXP01 と同じ)",
+  "model_class": "ロジスティック回帰 L2、C は 2022 で {0.1,1,10} から選択、train (2016-2021) のみで学習。特徴は train の平均・標準偏差で標準化し欠損は0"
+ },
+ "primary_target": "top3",
+ "primary_metric": "馬単位 logloss、開催日ブロック bootstrap 2000回",
+ "secondary": ["Brier", "ECE", "AUC", "レース内順位相関・ペア正解率", "年度別", "人気帯別", "出走履歴数別 (num_updates 0 / 1-2 / 3-5 / 6-10 / 11+)",
+               "昇級・降級別 (EXP01 の raw_cls_chg、前走連結できる行のみ)", "新馬と180日超の休養明けを除いた感度分析",
+               "1着", "AI・市場不一致の馬", "M5 vs M3 (T2 の上積み)", "M6 vs M3 (相互作用の上積み)"],
+ "gate1": {
+  "G1a_mean_moves_with_results": "前走の着順 (1..10着) ごとの次走時点の last_change 平均が、1着で正・下位で負、着順との順位相関 ≤ -0.9",
+  "G1b_sigma_decreases_with_history": "休養60日以内 (または初出走) の行で、num_updates の区分 0/1/2/3-5/6-10/11-20/21+ ごとの sigma 中央値が単調非増加",
+  "G1c_layoff_raises_sigma": "num_updates 6-10 の行で、休養180日超の sigma 中央値 > 60日以内の中央値",
+  "G1d_new_horses_not_extreme": "初出走の mu = 25 ちょうど、かつレース内 mu パーセンタイルの平均が 0.2〜0.8",
+  "G1e_not_a_copy": "mu と 前走着順・クラス序数・num_updates の |Spearman| がそれぞれ < 0.8、3つからの線形 R² < 0.8",
+  "G1f_scale_stable": "勝ち馬の horse_skill_minus_field 中央値の、年 (2016-2025) 間と競馬場間の変動係数がそれぞれ < 0.3"
+ },
+ "gate2": {
+  "primary_comparisons": ["M3 vs M1", "M4 vs M2"],
+  "multiplicity": "Bonferroni 2比較 → 97.5% CI",
+  "pass_all_of": [
+   "confirm(2023): Δlogloss < 0 かつ 97.5% CI 上限 < 0",
+   "2024 と 2025 のそれぞれで Δ < 0",
+   "2023-25 合算: 市場順位帯 {1, 2-3, 4-6, 7+} のうち 3帯以上で Δ < 0",
+   "2023-25 合算: 改善への寄与が大きい上位100頭を除いても Δ < 0 (少数馬への依存なし)",
+   "2023-25 合算: num_updates ≤ 2 の馬を除いても Δ < 0 (履歴不足馬への依存なし)"
+  ],
+  "verdict": {
+   "M3 vs M1 FAIL": "動的能力に市場条件付きの追加情報なし",
+   "M3 vs M1 PASS, M4 vs M2 FAIL": "能力系情報は有効だが EXP02 固有の価値はない",
+   "両方 PASS": "EXP02 固有の追加情報あり",
+   "T2 のみ (M5 vs M1 PASS かつ M3 vs M1 FAIL)": "条件別の部分プーリングに価値がある可能性 (探索扱い)",
+   "M6 のみ": "主仮説の成功とせず探索結果"
+  }
+ },
+ "gate3_economic": {
+  "run_only_if": "M3 vs M1 が PASS",
+  "model_used": "M4 vs M2 も PASS なら M4、そうでなければ M3",
+  "rules": {"R1": "複勝100円均等: p_model / mkt_p3_pre >= 1.15 (EXP01 と同一、探索しない)",
+            "R2": "複勝100円均等: 各レースで p_model 最大の1頭"},
+  "settlement": "確定複勝配当",
+  "baselines": ["同ルールの M1", "v6◎複勝均等", "市場1番人気複勝均等"],
+  "profit_claim_requires": "未使用期間 (2026-10以降の前向き) での再現"
+ },
+ "stop_rules": [
+  "Gate 0 / Gate 1 のいずれかが FAIL → 中止",
+  "Gate 2 FAIL → 別のレーティング名・条件区分・パラメータで再探索しない。次は『恒常的能力と短期状態の分離』",
+  "Gate 2 PASS でも Gate 3 で利益差なし → 予測情報として記録のみ、本番接続しない"
+ ]
+}
