@@ -1,4 +1,6 @@
-# EXP05-F タスクスケジューラ設計 (spec §10、登録は未実施)
+# EXP05-F タスクスケジューラ設計 (spec §10)
+
+**2026-09-19、登録前Gateを全て満たしたため登録済み。** 末尾「登録結果」節参照。
 
 `t20_site.ps1`/`t10.ps1`と全く同じ「レース毎タスク」方式を採用する
 (`t35_shadow.ps1`実装済み)。理由: 既に本番で実績のある設計をそのまま踏襲することで
@@ -55,15 +57,35 @@ EXP05-F固有の問題ではない。
 ```powershell
 .\t35_shadow.ps1 -Schedule
 ```
-常設の自動起動タスク("PyCaLiAI_EXP05FS_T35"、土日9:00起動)を作る場合は、
-既存の`PyCaLiAI_T20_Site`タスクを`schtasks /query`で確認した上で同じ形式のトリガーを
-別名で作成する(このセッションでは未実施、ユーザー確認後に行う)。
 
 解除:
 ```powershell
 Get-ScheduledTask -TaskName 'PyCaLiAI_EXP05FS_T35R_*' | Unregister-ScheduledTask -Confirm:$false
 Get-ScheduledTask -TaskName 'PyCaLiAI_EXP05FS_T35' | Unregister-ScheduledTask -Confirm:$false
 ```
+
+## 登録結果 (2026-09-19実施)
+
+`PyCaLiAI_T20_Site`と同じトリガー形式で常設マスタータスクを登録した (`New-ScheduledTaskTrigger
+-Weekly -DaysOfWeek Saturday,Sunday -At 9am`)。加えて`.\t35_shadow.ps1 -Schedule`を1回実行し、
+本日(2026-09-19)残りの9レース分のレース毎タスクも登録済み。
+
+| 項目 | 値 |
+|---|---|
+| マスタータスク名 | `PyCaLiAI_EXP05FS_T35` |
+| 次回実行日時 | 2026-09-20 (日) 9:00:00 |
+| 実行ユーザー | gutch (Interactive) |
+| 作業ディレクトリ | `E:\PyCaLiAI` |
+| 多重起動防止 | `MultipleInstances=IgnoreNew` (レース毎タスクで確認済み) |
+| WakeToRun/StartWhenAvailable | 両方True |
+| 実行時間上限 | 30分 (レース毎タスク) |
+| 失敗時ログ | `logs\t35_shadow_{date}.log` + `logs\exp05fs_errors.log` |
+| 登録直後のレース毎タスク | 9件登録 (本日13:20-15:55処理→13:55-16:30発走、全てState=Ready) |
+| 解除コマンド | 上記 |
+
+祝日・代替開催(月曜等)は`PyCaLiAI_T20_Site`/`t10.ps1`と同じ制約: マスタートリガーは
+土日固定のため、祝日開催週は手動で`.\t35_shadow.ps1 -Schedule`を実行する必要がある
+(既存運用と同じ、EXP05-F固有の制約ではない)。
 
 ## 本番への影響範囲
 

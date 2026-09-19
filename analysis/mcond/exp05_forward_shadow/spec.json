@@ -110,8 +110,17 @@
   "混在コミットの事実確認 (MIXED_COMMIT_NOTE.md)"
  ],
  "not_yet_done": [
-  "実JV-LinkでのT-35取得成功確認 (LIVE_PREFLIGHT.md参照、実施結果次第で更新)",
-  "最初の前向きGate1/2/3評価 (6600レース到達後)",
-  "Windows タスクスケジューラへの本登録 (ユーザー確認待ち、SCHEDULER_PLAN.md参照)"
- ]
+  "最初の前向きGate1/2/3評価 (6600レース到達後)"
+ ],
+ "final_check_20260919": {
+  "category_normalization": "全28カテゴリ列監査完了 (CATEGORY_PARITY.csv)、重要4列unknown_rate 0.0-0.9%",
+  "prediction_impact": "controlled replay(12週375レース)で◎変更5.9%、成績指標は統計的に中立 (PREDICTION_IMPACT.md)",
+  "permanent_canary": "export_weekly_marks.pyにgate_errors経由のfail-closed canary実装済み",
+  "dyn_skill_resolution": "履歴を持つ馬の解決率 65.0%(v2)→100%(v3、_HistoryIndex使用)",
+  "test_count": "tests/ 185件(旧172件+新13件) + exp05_forward_shadow 5件 + exp05_market_residual_dev 3件 = 193件、全PASS",
+  "freeze_metadata_updated": "MODEL_FREEZE.md v3節、out/freeze_manifest_v2.json (モデルartifact自体は不変)",
+  "live_confirmation": "2026-09-19実施2回 (LIVE_PREFLIGHT.md)、window内外判定・M1/M3/M4計算・append-only保存・非干渉を確認",
+  "task_registered": true,
+  "task_names": ["PyCaLiAI_EXP05FS_T35 (マスター、土日9:00)", "PyCaLiAI_EXP05FS_T35R_* (本日分9件)"]
+ }
 }

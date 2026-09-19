@@ -65,13 +65,11 @@ python -m analysis.mcond.exp05_forward_shadow.market_snapshot --once <rid16> --d
 python -m analysis.mcond.exp05_forward_shadow.join_results --date YYYYMMDD
 ```
 
-## タスクスケジューラへの登録
+## タスクスケジューラへの登録 (2026-09-19、登録済み)
 `t35_shadow.ps1` は `t20_site.ps1` と全く同じ「レース毎タスク」方式で実装済み・実データで
-動作確認済み。登録前Gateを全て満たしたため登録した:
-
-```powershell
-.\t35_shadow.ps1 -Schedule     # 今日のレース毎タスクを登録
-```
+動作確認済み。登録前Gateを全て満たしたため登録した。常設マスタータスク
+`PyCaLiAI_EXP05FS_T35`(土日9:00起動、`PyCaLiAI_T20_Site`と同型)と、本日分のレース毎タスク
+9件を登録済み。詳細・解除コマンドは`SCHEDULER_PLAN.md`「登録結果」節参照。
 
 ## 非干渉の設計
 - 生成物は全て専用ディレクトリ: `reports/exp05fs_odds/`, `data/_research/mcond/exp05fs_*/`
