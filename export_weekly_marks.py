@@ -147,7 +147,10 @@ def feature_coverage(s: pd.Series, allow_constant: bool = False) -> float:
     """
     if s is None or len(s) == 0:
         return 0.0
-    if s.dtype == object:
+    # pandas 3.0: 文字列列は dtype "str"（新string dtype）になり "object" と一致しない。
+    # dtype=="object" だけを見ると空文字/"__NaN__"判定が丸ごと素通りする(2026-09-19発見)。
+    # 数値以外は全て文字列扱いにして判定する。
+    if not pd.api.types.is_numeric_dtype(s):
         ss = s.astype(str)
         valid = s.notna() & (ss != "__NaN__") & (ss != "")
     else:
@@ -334,6 +337,34 @@ def main() -> int:
         logger.info(f"[serve skew fix] {len(revived)} 列復活: " +
                     ", ".join(f"{k}={v:.0f}%" for k, v in sorted(revived.items())[:6]) +
                     (" ..." if len(revived) > 6 else ""))
+
+    # ------ serve skew 対策2 (2026-09-19発見): カテゴリ表記のゆれ ------
+    # 週次CSV (parse_csv) の生カテゴリ文字列が、学習時 (build_master_v2.py, master_v2.csv)
+    # の表記と食い違う列がある。encs[col] (LabelEncoder, master由来のclasses_) は正規化前の
+    # 値を未知カテゴリとして __NaN__ に落とすため、これまで該当列の情報が serve で毎週失われて
+    # いた。特に 芝・ダ は "ダート" (週次CSV) vs "ダ" (学習時) で、対象がダート戦(過半数)
+    # という影響範囲の大きさから優先して修正する。値の意味自体は同じなので、学習済みモデル・
+    # encoder の再学習は不要 (analysis/mcond/exp05_forward_shadow/frozen_encode.py で先行検証済み)。
+    _CATEGORY_NORMALIZE = {
+        "芝・ダ": {"ダート": "ダ"},
+        "前芝・ダ": {"ダート": "ダ", "障ダ": "ダ", "障芝": "芝"},
+        "芝(内・外)": {"内": " 内", "外": " 外", "": " "},
+        "馬場状態": {"良(暫定)": "良", "稍重(暫定)": "稍", "重(暫定)": "重", "不良(暫定)": "不"},
+        "前走馬場状態": {"良(暫定)": "良", "稍重(暫定)": "稍", "重(暫定)": "重", "不良(暫定)": "不"},
+        "天気": {"曇(暫定)": " 曇 ", "晴(暫定)": " 晴 ", "雨(暫定)": " 雨 ", "雪(暫定)": " 雪 "},
+    }
+    _cat_fixed = {}
+    for _col, _map in _CATEGORY_NORMALIZE.items():
+        if _col not in df.columns:
+            continue
+        _before = df[_col].astype(str)
+        _hit = _before.isin(_map.keys())
+        if _hit.any():
+            df[_col] = _before.replace(_map)
+            _cat_fixed[_col] = int(_hit.sum())
+    if _cat_fixed:
+        logger.info(f"[serve skew fix2] カテゴリ表記統一: " +
+                    ", ".join(f"{k}={v}件" for k, v in _cat_fixed.items()))
 
     # ------ feats に含まれるが週次CSVにない列を NaN/空で補完 ------
     # 例: 騎手コード, hist_same_cond_*, trnH_*, trnW_*, course_*, jockey_*
