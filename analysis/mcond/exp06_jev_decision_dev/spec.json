@@ -1,6 +1,6 @@
 {
-  "_comment": "EXP06 Jev意思決定層・適合性検証。2026-09-20固定、Stage B評価開始前にコミット済み。質問文・選択肢・統合式は結果を見て変更しない(spec §11の中止条件参照)。",
-  "spec_version": "1.0.0",
+  "_comment": "EXP06 Jev意思決定層・適合性検証。2026-09-20固定、Stage B評価開始前にコミット済み。質問文・選択肢・統合式は結果を見て変更しない(spec §11の中止条件参照)。v1.1.0でAPI適合修正(api_conformance_amendment参照、競馬結果は未見)+主評価モデル固定+単発応答ポリシーを追加、Stage B評価開始前に再固定。",
+  "spec_version": "1.1.0",
   "frozen_at": "2026-09-20",
   "absolute_conditions": [
     "EXP01-05およびEXP05-Fを変更しない",
@@ -15,7 +15,22 @@
     "着順・払戻・確定オッズなど判断時点より後の情報を入力しない"
   ],
   "prompt_language": "en",
-  "prompt_language_note": "本評価では英語の固定テンプレートを使う。比較結果を見て言語を変更しない(spec §Stage A)。",
+  "prompt_language_note": "本評価では英語の固定テンプレートを使う。比較結果を見て言語を変更しない(spec §Stage A)。公式資料上、英語が主学習言語で最も高精度とされているため、Stage Bのstate・instructions・criteriaは英語版に固定する。日本語版はStage Aの感度分析専用(stage_a_audit.pyの_JA_QUESTIONS)としてのみ存在し、Stage B以降では使用しない。",
+  "primary_model": "jev-1.13.0",
+  "primary_model_note": "2026-09-20、ユーザー指定によりaliasのjev-latestではなく実測バージョンID(jev-1.13.0)へ固定する。公式ドキュメントもaliasは新リリース時に移動するためバージョンID固定を推奨している。Stage AはStage A自身の疎通確認目的でjev-latestを使用したが、以後の主評価(Stage B以降)は全てこの固定バージョンで行う。",
+  "primary_evaluation_policy": {
+    "single_shot_only": "各state_hash+prompt_schema_hash+model_idにつき、最初に得られたHTTP 200レスポンス1件のみを主評価の値として採用する。平均化しない。argmaxが気に入らない場合の再問い合わせはしない(jev_client.compute_input_hashにmodelを含め、キャッシュが常に最優先で返る設計により物理的に強制)。",
+    "retry_scope": "タイムアウト・429・529による再試行は、その1回の呼び出し内でまだ一度もHTTP 200を得ていない場合にのみ許可する。200を得てキャッシュされた後の呼び出しは常にキャッシュを返すのみで新規APIコールは発生しない。",
+    "probability_variance_is_noise": "同一入力への複数回のAPI応答間に見られる確率のばらつきは、主評価においてはモデルノイズとして扱い、単発応答をそのまま採用する。ばらつきの定量化はstage_b_sensitivity.py(結果ラベルを見ずに選んだ固定200レース、各3回のuncached反復)で別途行い、その結果で主評価の単発応答を書き換えない。"
+  },
+  "api_conformance_amendment": {
+    "amended_at": "2026-09-20 (Stage B評価開始前)",
+    "reason": "questions ペイロードの構造(id をキーとする dict、各値が {type, instructions, criteria} のフラット構造)が公式API仕様および実際にHTTP 200で成功したユーザー提示fixtureと異なっていたため、API適合のために instructions/criteria/option_descriptions フィールドを追加した。",
+    "race_results_seen": false,
+    "payout_or_roi_seen": false,
+    "changed": "APIへ送信するペイロードの構造とAPI必須メタデータ(各選択肢・スコア水準・noul true/false の説明文)のみ",
+    "not_changed": "質問の意味(Q1-Q6のinstructions本文が問う内容)・選択肢そのもの(Choiceのoptions値、Scoreの水準数と順序)・Gate定義・比較対象・中止条件は一切変更していない"
+  },
   "state_fields": [
     "anon_race_id", "venue_code", "surface", "distance_band", "class_band", "field_size",
     "m1_top_prob", "m3_top_prob", "m4_top_prob", "model_rank_disagreement", "model_prob_variance",

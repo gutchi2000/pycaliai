@@ -301,3 +301,53 @@ def test_spec_json_matches_documented_questions():
                                                 "PASS_OOD", "PASS_PRICE_RISK"]
     assert spec["prompt_language"] == "en"
     assert "TYPESAFE_API_KEY" in " ".join(spec["absolute_conditions"])
+
+
+# ---- 2026-09-20、ユーザー指定のStage B準備事項(モデル固定・単発応答ポリシー・
+# spec修正記録) ----
+def test_jev_model_is_pinned_not_alias():
+    """主評価はjev-latestではなく実測バージョンIDへ固定する(ユーザー指定)。"""
+    assert JC.JEV_MODEL == "jev-1.13.0"
+    assert "latest" not in JC.JEV_MODEL
+
+
+def test_compute_input_hash_includes_model():
+    """同じstate+schemaでもmodelが違えば別キャッシュキーになること
+    (モデルバージョンをキャッシュキーに含める、という指定の実装確認)。"""
+    h1 = JC.compute_input_hash("schema1", {"a": 1}, "jev-1.13.0")
+    h2 = JC.compute_input_hash("schema1", {"a": 1}, "jev-1.14.0")
+    assert h1 != h2
+    # model省略時はJEV_MODEL(固定バージョン)が暗黙に使われる
+    h3 = JC.compute_input_hash("schema1", {"a": 1})
+    assert h3 == h1
+
+
+def test_query_jev_cache_key_uses_pinned_model(monkeypatch, tmp_path):
+    """query_jev()が実際にJEV_MODELをキャッシュキーへ渡していることを確認する
+    (compute_input_hashのmodel引数が実際に呼び出し経路で使われているか)。"""
+    monkeypatch.setenv("TYPESAFE_API_KEY", "dummy-for-test-not-real")
+    monkeypatch.setattr(JC, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(JC, "RESPONSES_DIR", tmp_path / "responses")
+
+    def fake_call(prompt_schema_hash, state, questions):
+        return {"model": JC.JEV_MODEL, "answers": {}, "probabilities": {}, "confidence": {},
+               "usage": {}, "http_status": 200}
+
+    monkeypatch.setattr(JC, "_call_jev_api_raw", fake_call)
+    result = JC.query_jev("R1", "schema1", {"x": 1}, [], "modelhash", "2099-01-01T00:00:00")
+    expected_hash = JC.compute_input_hash("schema1", {"x": 1}, JC.JEV_MODEL)
+    assert result["input_hash"] == expected_hash
+
+
+def test_spec_json_has_api_conformance_amendment_record():
+    """API適合修正が「競馬結果を見る前」に行われたことをspec.json自身に
+    記録していること(ユーザー指定の説明責任要件)。"""
+    spec = json.loads((BASE / "analysis" / "mcond" / "exp06_jev_decision_dev" / "spec.json")
+                      .read_text(encoding="utf-8"))
+    amendment = spec["api_conformance_amendment"]
+    assert amendment["race_results_seen"] is False
+    assert amendment["payout_or_roi_seen"] is False
+    assert "Stage B" in amendment["amended_at"]
+    assert spec["primary_model"] == "jev-1.13.0"
+    assert spec["primary_evaluation_policy"]["single_shot_only"]
+    assert spec["prompt_language_note"].count("日本語") >= 1  # JA=Stage A限定である旨の記載確認

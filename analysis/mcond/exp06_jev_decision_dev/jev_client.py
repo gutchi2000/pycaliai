@@ -9,7 +9,9 @@ spec.json の absolute_conditions を機械的に強制する層。呼び出し�
   Endpoint: POST https://api.typesafe.ai/v1/systemone
   Authorization: Bearer $TYPESAFE_API_KEY
   Content-Type: application/json
-  model: jev-latest (ユーザーの実機疎通確認では返却モデル jev-1.13.0)
+  model: jev-1.13.0 (2026-09-20、ユーザー指定によりaliasのjev-latestから固定バージョン
+    IDへ変更。Stage Aの疎通確認ではjev-latestを使い、実際の返却モデルがjev-1.13.0
+    だったためそれを固定値として採用)
   state: string/object/array (ここではobjectとしてstateをそのまま渡す)
   questions: noul/choice/score (spec.jsonのquestions[].typeから小文字マップ)
   429/529: 指数バックオフで再試行 (SDKの既定リトライに準ずる、下記参照)
@@ -72,10 +74,14 @@ def _get_api_key() -> str:
     return key
 
 
-def compute_input_hash(prompt_schema_hash: str, state: dict) -> str:
-    """state(匿名化済み診断量)+prompt_schema_hash から決定論的なハッシュを作る。
-    同一入力への再課金防止のキーとして使う。"""
-    canon = json.dumps({"prompt_schema_hash": prompt_schema_hash, "state": state},
+def compute_input_hash(prompt_schema_hash: str, state: dict, model: str = "") -> str:
+    """state(匿名化済み診断量)+prompt_schema_hash+model から決定論的なハッシュを作る。
+    同一入力への再課金防止のキーとして使う。2026-09-20、ユーザー指定によりmodelを
+    キーへ含めるよう変更(同じstateでもモデルバージョンが違えば別キャッシュエントリに
+    する必要があるため。主評価はjev-latestではなく固定バージョンID(下記JEV_MODEL)を
+    使うので、通常はmodel未指定でもJEV_MODELが暗黙に使われる)。"""
+    canon = json.dumps({"prompt_schema_hash": prompt_schema_hash, "state": state,
+                        "model": model or JEV_MODEL},
                        ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canon.encode("utf-8")).hexdigest()[:16]
 
@@ -95,7 +101,12 @@ def load_cached(input_hash: str) -> dict | None:
 
 
 JEV_ENDPOINT = "https://api.typesafe.ai/v1/systemone"
-JEV_MODEL = "jev-latest"
+# 2026-09-20、ユーザー指定により主評価はaliasの"jev-latest"ではなく実測バージョンID
+# "jev-1.13.0"へ固定する(公式ドキュメントもリリース時にaliasが動くためバージョンID固定を
+# 推奨、confidence閾値の調整済み運用ではなおさら)。Stage Aの疎通確認自体はjev-latestで
+# 行っていたが、そこで実際に返ってきたバージョンがjev-1.13.0だったため、以後はこれを
+# 主評価の固定モデルとして使う。
+JEV_MODEL = "jev-1.13.0"
 
 # spec.json の questions[].type ("Noul"/"Choice"/"Score") → TypeSafe API の
 # 期待する小文字表記への対応 (2026-09-20、ユーザー提示の公式仕様より)
@@ -218,8 +229,22 @@ def query_jev(race_id: str, prompt_schema_hash: str, state: dict, questions: lis
              exp05_model_hash: str, market_snapshot_time: str) -> dict:
     """キャッシュ確認 → (無ければ)API呼び出し → append-only保存、を行う。
     例外は投げない(ok=Falseで返す、EXP05-F非干渉設計と同じ思想)。APIキー自体は
-    戻り値のいかなるフィールドにも含めない。"""
-    input_hash = compute_input_hash(prompt_schema_hash, state)
+    戻り値のいかなるフィールドにも含めない。
+
+    2026-09-20、ユーザー指定の主評価ポリシー(この関数自体がそのポリシーを強制する):
+      - state_hash+prompt_schema_hash+model_id につき、最初に得られたHTTP 200を
+        採用する。平均化しない。呼び出し側が「argmaxが気に入らない」等の理由で
+        再問い合わせすることはできない(キャッシュが常に最優先で返るため物理的に
+        不可能な設計)。
+      - 200を一度でも得てキャッシュされた後は、再度この関数を呼んでも常にキャッシュを
+        返すだけで新規APIコールは発生しない。
+      - タイムアウト・429・529等でのリトライは「200をまだ一度も得ていない」この1回の
+        呼び出し内でのみ発生する(下のretryループ参照)。200を得た後にリトライが
+        発生することは無い(即座にキャッシュ保存してreturnするため)。
+      - API応答の確率揺らぎ(同一入力でも毎回微妙に異なる値が返る現象)は
+        モデルノイズとして扱い、この単発応答をそのまま主評価の値として使う
+        (感度分析は別途stage_b_sensitivity.pyで行い、主評価のこの値を書き換えない)。"""
+    input_hash = compute_input_hash(prompt_schema_hash, state, JEV_MODEL)
     cached = load_cached(input_hash)
     if cached is not None:
         return {**cached, "from_cache": True}
