@@ -29,10 +29,16 @@
   "questions": [
     {
       "id": "Q1", "name": "evidence_consistency", "type": "Noul",
-      "statement": "The independent predictive signals and market signals are sufficiently consistent to support an automated betting decision."
+      "statement": "The independent predictive signals and market signals are sufficiently consistent to support an automated betting decision.",
+      "instructions": "The independent predictive signals and market signals are sufficiently consistent to support an automated betting decision.",
+      "criteria": {
+        "true": "The signals are sufficiently consistent to support an automated betting decision.",
+        "false": "The signals are not sufficiently consistent to support an automated betting decision."
+      }
     },
     {
       "id": "Q2", "name": "out_of_distribution_risk", "type": "Score", "scale": 5,
+      "instructions": "Rate how well this case is supported by comparable historical cases, from clearly supported to clearly outside support.",
       "levels": [
         "Clearly supported by many comparable historical cases",
         "Mostly supported",
@@ -43,6 +49,7 @@
     },
     {
       "id": "Q3", "name": "market_price_risk", "type": "Score", "scale": 5,
+      "instructions": "Rate the risk that the current market price is unreliable or will move adversely before the decision is acted on.",
       "levels": [
         "Price appears stable",
         "Small ordinary movement",
@@ -53,18 +60,42 @@
     },
     {
       "id": "Q4", "name": "trust_source", "type": "Choice",
-      "options": ["AI", "MARKET", "BLEND", "ABSTAIN"]
+      "instructions": "Choose which source should be trusted for this decision.",
+      "options": ["AI", "MARKET", "BLEND", "ABSTAIN"],
+      "option_descriptions": {
+        "AI": "Trust the independent predictive model's estimate over the market price.",
+        "MARKET": "Trust the market price over the independent predictive model's estimate.",
+        "BLEND": "Blend the predictive model's estimate and the market price.",
+        "ABSTAIN": "Neither source is trustworthy enough to base a decision on."
+      }
     },
     {
       "id": "Q5", "name": "participation", "type": "Choice",
-      "options": ["BET", "PASS_NO_EDGE", "PASS_UNCERTAIN", "PASS_OOD", "PASS_PRICE_RISK"]
+      "instructions": "Decide whether to participate in this race and, if not, why.",
+      "options": ["BET", "PASS_NO_EDGE", "PASS_UNCERTAIN", "PASS_OOD", "PASS_PRICE_RISK"],
+      "option_descriptions": {
+        "BET": "Participate in this race with an automated bet.",
+        "PASS_NO_EDGE": "Do not participate because there is no edge over the market.",
+        "PASS_UNCERTAIN": "Do not participate because the evidence is too uncertain.",
+        "PASS_OOD": "Do not participate because this case is outside historical support.",
+        "PASS_PRICE_RISK": "Do not participate because the market price is at high risk of adverse movement."
+      }
     },
     {
       "id": "Q6", "name": "ticket_policy", "type": "Choice",
-      "options": ["NO_BET", "PLACE_SINGLE", "WIN_SINGLE", "WIDE_ONE", "WIDE_TWO", "CURRENT_TOPDOWN"]
+      "instructions": "Choose the betting ticket policy for this race.",
+      "options": ["NO_BET", "PLACE_SINGLE", "WIN_SINGLE", "WIDE_ONE", "WIDE_TWO", "CURRENT_TOPDOWN"],
+      "option_descriptions": {
+        "NO_BET": "Do not place any bet on this race.",
+        "PLACE_SINGLE": "Bet only a place (fukusho) ticket on a single horse.",
+        "WIN_SINGLE": "Bet only a win (tansho) ticket on a single horse.",
+        "WIDE_ONE": "Bet a single wide ticket.",
+        "WIDE_TWO": "Bet two wide tickets.",
+        "CURRENT_TOPDOWN": "Defer to the current production topdown betting policy."
+      }
     }
   ],
-  "questions_note": "選択結果だけでなく全選択肢の確率とconfidenceを保存する(spec §5)。",
+  "questions_note": "選択結果だけでなく全選択肢の確率とconfidenceを保存する(spec §5)。instructions/criteria/option_descriptionsは2026-09-20、ユーザー提示の実成功fixtureに合わせてAPIスキーマ準拠のため追加(質問文・選択肢・スケール自体の意味は無変更、追加したのは各選択肢の説明文というAPI必須メタデータのみ)。",
   "comparators": [
     {"id": "B0", "desc": "常に購入しない"},
     {"id": "B1", "desc": "◎複勝100円均等"},

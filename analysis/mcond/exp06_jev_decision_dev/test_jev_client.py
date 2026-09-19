@@ -91,18 +91,181 @@ def test_query_jev_append_only_response_log(monkeypatch, tmp_path):
     assert len(lines) == 2  # 2件とも追記されている(上書きされていない)
 
 
+def test_query_jev_fatal_error_no_retry_no_sleep(monkeypatch, tmp_path):
+    """401/403/422等は設定/リクエスト自体の問題なので即時FAILしリトライしない
+    (2026-09-20ユーザー指定のHTTP規則)。"""
+    monkeypatch.setenv("TYPESAFE_API_KEY", "dummy-for-test-not-real")
+    monkeypatch.setattr(JC, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(JC, "RESPONSES_DIR", tmp_path / "responses")
+
+    sleeps = []
+    monkeypatch.setattr(JC.time, "sleep", lambda s: sleeps.append(s))
+
+    call_count = {"n": 0}
+
+    def fatal_call(prompt_schema_hash, state, questions):
+        call_count["n"] += 1
+        raise JC.JevFatalError("jev api fatal status=401")
+
+    monkeypatch.setattr(JC, "_call_jev_api_raw", fatal_call)
+    result = JC.query_jev("R1", "schema1", {"x": 1}, [], "modelhash", "2099-01-01T00:00:00")
+    assert result["ok"] is False
+    assert call_count["n"] == 1  # リトライしていない
+    assert sleeps == []  # バックオフのsleepも一切していない
+    assert result["retry_count"] == 0
+
+
+def test_query_jev_transient_error_uses_exponential_backoff(monkeypatch, tmp_path):
+    """timeout/接続エラー/一時的5xxもrate limitと同じ有限回の指数バックオフ。"""
+    monkeypatch.setenv("TYPESAFE_API_KEY", "dummy-for-test-not-real")
+    monkeypatch.setattr(JC, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(JC, "RESPONSES_DIR", tmp_path / "responses")
+    monkeypatch.setattr(JC, "RETRY_BACKOFF_S", 0.01)
+
+    sleeps = []
+    monkeypatch.setattr(JC.time, "sleep", lambda s: sleeps.append(s))
+
+    def transient_call(prompt_schema_hash, state, questions):
+        raise JC.JevTransientError("jev api timeout")
+
+    monkeypatch.setattr(JC, "_call_jev_api_raw", transient_call)
+    result = JC.query_jev("R1", "schema1", {"x": 1}, [], "modelhash", "2099-01-01T00:00:00")
+    assert result["ok"] is False
+    assert sleeps == [0.01 * (2 ** i) for i in range(JC.MAX_RETRIES)]
+
+
+@pytest.mark.parametrize("status,expected_exc", [
+    (401, JC.JevFatalError), (403, JC.JevFatalError), (422, JC.JevFatalError),
+    (400, JC.JevFatalError), (404, JC.JevFatalError),
+    (429, JC.JevRateLimitError), (529, JC.JevRateLimitError),
+    (500, JC.JevTransientError), (503, JC.JevTransientError),
+])
+def test_call_jev_api_raw_classifies_status_codes(monkeypatch, status, expected_exc):
+    monkeypatch.setenv("TYPESAFE_API_KEY", "dummy-for-test-not-real")
+
+    class FakeResp:
+        status_code = status
+        def json(self):
+            return {}
+        def raise_for_status(self):
+            pass
+
+    class FakeRequests:
+        exceptions = __import__("requests").exceptions
+        @staticmethod
+        def post(*a, **k):
+            return FakeResp()
+
+    monkeypatch.setitem(sys.modules, "requests", FakeRequests)
+    with pytest.raises(expected_exc):
+        JC._call_jev_api_raw("schema1", {"x": 1}, [])
+
+
+def test_call_jev_api_raw_never_leaks_headers_in_exception_message(monkeypatch):
+    """例外メッセージにAuthorizationヘッダーやキーの値が絶対に含まれないことを確認する
+    (2026-09-20ユーザー指定)。"""
+    monkeypatch.setenv("TYPESAFE_API_KEY", "super-secret-value-must-not-leak")
+
+    class FakeResp:
+        status_code = 401
+        def json(self):
+            return {}
+        def raise_for_status(self):
+            pass
+
+    class FakeRequests:
+        exceptions = __import__("requests").exceptions
+        @staticmethod
+        def post(*a, **k):
+            # k["headers"] にAuthorizationが含まれているはずだが、例外側には渡さない
+            assert "super-secret-value-must-not-leak" in k["headers"]["Authorization"]
+            return FakeResp()
+
+    monkeypatch.setitem(sys.modules, "requests", FakeRequests)
+    with pytest.raises(JC.JevFatalError) as exc_info:
+        JC._call_jev_api_raw("schema1", {"x": 1}, [])
+    assert "super-secret-value-must-not-leak" not in str(exc_info.value)
+
+
 def test_questions_to_api_payload_matches_spec_types():
+    """2026-09-20、ユーザー提示の実成功fixtureに合わせた形: questionsはidをキーとする
+    dict、各値は{type, instructions, criteria}のフラット構造(id/name/scale/options等の
+    余剰キーを含まない)。"""
     spec = json.loads((BASE / "analysis" / "mcond" / "exp06_jev_decision_dev" / "spec.json")
                       .read_text(encoding="utf-8"))
     payload = JC._questions_to_api_payload(spec["questions"])
-    assert len(payload) == 6
-    by_id = {p["id"]: p for p in payload}
-    assert by_id["Q1"]["type"] == "noul"
-    assert by_id["Q1"]["statement"].startswith("The independent predictive signals")
-    assert by_id["Q2"]["type"] == "score" and by_id["Q2"]["scale"] == 5
-    assert len(by_id["Q2"]["levels"]) == 5
-    assert by_id["Q4"]["type"] == "choice"
-    assert by_id["Q4"]["options"] == ["AI", "MARKET", "BLEND", "ABSTAIN"]
+    assert isinstance(payload, dict)
+    assert set(payload.keys()) == {"Q1", "Q2", "Q3", "Q4", "Q5", "Q6"}
+
+    assert payload["Q1"]["type"] == "noul"
+    assert set(payload["Q1"].keys()) == {"type", "instructions", "criteria"}
+    assert set(payload["Q1"]["criteria"].keys()) == {"true", "false"}
+
+    assert payload["Q2"]["type"] == "score"
+    assert set(payload["Q2"].keys()) == {"type", "instructions", "criteria"}
+    assert isinstance(payload["Q2"]["criteria"], list) and len(payload["Q2"]["criteria"]) == 5
+
+    assert payload["Q4"]["type"] == "choice"
+    assert set(payload["Q4"].keys()) == {"type", "instructions", "criteria"}
+    assert payload["Q4"]["criteria"] == {
+        "AI": "Trust the independent predictive model's estimate over the market price.",
+        "MARKET": "Trust the market price over the independent predictive model's estimate.",
+        "BLEND": "Blend the predictive model's estimate and the market price.",
+        "ABSTAIN": "Neither source is trustworthy enough to base a decision on.",
+    }
+
+
+def test_questions_to_api_payload_matches_known_good_fixture_shape():
+    """2026-09-20にユーザーが実APIへ送信しHTTP 200で成功した既知のfixture
+    (推測ではなく実データ)と、_questions_to_api_payload()の出力の"形"(キー集合と
+    型)が一致することを構造的に検証する(内容そのものは別の質問文なので文字列は
+    比較しない)。"""
+    known_good_questions_payload = {
+        "Q1": {
+            "type": "noul",
+            "instructions": "The available evidence is sufficient for an automated decision.",
+            "criteria": {"true": "Evidence is sufficient", "false": "Evidence is insufficient"},
+        },
+        "Q2": {
+            "type": "score",
+            "instructions": "Rate the risk that this case is outside the supported distribution.",
+            "criteria": ["Clearly supported", "Mostly supported", "Borderline",
+                        "Weak support", "Clearly outside support"],
+        },
+        "Q3": {
+            "type": "choice",
+            "instructions": "Choose the safest action.",
+            "criteria": {"BET": "Make an automated decision",
+                        "PASS_UNCERTAIN": "Do not act because evidence is uncertain",
+                        "PASS_OOD": "Do not act because the case is outside support"},
+        },
+    }
+    spec = json.loads((BASE / "analysis" / "mcond" / "exp06_jev_decision_dev" / "spec.json")
+                      .read_text(encoding="utf-8"))
+    payload = JC._questions_to_api_payload(spec["questions"])
+
+    def shape(q: dict) -> tuple:
+        crit = q["criteria"]
+        crit_shape = "list_of_str" if isinstance(crit, list) else (
+            "dict_true_false" if set(crit.keys()) == {"true", "false"} else "dict_options")
+        return (set(q.keys()), q["type"], crit_shape)
+
+    # Q1(noul)はknown_goodのQ1と同じ形、Q2(score)はknown_goodのQ2と同じ形、
+    # Q4(choice、trust_source)はknown_goodのQ3(choice)と同じ形であるはず
+    assert shape(payload["Q1"]) == shape(known_good_questions_payload["Q1"])
+    assert shape(payload["Q2"]) == shape(known_good_questions_payload["Q2"])
+    assert shape(payload["Q4"]) == shape(known_good_questions_payload["Q3"])
+    # criteriaがlistのScoreは全要素が文字列であること
+    assert all(isinstance(x, str) for x in payload["Q2"]["criteria"])
+    # criteriaがdictのChoiceは全値が文字列であること(optionsそのものをキーに使う)
+    assert all(isinstance(v, str) for v in payload["Q4"]["criteria"].values())
+    # 入れ子ラッパー("score":{...}や"choice":{...})を作っていないこと
+    # (誤りの例: {"type":"score","score":{"criteria":[...]}} のように型名をキーに
+    # した入れ子を作ってしまう回帰を防ぐ)
+    for qid, q in payload.items():
+        assert "score" not in q, f"{qid}に入れ子ラッパー'score'キーが混入している"
+        assert "choice" not in q, f"{qid}に入れ子ラッパー'choice'キーが混入している"
+        assert "noul" not in q, f"{qid}に入れ子ラッパー'noul'キーが混入している"
 
 
 def test_query_jev_rate_limit_uses_exponential_backoff(monkeypatch, tmp_path):

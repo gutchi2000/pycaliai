@@ -47,11 +47,21 @@ RETRY_BACKOFF_S = 2.0
 
 
 class JevConfigError(Exception):
-    """APIキー未設定など、呼び出し前提の設定エラー(APIキー自体は含めない)。"""
+    """APIキー未設定など、呼び出し前提の設定エラー(APIキー自体は含めない)。即時FAIL、リトライしない。"""
+
+
+class JevFatalError(Exception):
+    """401/403/422、およびそれ以外の4xx。設定またはリクエスト自体の問題なので
+    即時FAIL、リトライしない(2026-09-20ユーザー指定のHTTP規則)。"""
 
 
 class JevRateLimitError(Exception):
-    """429/529 (rate limit / overload)。query_jev側で指数バックオフの対象にする。"""
+    """429/529 (rate limit / overload)。query_jev側で指数バックオフの対象にする(有限回)。"""
+
+
+class JevTransientError(Exception):
+    """timeout・接続エラー・一時的な5xx(429/529以外)。query_jev側で指数バックオフの
+    対象にする(有限回、2026-09-20ユーザー指定のHTTP規則)。"""
 
 
 def _get_api_key() -> str:
@@ -92,21 +102,37 @@ JEV_MODEL = "jev-latest"
 _TYPE_MAP = {"Noul": "noul", "Choice": "choice", "Score": "score"}
 
 
-def _questions_to_api_payload(questions: list[dict]) -> list[dict]:
-    """spec.json の questions 構造(このプロジェクトのドキュメント用の形)を
-    TypeSafe API が期待する questions ペイロードへ変換する。"""
-    out = []
+def _questions_to_api_payload(questions: list[dict]) -> dict:
+    """spec.json の questions 構造(リスト、このプロジェクトのドキュメント用の形)を
+    TypeSafe API が期待する questions ペイロード(id をキーとする dict、各値は
+    {type, instructions, criteria} のフラット構造。入れ子ラッパーやscale/options等の
+    余剰キーは含めない)へ変換する。
+
+    2026-09-20、ユーザー提示の実成功fixture(HTTP 200確認済み)に基づく正しい形:
+      "Q1": {"type": "noul", "instructions": "...", "criteria": {"true": "...", "false": "..."}}
+      "Q2": {"type": "score", "instructions": "...", "criteria": ["level0", ..., "level4"]}
+      "Q3": {"type": "choice", "instructions": "...", "criteria": {"OPT": "desc", ...}}
+    id/name/scale/options等はAPIに送らない(criteriaのlist長がscaleを兼ねる、
+    optionsはcriteria dictのキーがそのまま選択肢になる)。"""
+    out: dict = {}
     for q in questions:
-        item = {"id": q["id"], "name": q["name"], "type": _TYPE_MAP[q["type"]]}
+        item = {"type": _TYPE_MAP[q["type"]], "instructions": q["instructions"]}
         if q["type"] == "Noul":
-            item["statement"] = q["statement"]
+            item["criteria"] = q["criteria"]
         elif q["type"] == "Score":
-            item["scale"] = q["scale"]
-            item["levels"] = q["levels"]
+            item["criteria"] = q["levels"]
         elif q["type"] == "Choice":
-            item["options"] = q["options"]
-        out.append(item)
+            item["criteria"] = q["option_descriptions"]
+        out[q["id"]] = item
     return out
+
+
+# HTTPステータス分類ルール (2026-09-20、ユーザー指定):
+#   401/403/422           : JevFatalError (即時FAIL、リトライしない)
+#   429/529                : JevRateLimitError (指数バックオフ、有限回)
+#   timeout/接続エラー/その他5xx : JevTransientError (指数バックオフ、有限回)
+#   その他4xx               : JevFatalError (即時FAIL、リトライしない)
+_FATAL_STATUS = {401, 403, 422}
 
 
 def _call_jev_api_raw(prompt_schema_hash: str, state: dict, questions: list[dict]) -> dict:
@@ -118,10 +144,11 @@ def _call_jev_api_raw(prompt_schema_hash: str, state: dict, questions: list[dict
       model: jev-latest
       state: string/object/array (ここではobject=stateそのものを渡す)
       questions: noul/choice/score (種別ごとに構造が異なる、_questions_to_api_payload参照)
-    429/529は呼び出し側(query_jev)の指数バックオフ・リトライで吸収する。
-    このプロジェクトの既定方針(外部APIは推測で実装しない)により、レスポンスの
-    正確なJSONキー名は最初の実呼び出し結果を見てstage_a_auditで検証・記録する
-    (このrawレスポンスをそのまま`raw`として返し、query_jev側で緩く読む)。"""
+    ステータスコード別の分類は上記 _FATAL_STATUS / JevRateLimitError / JevTransientError
+    参照。例外メッセージにはステータスコードのみを含め、キー・Authorizationヘッダー・
+    リクエストヘッダーは一切含めない(2026-09-20ユーザー指定)。
+    レスポンスの正確なJSONキー名はstage_a_auditの初回実行結果で検証・記録する方針
+    (このrawレスポンスをそのまま`_raw`として返し、query_jev側で緩く読む)。"""
     import requests  # 遅延import: このファイル自体はrequests無しでも読み込める設計を保つ
 
     api_key = _get_api_key()
@@ -134,21 +161,57 @@ def _call_jev_api_raw(prompt_schema_hash: str, state: dict, questions: list[dict
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    resp = requests.post(JEV_ENDPOINT, json=payload, headers=headers, timeout=TIMEOUT_S)
-    if resp.status_code in (429, 529):
-        # query_jev側のリトライループがJevRateLimitErrorを指数バックオフの対象にする。
-        raise JevRateLimitError(f"jev api rate/overload status={resp.status_code}")
-    resp.raise_for_status()
+    try:
+        resp = requests.post(JEV_ENDPOINT, json=payload, headers=headers, timeout=TIMEOUT_S)
+    except requests.exceptions.Timeout:
+        raise JevTransientError("jev api timeout") from None
+    except requests.exceptions.ConnectionError:
+        raise JevTransientError("jev api connection error") from None
+
+    sc = resp.status_code
+    if sc in (429, 529):
+        raise JevRateLimitError(f"jev api rate/overload status={sc}")
+    if sc in _FATAL_STATUS:
+        raise JevFatalError(f"jev api fatal status={sc}")
+    if 500 <= sc < 600:
+        raise JevTransientError(f"jev api transient server error status={sc}")
+    if 400 <= sc < 500:
+        raise JevFatalError(f"jev api fatal status={sc}")
+    resp.raise_for_status()  # 想定外の非2xxが残っていた場合の最終防波堤
     body = resp.json()
+    answers = body.get("answers") or body.get("results") or {}
+    probabilities, confidence = _extract_probabilities_and_confidence(answers)
     return {
         "model": body.get("model", JEV_MODEL),
-        "answers": body.get("answers") or body.get("results"),
-        "probabilities": body.get("probabilities"),
-        "confidence": body.get("confidence"),
+        "answers": answers,
+        "probabilities": probabilities,
+        "confidence": confidence,
         "usage": body.get("usage"),
-        "http_status": resp.status_code,
+        "http_status": sc,
         "_raw": body,  # stage_a_auditが未知フィールドの有無を検査できるよう生も残す
     }
+
+
+def _extract_probabilities_and_confidence(answers: dict) -> tuple[dict, dict]:
+    """実レスポンスでは probabilities/confidence は各質問の answers[qid] 配下に
+    ネストされている(トップレベルには無い、2026-09-20実機確認済み)。qid をキーとする
+    dictへ集約する。noulタイプはprobabilities/confidenceフィールド自体を持たないため、
+    "noul"値をtrue/false二値の擬似probabilitiesとして構成する(confidenceは無し=None)。"""
+    probs: dict = {}
+    conf: dict = {}
+    for qid, ans in (answers or {}).items():
+        if not isinstance(ans, dict):
+            continue
+        atype = ans.get("type")
+        if atype == "noul":
+            v = ans.get("noul")
+            if isinstance(v, (int, float)):
+                probs[qid] = {"true": v, "false": 1.0 - v}
+            conf[qid] = None
+        else:
+            probs[qid] = ans.get("probabilities")
+            conf[qid] = ans.get("confidence")
+    return probs, conf
 
 
 def query_jev(race_id: str, prompt_schema_hash: str, state: dict, questions: list[dict],
@@ -198,16 +261,21 @@ def query_jev(race_id: str, prompt_schema_hash: str, state: dict, questions: lis
             return record
         except NotImplementedError:
             raise  # 未実装は隠さずそのまま伝播(呼び出し側に気づかせる)
-        except JevRateLimitError as exc:
+        except (JevConfigError, JevFatalError) as exc:
+            # 401/403/422・その他4xx・設定エラー: 即時FAIL、リトライしない
+            # (2026-09-20ユーザー指定。設定/リクエスト自体の問題を何度叩いても直らない)
+            return {"ok": False, "error": str(exc), "race_id": race_id, "input_hash": input_hash,
+                   "retry_count": attempt, "from_cache": False}
+        except (JevRateLimitError, JevTransientError) as exc:
+            # 429/529・timeout・接続エラー・一時的5xx: 有限回の指数バックオフ
             last_exc = exc
             if attempt < MAX_RETRIES:
-                time.sleep(RETRY_BACKOFF_S * (2 ** attempt))  # 429/529は指数バックオフ
+                time.sleep(RETRY_BACKOFF_S * (2 ** attempt))
                 continue
         except Exception as exc:
-            last_exc = exc
-            if attempt < MAX_RETRIES:
-                time.sleep(RETRY_BACKOFF_S * (attempt + 1))  # それ以外は線形バックオフ
-                continue
+            # 分類されない想定外の失敗も安全側(即時FAIL・リトライしない)で扱う
+            return {"ok": False, "error": str(exc), "race_id": race_id, "input_hash": input_hash,
+                   "retry_count": attempt, "from_cache": False}
     return {"ok": False, "error": str(last_exc), "race_id": race_id, "input_hash": input_hash,
            "retry_count": MAX_RETRIES, "from_cache": False}
 
