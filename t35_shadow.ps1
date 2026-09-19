@@ -10,11 +10,12 @@
 # 本番 T-10 ライン (t10.ps1) / サイト T-20 (t20_site.ps1) / 大会実投票 (T-4) には
 # 一切干渉しない。買い目・印・資金配分への接続もしない (研究専用)。
 #
-# 運用 (2026-09-19登録、同日中に4段階で修正):
+# 運用 (2026-09-19登録、同日中に5段階で修正):
 #   マスタータスク "PyCaLiAI_EXP05FS_T35" が毎日8:30に -Schedule を起動する
 #   (実測: 直近15週の最速発走09:40 → T-35窓の開始は最速09:02。8:30起動なら
 #   再試行の余裕を見ても09:02より十分前に登録処理を終えられる)。
-#   ExecutionTimeLimitは下記Cの長時間監視に対応するため無期限化済み(2026-09-19三次修正)。
+#   ExecutionTimeLimitは**PT12H(12時間、有限)**(2026-09-19深夜五次修正で無期限から変更、
+#   後述「五次修正」参照)。
 #
 #   当日の状態を3つに分けて扱う (data/weekly/{date}.csv の有無だけに頼らない):
 #     A. NO_RACES_TODAY   : 開催なしと判断 → 個別タスクを作らず exit 0
@@ -36,14 +37,29 @@
 #   完全一致(残り7件も±1分差のみ)を確認した。詳細・フィールドオフセットは
 #   jvlink_race_calendar.py参照。
 #
+#   五次修正(2026-09-19深夜、PowerShell経由破損の実機切り分けとタスク分離):
+#   四次修正の実装直後、PowerShellの子プロセスとしてJV-Linkカレンダーを呼ぶと
+#   発走時刻が全レース"00:00"に破損する不具合を発見(rc=0・例外無し)。一時タスク
+#   `PyCaLiAI_EXP05FS_CALENDAR_TEST`で「Task Schedulerが32bit Pythonを直接Action起動
+#   (PowerShellを介さない)すれば正常に取得できるか」を実機検証し、**成功を確認した**
+#   (24レース全て正しい時刻、確認後に一時タスクは削除済み)。これに基づき、
+#   win32comへのアクセスを専用タスク`PyCaLiAI_EXP05FS_CALENDAR`(毎日8:20、
+#   python.exeを直接起動、PowerShellを一切介さない)へ完全に分離した。この
+#   T-35マスタースクリプト自身はwin32comに一切触れず、CALENDARタスクが書き出した
+#   検証済みJSON(`data\_research\mcond\exp05fs_calendar\{date}.json`)を
+#   `--verify-file`モード(win32com不要、64bit $pyFullで実行可能)で読むだけになった。
+#   `--verify-file`は鮮度(10時間以内)・file_hash整合性・対象日一致・サニティチェックを
+#   全て再検証するため、前日/別日付のJSONへはフォールバックしない。
+#
 #   これにより「開催があるはず」の判定は次の優先順で行う:
-#     1. jvlink_race_calendar.py (weekly CSVに依存しない独立シグナル、上記で実証済み)
-#        が対象日のレースを1件以上返す → 即座にBのT-35タスク登録へ(weekly CSVを待たない、
-#        spec提案の理想順序「JV-Link検出→T-35収集タスク登録→weekly CSVを待つ→
-#        特徴・予測を保存」を実現)。0件と回答した場合は次のヒューリスティクスと
-#        照合し、一致すればA、不一致(食い違い)なら安全側としてweekly CSVベースの
-#        Case A/B/C判定へフォールバックする。
-#     2. JV-Linkクエリ自体が失敗した場合、または上記の食い違いが生じた場合のみ、
+#     1. `PyCaLiAI_EXP05FS_CALENDAR`タスクが当日8:20に書き出した検証済みJSONを
+#        `--verify-file`で再検証して読む(weekly CSVに依存しない独立シグナル)。
+#        1件以上あれば即座にBのT-35タスク登録へ(weekly CSVを待たない、spec提案の
+#        理想順序「JV-Link検出→T-35収集タスク登録→weekly CSVを待つ→特徴・予測を
+#        保存」を実現)。JSON自体が「0件で確定」を記録していた場合は次の
+#        ヒューリスティクスと照合し、一致すればA、不一致(食い違い)なら安全側として
+#        weekly CSVベースのCase A/B/C判定へフォールバックする。
+#     2. JSON未生成/検証失敗(鮮度切れ・ハッシュ不一致・対象日不一致等)の場合のみ、
 #        従来の安全網: data/jra_known_race_days_override.json に当日が列挙されている
 #        (祝日・振替開催をユーザーから聞いたら追記する) か、土曜/日曜であるかを見る。
 #   上記どちらでも開催が見込めない平日でweekly CSVも無い場合だけ A (開催なし) とみなす。
@@ -71,6 +87,17 @@
 #       発火してmarket_snapshot.pyが実行された後」に限る。入力遅延でタスク自体を
 #       一度も作れなかったレース(=missed_due_to_input_delay)については、
 #       市場データも一切取得されない(取りに行くコード自体が動かないため)。
+#
+#   五次修正の続き(2026-09-19深夜、ExecutionTimeLimitと個別タスク検証の強化):
+#     - マスタータスクのExecutionTimeLimitを**無期限からPT12H(12時間)へ変更**した。
+#       8:30起動+18:00最終回復期限=最大約9.5時間の監視に12時間なら十分な余裕があり、
+#       かつ想定外のハング(例: JVLink呼び出しが応答不能になった等)が起きても
+#       無期限に居座り続けず、翌日8:30の次回起動(IgnoreNewで多重起動は防止済み)を
+#       妨げない設計にした。
+#     - 個別タスク登録前の検証を強化(下記「冪等なレース毎タスク登録」節参照):
+#       発走時刻が空/00:00/非合理的範囲でないか、T-35時刻が現在より未来か、
+#       既存タスクがあれば時刻が一致するか(不一致は異常として扱い自動上書きしない)
+#       を全てチェックしてから登録する。
 #
 # 手動:
 #   .\t35_shadow.ps1 -Schedule           # 今すぐ判定・登録を実行
@@ -145,15 +172,29 @@ if ($Schedule) {
 
     # ---- JV-Link開催カレンダー (weekly CSVに依存しない独立シグナル、2026-09-19夜追加) ----
     # 対象日の番組が既に発表済みなら、weekly CSVの有無に関わらずレースID+発走時刻を
-    # 直接取得できる (jvlink_race_calendar.py参照。実機で211/211件のrid一致・
-    # 204/211件で完全時刻一致・残り7件も±1分差のみまで検証済み)。失敗時は例外を
-    # 投げず空配列+非0 exitを返す設計のため、失敗時は既存のweekly CSVベースの
-    # Case A/B/C判定へ安全にフォールバックする(このクエリ自体が主フローを止めることはない)。
+    # 事前に取得できる(実機で211/211件のrid一致・204/211件で完全時刻一致まで検証済み)。
+    #
+    # 2026-09-19深夜、重要な構成変更: 当初はこのPowerShellスクリプト自身が
+    # `py -3.12-32 -m jvlink_race_calendar --date ...`でJV-Link(win32com)を直接呼んでいたが、
+    # これがまさにPowerShell経由でのみ発走時刻が"00:00"に破損する不具合の発生経路そのもの
+    # だった。実機検証(一時タスクPyCaLiAI_EXP05FS_CALENDAR_TESTで確認)により、Task
+    # Schedulerが32bit Pythonを直接Action起動する経路(PowerShellを一切介さない)では
+    # 問題なく正しい値が返ることを確認したため、win32comへのアクセス自体を専用タスク
+    # `PyCaLiAI_EXP05FS_CALENDAR`(毎日8:20、python.exeを直接起動)へ完全に分離した。
+    # このT-35マスタースクリプトは、CALENDARタスクが既に書き出した検証済みJSON
+    # (`data\_research\mcond\exp05fs_calendar\{date}.json`)を`--verify-file`モードで
+    # 読むだけであり、win32comには一切触れない(64bitの$pyFullで実行可能・
+    # PowerShellの子プロセスからwin32comを呼ぶ経路がそもそも存在しなくなった)。
+    # `--verify-file`は鮮度(既定10時間以内)・file_hash整合性・対象日一致・
+    # サニティチェックを全て再検証してから返すため、前日/別日付のJSONへは
+    # フォールバックしない。JSON未生成/検証失敗時は既存のweekly CSVベースの
+    # Case A/B/C判定へ安全にフォールバックする(このステップ自体が主フローを止めることはない)。
     $jvRaces = @()
     $jvQueryOk = $false
+    $calendarJson = "data\_research\mcond\exp05fs_calendar\${Date}.json"
     try {
-        $jvOut = & py -3.12-32 -m 'analysis.mcond.exp05_forward_shadow.jvlink_race_calendar' `
-            --date $Date --lookback-days 14 2>$null
+        $jvOut = & $pyFull -m 'analysis.mcond.exp05_forward_shadow.jvlink_race_calendar' `
+            --verify-file $calendarJson --date $Date 2>$null
         $jvExit = $LASTEXITCODE
         $jvQueryOk = ($jvExit -eq 0)
         if ($jvQueryOk) {
@@ -165,7 +206,7 @@ if ($Schedule) {
     } catch {
         $jvQueryOk = $false
     }
-    Write-Host ("[jvlink_calendar] query_ok={0} races_found={1}" -f $jvQueryOk, $jvRaces.Count)
+    Write-Host ("[jvlink_calendar] verify_file={0} query_ok={1} races_found={2}" -f $calendarJson, $jvQueryOk, $jvRaces.Count)
 
     $useJvSchedule = $false
     if ($jvQueryOk -and $jvRaces.Count -gt 0) {
@@ -281,14 +322,41 @@ if ($Schedule) {
     # 実際に到達可能になったため2026-09-19夜に修正: $Date を明示的な基準日とする)
     $dateBase = [datetime]::ParseExact($Date, 'yyyyMMdd', $null)
 
-    $n_new = 0; $n_skipped = 0; $n_stale_removed = 0; $n_missed = 0
+    $n_new = 0; $n_skipped = 0; $n_stale_removed = 0; $n_missed = 0; $n_anomaly = 0
     $targetNames = @{}
     foreach ($l in $lines) {
         $parts = $l -split "`t"
         if ($parts.Count -lt 2) { continue }
         $rid = $parts[0]; $post = $parts[1]
+
+        # ---- 登録前の防御的検証 (2026-09-19深夜追加、ユーザー指摘) ----
+        # 誤ったタスク(日付不一致・00:00・非合理的時刻)を絶対に作らない。異常を検出
+        # したら記録してこのレースだけスキップする(他レースの登録は妨げない)。
+        if ($rid.Length -ne 16 -or $rid.Substring(0, 8) -ne $Date) {
+            $msg = "[ANOMALY][RID_DATE_MISMATCH] '$rid' の日付部が対象日 $Date と不一致、または16桁でない → このレースはスキップ"
+            Write-Host $msg
+            Add-Content -Path "logs\exp05fs_errors.log" -Value ("{0} {1}" -f (Get-Date -Format 's'), $msg)
+            $n_anomaly++
+            continue
+        }
+        if ($post -notmatch '^\d{1,2}:\d{2}$' -or $post -eq '00:00') {
+            $msg = "[ANOMALY][BAD_POST_TIME] $rid の発走時刻 '$post' が不正(00:00または形式不正) → このレースはスキップ"
+            Write-Host $msg
+            Add-Content -Path "logs\exp05fs_errors.log" -Value ("{0} {1}" -f (Get-Date -Format 's'), $msg)
+            $n_anomaly++
+            continue
+        }
         $ph, $pm = $post -split ':'
-        $runAt = $dateBase.AddHours([int]$ph).AddMinutes([int]$pm).AddMinutes(-$LeadMin)
+        $phI = [int]$ph
+        if ($phI -lt 7 -or $phI -gt 21) {
+            $msg = "[ANOMALY][POST_TIME_OUT_OF_RANGE] $rid の発走時刻 '$post' がJRA実運用範囲外(07:00-21:59) → このレースはスキップ"
+            Write-Host $msg
+            Add-Content -Path "logs\exp05fs_errors.log" -Value ("{0} {1}" -f (Get-Date -Format 's'), $msg)
+            $n_anomaly++
+            continue
+        }
+
+        $runAt = $dateBase.AddHours($phI).AddMinutes([int]$pm).AddMinutes(-$LeadMin)
         $taskName = "PyCaLiAI_EXP05FS_T35R_$rid"
         $targetNames[$taskName] = $true
 
@@ -308,7 +376,25 @@ if ($Schedule) {
             continue
         }
         if ($existing.ContainsKey($taskName)) {
-            # 既に未来時刻で登録済み → 重複登録しない
+            # 既に未来時刻で登録済み(想定) → 重複登録しない。ただし「同一race IDに
+            # 既存タスクがあるが記録されている発走枠が今回の計算と食い違う」場合は
+            # 誤登録の疑いがあるため、無条件にスキップせず異常として扱う
+            # (2026-09-19深夜追加、ユーザー指摘: race IDが同じで時刻が違う場合は
+            # 自動的に正しい時刻で上書きせず、異常ログを残し検証済みソースがある
+            # 場合だけ手動で削除・再登録すること)。
+            $existingNext = $existing[$taskName].NextRunTime
+            $diffSec = $null
+            if ($existingNext) { $diffSec = [math]::Abs((New-TimeSpan -Start $existingNext -End $runAt).TotalSeconds) }
+            if ($null -ne $diffSec -and $diffSec -gt 90) {
+                $msg = "[ANOMALY][TIME_MISMATCH] ${taskName}: 既存タスクの発走枠 $existingNext と " +
+                       "今回算出した $runAt が${diffSec}秒ズレている(発走 $post)。誤登録の疑いのため" +
+                       "自動上書きしない。検証済みソース(JV-LinkカレンダーJSON等)を確認の上、" +
+                       "手動で Unregister-ScheduledTask 後に再登録すること。"
+                Write-Host $msg
+                Add-Content -Path "logs\exp05fs_errors.log" -Value ("{0} {1}" -f (Get-Date -Format 's'), $msg)
+                $n_anomaly++
+                continue
+            }
             $n_skipped++
             Write-Host ("  既存(スキップ) {0}  {1:HH:mm} 処理 → {2} 発走" -f $taskName, $runAt, $post)
             continue
@@ -344,7 +430,7 @@ if ($Schedule) {
         }
     }
 
-    Write-Host "[schedule] 新規登録 $n_new / 既存スキップ $n_skipped / 陳腐化削除 $n_stale_removed / 入力遅延で取りこぼし $n_missed"
+    Write-Host "[schedule] 新規登録 $n_new / 既存スキップ $n_skipped / 陳腐化削除 $n_stale_removed / 入力遅延で取りこぼし $n_missed / 異常検知 $n_anomaly"
     try { Stop-Transcript | Out-Null } catch {}
     exit 0
 }

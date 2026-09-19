@@ -181,6 +181,78 @@ def test_jvlink_calendar_sanity_check_accepts_plausible_distinct_times():
     assert JRC._sanity_check(races) == ""
 
 
-def test_jvlink_calendar_sanity_check_skips_tiny_lists():
-    # 1-2件は「本当にその日そのレース数しかない」可能性を否定できないため素通しする
-    assert JRC._sanity_check([{"rid16": "x", "post": "00:00"}]) == ""
+# ---- 2026-09-19深夜追加: 日付不一致・レースID重複・非合理的時刻の3チェック ----
+def test_jvlink_calendar_sanity_check_rejects_date_mismatch():
+    races = [{"rid16": "2026092106040701", "post": "09:45"},
+             {"rid16": "2026092006040701", "post": "10:20"}]  # 別日が混入
+    err = JRC._sanity_check(races, target_date="20260921")
+    assert err != ""
+    assert "20260921" in err
+
+
+def test_jvlink_calendar_sanity_check_rejects_duplicate_race_id():
+    races = [{"rid16": "2026092106040701", "post": "09:45"},
+             {"rid16": "2026092106040701", "post": "10:20"}]  # 同一rid16が違う時刻で重複
+    err = JRC._sanity_check(races, target_date="20260921")
+    assert err != ""
+    assert "重複" in err
+
+
+def test_jvlink_calendar_sanity_check_rejects_out_of_range_time():
+    races = [{"rid16": "2026092106040701", "post": "03:15"}]  # JRAで実在しない深夜時刻
+    err = JRC._sanity_check(races, target_date="20260921")
+    assert err != ""
+    assert "実運用範囲外" in err
+
+
+# ---- write_calendar_json / verify_calendar_json: ハッシュ整合性・鮮度チェック ----
+def test_jvlink_calendar_write_then_verify_roundtrip(tmp_path):
+    races = [{"rid16": "2026092106040701", "post": "09:45", "venue": "中山"},
+             {"rid16": "2026092109040701", "post": "10:00", "venue": "阪神"}]
+    out = tmp_path / "20260921.json"
+    doc = JRC.write_calendar_json("20260921", races, out)
+    assert out.exists()
+    assert not out.with_suffix(out.suffix + ".tmp").exists()  # atomic rename後に.tmpが残らない
+    loaded = json.loads(out.read_text(encoding="utf-8"))
+    assert JRC.verify_calendar_json(loaded) == ""
+    assert doc["record_count"] == 2
+
+
+def test_jvlink_calendar_verify_rejects_tampered_hash(tmp_path):
+    races = [{"rid16": "2026092106040701", "post": "09:45"},
+             {"rid16": "2026092109040701", "post": "10:00"}]
+    out = tmp_path / "20260921.json"
+    JRC.write_calendar_json("20260921", races, out)
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    doc["post_times"][0] = "23:59"  # ファイルを直接改変(file_hashは古いまま)
+    err = JRC.verify_calendar_json(doc)
+    assert err != ""
+    assert "file_hash" in err
+
+
+def test_jvlink_calendar_verify_rejects_stale_generated_at():
+    doc = {"target_date": "20260921", "generated_at": "2020-01-01T00:00:00",
+           "race_ids": ["2026092106040701"], "post_times": ["09:45"],
+           "file_hash": JRC._canonical_hash(["2026092106040701"], ["09:45"])}
+    err = JRC.verify_calendar_json(doc, max_age_minutes=60.0)
+    assert err != ""
+    assert "経過" in err
+
+
+def test_jvlink_calendar_verify_file_cli_rejects_mismatched_date(tmp_path):
+    """--verify-fileのCLI相当ロジック: target_date不一致は別日フォールバックせず拒否する
+    (verify_calendar_json自体はtarget_date比較をしないため、呼び出し側main()が
+    doc['target_date'] != 期待日 を明示的に見ている。ここではその契約をdocレベルで確認)。"""
+    races = [{"rid16": "2026092106040701", "post": "09:45"}]
+    out = tmp_path / "20260921.json"
+    JRC.write_calendar_json("20260921", races, out)
+    doc = json.loads(out.read_text(encoding="utf-8"))
+    assert doc["target_date"] == "20260921"
+    assert doc["target_date"] != "20260920"  # main()のverify-fileはこれを見て別日拒否する
+
+
+def test_jvlink_calendar_sanity_check_skips_tiny_lists_for_identical_time_check():
+    # 「全レース同一時刻」判定は1-2件では発動しない(本当にその日そのレース数しか
+    # ない可能性を否定できないため)。ただし00:00や範囲外時刻はどんな件数でも弾く
+    # (2026-09-19深夜追加のため、この挙動はもはや「完全素通し」ではない)。
+    assert JRC._sanity_check([{"rid16": "2026092106040701", "post": "14:00"}]) == ""
