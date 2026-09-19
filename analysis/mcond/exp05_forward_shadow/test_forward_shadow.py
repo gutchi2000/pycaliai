@@ -239,6 +239,78 @@ def test_jvlink_calendar_verify_rejects_stale_generated_at():
     assert "経過" in err
 
 
+# ------------------------------------------------------------------ observation_report.py
+# 2026-09-19深夜、基盤凍結前に追加した読み取り専用の集計ツール。3つの計数カテゴリ
+# (market_observations / complete_prediction_observations / valid_primary_observations)
+# の定義を合成データで検証する。実際の収集ロジック(t35_shadow.ps1等)には触れない。
+from analysis.mcond.exp05_forward_shadow import observation_report as OR  # noqa: E402
+
+
+def test_observation_report_three_way_counts(tmp_path, monkeypatch):
+    date_str = "20990101"
+    odds_dir = tmp_path / "odds"; odds_dir.mkdir()
+    pred_dir = tmp_path / "pred" / date_str; pred_dir.mkdir(parents=True)
+    monkeypatch.setattr(OR, "ODDS_DIR", odds_dir)
+    monkeypatch.setattr(OR, "PRED_DIR", tmp_path / "pred")
+    monkeypatch.setattr(OR, "CALENDAR_DIR", tmp_path / "calendar")
+    monkeypatch.setattr(OR, "WEEKLY_DIR", tmp_path / "weekly")
+    monkeypatch.setattr(OR, "LOGS_DIR", tmp_path / "logs")
+    monkeypatch.setattr(OR, "_current_model_hash", lambda: "deadbeef00000000")
+
+    # race A: market取得成功 + M1/M3/M4完全 + window内(有効) → 3カテゴリ全てに入る
+    (odds_dir / "2099010106040701.json").write_text(json.dumps({"ok": True}), encoding="utf-8")
+    (pred_dir / "2099010106040701_deadbeef00000000_rev1.json").write_text(json.dumps({
+        "race_id": "2099010106040701", "date": date_str,
+        "records": [{"race_id": "2099010106040701", "model_hash": "deadbeef00000000",
+                    "valid_for_primary": True, "invalid_reason": None}],
+    }), encoding="utf-8")
+
+    # race B: market取得成功 + M1/M3/M4完全だがwindow外(invalid) → market+complete のみ
+    (odds_dir / "2099010106040702.json").write_text(json.dumps({"ok": True}), encoding="utf-8")
+    (pred_dir / "2099010106040702_deadbeef00000000_rev1.json").write_text(json.dumps({
+        "race_id": "2099010106040702", "date": date_str,
+        "records": [{"race_id": "2099010106040702", "model_hash": "deadbeef00000000",
+                    "valid_for_primary": False, "invalid_reason": "window外"}],
+    }), encoding="utf-8")
+
+    # race C: market取得成功のみ、特徴量snapshot無しでmarket_onlyへフォールバック → marketのみ
+    (odds_dir / "2099010106040703.json").write_text(json.dumps({"ok": True}), encoding="utf-8")
+    (pred_dir / "2099010106040703_marketonly_rev1.json").write_text(json.dumps({
+        "race_id": "2099010106040703", "market_snapshot_saved": True, "prediction_saved": False,
+    }), encoding="utf-8")
+
+    # race D: 市場取得自体が失敗(ok=false) → どのカテゴリにも入らない
+    (odds_dir / "2099010106040704.json").write_text(json.dumps({"ok": False}), encoding="utf-8")
+
+    report = OR.build_report(date_str)
+    assert report["market_observations"] == 3   # A, B, C (Dはok=falseで除外)
+    assert report["complete_prediction_observations"] == 2  # A, B
+    assert report["valid_primary_observations"] == 1  # Aのみ
+    assert report["invalid_for_primary_count"] == 1  # B
+    assert report["invalid_for_primary_reasons"] == {"window外": 1}
+    assert report["market_only_count"] == 1  # C
+    assert report["fired_task_count"] == 4  # oddsファイル4件全部(A,B,C,D)
+
+
+def test_observation_report_handles_missing_calendar_and_weekly(tmp_path, monkeypatch):
+    date_str = "20990101"
+    monkeypatch.setattr(OR, "ODDS_DIR", tmp_path / "odds")
+    monkeypatch.setattr(OR, "PRED_DIR", tmp_path / "pred")
+    monkeypatch.setattr(OR, "CALENDAR_DIR", tmp_path / "calendar")
+    monkeypatch.setattr(OR, "WEEKLY_DIR", tmp_path / "weekly")
+    monkeypatch.setattr(OR, "LOGS_DIR", tmp_path / "logs")
+    monkeypatch.setattr(OR, "_current_model_hash", lambda: "deadbeef00000000")
+
+    report = OR.build_report(date_str)
+    assert report["calendar_race_count"] is None
+    assert report["weekly_csv_generated_at"] is None
+    assert report["t35_task_target_count"] is None
+    assert report["market_observations"] == 0
+    assert report["complete_prediction_observations"] == 0
+    assert report["valid_primary_observations"] == 0
+    assert report["missed_count"] == 0
+
+
 def test_jvlink_calendar_verify_file_cli_rejects_mismatched_date(tmp_path):
     """--verify-fileのCLI相当ロジック: target_date不一致は別日フォールバックせず拒否する
     (verify_calendar_json自体はtarget_date比較をしないため、呼び出し側main()が
