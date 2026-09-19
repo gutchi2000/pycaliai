@@ -65,11 +65,13 @@ python -m analysis.mcond.exp05_forward_shadow.market_snapshot --once <rid16> --d
 python -m analysis.mcond.exp05_forward_shadow.join_results --date YYYYMMDD
 ```
 
-## タスクスケジューラへの登録 (2026-09-19、登録済み)
+## タスクスケジューラへの登録 (2026-09-19登録、同日中に毎日トリガーへ修正)
 `t35_shadow.ps1` は `t20_site.ps1` と全く同じ「レース毎タスク」方式で実装済み・実データで
-動作確認済み。登録前Gateを全て満たしたため登録した。常設マスタータスク
-`PyCaLiAI_EXP05FS_T35`(土日9:00起動、`PyCaLiAI_T20_Site`と同型)と、本日分のレース毎タスク
-9件を登録済み。詳細・解除コマンドは`SCHEDULER_PLAN.md`「登録結果」節参照。
+動作確認済み。当初は`PyCaLiAI_T20_Site`と同じ土日9:00起動で登録したが、2026-09-21(月・祝)
+開催を取りこぼすとの指摘を受け**毎日9:00起動**へ修正(モデル・特徴・購入ルールは無変更)。
+`data/weekly/{date}.csv`が無い日(開催なし)は即座に正常終了、レース毎タスクは冪等に登録
+(重複登録せず、発走枠を過ぎた陳腐化タスクだけ削除)。詳細・解除コマンドは
+`SCHEDULER_PLAN.md`「2026-09-19 毎日トリガー化」節参照。
 
 ## 非干渉の設計
 - 生成物は全て専用ディレクトリ: `reports/exp05fs_odds/`, `data/_research/mcond/exp05fs_*/`
