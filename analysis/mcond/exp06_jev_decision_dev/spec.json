@@ -1,0 +1,87 @@
+{
+  "_comment": "EXP06 Jev意思決定層・適合性検証。2026-09-20固定、Stage B評価開始前にコミット済み。質問文・選択肢・統合式は結果を見て変更しない(spec §11の中止条件参照)。",
+  "spec_version": "1.0.0",
+  "frozen_at": "2026-09-20",
+  "absolute_conditions": [
+    "EXP01-05およびEXP05-Fを変更しない",
+    "本番の印・買い目・資金配分へ接続しない",
+    "analysis/mcond/exp06_jev_decision_dev/ 以外を書き換えない",
+    "APIキーはTYPESAFE_API_KEY環境変数からのみ読む",
+    "APIキーをコード・ログ・JSON・Gitへ保存しない",
+    "Jevの応答はappend-onlyで保存する(上書きしない)",
+    "同一input_hashへの再課金・再問い合わせを避ける(キャッシュ必須)",
+    "結果を見て質問文・閾値・入力項目を変更しない",
+    "馬名・騎手名・レース名は第1段階で匿名化する",
+    "着順・払戻・確定オッズなど判断時点より後の情報を入力しない"
+  ],
+  "prompt_language": "en",
+  "prompt_language_note": "本評価では英語の固定テンプレートを使う。比較結果を見て言語を変更しない(spec §Stage A)。",
+  "state_fields": [
+    "anon_race_id", "venue_code", "surface", "distance_band", "class_band", "field_size",
+    "m1_top_prob", "m3_top_prob", "m4_top_prob", "model_rank_disagreement", "model_prob_variance",
+    "market_prob", "ai_market_divergence", "odds_t35", "odds_t20", "odds_t10", "odds_change_rate",
+    "popularity_rank_change", "feature_missing_rate", "unknown_category_rate",
+    "in_distribution_support", "similar_past_case_count", "candidate_ticket_count",
+    "candidate_ticket_probs", "current_odds", "predicted_confirmed_odds", "ev_point_estimate",
+    "ev_lower_bound", "min_payout", "same_horse_concentration_rate"
+  ],
+  "state_fields_note": "120特徴の生値は渡さない。判断に必要な診断量へ変換してから渡す(spec §4)。",
+  "questions": [
+    {
+      "id": "Q1", "name": "evidence_consistency", "type": "Noul",
+      "statement": "The independent predictive signals and market signals are sufficiently consistent to support an automated betting decision."
+    },
+    {
+      "id": "Q2", "name": "out_of_distribution_risk", "type": "Score", "scale": 5,
+      "levels": [
+        "Clearly supported by many comparable historical cases",
+        "Mostly supported",
+        "Borderline",
+        "Weak historical support",
+        "Clearly outside historical support"
+      ]
+    },
+    {
+      "id": "Q3", "name": "market_price_risk", "type": "Score", "scale": 5,
+      "levels": [
+        "Price appears stable",
+        "Small ordinary movement",
+        "Moderate uncertainty",
+        "High risk of adverse movement",
+        "Current price is unreliable"
+      ]
+    },
+    {
+      "id": "Q4", "name": "trust_source", "type": "Choice",
+      "options": ["AI", "MARKET", "BLEND", "ABSTAIN"]
+    },
+    {
+      "id": "Q5", "name": "participation", "type": "Choice",
+      "options": ["BET", "PASS_NO_EDGE", "PASS_UNCERTAIN", "PASS_OOD", "PASS_PRICE_RISK"]
+    },
+    {
+      "id": "Q6", "name": "ticket_policy", "type": "Choice",
+      "options": ["NO_BET", "PLACE_SINGLE", "WIN_SINGLE", "WIDE_ONE", "WIDE_TWO", "CURRENT_TOPDOWN"]
+    }
+  ],
+  "questions_note": "選択結果だけでなく全選択肢の確率とconfidenceを保存する(spec §5)。",
+  "comparators": [
+    {"id": "B0", "desc": "常に購入しない"},
+    {"id": "B1", "desc": "◎複勝100円均等"},
+    {"id": "B2", "desc": "現行topdown"},
+    {"id": "B3", "desc": "通常EV"},
+    {"id": "B4", "desc": "EXP05+既存OODゲート"},
+    {"id": "J1", "desc": "B4+Jev参加ゲート"},
+    {"id": "J2", "desc": "B4+Jev参加ゲート+Jev券種選択"},
+    {"id": "LR_CONTROL", "desc": "Jevと同じ入力を使う単純ロジスティック回帰または固定ルール(Jevがこれを超えなければ固有価値なしと判定)"}
+  ],
+  "gates": ["Gate0_data_api_health", "Gate1_probability_informativeness",
+           "Gate2_incremental_value_over_existing_gates", "Gate3_same_coverage_improvement",
+           "Gate4_economic_evaluation"],
+  "storage_record_fields": [
+    "timestamp", "race_id", "input_hash", "prompt_schema_hash", "returned_model",
+    "all_answers", "all_probabilities", "confidence", "usage", "latency_ms", "http_status",
+    "retry_count", "exp05_model_hash", "market_snapshot_time", "decision_time",
+    "joined_result_and_payout"
+  ]
+}
