@@ -17,6 +17,31 @@ import pandas as pd
 BASE = Path(__file__).resolve().parents[3]
 FEATURE_TYPING = BASE / "analysis/mcond/exp04_invariant_info_dev/out/feature_typing.json"
 
+# 2026-09-19発見: predict_weekly.parse_csv (週次CSV由来) の生カテゴリ文字列が、
+# master_v2.csv (学習時) の表記と食い違う列がある。本番 export_weekly_marks.py の
+# apply_encoders() も同じ生カテゴリをそのまま encs (LabelEncoder, master由来のclasses_)
+# に渡しており、正規化されないまま "ダート" 等が未知カテゴリ→__NaN__ に落ちている
+# (別途ユーザーへ報告済み、本番コードはここでは変更しない)。EXP05-Fの特徴再現では
+# 正しい方 (master_v2の表記) に正規化してから one-hot に通す。
+CATEGORY_NORMALIZE: dict[str, dict[str, str]] = {
+    "芝・ダ": {"ダート": "ダ"},
+    "前芝・ダ": {"ダート": "ダ", "障ダ": "ダ", "障芝": "芝"},
+    "芝(内・外)": {"内": " 内", "外": " 外", "": " "},
+    "馬場状態": {"良(暫定)": "良", "稍重(暫定)": "稍", "重(暫定)": "重", "不良(暫定)": "不"},
+    "前走馬場状態": {"良(暫定)": "良", "稍重(暫定)": "稍", "重(暫定)": "重", "不良(暫定)": "不"},
+    "天気": {"曇(暫定)": " 曇 ", "晴(暫定)": " 晴 ", "雨(暫定)": " 雨 ", "雪(暫定)": " 雪 "},
+}
+
+
+def normalize_categorical(df: pd.DataFrame) -> pd.DataFrame:
+    """CATEGORY_NORMALIZEに定義した列だけ、既知の表記ゆれをmaster_v2表記へ寄せる。
+    それ以外の未知値はそのまま(=one-hot側で自動的に0扱い、正しい「未知」)。"""
+    df = df.copy()
+    for col, mapping in CATEGORY_NORMALIZE.items():
+        if col in df.columns:
+            df[col] = df[col].astype(str).replace(mapping)
+    return df
+
 
 def load_typing() -> dict:
     return json.loads(FEATURE_TYPING.read_text(encoding="utf-8"))
@@ -26,6 +51,7 @@ def encode_c1(df: pd.DataFrame, typing: dict | None = None) -> tuple[pd.DataFram
     """df: predict_weekly.parse_csv 由来 (+ export_weekly_marks と同じrename/history補完済み)。
     戻り値: (c1__ 接頭辞つきの列だけを持つDataFrame, {列名: 見つかったか(bool)})。"""
     typing = typing or load_typing()
+    df = normalize_categorical(df)
     out = pd.DataFrame(index=df.index)
     found: dict[str, bool] = {}
 

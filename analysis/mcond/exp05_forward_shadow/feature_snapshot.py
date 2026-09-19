@@ -10,8 +10,8 @@ production の週次パイプライン (export_weekly_marks.py) と同じカデ�
   - predict_weekly.parse_csv        週次CSVパース
   - export_weekly_marks.py の _SERVE_RENAME と同じマッピング (ここで複製、値は同期を要コメント)
   - serve_history_feats.fill_history_features  hist_*/course_*/jockey_*/騎手・調教師コード
-  - analysis.mcond.exp05_forward_shadow.frozen_encode  C1の凍結エンコード
-  - analysis.mcond.exp05_forward_shadow.horse_identity の 2025年末状態 (dyn_skill, career_runs)
+  - analysis.mcond.exp05_forward_shadow.frozen_encode  C1の凍結エンコード (カテゴリ正規化含む)
+  - analysis.mcond.exp05_forward_shadow.live_history  C2/C3 (時点安全なchain逐次計算、v2)
 
 出力: data/_research/mcond/exp05fs_features/{date}.parquet (gitignore)
      各列について _missing_<col> フラグ、メタに coverage レポート
@@ -29,12 +29,13 @@ import pandas as pd
 BASE = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(BASE))
 from predict_weekly import parse_csv  # noqa: E402
+from grade_feats import class_name_to_ord  # noqa: E402
 from analysis.mcond.exp05_forward_shadow import frozen_encode  # noqa: E402
+from analysis.mcond.exp05_forward_shadow import live_history as LH  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 OUT_DIR = BASE / "data/_research/mcond/exp05fs_features"
-HORSE_STATE = HERE / "out/horse_state_2025.json"
-FEATURE_SCHEMA_VERSION = "exp05fs_v1"
+FEATURE_SCHEMA_VERSION = "exp05fs_v2_live_history"
 
 # export_weekly_marks.py の _SERVE_RENAME と同じ定義。あちらを変更したらここも同期すること
 # (意図的に複製: exp05_forward_shadow は本番週次処理に依存せず単独で動く設計、spec §11)。
@@ -51,9 +52,6 @@ SERVE_RENAME = {
     "trn_wc_lap3": "trnW_Lap3", "trn_wc_days": "trnW_days_ago",
 }
 
-C2_UNAVAILABLE = ["raw_jockey_same", "raw_cls_chg", "raw_jq_delta", "raw_jt_pair"]
-
-
 def load_and_prepare(date_str: str) -> pd.DataFrame:
     path = BASE / "data/weekly" / f"{date_str}.csv"
     if not path.exists():
@@ -69,73 +67,54 @@ def load_and_prepare(date_str: str) -> pd.DataFrame:
     return df
 
 
-def compute_c2(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
-    out = pd.DataFrame(index=df.index)
-    found = {}
-    interval = pd.to_numeric(df.get("間隔"), errors="coerce")
-    out["raw_log_int"] = np.log(interval.clip(lower=1))
-    found["raw_log_int"] = "間隔" in df.columns
-
-    dist = pd.to_numeric(df.get("距離"), errors="coerce")
-    prev_dist = pd.to_numeric(df.get("前距離"), errors="coerce")
-    out["raw_dist_chg"] = dist - prev_dist
-    found["raw_dist_chg"] = ("距離" in df.columns) and ("前距離" in df.columns)
-
-    if "場所" in df.columns and "前走場所" in df.columns:
-        out["raw_venue_chg"] = (df["場所"].astype(str) != df["前走場所"].astype(str)).astype(float)
-        found["raw_venue_chg"] = True
-    else:
-        out["raw_venue_chg"] = np.nan
-        found["raw_venue_chg"] = False
-
-    if "芝・ダ" in df.columns and "前芝・ダ" in df.columns:
-        out["raw_surface_chg"] = (df["芝・ダ"].astype(str) != df["前芝・ダ"].astype(str)).astype(float)
-        found["raw_surface_chg"] = True
-    else:
-        out["raw_surface_chg"] = np.nan
-        found["raw_surface_chg"] = False
-
-    for c in C2_UNAVAILABLE:
-        out[c] = np.nan
-        found[c] = False  # v1の既知の制約 (README.md参照): 履歴突合が必要でweekly CSV単体では出せない
-    return out, found
-
-
-def compute_c3(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
-    state = json.loads(HORSE_STATE.read_text(encoding="utf-8"))["horses"] if HORSE_STATE.exists() else {}
-    names = df.get("馬名", pd.Series([None] * len(df), index=df.index)).astype(str)
-    dyn_mu = names.map(lambda n: state.get(n, {}).get("dyn_mu"))
-    career = names.map(lambda n: state.get(n, {}).get("career_runs"))
-    found_rate = float(dyn_mu.notna().mean()) if len(dyn_mu) else 0.0
-
-    out = pd.DataFrame(index=df.index)
-    out["dyn_skill_mu"] = pd.to_numeric(dyn_mu, errors="coerce")
-    MU0 = 25.0
-    out["dyn_skill_mu"] = out["dyn_skill_mu"].fillna(MU0)  # 新馬等は共通初期値 (dyn_skill.pyのMU0と同じ)
-
+def build_chain_target(df: pd.DataFrame, date_str: str) -> pd.DataFrame:
+    """live_history.compute_c2_from_chain / compute_dyn_skill_live が要求するスキーマへ変換。"""
+    name2hid = LH.name_to_hid_2025()
+    names = df.get("馬名", pd.Series([""] * len(df), index=df.index)).astype(str)
+    ident = names.map(lambda n: name2hid.get(n, f"NEW:{n}"))
     rid_col = "レースID(新/馬番無)" if "レースID(新/馬番無)" in df.columns else "レースID(新)"
-    tmp = pd.DataFrame({"rid": df[rid_col].astype(str), "mu": out["dyn_skill_mu"]})
-    g = tmp.groupby("rid")["mu"]
-    n = g.transform("count")
-    tot = g.transform("sum")
-    others_mean = (tot - out["dyn_skill_mu"]) / (n - 1).clip(lower=1)
-    out["horse_skill_minus_field"] = out["dyn_skill_mu"] - others_mean
-
-    out["raw_career_runs"] = pd.to_numeric(career, errors="coerce").fillna(0.0)
-    out["raw_days_since"] = pd.to_numeric(df.get("間隔"), errors="coerce")
-
-    found = {"dyn_skill_mu": found_rate > 0, "horse_skill_minus_field": found_rate > 0,
-            "raw_career_runs": found_rate > 0, "raw_days_since": "間隔" in df.columns}
-    meta = {"horse_state_match_rate": found_rate,
-           "note": "dyn_skill_mu/raw_career_runsは2025年末状態からの繰越、2026年の既走分は未反映 (README.md)"}
-    return out, found, meta
+    return pd.DataFrame({
+        "ident": ident, "date": pd.Timestamp(date_str),
+        "rid16": df[rid_col].astype(str).str[:16],
+        "ban": pd.to_numeric(df["馬番"], errors="coerce"),
+        "venue": df.get("場所", pd.Series("", index=df.index)),
+        "surface": df.get("芝・ダ", pd.Series("", index=df.index)).astype(str).replace({"ダート": "ダ"}),
+        "dist": pd.to_numeric(df.get("距離"), errors="coerce"),
+        "cls_ord": df.get("クラス名", pd.Series("", index=df.index)).map(class_name_to_ord),
+        "jockey": df.get("騎手コード", pd.Series("", index=df.index)).astype(str),
+        "trainer": df.get("調教師コード", pd.Series("", index=df.index)).astype(str),
+    })
 
 
-def build(date_str: str, save: bool = True) -> tuple[pd.DataFrame, dict]:
+def build(date_str: str, save: bool = True, chain: pd.DataFrame | None = None) -> tuple[pd.DataFrame, dict]:
     df = load_and_prepare(date_str)
     c1, found_c1 = frozen_encode.encode_c1(df)
-    c2, found_c2 = compute_c2(df)
-    c3, found_c3, c3_meta = compute_c3(df)
+
+    target = build_chain_target(df, date_str)
+    as_of = max((d for d in LH.available_2026_result_dates() if d < date_str), default=None)
+    if chain is None:
+        chain = LH.build_combined_chain(as_of_date=as_of)
+    c2 = LH.compute_c2_from_chain(target, chain)
+    dyn_state = LH.compute_dyn_skill_live(chain)
+
+    dyn_mu = target["ident"].map(dyn_state["g_mu"])
+    MU0 = 25.0
+    dyn_mu_filled = dyn_mu.fillna(MU0)
+    tmp = pd.DataFrame({"rid": target["rid16"], "mu": dyn_mu_filled})
+    g = tmp.groupby("rid")["mu"]
+    n, tot = g.transform("count"), g.transform("sum")
+    others_mean = (tot - dyn_mu_filled) / (n - 1).clip(lower=1)
+    c3 = pd.DataFrame({
+        "dyn_skill_mu": dyn_mu_filled,
+        "horse_skill_minus_field": dyn_mu_filled - others_mean,
+        "raw_career_runs": target["ident"].map(dyn_state["n"]).fillna(0.0),
+        "raw_days_since": pd.to_numeric(df.get("間隔"), errors="coerce"),
+    })
+    dyn_match_rate = float(dyn_mu.notna().mean()) if len(dyn_mu) else 0.0
+
+    found_c2 = {c: bool(c2[c].notna().any()) for c in c2.columns}
+    found_c3 = {"dyn_skill_mu": dyn_match_rate > 0, "horse_skill_minus_field": dyn_match_rate > 0,
+               "raw_career_runs": dyn_match_rate > 0, "raw_days_since": "間隔" in df.columns}
 
     rid_col = "レースID(新/馬番無)" if "レースID(新/馬番無)" in df.columns else "レースID(新)"
     key = pd.DataFrame({
@@ -148,6 +127,7 @@ def build(date_str: str, save: bool = True) -> tuple[pd.DataFrame, dict]:
     feats["feature_snapshot_generated_at"] = pd.Timestamp.now().isoformat()
     feats["feature_schema_version"] = FEATURE_SCHEMA_VERSION
     feats["source_weekly_csv"] = f"data/weekly/{date_str}.csv"
+    feats["chain_as_of_date"] = as_of
 
     coverage = {**{f"c1__{k}": v for k, v in found_c1.items()},
                **{k: v for k, v in found_c2.items()},
@@ -155,7 +135,8 @@ def build(date_str: str, save: bool = True) -> tuple[pd.DataFrame, dict]:
     meta = {"date": date_str, "n_rows": int(len(feats)), "n_races": int(key["rid16"].nunique()),
            "column_found": coverage,
            "n_columns_missing_entirely": int(sum(1 for v in coverage.values() if not v)),
-           **c3_meta}
+           "horse_state_match_rate": dyn_match_rate, "chain_as_of_date": as_of,
+           "chain_n_rows": int(len(chain))}
     if save:
         OUT_DIR.mkdir(parents=True, exist_ok=True)
         feats.to_parquet(OUT_DIR / f"{date_str}.parquet", index=False)

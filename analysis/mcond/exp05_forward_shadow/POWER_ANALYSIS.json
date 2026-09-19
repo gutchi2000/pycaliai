@@ -1,0 +1,25 @@
+{
+ "observation_unit": "races (レース単位、馬単位ではない)",
+ "sigma_race_level": 0.01774382116587167,
+ "observed_effect_pooled_2023_2025": -0.001497685560134634,
+ "yearly_effects": {
+  "2023": -0.0014338650930115103,
+  "2024": -0.0014489368784894702,
+  "2025": -0.0016102449616102548
+ },
+ "min_abs_yearly_effect": 0.0014338650930115103,
+ "effect_used_for_power": 0.000748842780067317,
+ "z_alpha_two_sided_1pct": 2.5758293035489004,
+ "z_power_80pct": 0.8416212335729143,
+ "formula": "n_races = (z_alpha/2 + z_power)^2 * sigma_race^2 / effect^2",
+ "required_races": 6557.185721895916,
+ "avg_field_size_dev_period": 13.654766499421074,
+ "required_horse_rows_estimate": 89536.83992582654,
+ "dev_period_races": 10364,
+ "dev_period_race_days": 322,
+ "avg_races_per_race_day_dev": 32.18633540372671,
+ "calendar_weeks_with_racing_dev_period": 156,
+ "avg_races_per_active_calendar_week": 66.43589743589743,
+ "required_active_calendar_weeks": 98.69943772826736,
+ "required_calendar_years_approx": 1.8980661101589875
+}

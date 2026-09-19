@@ -1,0 +1,118 @@
+﻿feature_name,feature_block,training_available,live_available,live_source,generation_time,time_safe,missing_rate_train,missing_rate_live,current_handling,action,reason
+c1__場所__中山,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__場所__京都,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__場所__函館,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__場所__小倉,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__場所__新潟,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__場所__札幌,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__場所__東京,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__場所__福島,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__場所__阪神,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__Ｒ,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__枠番,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__馬番,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__芝・ダ__芝,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__距離,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__コース区分__B,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__コース区分__C,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__コース区分__D,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__馬場状態__稍,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__馬場状態__良,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__馬場状態__重,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__天気__ 曇 ,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__天気__ 雨 ,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__天気__ 雪 ,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__天気__小雨,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__天気__小雪,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__クラス名_ord,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0418,ライブで同一定義を再現可能,採用,
+c1__前走着差タイム,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2195,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率22.0%)
+c1__前1角,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.5854,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率58.5%)
+c1__前2角,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.5679,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率56.8%)
+c1__前3角,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.223,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率22.3%)
+c1__前4角,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2195,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率22.0%)
+c1__前走上り3F,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2334,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率23.3%)
+c1__前走上り3F順,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2787,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率27.9%)
+c1__前走確定着順,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2195,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率22.0%)
+c1__前芝・ダ__芝,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__前距離,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2125,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率21.3%)
+c1__前走馬場状態__稍,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__前走馬場状態__良,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__前走馬場状態__重,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__前走斤量,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2125,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率21.3%)
+c1__前走Ave-3F,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2787,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率27.9%)
+c1__母父タイプ名__セントサイモン系,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__母父タイプ名__トゥルビヨン系,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__母父タイプ名__ナスルーラ系,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__母父タイプ名__ニアークティック系,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__母父タイプ名__ネイティヴダンサー系,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__母父タイプ名__マンノウォー系,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__母父タイプ名__ロイヤルチャージャー系,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__騎手コード,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0035,ライブで同一定義を再現可能,採用,
+c1__調教師コード,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0279,ライブで同一定義を再現可能,採用,
+c1__年齢限定__３上,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__年齢限定__３歳,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__年齢限定__４上,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__重量種別__別定,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__重量種別__定量,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__重量種別__馬齢,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__性別__牝,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__性別__牡,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__年齢,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__斤量,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__間隔,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.3589,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率35.9%)
+c1__出走頭数,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__フルゲート頭数,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__jockey_fuku30,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0035,ライブで同一定義を再現可能,採用,
+c1__jockey_fuku90,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0035,ライブで同一定義を再現可能,採用,
+c1__trainer_fuku30,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0279,ライブで同一定義を再現可能,採用,
+c1__trainer_fuku90,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0279,ライブで同一定義を再現可能,採用,
+c1__horse_fuku10,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.4321,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率43.2%)
+c1__horse_fuku30,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.4913,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率49.1%)
+c1__prev_pos_rel,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.5854,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率58.5%)
+c1__closing_power,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.5854,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率58.5%)
+c1__kako5_avg_pos,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2125,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率21.3%)
+c1__kako5_std_pos,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2125,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率21.3%)
+c1__kako5_best_pos,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2125,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率21.3%)
+c1__kako5_avg_agari3f,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.216,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率21.6%)
+c1__kako5_best_agari3f,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.216,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率21.6%)
+c1__kako5_same_td_ratio,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2125,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率21.3%)
+c1__kako5_same_dist_ratio,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2125,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率21.3%)
+c1__kako5_same_place_ratio,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2125,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率21.3%)
+c1__kako5_pos_trend,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2125,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率21.3%)
+c1__kako5_race_count,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__kako5_expected_good_count,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2125,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率21.3%)
+c1__kako5_hidden_good_count,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2125,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率21.3%)
+c1__kako5_same_cond_best_pos,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.4216,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率42.2%)
+c1__hist_same_cond_best_pos,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.4216,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率42.2%)
+c1__hist_same_cond_top3_rate,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.4216,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率42.2%)
+c1__hist_same_cond_count,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.4216,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率42.2%)
+c1__hist_same_place_best_pos,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.4878,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率48.8%)
+c1__prev_hosei,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.9965,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率99.7%)
+c1__prev_hosei9,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.9965,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率99.7%)
+c1__trnH_Time1,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0557,ライブで同一定義を再現可能,採用,
+c1__trnH_Time2,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0557,ライブで同一定義を再現可能,採用,
+c1__trnH_Time3,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0557,ライブで同一定義を再現可能,採用,
+c1__trnH_Time4,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0557,ライブで同一定義を再現可能,採用,
+c1__trnH_Lap1,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0557,ライブで同一定義を再現可能,採用,
+c1__trnH_Lap2,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0557,ライブで同一定義を再現可能,採用,
+c1__trnH_Lap3,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0557,ライブで同一定義を再現可能,採用,
+c1__trnH_Lap4,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0557,ライブで同一定義を再現可能,採用,
+c1__trnH_days_ago,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0557,ライブで同一定義を再現可能,採用,
+c1__course_n_prev,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+c1__course_win_rate,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.662,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率66.2%)
+c1__course_top3_rate,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.662,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率66.2%)
+c1__jockey_n_prev,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0035,ライブで同一定義を再現可能,採用,
+c1__jockey_win_rate,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.5401,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率54.0%)
+c1__jockey_top3_rate,C1,True,True,weekly_csv+frozen_encode,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.5401,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率54.0%)
+raw_log_int,C2,True,True,live_history.chain(馬名identity),"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2265,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率22.6%)
+raw_dist_chg,C2,True,True,live_history.chain(馬名identity),"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2265,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率22.6%)
+raw_venue_chg,C2,True,True,live_history.chain(馬名identity),"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2265,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率22.6%)
+raw_surface_chg,C2,True,True,live_history.chain(馬名identity),"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2265,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率22.6%)
+raw_cls_chg,C2,True,True,live_history.chain(馬名identity),"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2683,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率26.8%)
+raw_jockey_same,C2,True,True,live_history.chain(馬名identity),"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.2265,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率22.6%)
+raw_jq_delta,C2,True,True,live_history.chain(騎手/調教師コード),レース単位(市場snapshotと同時),True,,0.2265,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率22.6%)
+raw_jt_pair,C2,True,True,live_history.chain(騎手/調教師コード),レース単位(市場snapshotと同時),True,,0.0,ライブで同一定義を再現可能,採用,
+dyn_skill_mu,C3,True,True,live_history.dyn_skill_live+horse identity,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+horse_skill_minus_field,C3,True,True,live_history.dyn_skill_live+horse identity,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+raw_career_runs,C3,True,True,live_history.dyn_skill_live+horse identity,"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.0,ライブで同一定義を再現可能,採用,
+raw_days_since,C2,True,True,weekly_csv(間隔),"週次バッチ(feature_snapshot.py, 発走より十分前)",True,,0.3589,部分的に再現可能(行単位欠損あり),採用,前走が無い馬・新規状態解決に失敗した馬でNaN (欠損率35.9%)

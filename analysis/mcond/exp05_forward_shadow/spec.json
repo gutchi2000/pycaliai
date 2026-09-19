@@ -20,13 +20,18 @@
   "no_reoptimization": "GBDT/NN化・特徴追加削除・正則化再探索・人気帯/月別/◎専用モデルは行わない (spec §5)"
  },
  "F_serve_cols_n": 117,
+ "F_forward_cols_n": 117,
+ "F_forward_note": "FEATURE_PARITY.csv監査の結果、F-forward=F-serveの117列全て採用 (完全欠損列0件、2026-09-19実データ確認)。生成ロジックはlive_history.py (v2、血統登録番号+馬名解決チェーンによる時点安全な逐次計算)",
  "F_serve_source": "analysis/mcond/exp05_market_residual_dev/out/feature_lists.json のF_serveをそのまま使用",
  "feature_typing_sha256_16": "8c03f4e96df5c86b",
+ "feature_parity_audit": "FEATURE_PARITY.csv (spec §2、全117列を分類)",
+ "serve_parity_check": "SERVE_PARITY.md (spec §6の代替。2023-2025週次CSVアーカイブが無いため真のreplayは不可、代わりにlive_history.pyのC2/C3計算が既存研究実装と同じ値を出すことを確認: C2の7/8列とdyn_skill_muが完全一致、raw_jt_pairの不一致バグを発見・修正、raw_jq_deltaの残差不一致は設計上の差でありバグではない)",
  "known_limitations": [
-  "dyn_skill_mu/horse_skill_minus_field/raw_career_runsは2025年末状態からの馬名一致による繰越 (2026年の既走分は未反映、MODEL_FREEZE.md #2)",
-  "raw_jockey_same/raw_cls_chg/raw_jq_delta/raw_jt_pair (C2の4/8列) は週次CSV単体では算出不能、常にNaN (MODEL_FREEZE.md #3)",
-  "前走日付/前好走/限定/ブリンカー (C1の4/117列) は2026-09-19の実データ検証で欠損確認 (MODEL_FREEZE.md #4)",
-  "tauは2026-09-11の本番v6再学習後のデータが無く2024年本番スコアで代用 (MODEL_FREEZE.md #1)"
+  "dyn_skill_mu/horse_skill_minus_field/raw_career_runsはv2でchain逐次更新に変更し2026年の確定済みレースを反映するようになった(一致率51.2%→77.4%)。残る限界: 同名別馬の衝突0.7%、2026年デビュー馬同士の同姓同名は原理的に回避不能 (MODEL_FREEZE.md #2)",
+  "C2は v2でchainベースの計算に変更し8/8列を算出するようになった(旧v1は4/8列のみ)。行単位では前走が無い馬(約23%)で自然にNaN (MODEL_FREEZE.md #3)",
+  "2026-09-19発見: 週次CSVのカテゴリ表記(芝・ダ='ダート'等)がmaster_v2の学習時表記と不一致。EXP05-F自身はfrozen_encode.normalize_categoricalで吸収済みだが、本番export_weekly_marks.pyのapply_encoders()には同種の未対応の疑いがあり別途ユーザーへ報告済み (MODEL_FREEZE.md #4)",
+  "tauは2026-09-11の本番v6再学習後のデータが無く2024年本番スコアで代用 (MODEL_FREEZE.md #1)",
+  "serve-parity replayは2023-2025週次CSVアーカイブが存在しないため実施不可、定義同値性チェックで代替 (SERVE_PARITY.md)"
  ],
  "market_snapshot": {
   "target_lead_min": 35,
@@ -43,12 +48,13 @@
   "no_threshold_reexploration": true
  },
  "required_sample_size": {
-  "method": "race-level 1標本z検定の必要標本数。σ=EXP05 2023-2025のM4-M3 Δlogloss race平均のSD=0.017744、効果量=min(EXP05観測全体Δの50%=0.000749, 年度別最小|Δ|(2023)=0.001320)=0.000749、両側α=0.01、検出力80% (z_{0.995}=2.576, z_{0.80}=0.842)",
-  "formula": "n = (z_alpha/2 + z_power)^2 * sigma^2 / effect^2",
-  "computed_n_races": 6558,
+  "observation_unit": "races (レース単位、馬行/購入候補/券ではない、POWER_ANALYSIS.md参照)",
+  "method": "race-level 1標本z検定の必要標本数。σ=EXP05 2023-2025のM4-M3 Δlogloss race平均のSD=0.017744、効果量=min(EXP05観測全体Δの50%=0.000749, 年度別最小|Δ|(2023)=0.001434)=0.000749、両側α=0.01、検出力80% (z_{0.995}=2.576, z_{0.80}=0.842)",
+  "formula": "n_races = (z_alpha/2 + z_power)^2 * sigma^2 / effect^2",
+  "computed_n_races": 6557.19,
   "floor_conditions": ["12開催週以上", "500レース以上", "計算された必要レース数以上"],
   "final_required_races": 6600,
-  "note": "1開催週あたり約250-300レースなので6600レースは概ね22-26開催週(5-6ヶ月)相当。途中経過でのROI評価は禁止 (spec §16)"
+  "note": "訂正(2026-09-19): 旧版は根拠のない仮定(1開催週250-300レース)で「5-6ヶ月」としていたが誤り。実測(2023-2025開発期間、開催週あたり平均66.4レース)では6600レース≈約99開催週≈約1.9年相当 (POWER_ANALYSIS.md/.json)。途中経過でのROI評価は禁止 (spec §16)"
  },
  "primary_comparison": "M4 vs M3",
  "primary_metric": "レース単位で集約したtop3 log loss差 (bootstrap: race_day単位クラスタ, 10000回)",
@@ -90,14 +96,22 @@
  "completion_condition_this_session": [
   "2026年データ在庫監査完了 (DATA_SOURCE_AUDIT.md)",
   "EXP05モデル凍結完了 (MODEL_FREEZE.md, out/frozen_model.joblib)",
-  "市場スナップショット取得コード実装完了 (market_snapshot.py, 実データでの起動確認はJV-Link稼働時間内に要実施)",
-  "117特徴を予測時点で生成可能 (feature_snapshot.py, 2026-09-19実データで109/117列を確認)",
+  "F-serve 117特徴の完全監査完了 (FEATURE_PARITY.csv、除外0件)",
+  "動的能力特徴を時点安全な逐次更新へ移行 (live_history.py、2025年末固定を解消)",
+  "C2の8/8列を時点安全に算出するよう実装 (live_history.py、旧4/8列から改善)",
+  "定義同値性チェック完了 (SERVE_PARITY.md、真のreplayは週次CSVアーカイブ欠如のため不可と結論)",
+  "必要サンプル数の単位訂正・再計算完了 (POWER_ANALYSIS.md/.json)",
+  "市場スナップショット取得コード実装完了 (market_snapshot.py)",
   "append-only予測保存が動作 (predict_and_store.py, test_forward_shadow.pyで重複防止を確認)",
   "仮想買い目が結果前に保存される (R1/R2をpredict_and_store.py内で計算・保存)",
   "結果結合が別処理で動作 (join_results.py, 2026-09-06 kekkaで確認)",
-  "テスト用レースでend-to-end確認 (2026091906040501、合成市場データで検証、本物のsub-31-38分オッズでの検証は次回開催)",
   "本番買い目へ影響しない (非干渉設計、専用ディレクトリ・専用stage・専用テストで確認)",
-  "最初の前向き開催を待てる状態"
+  "スケジューラ設計を文書化 (SCHEDULER_PLAN.md、登録は未実施)",
+  "混在コミットの事実確認 (MIXED_COMMIT_NOTE.md)"
  ],
- "not_yet_done": ["最初の前向きGate1/2/3評価", "Windows タスクスケジューラへの本登録 (ユーザー確認待ち, README.md参照)"]
+ "not_yet_done": [
+  "実JV-LinkでのT-35取得成功確認 (LIVE_PREFLIGHT.md参照、実施結果次第で更新)",
+  "最初の前向きGate1/2/3評価 (6600レース到達後)",
+  "Windows タスクスケジューラへの本登録 (ユーザー確認待ち、SCHEDULER_PLAN.md参照)"
+ ]
 }
