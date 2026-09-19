@@ -89,3 +89,45 @@ def test_frozen_encode_unknown_category_is_zero():
     assert found["場所"] is True
     assert out.loc[0, "c1__場所__中山"] == 0.0
     assert out.loc[1, "c1__場所__中山"] == 1.0
+
+
+# ------------------------------------------------------------------ scenario 7: 市場取得成功・予測入力失敗
+def test_store_market_only_does_not_discard_market_data(tmp_path, monkeypatch):
+    """特徴量snapshotが無くprediction計算できない場合でも、取得済みの市場snapshotは
+    捨てずにmarket_onlyレコードとして保存する (market_snapshot_saved=true/prediction_saved=false/
+    invalid_for_primary=true)。"""
+    monkeypatch.setattr(pas, "OUT_DIR", tmp_path)
+    market_result = {
+        "ok": True, "valid_for_primary": True, "scheduled_post": "2099-01-01T10:00:00+09:00",
+        "market": {"fetched": "2099-01-01T09:25:00", "tansho": {"1": 5.0, "2": 3.2},
+                  "overround_tan": 1.25},
+    }
+    path = pas.store_market_only("20990101", "9999010106040599", market_result,
+                                 reason="weekly_input_unavailable")
+    rec = json.loads(path.read_text(encoding="utf-8"))
+    assert rec["market_snapshot_saved"] is True
+    assert rec["prediction_saved"] is False
+    assert rec["invalid_for_primary"] is True
+    assert rec["reason"] == "weekly_input_unavailable"
+    assert rec["raw_market"]["tansho"] == {"1": 5.0, "2": 3.2}
+
+
+def test_store_market_only_revisions_do_not_overwrite(tmp_path, monkeypatch):
+    monkeypatch.setattr(pas, "OUT_DIR", tmp_path)
+    market_result = {"ok": True, "valid_for_primary": False, "scheduled_post": None, "market": {}}
+    p1 = pas.store_market_only("20990101", "9999010106040599", market_result, reason="r1")
+    p2 = pas.store_market_only("20990101", "9999010106040599", market_result, reason="r2")
+    assert p1 != p2
+    assert json.loads(p1.read_text(encoding="utf-8"))["reason"] == "r1"
+    assert json.loads(p2.read_text(encoding="utf-8"))["reason"] == "r2"
+
+
+# ------------------------------------------------------------------ 開催日判定ロジック (t35_shadow.ps1)
+# PowerShellの-Scheduleブロック自体はpytestで直接実行しないが、判定に使う
+# data/jra_known_race_days_override.json の読み込み形式だけは検証しておく。
+def test_known_race_day_override_file_valid_json():
+    p = BASE / "data" / "jra_known_race_days_override.json"
+    assert p.exists()
+    data = json.loads(p.read_text(encoding="utf-8"))
+    assert "known_race_days" in data
+    assert "20260921" in data["known_race_days"]

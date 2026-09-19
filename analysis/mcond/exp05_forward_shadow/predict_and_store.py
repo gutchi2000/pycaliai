@@ -70,6 +70,33 @@ def _existing_revisions(date_str: str, rid: str, model_hash: str) -> list[Path]:
     return sorted(d.glob(f"{rid}_{model_hash}_rev*.json"))
 
 
+def store_market_only(date_str: str, rid: str, market_result: dict, reason: str) -> Path:
+    """特徴量snapshot等が無くM1/M3/M4を計算できない場合でも、取得済みの市場snapshotを
+    捨てずに保存する (spec: 市場データを捨てない)。
+    market_snapshot_saved=true / prediction_saved=false / invalid_for_primary=true を明示する。
+    同一race_idへの複数回の market_only 保存も revision で追記のみ (上書きしない)。"""
+    d = OUT_DIR / date_str
+    d.mkdir(parents=True, exist_ok=True)
+    existing = sorted(d.glob(f"{rid}_marketonly_rev*.json"))
+    rev = len(existing) + 1
+    path = d / f"{rid}_marketonly_rev{rev}.json"
+    record = {
+        "race_id": rid, "date": date_str, "revision": rev,
+        "saved_at": datetime.now().isoformat(timespec="seconds"),
+        "market_snapshot_saved": True,
+        "prediction_saved": False,
+        "invalid_for_primary": True,
+        "reason": reason,
+        "scheduled_start_time": market_result.get("scheduled_post"),
+        "snapshot_time": (market_result.get("market") or {}).get("fetched"),
+        "market_ok": bool(market_result.get("ok")),
+        "market_valid_for_primary_window": bool(market_result.get("valid_for_primary")),
+        "raw_market": market_result.get("market"),
+    }
+    path.write_text(json.dumps(record, ensure_ascii=False, indent=1), encoding="utf-8")
+    return path
+
+
 def store_prediction(date_str: str, rid: str, market_result: dict) -> Path:
     frozen = _frozen()
     model_hash = _artifact_hash()

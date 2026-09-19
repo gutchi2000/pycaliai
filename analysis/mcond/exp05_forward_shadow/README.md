@@ -65,13 +65,28 @@ python -m analysis.mcond.exp05_forward_shadow.market_snapshot --once <rid16> --d
 python -m analysis.mcond.exp05_forward_shadow.join_results --date YYYYMMDD
 ```
 
-## タスクスケジューラへの登録 (2026-09-19登録、同日中に毎日トリガーへ修正)
+## タスクスケジューラへの登録 (2026-09-19登録、同日中に2段階で修正)
 `t35_shadow.ps1` は `t20_site.ps1` と全く同じ「レース毎タスク」方式で実装済み・実データで
 動作確認済み。当初は`PyCaLiAI_T20_Site`と同じ土日9:00起動で登録したが、2026-09-21(月・祝)
-開催を取りこぼすとの指摘を受け**毎日9:00起動**へ修正(モデル・特徴・購入ルールは無変更)。
-`data/weekly/{date}.csv`が無い日(開催なし)は即座に正常終了、レース毎タスクは冪等に登録
-(重複登録せず、発走枠を過ぎた陳腐化タスクだけ削除)。詳細・解除コマンドは
-`SCHEDULER_PLAN.md`「2026-09-19 毎日トリガー化」節参照。
+開催を取りこぼすとの指摘を受け毎日トリガーへ修正、さらに「非開催日」と「開催日だが
+`data/weekly/{date}.csv`未生成」を区別できない欠陥が残っていたため、同日中に**8:30起動
++ 3値判定(NO_RACES_TODAY / 通常フロー / RACE_DAY_INPUT_PENDING)**へ再修正した
+(モデル・特徴・購入ルールは無変更)。
+
+- weekly CSVが無い当日について、`data/jra_known_race_days_override.json`(既知開催台帳、
+  祝日・振替開催をユーザーから聞いたら追記)または土日のいずれかに該当しない平日だけ
+  `NO_RACES_TODAY`として即座に正常終了(exit 0)。該当する場合は`RACE_DAY_INPUT_PENDING`
+  として2分おきに8:55まで再試行し、それでもCSVが現れなければ`logs\exp05fs_errors.log`
+  へ記録した上で**明示的にexit 3で失敗**する(黙って「開催なし」扱いにしない)。
+- レース毎タスクは冪等に登録(重複登録せず、発走枠を過ぎた陳腐化タスクだけ削除)。
+- `market_snapshot.py`は特徴量snapshot未生成でprediction計算ができない場合でも、
+  取得済みのT-35市場snapshotは`{rid}_marketonly_rev{n}.json`として捨てずに保存する
+  (`market_snapshot_saved=true`/`prediction_saved=false`/`invalid_for_primary=true`)。
+- JV-Linkから将来日程を独立照会する方式は実機検証の結果不可能と判明
+  (`jvlink_race_day_probe.py`に負の実験結果として記録、判定ロジックには未配線)。
+
+詳細・実測タイミング根拠・解除コマンド・動作確認結果の全文は
+`SCHEDULER_PLAN.md`参照。
 
 ## 非干渉の設計
 - 生成物は全て専用ディレクトリ: `reports/exp05fs_odds/`, `data/_research/mcond/exp05fs_*/`

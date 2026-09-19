@@ -1,0 +1,6 @@
+{
+  "_comment": "EXP05-F t35_shadow.ps1 -Schedule 用。data/weekly/{date}.csvが無い(TARGET未エクスポート)状態でも「開催が既知」と分かっている日付をここに列挙する。曜日に関わらずCase C(RACE_DAY_INPUT_PENDING、再試行してから明示的にFAIL)として扱い、Case A(NO_RACES_TODAY)への誤判定を防ぐ。祝日・振替開催の予定が分かった時点で追記すること。過去日は削除せず残してよい(判定には当日分しか参照しない)。",
+  "known_race_days": {
+    "20260921": "中山・阪神 (月・祝、ユーザー報告により登録 2026-09-19)"
+  }
+}
