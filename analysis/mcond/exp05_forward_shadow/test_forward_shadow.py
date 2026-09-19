@@ -131,3 +131,56 @@ def test_known_race_day_override_file_valid_json():
     data = json.loads(p.read_text(encoding="utf-8"))
     assert "known_race_days" in data
     assert "20260921" in data["known_race_days"]
+
+
+# ------------------------------------------------------------------ jvlink_race_calendar.py /
+#                                                                       jvlink_race_day_probe.py
+# fetch_races()/diag_extract()自体はwin32com(32bit専用)が要るため通常のpytest venv(64bit)では
+# 検証できない。ここではwin32comを一切importしない純粋ロジック部分だけを実データで検証する。
+from analysis.mcond.exp05_forward_shadow import jvlink_race_calendar as JRC  # noqa: E402
+from analysis.mcond.exp05_forward_shadow import jvlink_race_day_probe as JRP  # noqa: E402
+
+
+def test_jvlink_probe_load_known_post_times_matches_weekly_csv():
+    """data/weekly/20260919.csvの実データから発走時刻を正しく読めること
+    (t10_runner.load_post_timesと同一ロジックの独立複製、32bit環境でも動くよう
+    pandasを使わない実装になっている点を確認)。"""
+    known = JRP._load_known_post_times("20260919")
+    assert len(known) == 24
+    assert known["2026091906040501"] == "10:00"
+    assert known["2026091909040501"] == "09:45"
+
+
+def test_jvlink_probe_load_known_post_times_missing_file_returns_empty():
+    assert JRP._load_known_post_times("99991231") == {}
+
+
+def test_jvlink_calendar_verify_against_weekly_reports_exact_matches():
+    races = [{"rid16": "2026091906040501", "post": "10:00", "venue": "中山"},
+             {"rid16": "2026091909040501", "post": "09:45", "venue": "阪神"},
+             {"rid16": "2026091906040502", "post": "99:99", "venue": "中山"}]  # わざと不一致を混ぜる
+    v = JRC.verify_against_weekly("20260919", races)
+    assert v["available"] is True
+    assert v["known_count"] == 24
+    assert v["exact_time_matches"] == 2
+
+
+# ---- _sanity_check: 2026-09-19夜、PowerShell経由の子プロセスでのみ発走時刻が
+# 全レース"00:00"に化ける実機不具合が見つかったため追加した自己検査 ----
+def test_jvlink_calendar_sanity_check_rejects_all_identical_times():
+    races = [{"rid16": f"202609210604070{i}", "post": "00:00"} for i in range(1, 13)]
+    err = JRC._sanity_check(races)
+    assert err != ""
+    assert "00:00" in err or "同一発走時刻" in err
+
+
+def test_jvlink_calendar_sanity_check_accepts_plausible_distinct_times():
+    races = [{"rid16": "2026092106040701", "post": "09:45"},
+             {"rid16": "2026092106040702", "post": "10:20"},
+             {"rid16": "2026092106040703", "post": "10:50"}]
+    assert JRC._sanity_check(races) == ""
+
+
+def test_jvlink_calendar_sanity_check_skips_tiny_lists():
+    # 1-2件は「本当にその日そのレース数しかない」可能性を否定できないため素通しする
+    assert JRC._sanity_check([{"rid16": "x", "post": "00:00"}]) == ""

@@ -5,28 +5,72 @@
 # 狙う) に各レース 1 個ずつ Windows タスクを登録 (WakeToRun)。実行のたびに:
 #   1) analysis.mcond.exp05_forward_shadow.market_snapshot --once <rid> でオッズ取得+検証
 #   2) predict_and_store.store_prediction() で凍結モデル(M1/M3/M4)の予測をappend-only保存
+#      (bundle.json/特徴量snapshotが無ければ store_market_only() で市場だけ保存、後述)
 #
 # 本番 T-10 ライン (t10.ps1) / サイト T-20 (t20_site.ps1) / 大会実投票 (T-4) には
 # 一切干渉しない。買い目・印・資金配分への接続もしない (研究専用)。
 #
-# 運用 (2026-09-19登録、同日中に毎日8:30トリガー+開催日判定の強化へ修正):
+# 運用 (2026-09-19登録、同日中に4段階で修正):
 #   マスタータスク "PyCaLiAI_EXP05FS_T35" が毎日8:30に -Schedule を起動する
 #   (実測: 直近15週の最速発走09:40 → T-35窓の開始は最速09:02。8:30起動なら
 #   再試行の余裕を見ても09:02より十分前に登録処理を終えられる)。
+#   ExecutionTimeLimitは下記Cの長時間監視に対応するため無期限化済み(2026-09-19三次修正)。
 #
 #   当日の状態を3つに分けて扱う (data/weekly/{date}.csv の有無だけに頼らない):
 #     A. NO_RACES_TODAY   : 開催なしと判断 → 個別タスクを作らず exit 0
-#     B. (通常フロー)      : weekly CSVあり → 個別T-35タスクを冪等に登録
-#     C. RACE_DAY_INPUT_PENDING : 開催があるはず(週末 or 既知開催オーバーライド)なのに
-#        weekly CSVがまだ無い → 再試行してから、それでも無ければ明示的にFAIL (exit 3)
-#        し exp05fs_errors.log に記録する。これをAと混同して黙って exit 0 にはしない。
+#     B. (通常フロー)      : 開催ありと確認 → 個別T-35タスクを冪等に登録
+#     C. RACE_DAY_INPUT_PENDING : 開催があるはずなのにweekly CSVがまだ無い
+#        (JV-Link開催カレンダーでも判定できなかった場合の安全網) → 一日を通して
+#        回復可能にする(下記「三次修正」参照)。
 #
-#   「開催があるはず」の判定は次の順で行う (JV-Linkの将来日程照会は2026-09-19実機検証で
-#   不可能と判明、jvlink_race_day_probe.py参照):
-#     1. data/jra_known_race_days_override.json に当日が列挙されている
-#        (祝日・振替開催をユーザーから聞いたら追記する)
-#     2. 土曜/日曜 (JRAは通常この2日に開催する)
-#   上記どちらにも当てはまらない平日でweekly CSVが無い場合だけ A (開催なし) とみなす。
+#   四次修正(2026-09-19夜、jvlink_race_calendar.py新設): 当初(2026-09-19朝)は
+#   「JVOpen("RACE", 対象日+000000, 1)で未来日はrc=-1になる」ことから
+#   「JV-Linkは将来日程を取得できない」と結論していたが、これは fromtime の意味の
+#   誤解による誤った結論だった(ユーザー指摘により再調査)。蓄積系dataspecのfromtimeは
+#   「データ作成年月日時分」でのフィルタであり「レース開催日」そのもののフィルタでは
+#   ない。JRAは通常レース開催の数日前に番組を先行発表しているため、fromtimeに
+#   「対象日より十分前の日付」を指定すればまだ来ていない開催日の情報も取得できる。
+#   実機で2026-09-21(月・祝、中山・阪神)の全24レースを2026-09-19時点で取得できる
+#   ことを実証し(データ作成日2026-09-17=開催4日前に先行発表済み)、さらに直近7開催日
+#   211レースの既知発走時刻と突合して211/211件のレースID一致・204/211件で発走時刻も
+#   完全一致(残り7件も±1分差のみ)を確認した。詳細・フィールドオフセットは
+#   jvlink_race_calendar.py参照。
+#
+#   これにより「開催があるはず」の判定は次の優先順で行う:
+#     1. jvlink_race_calendar.py (weekly CSVに依存しない独立シグナル、上記で実証済み)
+#        が対象日のレースを1件以上返す → 即座にBのT-35タスク登録へ(weekly CSVを待たない、
+#        spec提案の理想順序「JV-Link検出→T-35収集タスク登録→weekly CSVを待つ→
+#        特徴・予測を保存」を実現)。0件と回答した場合は次のヒューリスティクスと
+#        照合し、一致すればA、不一致(食い違い)なら安全側としてweekly CSVベースの
+#        Case A/B/C判定へフォールバックする。
+#     2. JV-Linkクエリ自体が失敗した場合、または上記の食い違いが生じた場合のみ、
+#        従来の安全網: data/jra_known_race_days_override.json に当日が列挙されている
+#        (祝日・振替開催をユーザーから聞いたら追記する) か、土曜/日曜であるかを見る。
+#   上記どちらでも開催が見込めない平日でweekly CSVも無い場合だけ A (開催なし) とみなす。
+#
+#   Cの三次修正(2026-09-19、「8:55でFAILしたら当日を諦める」旧実装の是正。
+#   四次修正でJV-Link開催カレンダーが使えるようになったため実際に発動する場面は
+#   減った想定だが、JV-Linkクエリ失敗時の安全網として引き続き有効):
+#     - 8:55(最初のT-35登録期限)までは2分おきに再試行 (旧実装と同じ)。
+#     - 8:55を過ぎてweekly CSVが無くても exit しない。exp05fs_errors.logへ
+#       FIRST_MISS を記録した上で、5分おきの再試行へ切り替えて監視を継続する。
+#     - 最終回復期限(過去75開催週の最遅最終レース発走18:30の実測に基づき、
+#       そのT-35時刻17:55に安全マージンを足した18:00固定)まで監視を続ける。
+#     - この間にweekly CSVが出現したら、その時点でまだT-35枠に間に合うレースだけ
+#       個別タスクを登録し、既にT-35枠を過ぎたレースは`missed_due_to_input_delay`として
+#       `logs\exp05fs_missed_races_{date}.json`へ記録する(市場データを取り損ねたことを
+#       黙って握り潰さない)。
+#     - 最終回復期限を過ぎてもweekly CSVが無ければ、そこで初めて明示的にFAIL (exit 3)。
+#     - bundle.json (reports\cowork_input\{date}_bundle.json) 待ちループは廃止した:
+#       predict_and_store.store_prediction()はbundle.json・特徴量snapshotのどちらが
+#       無くてもFileNotFoundErrorを送出し、market_snapshot.py側のstore_market_only()が
+#       市場snapshotだけを保存する(既に検証済み・非干渉)。よってT-35タスクの「登録」自体を
+#       bundle生成完了まで待たせる技術的必要はなく、weekly CSVさえあれば即登録してよい
+#       (T-35収集をweekly特徴生成より優先するという方針に合わせた変更)。
+#     - ただし store_market_only() が働くのは「個別タスクが実際に作成され、そのタスクが
+#       発火してmarket_snapshot.pyが実行された後」に限る。入力遅延でタスク自体を
+#       一度も作れなかったレース(=missed_due_to_input_delay)については、
+#       市場データも一切取得されない(取りに行くコード自体が動かないため)。
 #
 # 手動:
 #   .\t35_shadow.ps1 -Schedule           # 今すぐ判定・登録を実行
@@ -79,52 +123,147 @@ if ($Schedule) {
     function Get-DowJa([string]$d) {
         try { return ([datetime]::ParseExact($d, 'yyyyMMdd', $null)).DayOfWeek } catch { return $null }
     }
+    function Add-MissedRace([string]$d, [string]$rid, [string]$post, [datetime]$runAt, [string]$reason) {
+        # weekly CSV到着遅延のため一度もT-35タスクを作れなかったレースを記録する
+        # (市場データも一切取得できていない=完全な欠損。黙って握り潰さない)。
+        $p = "logs\exp05fs_missed_races_${d}.json"
+        $arr = @()
+        if (Test-Path $p) {
+            try { $arr = @(Get-Content $p -Raw -Encoding UTF8 | ConvertFrom-Json) } catch { $arr = @() }
+        }
+        $arr = @($arr) + [PSCustomObject]@{
+            race_id = $rid; date = $d; scheduled_post = $post
+            t35_deadline = $runAt.ToString('s'); detected_at = (Get-Date -Format 's')
+            reason = $reason
+        }
+        New-Item -ItemType Directory -Force logs | Out-Null
+        ($arr | ConvertTo-Json -Depth 5) | Set-Content -Path $p -Encoding UTF8
+    }
 
-    if (-not (Test-Path $weeklyCsv)) {
-        $dow = Get-DowJa $Date
-        $isOverride = Test-KnownRaceDayOverride $Date
-        $isWeekend = ($dow -eq [System.DayOfWeek]::Saturday) -or ($dow -eq [System.DayOfWeek]::Sunday)
-        $expectRace = $isOverride -or $isWeekend
+    $wentThroughInputDelay = $false
+    $lines = $null
 
-        if (-not $expectRace) {
-            Write-Host "[NO_RACES_TODAY] $weeklyCsv 無し、曜日=$dow、既知開催オーバーライドにも無し → 開催なしと判断し正常終了"
+    # ---- JV-Link開催カレンダー (weekly CSVに依存しない独立シグナル、2026-09-19夜追加) ----
+    # 対象日の番組が既に発表済みなら、weekly CSVの有無に関わらずレースID+発走時刻を
+    # 直接取得できる (jvlink_race_calendar.py参照。実機で211/211件のrid一致・
+    # 204/211件で完全時刻一致・残り7件も±1分差のみまで検証済み)。失敗時は例外を
+    # 投げず空配列+非0 exitを返す設計のため、失敗時は既存のweekly CSVベースの
+    # Case A/B/C判定へ安全にフォールバックする(このクエリ自体が主フローを止めることはない)。
+    $jvRaces = @()
+    $jvQueryOk = $false
+    try {
+        $jvOut = & py -3.12-32 -m 'analysis.mcond.exp05_forward_shadow.jvlink_race_calendar' `
+            --date $Date --lookback-days 14 2>$null
+        $jvExit = $LASTEXITCODE
+        $jvQueryOk = ($jvExit -eq 0)
+        if ($jvQueryOk) {
+            foreach ($l in $jvOut) {
+                $parts = $l -split "`t"
+                if ($parts.Count -ge 2) { $jvRaces += [PSCustomObject]@{ rid = $parts[0]; post = $parts[1] } }
+            }
+        }
+    } catch {
+        $jvQueryOk = $false
+    }
+    Write-Host ("[jvlink_calendar] query_ok={0} races_found={1}" -f $jvQueryOk, $jvRaces.Count)
+
+    $useJvSchedule = $false
+    if ($jvQueryOk -and $jvRaces.Count -gt 0) {
+        Write-Host "[jvlink_calendar] $($jvRaces.Count)件のレースを検出 → weekly CSVの有無に関わらずT-35タスクを直ちに登録する(理想順序)"
+        $useJvSchedule = $true
+    } elseif ($jvQueryOk -and $jvRaces.Count -eq 0) {
+        # JV-Linkが「0件」と明確に回答した。既存の曜日/オーバーライドヒューリスティクスと
+        # 一致すれば独立シグナル2つの合意としてNO_RACES_TODAYを確信を持って判定できる。
+        # 不一致なら食い違いなので安全側(weekly CSVベースのCase A/B/C)へフォールバックする。
+        $dow0 = Get-DowJa $Date
+        $expectRace0 = (Test-KnownRaceDayOverride $Date) -or
+                       ($dow0 -eq [System.DayOfWeek]::Saturday) -or ($dow0 -eq [System.DayOfWeek]::Sunday)
+        if (-not $expectRace0) {
+            Write-Host "[NO_RACES_TODAY][jvlink_confirmed] JV-Link開催カレンダーも0件、曜日=$dow0、オーバーライドにも無し → 開催なしと確信して正常終了"
             try { Stop-Transcript | Out-Null } catch {}
             exit 0
         }
+        Write-Host "[warn][jvlink_disagreement] JV-Linkは0件と回答したが曜日=$dow0/オーバーライドにより開催ありと推定 → 食い違いのためweekly CSVベース判定へフォールバック"
+    } else {
+        Write-Host "[jvlink_calendar] クエリ失敗 → weekly CSVベースの判定へフォールバック"
+    }
 
-        # ---- Case C: 開催があるはずなのに weekly CSV がまだ無い → 再試行してから明示的にFAIL ----
-        $why = if ($isOverride) { "既知開催オーバーライド" } else { "曜日=$dow(週末)" }
-        Write-Host "[RACE_DAY_INPUT_PENDING] $weeklyCsv 無し、しかし $why により開催ありと推定 → 再試行する"
-        $retryDeadline = (Get-Date -Hour 8 -Minute 55 -Second 0)
-        while (-not (Test-Path $weeklyCsv)) {
-            if ((Get-Date) -ge $retryDeadline) {
-                $msg = "[RACE_DAY_INPUT_PENDING][FAIL] ${Date}: $why により開催ありと推定されるが " +
-                       "$retryDeadline までに $weeklyCsv が生成されなかった。TARGET出走表エクスポートを確認し、" +
-                       "エクスポート後に手動で .\t35_shadow.ps1 -Schedule -Date $Date を実行すること。"
-                Write-Host $msg
-                Add-Content -Path "logs\exp05fs_errors.log" -Value ("{0} {1}" -f (Get-Date -Format 's'), $msg)
+    if ($useJvSchedule) {
+        $lines = $jvRaces | ForEach-Object { "$($_.rid)`t$($_.post)" }
+    } else {
+        # ---- weekly CSVベースのCase A/B/C判定 (JV-Linkで確定できなかった場合の安全網) ----
+        if (-not (Test-Path $weeklyCsv)) {
+            $dow = Get-DowJa $Date
+            $isOverride = Test-KnownRaceDayOverride $Date
+            $isWeekend = ($dow -eq [System.DayOfWeek]::Saturday) -or ($dow -eq [System.DayOfWeek]::Sunday)
+            $expectRace = $isOverride -or $isWeekend
+
+            if (-not $expectRace) {
+                Write-Host "[NO_RACES_TODAY] $weeklyCsv 無し、曜日=$dow、既知開催オーバーライドにも無し → 開催なしと判断し正常終了"
                 try { Stop-Transcript | Out-Null } catch {}
-                exit 3
+                exit 0
             }
-            Write-Host "[wait] $weeklyCsv 未生成 → 2分後に再確認 (締切 $retryDeadline)"
-            Start-Sleep -Seconds 120
+
+            # ---- Case C: 開催があるはずなのに weekly CSV がまだ無い ----
+            # 8:55(最初のT-35登録期限)まではFAIL可能性を見て2分おきに再試行。それを過ぎても
+            # exitせず、18:00(過去75開催週の最遅最終レース発走18:30のT-35時刻17:55+安全マージン)
+            # まで5分おきの再試行を続ける。1日を通してweekly CSVが一度も現れなければそこで
+            # 初めて明示的にFAILする(=手動対応が必要というシグナル)。
+            $wentThroughInputDelay = $true
+            $why = if ($isOverride) { "既知開催オーバーライド" } else { "曜日=$dow(週末)" }
+            Write-Host "[RACE_DAY_INPUT_PENDING] $weeklyCsv 無し、しかし $why により開催ありと推定 → 再試行する"
+            $firstDeadline = (Get-Date -Hour 8 -Minute 55 -Second 0)
+            $finalDeadline = (Get-Date -Hour 18 -Minute 0 -Second 0)
+            $firstMissLogged = $false
+            while (-not (Test-Path $weeklyCsv)) {
+                if ((Get-Date) -ge $firstDeadline -and -not $firstMissLogged) {
+                    $msg = "[RACE_DAY_INPUT_PENDING][FIRST_MISS] ${Date}: $why により開催ありと推定されるが " +
+                           "$firstDeadline (最初のT-35登録期限)までに $weeklyCsv が生成されなかった。" +
+                           "後続レースの回収は $finalDeadline まで諦めずに継続する。"
+                    Write-Host $msg
+                    Add-Content -Path "logs\exp05fs_errors.log" -Value ("{0} {1}" -f (Get-Date -Format 's'), $msg)
+                    $firstMissLogged = $true
+                }
+                if ((Get-Date) -ge $finalDeadline) {
+                    $msg = "[RACE_DAY_INPUT_PENDING][FINAL_FAIL] ${Date}: $why により開催ありと推定されるが " +
+                           "本日の最終回復期限 $finalDeadline までに $weeklyCsv が生成されなかった。" +
+                           "TARGET出走表エクスポートを確認し、エクスポート後に手動で " +
+                           ".\t35_shadow.ps1 -Schedule -Date $Date を実行すること " +
+                           "(本日分は個別タスク0件のまま終了、市場データも一切取得できていない)。"
+                    Write-Host $msg
+                    Add-Content -Path "logs\exp05fs_errors.log" -Value ("{0} {1}" -f (Get-Date -Format 's'), $msg)
+                    try { Stop-Transcript | Out-Null } catch {}
+                    exit 3
+                }
+                $sleepSec = if ($firstMissLogged) { 300 } else { 120 }
+                Write-Host "[wait] $weeklyCsv 未生成 → ${sleepSec}秒後に再確認 (最終回復期限 $finalDeadline)"
+                Start-Sleep -Seconds $sleepSec
+            }
+            $csvMtime = (Get-Item $weeklyCsv).LastWriteTime
+            Write-Host "[RACE_DAY_INPUT_PENDING][RESOLVED] $weeklyCsv 生成時刻(mtime)=$csvMtime 検出時刻=$(Get-Date) → 通常フローへ"
         }
-        Write-Host "[RACE_DAY_INPUT_PENDING][RESOLVED] $weeklyCsv が生成された → 通常フローへ"
+        $lines = & $pyFull -m $mod --date $Date --list-schedule --lead-min $LeadMin
     }
 
+    # bundle.json (Phase A の印付け結果) は待たない: predict_and_store.store_prediction()は
+    # bundle.json・特徴量snapshotのどちらが未生成でもFileNotFoundErrorを送出し、
+    # market_snapshot.py側のstore_market_only()が市場snapshotだけを保存する経路が
+    # 既にある(非干渉・検証済み)。T-35収集をweekly特徴生成より優先するため、
+    # ここでbundle生成を待つ技術的必要はない(2026-09-19三次修正で待機ループを廃止)。
     $bundle = "reports\cowork_input\${Date}_bundle.json"
-    $deadline = (Get-Date -Hour 15 -Minute 0 -Second 0)
-    while (-not (Test-Path $bundle)) {
-        if ((Get-Date) -ge $deadline) {
-            Write-Host "[ERROR] 開催表はあるのに15:00までにbundle未生成 → 異常 (Phase A失敗の疑い)"
-            try { Stop-Transcript | Out-Null } catch {}
-            exit 1
-        }
-        Write-Host "[wait] $bundle 未生成 → 2 分後に再確認"
-        Start-Sleep -Seconds 120
+    if (-not (Test-Path $bundle)) {
+        Write-Host "[info] $bundle 未生成(市場のみ保存になる可能性あり、store_market_only()で捕捉される想定)"
     }
-    # 特徴量snapshotも事前に作っておく (市場と無関係、時点安全)
-    & $pyFull -m 'analysis.mcond.exp05_forward_shadow.feature_snapshot' --date $Date
+    # 特徴量snapshotも事前に作っておく (weekly CSVが既にあれば実行、市場とは無関係・
+    # 時点安全。失敗しても後続の個別タスク登録自体は妨げない=市場収集を優先する)
+    if (Test-Path $weeklyCsv) {
+        & $pyFull -m 'analysis.mcond.exp05_forward_shadow.feature_snapshot' --date $Date
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[warn] feature_snapshot.py 失敗 (exit $LASTEXITCODE) → 各レースはstore_market_only()にフォールバックする見込み"
+        }
+    } else {
+        Write-Host "[info] $weeklyCsv 未生成のためfeature_snapshotは未実行 (store_market_only()にフォールバックする見込み)"
+    }
 
     # ---- 冪等なレース毎タスク登録 ----
     # 既存タスク一覧を1回だけ取得し、(a) 今回計算した対象と同名で未来時刻のものは
@@ -136,24 +275,35 @@ if ($Schedule) {
         $existing[$t.TaskName] = $info
     }
 
-    $lines = & $pyFull -m $mod --date $Date --list-schedule --lead-min $LeadMin
-    $n_new = 0; $n_skipped = 0; $n_stale_removed = 0
+    # $Date の暦日を基準に使う (Get-Date -Hour -Minute だけでは「今日」の日付が
+    # 暗黙に残ってしまい、$Date が実際の今日と異なる場合に誤った日で計算してしまう
+    # バグがあった。JV-Link開催カレンダー経由で「今日ではない対象日」の登録が
+    # 実際に到達可能になったため2026-09-19夜に修正: $Date を明示的な基準日とする)
+    $dateBase = [datetime]::ParseExact($Date, 'yyyyMMdd', $null)
+
+    $n_new = 0; $n_skipped = 0; $n_stale_removed = 0; $n_missed = 0
     $targetNames = @{}
     foreach ($l in $lines) {
         $parts = $l -split "`t"
         if ($parts.Count -lt 2) { continue }
         $rid = $parts[0]; $post = $parts[1]
         $ph, $pm = $post -split ':'
-        $runAt = (Get-Date -Hour ([int]$ph) -Minute ([int]$pm) -Second 0).AddMinutes(-$LeadMin)
+        $runAt = $dateBase.AddHours([int]$ph).AddMinutes([int]$pm).AddMinutes(-$LeadMin)
         $taskName = "PyCaLiAI_EXP05FS_T35R_$rid"
         $targetNames[$taskName] = $true
 
         if ($runAt -lt (Get-Date)) {
-            # 発走枠を過ぎたレース: 既存タスクが残っていれば陳腐化なので削除するだけ (再登録しない)
             if ($existing.ContainsKey($taskName)) {
+                # 既にタスクが動いた(または動く機会があった)後の通常の陳腐化削除
                 Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
                 $n_stale_removed++
                 Write-Host ("  削除(陳腐化) {0}  (発走枠 {1:HH:mm} は既に経過)" -f $taskName, $runAt)
+            } elseif ($wentThroughInputDelay) {
+                # weekly CSV到着遅延のため一度もタスクを作れないままT-35枠を過ぎた
+                # → 市場データも一切取得できていない完全な欠損。記録して次のレースへ
+                Add-MissedRace $Date $rid $post $runAt "weekly_csv_delayed"
+                $n_missed++
+                Write-Host ("  [MISSED] {0}  T-35枠 {1:HH:mm} は入力遅延のため回収不能 (発走 {2})" -f $rid, $runAt, $post)
             }
             continue
         }
@@ -194,7 +344,7 @@ if ($Schedule) {
         }
     }
 
-    Write-Host "[schedule] 新規登録 $n_new / 既存スキップ $n_skipped / 陳腐化削除 $n_stale_removed"
+    Write-Host "[schedule] 新規登録 $n_new / 既存スキップ $n_skipped / 陳腐化削除 $n_stale_removed / 入力遅延で取りこぼし $n_missed"
     try { Stop-Transcript | Out-Null } catch {}
     exit 0
 }

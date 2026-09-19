@@ -65,27 +65,41 @@ python -m analysis.mcond.exp05_forward_shadow.market_snapshot --once <rid16> --d
 python -m analysis.mcond.exp05_forward_shadow.join_results --date YYYYMMDD
 ```
 
-## タスクスケジューラへの登録 (2026-09-19登録、同日中に2段階で修正)
+## タスクスケジューラへの登録 (2026-09-19登録、同日中に4段階で修正)
 `t35_shadow.ps1` は `t20_site.ps1` と全く同じ「レース毎タスク」方式で実装済み・実データで
 動作確認済み。当初は`PyCaLiAI_T20_Site`と同じ土日9:00起動で登録したが、2026-09-21(月・祝)
-開催を取りこぼすとの指摘を受け毎日トリガーへ修正、さらに「非開催日」と「開催日だが
-`data/weekly/{date}.csv`未生成」を区別できない欠陥が残っていたため、同日中に**8:30起動
-+ 3値判定(NO_RACES_TODAY / 通常フロー / RACE_DAY_INPUT_PENDING)**へ再修正した
+開催を取りこぼすとの指摘を受け毎日トリガーへ修正 → 「非開催日」と「開催日だが
+`data/weekly/{date}.csv`未生成」を区別できない欠陥が残っていたため8:30起動+3値判定
+(NO_RACES_TODAY / 通常フロー / RACE_DAY_INPUT_PENDING)へ修正 → その3値判定が8:55で
+FAILすると当日全体の監視を諦めてしまう欠陥を是正(18:00まで粘って部分回復) →
+「JV-Linkは将来日程を取得できない」という当初の結論が誤りだったと判明し、
+`jvlink_race_calendar.py`でweekly CSVに依存しないT-35タスク登録を実現、の順で修正した
 (モデル・特徴・購入ルールは無変更)。
 
-- weekly CSVが無い当日について、`data/jra_known_race_days_override.json`(既知開催台帳、
-  祝日・振替開催をユーザーから聞いたら追記)または土日のいずれかに該当しない平日だけ
-  `NO_RACES_TODAY`として即座に正常終了(exit 0)。該当する場合は`RACE_DAY_INPUT_PENDING`
-  として2分おきに8:55まで再試行し、それでもCSVが現れなければ`logs\exp05fs_errors.log`
-  へ記録した上で**明示的にexit 3で失敗**する(黙って「開催なし」扱いにしない)。
+- **JV-Link開催カレンダー(`jvlink_race_calendar.py`)を最優先で試す**: 実機で
+  211/211件のレースID一致・204/211件で発走時刻も完全一致まで検証済み。対象日の
+  レースが1件以上取得できれば、weekly CSVの有無に関わらず即座にT-35タスクを登録する
+  (spec提案の理想順序「JV-Link検出→T-35収集タスク登録→weekly CSVを待つ→特徴・予測を
+  保存」を実現)。⚠️ ただしPowerShell経由の呼び出しに限り発走時刻が破損して返る
+  未解決の実機不具合を発見しており、抽出結果の自己検査(サニティチェック)で異常時は
+  安全に次のフォールバックへ回す設計にしてある。詳細は`SCHEDULER_PLAN.md`参照。
+- **フォールバック(JV-Linkが失敗/矛盾した場合)**: weekly CSVが無い当日について、
+  `data/jra_known_race_days_override.json`(既知開催台帳)または土日のいずれかに
+  該当しない平日だけ`NO_RACES_TODAY`として即座に正常終了(exit 0)。該当する場合は
+  `RACE_DAY_INPUT_PENDING`として2分おき(8:55以降は5分おき)に18:00まで粘り強く
+  再試行し、それでもCSVが現れなければ`logs\exp05fs_errors.log`へ記録した上で
+  **明示的にexit 3で失敗**する(黙って「開催なし」扱いにしない)。8:55の時点で
+  一度FAILを記録しても当日全体の監視は終了せず、途中でCSVが現れればまだ間に合う
+  レースだけ登録し、間に合わないレースは`missed_due_to_input_delay`として
+  `logs\exp05fs_missed_races_{date}.json`へ明示記録する。
 - レース毎タスクは冪等に登録(重複登録せず、発走枠を過ぎた陳腐化タスクだけ削除)。
 - `market_snapshot.py`は特徴量snapshot未生成でprediction計算ができない場合でも、
   取得済みのT-35市場snapshotは`{rid}_marketonly_rev{n}.json`として捨てずに保存する
   (`market_snapshot_saved=true`/`prediction_saved=false`/`invalid_for_primary=true`)。
-- JV-Linkから将来日程を独立照会する方式は実機検証の結果不可能と判明
-  (`jvlink_race_day_probe.py`に負の実験結果として記録、判定ロジックには未配線)。
+  ただしこれは「個別タスクが実際に作成され発火した後」にのみ働く経路であり、
+  入力遅延でタスク自体を一度も作れなかったレースの市場データは救えない。
 
-詳細・実測タイミング根拠・解除コマンド・動作確認結果の全文は
+詳細・実測タイミング根拠・JV-Link発見の経緯・解除コマンド・動作確認結果の全文は
 `SCHEDULER_PLAN.md`参照。
 
 ## 非干渉の設計
