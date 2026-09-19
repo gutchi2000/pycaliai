@@ -68,10 +68,9 @@ def load_and_prepare(date_str: str) -> pd.DataFrame:
 
 
 def build_chain_target(df: pd.DataFrame, date_str: str) -> pd.DataFrame:
-    """live_history.compute_c2_from_chain / compute_dyn_skill_live が要求するスキーマへ変換。"""
-    name2hid = LH.name_to_hid_2025()
-    names = df.get("馬名", pd.Series([""] * len(df), index=df.index)).astype(str)
-    ident = names.map(lambda n: name2hid.get(n, f"NEW:{n}"))
+    """live_history.compute_c2_from_chain / compute_dyn_skill_live が要求するスキーマへ変換。
+    identは resolve_idents (_HistoryIndex、種牡馬+生年で曖昧回避) で解決する。"""
+    ident, _status = LH.resolve_idents(df, int(date_str[:4]))
     rid_col = "レースID(新/馬番無)" if "レースID(新/馬番無)" in df.columns else "レースID(新)"
     return pd.DataFrame({
         "ident": ident, "date": pd.Timestamp(date_str),

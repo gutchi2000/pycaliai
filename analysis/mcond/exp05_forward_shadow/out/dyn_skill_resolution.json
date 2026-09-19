@@ -1,0 +1,17 @@
+{
+ "date": "20260919",
+ "n_horses": 287,
+ "classification_counts": {
+  "正常に血統登録番号相当で一致(history_index一致)": 143,
+  "過去履歴はあるがID解決に失敗(単純名前解決)": 75,
+  "正当な初出走馬": 67,
+  "過去履歴はあるが単純名前解決がhistory_indexと不一致": 2
+ },
+ "n_with_history": 220,
+ "n_new_legitimate": 67,
+ "n_ambiguous": 0,
+ "resolution_rate_among_horses_with_history_naive_v2": 0.65,
+ "resolution_rate_among_horses_with_history_current_v3": 1.0,
+ "naive_all_horse_match_rate": 0.5121951219512195,
+ "note": "v2(単純馬名一致)からv3(_HistoryIndex、種牡馬+生年)へ2026-09-19に刷新。current_v3はlive_history.pyが実際に使っている現行の解決率。"
+}

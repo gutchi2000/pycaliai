@@ -344,27 +344,42 @@ def main() -> int:
     # 値を未知カテゴリとして __NaN__ に落とすため、これまで該当列の情報が serve で毎週失われて
     # いた。特に 芝・ダ は "ダート" (週次CSV) vs "ダ" (学習時) で、対象がダート戦(過半数)
     # という影響範囲の大きさから優先して修正する。値の意味自体は同じなので、学習済みモデル・
-    # encoder の再学習は不要 (analysis/mcond/exp05_forward_shadow/frozen_encode.py で先行検証済み)。
-    _CATEGORY_NORMALIZE = {
-        "芝・ダ": {"ダート": "ダ"},
-        "前芝・ダ": {"ダート": "ダ", "障ダ": "ダ", "障芝": "芝"},
-        "芝(内・外)": {"内": " 内", "外": " 外", "": " "},
-        "馬場状態": {"良(暫定)": "良", "稍重(暫定)": "稍", "重(暫定)": "重", "不良(暫定)": "不"},
-        "前走馬場状態": {"良(暫定)": "良", "稍重(暫定)": "稍", "重(暫定)": "重", "不良(暫定)": "不"},
-        "天気": {"曇(暫定)": " 曇 ", "晴(暫定)": " 晴 ", "雨(暫定)": " 雨 ", "雪(暫定)": " 雪 "},
-    }
-    _cat_fixed = {}
-    for _col, _map in _CATEGORY_NORMALIZE.items():
-        if _col not in df.columns:
-            continue
-        _before = df[_col].astype(str)
-        _hit = _before.isin(_map.keys())
-        if _hit.any():
-            df[_col] = _before.replace(_map)
-            _cat_fixed[_col] = int(_hit.sum())
+    # encoder の再学習は不要。正規化規則の正本は category_normalize.py (ここと
+    # analysis/mcond/exp05_forward_shadow/frozen_encode.py の両方から参照、
+    # tests/test_category_normalize.py が一致を保証)。
+    from category_normalize import NORMALIZERS, normalize_categorical, fixed_count
+    _cat_fixed = fixed_count(df, NORMALIZERS)
     if _cat_fixed:
+        df = normalize_categorical(df, NORMALIZERS)
         logger.info(f"[serve skew fix2] カテゴリ表記統一: " +
                     ", ".join(f"{k}={v}件" for k, v in _cat_fixed.items()))
+
+    # ------ 恒久canary (測定): 正規化後もencoder語彙に無いカテゴリが残っていないか ------
+    # 重要4列 (芝・ダ/芝(内・外)/馬場状態/天気) について測定だけここで行う。品質ゲートへの
+    # 反映 (gate_errors.append) は他の serve canary と同じ場所 (gate_errors 初期化後) で行う
+    # (category_canary 変数を後段へ持ち越す)。
+    _CANARY_CRITICAL_COLS = ["芝・ダ", "芝(内・外)", "馬場状態", "天気"]
+    category_canary: dict[str, dict] = {}
+    for _col in _CANARY_CRITICAL_COLS:
+        if _col not in df.columns or _col not in encs:
+            continue
+        _classes = set(encs[_col].classes_)
+        _s = df[_col].astype(str)
+        _nonnull = _s[~_s.isin(["nan", "__NaN__", ""])]
+        if len(_nonnull) == 0:
+            continue
+        _unknown_vals = _nonnull[~_nonnull.isin(_classes)]
+        _rate = len(_unknown_vals) / len(_nonnull)
+        category_canary[_col] = {
+            "n_nonnull": int(len(_nonnull)), "n_unknown": int(len(_unknown_vals)),
+            "unknown_rate": round(_rate, 4),
+            "unknown_values": sorted(_unknown_vals.value_counts().to_dict().items(),
+                                     key=lambda kv: -kv[1])[:5],
+        }
+    if category_canary:
+        logger.info(f"[category canary] " +
+                    ", ".join(f"{k}: unknown={v['unknown_rate']*100:.1f}%" for k, v in
+                              category_canary.items()))
 
     # ------ feats に含まれるが週次CSVにない列を NaN/空で補完 ------
     # 例: 騎手コード, hist_same_cond_*, trnH_*, trnW_*, course_*, jockey_*
@@ -558,6 +573,18 @@ def main() -> int:
     # bundle は書き出した上で (デバッグ用に成果物は残す)、閾値割れなら非0 exit して
     # weekly_nicegui.ps1 側の git push / sync-hf を止める。
     gate_errors: list[str] = []
+
+    # ------ category canary の品質ゲートへの反映 (2026-09-19、EXP05-F最終確認で追加) ------
+    # 重要4列 (芝・ダ/芝(内・外)/馬場状態/天気) は正規化後もunknown_rate>5%なら
+    # push を止める。障害レース等ごく少数の正当な例外は許容 (5%は経験的floor)。
+    for _col, _info in category_canary.items():
+        if _info["unknown_rate"] > 0.05:
+            gate_errors.append(
+                f"カテゴリ列 {_col} の正規化後unknown_rate={_info['unknown_rate']*100:.1f}% > 5% "
+                f"(未知値上位: {_info['unknown_values']}) "
+                f"→ category_normalize.NORMALIZERS の見直しが必要 "
+                f"(analysis/mcond/exp05_forward_shadow/category_parity_audit.py で再監査)")
+
     # 分母はパース後 df でなく「生CSVのレースヘッダ行数 (19列行)」。
     # parse_csv が行を無言で捨てるケース (TARGET 形式変更) を検出するため。
     n_raw_races = 0

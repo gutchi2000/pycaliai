@@ -12,6 +12,34 @@
 | `data/serve_feature_baseline.json` (参照のみ) | F-serve定義の根拠 | `8824c85efcd6818c` |
 
 `out/freeze_manifest.json` に学習行数・選択済みC・tau推定値を記録。
+`out/freeze_manifest_v2.json` に v3更新(下記)時点の入力生成コードhashを追加記録。
+モデルartifact自体(`frozen_model.joblib`, sha256_16=`57ba31bd51bf3bc0`)は
+v2→v3更新でも**変わっていない**(入力生成コードだけが変わった)。
+
+## v3更新 (2026-09-19、EXP05-F最終確認)
+
+1. **カテゴリ正規化の拡充**: `category_normalize.py`(リポジトリルート、本番
+   `export_weekly_marks.py`と共有する唯一の正本)を新設。単純dictから
+   ルールベース関数へ変更し、天気/馬場状態/前走馬場状態(単純な接尾辞除去への一般化)・
+   前走競走種別(数値書式統一)・重量種別(半角→全角カナ)を追加でカバー。
+   全28カテゴリ列の監査は`CATEGORY_PARITY.csv`/`CATEGORY_PARITY.md`、予測への影響は
+   `PREDICTION_IMPACT.md`参照。恒久canaryを`export_weekly_marks.py`のgate_errors経路に追加。
+2. **動的能力の識別解決を刷新**: `live_history.resolve_idents()`が
+   `serve_history_feats._HistoryIndex`(本番の既存資産、種牡馬+生年での曖昧回避つき)を
+   使うようになった。単純な馬名一致(v2)は「履歴を持つ馬」の解決成功率が65.0%だったが、
+   v3では**100%**に改善(`dyn_skill_resolution_audit.py`実測)。詳細はDATA_AUDIT系
+   セクション参照。
+
+## 入力生成コードhash (v3時点、out/freeze_manifest_v2.json)
+
+| ファイル | sha256_16 |
+|---|---|
+| `category_normalize.py` | `980a85463a21e297` |
+| `export_weekly_marks.py` | `4ba707f83412fe18` |
+| `analysis/mcond/exp05_forward_shadow/live_history.py` | `de9c7ca94742a487` |
+| `analysis/mcond/exp05_forward_shadow/frozen_encode.py` | `bd9c2799f0c44188` |
+| `analysis/mcond/exp05_forward_shadow/feature_snapshot.py` | `eea8177493413a4a` |
+| `analysis/mcond/exp05_forward_shadow/CATEGORY_PARITY.csv` | `9a1a4d04d580cdad` |
 
 ## モデル定義 (exp05_market_residual_devから変更なし)
 
@@ -48,15 +76,20 @@ F-serve/F-forwardの**生成ロジック**だけであり、117列という特�
    やり方)ではなく**2024年の本番v6スコア**で再推定した(`tau_2026_estimate=0.862`, 参考: 旧2023
    基準は0.865で近い値)。2026-09-11以降のモデルで生成されたスコアの尺度がこれと有意にずれて
    いないかは、前向き観測が貯まった時点で診断すべき(分布監視§10のv6生スコア分布モニタで検知する)。
-2. **dyn_skill_mu / horse_skill_minus_field / raw_career_runs (v2で改善済み、残存する限界のみ記載)**:
-   `live_history.py`が血統登録番号(既知馬)または`NEW:<馬名>`(2026新規デビュー馬)をキーとした
-   chainに対し、2026年の確定済みレース結果を**逐次反映**するようWeng-Lin更新を行う
-   (2025年末で凍結する旧方式を廃止)。2026-09-19時点でdyn_skill状態一致率は77.4%
-   (旧方式51.2%から改善)。残る既知の制約:
-   - 同名別馬の衝突 (2025年末レジストリで478件/67,973頭=0.7%、`horse_identity.py`)。
-   - 2026年デビュー馬は`NEW:<馬名>`という馬名限定キーで管理されるため、**同姓同名の
-     2026年デビュー馬が複数いた場合はその2頭の成績が混ざる**(血統登録番号が無いため
-     原理的に回避不能)。
+2. **dyn_skill_mu / horse_skill_minus_field / raw_career_runs (v3で識別解決を刷新、
+   残存する限界のみ記載)**: `live_history.py`が`serve_history_feats._HistoryIndex`
+   (種牡馬+生年での曖昧回避つき、本番の既存資産`data/_horse_history.parquet`ベース)で
+   血統登録番号相当のidentを解決し、2026年の確定済みレース結果を**逐次反映**するよう
+   Weng-Lin更新を行う(2025年末で凍結する旧方式は既に廃止済み)。
+   2026-09-19実測(`dyn_skill_resolution_audit.py`): 287頭中220頭(76.7%)が真の履歴を
+   持ち(67頭=23.3%は正当な初出走馬)、**履歴を持つ馬のうち100%が正しいidentに解決される**
+   (v2の単純馬名一致では65.0%だった)。残る既知の制約:
+   - `_HistoryIndex`が種牡馬・生年ともに不明、または種牡馬・生年ともに一致する同名馬が
+     複数いる場合は"ambiguous"としてNEW:扱いにフォールバックする(2026-09-19実測では
+     該当0件だったが、理論上は起こり得る)。
+   - 2026年デビュー馬(正当な初出走)は`NEW:<馬名>`という馬名限定キーで管理されるため、
+     同姓同名の2026年デビュー馬が複数いた場合はその2頭の成績が混ざり得る
+     (血統登録番号が無い期間は原理的に回避不能)。
 3. **C2 (陣営選択の生特徴) は8/8列を算出 (v2で全列対応、旧v1は4/8のみだった)**:
    `raw_log_int`, `raw_dist_chg`, `raw_venue_chg`, `raw_surface_chg`, `raw_cls_chg`,
    `raw_jockey_same`は馬のchain(直前の実際のレース)から、`raw_jt_pair`は騎手×調教師コードの
@@ -64,13 +97,14 @@ F-serve/F-forwardの**生成ロジック**だけであり、117列という特�
    (`SERVE_PARITY.md`で既存実装と同じ値になることを確認済み)。行単位では「前走が無い馬」で
    自然にNaNになる(対象レースにデビュー2戦目以降の馬は約77%、EXP04の学習データでも同様の
    欠損率)。
-4. **重大な発見・修正: カテゴリ値の表記ゆれ**。週次CSV(`predict_weekly.parse_csv`)の
+4. **修正済み: カテゴリ値の表記ゆれ**。週次CSV(`predict_weekly.parse_csv`)の
    `芝・ダ`列は"ダート"、`芝(内・外)`は"内"/"外"(先頭スペース無し)、`馬場状態`/`天気`には
    "(暫定)"接尾辞が付くことがあるが、`master_v2.csv`(学習時)は"ダ"、" 内"/" 外"、接尾辞無しの
-   表記。**この不一致は本番`export_weekly_marks.py`の`apply_encoders()`にも存在し、
+   表記。この不一致は本番`export_weekly_marks.py`の`apply_encoders()`にも存在し、
    本番v6モデルの`芝・ダ`特徴(LabelEncoder, classes=['__NaN__','ダ','芝'])がダート戦で
-   毎週`__NaN__`(未知カテゴリ)に落ちている可能性が高い**(ユーザーへ別途報告済み、
-   本番コードはこのセッションでは変更していない)。EXP05-F自身の特徴生成
+   毎週`__NaN__`(未知カテゴリ)に落ちていた。**2026-09-19、ユーザー承認の上で
+   `export_weekly_marks.py`を修正済み**(`category_normalize.py`、全28カテゴリ列監査済み、
+   `CATEGORY_PARITY.md`/`PREDICTION_IMPACT.md`参照)。EXP05-F自身の特徴生成
    (`frozen_encode.normalize_categorical`)ではこの表記ゆれを吸収する正規化を追加済み。
 5. **feature_snapshot.pyのC1列カバレッジ (訂正)**: 旧記載の「117列中109列(93%)」は誤り
    (母数の取り違え、上記v2更新参照)。正しくは`FEATURE_PARITY.csv`のとおりF-serve 117列全てが

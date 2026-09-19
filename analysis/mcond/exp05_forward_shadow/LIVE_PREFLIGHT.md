@@ -47,6 +47,23 @@ venv311\Scripts\python.exe -m analysis.mcond.exp05_forward_shadow.market_snapsho
 - [x] 本番T-10ライン(`t10_runner.py`)・サイトT-20(`t20_site_bets.py`)に影響が無い
   (別プロセス・別ディレクトリ、実行中に他の本番タスクとの競合なし)
 
+## 登録前Gate最終確認 (2026-09-19、カテゴリ正規化拡充+識別解決刷新後)
+
+対象レース: `2026091909040508` (発走13:40、6頭立て)。実行時刻13:02:51、37.2分前。
+
+| 項目 | 結果 |
+|---|---|
+| JV-Link実オッズ取得 | 成功 (単勝6頭, overround=1.272) |
+| valid_for_primary | **True** (37.2分前、ウィンドウ内) |
+| M1/M3/M4予測生成 | 成功 (妥当な値域、例: 馬2 M1=0.718/M3=0.719/M4=0.703) |
+| append-only保存 | 成功 (`2026091909040508_57ba31bd51bf3bc0_rev1.json`) |
+| `reports/exp05fs_odds/`への保存 | 確認 |
+| `reports/live_odds/`・`reports/site_odds/`への汚染 | **無し** (確認済み) |
+
+カテゴリ正規化拡充(`category_normalize.py`)・識別解決刷新
+(`live_history.resolve_idents`、`_HistoryIndex`使用)後も、T-35パイプライン全体が
+正常に動作することを確認した。
+
 ## 運用上の知見 (SCHEDULER_PLAN.mdへの追記事項)
 
 LeadMin=35で起動しても、JV-Link呼び出し自体に数秒かかるため実際の観測時刻は

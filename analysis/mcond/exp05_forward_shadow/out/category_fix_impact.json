@@ -1,0 +1,49 @@
+{
+ "weeks": [
+  "20260104",
+  "20260118",
+  "20260208",
+  "20260228",
+  "20260321",
+  "20260411",
+  "20260502",
+  "20260523",
+  "20260613",
+  "20260704",
+  "20260725",
+  "20260815"
+ ],
+ "constraint": "data/weekly/は2026年分のみ保持。2023-2025を含む完全replayではないcontrolled replay",
+ "n_horse_rows": 5852,
+ "n_races": 375,
+ "n_rows_category_changed": 5852,
+ "score_delta_abs_mean_changed_rows": 0.030217458014129735,
+ "score_delta_abs_mean_unchanged_rows": null,
+ "n_races_top1_changed": 22,
+ "n_races_top3set_changed": 33,
+ "n_races_any_category_touched": 375,
+ "top1_win_rate_old": 0.26666666666666666,
+ "top1_win_rate_new": 0.264,
+ "top1_top3_rate_old": 0.5626666666666666,
+ "top1_top3_rate_new": 0.5546666666666666,
+ "ndcg3_mean_old": 0.5652616318188147,
+ "ndcg3_mean_new": 0.5650855481223273,
+ "by_surface": {
+  "dirt": {
+   "n_changed": 2983,
+   "n_unchanged": 0,
+   "changed_n": 2983,
+   "changed_win_rate": 0.07106939322829367,
+   "changed_top3_rate": 0.21186724773717733
+  },
+  "turf": {
+   "n_changed": 2807,
+   "n_unchanged": 0,
+   "changed_n": 2807,
+   "changed_win_rate": 0.07445671535447096,
+   "changed_top3_rate": 0.2212326327039544
+  }
+ },
+ "naigai_touched_rows": 0,
+ "teiban_touched_rows": 5002
+}

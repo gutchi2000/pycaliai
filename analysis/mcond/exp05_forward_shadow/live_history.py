@@ -13,7 +13,14 @@ live_history.py — 馬IDが無い2026年データを、実際に完了したレ
 これにより Weng-Lin (dyn_skill) の更新も、陣営選択(C2)の「実際の前走」を使った差分計算も、
 2026シーズン中に確定したレース結果を正しく反映できる (2025年末で凍結する旧方式を置き換える)。
 
-既知の限界: 馬名一致なので同名別馬の衝突が起き得る (horse_identity.py実測 0.7%)。
+2026-09-19 v3更新: 馬名だけの一致 (v2) は、同じ馬名でも履歴なので実際は本番の
+serve_history_feats._HistoryIndex (data/_horse_history.parquet ベース、種牡馬・生年での
+曖昧回避つき) を通した方が大幅に解決率が上がることが判明した
+(analysis/mcond/exp05_forward_shadow/dyn_skill_resolution_audit.py の実測: 履歴を持つ馬の
+単純名前一致での解決率は65.0%、うち34%が実際は解決可能なのに単純一致に失敗していた)。
+そのため identity 解決は _HistoryIndex.resolve() (種牡馬+生年での曖昧回避つき) を使う方式に
+刷新した。既知の限界: 種牡馬・生年ともに不明な場合や、種牡馬・生年ともに一致する同名馬が
+複数いる場合は "ambiguous" として解決を諦める (安全側、誤った馬の状態を引き継がない)。
 """
 from __future__ import annotations
 import sys
@@ -27,6 +34,7 @@ sys.path.insert(0, str(BASE))
 from grade_feats import class_name_to_ord  # noqa: E402
 from predict_weekly import (RACE_COLS, HORSE_COLS_33, HORSE_COLS_46, HORSE_COLS_48,  # noqa: E402
                             HORSE_COLS_49, HORSE_COLS_99, COLUMN_MAP)
+from serve_history_feats import _load as _load_history_index, _clean_name  # noqa: E402
 
 
 def ensure_date_column(df: pd.DataFrame) -> pd.DataFrame:
@@ -89,7 +97,9 @@ def parse_csv_light(path: Path) -> pd.DataFrame:
 
 
 def name_to_hid_2025() -> dict[str, str]:
-    """馬名 -> 2025年末までの最新出走行のhid (horse_identity.pyと同じ定義を再利用)。"""
+    """馬名 -> 2025年末までの最新出走行のhid (単純な馬名一致、v2の実装)。
+    dyn_skill_resolution_audit.py が「より頑健な解決との比較基準(naive)」として使う以外では
+    現在使われていない (resolve_idents を使うこと)。"""
     global _identity_cache
     if _identity_cache is not None:
         return _identity_cache
@@ -100,6 +110,38 @@ def name_to_hid_2025() -> dict[str, str]:
     last = m.sort_values("date").groupby("馬名")["血統登録番号"].last()
     _identity_cache = {k: str(v) for k, v in last.astype(str).to_dict().items()}
     return _identity_cache
+
+
+_hist_index_cache = None
+
+
+def resolve_idents(df: pd.DataFrame, race_year: int) -> tuple[pd.Series, pd.Series]:
+    """serve_history_feats._HistoryIndex (data/_horse_history.parquet、種牡馬+生年での
+    曖昧回避つき) を使ってidentを解決する。df は 馬名・種牡馬・年齢 列を持つこと。
+    戻り値: (idents, statuses)。ident は 解決成功時=str(ped_id)、正当な初出走・
+    解決失敗(ambiguous)時=NEW:<馬名> とする(どちらも「今シーズンの実績を独立に積み上げる」
+    という結果自体は変わらないが、statusesで区別できる: "hit"/"new"/"ambiguous")。"""
+    global _hist_index_cache
+    if _hist_index_cache is None:
+        _hist_index_cache = _load_history_index(BASE)
+    idx, _maps, _meta = _hist_index_cache
+
+    names = df.get("馬名", pd.Series([""] * len(df), index=df.index)).map(_clean_name)
+    sires = df.get("種牡馬", pd.Series([""] * len(df), index=df.index)).map(_clean_name)
+    ages = pd.to_numeric(df.get("年齢"), errors="coerce")
+    birth_years = (race_year - ages).where(ages.notna())
+
+    idents = pd.Series(index=df.index, dtype=object)
+    statuses = pd.Series(index=df.index, dtype=object)
+    for i in df.index:
+        name = names.loc[i]
+        sire = sires.loc[i]
+        by = birth_years.loc[i]
+        by_arg = int(by) if pd.notna(by) else None
+        ent, status = idx.resolve(name, sire, by_arg)
+        statuses.loc[i] = status
+        idents.loc[i] = str(ent["ped_id"]) if ent is not None else f"NEW:{name}"
+    return idents, statuses
 
 
 def _kekka_finish_map(date_str: str) -> dict[tuple[str, int], float]:
@@ -136,9 +178,9 @@ def available_2026_result_dates(as_of_date: str | None = None) -> list[str]:
 
 def build_2026_log(as_of_date: str | None = None) -> pd.DataFrame:
     """確定済み(kekka存在)の2026年レースだけを対象に、chain構築用の行を作る。
-    1行=1頭。ident(=解決hidまたはNEW:name)・date・rid16・ban・venue・surface・dist・
-    cls_ord・jockey_code・trainer_code・fin・name を持つ。"""
-    name2hid = name_to_hid_2025()
+    1行=1頭。ident(=解決hid/ped_idまたはNEW:name)・date・rid16・ban・venue・surface・dist・
+    cls_ord・jockey_code・trainer_code・fin・name を持つ。identは resolve_idents
+    (_HistoryIndex、種牡馬+生年で曖昧回避) で解決する。"""
     dates = available_2026_result_dates(as_of_date)
     rows = []
     for d in dates:
@@ -162,6 +204,8 @@ def build_2026_log(as_of_date: str | None = None) -> pd.DataFrame:
             pass
         if "芝・ダ" in df.columns:
             df["芝・ダ"] = df["芝・ダ"].astype(str).replace({"ダート": "ダ"})
+        race_year = int(d[:4])
+        idents, statuses = resolve_idents(df, race_year)
         rid_col = "レースID(新/馬番無)" if "レースID(新/馬番無)" in df.columns else "レースID(新)"
         rid16 = df[rid_col].astype(str).str[:16]
         ban = pd.to_numeric(df["馬番"], errors="coerce")
@@ -174,7 +218,7 @@ def build_2026_log(as_of_date: str | None = None) -> pd.DataFrame:
             if fin is None or fin < 1:
                 continue  # 出走なし/取消/中止 (結果未確定含む)
             name = str(df.get("馬名", pd.Series(dtype=str)).loc[i]) if "馬名" in df.columns else ""
-            ident = name2hid.get(name, f"NEW:{name}")
+            ident = idents.loc[i]
             rows.append({
                 "ident": ident, "name": name, "date": pd.Timestamp(d),
                 "rid16": r16, "ban": b,
