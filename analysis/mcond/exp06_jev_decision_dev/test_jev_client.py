@@ -91,6 +91,43 @@ def test_query_jev_append_only_response_log(monkeypatch, tmp_path):
     assert len(lines) == 2  # 2件とも追記されている(上書きされていない)
 
 
+def test_questions_to_api_payload_matches_spec_types():
+    spec = json.loads((BASE / "analysis" / "mcond" / "exp06_jev_decision_dev" / "spec.json")
+                      .read_text(encoding="utf-8"))
+    payload = JC._questions_to_api_payload(spec["questions"])
+    assert len(payload) == 6
+    by_id = {p["id"]: p for p in payload}
+    assert by_id["Q1"]["type"] == "noul"
+    assert by_id["Q1"]["statement"].startswith("The independent predictive signals")
+    assert by_id["Q2"]["type"] == "score" and by_id["Q2"]["scale"] == 5
+    assert len(by_id["Q2"]["levels"]) == 5
+    assert by_id["Q4"]["type"] == "choice"
+    assert by_id["Q4"]["options"] == ["AI", "MARKET", "BLEND", "ABSTAIN"]
+
+
+def test_query_jev_rate_limit_uses_exponential_backoff(monkeypatch, tmp_path):
+    monkeypatch.setenv("TYPESAFE_API_KEY", "dummy-for-test-not-real")
+    monkeypatch.setattr(JC, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(JC, "RESPONSES_DIR", tmp_path / "responses")
+    monkeypatch.setattr(JC, "RETRY_BACKOFF_S", 0.01)  # テストを高速化
+
+    sleeps = []
+    monkeypatch.setattr(JC.time, "sleep", lambda s: sleeps.append(s))
+
+    call_count = {"n": 0}
+
+    def flaky_call(prompt_schema_hash, state, questions):
+        call_count["n"] += 1
+        raise JC.JevRateLimitError("429")
+
+    monkeypatch.setattr(JC, "_call_jev_api_raw", flaky_call)
+    result = JC.query_jev("R1", "schema1", {"x": 1}, [], "modelhash", "2099-01-01T00:00:00")
+    assert result["ok"] is False
+    assert call_count["n"] == JC.MAX_RETRIES + 1
+    # 指数バックオフ: 0.01*(2**0), 0.01*(2**1), ... と倍々に増えるはず
+    assert sleeps == [0.01 * (2 ** i) for i in range(JC.MAX_RETRIES)]
+
+
 def test_spec_json_matches_documented_questions():
     spec = json.loads((BASE / "analysis" / "mcond" / "exp06_jev_decision_dev" / "spec.json")
                       .read_text(encoding="utf-8"))
