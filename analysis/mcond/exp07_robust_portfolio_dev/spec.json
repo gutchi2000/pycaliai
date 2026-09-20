@@ -1,0 +1,185 @@
+{
+ "_comment": "EXP07 馬券ポートフォリオ・ロバスト最適化 検証仕様。2026-09-20固定、実データ(Stage 2A)評価開始前にコミット。数理定義・比較政策・Gate定義は結果を見て変更しない。",
+ "spec_version": "1.0.0",
+ "frozen_at": "2026-09-20",
+ "stage0_verdict": "再利用可能（3制約明記の上で）。詳細はPRIOR_ART_AUDIT.md参照。",
+ "gate_j0_verdict": "PASS（合成データ、機械精度で整合確認済み）。詳細はJOINT_DISTRIBUTION_AUDIT.md参照。",
+
+ "absolute_conditions": [
+  "EXP01-EXP06を変更しない",
+  "EXP05-Fを変更しない",
+  "本番の印・買い目・資金配分へ接続しない",
+  "compute_bets.pyを変更しない",
+  "既存モデルを再学習しない",
+  "候補馬券生成と資金配分を最初から同時最適化しない",
+  "判断時点より後のオッズ・結果を最適化入力に使わない",
+  "実着順・払戻は評価時だけ使用する",
+  "2024〜2025年を完全未使用期間と呼ばない",
+  "ROI点推定だけで採用しない",
+  "未コミットの他セッションの変更を勝手に編集・削除・コミットしない",
+  "Gate通過前に本番・shadowへ接続しない"
+ ],
+
+ "differentiation_from_existing_research": {
+  "excluded_as_separate": ["EV比例配分", "p比例配分", "Kelly配分", "topdown配分",
+   "適応トリガミ床", "単純な点数削減", "DeepValue", "Benterブレンド", "Harville λ補正"],
+  "exp07_unique_targets": ["複数馬券の同時損益", "同じ馬への重複露出", "払戻の排他性",
+   "確率推定誤差", "確定オッズ変動", "CVaR", "分布ロバスト目的", "no-betを含む最適化"]
+ },
+
+ "cvar_alpha_convention_warning": {
+  "user_spec_convention": "alpha=0.10は『最悪10%シナリオの平均損失』を意味する(tail probability直接指定)。",
+  "existing_code_convention": "analysis/robust_ticket_portfolio.pyのcvar_alpha引数は『信頼水準』(tail_mass=1-cvar_alpha)。",
+  "translation_rule": "仕様書のalpha=0.10(最悪10%平均)を実現するには、既存コードへcvar_alpha=1-0.10=0.90を渡す。",
+  "reason_for_this_note": "2つの慣習(alpha=tail確率 vs alpha=信頼水準)が同じギリシャ文字を逆の意味で使うため、policies.py実装時に混同すると『最悪90%平均』(ほぼ全区間の期待損失)を誤って計算するバグになりうる。この変換規則をpolicies.pyの実装時に必ず適用し、単体テストで数値検証する(Stage1合成テスト)。"
+ },
+
+ "math_definitions": {
+  "notation": "m=候補馬券数, s=シナリオ数。w_j=馬券jへの投資額、R_k(w)=シナリオkでの純損益、q_k=シナリオkの推定確率、B=レースまたは日単位の総投資上限",
+  "constraints": ["w_j >= 0", "sum(w_j) <= B", "w_jは100円単位",
+   "1馬券あたりの上限を守る", "同一馬への露出上限を守る", "no-bet: w_j=0 for all j を許可",
+   "常に予算を使い切る制約は禁止"],
+  "basic_objective": "maximize: worst_case_expected_profit(w) - lambda * CVaR_alpha(loss(w))",
+  "cvar": {"alpha": 0.10, "definition": "最悪10%シナリオの平均損失"},
+  "uncertainty_set_minimum_components": ["的中確率の較正誤差", "レース単位bootstrap区間",
+   "T-35/T-10から確定までのオッズ縮小", "人気帯別の価格誤差", "モデル間不一致"],
+  "uncertainty_set_fitting_rule": "development期間(2023、TANPUKアーカイブT-28相当のreplay)だけで半径を固定し、2024〜2025年を見て変更しない",
+  "no_bet_rule": "すべての許容分布で期待利益が非正の場合、最適解はno-bet"
+ },
+
+ "existing_module_reuse": {
+  "solver": "analysis/robust_ticket_portfolio.py の optimise_portfolio() をそのまま import して使う(コピー・改変しない)",
+  "known_gaps_requiring_wrapper": [
+   "Ticketに構成馬identityフィールドがない→同一馬露出上限はpolicies.py側で事前/事後フィルタとして実装",
+   "state_probability_scenariosは呼び出し側が構築→build_scenarios.py+不確実性半径の適用をpolicies.py側で実装",
+   "ValueError/RuntimeErrorを自動でno-betへ変換する層がない→policies.py側でtry/exceptラップする"
+  ]
+ },
+
+ "joint_distribution": {
+  "engine": "pl_probs.py の p_sanrentan(w,i,j,k) による厳密top-3順列確率(近似なし)",
+  "state_space": "1-2-3着の順列(i,j,k), i≠j≠k。18頭立てで最大4,896状態",
+  "implementation": "build_scenarios.py",
+  "gate_j0_status": "PASS(2026-09-20、合成データn=5/10/18頭、marginal誤差は全て機械精度オーダー)"
+ },
+
+ "data_scope": {
+  "ticket_types_in_scope": ["単勝", "複勝", "ワイド", "馬単"],
+  "ticket_types_excluded": ["馬連", "三連複", "三連単"],
+  "exclusion_reason": "馬連・三連複は2024-2025年の真のT-10履歴データが存在しない(TANPUKアーカイブに該当列なし)。三連単も同様に構造的データ欠如。仕様書4節の対象範囲にも三連系は明示的に含まれていない",
+  "judgment_time_2024_2025": "TANPUKアーカイブの最終前売りスナップショット(発走26-30分前、中央値28分前、実測n=6,909レース)。真のT-10ではない",
+  "judgment_time_2026_forward": "data/forward_prices/のT-10実測(2026-08-29以降、8開催日分)",
+  "labeling_rule": "2024-2025年の評価は『現在コードによるreplay』と明記し、実配信の再現とは呼ばない(仕様書5.4)"
+ },
+
+ "time_series_split": {
+  "train_probability_construction": "既存の時点安全なOOF(v6: train<=2022-12-31)",
+  "development": "2023",
+  "exploratory_test": "2024",
+  "exploratory_confirmation": "2025",
+  "forward_confirmation": "2026年以降(data/forward_prices)",
+  "note": "2024-2025年は過去研究で開封済みのため探索的OOSと明記する。パラメータ(lambda/alpha/不確実性半径/制約値)は2023年だけで固定し、2024/2025を見て再調整しない"
+ },
+
+ "comparison_policies": [
+  {"id": "P0", "name": "NO_BET", "desc": "常に購入しない"},
+  {"id": "P1", "name": "FLAT", "desc": "固定された候補へ均等配分"},
+  {"id": "P2", "name": "CURRENT", "desc": "現行topdown配分(参照のみ、変更しない)"},
+  {"id": "P3", "name": "PROB", "desc": "的中確率比例配分"},
+  {"id": "P4", "name": "EV", "desc": "点推定EV最大化"},
+  {"id": "P5", "name": "CVAR", "desc": "共同損益分布によるCVaR最適化(不確実性シナリオなし)"},
+  {"id": "P6", "name": "ROBUST_CVAR", "desc": "確率・オッズの不確実性集合を含むロバストCVaR"},
+  {"id": "P7", "name": "NULL_PLACE", "desc": "◎複勝100円均等、システム全体の外部基準"}
+ ],
+
+ "primary_comparisons_fixed_in_advance": [
+  "P6 ROBUST_CVAR vs P1 FLAT",
+  "P6 ROBUST_CVAR vs P2 CURRENT"
+ ],
+ "secondary_comparisons": [
+  "P6 ROBUST_CVAR vs P5 CVAR",
+  "P6 ROBUST_CVAR vs P4 EV"
+ ],
+ "multiple_comparison_policy": "主比較は上記2つに事前固定。複数のlambda/alpha/不確実性半径を試す場合は2023年だけで選定し、試行数を全て記録する。2024-2025年で最良設定を選ばない",
+
+ "evaluation_stages": {
+  "stage2A": {
+   "name": "配分だけの比較",
+   "fixed": ["参加レース", "候補馬券", "総投資額", "判断時点", "使用確率", "使用オッズ"],
+   "variable": ["候補間の配分だけ"],
+   "forbidden": ["候補削除", "候補追加", "参加レース変更"]
+  },
+  "stage2B": {
+   "name": "選別+配分",
+   "prerequisite": "Stage 2A PASS(Gate1)の場合のみ実行",
+   "allowed": ["候補馬券の削除", "レースの見送り", "総投資額未消化", "no-bet"],
+   "forbidden": ["追加候補生成"]
+  }
+ },
+
+ "metrics": {
+  "primary": ["純利益差", "ROI差", "meeting-day単位bootstrap 95%CI", "最大ドローダウン",
+   "downside CVaR", "投資額", "購入レース数"],
+  "secondary": ["的中率", "平均払戻", "最低払戻", "利益上位1/5/10%レースへの集中度",
+   "競馬場別", "人気帯別", "芝ダート別", "券種別", "年度別", "月別", "候補数別",
+   "オッズ帯別", "OOD/support帯別"],
+  "ci_unit_note": "同日レースの相関を考慮し、主CIはレース単位ではなくmeeting-day単位で計算する"
+ },
+
+ "gates": [
+  {"id": "Gate0", "name": "由来・データ健全性",
+   "checks": ["未コミットコードの由来記録", "未来情報混入なし", "OOFまたはOOS確率",
+    "判断時点オッズ", "決済処理一致", "共同分布整合", "合成テスト全通過"],
+   "status": "監査完了。PRIOR_ART_AUDIT.md/DATA_AUDIT.md/JOINT_DISTRIBUTION_AUDIT.md参照。Stage1合成テスト完了後に最終PASS判定"},
+  {"id": "Gate1", "name": "配分固有価値",
+   "definition": "同一参加・同一候補・同一総投資額で、P6がP1またはP2を改善する",
+   "conditions": ["2024・2025で差の方向が一致", "全期間paired差の95%CI下限が0以上",
+    "最大ドローダウンが悪化しない", "利益が少数レースだけに集中しない"],
+   "on_fail": "Stage 2Bへ進まない"},
+  {"id": "Gate2", "name": "ロバスト化固有価値",
+   "comparisons": ["P6 ROBUST_CVAR vs P5 CVAR", "P6 ROBUST_CVAR vs P4 EV"],
+   "question": "点推定最適化ではなく不確実性を入れること自体に価値があるか"},
+  {"id": "Gate3", "name": "選別+配分",
+   "prerequisite": "Gate1 PASSの場合のみ実行",
+   "comparisons": ["P6のno-bet込み", "現行topdown", "◎複勝100円", "通常EV"],
+   "note": "参加率を揃えた比較も行う"},
+  {"id": "Gate4", "name": "黒字化",
+   "report_separately": ["現行より改善したか", "ROI 100%を超えたか", "ROI 100%のCI下限を超えたか"],
+   "note": "『現行より良い』と『勝てる』を同一視しない"},
+  {"id": "Gate5", "name": "前向きshadow",
+   "prerequisite": "Gate1〜3を通過した場合のみ設計する",
+   "note": "本番購入へは接続しない"}
+ ],
+
+ "stop_conditions": [
+  "共同着順分布を時点安全に構築できない",
+  "確定オッズを入力へ使っていた",
+  "同一候補・同一予算で均等配分に勝てない",
+  "CVaR実装の合成テストが通らない",
+  "不確実性を広げるほど賭け金が増える",
+  "2024と2025で差の符号が逆",
+  "改善が一つの競馬場・月・大払戻だけに集中",
+  "no-betを禁止しないと改善しない",
+  "robust版が通常EV/CVaRを上回らない",
+  "結果を見た後の制約変更が必要になる"
+ ],
+ "no_rescue_after_fail": "FAIL後にlambda、alpha、候補数、半径を変えて救済しない",
+
+ "synthetic_tests_required_before_real_data": [
+  "全馬券が負EVならno-bet",
+  "1枚だけ確実に正EVならその馬券を選択",
+  "同一の馬券2枚なら対称な配分",
+  "相互排他的な馬券を同時的中扱いしない",
+  "同時的中可能なワイド等を正しく処理",
+  "リスク回避度を上げると下方リスクが増えない",
+  "不確実性集合を広げると投資額が増えない",
+  "オッズ下振れを大きくすると投資額が増えない",
+  "予算上限を超えない",
+  "100円単位を守る",
+  "候補順を入れ替えても解が不変",
+  "同一入力で解が再現する",
+  "ソルバー失敗時はno-bet",
+  "NaN・負オッズ・確率和異常を拒否",
+  "返還馬券を損失扱いしない"
+ ]
+}
