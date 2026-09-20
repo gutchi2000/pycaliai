@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-build_observations.py — レース単位の speed_signal / pace_signal 観測を構築する。
+build_observations.py — レース単位の speed_signal / agari_signal / pace_signal 観測を
+構築する。
 =====================================================================================
 スコープ(README.md参照、2026-09-20夜ユーザー確定): 主対象は時計(speed_signal)・
-上がり/ペース(pace_signal)のみ。内外(inside_signal)・前残り(front_signal)は
-negative control専用として同時に構築するが、online_state.pyでの採用候補には含めない。
+上がり(agari_signal)・ペース(pace_signal)の3つを**独立した状態**として扱う
+(2026-09-20夜Stage3指示により、上がりを時計・ペースと別次元の独立状態として
+明示的に追加)。内外(inside_signal)・前残り(front_signal)はnegative control専用
+として同時に構築するが、online_state.pyでの採用候補には含めない。
 
 【観測信号定義(2026-09-20夜、ユーザー指摘によりStage3着手前に確定・凍結。
 2024・2025年の結果を見る前にこの定義へ固定する)】
@@ -27,6 +30,10 @@ negative control専用として同時に構築するが、online_state.pyでの�
 - **信号の符号**:
   speed_signal(race) = -(そのレースの (actual_time - expected_time) の中央値)
     正 = 期待より速いタイム = 馬場が速い方向に振れている。
+  agari_signal(race) = -(そのレースの (actual_agari3f - expected_agari3f) の中央値)
+    正 = 期待より上がり3Fが速い = 上がり性能が効きやすい方向に振れている。
+    speed_signalと同じexpanding-window期待値ルックアップ機構を上り3F列に適用する
+    (距離・競馬場・芝ダ・コース区分・馬場状態・クラスで条件付け)。
   pace_signal(race) = -(そのレースの RPCI - 期待RPCI)
     RPCIは値が小さいほど前傾(ハイペース)、大きいほど後傾(スローペース)。
     正 = 期待よりペースが緩んだ(上がり勝負寄り)。RPCIはレース単位で
@@ -130,6 +137,13 @@ def build_race_level_observations() -> pd.DataFrame:
     exp_time, time_fb = predict_expected_time_expanding(time_lookups, df, value_col="time_sec")
     df["time_resid"] = df["time_sec"] - exp_time
 
+    # --- 上がり(上り3F): 同じexpanding-window機構を上り3F列へ適用 ---
+    agari_df = df.copy()
+    agari_df["time_sec"] = pd.to_numeric(agari_df["上り3F"], errors="coerce")
+    agari_lookups = fit_expanding_lookups(agari_df.dropna(subset=["time_sec"]), value_col="time_sec")
+    exp_agari, agari_fb = predict_expected_time_expanding(agari_lookups, agari_df, value_col="time_sec")
+    df["agari_resid"] = pd.to_numeric(df["上り3F"], errors="coerce") - exp_agari
+
     # --- ペース(RPCI): 同じexpanding-window機構をRPCI列へ適用 ---
     rpci_df = df.copy()
     rpci_df["time_sec"] = rpci_df["RPCI"]  # fit_expected_time_lookupの値列名を使い回す
@@ -157,8 +171,11 @@ def build_race_level_observations() -> pd.DataFrame:
         date=("date", "first"), venue=("場所", "first"),
         surface=("芝・ダ", "first"), dist_bucket=("dist_bucket", "first"),
         going=("馬場状態", "first"), n_field=("頭数", "first"),
-        time_resid_median=("time_resid", "median"), rpci_resid=("rpci_resid", "first"),
+        time_resid_median=("time_resid", "median"),
+        agari_resid_median=("agari_resid", "median"),
+        rpci_resid=("rpci_resid", "first"),
         n_time_obs=("time_resid", "count"),
+        n_agari_obs=("agari_resid", "count"),
     ).reset_index()
 
     def rate_diff(mask_a_col, mask_b_col):
@@ -172,6 +189,7 @@ def build_race_level_observations() -> pd.DataFrame:
     race = race.merge(front_diff, on="rid16", how="left")
 
     race["speed_signal"] = -race["time_resid_median"]
+    race["agari_signal"] = -race["agari_resid_median"]
     race["pace_signal"] = -race["rpci_resid"]
     race["inside_signal"] = race["inside_signal_raw"]  # negative control、符号調整なし
     race["front_signal"] = race["front_signal_raw"]    # negative control、符号調整なし
@@ -183,7 +201,7 @@ def build_race_level_observations() -> pd.DataFrame:
     # 素のstd/minmaxではなくIQRを使う)。
     train_mask = race["date"].str[:4].astype(int) < 2023
     clip_bounds = {}
-    for col in ["speed_signal", "pace_signal"]:
+    for col in ["speed_signal", "agari_signal", "pace_signal"]:
         q1, q3 = race.loc[train_mask, col].quantile([0.25, 0.75])
         iqr = q3 - q1
         lo, hi = q1 - 3 * iqr, q3 + 3 * iqr
@@ -193,6 +211,7 @@ def build_race_level_observations() -> pd.DataFrame:
     race = _attach_availability_timestamps(race)
     meta = {
         "time_fallback_dist": time_fb.value_counts(normalize=True).to_dict(),
+        "agari_fallback_dist": agari_fb.value_counts(normalize=True).to_dict(),
         "rpci_fallback_dist": rpci_fb.value_counts(normalize=True).to_dict(),
         "n_races": race["rid16"].nunique(),
         "clip_bounds": clip_bounds,
@@ -207,10 +226,12 @@ def main():
     race.to_parquet(out_dir / "observations.parquet", index=False)
     print(f"[build_observations] n_races={meta['n_races']}")
     print(f"[build_observations] time fallback dist: {meta['time_fallback_dist']}")
+    print(f"[build_observations] agari fallback dist: {meta['agari_fallback_dist']}")
     print(f"[build_observations] rpci fallback dist: {meta['rpci_fallback_dist']}")
     print(f"[build_observations] clip bounds: {meta['clip_bounds']}")
     print(f"[build_observations] wrote {out_dir / 'observations.parquet'}")
-    print(race[["speed_signal", "pace_signal", "inside_signal", "front_signal"]].describe())
+    print(race[["speed_signal", "agari_signal", "pace_signal",
+               "inside_signal", "front_signal"]].describe())
 
 
 if __name__ == "__main__":

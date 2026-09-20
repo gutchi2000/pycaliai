@@ -59,8 +59,13 @@
       "frozen": "2023-2025を見て変えない"
     },
     "surface_venue_separation": "芝/ダート・競馬場は別状態として扱う(online_state.py側でz[開催日,競馬場,芝ダ,時刻]として個別管理、このファイルはレース単位観測の構築のみ)",
+    "agari_signal": {
+      "formula": "-(そのレースの (actual_agari3f_sec - expected_agari3f_sec) の中央値)",
+      "note": "2026-09-20夜Stage3指示により時計・ペースと独立の第3の状態として追加。speed_signalと同じexpanding-window期待値ルックアップ機構を上り3F列に適用する。",
+      "sign": "正 = 期待より上がり3Fが速い = 上がり性能が効きやすい方向に振れている"
+    },
     "day_init_state": {
-      "status": "未実装(Stage3で決定)。仕様書§8.3原則: 開催日ごとに状態をリセット、日初期事前分布はゼロ平均+広い分散、または同競馬場・同季節・同馬場状態の過去事前分布のいずれかを2023年developmentだけで決める。"
+      "status": "確定(2026-09-20夜Stage3指示)。開催日×競馬場×芝ダートのunitごとに、平均0・分散はprior_var(次元ごと、2023developmentのone-step-ahead尤度で選択、下記qr_selection参照)でリセットする。同競馬場・同季節の過去事前分布は使わない(ゼロ平均+固定分散のみ、ユーザーが明示的に指定)。日をまたいで状態を繰り越さない(unit自体が開催日を含むキーのため自動的に満たされる)。"
     },
     "negative_control_definitions": {
       "inside_signal": "内馬番(馬番<=3)複勝率 − 外馬番(馬番>=頭数-2)複勝率。馬番(1〜頭数の個別番号)を使う、枠番(1-8固定)は使わない。",
@@ -71,11 +76,55 @@
 
   "permutation_placebo_gate": {
     "purpose": "同日全体の実現バイアスを拾っただけの効果(=day_state_counting_stage2で内外バイアスが失格した原因)を排除する",
-    "shuffle_unit": "競馬場×日×芝ダート内で観測信号の時系列順序を置換する",
-    "invariants_preserved_by_shuffle": ["レース数", "欠損率", "更新回数"],
-    "fail_condition": "実信号のΔlogloss(またはΔBrier等の主指標)がplacebo分布の97.5パーセンタイルを超えない場合、通常のloglossが改善していてもFAILとする",
-    "reference_implementation": "day_state_counting_stage2.py のitem13(同日内shuffle)を一般化したもの、EXP08独自実装はStage3以降で行う",
+    "shuffle_unit": "競馬場×日×芝ダート内で観測信号(speed_signal/agari_signal/pace_signal)の値の対応関係だけを置換する(タイムスタンプ・欠損位置・レース行・baseline予測は一切変更しない)",
+    "invariants_preserved_by_shuffle": ["レース数", "欠損位置(欠損率)", "更新回数", "対象レース行", "baseline予測(v6+市場)"],
+    "implementation": "evaluate.py::shuffle_observations_within_unit()。欠損(NaN)以外の値だけをunit内でnp.random.default_rng(seed).permutation()する。",
+    "n_permutations": 1000,
+    "fail_condition": "実信号のΔlogloss(全期間、primaryのみ)がplacebo分布の2.5パーセンタイル未満(=改善方向で最も極端な2.5%に入る、片側97.5%相当)でない場合、通常のloglossが改善していてもFAILとする",
+    "beta_handling": "placebo反復ごとにモデルを再fitしない。2023developmentでfitした凍結betaを、shuffleされた2024-2025特徴量へそのまま適用する(「2023で学習した重みが、無意味にシャッフルされた同日情報に対して見かけ上の改善を示すか」を検定する)。",
+    "scope": "M1 vs M0、M3 vs M1の主比較のみ実行(negative control(内外/脚質)は別途同じ機構で検定可能だが、既に却下済みのため主要Gate結果には使わない)",
+    "reference_implementation": "day_state_counting_stage2.py のitem13(同日内shuffle)を一般化したもの",
     "pre_registered": "2024・2025年の結果を見る前にこの定義を固定する(このコミット時点)"
+  },
+
+  "state_space_model_stage3": {
+    "frozen_before": "2024・2025年の結果を見る前に固定(このコミット)",
+    "state_dims": ["speed_signal", "agari_signal", "pace_signal"],
+    "unit": "開催日×競馬場×芝ダート",
+    "update_rule": "利用可能時刻(primary=発走+20分、sensitivity=発走+30分)を通過した過去レースのみ使う。両者は完全に別系列として生成し混合しない。",
+    "missing_observation_handling": "平均を更新しない(Kalman updateをスキップ)。分散は時間経過に応じて連続的に増加する(predictステップは欠損の有無に関わらず経過時間分だけ適用される)。",
+    "algorithm": "イベント駆動(観測利用可能イベント+判断スナップショットイベントを時刻順にマージ)。online_state.py::run_unit_timeline()/run_all_units()。時系列リーク・削除不変性・日次リセット・欠損処理はtest_online_state.pyで直接検証済み(13テスト)。",
+    "qr_selection": {
+      "method": "2023developmentのみでone-step-ahead観測尤度を最大化する小さな事前固定格子探索(格子はtrain<2023データのスケールに対する比率で定義、格子外再探索なし)。2024-2025では再選択しない。",
+      "note_primary_sensitivity_identical": "primary(+20分)とsensitivity(+30分)は同一のQ/R/prior_varを共有する。理由: 固定遅延の一様シフトは観測イベント間の相対時間間隔を変えないため、one-step-ahead尤度は数学的に不変(実測でも完全一致を確認)。",
+      "selected_values": {
+        "speed_signal": {"q": 0.0014934032768609586, "r": 0.896041966116575, "prior_var": 0.7467016384304792},
+        "agari_signal": {"q": 0.003588564669598636, "r": 0.43062776035183625, "prior_var": 0.35885646695986356},
+        "pace_signal": {"q": 0.010535367137079392, "r": 10.535367137079392, "prior_var": 5.267683568539696}
+      },
+      "grid_note": "speed_signalのqは格子の最小候補(scale_var*0.001)で選択された(境界解)。2023developmentの結果として受け入れ、格子拡張はしない(2024-2025を見た後の変更ではないため許容、事前設計時のグリッド定義自体は2023到達前に確定していた)。"
+    },
+    "ewma_baseline": {
+      "halflife_hours": 2.0,
+      "note": "事前固定(2023developmentの結果を見て決めていない、ラウンドナンバーとして採用)。2024-2025を見て変えない。"
+    },
+    "raw_baseline": "直近1レースの観測値をそのまま使う(フィルタリングなし)。日初期・欠損時はKalman版と同じ扱い(0/状態不変)。",
+    "interaction_definition": {
+      "horse_aptitude": "closing_power(master_v2の既存serve-safe特徴量、対象レースの実績を使わず対象日より前の履歴のみから構築済み、v6の訓練特徴量としても使用中)。欠損(履歴不足馬)は0へ縮約、行を除外しない(評価母集団を変えない)。",
+      "formula": "interaction_{dim} = horse_aptitude × {dim}_pre_mean(Kalman状態平均)",
+      "simplification_note": "3次元(speed/agari/pace)とも同一のhorse_aptitude(closing_power)を掛ける簡略化設計。より次元別に特化したaptitude(例: 上がり専用にkako5_avg_agari3f)は将来の拡張候補だが、2023development完了後は追加・変更しない。"
+    },
+    "model_definitions": {
+      "M0": "baseline_logit_top3のみ(v6+市場、offsetとして固定)",
+      "RAW": "M0 + {dim}_raw(3特徴量)",
+      "EWMA": "M0 + {dim}_ewma(3特徴量)",
+      "ZERO": "M0のみ(RAWと同型だが状態特徴量なし、M0と数学的に同一)",
+      "M1": "M0 + {dim}_raw(3特徴量、RAWと同一定義)",
+      "M2": "M0 + {dim}_pre_mean + {dim}_pre_var + {dim}_pre_n_obs(9特徴量)",
+      "M3": "M0 + {dim}_raw + {dim}_pre_mean + interaction_{dim}(9特徴量)",
+      "fit_method": "logit(p)=offset+X@beta。offsetはfitしない(固定)。betaはL2正則化(l2=1.0)ロジスティック回帰でscipy.optimize.minimize(L-BFGS-B)によりfit。2023developmentでfit、2024・2025はgenuinely OOS評価(再fitしない)。",
+      "target": "top3(複勝圏内、仕様書Gate2C「主判定はtop3 loglossとする」に従う)"
+    }
   },
 
   "time_split": {
@@ -98,22 +147,39 @@
         "着順と枠情報が利用可能(PASS)",
         "事前脚質を対象レース結果なしで作成可能(PASS、negative control専用)",
         "未来レースを除外できる(PASS)",
-        "prior_result_available_timestamp <= target_decision_timestamp の行単位不変条件に違反が0件(Stage3実装後に検証、1件でも違反があればFAIL)"
+        "prior_result_available_timestamp <= target_decision_timestamp の行単位不変条件に違反が0件"
       ],
-      "status": "PASS(Stage1時点の8条件)。9条件目(行単位不変条件)はonline_state.py実装後に検証。"
+      "status": "PASS(9条件全て)。9条件目はtest_online_state.py::test_no_future_leakage_later_observation_does_not_affect_earlier_snapshotで直接検証済み(イベント駆動アルゴリズムの設計上、利用可能時刻より後の観測は数学的に対象レースのスナップショットへ混入し得ない)。"
     },
-    "gate1_state_formation": "先行研究の状態成立条件(Stage3実装後に評価)",
-    "gate2a_same_day_info_value": "M1 vs M0、主判定はtop3 logloss、97.5%CI、2024・2025両方向一致必須",
-    "gate2b_state_model_specific_value": "M3 vs M1、RAW/EWMAより一貫して良いこと、permutation placebo gate必須通過",
-    "gate2c_win_value": "副次評価(win logloss/Brier/◎勝率/◎top3率/NDCG@3)",
+    "gate1_state_formation": "先行レースが増えると不確実性が概ね減る・長い更新間隔では不確実性が増える・状態が単なる競馬場やレース番号の代理ではない、等。Stage3実データ評価で確認。",
+    "gate2a_same_day_info_value": {
+      "comparison": "M1 vs M0",
+      "primary_metric": "top3 logloss",
+      "required": [
+        "2024・2025両方で改善方向", "meeting-day paired bootstrap 97.5%CI上限<0",
+        "logloss絶対改善>=0.0005または相対改善>=0.1%", "競馬場1場または少数開催日への集中でない",
+        "+20分と+30分で改善方向一致", "permutation placebo通過(97.5%)", "EWMAより有意に良い"
+      ]
+    },
+    "gate2b_state_model_specific_value": {
+      "comparison": "M3 vs M1",
+      "required": "gate2a_same_day_info_valueと同じ7条件をM3-M1に適用",
+      "partial_pass_verdict": "M1-M0だけ通りM3-M1が落ちた場合は「同日情報は有効だが状態空間モデル固有の価値なし」と判定する(EWMA/RAWと同等ならKalman固有の価値なしと判定)"
+    },
+    "gate2c_win_value": "副次評価(win logloss/Brier/◎勝率/◎top3率/NDCG@3)、主判定には使わない",
     "gate3_environment_reproducibility": "2024/2025・10競馬場・芝ダ・距離帯・馬場状態・レース番号帯・利用可能先行レース数・人気帯・AIと市場の不一致帯で再現確認",
-    "gate4_economic": "Gate2Aまたは2B通過後のみ、100円均等比較、EXP07のロバストCVaRは再利用しない"
+    "gate4_economic": "Gate2Aまたは2B通過後のみ実施、100円均等比較、EXP07のロバストCVaRは再利用しない"
+  },
+
+  "stop_discipline_20260920": {
+    "rule": "Gateを通らなければ、結果を見て以下を変更しない: Q/R探索範囲、状態次元、clip範囲、集約方法、利用可能時刻、interaction定義、EWMA減衰率、競馬場・距離・芝ダートの分割方法。ROI評価は予測Gateを通過した場合だけ実施する。",
+    "pre_commit_requirement": "online_state.py・build_features.py・evaluate.py・stage3_run.py・spec.json・README.md・test_time_safety.py・test_online_state.py・test_evaluate.pyを、2024・2025年の実評価(fit_and_eval_modelの2024/2025呼び出し)を実行する前にコミットする。"
   },
 
   "stage_progress": {
     "stage0_prior_art_audit": "完了(PRIOR_ART_AUDIT.md)",
     "stage1_data_audit": "完了(DATA_AUDIT.md、2026-09-20夜に利用可能時刻の節を訂正)",
-    "stage2_observation_construction": "完了(build_observations.py、expected_time_model.py、2026-09-20夜にexpanding-window化・venue追加・race_id列バグ修正を反映して再生成)",
-    "stage3_online_state_model": "未着手(次の作業、このspec.json凍結後に着手)"
+    "stage2_observation_construction": "完了(build_observations.py、expected_time_model.py、2026-09-20夜にexpanding-window化・venue追加・race_id列バグ修正・agari_signal追加を反映)",
+    "stage3_online_state_model": "コード完成・テスト完了・コミット直後。2024-2025実評価はコミット後に実行する(stop_discipline_20260920参照)。"
   }
 }

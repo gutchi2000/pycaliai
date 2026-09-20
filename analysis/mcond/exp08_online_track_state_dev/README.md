@@ -30,9 +30,10 @@ EXP01〜EXP07・v6・EXP05・EXP05-F・compute_bets.pyは変更しない。本�
 |---|---|---|
 | Stage 0(先行研究・既存実装監査) | **完了** | `PRIOR_ART_AUDIT.md` — 内外(枠)は`day_state_counting_stage2.py`(別セッション、未コミット、参照のみ)でpermutation placebo失格により却下済み、脚質も却下済み。時計・上がり・ペースのみ先行研究なし |
 | Stage 1データ可用性監査(§5) | **完了(訂正済み)** | `DATA_AUDIT.md` — 走破タイム/上がり3F/PCI・RPCI等は外部`kekka_2010_2025_fix_raceid_v2__keyed.csv`で全年安定して取得可能。**結果利用可能時刻の根拠を全面訂正**(下記参照): TANPUK確定オッズは結果レコードの取得時刻の代理にならないと判明、JV-Link等にも信頼できる時刻が存在しないことを確認、保守的な固定遅延(+20分主解析/+30分感度分析)へ変更 |
-| Gate 0 | **PASS(8/9条件)** | `DATA_AUDIT.md`末尾。9条件目(利用可能時刻の行単位不変条件)はonline_state.py実装後に実際のペアで検査 |
-| Stage 2(観測信号構築、期待値モデル) | **完了(expanding-window化・venue追加済み)** | `expected_time_model.py`(距離50m×**競馬場**×芝ダ×コース区分×公表馬場状態×クラス名の中央値lookup、**年単位expanding-window/leave-year-out**、2023年以降は2022年末までの単一モデルに固定)、`build_observations.py`(レース単位speed_signal/pace_signal + negative control用inside_signal/front_signal、利用可能時刻列付与)、`test_build_observations.py`(9テスト)、`test_time_safety.py`(7テスト、削除不変性・利用可能時刻チェッカー含む) |
-| spec.json | **凍結・コミット** | 観測信号定義・利用可能時刻ルール・期待値モデル設計・permutation placebo定義・Gate定義を全て記録 |
+| Gate 0 | **PASS(9/9条件)** | `DATA_AUDIT.md`末尾+`spec.json` `gates.gate0_data_health`。9条件目(利用可能時刻の行単位不変条件)はイベント駆動アルゴリズムの設計上数学的に保証され、`test_online_state.py`で直接検証済み |
+| Stage 2(観測信号構築、期待値モデル) | **完了(expanding-window化・venue追加・agari次元追加済み)** | `expected_time_model.py`(距離50m×**競馬場**×芝ダ×コース区分×公表馬場状態×クラス名の中央値lookup、**年単位expanding-window/leave-year-out**、2023年以降は2022年末までの単一モデルに固定)、`build_observations.py`(レース単位**speed_signal・agari_signal・pace_signal**の3独立信号 + negative control用inside_signal/front_signal、利用可能時刻列付与)、`test_build_observations.py`(9テスト)、`test_time_safety.py`(7テスト、削除不変性・利用可能時刻チェッカー含む) |
+| Stage 3(Kalman状態空間モデル・M0-M3比較・placebo) | **コード完成・テスト完了・コミット直後** | `online_state.py`(Kalman本体+RAW/EWMA対照、13テスト)、`build_features.py`(M0-M3特徴量構築)、`evaluate.py`(offset付きロジスティック回帰・meeting-day bootstrap・permutation shuffle、11テスト)、`stage3_run.py`(Gate評価ドライバ)。2024-2025実評価は本コミット後に実行する |
+| spec.json | **凍結・コミット(Stage3分も追記)** | 観測信号定義・利用可能時刻ルール・期待値モデル設計・permutation placebo定義・状態空間モデル定義(Q/R選択値・EWMA半減期・interaction定義・M0-M3定義)・Gate定義・中止規律を全て記録 |
 
 ## 【2026-09-20夜、ユーザー指摘による訂正】結果利用可能時刻の根拠
 
@@ -75,9 +76,39 @@ Stage1完了時点の初版は、TANPUK区分4(確定オッズ)タイムスタ�
 いずれも実データで実際に検証(value_counts/describe/sample行確認/結合成功率)して
 発見。`test_build_observations.py`に5件とも回帰テストとして固定化。
 
+## Stage 3実装の要点
+
+- **状態単位**: 開催日×競馬場×芝ダート。時計・上がり・ペースを独立なKalman状態
+  として持つ(内外・脚質はnegative control専用、状態化しない)。
+- **イベント駆動アルゴリズム**: 観測利用可能イベントと判断(スナップショット)
+  イベントを時刻順にマージして処理。「利用可能時刻より後の観測が対象レースの
+  スナップショットに混入しない」ことがアルゴリズム設計上数学的に保証される
+  (`test_online_state.py::test_no_future_leakage_*`で直接検証)。
+- **Q/R/prior_var**: 2023developmentのone-step-ahead尤度で次元ごとに選択。
+  primary(+20分)とsensitivity(+30分)は数学的に同一の選択結果になる(固定遅延の
+  一様シフトは観測間の相対時間間隔を変えないため、実測でも完全一致を確認)。
+- **EWMA半減期**: 2時間で事前固定(ラウンドナンバー、2023結果を見て決めていない)。
+- **interaction**: horse_aptitude(closing_power、既存serve-safe特徴量)×Kalman
+  状態平均。欠損馬は0へ縮約(行を除外しない)。
+- **M0-M3/RAW/EWMA/ZERO**: offset付きロジスティック回帰(baseline_logit_top3=
+  v6+市場を固定offset、追加特徴量だけL2正則化でfit)。2023development でfit、
+  2024・2025はgenuinely OOS評価(再fitしない)。
+- **permutation placebo**: 競馬場×日×芝ダート内で観測値の対応関係だけをシャッフル
+  (タイムスタンプ・欠損位置・レース数・baseline予測は不変)。2023でfitした凍結
+  betaをシャッフル後データへ適用し、実信号のΔloglossがplacebo分布の2.5パーセン
+  タイル(=改善方向で97.5%点)を下回るか検定。>=1000回。
+
+在庫バグ発見: build_feature_table構築中、race-levelの状態特徴量(RAW/Kalman平均)は
+定義上レース内で全馬同一値となるため、素の加法項では「レース内の相対順位」への
+寄与が原理的に小さい(v6+市場の合計確率が既にレースあたり≈3.0付近へ強く較正されて
+いるため尚更)。この構造上の制約はM3のinteraction項(馬ごとに値が変わる)で部分的に
+緩和される設計だが、2023年in-sampleサニティチェックでも相関はごく小さいことを確認
+済み(バグではなく、モデル仕様として想定内の挙動)。詳細はspec.json
+`state_space_model_stage3.model_definitions`参照。
+
 ## 次の一手
 
-Stage 3: `online_state.py`(Kalman状態空間モデル本体)。日初期事前分布・Q/R
-ハイパーパラメータ(one-step-ahead観測尤度で2023developmentのみ選択)・
-permutation placeboの実装を含む。本コミット(spec.json凍結・利用可能時刻訂正・
-observations.parquet再生成)の後に着手する。
+commit後、`stage3_run.py`を実行して2024・2025年でgenuinely OOS評価する
+(fit済みbetaは再fitしない)。Gate2A(M1 vs M0)・Gate2B(M3 vs M1)・permutation
+placebo・meeting-day bootstrap 97.5%CIの結果に基づき、spec.json `gates`の基準で
+判定する。
