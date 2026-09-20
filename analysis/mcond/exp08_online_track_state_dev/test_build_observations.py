@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 test_build_observations.py — expected_time_model.py / build_observations.py の単体テスト。
-2026-09-20実装中に見つかった4件の実害バグの回帰テストを含む:
+2026-09-20実装中に見つかった5件の実害バグの回帰テストを含む:
   1. コース区分がダートで構造的にNaN(A/B/C/D等は芝のみの概念)なのに
      dropnaで全ダートレースが消えていた
   2. 障害レースがクラス名を平地と共有し、距離bucketの中央値を歪めていた
@@ -9,6 +9,10 @@ test_build_observations.py — expected_time_model.py / build_observations.py �
      pd.to_numericへ直接通すと勝ち馬を含む上位9頭が全滅していた
   4. 枠番(1-8固定)を内外percentileの分母に使い、大頭数レースでis_outerの
      閾値が非現実的になりinside_signalが全レースNaNになっていた
+  5. (2026-09-20夜追加) 外部kekkaファイルの"race_id16"列はmaster_v2の
+     「レースID(新/馬番無)」と別スキーマ(uu/pp/yy/k/n/rr起源の内部再採番)で
+     結合不能。無印の"race_id"列がmaster_v2と一致する正しい列だった
+     (master_v2発走時刻との結合が全件失敗して発覚)
 """
 from __future__ import annotations
 import sys
@@ -47,23 +51,23 @@ def test_parse_time_sec_matches_known_examples():
 
 
 def test_expected_time_lookup_fallback_chain():
-    """フォールバック段階(full -> no_going -> coarse -> global)が正しく機能するか。
-    trainに存在しない組合せへの予測がglobal medianへ落ちることを確認。"""
+    """フォールバック段階(full -> no_going -> no_class -> coarse -> global)が
+    正しく機能するか。trainに存在しない組合せへの予測がglobal medianへ落ちることを確認。"""
     train = pd.DataFrame({
-        "dist_bucket": [1600] * 40, "芝・ダ": ["芝"] * 40, "コース区分": ["A"] * 40,
-        "馬場状態": ["良"] * 40, "クラス名": ["1勝"] * 40,
+        "dist_bucket": [1600] * 40, "場所": ["06"] * 40, "芝・ダ": ["芝"] * 40,
+        "コース区分": ["A"] * 40, "馬場状態": ["良"] * 40, "クラス名": ["1勝"] * 40,
         "time_sec": np.linspace(95.0, 97.0, 40),
     })
     lookup = fit_expected_time_lookup(train)
     # 完全一致セル
-    q_full = pd.DataFrame({"dist_bucket": [1600], "芝・ダ": ["芝"], "コース区分": ["A"],
-                            "馬場状態": ["良"], "クラス名": ["1勝"]})
+    q_full = pd.DataFrame({"dist_bucket": [1600], "場所": ["06"], "芝・ダ": ["芝"],
+                            "コース区分": ["A"], "馬場状態": ["良"], "クラス名": ["1勝"]})
     pred, fb = predict_expected_time(lookup, q_full)
     assert fb.iloc[0] == "full"
     assert pred.iloc[0] == pytest.approx(96.0, abs=0.2)
     # 未知の組合せ(全く違う距離・クラス) -> global
-    q_unknown = pd.DataFrame({"dist_bucket": [9999], "芝・ダ": ["ダ"], "コース区分": ["D_NA"],
-                               "馬場状態": ["不"], "クラス名": ["Ｇ１"]})
+    q_unknown = pd.DataFrame({"dist_bucket": [9999], "場所": ["99"], "芝・ダ": ["ダ"],
+                               "コース区分": ["D_NA"], "馬場状態": ["不"], "クラス名": ["Ｇ１"]})
     pred2, fb2 = predict_expected_time(lookup, q_unknown)
     assert fb2.iloc[0] == "global"
     assert pred2.iloc[0] == pytest.approx(train["time_sec"].median())
@@ -91,10 +95,37 @@ def test_no_obstacle_races_in_loaded_data():
         load_kekka_for_time_model,
     )
     df = load_kekka_for_time_model(usecols=[
-        "yyyymmdd", "race_id16", "レース名", "馬番", "着順", "走破タイム", "距離",
+        "yyyymmdd", "race_id", "レース名", "場所", "馬番", "着順", "走破タイム", "距離",
         "芝・ダ", "コース区分", "馬場状態", "クラス名",
     ])
     assert not df["レース名"].astype(str).str.contains("障害", na=False).any()
+
+
+def test_race_id_column_matches_master_v2_scheme_not_race_id16():
+    """バグ5の直接回帰: 外部kekkaの"race_id16"列はmaster_v2と別スキーマで結合不能、
+    無印"race_id"列がmaster_v2の「レースID(新/馬番無)」と一致すること。
+    2026-09-20夜に手動デコードで確認した既知の実例で固定する(全件突合はファイル
+    全体読み込みが必要で重いため、既知の具体例による最小回帰とする)。"""
+    raw = pd.read_csv(
+        "E:/競馬過去走データ/raw_data/kekka_2010_2025_fix_raceid_v2__keyed.csv",
+        encoding="utf-8-sig", low_memory=False,
+        usecols=["race_id", "race_id16", "yyyymmdd"], nrows=20,
+    )
+    row0 = raw.iloc[0]
+    assert str(row0["yyyymmdd"]) == "20251228"
+    known_good_race_id = str(row0["race_id"])   # master_v2スキーマと一致するはず
+    known_bad_race_id16 = str(row0["race_id16"])  # 別スキーマ、一致しないはず
+    assert known_good_race_id != known_bad_race_id16
+
+    m = pd.read_csv(BASE / "data/master_v2_20130105-20251228.csv", encoding="utf-8-sig",
+                     low_memory=False, usecols=["レースID(新/馬番無)", "日付"])
+    m = m[m["日付"].astype(str).str.replace("-", "", regex=False) == "20251228"]
+    master_rids = set(
+        pd.to_numeric(m["レースID(新/馬番無)"], errors="coerce").astype("Int64").astype(str))
+    assert known_good_race_id in master_rids, \
+        "race_id(無印)がmaster_v2の同日レースと一致しない(結合列の再確認が必要)"
+    assert known_bad_race_id16 not in master_rids, \
+        "race_id16がmaster_v2と一致してしまっている(前提が変わった、別スキーマ再確認要)"
 
 
 def test_inside_outside_uses_umaban_not_wakuban():
