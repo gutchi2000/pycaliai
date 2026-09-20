@@ -10,16 +10,27 @@ EXP01〜EXP07・v6・EXP05・EXP05-F・compute_bets.pyは変更しない。本�
 
 新規作業は`analysis/mcond/exp08_online_track_state_dev/`へ限定する。
 
+## スコープ(2026-09-20夜、ユーザー承認済み・確定)
+
+`PRIOR_ART_AUDIT.md`§6の推奨をユーザーが承認。以下へ確定し、以降は変更しない:
+
+- **主仮説**: 時計(走破タイム残差)・上がり性能・ペースの当日オンライン状態のみ
+- **内外(枠)・脚質(前残り/差し)**: 採用候補から除外、negative control専用
+  (再救済しない。時計・上がり・ペースいずれにも追加情報がなければEXP08を終了する)
+- permutation placebo testをGateに事前登録(§14で追加)
+- 2023年developmentのみで状態定義・パラメータ・閾値を固定
+- RAW/EWMA比較必須
+
 ## 現在の進捗(2026-09-20夜時点)
 
 | 段階 | 状態 | 成果物 |
 |---|---|---|
-| Stage 0(先行研究・既存実装監査) | **完了** | `PRIOR_ART_AUDIT.md` — 内外(枠)次元は`analysis/day_state_counting_stage2.py`(別セッション、未コミット、v6残差化・permutation placebo済み)で既に**却下**(real<placebo)。脚質次元も同スクリプトのStage1で却下(raw ROI版2件も死亡)。時計・上がり・ペース次元は先行研究なし。**スコープ縮小を推奨、ユーザー判断待ち** |
-| データ可用性監査(§5) | **未着手** | Stage 0の結論(スコープ確定)を待って着手 |
-| Gate 0 | **未着手** | |
+| Stage 0(先行研究・既存実装監査) | **完了** | `PRIOR_ART_AUDIT.md` — 内外(枠)は`day_state_counting_stage2.py`(別セッション、未コミット、参照のみ)でpermutation placebo失格により却下済み、脚質も却下済み。時計・上がり・ペースのみ先行研究なし |
+| Stage 1データ可用性監査(§5) | **完了** | `DATA_AUDIT.md` — 走破タイム/上がり3F/PCI・RPCI等は外部`kekka_2010_2025_fix_raceid_v2__keyed.csv`で全年安定して取得可能(missing率0-3%台)。**結果利用可能時刻を2023実測で固定**(発走時刻+15分、TANPUK区分4タイムスタンプ中央値7分・99%点13分に安全マージン)。**時計の期待走破タイムモデルは時点安全な既存実装が無く新規構築が必要**(Stage2)。上がり/ペースはレース内相対値化で対応可能な見込み |
+| Gate 0 | **PASS** | `DATA_AUDIT.md`末尾のチェックリスト参照 |
+| Stage 2(観測信号構築、期待値モデル) | **未着手** | 次の作業 |
 
 ## 次の一手
 
-`PRIOR_ART_AUDIT.md`§6の推奨(内外を除外、脚質を探索的に格下げ、時計/上がり/ペースを
-主軸にする、permutation placeboをGate基準へ追加する)についてユーザーへ確認済み
-(回答待ち)。回答後、確定したスコープでStage 1データ可用性監査へ進む。
+`build_observations.py`(先行レースごとのspeed_signal/pace_signal構築、時計の
+期待値モデル実装)へ進む。
