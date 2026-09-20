@@ -42,8 +42,26 @@
   "basic_objective": "maximize: worst_case_expected_profit(w) - lambda * CVaR_alpha(loss(w))",
   "cvar": {"alpha": 0.10, "definition": "最悪10%シナリオの平均損失"},
   "uncertainty_set_minimum_components": ["的中確率の較正誤差", "レース単位bootstrap区間",
-   "T-35/T-10から確定までのオッズ縮小", "人気帯別の価格誤差", "モデル間不一致"],
-  "uncertainty_set_fitting_rule": "development期間(2023、TANPUKアーカイブT-28相当のreplay)だけで半径を固定し、2024〜2025年を見て変更しない",
+   "historical_pre_snapshotから確定までのオッズ縮小", "人気帯別の価格誤差", "モデル間不一致"],
+  "uncertainty_set_fitting_rule": "development期間(2023、historical_pre_snapshot)だけで半径を固定し、2024〜2025年を見て変更しない",
+  "uncertainty_set_construction_method": {
+   "principle": "各馬券確率を独立に上下させない。PL latent score(v6生スコア)を摂動し、共同着順分布(build_scenarios.build_top3_states)を毎回まるごと再計算することで券種間の確率整合性を構造的に保証する(正の重みベクトルからは必ず有効な確率分布が得られるため独立摂動特有の破綻が起きない)。各drawでGate J0を再確認する。",
+   "implementation": "uncertainty_scenarios.py",
+   "score_noise_scale": {
+    "method": "2023年developmentのtansho raw PL確率と既存較正済み確率のlogit差から推定",
+    "estimator": "IQRベースの頑健な尺度推定量(IQR/1.349)",
+    "estimator_correction_note": "当初np.stdで計算したところ2.2010という非現実的に大きい値になった(極端な穴馬(raw PLが的中率を大幅過大評価する低確率帯、Gate J1参照)のlogit差の外れ値に支配されていたため)。IQRベースへ切り替え、2024/2025を見る前に確定した。",
+    "frozen_value_2023": 0.2512877264129069
+   },
+   "odds_drift_distribution": {
+    "method": "TANPUKアーカイブ内、同一レース・同一馬の区分1(前売り、historical_pre_snapshotに相当する最終スナップショット)→区分4(確定)の単勝オッズ比[確定/前売り]を2023年のみで実測",
+    "source_note": "2026年のSettleAI実測(n=742、2026-06-07以降)はdevelopmentより後の期間のため本モジュールでは使わない",
+    "frozen_2023": {"n": 47493, "mean_ratio": 1.4088799074764766,
+     "p10": 0.7743229547222288, "p50": 1.2236024844720494, "p90": 2.308241523551956},
+    "worst_case_shrinkage_p10": 0.7743229547222288,
+    "usage": "state_payoffsのodds_floor計算時、historical_pre_snapshotオッズにworst_case_shrinkage_p10を乗じた保守値を下限として使う"
+   }
+  },
   "no_bet_rule": "すべての許容分布で期待利益が非正の場合、最適解はno-bet"
  },
 
@@ -64,12 +82,23 @@
  },
 
  "data_scope": {
-  "ticket_types_in_scope": ["単勝", "複勝", "ワイド", "馬単"],
-  "ticket_types_excluded": ["馬連", "三連複", "三連単"],
-  "exclusion_reason": "馬連・三連複は2024-2025年の真のT-10履歴データが存在しない(TANPUKアーカイブに該当列なし)。三連単も同様に構造的データ欠如。仕様書4節の対象範囲にも三連系は明示的に含まれていない",
-  "judgment_time_2024_2025": "TANPUKアーカイブの最終前売りスナップショット(発走26-30分前、中央値28分前、実測n=6,909レース)。真のT-10ではない",
-  "judgment_time_2026_forward": "data/forward_prices/のT-10実測(2026-08-29以降、8開催日分)",
-  "labeling_rule": "2024-2025年の評価は『現在コードによるreplay』と明記し、実配信の再現とは呼ばない(仕様書5.4)"
+  "_correction_20260920": "当初版はワイド・馬単をin_scope、馬連をexcludedとしていたが誤りだった。data/Time _series_odds/UMAREN_*.csvがTANPUKと同一構造で馬連の historical_pre_snapshot を持つと判明(n=6,909レース、median_minutes_to_post=28、TANPUKと完全一致)。一方ワイド・馬単には専用historical archiveが存在しない(複勝odds+事後payoutのproxyのみ)。DATA_AUDIT.mdの訂正記録参照。",
+  "currently_valid_topdown_ticket_types": ["単勝", "複勝", "馬連", "ワイド", "馬単"],
+  "currently_valid_topdown_note": "compute_bets.pyのCB_ENGINE=topdown経路(486行〜)をpush()呼び出しで直接確認。三連複・三連単はtopdown経路に候補生成コードが無く現在無効(CLAUDE.md『三連単：廃止済み』と整合、三連複も本監査で未生成と確認)。",
+  "ticket_types_in_scope_stage2a": ["単勝", "複勝", "馬連"],
+  "ticket_types_excluded_stage2a": ["ワイド", "馬単"],
+  "ticket_types_excluded_stage2a_reason": "topdown生成対象だがhistorical_pre_snapshotの判断時点オッズが実在しない(proxyのみ)。試す場合はStage 2Aとは別の探索分析とし、候補追加を配分改善として扱わない",
+  "ticket_types_not_generated_by_topdown": ["三連複", "三連単"],
+  "judgment_time_2024_2025": {
+   "name": "historical_pre_snapshot",
+   "source": "TANPUK_*.csv(単勝・複勝)、UMAREN_*.csv(馬連)の最終前売り(区分1)スナップショット",
+   "median_minutes_to_post": 28,
+   "range_minutes_to_post": "26..30",
+   "measured_n_races": 6909,
+   "naming_rule": "『T-10』『T-28』等のT-記法、『T-10 replay』『実配信再現』という呼称は一切使わない。文書・出力・列名は historical_pre_snapshot / median_minutes_to_post / range_minutes_to_post で統一する(2026-09-20ユーザー指示)"
+  },
+  "judgment_time_2026_forward": "data/forward_prices/のT-10実測(2026-08-29以降、8開催日分、真のT-10でありhistorical_pre_snapshotとは別物)",
+  "labeling_rule": "2024-2025年の評価はhistorical_pre_snapshotを使った『現在コードによるreplay』と明記し、実配信の再現とは呼ばない(仕様書5.4)。全政策(P0-P7)を同じhistorical_pre_snapshotで比較するため配分方式の相対比較は可能だが、本番T-10性能とは別である"
  },
 
  "time_series_split": {
@@ -107,7 +136,12 @@
    "name": "配分だけの比較",
    "fixed": ["参加レース", "候補馬券", "総投資額", "判断時点", "使用確率", "使用オッズ"],
    "variable": ["候補間の配分だけ"],
-   "forbidden": ["候補削除", "候補追加", "参加レース変更"]
+   "forbidden": ["候補削除", "候補追加", "参加レース変更"],
+   "budget_consumption_rule": {
+    "requirement": "sum(w_j) = B を必須とする。P1/P2/P3/P4/P5/P6の全政策で同じ予算を使う(2026-09-20夜ユーザー指示、追加指示6)。no-betまたは予算未消化を許す比較はStage 2Bへ分離する。",
+    "implementation": "policies.full_spend_search()。既存ソルバー(optimise_portfolio)はbudget_yen以下の任意額を許容しno-betを積極的に選ぶ設計(7.3のno-bet優先規律と整合)のため転用せず、予算完全消化専用の独立探索を新規実装した(既存ソルバーの内部関数は再利用しない)。",
+    "anomaly_handling": "ソルバー異常時の安全動作としてno-betは残すが、そのレースはStage 2A主比較から除外せず、Stage2ABudgetAnomaly例外として異常件数に計上しFAIL判定へ含める(黙って除外しない)。"
+   }
   },
   "stage2B": {
    "name": "選別+配分",

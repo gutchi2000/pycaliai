@@ -208,7 +208,131 @@ def no_bet_portfolio(candidates: Sequence[CandidateTicket], **_kwargs) -> dict[s
     return {}
 
 
+# ============================================================================
+# Stage 2A: 予算完全消化の主比較(仕様書追加指示6、2026-09-20夜)
+# ============================================================================
+# 既存ソルバー(optimise_portfolio)は budget_yen 以下の任意額を許容し、EVが無ければ
+# no-betを積極的に選ぶ設計(仕様書7.3のno-bet優先規律に合わせた正しい挙動)。しかし
+# Stage 2Aの主比較は「同じ参加・同じ候補・同じ総投資額」で配分方式だけを比べる実験
+# であり、sum(w_j)=Bを強制する必要がある。既存ソルバーにこの制約を後付けする安全な
+# 方法がない(内部列挙を改変せず=既存コードをコピー・改変しない、という制約と両立
+# しない)ため、予算完全消化探索は独立実装する(既存ソルバーの内部関数は一切再利用
+# しない、意図的な非共有)。
+
+
+class Stage2ABudgetAnomaly(Exception):
+    """Stage 2A主比較で予算を完全消化できない(候補が薄すぎる等)場合に送出する。
+    no-betで黙って逃げず、異常件数としてFAIL判定に計上するための例外。"""
+
+
+def _full_spend_enumerate(n: int, budget_units: int):
+    from itertools import product
+    for combo in product(range(budget_units + 1), repeat=n):
+        if sum(combo) == budget_units:
+            yield combo
+
+
+def _full_spend_objective(units, candidates: Sequence[CandidateTicket], unit_yen: int,
+                          bankroll_yen: int, solver_cvar_alpha: float, cvar_penalty: float,
+                          state_probability_scenarios) -> tuple[float, float, float]:
+    from math import log1p
+    stakes = [u * unit_yen for u in units]
+
+    def _payoff_row(cand: CandidateTicket, state_idx: int | None) -> float:
+        if cand.state_payoffs is not None:
+            return cand.state_payoffs[state_idx]
+        raise ValueError("full_spend_search requires explicit state_payoffs on all candidates")
+
+    n_states = len(candidates[0].state_payoffs)
+    profits = []
+    for s in range(n_states):
+        total = 0.0
+        for stake, cand in zip(stakes, candidates):
+            total += stake * (_payoff_row(cand, s) - 1.0)
+        profits.append(total)
+
+    base_probs = state_probability_scenarios[0] if state_probability_scenarios else None
+    if base_probs is None:
+        raise ValueError("full_spend_search requires at least one probability scenario")
+    scenarios = list(state_probability_scenarios)
+
+    expected_profits = [sum(p * q for p, q in zip(profits, probs)) for probs in scenarios]
+    worst_expected_profit = min(expected_profits)
+
+    def _cvar(probs):
+        tail_mass = 1.0 - solver_cvar_alpha
+        losses = sorted(((max(0.0, -p), q) for p, q in zip(profits, probs)), key=lambda x: -x[0])
+        acc_mass, acc_loss = 0.0, 0.0
+        for loss, mass in losses:
+            take = min(mass, tail_mass - acc_mass)
+            if take <= 0:
+                break
+            acc_loss += loss * take
+            acc_mass += take
+        return acc_loss / tail_mass if tail_mass > 0 else 0.0
+
+    worst_cvar = max(_cvar(probs) for probs in scenarios)
+    log_growths = [
+        sum(log1p(p / bankroll_yen) * q for p, q in zip(profits, probs)) for probs in scenarios
+    ]
+    objective = min(log_growths) - cvar_penalty * worst_cvar / bankroll_yen
+    return objective, worst_expected_profit, worst_cvar
+
+
+def full_spend_search(
+    candidates: Sequence[CandidateTicket], *, budget_yen: int, bankroll_yen: int,
+    unit_yen: int = 100, spec_cvar_alpha: float = 0.10, cvar_penalty: float = 0.0,
+    state_probability_scenarios: Sequence[Sequence[float]] = (),
+    max_portfolios: int = 200_000,
+) -> dict:
+    """Stage 2A主比較専用: sum(w_j)==budget_yen を必須制約とし、候補が
+    explicit state_payoffsを持つ前提で独立に全列挙する(既存ソルバーは再利用しない)。
+    予算を完全消化できる非負整数配分が一つも無い場合はStage2ABudgetAnomalyを送出する
+    (no-betで黙って逃げない、仕様書追加指示6の要求通り)。"""
+    if not candidates:
+        raise Stage2ABudgetAnomaly("no candidates supplied")
+    if any(c.state_payoffs is None for c in candidates):
+        raise Stage2ABudgetAnomaly("full_spend_search requires explicit state_payoffs on all candidates")
+
+    budget_units = budget_yen // unit_yen
+    n = len(candidates)
+    from math import comb
+    upper_bound = comb(n + budget_units - 1, n - 1) if n > 0 else 0
+    if upper_bound > max_portfolios:
+        raise Stage2ABudgetAnomaly(
+            f"full-spend grid has up to {upper_bound} points; max_portfolios={max_portfolios}"
+        )
+
+    solver_alpha = _to_solver_cvar_alpha(spec_cvar_alpha)
+    scenarios = list(state_probability_scenarios) or [None]
+    if scenarios[0] is None:
+        raise Stage2ABudgetAnomaly("state_probability_scenarios is required for full_spend_search")
+
+    best = None
+    evaluated = 0
+    for units in _full_spend_enumerate(n, budget_units):
+        evaluated += 1
+        obj, worst_ep, worst_cvar = _full_spend_objective(
+            units, candidates, unit_yen, bankroll_yen, solver_alpha, cvar_penalty, scenarios,
+        )
+        key = (obj, worst_ep, -worst_cvar, units)
+        if best is None or key > best[0]:
+            best = (key, units)
+
+    if best is None:
+        raise Stage2ABudgetAnomaly("no full-spend allocation found despite passing enumeration bound check")
+
+    units = best[1]
+    stakes = {c.name: u * unit_yen for c, u in zip(candidates, units) if u > 0}
+    return {
+        "stakes_yen": stakes, "total_stake_yen": budget_yen,
+        "objective": best[0][0], "worst_expected_profit_yen": best[0][1],
+        "worst_cvar_loss_yen": -best[0][2], "evaluated_portfolios": evaluated,
+    }
+
+
 __all__ = [
     "CandidateTicket", "robust_cvar_portfolio", "flat_portfolio",
     "prob_proportional_portfolio", "ev_max_portfolio", "no_bet_portfolio",
+    "Stage2ABudgetAnomaly", "full_spend_search",
 ]

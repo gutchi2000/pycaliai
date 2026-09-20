@@ -13,6 +13,7 @@ BASE = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(BASE))
 from analysis.mcond.exp07_robust_portfolio_dev.policies import (  # noqa: E402
     CandidateTicket, robust_cvar_portfolio, flat_portfolio,
+    Stage2ABudgetAnomaly, full_spend_search,
 )
 from analysis.robust_ticket_portfolio import Ticket, optimise_portfolio  # noqa: E402
 
@@ -191,13 +192,18 @@ def test_14_invalid_inputs_are_rejected_not_silently_allowed():
         Ticket("bad3", probability=0.3, odds_floor=2.0, probability_floor=0.5)
 
 
-# 15. 返還馬券を損失扱いしない(evaluate.py実装待ち、暫定skip)
-@pytest.mark.skip(
-    reason="決済ロジック(evaluate.py)がStage 2Aでまだ実装されていないため、"
-          "返還馬券の扱いは決済実装時に個別テストする(仕様書5.2で既知の要注意領域と明記済み)。"
-)
+# 15. 返還馬券を損失扱いしない(evaluate.py実装完了、2026-09-20夜有効化)
 def test_15_refunded_ticket_is_not_treated_as_a_loss():
-    pytest.fail("evaluate.py未実装のためStage 2Aで実装・検証する")
+    from analysis.mcond.exp07_robust_portfolio_dev.evaluate import RaceOutcome, settle_ticket
+
+    outcome = RaceOutcome(
+        race_id="2023010401010101",
+        scratched_horses=frozenset({5}),
+        payout_per_100_yen={},
+    )
+    r = settle_ticket("tansho", (5,), 300, outcome)
+    assert r["status"] == "refunded"
+    assert r["profit_yen"] == 0  # 損失(-stake)ではなく0であること
 
 
 # --- 追加の健全性チェック(仕様書には明示されていないが同じ精神で有用) ---
@@ -209,6 +215,70 @@ def test_flat_portfolio_never_exceeds_budget():
     ]
     stakes = flat_portfolio(candidates, budget_yen=350)
     assert sum(stakes.values()) <= 350
+
+
+# --- Stage 2A: 予算完全消化の主比較(追加指示6) ---
+
+def test_full_spend_search_always_consumes_entire_budget():
+    candidates = [
+        CandidateTicket("a", horses=(0,), probability=0.4, odds_floor=2.2,
+                        state_payoffs=(2.2, 0.0)),
+        CandidateTicket("b", horses=(1,), probability=0.6, odds_floor=1.8,
+                        state_payoffs=(0.0, 1.8)),
+    ]
+    result = full_spend_search(
+        candidates, budget_yen=400, bankroll_yen=50_000,
+        state_probability_scenarios=[(0.4, 0.6)],
+    )
+    assert result["total_stake_yen"] == 400
+    assert sum(result["stakes_yen"].values()) == 400
+
+
+def test_full_spend_search_raises_anomaly_when_no_candidates():
+    with pytest.raises(Stage2ABudgetAnomaly):
+        full_spend_search([], budget_yen=300, bankroll_yen=10_000,
+                          state_probability_scenarios=[(1.0,)])
+
+
+def test_full_spend_search_raises_anomaly_without_state_payoffs():
+    candidates = [CandidateTicket("a", horses=(0,), probability=0.5, odds_floor=2.0)]
+    with pytest.raises(Stage2ABudgetAnomaly):
+        full_spend_search(candidates, budget_yen=300, bankroll_yen=10_000,
+                          state_probability_scenarios=[(0.5, 0.5)])
+
+
+def test_full_spend_search_matches_independent_full_enumeration():
+    candidates = [
+        CandidateTicket("a", horses=(0,), probability=0.3, odds_floor=2.5,
+                        state_payoffs=(2.5, 0.0, 0.0)),
+        CandidateTicket("b", horses=(1,), probability=0.3, odds_floor=2.8,
+                        state_payoffs=(0.0, 2.8, 0.0)),
+        CandidateTicket("c", horses=(2,), probability=0.4, odds_floor=1.9,
+                        state_payoffs=(0.0, 0.0, 1.9)),
+    ]
+    probs = (0.3, 0.3, 0.4)
+    result = full_spend_search(
+        candidates, budget_yen=300, bankroll_yen=20_000,
+        state_probability_scenarios=[probs],
+    )
+    assert result["total_stake_yen"] == 300
+
+    # 独立な全列挙(100円単位、和=300円ちょうど)で同じ目的値になることを確認
+    from math import log1p
+    from itertools import product
+    best_obj = None
+    for units in product(range(4), repeat=3):
+        if sum(units) * 100 != 300:
+            continue
+        stakes = [u * 100 for u in units]
+        profits = []
+        for s in range(3):
+            total = sum(stake * (c.state_payoffs[s] - 1.0) for stake, c in zip(stakes, candidates))
+            profits.append(total)
+        log_growth = sum(log1p(p / 20_000) * q for p, q in zip(profits, probs))
+        if best_obj is None or log_growth > best_obj:
+            best_obj = log_growth
+    assert result["objective"] == pytest.approx(best_obj, abs=1e-6)
 
 
 def test_horse_exposure_cap_is_enforced():
