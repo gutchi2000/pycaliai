@@ -1,6 +1,6 @@
 {
-  "_comment": "EXP06 Jev意思決定層・適合性検証。2026-09-20固定、Stage B評価開始前にコミット済み。質問文・選択肢・統合式は結果を見て変更しない(spec §11の中止条件参照)。v1.1.0でAPI適合修正(api_conformance_amendment参照、競馬結果は未見)+主評価モデル固定+単発応答ポリシーを追加。v1.2.0でsupport_metric_definition(in_distribution_support/similar_past_case_count、結果ラベル不使用)+data_availability_audit(T-10/T-20/compute_bets由来項目の可用性境界)を追加、Stage B評価開始前に再固定。v1.3.0でstate_schema_v3_amendment(unknown_category_rate=0埋めの誤りを訂正しavailability=falseで完全省略、2023年をdevelopment役割としてJev問い合わせ対象に追加、旧schema取得済み6,013件をquarantine_20260920_old_schemaへ隔離)を追加。この訂正はJev応答内容・競走結果を一切見ずに行った。",
-  "spec_version": "1.3.0",
+  "_comment": "EXP06 Jev意思決定層・適合性検証。2026-09-20固定、Stage B評価開始前にコミット済み。質問文・選択肢・統合式は結果を見て変更しない(spec §11の中止条件参照)。v1.1.0でAPI適合修正(api_conformance_amendment参照、競馬結果は未見)+主評価モデル固定+単発応答ポリシーを追加。v1.2.0でsupport_metric_definition(in_distribution_support/similar_past_case_count、結果ラベル不使用)+data_availability_audit(T-10/T-20/compute_bets由来項目の可用性境界)を追加、Stage B評価開始前に再固定。v1.3.0でstate_schema_v3_amendment(unknown_category_rate=0埋めの誤りを訂正しavailability=falseで完全省略、2023年をdevelopment役割としてJev問い合わせ対象に追加、旧schema取得済み6,013件をquarantine_20260920_old_schemaへ隔離)を追加。この訂正はJev応答内容・競走結果を一切見ずに行った。v1.3.1でbudget_amendment_20260920(input-token安全上限を20M→25Mへ引き上げ)を追加、corrected Stage Bの結果・着順・払戻・Gate結果を見る前に確定。",
+  "spec_version": "1.3.1",
   "frozen_at": "2026-09-20",
   "absolute_conditions": [
     "EXP01-05およびEXP05-Fを変更しない",
@@ -98,6 +98,28 @@
     ],
     "re_audit_2024_2025_support_distribution": "unknown_category_rate除外後にSupportModelを2023年で再fitし2024/2025年をscoreした結果、in_distribution_supportの分布は訂正前とほぼ同一だった(訂正前: 2024 mean=0.503 std=0.291, 2025 mean=0.496 std=0.287)。これはunknown_category_rateが訂正前の全期間で一律0の定数列であり、robust standardization後も分散0のためPCAへの寄与が実質無かったことによる(理論的に予想される結果、実データでも確認)。",
     "budget_accounting": "20,000,000 input tokensの安全上限は、quarantine済みのstate_schema_v2実消費分(8,767,518 input tokens)と、state_schema_v3での新規実行分を合算した実消費量に対して適用する(旧schemaの支出も無かったことにはしない)。",
+    "no_results_seen_before_this_amendment": true,
+    "no_questions_or_gates_changed": true
+  },
+  "budget_amendment_20260920": {
+    "amended_at": "2026-09-20夜 (corrected Stage Bの結果・着順・払戻・Gate結果を見る前)",
+    "trigger": "state_schema_v3のcorrected dry-run(STAGE_B_DRY_RUN.json)で、quarantine済みstate_schema_v2実消費(8,767,518 input tokens)+corrected run新規見積り(14,044,884 input tokens)の累積が22,812,402 input tokensとなり、旧上限20,000,000を超過すると判明した。",
+    "old_cap_input_tokens": 20000000,
+    "new_cap_input_tokens": 25000000,
+    "reason": "state_schema_v2の誤実行(unknown_category_rate=0埋めの誤り、下記state_schema_v3_amendment参照)で消費したquarantine分を含めても、2023 development / 2024-2025 primary / sensitivity 600件のcorrected designを一切削減せず完遂するため。",
+    "cost_at_current_price": {
+      "price_source": "docs.typesafe.ai/models (2026-09-20確認、$0.042 / Mtok input、output tokens free)",
+      "price_per_million_input_tokens_usd": 0.042,
+      "cumulative_at_new_cap_usd": 1.05,
+      "quarantine_actual_cost_usd": 0.3682,
+      "corrected_run_estimated_cost_usd": 0.5899
+    },
+    "scope_unchanged": [
+      "questions", "input definitions (state_fields / distance_input_fields)",
+      "target years (2023 development, 2024-2025 primary)", "sample sizes (10,964 total new calls)",
+      "gates", "comparison methods (LR_CONTROL等)"
+    ],
+    "quarantine_reuse_policy_unchanged": "quarantine応答(state_schema_v2、6,013件)は主評価へ使用しない。この方針はbudget_amendment後も変更しない。",
     "no_results_seen_before_this_amendment": true,
     "no_questions_or_gates_changed": true
   },
