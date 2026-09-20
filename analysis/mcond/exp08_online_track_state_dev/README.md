@@ -1,5 +1,15 @@
 # EXP08 — 当日馬場状態オンライン推定AI
 
+## 【2026-09-21】最終結論: Gate2A FAIL・Gate2B FAIL、EXP08終了
+
+時計・上がり・ペースの当日オンライン状態は、v6+市場の後に実務的に意味のある
+追加情報を持たない。2023developmentでfit・2024-2025でgenuinely OOS評価した結果、
+効果量は要求閾値(絶対改善0.0005)の**4〜6桁小さい**(実測 約4×10⁻⁸〜2×10⁻⁹)。
+permutation placebo(1,000回)不合格、EWMA対照とも有意差なし。中止規律を厳守し
+結果を見た後のパラメータ変更は一切行っていない。詳細は`REPORT.md`、生データは
+`out/STAGE3_GATE_REPORT.json`。**内外・脚質(Stage0で却下済み)と合わせ、
+当初想定した4次元の当日オンライン状態仮説はすべて閉じた。**
+
 ## 絶対条件
 
 EXP01〜EXP07・v6・EXP05・EXP05-F・compute_bets.pyは変更しない。本番の印・買い目へ
@@ -32,8 +42,8 @@ EXP01〜EXP07・v6・EXP05・EXP05-F・compute_bets.pyは変更しない。本�
 | Stage 1データ可用性監査(§5) | **完了(訂正済み)** | `DATA_AUDIT.md` — 走破タイム/上がり3F/PCI・RPCI等は外部`kekka_2010_2025_fix_raceid_v2__keyed.csv`で全年安定して取得可能。**結果利用可能時刻の根拠を全面訂正**(下記参照): TANPUK確定オッズは結果レコードの取得時刻の代理にならないと判明、JV-Link等にも信頼できる時刻が存在しないことを確認、保守的な固定遅延(+20分主解析/+30分感度分析)へ変更 |
 | Gate 0 | **PASS(9/9条件)** | `DATA_AUDIT.md`末尾+`spec.json` `gates.gate0_data_health`。9条件目(利用可能時刻の行単位不変条件)はイベント駆動アルゴリズムの設計上数学的に保証され、`test_online_state.py`で直接検証済み |
 | Stage 2(観測信号構築、期待値モデル) | **完了(expanding-window化・venue追加・agari次元追加済み)** | `expected_time_model.py`(距離50m×**競馬場**×芝ダ×コース区分×公表馬場状態×クラス名の中央値lookup、**年単位expanding-window/leave-year-out**、2023年以降は2022年末までの単一モデルに固定)、`build_observations.py`(レース単位**speed_signal・agari_signal・pace_signal**の3独立信号 + negative control用inside_signal/front_signal、利用可能時刻列付与)、`test_build_observations.py`(9テスト)、`test_time_safety.py`(7テスト、削除不変性・利用可能時刻チェッカー含む) |
-| Stage 3(Kalman状態空間モデル・M0-M3比較・placebo) | **コード完成・テスト完了・コミット直後** | `online_state.py`(Kalman本体+RAW/EWMA対照、13テスト)、`build_features.py`(M0-M3特徴量構築)、`evaluate.py`(offset付きロジスティック回帰・meeting-day bootstrap・permutation shuffle、11テスト)、`stage3_run.py`(Gate評価ドライバ)。2024-2025実評価は本コミット後に実行する |
-| spec.json | **凍結・コミット(Stage3分も追記)** | 観測信号定義・利用可能時刻ルール・期待値モデル設計・permutation placebo定義・状態空間モデル定義(Q/R選択値・EWMA半減期・interaction定義・M0-M3定義)・Gate定義・中止規律を全て記録 |
+| Stage 3(Kalman状態空間モデル・M0-M3比較・placebo) | **完了、Gate2A/2B FAIL** | `online_state.py`(Kalman本体+RAW/EWMA対照、13テスト)、`build_features.py`(M0-M3特徴量構築)、`evaluate.py`(offset付きロジスティック回帰・meeting-day bootstrap・permutation shuffle、11テスト)、`stage3_run.py`(Gate評価ドライバ)。2024-2025 genuinely OOS評価実行済み(1,000回placebo込み、約110分)。結果は`REPORT.md`参照 |
+| spec.json | **凍結・最終結果追記済み** | 観測信号定義・利用可能時刻ルール・期待値モデル設計・permutation placebo定義・状態空間モデル定義(Q/R選択値・EWMA半減期・interaction定義・M0-M3定義)・Gate定義・中止規律・`final_verdict_20260921`を全て記録 |
 
 ## 【2026-09-20夜、ユーザー指摘による訂正】結果利用可能時刻の根拠
 
@@ -106,9 +116,23 @@ Stage1完了時点の初版は、TANPUK区分4(確定オッズ)タイムスタ�
 済み(バグではなく、モデル仕様として想定内の挙動)。詳細はspec.json
 `state_space_model_stage3.model_definitions`参照。
 
+## Stage 3実行結果(2026-09-21、2024-2025 genuinely OOS)
+
+| 比較 | 効果量(絶対改善) | 要求閾値比 | 方向一致(2024/2025) | CI上限<0 | placebo | vs EWMA | 判定 |
+|---|---|---|---|---|---|---|---|
+| M1 vs M0 | 4.00×10⁻⁸ | 1/12,500 | 一致 | 満たす | **不合格** | **同一** | **FAIL** |
+| M3 vs M1 | 1.88×10⁻⁹ | 1/266,000 | **不一致** | **満たさない** | **不合格** | **同一** | **FAIL** |
+
+M1(同日生集計)もM3(状態空間+interaction)も、v6+市場に対して統計的に検出可能な
+微小効果はあるものの(meeting-day n=551の大標本ゆえ)、事前固定した実務的効果量
+閾値には遠く届かず、permutation placeboにも不合格。詳細は`REPORT.md`。
+
+**この結果を見た後、Q/R探索範囲・状態次元・clip範囲・集約方法・利用可能時刻・
+interaction・EWMA減衰率・分割方法のいずれも変更していない**(中止規律
+`spec.json` `stop_discipline_20260920`厳守)。ROI評価(Gate4)・Gate2C・Gate3
+(環境別再現性)はGate2A/2B不通過のため未実施。
+
 ## 次の一手
 
-commit後、`stage3_run.py`を実行して2024・2025年でgenuinely OOS評価する
-(fit済みbetaは再fitしない)。Gate2A(M1 vs M0)・Gate2B(M3 vs M1)・permutation
-placebo・meeting-day bootstrap 97.5%CIの結果に基づき、spec.json `gates`の基準で
-判定する。
+なし。EXP08は終了。内外・脚質(Stage0で却下)、時計・上がり・ペース(Stage3で
+却下)により、当初想定した4次元の当日オンライン状態仮説はすべて閉じた。

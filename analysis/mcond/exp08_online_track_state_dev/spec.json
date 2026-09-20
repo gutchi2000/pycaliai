@@ -159,27 +159,44 @@
         "2024・2025両方で改善方向", "meeting-day paired bootstrap 97.5%CI上限<0",
         "logloss絶対改善>=0.0005または相対改善>=0.1%", "競馬場1場または少数開催日への集中でない",
         "+20分と+30分で改善方向一致", "permutation placebo通過(97.5%)", "EWMAより有意に良い"
-      ]
+      ],
+      "result_20260921": {
+        "verdict": "FAIL",
+        "detail": "方向一致(PASS)・CI上限<0(PASS)・+20/+30分一致(PASS)は満たすが、効果量(絶対改善4.00e-8、要求0.0005比1/12500)・permutation placebo(実測Δがplacebo分布の内側、不合格)・EWMA比較(logloss完全一致)の3条件がFAIL。統計的有意性はmeeting-day n=551の大標本による検出力の産物であり、事前固定した効果量閾値が実務的無意味さを正しく検出した。",
+        "raw": "out/STAGE3_GATE_REPORT.json"
+      }
     },
     "gate2b_state_model_specific_value": {
       "comparison": "M3 vs M1",
       "required": "gate2a_same_day_info_valueと同じ7条件をM3-M1に適用",
-      "partial_pass_verdict": "M1-M0だけ通りM3-M1が落ちた場合は「同日情報は有効だが状態空間モデル固有の価値なし」と判定する(EWMA/RAWと同等ならKalman固有の価値なしと判定)"
+      "partial_pass_verdict": "M1-M0だけ通りM3-M1が落ちた場合は「同日情報は有効だが状態空間モデル固有の価値なし」と判定する(EWMA/RAWと同等ならKalman固有の価値なしと判定)",
+      "result_20260921": {
+        "verdict": "FAIL",
+        "detail": "2024(-2.66e-8改善)・2025(+2.31e-8悪化)で方向不一致、meeting-day CI=[-2.82e-8,+2.46e-8]で0を跨ぐ、効果量1.88e-9(要求比1/266000)、placebo不合格、EWMA完全一致。Gate2A以上に明確な不合格のため「部分合格」パターン(注記参照)には該当しない、同日情報自体に実務的価値がないという結論。",
+        "raw": "out/STAGE3_GATE_REPORT.json"
+      }
     },
-    "gate2c_win_value": "副次評価(win logloss/Brier/◎勝率/◎top3率/NDCG@3)、主判定には使わない",
-    "gate3_environment_reproducibility": "2024/2025・10競馬場・芝ダ・距離帯・馬場状態・レース番号帯・利用可能先行レース数・人気帯・AIと市場の不一致帯で再現確認",
-    "gate4_economic": "Gate2Aまたは2B通過後のみ実施、100円均等比較、EXP07のロバストCVaRは再利用しない"
+    "gate2c_win_value": "副次評価(win logloss/Brier/◎勝率/◎top3率/NDCG@3)、主判定には使わない。Gate2A/2B不通過のため未実施(中止規律に従いfishingしない)。",
+    "gate3_environment_reproducibility": "2024/2025・10競馬場・芝ダ・距離帯・馬場状態・レース番号帯・利用可能先行レース数・人気帯・AIと市場の不一致帯で再現確認。Gate2A/2B不通過のため未実施。",
+    "gate4_economic": "Gate2Aまたは2B通過後のみ実施、100円均等比較、EXP07のロバストCVaRは再利用しない。Gate2A/2B不通過のため未実施(中止規律「ROI評価は予測Gateを通過した場合だけ実施する」に従う)。"
   },
 
   "stop_discipline_20260920": {
     "rule": "Gateを通らなければ、結果を見て以下を変更しない: Q/R探索範囲、状態次元、clip範囲、集約方法、利用可能時刻、interaction定義、EWMA減衰率、競馬場・距離・芝ダートの分割方法。ROI評価は予測Gateを通過した場合だけ実施する。",
-    "pre_commit_requirement": "online_state.py・build_features.py・evaluate.py・stage3_run.py・spec.json・README.md・test_time_safety.py・test_online_state.py・test_evaluate.pyを、2024・2025年の実評価(fit_and_eval_modelの2024/2025呼び出し)を実行する前にコミットする。"
+    "pre_commit_requirement": "online_state.py・build_features.py・evaluate.py・stage3_run.py・spec.json・README.md・test_time_safety.py・test_online_state.py・test_evaluate.pyを、2024・2025年の実評価(fit_and_eval_modelの2024/2025呼び出し)を実行する前にコミットする。",
+    "compliance_20260921": "Gate2A/2B FAILの結果を見た後、上記いずれのパラメータも変更していない。ROI評価(Gate4)・Gate2C・Gate3は実施していない。REPORT.md参照。"
+  },
+
+  "final_verdict_20260921": {
+    "gate2a": "FAIL", "gate2b": "FAIL",
+    "conclusion": "時計・上がり・ペースの当日オンライン状態は、v6+市場の後に実務的に意味のある追加情報を持たない。効果量は要求閾値の4〜6桁小さく、permutation placeboも不合格、EWMA対照とも有意差なし。EXP08を終了する(内外・脚質はStage0で既に却下済み、当初想定した4次元すべてが閉じた)。",
+    "report": "REPORT.md"
   },
 
   "stage_progress": {
     "stage0_prior_art_audit": "完了(PRIOR_ART_AUDIT.md)",
     "stage1_data_audit": "完了(DATA_AUDIT.md、2026-09-20夜に利用可能時刻の節を訂正)",
     "stage2_observation_construction": "完了(build_observations.py、expected_time_model.py、2026-09-20夜にexpanding-window化・venue追加・race_id列バグ修正・agari_signal追加を反映)",
-    "stage3_online_state_model": "コード完成・テスト完了・コミット直後。2024-2025実評価はコミット後に実行する(stop_discipline_20260920参照)。"
+    "stage3_online_state_model": "完了。2024-2025 genuinely OOS評価実行済み、Gate2A/2Bとも FAIL。final_verdict_20260921/REPORT.md参照。EXP08終了。"
   }
 }
