@@ -101,18 +101,14 @@ def build_race_state_vectors(df: pd.DataFrame, preds: dict) -> pd.DataFrame:
     fserve_arr = d[F_serve_cols].to_numpy(dtype=float)
     d["_feature_missing_rate"] = np.isnan(fserve_arr).mean(axis=1)
 
-    # カテゴリ不明率: 歴史データセット(F_serveのone-hot列)からは再構成できないと判断し、
-    # 一律0とする。当初「場所」one-hotグループ(9列)を「JRA中央9場を完全網羅、参照
-    # カテゴリなし」と仮定して使ったが、実データ確認で「全列0」が全体の10.8%を占め、
-    # これは中京競馬場(この9列に含まれない10番目のJRA場)の実際の開催シェアと一致した
-    # (n-1ダミー方式で中京が参照カテゴリとして削除されているだけであり、真の未知カテゴリ
-    # ではなかった)。他のone-hotグループ(天気・馬場状態等)も同様にn-1方式の疑いが強く、
-    # 「全列0」から「真に未知」と「単に参照カテゴリ(最頻値)」を区別する情報が
-    # F_serveの一部保存済み列には残っていない。EXP05-Fの前向きシステムは
-    # frozen_encode.pyのfoundフラグでエンコード時点にこの区別を保持しているが、
-    # 歴史データはこの情報が失われた後の状態しか残っていないため、正直に「不明」を
-    # 一律0(算出不可)として扱う(STAGE_B_DATA_AUDIT.md参照、根拠のない代理値は使わない)。
-    d["_unknown_category_rate"] = 0.0
+    # カテゴリ不明率: 歴史データセット(F_serveのone-hot列)からは再構成できないと判明した
+    # (STAGE_B_DATA_AUDIT.md §7参照: 「場所」one-hotグループの「全列0」は中京競馬場という
+    # n-1ダミー参照カテゴリであり、真の未知カテゴリではなかった)。2026-09-20夜、
+    # ユーザー指摘によりunknown_category_rate=0での代用も誤りと判断した
+    # (0は「未知カテゴリが存在しない」という有効な観測値であり、算出不能の代用には
+    # 不適切)。よってこのフィールド自体をrace-state vectorから完全に省略する
+    # (呼び出し側=stage_b_run.pyがstateへ`availability.unknown_category_rate=false`を
+    # 明示し、null/0いずれでも埋めない)。
 
     rows = []
     for rid, g in d.groupby("rid16", sort=False):
@@ -152,7 +148,8 @@ def build_race_state_vectors(df: pd.DataFrame, preds: dict) -> pd.DataFrame:
             "class_band": str(class_band) if pd.notna(class_band) else "unknown",
             "popularity_band": str(pop_band) if pd.notna(pop_band) else "unknown",
             "feature_missing_rate": float(cand["_feature_missing_rate"]),
-            "unknown_category_rate": float(cand["_unknown_category_rate"]),
+            # unknown_category_rateは意図的に省略(算出不能、availability=falseで扱う。
+            # 詳細はこの関数冒頭のコメントおよびSTAGE_B_DATA_AUDIT.md参照)
             # 結果ラベル(support構築には使わない、prediction error計算専用)
             "_result_top3": int(cand["top3"]), "_result_win": int(cand["win"]),
             "_candidate_ban": int(cand["ban"]),

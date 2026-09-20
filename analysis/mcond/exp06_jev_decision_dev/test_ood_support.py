@@ -79,6 +79,39 @@ def test_unseen_category_treated_as_unk_not_crash():
     assert result["in_distribution_support"].notna().all()
 
 
+def test_unknown_category_rate_not_in_continuous_cols():
+    """2026-09-20夜の訂正: unknown_category_rateは0埋め代用が誤りと判明したため
+    距離入力から完全除外されていること。"""
+    assert "unknown_category_rate" not in CONTINUOUS_COLS
+
+
+def test_score_reference_self_no_self_match_inflation():
+    """2023年参照集合自身をscore_reference_self()でスコアすると、
+    (誤って自分自身を最近傍に含めてしまい距離0=support水増しになることなく)
+    fit()時のLOO d20_ref_と一致すること。"""
+    ref = _synthetic_reference()
+    sm = SupportModel().fit(ref)
+    self_score = sm.score_reference_self()
+    assert len(self_score) == len(ref)
+    assert np.allclose(self_score["d20_query"].to_numpy(), sm.d20_ref_)
+    # 自分自身を除いてカウントしているため、半径内近傍数は「全参照点との距離」を
+    # 使うscore()の結果よりは小さいかゼロ以上(自分自身1件分は必ず除かれている)
+    assert (self_score["similar_past_case_count"] >= 0).all()
+
+
+def test_score_reference_self_matches_score_minus_self_for_a_synthetic_point():
+    """さらに厳密な検証: 参照集合の1点をわざとscore()にもかけ、
+    score_reference_self()の対応する値とほぼ一致する(自己除外の効果を除いて)ことを
+    確認する。"""
+    ref = _synthetic_reference()
+    sm = SupportModel().fit(ref)
+    self_score = sm.score_reference_self()
+    # score()に同じ点を渡すと自分自身との距離0が20近傍に含まれてしまい、
+    # d20が必ずself_scoreの値以下になる(自己一致により小さく水増しされる)
+    plain_score = sm.score(ref.iloc[:5])
+    assert (plain_score["d20_query"].to_numpy() <= self_score["d20_query"].to_numpy()[:5] + 1e-9).all()
+
+
 def test_fit_never_refits_on_score_call():
     """score()は2023年で凍結したパラメータを変えない(呼び出し前後でmedian/iqr/PCAが
     同一であることを確認、再fit禁止の実装確認)。"""

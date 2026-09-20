@@ -1,23 +1,29 @@
 # -*- coding: utf-8 -*-
 """
-stage_b_run.py — Stage B主評価+感度分析の実API実行 (2026-09-20)
+stage_b_run.py — Stage B主評価+感度分析の実API実行 (2026-09-20、state_schema_v3)
 ================================================================================
-実行順6番目。主評価: 2024-2025年の全適格レース、1レース1回のみ問い合わせ
-(jev_client.query_jevのキャッシュが単発応答ポリシーを強制)。感度分析: 固定200レース
-(stage_b_sample.py、結果ラベル不使用で抽出済み)を各3回uncachedで問い合わせる。
+2026-09-20夜、state_schema_v2(unknown_category_rate=0埋め)は誤りと判明し、
+`out/quarantine_20260920_old_schema/`へ隔離した(MANIFEST.json参照)。本ファイルは
+state_schema_v3(unknown_category_rateをstateから完全に省略しavailability=falseで
+明示)へ修正済み。旧schemaの応答は削除せず、しかし新評価には一切再利用しない
+(prompt_schema_hashが変わったためcompute_input_hashが自動的に別キーになる)。
 
-安全上限: 累積input_tokensが20,000,000へ到達したら新規呼び出しを停止し、
-それまでの結果を保存する(このスクリプトが強制する)。
+対象:
+  development_2023: 2023年、support reference/development/単純対照モデルfit用。
+    Jevへは問い合わせるが主成績には混ぜない(専用ログファイルで物理的に分離)。
+    support指標はSupportModel.score_reference_self()でLOOスコアする(自己一致を防ぐ)。
+  primary_2024_2025: 2024-2025年、主評価対象。SupportModel.score()で2023年参照集合に
+    対するスコアを使う(2023年でfit・再fitしない)。
+  sensitivity: 固定200レース(stage_b_sample.py)を各3回uncachedで問い合わせる。
+    主評価キャッシュには一切触れない。
 
-匿名化: Jevへ送るstateにrid16(レースID)そのものは含めない。代わりに連番の
-anon_race_idを発行し、rid16との対応表(out/stage_b_race_id_map.json)はローカルにのみ
-保存する(Jevには一切送らない)。結果ラベル(top3/win等)もJevへは送らない
-(判断時点より後の情報を入力しない、というspec絶対条件)。
+安全上限: 累積input_tokensには**旧schema(quarantine済み)の実消費分も含める**
+(2026-09-20ユーザー指定)。合計が20,000,000へ到達したら新規呼び出しを停止する。
 
-再実行時の挙動: query_jevは既にキャッシュ済みのinput_hashを再送しない(課金されない)。
-このスクリプトを中断後に再実行すれば、未処理分から自動的に再開する。
+匿名化: Jevへ送るstateにrid16は含めない。anon_race_idとrid16の対応表は
+out/stage_b_race_id_map.json にローカル保存のみ(Jevには送らない)。
 
-実行: python -m analysis.mcond.exp06_jev_decision_dev.stage_b_run [--sensitivity-only]
+実行: python -m analysis.mcond.exp06_jev_decision_dev.stage_b_run [--development-only|--primary-only|--sensitivity-only]
 """
 from __future__ import annotations
 import argparse
@@ -36,20 +42,26 @@ from analysis.mcond.exp06_jev_decision_dev.ood_support import (  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 SPEC = json.loads((HERE / "spec.json").read_text(encoding="utf-8"))
-PROMPT_SCHEMA_HASH = "exp06_v2_20260920"
+STATE_SCHEMA_VERSION = "v3"
+PROMPT_SCHEMA_HASH = "exp06_v3_20260920"
 RACE_ID_MAP_PATH = HERE / "out" / "stage_b_race_id_map.json"
-PRIMARY_LOG_PATH = HERE / "out" / "stage_b_primary_progress.jsonl"
+DEVELOPMENT_LOG_PATH = HERE / "out" / "stage_b_development_2023_progress.jsonl"
+PRIMARY_LOG_PATH = HERE / "out" / "stage_b_primary_2024_2025_progress.jsonl"
 SENSITIVITY_LOG_PATH = HERE / "out" / "stage_b_sensitivity_results.jsonl"
+QUARANTINE_DIR = HERE / "out" / "quarantine_20260920_old_schema"
 MAX_INPUT_TOKENS_CAP = 20_000_000
 LOG_EVERY = 100
 
-# data_availability_audit(spec.json)により2023-2025で取得できないフィールド
+# data_availability_audit(spec.json)により2023-2025で取得できないフィールド。
+# unknown_category_rateも2026-09-20夜にここへ追加(0埋めは誤りだったため)。
 _UNAVAILABLE_FIELDS = {
     "odds_t20": None, "odds_t10": None, "odds_change_rate": None, "popularity_rank_change": None,
     "candidate_ticket_count": None, "candidate_ticket_probs": None, "current_odds": None,
     "predicted_confirmed_odds": None, "ev_point_estimate": None, "ev_lower_bound": None,
     "min_payout": None, "same_horse_concentration_rate": None,
 }
+_AVAILABILITY_FLAGS = {"odds_trajectory": False, "ticket_candidates": False,
+                       "unknown_category_rate": False}
 
 
 def _load_race_id_map() -> dict:
@@ -66,15 +78,16 @@ def _save_race_id_map(m: dict) -> None:
 def _anon_id_for(rid16: str, race_id_map: dict, reverse_map: dict) -> str:
     if rid16 in reverse_map:
         return reverse_map[rid16]
-    anon = f"HIST_{len(race_id_map):06d}"
+    anon = f"HISTV3_{len(race_id_map):06d}"
     race_id_map[anon] = rid16
     reverse_map[rid16] = anon
     return anon
 
 
 def build_jev_state(row, in_dist_support: float, similar_count: int) -> dict:
-    """rid16そのものは含めない(呼び出し側でanon_race_idに差し替える)。
-    結果ラベルも含めない。data_availability_auditのフィールドはNone+availabilityで明示。"""
+    """rid16そのものは含めない。結果ラベルも含めない。unknown_category_rateは
+    stateから完全に省略し、availabilityでfalseと明示する(0埋めしない、
+    2026-09-20夜の訂正、state_schema_v3)。"""
     state = {
         "venue": row["venue"], "surface": row["surface"], "distance_band": row["distance_band"],
         "class_band": row["class_band"], "field_size": int(row["field_size"]),
@@ -87,20 +100,20 @@ def build_jev_state(row, in_dist_support: float, similar_count: int) -> dict:
         "ai_market_divergence": row["ai_market_divergence"],
         "popularity_band": row["popularity_band"],
         "feature_missing_rate": row["feature_missing_rate"],
-        "unknown_category_rate": row["unknown_category_rate"],
+        # unknown_category_rate: 意図的に省略 (state_schema_v3)
         "in_distribution_support": float(in_dist_support),
         "similar_past_case_count": int(similar_count),
     }
     state.update(_UNAVAILABLE_FIELDS)
-    state["availability"] = {"odds_trajectory": False, "ticket_candidates": False}
+    state["availability"] = dict(_AVAILABILITY_FLAGS)
     return state
 
 
-def _cumulative_input_tokens() -> int:
+def _tokens_in_dir(cache_dir: Path) -> int:
     total = 0
-    if not JC.CACHE_DIR.exists():
+    if not cache_dir.exists():
         return 0
-    for p in JC.CACHE_DIR.glob("*.json"):
+    for p in cache_dir.glob("*.json"):
         try:
             rec = json.loads(p.read_text(encoding="utf-8"))
             usage = rec.get("usage") or {}
@@ -110,15 +123,26 @@ def _cumulative_input_tokens() -> int:
     return total
 
 
-def run_primary(state_df, support_result, race_id_map, reverse_map) -> dict:
+def _quarantined_tokens() -> int:
+    return _tokens_in_dir(QUARANTINE_DIR / "jev_cache")
+
+
+def _cumulative_input_tokens_including_quarantine() -> int:
+    """現行(state_schema_v3)キャッシュの消費量 + 隔離済み旧schemaの実消費量。
+    2026-09-20ユーザー指定: 20M上限は両方を合算した「実消費量」に対して適用する。"""
+    return _tokens_in_dir(JC.CACHE_DIR) + _quarantined_tokens()
+
+
+def run_batch(state_df, support_result, race_id_map, reverse_map, log_path: Path, role: str) -> dict:
     n_done, n_skipped_cap, n_fail = 0, 0, 0
     t0 = time.time()
-    PRIMARY_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     for i, (rid16, row) in enumerate(state_df.iterrows()):
-        cum_tokens = _cumulative_input_tokens()
+        cum_tokens = _cumulative_input_tokens_including_quarantine()
         if cum_tokens >= MAX_INPUT_TOKENS_CAP:
             n_skipped_cap = len(state_df) - i
-            msg = f"[STOP] 累積input_tokens={cum_tokens}が上限{MAX_INPUT_TOKENS_CAP}へ到達、新規呼び出しを停止"
+            msg = (f"[STOP] 累積input_tokens(旧schema隔離分+現行分)={cum_tokens}が上限"
+                  f"{MAX_INPUT_TOKENS_CAP}へ到達、新規呼び出しを停止 (role={role})")
             print(msg)
             with open(HERE / "out" / "stage_b_errors.log", "a", encoding="utf-8") as f:
                 f.write(msg + "\n")
@@ -128,21 +152,23 @@ def run_primary(state_df, support_result, race_id_map, reverse_map) -> dict:
         count = int(support_result.loc[rid16, "similar_past_case_count"])
         state = build_jev_state(row, support, count)
         result = JC.query_jev(anon_id, PROMPT_SCHEMA_HASH, state, SPEC["questions"],
-                              exp05_model_hash="exp05_oos_safe_m1m3m4", market_snapshot_time="historical_tanpuk_pre")
+                              exp05_model_hash="exp05_oos_safe_m1m3m4",
+                              market_snapshot_time="historical_tanpuk_pre")
         if not result.get("ok"):
             n_fail += 1
         else:
             n_done += 1
-        with open(PRIMARY_LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(json.dumps({"rid16": rid16, "anon_id": anon_id, "ok": result.get("ok"),
-                                "from_cache": result.get("from_cache"),
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"rid16": rid16, "anon_id": anon_id, "role": role,
+                                "ok": result.get("ok"), "from_cache": result.get("from_cache"),
                                 "input_hash": result.get("input_hash")}, ensure_ascii=False) + "\n")
         if (i + 1) % LOG_EVERY == 0:
             _save_race_id_map(race_id_map)
-            print(f"[progress] {i+1}/{len(state_df)} done={n_done} fail={n_fail} "
-                 f"cum_tokens={cum_tokens} elapsed={time.time()-t0:.0f}s")
+            print(f"[progress:{role}] {i+1}/{len(state_df)} done={n_done} fail={n_fail} "
+                 f"cum_tokens(incl_quarantine)={cum_tokens} elapsed={time.time()-t0:.0f}s")
     _save_race_id_map(race_id_map)
-    return {"n_total": len(state_df), "n_done": n_done, "n_fail": n_fail, "n_skipped_cap": n_skipped_cap}
+    return {"role": role, "n_total": len(state_df), "n_done": n_done, "n_fail": n_fail,
+           "n_skipped_cap": n_skipped_cap}
 
 
 def run_sensitivity(state_df) -> dict:
@@ -177,42 +203,55 @@ def run_sensitivity(state_df) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--development-only", action="store_true")
+    ap.add_argument("--primary-only", action="store_true")
     ap.add_argument("--sensitivity-only", action="store_true")
-    ap.add_argument("--primary-only", action="store_true", help="感度分析をスキップする(動作確認用)")
-    ap.add_argument("--limit", type=int, default=0, help="テスト用: 主評価の対象レース数を制限")
+    ap.add_argument("--limit", type=int, default=0, help="テスト用: 各対象群のレース数を制限")
     args = ap.parse_args()
 
+    print(f"[stage_b_run] state_schema={STATE_SCHEMA_VERSION} prompt_schema_hash={PROMPT_SCHEMA_HASH}")
     print("[stage_b_run] loading historical state...")
     df, feature_lists = HS.load_design_and_features()
     preds = HS.fit_oos_safe_predictions(df, feature_lists)
     state = HS.build_race_state_vectors(df, preds)
 
     fit_cols = CONTINUOUS_COLS + CATEGORICAL_COLS
-    d2023 = state[state["year"] == 2023]
+    d2023 = state[state["year"] == 2023].copy()
     sm = SupportModel().fit(d2023[fit_cols])
     d2425 = state[state["year"].isin([2024, 2025])].copy()
-    support_result = sm.score(d2425[fit_cols])
+
+    support_2023 = sm.score_reference_self()
+    support_2425 = sm.score(d2425[fit_cols])
 
     race_id_map = _load_race_id_map()
     reverse_map = {v: k for k, v in race_id_map.items()}
 
     if args.limit:
+        d2023 = d2023.iloc[:args.limit]
         d2425 = d2425.iloc[:args.limit]
-        support_result = support_result.loc[d2425.index]
 
-    if not args.sensitivity_only:
-        print(f"[stage_b_run] primary evaluation: {len(d2425)} races (2024+2025)")
-        primary_summary = run_primary(d2425, support_result, race_id_map, reverse_map)
+    run_dev = not (args.primary_only or args.sensitivity_only)
+    run_pri = not (args.development_only or args.sensitivity_only)
+    run_sens = not (args.development_only or args.primary_only)
+
+    if run_dev:
+        print(f"[stage_b_run] development (2023): {len(d2023)} races, role=development_2023")
+        dev_summary = run_batch(d2023, support_2023, race_id_map, reverse_map,
+                                DEVELOPMENT_LOG_PATH, "development_2023")
+        print("[stage_b_run] development summary:", json.dumps(dev_summary, ensure_ascii=False))
+
+    if run_pri:
+        print(f"[stage_b_run] primary evaluation (2024+2025): {len(d2425)} races, role=primary_2024_2025")
+        primary_summary = run_batch(d2425, support_2425, race_id_map, reverse_map,
+                                    PRIMARY_LOG_PATH, "primary_2024_2025")
         print("[stage_b_run] primary summary:", json.dumps(primary_summary, ensure_ascii=False))
 
-    if args.primary_only:
-        return 0
-
-    d2425["_support"] = support_result["in_distribution_support"]
-    d2425["_similar_count"] = support_result["similar_past_case_count"]
-    print("[stage_b_run] sensitivity analysis: 200 fixed races x 3 uncached repeats")
-    sens_summary = run_sensitivity(d2425)
-    print("[stage_b_run] sensitivity summary:", json.dumps(sens_summary, ensure_ascii=False))
+    if run_sens:
+        d2425["_support"] = support_2425["in_distribution_support"]
+        d2425["_similar_count"] = support_2425["similar_past_case_count"]
+        print("[stage_b_run] sensitivity analysis: 200 fixed races x 3 uncached repeats")
+        sens_summary = run_sensitivity(d2425)
+        print("[stage_b_run] sensitivity summary:", json.dumps(sens_summary, ensure_ascii=False))
     return 0
 
 

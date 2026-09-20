@@ -1,6 +1,6 @@
 {
-  "_comment": "EXP06 Jev意思決定層・適合性検証。2026-09-20固定、Stage B評価開始前にコミット済み。質問文・選択肢・統合式は結果を見て変更しない(spec §11の中止条件参照)。v1.1.0でAPI適合修正(api_conformance_amendment参照、競馬結果は未見)+主評価モデル固定+単発応答ポリシーを追加。v1.2.0でsupport_metric_definition(in_distribution_support/similar_past_case_count、結果ラベル不使用)+data_availability_audit(T-10/T-20/compute_bets由来項目の可用性境界)を追加、Stage B評価開始前に再固定。",
-  "spec_version": "1.2.0",
+  "_comment": "EXP06 Jev意思決定層・適合性検証。2026-09-20固定、Stage B評価開始前にコミット済み。質問文・選択肢・統合式は結果を見て変更しない(spec §11の中止条件参照)。v1.1.0でAPI適合修正(api_conformance_amendment参照、競馬結果は未見)+主評価モデル固定+単発応答ポリシーを追加。v1.2.0でsupport_metric_definition(in_distribution_support/similar_past_case_count、結果ラベル不使用)+data_availability_audit(T-10/T-20/compute_bets由来項目の可用性境界)を追加、Stage B評価開始前に再固定。v1.3.0でstate_schema_v3_amendment(unknown_category_rate=0埋めの誤りを訂正しavailability=falseで完全省略、2023年をdevelopment役割としてJev問い合わせ対象に追加、旧schema取得済み6,013件をquarantine_20260920_old_schemaへ隔離)を追加。この訂正はJev応答内容・競走結果を一切見ずに行った。",
+  "spec_version": "1.3.0",
   "frozen_at": "2026-09-20",
   "absolute_conditions": [
     "EXP01-05およびEXP05-Fを変更しない",
@@ -38,7 +38,8 @@
     "distance_input_fields": ["m1_top_prob", "m3_top_prob", "m4_top_prob", "entropy_m1", "entropy_m3",
       "entropy_m4", "model_rank_disagreement", "model_prob_variance", "market_prob", "market_entropy",
       "ai_market_divergence", "field_size", "venue", "surface", "distance_band", "class_band",
-      "popularity_band", "feature_missing_rate", "unknown_category_rate"],
+      "popularity_band", "feature_missing_rate"],
+    "distance_input_fields_note": "2026-09-20夜、state_schema_v3でunknown_category_rateを除外した(0埋めが不適切と判明したため、known_limitation_unknown_category_rate参照)。",
     "distance_input_excludes_self": "in_distribution_support/similar_past_case_count自身は距離入力に含めない",
     "transform": {
       "continuous": "2023年のmedian/IQRでrobust standardization",
@@ -59,7 +60,7 @@
     "jev_value_test_requirement": "Jevの価値判定では、上記support指標そのものを必ず対照説明変数へ入れる。Jevが単にsupport値を読み替えただけなら、Jev固有価値なしとする。",
     "implementation": "analysis/mcond/exp06_jev_decision_dev/ood_support.py + historical_state.py",
     "empirical_sanity_check_2026_09_20": "2023年でfitし2024/2025年をscoreした結果、in_distribution_supportの分布が概ね一様(mean≈0.50, 2024: mean=0.503 std=0.291, 2025: mean=0.496 std=0.287)であることを確認した。これは2024/2025が2023と同じ母集団から生成されていれば理論的に期待される挙動であり、パイプラインが正しく機能していることの傍証とする(結果ラベルは一切参照していない、race-state vectorの分布のみに基づく検査)。",
-    "known_limitation_unknown_category_rate": "歴史データセット(F_serveのone-hot列)からは真の未知カテゴリ率を再構成できないと判断し、この特徴は歴史評価では一律0(算出不可)とする。当初「場所」one-hotグループ(9列)を根拠に計算したところ実データで平均10.8%が「不明」になったが、これはこの9列に含まれない中京競馬場(JRA10場中の1場)のn-1ダミー参照カテゴリであり、真の未知カテゴリではなかった(2026-09-20実データで確認)。他のone-hotグループも同様の懸念があり、根拠のない代理値は使わない方針とした。"
+    "known_limitation_unknown_category_rate": "【2026-09-20夜、state_schema_v3で訂正】歴史データセット(F_serveのone-hot列)からは真の未知カテゴリ率を再構成できないと判明した(当初「場所」one-hotグループ9列を根拠に計算したところ実データで平均10.8%が「不明」になったが、これはこの9列に含まれない中京競馬場のn-1ダミー参照カテゴリであり真の未知カテゴリではなかった、2026-09-20実データで確認)。当初この特徴を一律0(算出不可の代用)としていたが、0は「未知カテゴリが存在しない」という有効な観測値であり算出不能の代用には不適切と判断した。state_schema_v3では unknown_category_rate をstateから完全に省略し、`availability.unknown_category_rate=false` で明示する(null/0いずれでも埋めない)。distance_input_fieldsからも除外した。この訂正はJev応答の内容や競走結果を一切見ずに行った(state_schema_v2で取得済みの6,013件はquarantine_20260920_old_schemaへ隔離、削除はしていないが新評価には一切使わない)。"
   },
   "data_availability_audit": {
     "amended_at": "2026-09-20 (Stage B評価開始前のデータ可用性監査、api_conformance_amendmentと同種の記録)",
@@ -75,6 +76,30 @@
     },
     "primary_gate_question_scope": "歴史Stage Bの主検定対象はQ1(evidence_consistency)/Q2(out_of_distribution_risk)/Q4(trust_source)/Q5(participation)の4問。Q3(market_price_risk)とQ6(ticket_policy)は応答を保存するが、入力不足(odds_trajectory/ticket_candidatesがavailability=false)のため主Gate・利益評価には使わない。",
     "read_only_production_reference_for_forward_shadow": "将来のEXP06 forward shadowでは既に保存されたT-20/T-10・買い目成果物をread-onlyで参照してよい。ただしcompute_bets.pyをEXP06から実行しない、productionモジュールをimportして副作用を起こさない、本番ファイルを書き換えない、既存の保存済みJSON/CSVだけを読む、EXP06の失敗が本番処理へ伝播しない、読めない場合はavailability=falseとしJev処理をスキップ可能にする、という条件を満たすこと。"
+  },
+  "state_schema_v3_amendment": {
+    "amended_at": "2026-09-20夜 (state_schema_v2実行を一部完了・中断した後、結果閲覧前のデータ定義修正)",
+    "trigger": "ユーザー指摘: unknown_category_rate=0は「未知カテゴリが存在しない」という有効な観測値であり、算出不能フィールドの代用値としては不適切だった。",
+    "background_run_stopped": "state_schema_v2でバックグラウンド実行中だった主評価(2024-2025)を、6,013/6,908件完了した時点(感度分析フェーズ未着手)で安全に停止した。",
+    "quarantine": {
+      "location": "analysis/mcond/exp06_jev_decision_dev/out/quarantine_20260920_old_schema/",
+      "action": "削除せず隔離のみ。MANIFEST.jsonに件数・実消費トークン・費用を記録。",
+      "n_responses": 6013, "n_failed": 0,
+      "actual_input_tokens_spent": 8767518, "actual_output_tokens_spent": 1374767,
+      "estimated_cost_usd": 0.3682,
+      "reuse_policy": "新評価(state_schema_v3)には一切使わない。prompt_schema_hashとstate内容の両方が変わったため、jev_client.compute_input_hashは自動的に別キーになり、正常キャッシュとしてhitすることもない。旧応答の内容や競走結果を見て質問文・Gate定義を変更していない。"
+    },
+    "changes": [
+      "unknown_category_rateをstateから完全に省略し、availability.unknown_category_rate=falseで明示する(null/0で埋めない)",
+      "unknown_category_rateをood_support.CONTINUOUS_COLS(distance入力)からも除外し、SupportModelを2023年で再fitした",
+      "2024/2025年のsupport分布を再監査した(下記re_audit参照)",
+      "prompt_schema_hashをexp06_v2_20260920→exp06_v3_20260920へ更新",
+      "2023年もJev問い合わせ対象に追加した(role=development_2023として2024-2025のprimary_2024_2025とは物理的に別ログファイルへ保存、主成績には混ぜない)"
+    ],
+    "re_audit_2024_2025_support_distribution": "unknown_category_rate除外後にSupportModelを2023年で再fitし2024/2025年をscoreした結果、in_distribution_supportの分布は訂正前とほぼ同一だった(訂正前: 2024 mean=0.503 std=0.291, 2025 mean=0.496 std=0.287)。これはunknown_category_rateが訂正前の全期間で一律0の定数列であり、robust standardization後も分散0のためPCAへの寄与が実質無かったことによる(理論的に予想される結果、実データでも確認)。",
+    "budget_accounting": "20,000,000 input tokensの安全上限は、quarantine済みのstate_schema_v2実消費分(8,767,518 input tokens)と、state_schema_v3での新規実行分を合算した実消費量に対して適用する(旧schemaの支出も無かったことにはしない)。",
+    "no_results_seen_before_this_amendment": true,
+    "no_questions_or_gates_changed": true
   },
   "state_fields": [
     "anon_race_id", "venue_code", "surface", "distance_band", "class_band", "field_size",

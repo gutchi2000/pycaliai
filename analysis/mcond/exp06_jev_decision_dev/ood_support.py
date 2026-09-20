@@ -49,12 +49,17 @@ PCA_VARIANCE_TARGET = 0.95
 RADIUS_PERCENTILE = 95.0
 UNK_TOKEN = "__UNK__"
 
+# 2026-09-20夜、ユーザー指摘により unknown_category_rate をここから除外した。
+# 歴史データセットからは真の未知カテゴリ率を再構成できないため0で埋めていたが、
+# 0は「未知カテゴリが存在しない」という有効な観測値であり、再構成不能の代用には
+# 不適切だった(availability=falseとして完全に省略するのが正しい、CONTINUOUS_COLSの
+# 対象=distance入力からも除外する)。詳細はstate_schema_v3のspec.json amendment参照。
 CONTINUOUS_COLS = [
     "m1_top_prob", "m3_top_prob", "m4_top_prob",
     "entropy_m1", "entropy_m3", "entropy_m4",
     "model_rank_disagreement", "model_prob_variance",
     "market_prob", "market_entropy", "ai_market_divergence",
-    "field_size", "feature_missing_rate", "unknown_category_rate",
+    "field_size", "feature_missing_rate",
 ]
 CATEGORICAL_COLS = ["venue", "surface", "distance_band", "class_band", "popularity_band"]
 
@@ -69,6 +74,7 @@ class SupportModel:
     pca_components_: np.ndarray | None = None
     n_pca_dims_: int = 0
     ref_pca_: np.ndarray | None = None  # 2023参照集合のPCA空間座標
+    ref_index_: object = None  # ref_pca_の各行に対応するインデックス(rid16等)
     d20_ref_: np.ndarray | None = None
     ecdf_sorted_: np.ndarray | None = None  # d20_ref_をソートしたもの(ECDF評価用)
     similar_radius_: float = 0.0
@@ -135,6 +141,7 @@ class SupportModel:
 
         ref_pca = (Z - self.pca_mean_) @ self.pca_components_.T
         self.ref_pca_ = ref_pca
+        self.ref_index_ = df_2023.index
         self.n_reference_ = ref_pca.shape[0]
 
         # d20_ref: 2023年内のleave-one-out 20番目近傍距離
@@ -177,6 +184,24 @@ class SupportModel:
             "similar_past_case_count": similar_past_case_count,
             "d20_query": d20_query,
         }, index=df_query.index)
+
+    def score_reference_self(self) -> pd.DataFrame:
+        """2023年参照集合自身をスコアする専用メソッド(2026-09-20夜追加、ユーザー指定で
+        2023年もJev問い合わせ対象に含めることになったため)。score()を2023年自身に
+        適用すると各点が「自分自身」を参照集合の中に見つけてしまい距離0=support高すぎに
+        水増しされる(self-match)。fit()時に既にleave-one-outで計算済みのd20_ref_を
+        再利用し、similar_past_case_countも自分自身を除いてカウントする。"""
+        in_distribution_support = np.clip(1.0 - self._ecdf(self.d20_ref_), 0.0, 1.0)
+        nn = NearestNeighbors(n_neighbors=min(K_NEIGHBORS + 1, self.ref_pca_.shape[0]), metric="euclidean")
+        nn.fit(self.ref_pca_)
+        counts_incl_self = nn.radius_neighbors(self.ref_pca_, radius=self.similar_radius_,
+                                                return_distance=False)
+        similar_past_case_count = np.array([max(len(c) - 1, 0) for c in counts_incl_self], dtype=int)
+        return pd.DataFrame({
+            "in_distribution_support": in_distribution_support,
+            "similar_past_case_count": similar_past_case_count,
+            "d20_query": self.d20_ref_,
+        }, index=self.ref_index_)
 
     def to_meta_dict(self) -> dict:
         """spec amendment / 監査用のメタデータ(パラメータの値そのものではなく形状・統計のみ)。"""
