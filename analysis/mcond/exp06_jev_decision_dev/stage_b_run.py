@@ -28,6 +28,7 @@ out/stage_b_race_id_map.json にローカル保存のみ(Jevには送らない)�
 from __future__ import annotations
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -49,7 +50,10 @@ DEVELOPMENT_LOG_PATH = HERE / "out" / "stage_b_development_2023_progress.jsonl"
 PRIMARY_LOG_PATH = HERE / "out" / "stage_b_primary_2024_2025_progress.jsonl"
 SENSITIVITY_LOG_PATH = HERE / "out" / "stage_b_sensitivity_results.jsonl"
 QUARANTINE_DIR = HERE / "out" / "quarantine_20260920_old_schema"
-MAX_INPUT_TOKENS_CAP = 20_000_000
+# 2026-09-20夜、budget_amendment_20260920(spec.json v1.3.1)によりcorrected design
+# (2023 development + 2024/2025 primary + sensitivity 600、削減なし)を完遂するため
+# 20M→25Mへ引き上げ。quarantine済みstate_schema_v2実消費分を含む累積へ適用する。
+MAX_INPUT_TOKENS_CAP = 25_000_000
 LOG_EVERY = 100
 
 # data_availability_audit(spec.json)により2023-2025で取得できないフィールド。
@@ -71,8 +75,13 @@ def _load_race_id_map() -> dict:
 
 
 def _save_race_id_map(m: dict) -> None:
+    """atomic checkpoint (2026-09-20夜、ユーザー指定「100件ごとにatomic checkpoint」):
+    一時ファイルへ書いてからos.replaceで置き換える(書き込み途中でのプロセス中断でも
+    既存ファイルを壊さない)。"""
     RACE_ID_MAP_PATH.parent.mkdir(parents=True, exist_ok=True)
-    RACE_ID_MAP_PATH.write_text(json.dumps(m, ensure_ascii=False, indent=1), encoding="utf-8")
+    tmp = RACE_ID_MAP_PATH.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(m, ensure_ascii=False, indent=1), encoding="utf-8")
+    os.replace(tmp, RACE_ID_MAP_PATH)
 
 
 def _anon_id_for(rid16: str, race_id_map: dict, reverse_map: dict) -> str:

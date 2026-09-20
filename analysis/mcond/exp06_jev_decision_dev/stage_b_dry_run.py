@@ -42,7 +42,8 @@ STAGE_A_INPUT_TOKENS_PER_RACE = 1281
 STAGE_A_OUTPUT_TOKENS_PER_RACE = 226
 SENSITIVITY_FIXED_RACES = 200
 SENSITIVITY_REPEATS = 3
-MAX_INPUT_TOKENS_CAP = 20_000_000
+# 2026-09-20夜、budget_amendment_20260920(spec.json v1.3.1)により20M→25Mへ引き上げ済み。
+MAX_INPUT_TOKENS_CAP = SBR.MAX_INPUT_TOKENS_CAP
 ASSUMED_PRICE_PER_M_INPUT_TOKENS_USD = 0.042  # ユーザー提示の現行価格、実行時に公式値を再確認すること
 
 
@@ -100,11 +101,13 @@ def main() -> dict:
         "safety_cap_max_input_tokens": MAX_INPUT_TOKENS_CAP,
         "within_token_cap": cumulative_input_tokens_if_run <= MAX_INPUT_TOKENS_CAP,
         "decision": (
-            "PROCEED: corrected run stays within the 20M cumulative input-token cap."
+            f"PROCEED: corrected run stays within the {MAX_INPUT_TOKENS_CAP:,} cumulative "
+            "input-token cap."
             if cumulative_input_tokens_if_run <= MAX_INPUT_TOKENS_CAP else
             "DO NOT EXECUTE: cumulative input tokens (quarantined + projected new) would "
-            "exceed the 20M cap. Report old call count / actual tokens spent / corrected "
-            "estimate to the user instead of running (per explicit user branching instruction)."
+            f"exceed the {MAX_INPUT_TOKENS_CAP:,} cap. Report old call count / actual tokens "
+            "spent / corrected estimate to the user instead of running (per explicit user "
+            "branching instruction)."
         ),
         "estimated_new_cost_usd_at_assumed_price": round(est_new_cost_usd, 4),
         "quarantined_actual_cost_usd": 0.3682,
