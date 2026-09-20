@@ -126,15 +126,40 @@
   {"id": "P7", "name": "NULL_PLACE", "desc": "◎複勝100円均等、システム全体の外部基準"}
  ],
 
+ "primary_comparison_amendment_20260920": {
+  "amended_at": "2026-09-20夜(2024-2025年の結果・ROI開封前)",
+  "trigger": "P2 CURRENT(現行topdown)の2024-2025年網羅的配信記録が存在しないと判明。単発サンプル(reports/bets_2024010606010101.csv、1レースのみ)のみで、それ以外の6,907レースについて『その時点のtopdownが実際に何を賭けたか』を示すアーカイブがない。",
+  "p2_proxy_feasibility_assessment": {
+   "attempted": true,
+   "verdict": "実現不可能と判断、構築しない",
+   "reason": "compute_bets.pyのcompute_race_bets()はrace_meta/race_confidence/buy_judgment/horses(印付け済み)というexport_weekly_marks.py由来のbundle構造を要求し、かつlive_dir経由のT-10ライブオッズを鮮度検証(max_age_min=20分)付きで必須とする設計(見つからなければfail-safe見送り)。historical_pre_snapshotのような静的な過去データでは、このlive freshness gateを含む一連のパイプライン(印生成・chaos gate・harville λ・pair_probs・適応トリガミ床)を丸ごと再実装しない限り入力を構成できず、単発サンプル1件だけでのbit-for-bit検証では正しさを担保できない。無理に近似すると『現行topdownの複製』を偽って主張するリスクが高いため、構築を見送った。"
+  },
+  "decision": "正式な主比較を **P6 ROBUST_CVAR vs P1 FLAT のみ** に限定する。P2 CURRENTは比較対象から外す(将来、前向きshadowで実配信のtopdown候補・配分を同時保存できるようになった時点で正式比較として再開する、spec.json 'future_p2_comparison_design'参照)。",
+  "unchanged": "P1 FLAT、P6 ROBUST_CVAR、候補生成方式、予算1,000円、alpha=0.10、lambda=1.0、不確実性集合(σ=0.2513、draws=200、seed=20260920)はいずれも変更していない。この変更は2024-2025年の結果・ROIを一切見る前に行った。"
+ },
  "primary_comparisons_fixed_in_advance": [
-  "P6 ROBUST_CVAR vs P1 FLAT",
-  "P6 ROBUST_CVAR vs P2 CURRENT"
+  "P6 ROBUST_CVAR vs P1 FLAT"
  ],
+ "primary_comparison_note": "唯一の正式Gate判定対象。同一レース・同一候補・同一総投資額1,000円・同一historical_pre_snapshot・同一較正済み確率・同一予測確定オッズで比較する。P1に勝っても『現行topdownに勝った』とは表現しない(primary_comparison_amendment_20260920参照)。",
  "secondary_comparisons": [
   "P6 ROBUST_CVAR vs P5 CVAR",
-  "P6 ROBUST_CVAR vs P4 EV"
+  "P6 ROBUST_CVAR vs P4 EV",
+  "P6 ROBUST_CVAR vs P2_PROXY_CURRENT(構築できた場合のみ、副次・探索評価。正式GateのPASS根拠に使わない)"
  ],
- "multiple_comparison_policy": "主比較は上記2つに事前固定。複数のlambda/alpha/不確実性半径を試す場合は2023年だけで選定し、試行数を全て記録する。2024-2025年で最良設定を選ばない",
+ "p2_proxy_current": {
+  "status": "構築しない(実現不可能と判断、上記amendment参照)",
+  "would_require_if_attempted": ["compute_bets.pyを変更しない", "production moduleを実行して副作用を起こさない",
+   "結果・払戻を見て式を調整しない", "使用した定数・環境変数・候補順・丸め規則をmanifestへ保存",
+   "既存の単発サンプル全件でbit-for-bit比較", "一致しない項目を記録",
+   "『現行topdown』ではなく『現在コードから再構成した近似』と表記"],
+  "label_if_ever_built": "P2_PROXY_CURRENT(現行topdownではない)"
+ },
+ "future_p2_comparison_design": {
+  "purpose": "P6がP1を通過した場合のみ、前向きshadowで正式なP6 vs P2比較の基盤を作る",
+  "requires_saving_simultaneously": ["実際のcurrent topdown候補", "実際のcurrent topdown配分",
+   "P1 FLAT", "P6 ROBUST_CVAR", "判断時点オッズ", "モデル・設定ハッシュ", "実際の払戻"]
+ },
+ "multiple_comparison_policy": "主比較(P6 vs P1)は上記1つに事前固定。複数のlambda/alpha/不確実性半径を試す場合は2023年だけで選定し、試行数を全て記録する。2024-2025年で最良設定を選ばない",
 
  "evaluation_stages": {
   "stage2A": {
@@ -212,10 +237,11 @@
     "判断時点オッズ", "決済処理一致", "共同分布整合", "合成テスト全通過"],
    "status": "監査完了。PRIOR_ART_AUDIT.md/DATA_AUDIT.md/JOINT_DISTRIBUTION_AUDIT.md参照。Stage1合成テスト完了後に最終PASS判定"},
   {"id": "Gate1", "name": "配分固有価値",
-   "definition": "同一参加・同一候補・同一総投資額で、P6がP1またはP2を改善する",
+   "definition": "同一参加・同一候補・同一総投資額で、P6がP1を改善する(2026-09-20夜amendmentによりP2は正式Gateの判定対象から除外、primary_comparison_amendment_20260920参照)",
    "conditions": ["2024・2025で差の方向が一致", "全期間paired差の95%CI下限が0以上",
     "最大ドローダウンが悪化しない", "利益が少数レースだけに集中しない"],
-   "on_fail": "Stage 2Bへ進まない"},
+   "on_fail": "Stage 2Bへ進まない",
+   "labeling_rule": "P1に勝っても『現行topdownより優れている』『本番配分を置き換えられる』『実配信replayで勝った』とは表現しない。表現は『同一候補・同一予算で均等配分より改善した』に限定する。"},
   {"id": "Gate2", "name": "ロバスト化固有価値",
    "comparisons": ["P6 ROBUST_CVAR vs P5 CVAR", "P6 ROBUST_CVAR vs P4 EV"],
    "question": "点推定最適化ではなく不確実性を入れること自体に価値があるか"},

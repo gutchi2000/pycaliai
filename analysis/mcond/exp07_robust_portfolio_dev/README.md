@@ -27,7 +27,8 @@ EXP01-06・EXP05-Fを変更しない。本番の印・買い目・資金配分�
 | 決済ロジック（evaluate.py） | **完了** | `evaluate.py`, `test_evaluate.py`（16テスト） — 公式確定払戻テーブルをそのまま使うfail-closed設計。同着・複勝レンジは独自計算せず公式値をそのまま通す |
 | Stage 1合成データ試験（§8） | **完了、15/15 PASS** | `test_synthetic.py` — 決済ロジック実装により項目15（返還馬券）を有効化、全15項目通過。Stage 2A予算完全消化探索(`full_spend_search`)のテストも追加 |
 | Stage 2Aドライラン | **完了、異常なし** | `stage2a_dry_run.py`, `test_stage2a_dry_run.py`（6テスト） — 2024/2025の結果列(fin/top3/win/fpay)を一切読まずに全パラメータを固定(候補生成・予算1,000円・露出上限600円・λ=1.0・摂動draw数200・seed20260920等)。レース数2024=3,453/2025=3,455、n_field5-18(3頭未満ゼロ)を確認、グリッド規模3,003<上限200,000 |
-| Stage 2A本実行（実データ・配分のみ比較） | **未着手** | 次の作業。予算完全消化(`sum(w_j)=B`)を主比較の必須制約とする |
+| P2_PROXY構築可否の検証 | **完了、構築断念** | `spec.json` `primary_comparison_amendment_20260920` — P2(現行topdown)の2024-2025年網羅的配信記録が存在しないと判明(単発サンプル1件のみ)。`compute_bets.py`はexport_weekly_marks.py由来のbundle構造とlive_dir経由T-10ライブオッズの鮮度検証(20分)を必須とする設計で、historical_pre_snapshotへの再実装は単発1サンプルでは正しさを担保できないため構築を断念。**正式主比較をP6 ROBUST_CVAR vs P1 FLATのみに限定**(結果開封前にamendmentとして記録・コミット) |
+| Stage 2A本実行（実データ・配分のみ比較） | **未着手** | 次の作業。予算完全消化(`sum(w_j)=B`)を主比較の必須制約とする。正式Gate判定はP6 vs P1のみ |
 | Stage 2B（選別+配分） | **未着手** | Stage 2A PASS後のみ |
 | Gate 0-5 | **Gate 0/J0/J1判定済み(J1は単勝・複勝PASS、馬連FAIL)、Gate 1-5は未判定** | Stage 2A/2B完了後 |
 
@@ -99,3 +100,10 @@ analysis/mcond/exp07_robust_portfolio_dev/
    (`optimise_portfolio`)はbudget以下の任意額を許容しno-betを積極的に選ぶ設計のため転用せず、
    `policies.full_spend_search()`を独立実装した。ソルバー異常時はno-betで黙って逃げず
    `Stage2ABudgetAnomaly`として異常件数に計上する。
+7. **【2026-09-20夜】正式な主比較はP6 ROBUST_CVAR vs P1 FLATのみに限定**。P2(現行topdown)
+   の2024-2025年網羅的配信記録が存在せず、`compute_bets.py`の再実装によるP2_PROXY構築も
+   単発サンプル1件では正しさを担保できないため断念した(`spec.json`
+   `primary_comparison_amendment_20260920`参照)。**P1に勝っても「現行topdownより優れている」
+   「本番配分を置き換えられる」「実配信replayで勝った」とは表現しない**。表現は「同一候補・
+   同一予算で均等配分より改善した」に限定する。前向きshadowで実際のtopdown候補・配分を
+   同時保存できるようになった時点で、正式なP6 vs P2比較を再開する設計とする。
