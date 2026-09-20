@@ -28,9 +28,9 @@ EXP01-06・EXP05-Fを変更しない。本番の印・買い目・資金配分�
 | Stage 1合成データ試験（§8） | **完了、15/15 PASS** | `test_synthetic.py` — 決済ロジック実装により項目15（返還馬券）を有効化、全15項目通過。Stage 2A予算完全消化探索(`full_spend_search`)のテストも追加 |
 | Stage 2Aドライラン | **完了、異常なし** | `stage2a_dry_run.py`, `test_stage2a_dry_run.py`（6テスト） — 2024/2025の結果列(fin/top3/win/fpay)を一切読まずに全パラメータを固定(候補生成・予算1,000円・露出上限600円・λ=1.0・摂動draw数200・seed20260920等)。レース数2024=3,453/2025=3,455、n_field5-18(3頭未満ゼロ)を確認、グリッド規模3,003<上限200,000 |
 | P2_PROXY構築可否の検証 | **完了、構築断念** | `spec.json` `primary_comparison_amendment_20260920` — P2(現行topdown)の2024-2025年網羅的配信記録が存在しないと判明(単発サンプル1件のみ)。`compute_bets.py`はexport_weekly_marks.py由来のbundle構造とlive_dir経由T-10ライブオッズの鮮度検証(20分)を必須とする設計で、historical_pre_snapshotへの再実装は単発1サンプルでは正しさを担保できないため構築を断念。**正式主比較をP6 ROBUST_CVAR vs P1 FLATのみに限定**(結果開封前にamendmentとして記録・コミット) |
-| Stage 2A本実行（実データ・配分のみ比較） | **未着手** | 次の作業。予算完全消化(`sum(w_j)=B`)を主比較の必須制約とする。正式Gate判定はP6 vs P1のみ |
-| Stage 2B（選別+配分） | **未着手** | Stage 2A PASS後のみ |
-| Gate 0-5 | **Gate 0/J0/J1判定済み(J1は単勝・複勝PASS、馬連FAIL)、Gate 1-5は未判定** | Stage 2A/2B完了後 |
+| Stage 2A本実行（実データ・配分のみ比較） | **完了、Gate1=FAIL** | `stage2a_engine.py`（高速ベクトル化エンジン）, `stage2a_run.py`（実行ドライバ）, `test_stage2a_engine.py`（8テスト） — 2024+2025年全6,908レース(異常0件・露出違反0件)。**2024年は改善(+15.64円/レース)だが2025年で反転(-5.88円/レース)、全期間meeting-day単位bootstrap 95%CIは[-17.5,+28.5]円で0を跨ぐ**。P6は上位10%レースが黒字合計の87.1%を占め(P1は70.5%)、少数の大穴レースへの依存が示唆される。詳細は`REPORT.md`、集計コードは`gate1_report.py`/`gate1_popularity_breakdown.py` |
+| Stage 2B（選別+配分） | **着手せず**（Gate1 FAILのため） | — |
+| Gate 0-5 | **Gate 0/J0/J1/Gate1判定済み。Gate1=FAILのためGate2-5は未実施** | `REPORT.md` |
 
 ## ファイル構成
 
@@ -55,10 +55,14 @@ analysis/mcond/exp07_robust_portfolio_dev/
 ├── test_oracle.py                Solverの全列挙oracleテスト(独立参照実装、8件)
 ├── stage2a_dry_run.py            Stage 2Aドライラン(結果列を読まずに全パラメータ固定)
 ├── test_stage2a_dry_run.py       ドライランの単体テスト(6件)
+├── stage2a_engine.py             Stage 2A本実行用の高速ベクトル化エンジン(build_scenarios/policiesと数値一致検証済み)
+├── stage2a_run.py                Stage 2A本実行ドライバ(候補生成→オッズ取得→P1/P6配分→決済)
+├── test_stage2a_engine.py        高速エンジンの正しさ検証(8件)
+├── gate1_report.py               Gate1統計集計(仕様書12項目順)
+├── gate1_popularity_breakdown.py 人気帯別内訳の軽量補足集計(P6探索を再実行せず候補選定のみ再計算)
+├── REPORT.md                     最終報告(仕様書§17/§18、Gate1=FAIL)
 └── out/                          再生成可能な成果物置き場(Git非登録)
 ```
-
-`REPORT.md`（最終報告、仕様書§17/§18）はStage 2A/2B完了後に追加する。
 
 ## 既知の制約・設計判断（Stage 0〜Gate J1で判明、対応方針込み）
 
@@ -107,3 +111,9 @@ analysis/mcond/exp07_robust_portfolio_dev/
    「本番配分を置き換えられる」「実配信replayで勝った」とは表現しない**。表現は「同一候補・
    同一予算で均等配分より改善した」に限定する。前向きshadowで実際のtopdown候補・配分を
    同時保存できるようになった時点で、正式なP6 vs P2比較を再開する設計とする。
+8. **Stage 2A本実行の結果、Gate1=FAILで終了**。2024年は改善(+15.64円/レース)だが2025年で
+   反転(-5.88円/レース)、meeting-day単位bootstrap 95%CI=[-17.5,+28.5]円が0を跨ぐため方向・
+   統計的有意性ともに支持されない。さらにP6の利益は上位10%レースに87.1%集中(P1は70.5%)し
+   ており、2024年のプラスが少数の大穴依存である可能性が高い(REPORT.md§8参照)。この結果、
+   券種別内訳(§9b、P6側)は追加取得しなかった(約50分の再計算コストに対しGate1判定を
+   左右しない診断情報のため)。詳細・13問結論は`REPORT.md`参照。
