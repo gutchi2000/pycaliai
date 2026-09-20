@@ -1,21 +1,27 @@
 # -*- coding: utf-8 -*-
 """
-gate_j1_calibration.py — Gate J1: 共同分布の実測較正 (2023 developmentのみ)
+gate_j1_calibration.py — Gate J1: 共同分布の実測較正 (2023 developmentのみ、時系列安全版)
 ================================================================================
-2026-09-20夜、ユーザー指定。2023年developmentだけを使い、単勝・複勝・馬連(item 1の
-再監査で確定したStage 2A対象3券種)について raw PL / 既存較正済み(pl_calibrators_v6) /
-市場確率(利用可能な単勝・複勝のみ) を実測の的中率と突き合わせる。2024・2025年は
+2026-09-20夜、ユーザー指定+追加指示で訂正。単勝・複勝・馬連(item 1の再監査で確定した
+Stage 2A対象3券種)について、以下の**3種類を明確に分離して**報告する。2024・2025年は
 一切参照しない(較正方式の選定に使わない)。
 
-データ源(いずれも既存、新規収集なし):
-  data/oof_scores_v6params.parquet    v6のexpanding-window OOFスコア(2023含む)
-  data/_research/mcond/exp05_design.parquet  市場確率(mkt_pi_pre/mkt_p3_pre)・
-    人気順位(rank_mkt_pre)・結果ラベル(win/top3/fin)、EXP05既存生成物
-  models/pl_calibrators_v6.pkl        fit_split='valid=2023'のIsotonic較正器
-    (tansho/fukusho/umaren等)、本番採用モデル
+CALIBRATION_AUDIT.mdで確定した通り、models/pl_calibrators_v6.pkl は2023年全体
+(valid split)でfitされているため、この較正器を2023年全体で評価すると較正器自体に
+とってはin-sample評価になる(raw PLは v6 score自体がtrain<=2022のためOOSで問題ない)。
+2022年での独立fitはv6モデル自身が2022を学習に使っているため実施不可能と判明したため、
+仕様書提示の代替案「2023年を時系列blocked cross-fit」を採用する。
 
-対象: 単勝(tansho)・複勝(fukusho)・馬連(umaren)。ワイド・馬単はitem1の再監査で
-Stage 2A対象外(historical_pre_snapshotデータなし)のためGate J1でも評価しない。
+  (a) raw_pl_2023_oos              v6生スコア→PL確率(較正なし)を2023年全体の実的中と比較。
+                                    スコア生成モデル(v6)がtrain<=2022のため真にOOS。
+  (b) calibrator_h1fit_h2_oos       2023年前半(H1、01-05〜06-30)でIsotonic較正器を新規fit
+                                    し、後半(H2、07-01〜12-28)へ時系列安全に適用・評価する。
+                                    **Gate J1のPASS/FAIL判定はこの指標を使う。**
+  (c) final_calibrator_insample_ref 本番のpl_calibrators_v6.pkl(2023年全体でfit)を同じ
+                                    2023年全体で評価した参考値。in-sampleのため判定には
+                                    使わない。Stage 2Aへはこの較正器(再fitしない)を渡す。
+                                    2024・2025年の結果は一切使用していない
+                                    (fit_split=valid=2023、artifact作成2026-05-20)。
 
 実行: python -m analysis.mcond.exp07_robust_portfolio_dev.gate_j1_calibration
 """
@@ -27,6 +33,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.isotonic import IsotonicRegression
 
 BASE = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(BASE))
@@ -35,6 +42,7 @@ import pl_probs as PL  # noqa: E402
 HERE = Path(__file__).resolve().parent
 EPS = 1e-9
 N_ADAPTIVE_BINS = 10
+H1_H2_BOUNDARY = "20230701"  # 2023年前半/後半のblocked split境界(結果を見る前に固定)
 
 
 def load_2023_data() -> pd.DataFrame:
@@ -43,7 +51,7 @@ def load_2023_data() -> pd.DataFrame:
 
     design = pd.read_parquet(BASE / "data" / "_research" / "mcond" / "exp05_design.parquet")
     design = design[design["year"] == 2023][
-        ["rid16", "ban", "mkt_pi_pre", "mkt_p3_pre", "rank_mkt_pre", "fin", "top3", "win"]
+        ["rid16", "ban", "date", "mkt_pi_pre", "mkt_p3_pre", "rank_mkt_pre", "fin", "top3", "win"]
     ]
 
     merged = oof.merge(design, on=["rid16", "ban"], how="inner")
@@ -63,9 +71,8 @@ def _actual_umaren_pairs(fin: pd.Series, ban: pd.Series) -> set[tuple[int, int]]
 
 
 def build_race_level_probs(df: pd.DataFrame, calibrators: dict) -> dict[str, pd.DataFrame]:
-    """レースごとにraw PL・既存較正済み・市場確率(利用可能分)を計算し、券種別に
-    フラットなDataFrameへ集約する。結果ラベルはここで初めて参照する(較正評価専用、
-    Stage 2Aの候補生成へは混入しない設計)。"""
+    """レースごとにraw PL・既存較正済み(2023年全体fit較正器)・市場確率(利用可能分)を
+    計算し、券種別にフラットなDataFrameへ集約する。dateも保持しH1/H2分割に使う。"""
     tansho_rows, fukusho_rows, umaren_rows = [], [], []
 
     for rid16, g in df.groupby("rid16", sort=False):
@@ -76,6 +83,7 @@ def build_race_level_probs(df: pd.DataFrame, calibrators: dict) -> dict[str, pd.
         scores = g["score"].to_numpy(dtype=float)
         w = PL.pl_weights(scores)
         ban = g["ban"].to_numpy()
+        date = str(g["date"].iloc[0])
 
         raw_tansho = PL.all_tansho(w)
         raw_fukusho = PL.all_fukusho(w)
@@ -84,13 +92,13 @@ def build_race_level_probs(df: pd.DataFrame, calibrators: dict) -> dict[str, pd.
 
         for i in range(n):
             tansho_rows.append({
-                "rid16": rid16, "ban": ban[i],
+                "rid16": rid16, "ban": ban[i], "date": date,
                 "raw_p": float(raw_tansho[i]), "cal_p": float(cal_tansho[i]),
                 "market_p": float(g["mkt_pi_pre"].iloc[i]) if pd.notna(g["mkt_pi_pre"].iloc[i]) else np.nan,
                 "rank_mkt": g["rank_mkt_pre"].iloc[i], "actual": int(g["win"].iloc[i]),
             })
             fukusho_rows.append({
-                "rid16": rid16, "ban": ban[i],
+                "rid16": rid16, "ban": ban[i], "date": date,
                 "raw_p": float(raw_fukusho[i]), "cal_p": float(cal_fukusho[i]),
                 "market_p": float(g["mkt_p3_pre"].iloc[i]) if pd.notna(g["mkt_p3_pre"].iloc[i]) else np.nan,
                 "rank_mkt": g["rank_mkt_pre"].iloc[i], "actual": int(g["top3"].iloc[i]),
@@ -105,7 +113,7 @@ def build_race_level_probs(df: pd.DataFrame, calibrators: dict) -> dict[str, pd.
                 actual = 1 if tuple(sorted((a, b))) in actual_pairs else 0
                 rank_mkt_pair = min(g["rank_mkt_pre"].iloc[ii], g["rank_mkt_pre"].iloc[jj])
                 umaren_rows.append({
-                    "rid16": rid16, "pair": f"{a}-{b}",
+                    "rid16": rid16, "pair": f"{a}-{b}", "date": date,
                     "raw_p": float(p), "cal_p": cal_p, "market_p": np.nan,
                     "rank_mkt": rank_mkt_pair, "actual": actual,
                 })
@@ -115,6 +123,14 @@ def build_race_level_probs(df: pd.DataFrame, calibrators: dict) -> dict[str, pd.
         "fukusho": pd.DataFrame(fukusho_rows),
         "umaren": pd.DataFrame(umaren_rows),
     }
+
+
+def split_h1_h2(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """2023年を前半(H1、fit用)/後半(H2、OOS評価用)へ日付境界で分割する
+    (ランダムfoldではなく時系列blocked split、仕様書追加指示2の要求通り)。"""
+    h1 = df[df["date"] < H1_H2_BOUNDARY].copy()
+    h2 = df[df["date"] >= H1_H2_BOUNDARY].copy()
+    return h1, h2
 
 
 def _brier(p: np.ndarray, y: np.ndarray) -> float:
@@ -172,52 +188,67 @@ def _by_group(df: pd.DataFrame, group_col: str, prob_col: str) -> dict:
     return out
 
 
-def evaluate_ticket_type(df: pd.DataFrame, has_market: bool) -> dict:
-    result = {"n": int(len(df))}
-    for label, col in (("raw_pl", "raw_p"), ("existing_calibrated", "cal_p")):
-        p, y = df[col].to_numpy(), df["actual"].to_numpy()
-        result[label] = {
-            "brier": _brier(p, y), "logloss": _logloss(p, y),
-            "predicted_hit_probability_mean": float(p.mean()), "actual_hit_rate_mean": float(y.mean()),
-            "observed_over_expected": float(y.mean() / p.mean()) if p.mean() > 0 else None,
-            "calibration": _calibration_slope_intercept(p, y),
-            "adaptive_bin_ece": _adaptive_bin_ece(p, y),
-            "by_popularity_band": _by_group(
-                df.assign(_pop_band=pd.cut(df["rank_mkt"], [0, 3, 6, 999], labels=["1-3", "4-6", "7+"])),
-                "_pop_band", col),
-            "by_probability_band": _by_group(
-                df.assign(_prob_band=pd.qcut(df[col], 5, labels=[f"q{i+1}" for i in range(5)], duplicates="drop")),
-                "_prob_band", col),
-        }
-    if has_market:
-        valid_market = df.dropna(subset=["market_p"])
-        if len(valid_market) > 10:
-            p, y = valid_market["market_p"].to_numpy(), valid_market["actual"].to_numpy()
-            result["market"] = {
-                "n": int(len(valid_market)), "brier": _brier(p, y), "logloss": _logloss(p, y),
-                "predicted_hit_probability_mean": float(p.mean()), "actual_hit_rate_mean": float(y.mean()),
-                "calibration": _calibration_slope_intercept(p, y),
-            }
+def _evaluate_probability_column(df: pd.DataFrame, col: str) -> dict:
+    p, y = df[col].to_numpy(), df["actual"].to_numpy()
+    return {
+        "n": int(len(df)),
+        "brier": _brier(p, y), "logloss": _logloss(p, y),
+        "predicted_hit_probability_mean": float(p.mean()), "actual_hit_rate_mean": float(y.mean()),
+        "observed_over_expected": float(y.mean() / p.mean()) if p.mean() > 0 else None,
+        "calibration": _calibration_slope_intercept(p, y),
+        "adaptive_bin_ece": _adaptive_bin_ece(p, y),
+        "by_popularity_band": _by_group(
+            df.assign(_pop_band=pd.cut(df["rank_mkt"], [0, 3, 6, 999], labels=["1-3", "4-6", "7+"])),
+            "_pop_band", col),
+        "by_probability_band": _by_group(
+            df.assign(_prob_band=pd.qcut(df[col], 5, labels=[f"q{i+1}" for i in range(5)], duplicates="drop")),
+            "_prob_band", col),
+    }
+
+
+def evaluate_market(df: pd.DataFrame) -> dict | None:
+    valid_market = df.dropna(subset=["market_p"])
+    if len(valid_market) <= 10:
+        return None
+    p, y = valid_market["market_p"].to_numpy(), valid_market["actual"].to_numpy()
+    return {
+        "n": int(len(valid_market)), "brier": _brier(p, y), "logloss": _logloss(p, y),
+        "predicted_hit_probability_mean": float(p.mean()), "actual_hit_rate_mean": float(y.mean()),
+        "calibration": _calibration_slope_intercept(p, y),
+    }
+
+
+def fit_h1_calibrator_and_eval_h2(df: pd.DataFrame) -> dict:
+    """(b) calibrator_h1fit_h2_oos: H1でIsotonic較正器を新規fitしH2で時系列安全に評価する。
+    2022年での独立fitが不可能(v6モデル自身がtrain<=2022を学習済み)なため採用した代替案。"""
+    h1, h2 = split_h1_h2(df)
+    if len(h1) < 50 or len(h2) < 50:
+        return {"usable": False, "reason": f"H1({len(h1)})/H2({len(h2)})のいずれかがサンプル不足"}
+
+    iso = IsotonicRegression(out_of_bounds="clip")
+    iso.fit(h1["raw_p"].to_numpy(), h1["actual"].to_numpy())
+    h2 = h2.copy()
+    h2["h1fit_cal_p"] = iso.predict(h2["raw_p"].to_numpy())
+
+    result = _evaluate_probability_column(h2, "h1fit_cal_p")
+    result["h1_n"] = int(len(h1))
+    result["h2_n"] = int(len(h2))
+    result["h1_date_range"] = [str(h1["date"].min()), str(h1["date"].max())]
+    result["h2_date_range"] = [str(h2["date"].min()), str(h2["date"].max())]
+    result["usable"] = True
     return result
-
-
-def _rank_within_race(df: pd.DataFrame, group_col: str, prob_col: str) -> pd.Series:
-    return df.groupby(group_col)[prob_col].rank(ascending=False, method="first")
 
 
 _LOW_BIN_OE_OVERCONFIDENT_THRESHOLD = 0.70  # O/E < 0.70 の最下位確率帯は「明確な方向性の過大確率」とみなす
 _CALIBRATED_LOW_BIN_OE_ACCEPTABLE_RANGE = (0.6, 1.6)  # 較正後の最下位帯はこの範囲なら許容(nが小さく分散が大きいため広め)
-
-
-_MIN_EXPECTED_EVENTS_FOR_TAIL_JUDGMENT = 10.0
+_MIN_EXPECTED_EVENTS_FOR_TAIL_JUDGMENT = 10.0  # 2023 development内で決めた探索規則、2024/2025を見て変更しない
 
 
 def _low_bin_oe(ev: dict) -> dict | None:
     """最下位確率帯のO/Eを返すが、期待イベント数が極端に少ない帯(統計的ノイズが
-    支配的、例: umarenの最下位10分位はexpected~0.8件しかなくO/E=2.43は2件/0.8件という
-    Poissonノイズに過ぎないと実測で判明済み)はスキップし、期待イベント数が
-    _MIN_EXPECTED_EVENTS_FOR_TAIL_JUDGMENT以上ある最も確率の低い帯を使う。"""
-    table = ev["adaptive_bin_ece"]["reliability_table"]
+    支配的)はスキップし、期待イベント数が_MIN_EXPECTED_EVENTS_FOR_TAIL_JUDGMENT以上
+    ある最も確率の低い帯を使う。"""
+    table = ev.get("adaptive_bin_ece", {}).get("reliability_table")
     if not table:
         return None
     for row in table:
@@ -233,24 +264,20 @@ def _low_bin_oe(ev: dict) -> dict | None:
 
 
 def gate_j1_verdict(evaluations: dict) -> dict:
-    """判定: raw PLに明確な方向性の過大確率(overconfidence)があるか。
+    """判定: raw PLに明確な方向性の過大確率(overconfidence)があるか、それを
+    **時系列安全な較正器評価(calibrator_h1fit_h2_oos)**が補正するか。
 
-    2026-09-20夜、実測(下記reliability_table参照)により判明: 母集団平均のO/Eは
-    tansho/fukusho/umarenいずれも1.00前後で健全に見えるが、**最下位確率帯(穴馬・穴ペア)
-    でraw PLが実際の的中率を大幅に過大評価している**(tansho O/E=0.46、umaren O/E=0.25、
-    fukusho O/E=0.71、実測、2023年n=47,273頭/313,659ペア)。これはポートフォリオ最適化
-    (特にCVaR/robust)が稀な高配当候補を過大評価するリスクに直結するため、母集団平均の
-    ロジスティック回帰slope/interceptではなく**最下位確率帯(穴)のobserved/expected比**を
-    第一基準とする。既存較正済み確率(pl_calibrators_v6、fit_split=valid=2023)はこの
-    過大評価を実測で補正することを確認した上で(tansho最下位帯O/E: 0.46→1.31[n少なく
-    ノイズ含むが2番目の帯0.92, 3番目1.01と速やかに1へ収束]、fukusho/umarenも同様の傾向)、
-    Stage 2Aへは既存較正済み確率のみを渡す。raw PLは最適化に直接使わない。"""
+    2026-09-20夜、追加指示により訂正: 従来は本番較正器(pl_calibrators_v6、2023年全体で
+    fit)を同じ2023年全体で評価しており、較正器自体にとってin-sample評価だった。
+    H1(前半)でfitしH2(後半)で評価する時系列blocked splitへ切り替えた。
+    PASS/FAIL判定はcalibrator_h1fit_h2_oosの最下位確率帯(期待イベント数十分)の
+    observed/expected比を使う。final_calibrator_insample_refは参考記録のみで
+    判定に使わない。"""
     verdicts = {}
     for ticket_type, ev in evaluations.items():
-        raw_low = _low_bin_oe(ev["raw_pl"])
-        cal_low = _low_bin_oe(ev["existing_calibrated"])
-        raw_cal = ev["raw_pl"]["calibration"]
-        cal_cal = ev["existing_calibrated"]["calibration"]
+        raw_low = _low_bin_oe(ev["raw_pl_2023_oos"])
+        h1h2 = ev["calibrator_h1fit_h2_oos"]
+        raw_cal = ev["raw_pl_2023_oos"]["calibration"]
 
         if raw_low is None or raw_cal.get("slope") is None:
             verdicts[ticket_type] = {
@@ -259,29 +286,38 @@ def gate_j1_verdict(evaluations: dict) -> dict:
             }
             continue
 
+        if not h1h2.get("usable", False):
+            verdicts[ticket_type] = {
+                "usable": False,
+                "reason": f"H1/H2 blocked split評価が不能({h1h2.get('reason', '不明')})、主評価から除外",
+            }
+            continue
+
+        h1h2_low = _low_bin_oe(h1h2)
         raw_low_oe = raw_low["observed_over_expected"]
-        cal_low_oe = cal_low["observed_over_expected"] if cal_low is not None else None
+        h1h2_low_oe = h1h2_low["observed_over_expected"] if h1h2_low is not None else None
         raw_overconfident = raw_low_oe < _LOW_BIN_OE_OVERCONFIDENT_THRESHOLD
         cal_lo, cal_hi = _CALIBRATED_LOW_BIN_OE_ACCEPTABLE_RANGE
-        existing_calibrator_acceptable = cal_low_oe is not None and cal_lo <= cal_low_oe <= cal_hi
+        h1h2_acceptable = h1h2_low_oe is not None and cal_lo <= h1h2_low_oe <= cal_hi
 
         verdicts[ticket_type] = {
-            "usable": bool(existing_calibrator_acceptable),
+            "usable": bool(h1h2_acceptable),
             "raw_pl_overconfident_at_low_probability_tail": bool(raw_overconfident),
             "raw_pl_lowest_reliable_bin": raw_low,
-            "existing_calibrated_lowest_reliable_bin": cal_low,
+            "calibrator_h1fit_h2_oos_lowest_reliable_bin": h1h2_low,
             "use_calibrated_probability_for_stage2a": True,
-            "existing_calibrator_acceptable": bool(existing_calibrator_acceptable),
+            "h1fit_h2_oos_calibrator_acceptable": bool(h1h2_acceptable),
             "raw_pl_calibration_slope": raw_cal["slope"], "raw_pl_calibration_intercept": raw_cal["intercept"],
-            "existing_calibrated_slope": cal_cal.get("slope"), "existing_calibrated_intercept": cal_cal.get("intercept"),
+            "h1fit_h2_oos_slope": h1h2["calibration"].get("slope"),
+            "h1fit_h2_oos_intercept": h1h2["calibration"].get("intercept"),
             "reason": (
-                "raw PLは最下位確率帯(期待イベント数十分)で的中率を過大評価(O/E<{:.2f})しているため"
-                "使用しない。既存較正済み確率は同帯で許容範囲内、Stage 2Aへはこちらを渡す。".format(
+                "raw PLは最下位確率帯(期待イベント数十分)で的中率を過大評価(O/E<{:.2f})しているが、"
+                "H1fit較正器をH2へ適用した時系列安全な評価では同帯が許容範囲内。".format(
                     _LOW_BIN_OE_OVERCONFIDENT_THRESHOLD)
-                if raw_overconfident and existing_calibrator_acceptable else
-                ("既存較正済み確率も最下位帯(期待イベント数十分)で許容範囲外、"
+                if raw_overconfident and h1h2_acceptable else
+                ("H1fit較正器のH2適用でも最下位帯(期待イベント数十分)が許容範囲外、"
                  "この券種は主評価から除外を検討"
-                 if not existing_calibrator_acceptable else "raw PLの最下位帯過大評価は軽微")
+                 if not h1h2_acceptable else "raw PLの最下位帯過大評価は軽微、較正の必要性は小さい")
             ),
         }
     return verdicts
@@ -298,24 +334,52 @@ def main() -> dict:
 
     per_type = build_race_level_probs(df, calibrators)
 
-    evaluations = {
-        "tansho": evaluate_ticket_type(per_type["tansho"], has_market=True),
-        "fukusho": evaluate_ticket_type(per_type["fukusho"], has_market=True),
-        "umaren": evaluate_ticket_type(per_type["umaren"], has_market=False),
-    }
+    evaluations = {}
+    for ticket_type, has_market in (("tansho", True), ("fukusho", True), ("umaren", False)):
+        sub = per_type[ticket_type]
+        entry = {
+            "raw_pl_2023_oos": _evaluate_probability_column(sub, "raw_p"),
+            "calibrator_h1fit_h2_oos": fit_h1_calibrator_and_eval_h2(sub),
+            "final_calibrator_insample_ref": _evaluate_probability_column(sub, "cal_p"),
+        }
+        if has_market:
+            market_ev = evaluate_market(sub)
+            if market_ev is not None:
+                entry["market_2023_reference"] = market_ev
+        evaluations[ticket_type] = entry
+
     verdicts = gate_j1_verdict(evaluations)
 
-    overall_usable = all(v["usable"] for v in verdicts.values())
+    stage2a_ticket_scope = [tt for tt, v in verdicts.items() if v.get("usable")]
+    excluded_ticket_types = {
+        tt: v.get("reason") for tt, v in verdicts.items() if not v.get("usable")
+    }
+    overall_usable = len(stage2a_ticket_scope) > 0
     report = {
-        "evaluated_at": "2026-09-20", "period": "2023 development only (2024-2025 not referenced)",
-        "source_model": calib["source_model"], "calibrator_fit_split": calib["fit_split"],
+        "evaluated_at": "2026-09-20夜(時系列安全版、追加指示反映)",
+        "period": "2023 development only (2024-2025 not referenced)",
+        "h1_h2_boundary": H1_H2_BOUNDARY,
+        "source_model": calib["source_model"], "final_calibrator_fit_split": calib["fit_split"],
+        "final_calibrator_note": "本番pl_calibrators_v6.pkl(2023年全体でfit、artifact作成2026-05-20、"
+                                 "2024-2025年の結果は一切使用していない)。Stage 2Aへはこの較正器を"
+                                 "再fitせずそのまま渡す。final_calibrator_insample_refはこの較正器を"
+                                 "fit対象と同じ2023年全体で評価した参考値でPASS/FAIL判定には使わない。",
         "n_races": int(df["rid16"].nunique()),
         "ticket_types_evaluated": ["tansho", "fukusho", "umaren"],
         "evaluations": evaluations,
         "verdicts": verdicts,
+        "stage2a_ticket_scope": stage2a_ticket_scope,
+        "excluded_ticket_types": excluded_ticket_types,
         "overall_gate_j1_pass": overall_usable,
-        "note": "raw PL vs existing_calibrated(pl_calibrators_v6, fit_split=valid=2023) vs "
-               "market(tansho/fukushoのみ、mkt_pi_pre/mkt_p3_pre)。2024-2025年は一切未参照。",
+        "overall_gate_j1_pass_note": "少なくとも1券種がusable=Trueであれば全体PASSとし、"
+                                     "Stage 2Aの対象券種はstage2a_ticket_scopeへ絞る"
+                                     "(仕様書追加指示2『候補馬券領域で較正不能な券種は"
+                                     "主評価から除外』を適用)。",
+        "note": "(a)raw_pl_2023_oos: v6スコアがtrain<=2022のため真にOOS。"
+               "(b)calibrator_h1fit_h2_oos: H1(01-05~06-30)でfitしH2(07-01~12-28)で評価、"
+               "PASS/FAIL判定に使う唯一の指標。"
+               "(c)final_calibrator_insample_ref: 本番較正器を2023年全体で評価した参考値、in-sampleのため判定に使わない。"
+               "2024-2025年は一切未参照。",
     }
     return report
 
@@ -326,5 +390,7 @@ if __name__ == "__main__":
     out_path.write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"[gate_j1] wrote {out_path}")
     print(f"[gate_j1] overall_pass={result['overall_gate_j1_pass']}")
+    print(f"[gate_j1] stage2a_ticket_scope={result['stage2a_ticket_scope']}")
+    print(f"[gate_j1] excluded_ticket_types={result['excluded_ticket_types']}")
     for tt, v in result["verdicts"].items():
-        print(f"  {tt}: {v}")
+        print(f"  {tt}: usable={v.get('usable')} reason={v.get('reason')}")

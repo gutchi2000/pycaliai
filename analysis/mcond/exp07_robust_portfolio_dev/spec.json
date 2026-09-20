@@ -85,9 +85,14 @@
   "_correction_20260920": "当初版はワイド・馬単をin_scope、馬連をexcludedとしていたが誤りだった。data/Time _series_odds/UMAREN_*.csvがTANPUKと同一構造で馬連の historical_pre_snapshot を持つと判明(n=6,909レース、median_minutes_to_post=28、TANPUKと完全一致)。一方ワイド・馬単には専用historical archiveが存在しない(複勝odds+事後payoutのproxyのみ)。DATA_AUDIT.mdの訂正記録参照。",
   "currently_valid_topdown_ticket_types": ["単勝", "複勝", "馬連", "ワイド", "馬単"],
   "currently_valid_topdown_note": "compute_bets.pyのCB_ENGINE=topdown経路(486行〜)をpush()呼び出しで直接確認。三連複・三連単はtopdown経路に候補生成コードが無く現在無効(CLAUDE.md『三連単：廃止済み』と整合、三連複も本監査で未生成と確認)。",
-  "ticket_types_in_scope_stage2a": ["単勝", "複勝", "馬連"],
-  "ticket_types_excluded_stage2a": ["ワイド", "馬単"],
-  "ticket_types_excluded_stage2a_reason": "topdown生成対象だがhistorical_pre_snapshotの判断時点オッズが実在しない(proxyのみ)。試す場合はStage 2Aとは別の探索分析とし、候補追加を配分改善として扱わない",
+  "_correction_20260920_night_calibration_audit": "馬連はdata可用性(UMAREN archive)では条件を満たすが、Gate J1(時系列安全版、CALIBRATION_AUDIT.md参照)でH1fit→H2評価の最下位確率帯O/E=1.625が許容上限1.6をわずかに超過しFAILしたため、Stage 2A主評価から除外した。この基準は2023 development内で事前固定済みで結果を見て緩めていない。",
+  "ticket_types_in_scope_stage2a": ["単勝", "複勝"],
+  "ticket_types_excluded_stage2a": ["馬連", "ワイド", "馬単"],
+  "ticket_types_excluded_stage2a_reason": {
+   "馬連": "topdown生成対象・historical_pre_snapshotデータともに条件を満たすが、Gate J1(時系列安全版)の較正検証でFAIL(CALIBRATION_AUDIT.md§4)。較正が確立されていない券種として除外。",
+   "ワイド・馬単": "topdown生成対象だがhistorical_pre_snapshotの判断時点オッズが実在しない(proxyのみ)。"
+  },
+  "excluded_tickets_usage_note": "馬連・ワイド・馬単を試す場合はStage 2Aとは別の探索分析とし、候補追加を配分改善として扱わない",
   "ticket_types_not_generated_by_topdown": ["三連複", "三連単"],
   "judgment_time_2024_2025": {
    "name": "historical_pre_snapshot",
@@ -141,6 +146,26 @@
     "requirement": "sum(w_j) = B を必須とする。P1/P2/P3/P4/P5/P6の全政策で同じ予算を使う(2026-09-20夜ユーザー指示、追加指示6)。no-betまたは予算未消化を許す比較はStage 2Bへ分離する。",
     "implementation": "policies.full_spend_search()。既存ソルバー(optimise_portfolio)はbudget_yen以下の任意額を許容しno-betを積極的に選ぶ設計(7.3のno-bet優先規律と整合)のため転用せず、予算完全消化専用の独立探索を新規実装した(既存ソルバーの内部関数は再利用しない)。",
     "anomaly_handling": "ソルバー異常時の安全動作としてno-betは残すが、そのレースはStage 2A主比較から除外せず、Stage2ABudgetAnomaly例外として異常件数に計上しFAIL判定へ含める(黙って除外しない)。"
+   },
+   "dry_run": {
+    "executed_at": "2026-09-20夜", "implementation": "stage2a_dry_run.py",
+    "result_columns_read": false,
+    "result_columns_read_note": "exp05_design.parquetの読み込み列をrid16/ban/year/date/n_fieldに限定(pandas columns引数)。fin/top3/win/fpay等の結果列は一切ロードしていない。",
+    "race_counts": {"2024": 3453, "2025": 3455},
+    "n_field_range": "5-18(両年とも3頭未満のレースはゼロ、top-3候補選定は常に可能)",
+    "ticket_types": ["tansho", "fukusho"],
+    "candidate_generation": "較正済みtansho確率上位3頭 x (単勝1枚+複勝1枚) = 最大6候補/レース",
+    "budget_yen_per_race": 1000, "unit_yen": 100, "bankroll_yen": 100000,
+    "same_horse_exposure_cap_yen": 600,
+    "cvar_penalty_lambda": 1.0,
+    "uncertainty_draws": 200,
+    "uncertainty_score_sigma": 0.2512877264129069,
+    "uncertainty_odds_shrinkage_p10": 0.7743229547222288,
+    "random_seed": 20260920,
+    "full_spend_search_max_portfolios": 200000,
+    "expected_grid_size": 3003,
+    "anomalies_found": "なし(グリッド上限内、結果列未読、レース数・頭数分布とも正常)",
+    "verdict": "PASS(異常なし)。Gate J1(単勝・複勝)PASSと合わせ、2024-2025年Stage 2A本実行の条件を満たす。"
    }
   },
   "stage2B": {
@@ -158,6 +183,27 @@
    "競馬場別", "人気帯別", "芝ダート別", "券種別", "年度別", "月別", "候補数別",
    "オッズ帯別", "OOD/support帯別"],
   "ci_unit_note": "同日レースの相関を考慮し、主CIはレース単位ではなくmeeting-day単位で計算する"
+ },
+
+ "gate_j1_calibration": {
+  "purpose": "共同分布の実測較正。2023 developmentだけを使い、raw PL/既存較正済み確率が実際の的中率と一致するか検証する",
+  "provenance_finding": "models/pl_calibrators_v6.pklはvalid=2023(2023年全体)でfitされている(CALIBRATION_AUDIT.md参照)。これを同じ2023年全体で評価するとin-sample評価になるため、H1(前半)fit→H2(後半)評価の時系列blocked splitへ訂正した(2022年での独立fitはv6モデル自身がtrain<=2022のため不可能と判明)。",
+  "three_components": {
+   "raw_pl_2023_oos": "v6生スコア(train<=2022のため真にOOS)からのPL確率を2023年全体の実的中と比較",
+   "calibrator_h1fit_h2_oos": "H1(2023-01-05~06-30)で新規Isotonic較正器をfitしH2(2023-07-01~12-28)で評価。PASS/FAIL判定に使う唯一の指標",
+   "final_calibrator_insample_ref": "本番pl_calibrators_v6.pkl(2023年全体でfit、再fitしない)を同じ2023年全体で評価した参考値。in-sampleのため判定に使わない。2024-2025年の結果は一切使用していない"
+  },
+  "frozen_thresholds": {
+   "min_expected_events_for_tail_judgment": 10.0,
+   "acceptable_low_bin_oe_range": [0.6, 1.6],
+   "frozen_note": "2023 development内(H1/H2評価の設計時点)で事前固定。2024/2025年を見て変更しない。今回の結果(馬連が僅差でFAIL)を見て緩和していない"
+  },
+  "result_20260920": {
+   "tansho": "PASS", "fukusho": "PASS",
+   "umaren": "FAIL(H1fit→H2評価の最下位確率帯[期待イベント数14.1件]でO/E=1.625、許容上限1.6をわずかに超過)",
+   "stage2a_ticket_scope_after_gate_j1": ["単勝", "複勝"]
+  },
+  "implementation": "gate_j1_calibration.py、test_gate_j1_calibration.py"
  },
 
  "gates": [

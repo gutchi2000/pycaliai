@@ -13,6 +13,41 @@ sys.path.insert(0, str(BASE))
 from analysis.mcond.exp07_robust_portfolio_dev import gate_j1_calibration as GJ1  # noqa: E402
 
 
+def test_split_h1_h2_boundary_is_20230701():
+    df = pd.DataFrame({"date": ["20230630", "20230701", "20230101", "20231228"]})
+    h1, h2 = GJ1.split_h1_h2(df)
+    assert sorted(h1["date"].tolist()) == ["20230101", "20230630"]
+    assert sorted(h2["date"].tolist()) == ["20230701", "20231228"]
+
+
+def test_fit_h1_calibrator_and_eval_h2_marks_unusable_when_too_few_rows():
+    df = pd.DataFrame({
+        "date": ["20230101"] * 10 + ["20230801"] * 10,
+        "raw_p": np.linspace(0.05, 0.5, 20),
+        "actual": [0] * 15 + [1] * 5,
+        "rank_mkt": [1] * 20,
+    })
+    result = GJ1.fit_h1_calibrator_and_eval_h2(df)
+    assert result["usable"] is False
+
+
+def test_fit_h1_calibrator_and_eval_h2_usable_with_enough_rows():
+    rng = np.random.default_rng(0)
+    n = 200
+    dates_h1 = ["20230301"] * n
+    dates_h2 = ["20230901"] * n
+    raw_p = rng.uniform(0.02, 0.6, size=2 * n)
+    actual = (rng.uniform(size=2 * n) < raw_p).astype(int)
+    df = pd.DataFrame({
+        "date": dates_h1 + dates_h2, "raw_p": raw_p, "actual": actual,
+        "rank_mkt": rng.integers(1, 10, size=2 * n),
+    })
+    result = GJ1.fit_h1_calibrator_and_eval_h2(df)
+    assert result["usable"] is True
+    assert result["h1_n"] == n
+    assert result["h2_n"] == n
+
+
 def test_brier_perfect_is_zero():
     assert GJ1._brier(np.array([1.0, 0.0]), np.array([1, 0])) == pytest.approx(0.0)
 
@@ -98,13 +133,14 @@ def test_low_bin_oe_returns_none_when_no_bin_has_enough_events():
 def test_gate_j1_verdict_flags_clear_tail_overconfidence():
     evaluations = {
         "toy": {
-            "raw_pl": {
+            "raw_pl_2023_oos": {
                 "calibration": {"slope": 1.0, "intercept": 0.0},
                 "adaptive_bin_ece": {"reliability_table": [
                     {"n": 10000, "predicted_hit_probability": 0.01, "observed_over_expected": 0.4},  # exp=100
                 ]},
             },
-            "existing_calibrated": {
+            "calibrator_h1fit_h2_oos": {
+                "usable": True,
                 "calibration": {"slope": 1.0, "intercept": 0.0},
                 "adaptive_bin_ece": {"reliability_table": [
                     {"n": 10000, "predicted_hit_probability": 0.008, "observed_over_expected": 1.0},  # exp=80
@@ -114,5 +150,5 @@ def test_gate_j1_verdict_flags_clear_tail_overconfidence():
     }
     verdicts = GJ1.gate_j1_verdict(evaluations)
     assert verdicts["toy"]["raw_pl_overconfident_at_low_probability_tail"] is True
-    assert verdicts["toy"]["existing_calibrator_acceptable"] is True
+    assert verdicts["toy"]["h1fit_h2_oos_calibrator_acceptable"] is True
     assert verdicts["toy"]["usable"] is True
