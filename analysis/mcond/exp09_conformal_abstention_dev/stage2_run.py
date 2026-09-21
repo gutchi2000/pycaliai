@@ -157,13 +157,22 @@ def main():
         "current_gate": current_gate_score,
     }
     # 全方式が同じeligible race集合(rid16)をカバーしているか確認
+    # (2026-09-21実装中に発覚: score_feature_missingはmaster_v2から直接読むため、
+    # eligible_races.pyの例外処理で除外されたレース(同着等)も含んでしまい、
+    # eligible_setの**superset**になっていた。unionでfillするだけでは不十分で、
+    # 先にeligible_setへ**intersect**しないと、後段のselect_top_nがeligible_set外の
+    # rid16を選んでしまい、metrics(eligible_setのみ)への.locでKeyErrorになる
+    # 実害バグだった。)
     eligible_set = set(frames_2425.keys())
     for name, df in method_scores.items():
+        df = df[df["rid16"].isin(eligible_set)]  # eligible_set外を除外(superset対策)
         missing = eligible_set - set(df["rid16"])
         if missing:
             print(f"  WARNING: {name} missing {len(missing)} eligible races, filling with worst score")
             fill = pd.DataFrame({"rid16": list(missing), "score": [df["score"].max() + 1] * len(missing)})
-            method_scores[name] = pd.concat([df, fill], ignore_index=True)
+            df = pd.concat([df, fill], ignore_index=True)
+        assert set(df["rid16"]) == eligible_set, f"{name}: eligible_setと不一致"
+        method_scores[name] = df
 
     gate2_by_rate = {}
     for rate in PARTICIPATION_RATE_POINTS:

@@ -161,5 +161,15 @@
     "gate2_fail": "比較対象から都合の悪い方式を外して再判定しない",
     "gate1_fail": "許容誤差を広げて通過させない",
     "primary_fail": "participation_rate=75%でFAILした場合、90/50/25%が良好でも主仮説はFAILのまま"
+  },
+
+  "final_verdict_20260921": {
+    "gate0": "PASS", "gate1": "PASS", "gate2": "PASS", "gate3": "FAIL",
+    "gate4_gate5": "実施せず(中止規律、Gate3 FAILのため)",
+    "gate1_detail": "empirical_coverage_all_eligible_races: 2024=0.9339, 2025=0.9304、nominal=0.90を両年とも上回る",
+    "gate2_detail": "participation_rate=90/75/50/25%の全点でConformalが6方式(max_probability/entropy/ood_support/feature_missing/lr_control_2023_only/current_gate)全てにlogloss優位(全delta負)。主判定75%: vs max_prob=-0.0101, vs entropy=-0.0268, vs OOD=-0.2339, vs feature_missing=-0.1195, vs LR_CONTROL=-0.0187, vs current_gate=-0.0306",
+    "gate3_detail": "conformal_coefficient=0.0256, 95%CI=[-0.1121,+0.1717](ゼロを跨ぐ)、control_columns=[n_field,max_prob,entropy]。n_field/max_prob/entropyを完全統制するとConformalの固有情報量は統計的に確認できない。EXP06 Jev risk_probと同型の失格パターン。",
+    "conclusion": "Conformal(APS-derived abstention score)はnominal coverage保証自体は成立する(Gate1 PASS)が、参加判断の質という実務目的においては、モデル自身の基本的な確信度指標(最大予測確率・エントロピー)を超える固有の価値を示せなかった(Gate3 FAIL)。EXP09を終了する。中止規律を遵守し、Gate3 FAILを見た後に統制変数を減らす等の再検定は行っていない。",
+    "report": "REPORT.md"
   }
 }

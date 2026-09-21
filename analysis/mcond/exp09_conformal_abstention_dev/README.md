@@ -1,5 +1,15 @@
 # EXP09 — Conformal/OODによる保証付き見送り
 
+## 【2026-09-21】最終結論: Gate1 PASS・Gate2 PASS・Gate3 FAIL、EXP09終了
+
+Conformal(APS-derived abstention score)はnominal coverage保証自体は成立
+(Gate1)し、単純比較(Gate2、4参加率×6方式全て)でも一貫して優位だったが、
+モデル自身の確信度(最大予測確率・エントロピー・頭数)を完全統制した回帰
+(Gate3、★最重要関門)では固有の情報量を統計的に確認できなかった
+(係数95%CI=[-0.112,+0.172]、ゼロを跨ぐ)。EXP06のJev risk_probが失格した
+関門と同型のパターンが再現した。中止規律に従いGate4(層別安定性)・
+Gate5(経済評価)は実施せず終了する。詳細は`REPORT.md`。
+
 ## 目的
 
 予測精度の向上ではなく、**外挿・不確実なレースを検知して参加判断(参加/見送り)を
@@ -52,8 +62,18 @@ EXP01-08・v6・EXP05・EXP05-F・compute_bets.py・EXP06は変更しない。�
 | `stage2_run.py` | ステップ1-9の統合ドライバ |
 | `test_*.py` | 合成テスト40件、全通過(実データ2024-2025は一切使わない) |
 
+## Stage2実行結果(2026-09-21)
+
+| Gate | 判定 | 要点 |
+|---|---|---|
+| Gate0(データ・時点・hash) | PASS | eligible races 2023=3,453/2024=3,447/2025=3,449、raw PL OOS provenance確認済み |
+| Gate1(coverage実測妥当性) | PASS | empirical coverage 2024=0.9339/2025=0.9304、nominal=0.90を両年とも上回る |
+| Gate2(同一participation_rate比較) | PASS | 90/75/50/25%の全点でConformalが6方式全てにlogloss優位 |
+| **Gate3(full-control固有上積み)** | **FAIL** | 係数95%CI=[-0.112,+0.172]、n_field/max_prob/entropyを統制すると固有情報量が消える |
+| Gate4・Gate5 | 未実施(中止規律) | Gate3 FAILのためGate4層別検証・Gate5経済評価は実施しない |
+
+**結論: EXP09終了**。詳細は`REPORT.md`。
+
 ## 次の一手
 
-commit後、`stage2_run.py`を実行しGate1-4を評価する(初めて2024・2025年の
-結果を開封する段階)。Gate1-4の結果に基づき、通過した場合のみGate5(経済評価)
-へ進むかを判断する。
+なし。EXP09は終了。
