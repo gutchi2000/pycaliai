@@ -52,6 +52,20 @@ Gate 0A（市場オッズ取得時点）で、2023年に判断時点market snaps
 構造的欠損と合わせ継続根拠不足と判断。詳細・再開条件・再利用可能資産は
 `analysis/mcond/exp13_nonfinish_risk_dev/README.md`・`spec.json`参照。
 
+**EXP14「レジーム分離・Mixture of Experts」Stage 0完了**（2026-09-22、
+`analysis/mcond/exp14_regime_moe_dev/`）。実装・学習・バックテスト・
+2024/2025年性能開封・ROI評価は一切行っていない（既存成果物の引用のみ）。
+主仮説「事前情報だけで選択した専門家モデルがpooled modelより未使用期間で
+良い」について、**手動条件分割は既に3件の独立実験（distance-band・
+surface・season×venue）で収束的に否定済み**であることを確認した
+（`train_expert.py`・`exp_surface_split.py`・[[project_summer_specific_
+model_dead]]）。v6（515本・深さ12のLightGBM）の条件特徴は個々のgainは
+低いがsplit回数は多く、tree構造が既にregime的交互作用を捉えている可能性を
+新規に実測した。未踏査領域（venue単独・クラス・年齢・非手動gating手法）は
+残るが、芝・ダート軸は`exp_surface_split.py`が既に2024-2025年を消費済み。
+詳細は`analysis/mcond/exp14_regime_moe_dev/README.md`参照。**Stage1
+（実装）はユーザー報告・承認後に着手する**。
+
 ---
 
 ## 1. EXP01〜EXP12 状態一覧

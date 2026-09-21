@@ -1,0 +1,70 @@
+{
+  "exp": "EXP14",
+  "title": "レジーム分離・Mixture of Experts",
+  "stage": "0_audit_complete",
+  "frozen_at": "2026-09-22",
+  "primary_hypothesis": "単一pooled modelでは平均化される異質な予測関係があり、事前情報だけで選択した専門家モデルが、同じ特徴・同程度の容量を持つpooled modelより未使用期間で良い",
+  "prior_art_summary": {
+    "convergent_failures": [
+      {
+        "experiment": "train_expert.py (旧8アンサンブル)",
+        "regime_axis": "距離帯(芝短/中/長・ダート)",
+        "method": "manual_hard_split",
+        "result": "4 experts中3件不採用(1件のみ僅差+0.0019 AUC採用)",
+        "source": "reports/expert_metrics.json"
+      },
+      {
+        "experiment": "exp_surface_split.py (v6世代)",
+        "regime_axis": "芝・ダート",
+        "method": "manual_hard_split",
+        "result": "pooledが両splitで僅差優位、有意差なし(CI共にゼロ跨ぎ)",
+        "source": "reports/exp_surface_split.json"
+      },
+      {
+        "experiment": "summer-specific model (v6世代、最厳密)",
+        "regime_axis": "季節(6-9月)×地域(夏局所開催5場)",
+        "method": "manual_hard_split + sample_weighting",
+        "result": "完全否定、同データ量pooledにも劣る、24gridハイパラ再チューニングでも並ぶだけ、サンプル重み付けも無効",
+        "source": "project_summer_specific_model_dead memory"
+      }
+    ],
+    "untested_regime_axes": ["venue単独", "クラス単独", "年齢単独", "新馬/未勝利専用", "重馬場専用", "教師なしクラスタリングによるregime定義"],
+    "untested_gating_methods": ["unsupervised_clustering", "decision_tree_gate", "soft_gating_network", "mixture_of_logistic_experts", "mixture_of_lightgbm_experts_with_learned_gate", "regime_switching_time_series"],
+    "already_consumed_2024_2025_ooS": ["芝・ダート軸(exp_surface_split.pyにより既消費、Stage1で再利用しても新規OOS検証と呼べない)"]
+  },
+  "v6_interaction_capacity": {
+    "method": "LightGBM feature_importance実測(515 trees, max_depth=12)",
+    "condition_features_gain_pct": {
+      "場所": 0.28, "芝・ダ": 0.10, "距離": 0.44, "クラス名": 0.61,
+      "年齢": 1.05, "馬場状態": 0.08, "天気": 0.09, "コース区分": 0.13,
+      "トラックコード(JV)": 0.24
+    },
+    "interpretation": "gain低いがsplit回数多い(192-261回) = context特徴として頻繁に使用、tree構造が既にregime的交互作用を内部で捉えている可能性(仮説)"
+  },
+  "sample_size_2023_development": {
+    "surface": {"n_categories": 2, "min": 23422, "max": 23851},
+    "venue": {"n_categories": 10, "min": 1759, "max": 7592},
+    "distance_band": {"n_categories": 5, "min": 948, "max": 20159},
+    "class": {"n_categories": 12, "min": 22, "max": 17363},
+    "age": {"n_categories": "2-12", "min_7plus_combined": 1588, "max_3yo": 19797},
+    "season_month": {"n_categories": 12, "min": 3428, "max": 4668}
+  },
+  "gating_time_safety": "regime定義(芝ダ・距離・場所・クラス・年齢・季節)は全て発走前確定情報で構築可能。市場確率込みpooled modelを比較対象に含める場合はEXP13 Gate0Aの制約(2023年にhistorical_pre_snapshot不在)を継承する",
+  "required_comparison_baselines": [
+    "pooled_v6_plus_market",
+    "single_model_with_condition_features_added",
+    "regime_specific_models",
+    "parameter_matched_pooled_model",
+    "simple_manual_split"
+  ],
+  "method_distinction_required": ["manual_condition_split", "unsupervised_clustering", "decision_tree_gate", "soft_gating_network", "mixture_of_logistic_experts", "mixture_of_lightgbm_experts", "regime_switching_time_series_model"],
+  "gate_structure": "Gate0(本Stage0)→Gate1(regime定義の構造的妥当性)→Gate2(単純baseline比較)→Gate3(同程度パラメータ数pooledとの比較、主仮説の直接検証)→Gate4(年度・regime間安定性)→Gate5(経済評価、Gate1-4通過後のみ)",
+  "statistical_unit": "meeting-day",
+  "development_period": "2023年固定、2024・2025年は未開封(ただし芝・ダート軸はexp_surface_split.pyにより既消費)",
+  "stop_conditions": [
+    "Gate3(同程度パラメータ数pooledとの比較)FAILで統制を緩めた再検定をしない",
+    "regime標本数不足を理由に定義を事後的に広げない",
+    "手動分割以外の6手法も収束的な失敗パターンになった場合、ハイパラ再チューニングの繰り返しを行わない"
+  ],
+  "next_step": "実装はまだ一切行っていない。本Stage0報告・ユーザー承認後にStage1(未踏査regime軸または非手動gating手法の選定・実装)へ着手する"
+}
