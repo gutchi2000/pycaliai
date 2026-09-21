@@ -11,7 +11,8 @@ import hashlib
 import json
 import math
 import re
-from datetime import datetime
+import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,40 @@ from production_policy import policy_stamp
 BASE = Path(__file__).resolve().parent
 FORWARD_ROOT = BASE / "data" / "forward_prices"
 SCHEMA_VERSION = 1
+_JST = timezone(timedelta(hours=9))
+
+# 粗い正常性チェック専用 (2026-09-21、T-10の-5,228分異常の再発防止で追加)。
+# 「明らかにおかしい (別日の再取得等)」だけを標準エラーへ警告するためのゆるい
+# 目安であり、保存の可否には一切影響しない (bodyにもhashにも含めない — 既存ファイルの
+# 冪等再書込判定を壊さないため)。厳密なwindow判定・除外は
+# analysis/forward_price_timing_canary.py が別途、読み取り専用で行う。
+_TIMING_SANITY_WINDOWS_MIN = {
+    "t10": (-30.0, 60.0), "close": (-30.0, 30.0), "t20": (-30.0, 90.0),
+    "vote": (-30.0, 60.0), "exp05fs_t35": (-30.0, 90.0),
+}
+
+
+def _warn_if_timing_looks_wrong(stage: str, rid: str, scheduled_post, observed_at: str) -> None:
+    window = _TIMING_SANITY_WINDOWS_MIN.get(stage)
+    if window is None or not scheduled_post:
+        return
+    try:
+        sp = datetime.fromisoformat(str(scheduled_post))
+        oa = datetime.fromisoformat(str(observed_at))
+        if sp.tzinfo is None:
+            sp = sp.replace(tzinfo=_JST)
+        if oa.tzinfo is None:
+            oa = oa.replace(tzinfo=_JST)
+        m = (sp - oa).total_seconds() / 60.0
+    except Exception:
+        return
+    lo, hi = window
+    if not (lo <= m <= hi):
+        print(f"[forward_prices][WARN] {stage} race={rid} scheduled_post={scheduled_post} "
+              f"observed_at={observed_at} minutes_to_post={m:.1f} "
+              f"(想定[{lo},{hi}]分から外れる。手動/デバッグ実行を本番storeへ紛れ込ませて"
+              f"いないか確認。保存は正常に続行する。analysis.forward_price_timing_canary で"
+              f"事後隔離・除外できる)", file=sys.stderr)
 
 
 def _canonical_bytes(value: Any) -> bytes:
@@ -99,7 +134,9 @@ def archive_market_snapshot(market: dict, stage: str, *,
     body["record_sha256"] = payload_sha256(body)
     name = (f"{rid}_{stage}_{_slug_time(observed)}_"
             f"{body['record_sha256'][:10]}.json.gz")
-    return _write_gzip_atomic(Path(root) / rid[:8] / name, body)
+    saved = _write_gzip_atomic(Path(root) / rid[:8] / name, body)
+    _warn_if_timing_looks_wrong(stage, rid, scheduled_post, observed)
+    return saved
 
 
 def fair_win_probabilities(tansho: dict) -> dict[int, float]:

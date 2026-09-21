@@ -115,16 +115,20 @@ def process_race(date_str: str, rid: str, label: str, dry: bool,
     try:
         store_prediction(date_str, rid, result)
     except FileNotFoundError as exc:
-        # 特徴量snapshot(feature_snapshot.py --date)が無い週固有の失敗。市場は既に取得
-        # できているので、これを捨てずに market_only レコードとして保存する
+        # 特徴量snapshot(feature_snapshot.py --date)が無い、または bundle に該当race が
+        # 無い (2026-09-21修正: predict_and_store._load_bundle_race が masters_vote.VoteError
+        # をここに正規化するようになった) 週固有の失敗。市場は既に取得できているので、
+        # これを捨てずに market_only レコードとして保存する
         # (spec: 市場データを捨てない。market_snapshot_saved=true/prediction_saved=false)。
-        print(f"  [predict_and_store] 特徴量snapshot未生成のためprediction計算不可、"
+        reason = ("bundle_race_missing" if "bundle race 欠落" in str(exc)
+                  else "weekly_input_unavailable")
+        print(f"  [predict_and_store] prediction計算不可 ({reason})、"
              f"市場snapshotのみ保存する: {exc}")
-        path = store_market_only(date_str, rid, result, reason="weekly_input_unavailable")
+        path = store_market_only(date_str, rid, result, reason=reason)
         print(f"  [market_only] -> {path.relative_to(BASE)}")
         (BASE / "logs").mkdir(exist_ok=True)
         with open(BASE / "logs" / "exp05fs_errors.log", "a", encoding="utf-8") as f:
-            f.write(f"{datetime.now().isoformat()} {rid} weekly_input_unavailable "
+            f.write(f"{datetime.now().isoformat()} {rid} {reason} "
                    f"(market_snapshot_saved=true, prediction_saved=false): {exc}\n")
         return 2
     except Exception as exc:

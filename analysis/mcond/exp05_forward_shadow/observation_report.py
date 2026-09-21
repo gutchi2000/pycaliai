@@ -58,12 +58,18 @@ def _rid16_from_odds_filename(p: Path) -> str:
     return p.stem
 
 
+def _venue_of(rid: str) -> str:
+    """rid16の場コード(9-10桁目、例 06=中山/09=阪神)を返す。長さ不正なら '??'。"""
+    return rid[8:10] if len(rid) == 16 else "??"
+
+
 def build_report(date_str: str) -> dict:
     model_hash = _current_model_hash()
     out: dict = {"date": date_str, "generated_at": datetime.now().isoformat(timespec="seconds"),
                 "current_model_hash": model_hash}
 
     # ---- calendarタスク ----
+    scheduled_rids: set[str] = set()
     cal_path = CALENDAR_DIR / f"{date_str}.json"
     if cal_path.exists():
         try:
@@ -72,6 +78,7 @@ def build_report(date_str: str) -> dict:
             out["calendar_generated_at"] = cal.get("generated_at")
             out["calendar_race_count"] = cal.get("record_count")
             out["calendar_source_record_version"] = cal.get("source_record_version")
+            scheduled_rids = {re.sub(r"\D", "", str(r))[:16] for r in (cal.get("race_ids") or [])}
         except Exception as exc:
             out["calendar_task_result"] = f"json読込失敗: {exc}"
             out["calendar_race_count"] = None
@@ -109,6 +116,7 @@ def build_report(date_str: str) -> dict:
     # ---- 完全予測保存 (M1/M3/M4) ----
     complete_rids = set()
     valid_primary_rids = set()
+    retrospective_rids = set()
     invalid_reasons: Counter = Counter()
     if day_pred_dir.exists():
         for p in day_pred_dir.glob(f"*_{model_hash}_rev1.json") if model_hash else []:
@@ -128,6 +136,8 @@ def build_report(date_str: str) -> dict:
             date_ok = d.get("date") == date_str and rec0.get("race_id") == rid
             hash_ok = rec0.get("model_hash") == model_hash
             vfp = bool(rec0.get("valid_for_primary"))
+            if rec0.get("retrospective_recovery"):
+                retrospective_rids.add(rid)
             if vfp:
                 if date_ok and hash_ok:
                     valid_primary_rids.add(rid)
@@ -137,6 +147,33 @@ def build_report(date_str: str) -> dict:
     out["valid_primary_observations"] = len(valid_primary_rids)
     out["invalid_for_primary_count"] = len(complete_rids) - len(valid_primary_rids)
     out["invalid_for_primary_reasons"] = dict(invalid_reasons)
+    out["retrospective_recovery_count"] = len(retrospective_rids)
+
+    # ---- venue別内訳 (2026-09-21追加: venue06全欠測の教訓。scheduled/fired/market/
+    # market_only/complete/valid_primaryをrid16[8:10](場コード)別に集計する) ----
+    fired_rids = {_rid16_from_odds_filename(p) for p in odds_files}
+    by_venue: dict[str, dict] = {}
+    for rid in (scheduled_rids | fired_rids | market_ok_rids | marketonly_rids
+               | complete_rids | valid_primary_rids):
+        v = _venue_of(rid)
+        by_venue.setdefault(v, {"scheduled": 0, "fired": 0, "market": 0,
+                                "market_only": 0, "complete": 0, "valid_primary": 0})
+    for rid in scheduled_rids:
+        by_venue[_venue_of(rid)]["scheduled"] += 1
+    for rid in fired_rids:
+        by_venue[_venue_of(rid)]["fired"] += 1
+    for rid in market_ok_rids:
+        by_venue[_venue_of(rid)]["market"] += 1
+    for rid in marketonly_rids:
+        by_venue[_venue_of(rid)]["market_only"] += 1
+    for rid in complete_rids:
+        by_venue[_venue_of(rid)]["complete"] += 1
+    for rid in valid_primary_rids:
+        by_venue[_venue_of(rid)]["valid_primary"] += 1
+    for v, c in by_venue.items():
+        c["complete_prediction_rate"] = (
+            round(c["complete"] / c["scheduled"], 3) if c["scheduled"] else None)
+    out["by_venue"] = dict(sorted(by_venue.items()))
 
     # ---- missed (入力遅延で一度もタスクを作れなかったレース) ----
     missed_path = LOGS_DIR / f"exp05fs_missed_races_{date_str}.json"

@@ -328,3 +328,171 @@ def test_jvlink_calendar_sanity_check_skips_tiny_lists_for_identical_time_check(
     # ない可能性を否定できないため)。ただし00:00や範囲外時刻はどんな件数でも弾く
     # (2026-09-19深夜追加のため、この挙動はもはや「完全素通し」ではない)。
     assert JRC._sanity_check([{"rid16": "2026092106040701", "post": "14:00"}]) == ""
+
+
+# ==================================================================
+# 2026-09-21: venue06 store_prediction 障害の原因調査・修正で追加した回帰テスト群。
+# 根本原因: export_weekly_marks.py の「全馬tansho_odds=Noneなら中止とみなしbundle
+# から除外」フィルタが venue06(中山、単に当日オッズがTARGET/JV-Link側で未着だった
+# だけで開催中止ではない)を誤って全除外し、bundle依存のT-10/T-20/EXP05-F store_
+# predictionがvenue06を丸ごと欠測した。副次的に、bundleに無いraceのstore_prediction
+# 失敗(masters_vote.VoteError)がmarket_only保存へフォールバックせず未分類ログに
+# 落ちる別バグも見つかった。ここではこの2点の修正を検証する。
+# ==================================================================
+
+def test_load_bundle_race_converts_voteerror_to_filenotfound(monkeypatch):
+    """masters_vote.VoteError (bundleにraceが無い) は FileNotFoundError に正規化される
+    (market_snapshot.process_race の except FileNotFoundError → store_market_only
+    フォールバックへ載せるための変換。以前はVoteErrorのまま伝播し except Exception の
+    未分類バケツに落ちてmarket_only保存が起きなかった)。"""
+    import masters_vote as mv
+
+    def fake_load(date_str, rid):
+        raise mv.VoteError(f"bundle に {rid} が無い (20260921_bundle.json)")
+    monkeypatch.setattr(mv, "load_bundle_race", fake_load)
+    with pytest.raises(FileNotFoundError, match="bundle race 欠落"):
+        pas._load_bundle_race("20260921", "2026092106040701")
+
+
+def test_load_bundle_race_missing_race_does_not_match_similar_id(tmp_path, monkeypatch):
+    """venue06のraceがbundleに無いとき、venue09等の別raceへ誤って一致しないこと
+    (rid完全一致のみで解決している、という「ID結合」契約の確認)。"""
+    import masters_vote as mv
+    bundle_dir = tmp_path / "reports" / "cowork_input"
+    bundle_dir.mkdir(parents=True)
+    (bundle_dir / "20990101_bundle.json").write_text(json.dumps({
+        "date": "20990101",
+        "races": [{"race_id": "9999010109040701", "horses": [{"umaban": 1}]}],
+    }), encoding="utf-8")
+    monkeypatch.setattr(mv, "BASE", tmp_path)
+    with pytest.raises(mv.VoteError):
+        mv.load_bundle_race("20990101", "9999010106040701")  # venue06、bundleにはvenue09のみ
+    # venue09自体は正しく引けること (誤検知的にVoteErrorを出しているだけでないことの確認)
+    race = mv.load_bundle_race("20990101", "9999010109040701")
+    assert race["race_id"] == "9999010109040701"
+
+
+def test_market_snapshot_bundle_race_missing_routes_to_market_only(tmp_path, monkeypatch):
+    """本番シナリオの再現: JV-Linkオッズ取得は失敗 (venue06のno O1 record相当) だが、
+    bundle race欠落によるstore_prediction失敗はmarket_onlyへフォールバックし、
+    取得できた市場情報 (たとえok=falseでも) を捨てずに保存すること。"""
+    from analysis.mcond.exp05_forward_shadow import market_snapshot as ms
+    from datetime import datetime, timedelta, timezone
+    JST = timezone(timedelta(hours=9))
+
+    fake_market_result = {
+        "ok": False, "why": "オッズ ok=false (no O1 record)",
+        "market": {"ok": False, "reason": "no O1 record", "fetched": "2026-09-21T09:10:00"},
+    }
+    monkeypatch.setattr(ms, "fetch_and_validate", lambda rid, sp: dict(fake_market_result))
+
+    def fake_store_prediction(date_str, rid, result):
+        raise FileNotFoundError(f"bundle race 欠落: bundle に {rid} が無い (20990101_bundle.json)")
+    calls = {}
+
+    def fake_store_market_only(date_str, rid, result, reason):
+        calls["reason"] = reason
+        calls["market"] = result.get("market")
+        p = tmp_path / f"{rid}_marketonly_rev1.json"
+        p.write_text(json.dumps({"reason": reason}), encoding="utf-8")
+        return p
+    monkeypatch.setattr(pas, "store_prediction", fake_store_prediction)
+    monkeypatch.setattr(pas, "store_market_only", fake_store_market_only)
+    monkeypatch.setattr(ms, "BASE", tmp_path)  # path.relative_to(BASE) の print 用
+
+    future_post = datetime.now(JST) + timedelta(hours=1)
+    rc = ms.process_race("20990101", "9999010106040701", "R1", dry=False,
+                         scheduled_post=future_post)
+    assert rc == 2
+    assert calls.get("reason") == "bundle_race_missing"
+    assert calls.get("market") == fake_market_result["market"]  # 市場dataが捨てられていない
+
+
+def test_is_retrospective_true_only_for_past_scheduled_post():
+    """発走予定時刻が既に過去なら retrospective (=primary禁止) と判定する。"""
+    assert pas._is_retrospective({"scheduled_post": "2020-01-01T10:00:00+09:00"}) is True
+    assert pas._is_retrospective({"scheduled_post": "2099-01-01T10:00:00+09:00"}) is False
+    assert pas._is_retrospective({"scheduled_post": None}) is False
+    assert pas._is_retrospective({}) is False
+
+
+def test_store_market_only_flags_retrospective_recovery(tmp_path, monkeypatch):
+    """発走予定時刻が過去のレースへの market_only 保存は retrospective_recovery=true
+    かつ invalid_for_primary=true になる (発走後の回復データがprimaryへ紛れ込まない)。"""
+    monkeypatch.setattr(pas, "OUT_DIR", tmp_path)
+    market_result = {"ok": False, "valid_for_primary": False,
+                     "scheduled_post": "2020-01-01T10:00:00+09:00", "market": {}}
+    path = pas.store_market_only("20200101", "2020010106040701", market_result,
+                                 reason="bundle_race_missing")
+    rec = json.loads(path.read_text(encoding="utf-8"))
+    assert rec["retrospective_recovery"] is True
+    assert rec["invalid_for_primary"] is True
+    assert rec["prediction_saved"] is False
+
+
+def test_store_market_only_future_race_not_flagged_retrospective(tmp_path, monkeypatch):
+    monkeypatch.setattr(pas, "OUT_DIR", tmp_path)
+    market_result = {"ok": True, "valid_for_primary": True,
+                     "scheduled_post": "2099-01-01T10:00:00+09:00", "market": {}}
+    path = pas.store_market_only("20990101", "9999010109040701", market_result,
+                                 reason="weekly_input_unavailable")
+    rec = json.loads(path.read_text(encoding="utf-8"))
+    assert rec["retrospective_recovery"] is False
+
+
+# ---- venue別ID形式・被覆率レポート (observation_report.py) ----
+def test_venue_of_preserves_leading_zero_for_all_10_jra_venues():
+    from analysis.mcond.exp05_forward_shadow.observation_report import _venue_of
+    for i in range(1, 11):
+        code = f"{i:02d}"
+        rid = f"20260921{code}040701"
+        assert len(rid) == 16
+        assert _venue_of(rid) == code  # int castでの '06'→'6' 等のゼロ落ちが無いこと
+
+
+def test_venue06_and_venue09_race_ids_share_kaiji_nichiji_differ_only_in_venue():
+    """今回の実インシデントの実データ形式そのものの回帰確認
+    (2026-09-21: 中山=06 / 阪神=09、4回7日開催で発走順は同一)。"""
+    v06, v09 = "2026092106040701", "2026092109040701"
+    assert v06[:8] == v09[:8] == "20260921"           # 日付
+    assert v06[8:10] == "06" and v09[8:10] == "09"     # venue
+    assert v06[10:] == v09[10:] == "040701"            # 回次・日次・R番号は共通
+
+
+def test_observation_report_by_venue_isolates_dead_venue_from_healthy_one(tmp_path, monkeypatch):
+    """observation_report.by_venue が「1venueだけ0%・他venueは正常」を可視化できること
+    (2026-09-21の実障害: venue06=0観測 / venue09=正常、という非対称パターンの再現)。"""
+    from analysis.mcond.exp05_forward_shadow import observation_report as OR
+    date_str = "20990101"
+    odds_dir = tmp_path / "odds"; odds_dir.mkdir()
+    pred_dir = tmp_path / "pred" / date_str; pred_dir.mkdir(parents=True)
+    cal_dir = tmp_path / "calendar"; cal_dir.mkdir()
+    monkeypatch.setattr(OR, "ODDS_DIR", odds_dir)
+    monkeypatch.setattr(OR, "PRED_DIR", tmp_path / "pred")
+    monkeypatch.setattr(OR, "CALENDAR_DIR", cal_dir)
+    monkeypatch.setattr(OR, "WEEKLY_DIR", tmp_path / "weekly")
+    monkeypatch.setattr(OR, "LOGS_DIR", tmp_path / "logs")
+    monkeypatch.setattr(OR, "_current_model_hash", lambda: "deadbeef00000000")
+
+    (cal_dir / f"{date_str}.json").write_text(json.dumps({
+        "generated_at": "2099-01-01T08:20:00", "record_count": 2,
+        "race_ids": ["2099010106040701", "2099010109040701"],
+    }), encoding="utf-8")
+    # venue06: タスクは発火したがオッズ取得自体が失敗 (ok=false) → market/complete共に0
+    (odds_dir / "2099010106040701.json").write_text(json.dumps({"ok": False}), encoding="utf-8")
+    # venue09: 正常に市場取得・完全予測まで到達
+    (odds_dir / "2099010109040701.json").write_text(json.dumps({"ok": True}), encoding="utf-8")
+    (pred_dir / "2099010109040701_deadbeef00000000_rev1.json").write_text(json.dumps({
+        "race_id": "2099010109040701", "date": date_str,
+        "records": [{"race_id": "2099010109040701", "model_hash": "deadbeef00000000",
+                    "valid_for_primary": True, "invalid_reason": None}],
+    }), encoding="utf-8")
+
+    report = OR.build_report(date_str)
+    assert report["by_venue"]["06"]["scheduled"] == 1
+    assert report["by_venue"]["06"]["market"] == 0
+    assert report["by_venue"]["06"]["complete"] == 0
+    assert report["by_venue"]["06"]["complete_prediction_rate"] == 0.0
+    assert report["by_venue"]["09"]["market"] == 1
+    assert report["by_venue"]["09"]["valid_primary"] == 1
+    assert report["by_venue"]["09"]["complete_prediction_rate"] == 1.0

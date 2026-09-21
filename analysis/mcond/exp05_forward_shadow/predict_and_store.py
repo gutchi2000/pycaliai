@@ -9,7 +9,7 @@ market_snapshot.py の process_race() から呼ばれる。同一 race_id×horse
 from __future__ import annotations
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import joblib
@@ -27,6 +27,24 @@ OUT_DIR = BASE / "data" / "_research" / "mcond" / "exp05fs_predictions"
 FEATURES_DIR = BASE / "data" / "_research" / "mcond" / "exp05fs_features"
 FROZEN_PATH = HERE / "out" / "frozen_model.joblib"
 SPEC = json.loads((HERE / "spec.json").read_text(encoding="utf-8")) if (HERE / "spec.json").exists() else {}
+JST = timezone(timedelta(hours=9))
+
+
+def _is_retrospective(market_result: dict) -> bool:
+    """scheduled_post が既に過去なら True。回復生成が primary に紛れ込むのを防ぐ
+    (2026-09-21追加: store_prediction/store_market_only を発走後に直接呼ぶ将来の
+    リカバリツールに対する防御。通常経路の market_snapshot.process_race() は既に
+    発走時刻超過時に何も呼ばない設計だが、それに依存しない二重の安全策とする)。"""
+    sp = market_result.get("scheduled_post")
+    if not sp:
+        return False
+    try:
+        ts = datetime.fromisoformat(str(sp))
+    except Exception:
+        return False
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=JST)
+    return datetime.now(JST) >= ts
 
 _frozen_cache = None
 
@@ -44,8 +62,20 @@ def _artifact_hash() -> str:
 
 
 def _load_bundle_race(date_str: str, rid: str) -> dict:
+    """bundle.json から該当 race を取り出す。
+
+    bundle 自体が無い/race が bundle に無い場合、masters_vote.load_bundle_race() は
+    VoteError (RuntimeError 派生) を送出する。market_snapshot.py の呼び出し側は
+    「特徴量snapshot欠落」と同じ扱い (= store_market_only() へのフォールバック対象)
+    にしたいので、ここで FileNotFoundError に変換する (2026-09-21発見・修正: 以前は
+    VoteError のまま伝播し、呼び出し側の except FileNotFoundError に捕まらず
+    market snapshot ごと未分類エラーへ落ちて market_only 保存が働いていなかった)。
+    """
     import masters_vote as mv
-    return mv.load_bundle_race(date_str, rid)
+    try:
+        return mv.load_bundle_race(date_str, rid)
+    except mv.VoteError as exc:
+        raise FileNotFoundError(f"bundle race 欠落: {exc}") from exc
 
 
 def _devig_market(tansho: dict, active_bans: list[int]) -> dict[int, float]:
@@ -86,6 +116,7 @@ def store_market_only(date_str: str, rid: str, market_result: dict, reason: str)
         "market_snapshot_saved": True,
         "prediction_saved": False,
         "invalid_for_primary": True,
+        "retrospective_recovery": _is_retrospective(market_result),
         "reason": reason,
         "scheduled_start_time": market_result.get("scheduled_post"),
         "snapshot_time": (market_result.get("market") or {}).get("fetched"),
@@ -98,6 +129,7 @@ def store_market_only(date_str: str, rid: str, market_result: dict, reason: str)
 
 
 def store_prediction(date_str: str, rid: str, market_result: dict) -> Path:
+    retrospective = _is_retrospective(market_result)
     frozen = _frozen()
     model_hash = _artifact_hash()
 
@@ -192,8 +224,10 @@ def store_prediction(date_str: str, rid: str, market_result: dict) -> Path:
             "R1_virtual_action": "bet_100yen_fukusho" if r1 else "no_bet",
             "R2_virtual_action": None,  # レース単位で後段に埋める (最大p1頭)
             "virtual_stake": 100 if r1 else 0,
-            "valid_for_primary": bool(market_result.get("valid_for_primary")),
-            "invalid_reason": market_result.get("why") if not market_result.get("valid_for_primary") else None,
+            "retrospective_recovery": retrospective,
+            "valid_for_primary": bool(market_result.get("valid_for_primary")) and not retrospective,
+            "invalid_reason": ("発走後の回復生成 (retrospective_recovery)" if retrospective else
+                               (market_result.get("why") if not market_result.get("valid_for_primary") else None)),
             "feature_missing_columns": fmiss,
         }
         records.append(rec)

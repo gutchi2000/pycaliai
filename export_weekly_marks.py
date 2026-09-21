@@ -84,6 +84,43 @@ def build_tansho_idx_from_weekly(df: pd.DataFrame) -> dict:
     return tansho_idx
 
 
+def venue_odds_asymmetry_errors(races: list[dict]) -> list[str]:
+    """venue 別オッズ被覆率 canary (2026-09-21、venue06全欠測を教訓に追加)。
+
+    bundle 全体平均の odds_cov は、開催venueが2つ以上ある日に「1venueだけ0%・他は
+    正常」という偏りがあっても (両venue合算で50%前後になり) 見逃しうる (実際
+    2026-09-21 に venue06=0%/venue09≈100%で合算約53%となり全体ゲートを素通りした)。
+    venue単位で計算し、複数venue開催で1venueでもほぼ全滅(<10%)なのに他venueは
+    概ね正常(>=50%)という非対称が出たら push を止めるエラー文を返す
+    (真の全面中止は呼び出し側の全体50%ゲートが別途捕捉する)。races は除外せず全件
+    渡すこと (2026-09-21以前はここで該当venueをbundleから削除していたが、それ自体が
+    T-10/T-20/EXP05-Fの当該venue丸ごと欠測というより大きな実害を招いたため撤回した)。
+    """
+    venue_horses: dict[str, list] = {}
+    for r in races:
+        rid = str(r.get("race_id") or "")
+        venue = rid[8:10] if len(rid) >= 10 else "??"
+        venue_horses.setdefault(venue, []).extend(r.get("horses", []))
+    if len(venue_horses) < 2:
+        return []
+    venue_cov = {
+        v: (sum(1 for h in hs if h.get("tansho_odds") is not None) / len(hs) if hs else 0.0)
+        for v, hs in venue_horses.items()
+    }
+    dead_venues = [v for v, c in venue_cov.items() if c < 0.10]
+    alive_venues = [v for v, c in venue_cov.items() if c >= 0.50]
+    if dead_venues and alive_venues:
+        return [
+            "venue別オッズ被覆率が非対称: "
+            + ", ".join(f"{v}={c*100:.0f}%" for v, c in sorted(venue_cov.items()))
+            + f" (被覆ほぼ0%のvenue: {dead_venues} だが他venueは正常。"
+              f"該当venueの開催中止かTARGET/OD CSV配信遅延の可能性。"
+              f"中止確認できるまでbundleはこのまま全レース保持しpushしない。"
+              f"詳細: docs/research/EXP05F_OBSERVATION_STATUS_20260921.md 参照)"
+        ]
+    return []
+
+
 def build_odds_from_od_csv(date_str: str):
     """data/odds/OD{YYMMDD}.CSV があれば読んで (tansho_idx, fuku_idx, umaren_idx) を返す。
 
@@ -562,6 +599,20 @@ def main() -> int:
     for p in sorted(saved_paths):
         with open(p, encoding="utf-8") as f:
             races.append(json.load(f))
+
+    # ------ 中止/オッズ未確定レースの bundle 除外はしない (2026-09-21発見・撤回) ------
+    # 2026-09-21朝に「全馬 tansho_odds=None のレースは中止/未確定とみなし bundle から
+    # 除外する」フィルタを一時追加したが、同日実データで誤検知が確定した:
+    # venue06(中山)の12レース全てが weekly CSV/OD CSV 双方でオッズ未着 (TARGET側の
+    # 配信タイミングの問題、開催中止ではない) だったため全除外され、bundle 依存の
+    # T-10 自動馬券登録・T-20 サイトプレビュー登録・EXP05-F store_prediction が
+    # venue06 を丸ごと欠測した (venue09 は同フィルタに掛からず正常)。
+    # 「オッズが今無い」は「開催が中止」の十分条件ではない。真の全面中止 (台風等) は
+    # 下の絶対基準 canary (bundle 全体の odds_cov<0.5) が捕捉する。個別レースは
+    # tansho_odds=null のまま bundle に残す — 印(◎〇▲△△)はオッズ非依存で計算され、
+    # EV補正/T10補正印のみが odds null 分だけ効かなくなるが、実売買は T-10 時点で
+    # jvlink_odds.py が別途ライブ取得・fail-safe 判定するため bundle 内の odds 欠落が
+    # 誤発注に繋がることはない (docs/marks_schema.md, jvlink_odds.py 冒頭コメント参照)。
     with open(bundle_path, "w", encoding="utf-8") as f:
         json.dump({"date": date_str, "model": tag,
                    "race_count": len(races), "races": races},
@@ -625,6 +676,8 @@ def main() -> int:
             if pwin_cov < 0.9:
                 gate_errors.append(
                     f"p_win 非null率 {pwin_cov*100:.0f}% < 90% (モデル予測の大量失敗)")
+
+        gate_errors.extend(venue_odds_asymmetry_errors(races))
 
     # serve skew ゲート (audit 2026-06-15): 補正/調教 (_SERVE_RENAME) が serve 経路で
     # 死ぬと offline ◎複勝 62.08% → serve 57.53% (-4.55pt)・ECE複勝2.3倍に無言劣化する。
