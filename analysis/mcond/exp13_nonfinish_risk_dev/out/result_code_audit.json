@@ -1,0 +1,528 @@
+{
+ "source": "E:\\競馬過去走データ\\raw_data\\kekka_2010_2025_fix_raceid_v2__keyed.csv",
+ "total_rows": 781161,
+ "year_range": [
+  2010,
+  2025
+ ],
+ "code_class_counts": {
+  "numeric_finish": 774540,
+  "chuushi_mid_race_stop": 3740,
+  "jogai_exclude_prerace": 1443,
+  "torikeshi_withdraw_prerace": 1331,
+  "circled_number_demoted_finish": 107
+ },
+ "code_class_evidence": {
+  "chuushi_mid_race_stop": {
+   "n": 3740,
+   "started_eq_entered_rate": 0.9532,
+   "has_odds_rate": 1.0,
+   "has_time_rate": 0.0
+  },
+  "circled_number_demoted_finish": {
+   "n": 107,
+   "started_eq_entered_rate": 0.9252,
+   "has_odds_rate": 1.0,
+   "has_time_rate": 1.0
+  },
+  "jogai_exclude_prerace": {
+   "n": 1443,
+   "started_eq_entered_rate": 0.0,
+   "has_odds_rate": 0.0,
+   "has_time_rate": 0.0
+  },
+  "numeric_finish": {
+   "n": 774540,
+   "started_eq_entered_rate": 0.9539,
+   "has_odds_rate": 1.0,
+   "has_time_rate": 1.0
+  },
+  "torikeshi_withdraw_prerace": {
+   "n": 1331,
+   "started_eq_entered_rate": 0.0,
+   "has_odds_rate": 0.0,
+   "has_time_rate": 0.0
+  }
+ },
+ "by_year_surface": [
+  {
+   "year": 2010,
+   "surface": "ダ",
+   "rows": 24040,
+   "unique_races": 1652,
+   "started": 23924,
+   "positive": 104,
+   "positive_rate_pct": 0.4347
+  },
+  {
+   "year": 2010,
+   "surface": "芝",
+   "rows": 24562,
+   "unique_races": 1687,
+   "started": 24472,
+   "positive": 73,
+   "positive_rate_pct": 0.2983
+  },
+  {
+   "year": 2010,
+   "surface": "障害",
+   "rows": 1503,
+   "unique_races": 115,
+   "started": 1499,
+   "positive": 111,
+   "positive_rate_pct": 7.4049
+  },
+  {
+   "year": 2011,
+   "surface": "ダ",
+   "rows": 24411,
+   "unique_races": 1723,
+   "started": 24316,
+   "positive": 79,
+   "positive_rate_pct": 0.3249
+  },
+  {
+   "year": 2011,
+   "surface": "芝",
+   "rows": 23354,
+   "unique_races": 1625,
+   "started": 23284,
+   "positive": 67,
+   "positive_rate_pct": 0.2878
+  },
+  {
+   "year": 2011,
+   "surface": "障害",
+   "rows": 1370,
+   "unique_races": 105,
+   "started": 1367,
+   "positive": 75,
+   "positive_rate_pct": 5.4865
+  },
+  {
+   "year": 2012,
+   "surface": "ダ",
+   "rows": 24432,
+   "unique_races": 1659,
+   "started": 24327,
+   "positive": 108,
+   "positive_rate_pct": 0.444
+  },
+  {
+   "year": 2012,
+   "surface": "芝",
+   "rows": 24081,
+   "unique_races": 1681,
+   "started": 24011,
+   "positive": 89,
+   "positive_rate_pct": 0.3707
+  },
+  {
+   "year": 2012,
+   "surface": "障害",
+   "rows": 1443,
+   "unique_races": 114,
+   "started": 1441,
+   "positive": 88,
+   "positive_rate_pct": 6.1069
+  },
+  {
+   "year": 2013,
+   "surface": "ダ",
+   "rows": 24151,
+   "unique_races": 1657,
+   "started": 24069,
+   "positive": 110,
+   "positive_rate_pct": 0.457
+  },
+  {
+   "year": 2013,
+   "surface": "芝",
+   "rows": 24506,
+   "unique_races": 1684,
+   "started": 24450,
+   "positive": 86,
+   "positive_rate_pct": 0.3517
+  },
+  {
+   "year": 2013,
+   "surface": "障害",
+   "rows": 1387,
+   "unique_races": 113,
+   "started": 1382,
+   "positive": 66,
+   "positive_rate_pct": 4.7757
+  },
+  {
+   "year": 2014,
+   "surface": "ダ",
+   "rows": 24451,
+   "unique_races": 1666,
+   "started": 24367,
+   "positive": 102,
+   "positive_rate_pct": 0.4186
+  },
+  {
+   "year": 2014,
+   "surface": "芝",
+   "rows": 24493,
+   "unique_races": 1678,
+   "started": 24422,
+   "positive": 73,
+   "positive_rate_pct": 0.2989
+  },
+  {
+   "year": 2014,
+   "surface": "障害",
+   "rows": 1358,
+   "unique_races": 107,
+   "started": 1355,
+   "positive": 89,
+   "positive_rate_pct": 6.5683
+  },
+  {
+   "year": 2015,
+   "surface": "ダ",
+   "rows": 24415,
+   "unique_races": 1667,
+   "started": 24322,
+   "positive": 78,
+   "positive_rate_pct": 0.3207
+  },
+  {
+   "year": 2015,
+   "surface": "芝",
+   "rows": 24218,
+   "unique_races": 1677,
+   "started": 24146,
+   "positive": 72,
+   "positive_rate_pct": 0.2982
+  },
+  {
+   "year": 2015,
+   "surface": "障害",
+   "rows": 1359,
+   "unique_races": 110,
+   "started": 1354,
+   "positive": 62,
+   "positive_rate_pct": 4.579
+  },
+  {
+   "year": 2016,
+   "surface": "ダ",
+   "rows": 24484,
+   "unique_races": 1660,
+   "started": 24390,
+   "positive": 81,
+   "positive_rate_pct": 0.3321
+  },
+  {
+   "year": 2016,
+   "surface": "芝",
+   "rows": 24214,
+   "unique_races": 1684,
+   "started": 24147,
+   "positive": 76,
+   "positive_rate_pct": 0.3147
+  },
+  {
+   "year": 2016,
+   "surface": "障害",
+   "rows": 1378,
+   "unique_races": 110,
+   "started": 1373,
+   "positive": 54,
+   "positive_rate_pct": 3.933
+  },
+  {
+   "year": 2017,
+   "surface": "ダ",
+   "rows": 24446,
+   "unique_races": 1658,
+   "started": 24366,
+   "positive": 84,
+   "positive_rate_pct": 0.3447
+  },
+  {
+   "year": 2017,
+   "surface": "芝",
+   "rows": 23500,
+   "unique_races": 1689,
+   "started": 23432,
+   "positive": 73,
+   "positive_rate_pct": 0.3115
+  },
+  {
+   "year": 2017,
+   "surface": "障害",
+   "rows": 1353,
+   "unique_races": 108,
+   "started": 1350,
+   "positive": 64,
+   "positive_rate_pct": 4.7407
+  },
+  {
+   "year": 2018,
+   "surface": "ダ",
+   "rows": 24184,
+   "unique_races": 1656,
+   "started": 24075,
+   "positive": 100,
+   "positive_rate_pct": 0.4154
+  },
+  {
+   "year": 2018,
+   "surface": "芝",
+   "rows": 23063,
+   "unique_races": 1690,
+   "started": 22987,
+   "positive": 57,
+   "positive_rate_pct": 0.248
+  },
+  {
+   "year": 2018,
+   "surface": "障害",
+   "rows": 1371,
+   "unique_races": 108,
+   "started": 1371,
+   "positive": 76,
+   "positive_rate_pct": 5.5434
+  },
+  {
+   "year": 2019,
+   "surface": "ダ",
+   "rows": 23501,
+   "unique_races": 1652,
+   "started": 23374,
+   "positive": 86,
+   "positive_rate_pct": 0.3679
+  },
+  {
+   "year": 2019,
+   "surface": "芝",
+   "rows": 22723,
+   "unique_races": 1691,
+   "started": 22625,
+   "positive": 70,
+   "positive_rate_pct": 0.3094
+  },
+  {
+   "year": 2019,
+   "surface": "障害",
+   "rows": 1350,
+   "unique_races": 109,
+   "started": 1346,
+   "positive": 67,
+   "positive_rate_pct": 4.9777
+  },
+  {
+   "year": 2020,
+   "surface": "ダ",
+   "rows": 23851,
+   "unique_races": 1666,
+   "started": 23768,
+   "positive": 94,
+   "positive_rate_pct": 0.3955
+  },
+  {
+   "year": 2020,
+   "surface": "芝",
+   "rows": 23087,
+   "unique_races": 1683,
+   "started": 23017,
+   "positive": 80,
+   "positive_rate_pct": 0.3476
+  },
+  {
+   "year": 2020,
+   "surface": "障害",
+   "rows": 1344,
+   "unique_races": 107,
+   "started": 1342,
+   "positive": 70,
+   "positive_rate_pct": 5.2161
+  },
+  {
+   "year": 2021,
+   "surface": "ダ",
+   "rows": 24302,
+   "unique_races": 1713,
+   "started": 24220,
+   "positive": 76,
+   "positive_rate_pct": 0.3138
+  },
+  {
+   "year": 2021,
+   "surface": "芝",
+   "rows": 22239,
+   "unique_races": 1634,
+   "started": 22161,
+   "positive": 58,
+   "positive_rate_pct": 0.2617
+  },
+  {
+   "year": 2021,
+   "surface": "障害",
+   "rows": 1280,
+   "unique_races": 109,
+   "started": 1279,
+   "positive": 50,
+   "positive_rate_pct": 3.9093
+  },
+  {
+   "year": 2022,
+   "surface": "ダ",
+   "rows": 23850,
+   "unique_races": 1694,
+   "started": 23770,
+   "positive": 78,
+   "positive_rate_pct": 0.3281
+  },
+  {
+   "year": 2022,
+   "surface": "芝",
+   "rows": 22185,
+   "unique_races": 1655,
+   "started": 22103,
+   "positive": 67,
+   "positive_rate_pct": 0.3031
+  },
+  {
+   "year": 2022,
+   "surface": "障害",
+   "rows": 1185,
+   "unique_races": 107,
+   "started": 1181,
+   "positive": 68,
+   "positive_rate_pct": 5.7578
+  },
+  {
+   "year": 2023,
+   "surface": "ダ",
+   "rows": 23693,
+   "unique_races": 1653,
+   "started": 23602,
+   "positive": 81,
+   "positive_rate_pct": 0.3432
+  },
+  {
+   "year": 2023,
+   "surface": "芝",
+   "rows": 22732,
+   "unique_races": 1694,
+   "started": 22650,
+   "positive": 64,
+   "positive_rate_pct": 0.2826
+  },
+  {
+   "year": 2023,
+   "surface": "障害",
+   "rows": 1247,
+   "unique_races": 109,
+   "started": 1241,
+   "positive": 74,
+   "positive_rate_pct": 5.9629
+  },
+  {
+   "year": 2024,
+   "surface": "ダ",
+   "rows": 23701,
+   "unique_races": 1679,
+   "started": 23603,
+   "positive": 116,
+   "positive_rate_pct": 0.4915
+  },
+  {
+   "year": 2024,
+   "surface": "芝",
+   "rows": 22289,
+   "unique_races": 1666,
+   "started": 22201,
+   "positive": 72,
+   "positive_rate_pct": 0.3243
+  },
+  {
+   "year": 2024,
+   "surface": "障害",
+   "rows": 1191,
+   "unique_races": 109,
+   "started": 1190,
+   "positive": 54,
+   "positive_rate_pct": 4.5378
+  },
+  {
+   "year": 2025,
+   "surface": "ダ",
+   "rows": 23664,
+   "unique_races": 1647,
+   "started": 23594,
+   "positive": 90,
+   "positive_rate_pct": 0.3815
+  },
+  {
+   "year": 2025,
+   "surface": "芝",
+   "rows": 23021,
+   "unique_races": 1706,
+   "started": 22928,
+   "positive": 78,
+   "positive_rate_pct": 0.3402
+  },
+  {
+   "year": 2025,
+   "surface": "障害",
+   "rows": 1199,
+   "unique_races": 102,
+   "started": 1193,
+   "positive": 50,
+   "positive_rate_pct": 4.1911
+  }
+ ],
+ "by_surface_total": {
+  "ダ": {
+   "rows": 385576,
+   "unique_races": 26702,
+   "started": 384087,
+   "positive": 1467,
+   "positive_rate_pct": 0.3819
+  },
+  "芝": {
+   "rows": 374267,
+   "unique_races": 26824,
+   "started": 373036,
+   "positive": 1155,
+   "positive_rate_pct": 0.3096
+  },
+  "障害": {
+   "rows": 21318,
+   "unique_races": 1742,
+   "started": 21264,
+   "positive": 1118,
+   "positive_rate_pct": 5.2577
+  }
+ },
+ "flat_by_debut": {
+  "false": {
+   "started": 694454,
+   "positive": 2358,
+   "rate_pct": 0.3395
+  },
+  "true": {
+   "started": 62669,
+   "positive": 264,
+   "rate_pct": 0.4213
+  }
+ },
+ "flat_by_age_group": {
+  "2yo": {
+   "started": 131422,
+   "positive": 430,
+   "rate_pct": 0.3272
+  },
+  "3yo_plus": {
+   "started": 625701,
+   "positive": 2192,
+   "rate_pct": 0.3503
+  }
+ }
+}
