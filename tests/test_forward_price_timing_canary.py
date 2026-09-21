@@ -17,6 +17,7 @@ from analysis.forward_price_timing_canary import (
     minutes_to_post,
     scan,
     load_timing_valid_records,
+    require_timing_gate,
 )
 
 
@@ -148,3 +149,49 @@ def test_scan_does_not_flag_decision_records(tmp_path: Path):
     report = scan(root=tmp_path)
     assert report["anomaly_count"] == 0
     assert report["by_stage"] == {}
+
+
+# ------------------------------------------------------------------
+# 2026-09-22: ユーザー指摘対応。「load_timing_valid_records()を将来の推奨関数と
+# するだけでなく、価格形成研究の入力コードが生のarchiveを直接読めないことを
+# テストまたは明示的なGateで保証してください」への回答としての require_timing_gate()。
+# ------------------------------------------------------------------
+
+def test_require_timing_gate_accepts_output_of_load_timing_valid_records(tmp_path: Path):
+    _write_snapshot(tmp_path, "2026090109040701", "t10",
+                    "2026-09-01T09:50:00", "2026-09-01T09:40:00.100")
+    records = load_timing_valid_records("t10", root=tmp_path)
+    require_timing_gate(records)  # 例外が出なければOK
+
+
+def test_require_timing_gate_rejects_raw_dict_not_passed_through_gate():
+    """load_timing_valid_records() を経由しない生dict (=生archiveを直接globして
+    読んだ場合の典型形) は、gate未通過マーカーが無いため必ず弾かれる。将来の
+    価格形成研究コードがこのgateを呼び忘れる/迂回することへの最後の防波堤。"""
+    raw_direct_read = {"race_id": "2026090601020601", "stage": "t10",
+                       "scheduled_post": "2026-09-06T09:50:00",
+                       "observed_at": "2026-09-10T00:58:35.466"}  # 実際の-5,228分異常そのもの
+    with pytest.raises(ValueError, match="timing gate"):
+        require_timing_gate([raw_direct_read])
+
+
+def test_require_timing_gate_rejects_mixed_batch_even_if_only_one_record_bypassed():
+    good = {"race_id": "2026090109040701", "_timing_gate_passed": True}
+    bypassed = {"race_id": "2026090601020601"}  # gateを経由していない
+    with pytest.raises(ValueError):
+        require_timing_gate([good, bypassed])
+
+
+def test_require_timing_gate_would_have_caught_the_actual_5228_anomaly_if_read_raw(
+        tmp_path: Path):
+    """回帰の核心: もし将来の研究コードが load_timing_valid_records() を使わず
+    forward_prices.read_snapshot() 等で生archiveを直接読んで組み立てたバッチを
+    そのままモデルへ渡そうとしても、require_timing_gate() がgate未通過として
+    必ず止める (=2026090601020601の-5,228分異常データが学習に混入する事故を
+    構造的に防げる)。"""
+    import forward_prices as fp
+    path = _write_snapshot(tmp_path, "2026090601020601", "t10",
+                           "2026-09-06T09:50:00", "2026-09-10T00:58:35.466")
+    raw_batch = [fp.read_snapshot(path)]  # 生archiveの直接読み込みをシミュレート
+    with pytest.raises(ValueError, match="timing gate"):
+        require_timing_gate(raw_batch)

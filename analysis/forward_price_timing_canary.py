@@ -154,10 +154,20 @@ def scan(root: Path = FORWARD_ROOT) -> dict:
     }
 
 
+_GATE_MARKER = "_timing_gate_passed"
+
+
 def load_timing_valid_records(stage: str, root: Path = FORWARD_ROOT):
     """将来の価格形成研究向け: 指定stageの timing_valid=True レコードだけを
     読み込んで返す (学習データからwindow外レコードを除外するための唯一の入口として
-    使うことを想定。フィルタを各研究スクリプトで再実装しないこと)。"""
+    使うことを想定。フィルタを各研究スクリプトで再実装しないこと)。
+
+    返す各dictにはこの関数を通過した印 (`_timing_gate_passed=True`) を刻む。
+    `require_timing_gate()` と組み合わせ、将来の価格形成研究の入力コードが
+    `data/forward_prices/` を直接globして (=このgateを経由せず) window外レコードを
+    紛れ込ませていないことを、実行時に強制できるようにする (2026-09-22追加、
+    ユーザー指摘対応: 「推奨関数」であるだけでは将来のコードが直接読むのを防げない
+    という指摘に対する、テストで検証可能な明示的Gate)。"""
     out = []
     for p, d, err in _iter_records(root):
         if err is not None or d is None:
@@ -166,8 +176,29 @@ def load_timing_valid_records(stage: str, root: Path = FORWARD_ROOT):
             continue
         valid, _reason, _m = classify_timing(stage, d.get("scheduled_post"), d.get("observed_at"))
         if valid:
-            out.append(d)
+            stamped = dict(d)
+            stamped[_GATE_MARKER] = True
+            out.append(stamped)
     return out
+
+
+def require_timing_gate(records: list[dict]) -> None:
+    """価格形成研究の学習データ組成コードは、モデルへ渡す直前に必ずこれを呼ぶこと。
+
+    `load_timing_valid_records()` を経由していない (=生の `data/forward_prices/`
+    をglob等で直接読んでwindow外レコードが混じっている可能性がある) レコードが
+    1件でも見つかれば ValueError で止める。「推奨関数として提供する」だけでは
+    将来のコードがそれを無視して直接読むのを防げない、というユーザー指摘への
+    対応 (2026-09-22)。価格形成研究の入力パイプラインは、このgateを通過しない
+    限りモデルへデータを渡せない設計にすること。"""
+    for i, r in enumerate(records):
+        if not r.get(_GATE_MARKER):
+            raise ValueError(
+                f"timing gate 未通過のレコードが混入 (index={i}, "
+                f"race_id={r.get('race_id')!r}). load_timing_valid_records() を "
+                f"経由せず data/forward_prices/ を直接読んでいないか確認すること。"
+                f"window外(timing_valid=false)レコードが価格形成モデルの学習データへ"
+                f"混入する事故を防ぐための必須gateです。")
 
 
 def main() -> int:

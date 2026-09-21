@@ -92,26 +92,52 @@ def build_report(date_str: str) -> dict:
         datetime.fromtimestamp(weekly.stat().st_mtime).isoformat(timespec="seconds")
         if weekly.exists() else None)
 
-    # ---- 市場snapshot (odds JSON) ----
+    # ---- 市場snapshot (odds JSON): usable(ok=true) / unusable(ok=false) を分離 ----
+    # (2026-09-22追加: 従来は ok=true のみ数えていたが、「market captureが何件
+    # 失敗したか」を明示するため unusable も別途数える)
     odds_files = sorted(ODDS_DIR.glob(f"{date_str}*.json"))
     market_ok_rids = set()
+    market_fail_rids = set()
     for p in odds_files:
         try:
             d = json.loads(p.read_text(encoding="utf-8"))
         except Exception:
             continue
-        if d.get("ok"):
-            market_ok_rids.add(_rid16_from_odds_filename(p))
-    out["market_observations"] = len(market_ok_rids)
+        rid = _rid16_from_odds_filename(p)
+        (market_ok_rids if d.get("ok") else market_fail_rids).add(rid)
+    out["market_observations"] = len(market_ok_rids)          # 後方互換 (=usable件数)
+    out["usable_market_observations"] = len(market_ok_rids)
+    out["unusable_market_records"] = len(market_fail_rids)
+    out["collection_failures"] = len(market_fail_rids)        # market capture自体の失敗数
     out["fired_task_count"] = len(odds_files)  # oddsファイルが存在する=タスクが発火し取得を試みた
 
-    # ---- market-only 保存 ----
+    # ---- market-only 保存: market_capture_success で「使えるmarketがあるのに
+    # predictionだけ失敗」と「market capture自体が失敗」を厳密に分離する ----
+    # (2026-09-22追加、ユーザー指摘対応: 従来は marketonly ファイルの存在だけで
+    # 「market_only」と扱っており、2026-09-21 venue06のように market capture自体が
+    # 失敗(ok=false)していてもmarket_only件数に混入していた。predict_and_store.py
+    # 2026-09-22修正で新規保存分には market_capture_success フィールドが付くが、
+    # それ以前の既存ファイルは market_ok フィールドへ後方互換フォールバックする
+    # (ファイルは削除・上書きしない、ここでの再分類のみで訂正する)。
     day_pred_dir = PRED_DIR / date_str
     marketonly_rids = set()
+    market_only_usable_rids = set()
+    market_only_capture_failed_rids = set()
     if day_pred_dir.exists():
         for p in day_pred_dir.glob("*_marketonly_rev1.json"):
-            marketonly_rids.add(p.name.split("_marketonly_")[0])
-    out["market_only_count"] = len(marketonly_rids)
+            rid = p.name.split("_marketonly_")[0]
+            marketonly_rids.add(rid)
+            try:
+                d = json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            capture_ok = d.get("market_capture_success")
+            if capture_ok is None:
+                capture_ok = d.get("market_ok")  # 2026-09-22修正前の既存ファイル向けfallback
+            (market_only_usable_rids if capture_ok else market_only_capture_failed_rids).add(rid)
+    out["market_only_count"] = len(marketonly_rids)  # 後方互換 (=marketonlyファイル全件)
+    out["market_only_with_usable_odds"] = len(market_only_usable_rids)  # 狭義の正しい定義
+    out["market_only_capture_failed_count"] = len(market_only_capture_failed_rids)
 
     # ---- 完全予測保存 (M1/M3/M4) ----
     complete_rids = set()
@@ -144,27 +170,32 @@ def build_report(date_str: str) -> dict:
             else:
                 invalid_reasons[str(rec0.get("invalid_reason"))] += 1
     out["complete_prediction_observations"] = len(complete_rids)
+    out["complete_predictions"] = len(complete_rids)  # 2026-09-22: ユーザー指定名のalias
     out["valid_primary_observations"] = len(valid_primary_rids)
     out["invalid_for_primary_count"] = len(complete_rids) - len(valid_primary_rids)
     out["invalid_for_primary_reasons"] = dict(invalid_reasons)
     out["retrospective_recovery_count"] = len(retrospective_rids)
 
-    # ---- venue別内訳 (2026-09-21追加: venue06全欠測の教訓。scheduled/fired/market/
-    # market_only/complete/valid_primaryをrid16[8:10](場コード)別に集計する) ----
+    # ---- venue別内訳 (2026-09-21追加: venue06全欠測の教訓。2026-09-22改訂:
+    # market_only は狭義(market_only_with_usable_odds)を使う。collection_failures
+    # (market capture失敗) をvenue別に見えるようにする) ----
     fired_rids = {_rid16_from_odds_filename(p) for p in odds_files}
     by_venue: dict[str, dict] = {}
-    for rid in (scheduled_rids | fired_rids | market_ok_rids | marketonly_rids
-               | complete_rids | valid_primary_rids):
+    for rid in (scheduled_rids | fired_rids | market_ok_rids | market_fail_rids
+               | market_only_usable_rids | complete_rids | valid_primary_rids):
         v = _venue_of(rid)
         by_venue.setdefault(v, {"scheduled": 0, "fired": 0, "market": 0,
-                                "market_only": 0, "complete": 0, "valid_primary": 0})
+                                "collection_failures": 0, "market_only": 0,
+                                "complete": 0, "valid_primary": 0})
     for rid in scheduled_rids:
         by_venue[_venue_of(rid)]["scheduled"] += 1
     for rid in fired_rids:
         by_venue[_venue_of(rid)]["fired"] += 1
     for rid in market_ok_rids:
         by_venue[_venue_of(rid)]["market"] += 1
-    for rid in marketonly_rids:
+    for rid in market_fail_rids:
+        by_venue[_venue_of(rid)]["collection_failures"] += 1
+    for rid in market_only_usable_rids:
         by_venue[_venue_of(rid)]["market_only"] += 1
     for rid in complete_rids:
         by_venue[_venue_of(rid)]["complete"] += 1

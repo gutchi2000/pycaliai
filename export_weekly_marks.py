@@ -84,41 +84,60 @@ def build_tansho_idx_from_weekly(df: pd.DataFrame) -> dict:
     return tansho_idx
 
 
-def venue_odds_asymmetry_errors(races: list[dict]) -> list[str]:
-    """venue 別オッズ被覆率 canary (2026-09-21、venue06全欠測を教訓に追加)。
-
-    bundle 全体平均の odds_cov は、開催venueが2つ以上ある日に「1venueだけ0%・他は
-    正常」という偏りがあっても (両venue合算で50%前後になり) 見逃しうる (実際
-    2026-09-21 に venue06=0%/venue09≈100%で合算約53%となり全体ゲートを素通りした)。
-    venue単位で計算し、複数venue開催で1venueでもほぼ全滅(<10%)なのに他venueは
-    概ね正常(>=50%)という非対称が出たら push を止めるエラー文を返す
-    (真の全面中止は呼び出し側の全体50%ゲートが別途捕捉する)。races は除外せず全件
-    渡すこと (2026-09-21以前はここで該当venueをbundleから削除していたが、それ自体が
-    T-10/T-20/EXP05-Fの当該venue丸ごと欠測というより大きな実害を招いたため撤回した)。
-    """
+def venue_odds_coverage(races: list[dict]) -> dict[str, float]:
+    """venue(race_id[8:10])別のtansho_odds非null率を返す。"""
     venue_horses: dict[str, list] = {}
     for r in races:
         rid = str(r.get("race_id") or "")
         venue = rid[8:10] if len(rid) >= 10 else "??"
         venue_horses.setdefault(venue, []).extend(r.get("horses", []))
-    if len(venue_horses) < 2:
-        return []
-    venue_cov = {
+    return {
         v: (sum(1 for h in hs if h.get("tansho_odds") is not None) / len(hs) if hs else 0.0)
         for v, hs in venue_horses.items()
     }
-    dead_venues = [v for v, c in venue_cov.items() if c < 0.10]
-    alive_venues = [v for v, c in venue_cov.items() if c >= 0.50]
-    if dead_venues and alive_venues:
-        return [
-            "venue別オッズ被覆率が非対称: "
-            + ", ".join(f"{v}={c*100:.0f}%" for v, c in sorted(venue_cov.items()))
-            + f" (被覆ほぼ0%のvenue: {dead_venues} だが他venueは正常。"
-              f"該当venueの開催中止かTARGET/OD CSV配信遅延の可能性。"
-              f"中止確認できるまでbundleはこのまま全レース保持しpushしない。"
-              f"詳細: docs/research/EXP05F_OBSERVATION_STATUS_20260921.md 参照)"
-        ]
-    return []
+
+
+def annotate_venue_odds_degradation(races: list[dict]) -> list[str]:
+    """venue 別オッズ被覆率の非対称を検知し、degradedなvenueのレース/馬へ
+    `morning_odds_unavailable=true` を付与する (2026-09-21、venue06全欠測を教訓に
+    追加。2026-09-22、ユーザー指摘によりpushブロック(gate_errors)からの分離に改訂)。
+
+    ★重要: これは push を止める gate ではない。1venueだけ朝オッズが取れていない
+    (TARGET/OD CSV配信遅延等) からといって、正常な他venueの配信・bundle更新・
+    T-10/T-20タスク登録用のrace listを止めてはならない — それ自体がvenue丸ごと
+    欠測という、オッズ欠損そのものより大きな実害を生む (2026-09-21実インシデントの
+    教訓)。races は除外せず全件そのままbundleに残し、印/p_winは通常どおり生成する。
+    購入可否はここでは一切決めない — 本来のT-10ライブオッズfail-safe
+    (jvlink_odds.py→compute_bets.py) が発走直前に個別レース単位で判定する。
+    race list生成(このbundle)とbet eligibility判定(T-10側)は完全に分離されたまま。
+
+    真の全面中止 (台風等、全venue0%) はこの関数の対象外 — 呼び出し側の
+    bundle全体 odds_cov<50% ゲート (venue問わず全滅時のみ発火) が別途捕捉する。
+    """
+    venue_cov = venue_odds_coverage(races)
+    if len(venue_cov) < 2:
+        return []
+    dead_venues = {v for v, c in venue_cov.items() if c < 0.10}
+    alive_venues = {v for v, c in venue_cov.items() if c >= 0.50}
+    if not (dead_venues and alive_venues):
+        return []
+    for r in races:
+        rid = str(r.get("race_id") or "")
+        venue = rid[8:10] if len(rid) >= 10 else "??"
+        if venue not in dead_venues:
+            continue
+        r.setdefault("race_meta", {})["morning_odds_unavailable"] = True
+        for h in r.get("horses", []):
+            h["morning_odds_unavailable"] = True
+    return [
+        "venue別オッズ被覆率が非対称 (push は止めない、degraded venueへ "
+        "morning_odds_unavailable=true を付与): "
+        + ", ".join(f"{v}={c*100:.0f}%" for v, c in sorted(venue_cov.items()))
+        + f" (被覆ほぼ0%: {sorted(dead_venues)} / 正常: {sorted(alive_venues)}。"
+          f"該当venueの開催中止かTARGET/OD CSV配信遅延の可能性。bet可否は"
+          f"T-10ライブオッズfail-safeが個別に判定するため本警告だけでは何も止めない。"
+          f"詳細: docs/research/EXP05F_OBSERVATION_STATUS_20260921.md 参照)"
+    ]
 
 
 def build_odds_from_od_csv(date_str: str):
@@ -613,9 +632,20 @@ def main() -> int:
     # EV補正/T10補正印のみが odds null 分だけ効かなくなるが、実売買は T-10 時点で
     # jvlink_odds.py が別途ライブ取得・fail-safe 判定するため bundle 内の odds 欠落が
     # 誤発注に繋がることはない (docs/marks_schema.md, jvlink_odds.py 冒頭コメント参照)。
+    #
+    # ------ venue別オッズ被覆率の非対称警告 (2026-09-22、push非ブロック化に改訂) ------
+    # 1venueだけ朝オッズが取れていない場合、degradedなvenueのレース/馬へ
+    # morning_odds_unavailable=true を付与するだけで、bundle生成・push・
+    # T-10/T-20タスク登録は一切止めない (gate_errorsには入れない)。正常venueを
+    # 巻き込む全体停止の禁止はユーザー指示 (2026-09-22)。
+    venue_warnings = annotate_venue_odds_degradation(races)
+    for vw in venue_warnings:
+        logger.warning(f"[venue odds degraded] {vw}")
+
     with open(bundle_path, "w", encoding="utf-8") as f:
         json.dump({"date": date_str, "model": tag,
-                   "race_count": len(races), "races": races},
+                   "race_count": len(races), "races": races,
+                   "venue_warnings": venue_warnings},
                   f, indent=2, ensure_ascii=False)
     logger.info(f"[bundle] {bundle_path}  ({len(races):,} races, "
                 f"{bundle_path.stat().st_size/1024:.1f} KB)")
@@ -669,15 +699,20 @@ def main() -> int:
                            if h.get("tansho_odds") is not None) / len(all_horses)
             pwin_cov = sum(1 for h in all_horses
                            if h.get("p_win") is not None) / len(all_horses)
-            if odds_cov < 0.5:
+            # 2026-09-22改訂: venue_warnings が出ている (=1venueだけ死んでいて他は
+            # 生きている、部分degradation) 場合、この全体50%ゲートは適用しない。
+            # 適用すると「正常venueのレースまで配信しない」という禁止事項に抵触する
+            # (2026-09-21実インシデント: venue06=0%/venue09≈100%で合算約50%となり、
+            # このゲートが venue09 まで巻き込んで push を止めかけた)。全venueが
+            # 死んでいる (=venue_warningsが出ない、alive venueが無い) 真の全面中止
+            # 候補のときだけ、このゲートが最後の砦として機能する。
+            if odds_cov < 0.5 and not venue_warnings:
                 gate_errors.append(
                     f"単勝オッズ被覆率 {odds_cov*100:.0f}% < 50% "
                     f"(週次CSVの単勝列欠落? EV判断が全滅する)")
             if pwin_cov < 0.9:
                 gate_errors.append(
                     f"p_win 非null率 {pwin_cov*100:.0f}% < 90% (モデル予測の大量失敗)")
-
-        gate_errors.extend(venue_odds_asymmetry_errors(races))
 
     # serve skew ゲート (audit 2026-06-15): 補正/調教 (_SERVE_RENAME) が serve 経路で
     # 死ぬと offline ◎複勝 62.08% → serve 57.53% (-4.55pt)・ECE複勝2.3倍に無言劣化する。

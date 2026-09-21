@@ -101,18 +101,39 @@ def _existing_revisions(date_str: str, rid: str, model_hash: str) -> list[Path]:
 
 
 def store_market_only(date_str: str, rid: str, market_result: dict, reason: str) -> Path:
-    """特徴量snapshot等が無くM1/M3/M4を計算できない場合でも、取得済みの市場snapshotを
-    捨てずに保存する (spec: 市場データを捨てない)。
-    market_snapshot_saved=true / prediction_saved=false / invalid_for_primary=true を明示する。
-    同一race_idへの複数回の market_only 保存も revision で追記のみ (上書きしない)。"""
+    """特徴量snapshot等が無く、または bundle に race が無くM1/M3/M4を計算できない場合でも、
+    取得を試みた市場snapshotを捨てずに保存する (spec: 市場データを捨てない)。
+    prediction_saved=false / invalid_for_primary=true は常に真 (この関数が呼ばれる時点で
+    predictionは保存できていない)。同一race_idへの複数回の market_only 保存も revision で
+    追記のみ (上書きしない)。
+
+    ★2026-09-22追加 (ユーザー指摘): market_result["ok"] (=JV-Link取得そのものの成否) を
+    厳密に反映した4分類フィールドを持つ。従来はJV-Link取得が失敗(ok=false、例:
+    「no O1 record」)していても一律このmarket_only保存経路に乗り、observation_report側で
+    「market_only件数」として「使えるmarket snapshotはあるがpredictionだけ失敗した」
+    件数であるかのように誤集計されていた (2026-09-21 venue06: market=0/market_only=1が
+    その実例、実際はmarket capture自体が失敗していた)。以下のフィールドで正しく分離する:
+      market_capture_success : JV-Link取得が成功し使用可能なoddsを含むsnapshot
+      market_only            : market_capture_success かつ prediction未保存
+                                (=「使えるmarket snapshotはあるがpredictionだけ失敗」の
+                                狭義の定義。market capture自体が失敗した場合はfalse)
+      market_capture_failure : JV-Link失敗・空odds・利用不能snapshot (=not market_capture_success)
+      prediction_failure     : 常にtrue (この関数が呼ばれる時点でpredictionは未保存)
+    既存の market_ok / market_snapshot_saved フィールドは後方互換のため残す
+    (market_snapshot_saved=true は「保存を試みた」の意味で、使用可能性は問わない)。"""
     d = OUT_DIR / date_str
     d.mkdir(parents=True, exist_ok=True)
     existing = sorted(d.glob(f"{rid}_marketonly_rev*.json"))
     rev = len(existing) + 1
     path = d / f"{rid}_marketonly_rev{rev}.json"
+    market_capture_success = bool(market_result.get("ok"))
     record = {
         "race_id": rid, "date": date_str, "revision": rev,
         "saved_at": datetime.now().isoformat(timespec="seconds"),
+        "market_capture_success": market_capture_success,
+        "market_only": market_capture_success,
+        "market_capture_failure": not market_capture_success,
+        "prediction_failure": True,
         "market_snapshot_saved": True,
         "prediction_saved": False,
         "invalid_for_primary": True,
@@ -120,7 +141,7 @@ def store_market_only(date_str: str, rid: str, market_result: dict, reason: str)
         "reason": reason,
         "scheduled_start_time": market_result.get("scheduled_post"),
         "snapshot_time": (market_result.get("market") or {}).get("fetched"),
-        "market_ok": bool(market_result.get("ok")),
+        "market_ok": market_capture_success,
         "market_valid_for_primary_window": bool(market_result.get("valid_for_primary")),
         "raw_market": market_result.get("market"),
     }

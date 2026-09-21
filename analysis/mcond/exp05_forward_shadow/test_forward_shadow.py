@@ -440,6 +440,47 @@ def test_store_market_only_future_race_not_flagged_retrospective(tmp_path, monke
     assert rec["retrospective_recovery"] is False
 
 
+# ==================================================================
+# 2026-09-22: ユーザー指摘による market-only の意味の厳密化。
+# 2026-09-21 venue06 の実報告で market=0/market_only=1 となり、「market captureが
+# 失敗したレース」が「使えるmarket snapshotはあるがpredictionだけ失敗した」かの
+# ように見えてしまっていた誤りを修正する回帰テスト。
+# ==================================================================
+
+def test_store_market_only_capture_failure_is_not_market_only(tmp_path, monkeypatch):
+    """market_result.ok=false (JV-Link取得失敗、例: 'no O1 record') の場合は
+    market_capture_success=false かつ market_only=false・market_capture_failure=true
+    になる (2026-09-21 venue06の実例: market=0/market_only=1という誤集計の直接原因)。"""
+    monkeypatch.setattr(pas, "OUT_DIR", tmp_path)
+    market_result = {"ok": False, "valid_for_primary": False,
+                     "scheduled_post": "2099-01-01T15:30:00+09:00",
+                     "market": {"ok": False, "reason": "no O1 record",
+                               "fetched": "2099-01-01T14:55:00"}}
+    path = pas.store_market_only("20990101", "9999010106040711", market_result,
+                                 reason="bundle_race_missing")
+    rec = json.loads(path.read_text(encoding="utf-8"))
+    assert rec["market_capture_success"] is False
+    assert rec["market_only"] is False
+    assert rec["market_capture_failure"] is True
+    assert rec["prediction_failure"] is True
+    assert rec["market_snapshot_saved"] is True  # 保存自体は試みた(捨てない)ことは変わらない
+    assert rec["prediction_saved"] is False
+
+
+def test_store_market_only_capture_success_flags_correctly(tmp_path, monkeypatch):
+    monkeypatch.setattr(pas, "OUT_DIR", tmp_path)
+    market_result = {"ok": True, "valid_for_primary": False,
+                     "scheduled_post": "2099-01-01T10:00:00+09:00",
+                     "market": {"fetched": "2099-01-01T09:50:00", "tansho": {"1": 3.0}}}
+    path = pas.store_market_only("20990101", "9999010109040701", market_result,
+                                 reason="weekly_input_unavailable")
+    rec = json.loads(path.read_text(encoding="utf-8"))
+    assert rec["market_capture_success"] is True
+    assert rec["market_only"] is True
+    assert rec["market_capture_failure"] is False
+    assert rec["prediction_failure"] is True
+
+
 # ---- venue別ID形式・被覆率レポート (observation_report.py) ----
 def test_venue_of_preserves_leading_zero_for_all_10_jra_venues():
     from analysis.mcond.exp05_forward_shadow.observation_report import _venue_of
@@ -491,8 +532,71 @@ def test_observation_report_by_venue_isolates_dead_venue_from_healthy_one(tmp_pa
     report = OR.build_report(date_str)
     assert report["by_venue"]["06"]["scheduled"] == 1
     assert report["by_venue"]["06"]["market"] == 0
+    assert report["by_venue"]["06"]["collection_failures"] == 1
     assert report["by_venue"]["06"]["complete"] == 0
     assert report["by_venue"]["06"]["complete_prediction_rate"] == 0.0
     assert report["by_venue"]["09"]["market"] == 1
+    assert report["by_venue"]["09"]["collection_failures"] == 0
     assert report["by_venue"]["09"]["valid_primary"] == 1
     assert report["by_venue"]["09"]["complete_prediction_rate"] == 1.0
+    assert report["collection_failures"] == 1
+    assert report["usable_market_observations"] == 1
+    assert report["unusable_market_records"] == 1
+
+
+def test_observation_report_market_only_reclassification_2026_venue06_case(tmp_path, monkeypatch):
+    """2026-09-21 venue06の実例そのものの再現: market capture自体が失敗(ok=false)
+    しているレースは、たとえ marketonly_rev1.json が保存されていても
+    market_only_with_usable_odds には数えない (=「使えるmarket+prediction失敗」
+    ではなく「market capture失敗」の方へ分類する)。ファイルは削除・上書きせず
+    report側の分類だけで訂正する、という要求そのものを検証する。"""
+    from analysis.mcond.exp05_forward_shadow import observation_report as OR
+    date_str = "20260921"
+    odds_dir = tmp_path / "odds"; odds_dir.mkdir()
+    pred_dir = tmp_path / "pred" / date_str; pred_dir.mkdir(parents=True)
+    monkeypatch.setattr(OR, "ODDS_DIR", odds_dir)
+    monkeypatch.setattr(OR, "PRED_DIR", tmp_path / "pred")
+    monkeypatch.setattr(OR, "CALENDAR_DIR", tmp_path / "calendar")
+    monkeypatch.setattr(OR, "WEEKLY_DIR", tmp_path / "weekly")
+    monkeypatch.setattr(OR, "LOGS_DIR", tmp_path / "logs")
+    monkeypatch.setattr(OR, "_current_model_hash", lambda: "deadbeef00000000")
+
+    # 実際の2026092106040711のmarketonly_rev1.jsonを模した内容 (market_capture_success
+    # フィールドを含む、2026-09-22修正後の新形式)
+    (pred_dir / "2026092106040711_marketonly_rev1.json").write_text(json.dumps({
+        "race_id": "2026092106040711", "market_capture_success": False,
+        "market_only": False, "market_capture_failure": True,
+        "prediction_failure": True, "market_snapshot_saved": True,
+        "prediction_saved": False, "market_ok": False,
+    }), encoding="utf-8")
+
+    report = OR.build_report(date_str)
+    assert report["market_only_count"] == 1              # ファイルは存在する(後方互換カウント)
+    assert report["market_only_with_usable_odds"] == 0    # だが狭義の定義では0件
+    assert report["market_only_capture_failed_count"] == 1
+
+
+def test_observation_report_market_only_backward_compat_old_format_file(tmp_path, monkeypatch):
+    """2026-09-22修正前 (market_capture_success フィールド無し) の既存ファイルは
+    market_ok フィールドへフォールバックして正しく分類できること (ファイル自体は
+    書き換えていないので、report側だけでの再分類が機能する必要がある)。"""
+    from analysis.mcond.exp05_forward_shadow import observation_report as OR
+    date_str = "20990101"
+    odds_dir = tmp_path / "odds"; odds_dir.mkdir()
+    pred_dir = tmp_path / "pred" / date_str; pred_dir.mkdir(parents=True)
+    monkeypatch.setattr(OR, "ODDS_DIR", odds_dir)
+    monkeypatch.setattr(OR, "PRED_DIR", tmp_path / "pred")
+    monkeypatch.setattr(OR, "CALENDAR_DIR", tmp_path / "calendar")
+    monkeypatch.setattr(OR, "WEEKLY_DIR", tmp_path / "weekly")
+    monkeypatch.setattr(OR, "LOGS_DIR", tmp_path / "logs")
+    monkeypatch.setattr(OR, "_current_model_hash", lambda: "deadbeef00000000")
+
+    # 旧形式: market_capture_success が無く market_ok のみ (capture成功のケース)
+    (pred_dir / "9999010109040701_marketonly_rev1.json").write_text(json.dumps({
+        "race_id": "9999010109040701", "market_snapshot_saved": True,
+        "prediction_saved": False, "market_ok": True,
+    }), encoding="utf-8")
+
+    report = OR.build_report(date_str)
+    assert report["market_only_with_usable_odds"] == 1
+    assert report["market_only_capture_failed_count"] == 0
