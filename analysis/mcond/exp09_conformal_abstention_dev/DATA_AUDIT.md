@@ -25,18 +25,36 @@ calibrator来歴・split境界(日付範囲のみ)・関数シグネチャ等の
   スコープを超える)。単勝(single-label)を最小反証実験の対象とし、複勝は
   Gate5(経済評価)で単勝ゲートの副次効果として観察するに留める。
 
-### 1.2 nonconformity score: APS(Adaptive Prediction Sets, Romano et al. 2020)型
+### 1.2 nonconformity score: APS(Adaptive Prediction Sets, Romano et al. 2020)型【2026-09-21数式確定】
 
-既存の確立された定義を採用する(独自指標を発明しない)。レースの全馬を
-較正済み(または後述1.4の理由で生の)勝率降順に並べ、真の勝ち馬の順位までの
-累積確率質量をnonconformity scoreとする:
+既存の確立された定義を採用する(独自指標を発明しない)。レースiの全馬を
+生PL確率降順に並べ p_(1)>=p_(2)>=...>=p_(n)、真の勝ち馬の順位をr_iとして:
 
 ```
-s(race, true_winner) = Σ_{j: p_j >= p_true_winner} p_j
+S_i = Σ_{j=1}^{r_i} p_(j)
 ```
 
-(RAPS(Regularized APS)的な正則化項の要否はStage2実装時に2023development
-のみで判断し、2024-2025を見て変更しない。)
+をnonconformity scoreとする(真の勝ち馬までの累積確率質量)。
+
+**有限標本補正付きquantile(一般的なpercentile関数は使わない)**:
+2023 calibration件数をn、alpha=0.10として、
+
+```
+k = ceil((n + 1) * (1 - alpha))
+q_hat = 2023 calibration score集合のk番目に小さい値(k-th smallest order statistic)
+```
+
+**fail-closed処理**: kがnを超える場合(nが極端に小さいときにのみ起こりうる)、
+`q_hat = 1.0`(予測集合が常に全馬を含む、最も保守的な状態)とする。この場合
+Gate0で警告を記録し、eligible race集合の実件数(通常は数千件を想定)を報告する。
+
+**randomized vs non-randomized APS**: **non-randomized APSを主解析に固定**する
+(再現性優先)。randomized APS(境界馬の包含確率をランダム化してempirical
+coverageをちょうどnominal値に近づける手法)は使わない。non-randomizedは
+一般にconservative(empirical coverageがnominalをやや上回る傾向)になりうる
+ことを明記する。
+
+(RAPS(Regularized APS)的な正則化項は使わない、上記の素のAPS定義に固定する。)
 
 ### 1.3 予測集合の単位: レース単位
 
@@ -86,14 +104,29 @@ EXP07/08と同じ**開催日単位**(meeting-day、rid16[0:10])で行い、レ�
 レース単位を採用しつつ、有意性検定の頑健性は開催日単位で確保する
 二段構えとする。
 
-## 2. race-level abstention scoreへの変換
+## 2. race-level abstention scoreへの変換(APS-derived abstention score)【2026-09-21tie-break確定】
 
 各レースについて、APSでnominal coverageを満たすために必要な予測集合サイズ
 (要素数、`prediction_set_size`)を計算する。これが小さいほど「モデルが自信を
-持って少数の馬に絞り込めている」ことを意味するため、**`prediction_set_size`を
-そのままrace-level abstention scoreとして使う**(小さい=参加、大きい=見送り)。
-同数タイの場合のtie-break規則は「nonconformity score(累積確率質量)がより
-小さい方を優先」に事前固定する(2024-2025結果を見た後に変更しない)。
+持って少数の馬に絞り込めている」ことを意味する。**ただし予測集合サイズは
+離散値のため、そのままではparticipation_rate(90/75/50/25%)を全方式で完全に
+揃えられない**。結果ラベルを一切使わない、以下の3段階tie-break規則を
+事前固定する:
+
+```
+1. prediction_set_sizeが小さいレースを優先(参加寄り)
+2. 同じsizeなら、APS境界までのfractional effective set sizeで順位付け
+   (境界(r_i番目)の馬の「必要な追加分」の割合、連続値。小さいほど参加寄り)
+3. それも同値なら、race_id(rid16)と固定seed(20260921)から作った
+   決定論的hash(sha256(f"{seed}:{rid16}")の先頭バイトを整数化)で順位付け
+```
+
+**この3段階を経た参加スコアは「prediction-set sizeだけ」ではなく、正確には
+`APS-derived abstention score`と表記する**(以後この用語で統一)。
+
+**各participation_rate点(90/75/50/25%)で、全7方式が完全に同じレース数を
+選ぶ**よう実装する(スコアで昇順ソートし上位N件、Nは全方式共通)。
+Conformalだけ参加率の未達・超過を許さない。
 
 ## 3. 時系列分割・モデル版の確認
 
@@ -138,7 +171,55 @@ nominal_conformal_coverageを継続的に下回った場合:
    主張しない)。
 3. 許容誤差は実装前にspec.jsonへ数値で固定する(結果を見てから決めない)。
 
+## 7. coverage保証の範囲(3種類の実測値を分離)【2026-09-21確定】
+
+APSのnominal 90% coverage保証は、**交換可能性を仮定した全対象(all eligible)
+レース上のmarginal coverageだけに限定する**。APS-derived abstention scoreで
+選択した参加レース部分集合について「90% coverage」と表現してはならない
+(参加選別は予測集合サイズに基づく選択であり、選択後の部分集合にAPSの
+理論保証はそのまま及ばない)。以下を分けて出力する:
+
+- `empirical_coverage_all_eligible_races`(**Gate1の保証判定に使うのはこれだけ**)
+- `empirical_coverage_participating_races`(診断値、保証の対象外)
+- `empirical_coverage_abstained_races`(診断値、保証の対象外)
+
+## 8. 例外処理カテゴリ(実装前に固定、2023-2025構造監査で実測済み)
+
+以下いずれも2024-2025**性能・ROI**を見ずに、構造(着順・馬番・頭数等の
+存在/形式)のみを監査して確定した(下表の件数は着順の重複パターン等の
+データ品質チェックであり、勝敗の予測性能評価ではない)。
+
+| カテゴリ | ルール | 2023-2025実測(構造監査のみ) |
+|---|---|---|
+| 同着(1着馬複数) | 単一ラベルAPSの前提を満たさないため**主解析のeligible race集合から除外**。全7方式で同じレース集合を使う。 | 2023=3件、2024=6件、2025=6件(合計15件、`着順==1`が同一rid16で複数行出現するレース数) |
+| 取消・除外馬 | master_v2は着順非数値/欠損の行を既に除外済みの構造 | 着順欠損率0%(3年とも) |
+| probabilityがNaNの馬 | 1頭でもNaNならそのレース全体をeligibleから除外(部分馬だけ除外すると確率質量が未定義になるため) | Stage2実装時にv6スコア計算で実測・報告 |
+| probability合計が1から外れる | 許容誤差`\|sum(p)-1.0\|<=1e-6`は丸め誤差として再正規化可能、超過分は黙って正規化せずeligibleから除外・異常件数記録 | 許容誤差は2024-2025結果を見る前に固定(1e-6) |
+| 極端な少頭数(n_field<3) | eligibleから除外 | 2023-2025実測でn_field最小値=5、該当0件見込み(構造監査で確認済み) |
+| race_id重複 | eligibleから除外・件数記録 | (rid16,馬番)重複行=0件(構造監査で確認済み) |
+| 結果欠損 | eligibleから除外 | 着順欠損率0%(3年とも、上記と同じ確認) |
+| 判断時点後の出走取消 | historical batch評価(本Stage)では発生しない設計(master_v2は確定済み出走馬のみ収録)。前向き評価を将来行う場合は別途定義が必要 | 該当なし(設計上) |
+
+## 9. raw PL OOS provenance(Gate0ブロッキング要件、確認完了)
+
+**確認方法**: manifest(`train_unified_rank.py`)・pickle内メタデータ・
+git LFS artifact hashの3経路。
+
+- **manifest**: `train_unified_rank.py:6` "Split: train ≤ 2022, valid = 2023,
+  test = 2024-2025"、`:86` `df[df["split"]=="train"]`でtrain行のみ学習に使用、
+  `:249` split定義に`"train_max":2022`を明記。
+- **artifact hash provenance**: `models/unified_rank_v6.pkl`はGit LFS管理。
+  commit `5d7cd9d0`(2026-04-30 "v6: train + audit complete")が唯一この経路を
+  変更したコミット。LFSポインタのoid
+  (`sha256:0a040c4ec74fd7df00c05ef1440048def21ba940dc1ae67df00487b932701e8f`)が
+  現在の作業ツリーファイルのsha256と**完全一致**することを確認済み
+  (`git show 5d7cd9d0:models/unified_rank_v6.pkl`でLFSポインタの中身を直接
+  検証)。2026-04-30以降、内容の変更が一切ないことをcryptographicに確認した。
+  ファイルのmtime(2026-09-20)はLFSチェックアウト等による見かけ上の更新であり
+  内容変更の証拠ではない(git status/git diffともにclean)。
+- **結論**: **Gate0 PASS**。2023年のraw PLはcalibration期間に対して真にOOS。
+
 ## 次の一手
 
 `MINIMAL_FALSIFICATION_PLAN.md`§Aを本監査の結果で正式確定へ更新し、
-spec.jsonへ凍結する(2024-2025結果を見る前にコミット)。その後実装(Stage2)へ。
+spec.jsonへ凍結済み(コミット前提)。その後実装(Stage2)へ。

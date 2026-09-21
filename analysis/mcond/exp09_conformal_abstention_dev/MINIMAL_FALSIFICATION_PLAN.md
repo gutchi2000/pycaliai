@@ -1,9 +1,11 @@
-# EXP09 — 最小反証実験・停止条件(改訂版、実装前・ユーザー承認待ち)
+# EXP09 — 最小反証実験・停止条件(確定版、spec.json凍結・実装直前)
 
 **2026-09-21改訂**: ユーザー指摘により全面改訂。旧版は「coverage」という語を
 参加率(participation rate)の意味で使っており、conformal predictionの用語
 (予測集合が真の結果を含む割合)と混同していた。本改訂で用語を分離し、
-予測対象・nonconformity score・単位をStage1で確定する前提の構造へ変更する。
+予測対象・nonconformity score・単位・APS数式・tie-break・例外処理・raw PL
+provenanceを全て確定した(`spec.json`へ凍結済み)。以後2024-2025結果を
+見た後に変更しない。
 
 ## 0. 用語の分離(最重要、以後全文書・列名・出力で厳守)
 
@@ -61,6 +63,30 @@
 と明記する([[project_calibrator_shifts_chaos_gate]]の実測例(calibrator
 差し替えでchaos分布が丸ごと平行移動)がこの規律の根拠)。
 
+## 3.5 APSの数式・有限標本quantile・例外処理・coverage範囲(2026-09-21追加確定)
+
+詳細は`DATA_AUDIT.md`§1.2・§2・§7・§8・§9、`spec.json`に完全な定義を凍結。
+要点:
+
+- **nonconformity score**: `S_i = Σ_{j=1}^{r_i} p_(j)`(確率降順、真の勝ち馬の
+  順位r_iまでの累積確率質量)。
+- **有限標本quantile**: `k = ceil((n+1)*(1-alpha))`、`q_hat` = 2023 calibration
+  scoreのk番目に小さい値(一般的なpercentile関数は使わない)。k>nはfail-closed
+  (`q_hat=1.0`)。
+- **non-randomized APS固定**(再現性優先)。
+- **coverage範囲**: nominal 90%保証は**全eligibleレース上のmarginal coverage
+  だけ**。参加/見送り部分集合のcoverageは診断値(`empirical_coverage_
+  participating_races`/`empirical_coverage_abstained_races`)として別出力、
+  Gate1の保証判定には`empirical_coverage_all_eligible_races`のみ使う。
+- **例外処理(主解析eligible race集合から除外)**: 同着(2023=3/2024=6/2025=6件、
+  構造監査済み)・取消除外馬(既にmaster_v2で除外済み、欠損率0%)・NaN確率馬・
+  確率和許容誤差1e-6超過・n_field<3(実測0件)・race_id重複(実測0件)・結果欠損
+  (実測0件)。全7方式で同一のeligible race集合を使う。
+- **raw PL OOS provenance確認済み(Gate0 PASS)**: `unified_rank_v6.pkl`は
+  train<=2022のみ(manifest確認)、Git LFS artifact hash([[project_calibrator_shifts_chaos_gate]]
+  型の検証)で2026-04-30コミット以降無変更を確認済み。2023年のraw PLは
+  calibration期間に対し真にOOS。
+
 ## 4. 比較する7方式(全て同一participation_rateで完全に同じレース数を選ぶ)
 
 1. **Conformal由来スコア**(新規、本実験の対象)
@@ -75,10 +101,12 @@
    読み取り専用の参照、コード変更なし)
 
 **各participation_rate(90/75/50/25%)で全7方式が完全に同じレース数を選ぶ**よう
-実装する(スコアで昇順/降順ソートし上位N件を選ぶ、Nは全方式共通)。tie時の
-選択規則(例: rid16の昇順)を実装前に固定する。**Conformalだけ参加率の未達・
-超過を許さない**(Conformalの予測集合サイズが自然に生む参加率ではなく、
-比較のためにスコアランキング化して同数を選ぶ)。
+実装する(スコアで昇順/降順ソートし上位N件を選ぶ、Nは全方式共通)。
+**Conformal由来のスコアはprediction_set_sizeを3段階tie-breakで連続順位化した
+`APS-derived abstention score`**(§3.5参照、DATA_AUDIT.md §2に数式)であり、
+「set sizeだけ」ではない。**Conformalだけ参加率の未達・超過を許さない**
+(Conformalの予測集合サイズが自然に生む参加率ではなく、比較のためにスコア
+ランキング化して同数を選ぶ)。
 
 ## 5. 主判定点と多重比較(結果を見て最良点を選ばない)
 
@@ -89,15 +117,18 @@
 ## 6. Gate構造(0→1→2→3→4→5、順序厳守)
 
 ### Gate0: データ・時点・モデルhash
-§1-3の確定結果、判断時点での入力再現性(市場系はhistorical_pre_snapshot規約)、
-モデル版hashの記録。
+§1-3・§3.5の確定結果、判断時点での入力再現性(市場系はhistorical_pre_snapshot
+規約)、モデル版hashの記録、**raw PL OOS provenance確認(PASS済み)**、
+eligible race集合の生成(例外処理カテゴリ適用後の実件数)。
 
 ### Gate1: Conformal coverageの実測妥当性
-2024年・2025年それぞれで`empirical_conformal_coverage`を測定し、
-`nominal_conformal_coverage`を**下回らない**ことを確認する(周辺coverageの
-定義上の妥当性検証、経験的検証)。2024/2025で乖離が大きい場合は
-「exchangeability前提がこの期間で崩れている」と解釈し、以降のGateで
-保証の主張を縮小する。
+2024年・2025年それぞれで**`empirical_coverage_all_eligible_races`**を測定し、
+`nominal_conformal_coverage`(0.90)を**下回らない**ことを確認する(周辺coverage
+の定義上の妥当性検証、経験的検証)。**`empirical_coverage_participating_races`/
+`empirical_coverage_abstained_races`は診断値として別途記録するが、Gate1の
+判定には使わない**(§3.5参照、参加部分集合にnominal coverageを主張しない)。
+2024/2025で乖離が大きい場合は「exchangeability前提がこの期間で崩れている」と
+解釈し、以降のGateで保証の主張を縮小する。
 
 ### Gate2: 同一participation_rateでの情報指標比較(主判定=75%)
 2023developmentでfitした7方式を2024年・2025年へ固定適用(再fitなし)。
@@ -157,15 +188,19 @@ PASSしても「2026 as-served相当の独立期間で再確認するまでは�
 - Gate4 FAIL: 特定区分への依存が強い → 終了、または射程を当該区分に限定して
   記録するのみ(本番化は見送り)。
 
-## Stage 1以降の作業(承認後)
+## Stage 2実装順(ユーザー指定、厳守)
 
-1. データ監査(§1-3の確定、DATA_AUDIT.md。**2024・2025年の性能・ROIは開封しない**)
-2. spec.json凍結(participation_rate点・7方式定義・Gate0-4基準・nonconformity
-   score・LR_CONTROLの目的変数・OOD方式のハイパーパラメータ・モデル版hashを
-   2024-2025結果を見る前に確定)
-3. 実装(各方式の構築コード、時点安全テスト、coverage実測テスト)
-4. Gate0-4評価(2023developmentでfit、2024-2025でgenuinely OOS)
-5. 通過した場合のみGate5(経済評価)
+1. eligible race集合の生成
+2. 2023 calibration score生成
+3. q_hat固定
+4. 2023を再利用せず2024・2025 prediction set生成
+5. 全対象上のempirical coverage確認(Gate1、all_eligible_racesのみ)
+6. APS-derived abstention score生成
+7. 同一participation_rate比較(7方式)
+8. Gate1〜4
+9. 通過した場合だけGate5 ROI
+
+**2024・2025年の結果を読んでからAPS形式・tie-break・例外処理を変更しない**。
 
 ## §A. Stage1で正式確定した論点(`DATA_AUDIT.md`参照、以後変更しない)
 
@@ -174,8 +209,11 @@ PASSしても「2026 as-served相当の独立期間で再確認するまでは�
   (b) 3着内(top3)はマルチラベル問題で標準的な多クラスconformalの枠組みに
   直接載らない、(c) 本番の参加ゲート(chaos=p_winのエントロピー、◎選択=
   argmax p_win、p_win<0.05 hard skip)は既に単勝確率ベースで設計されている。
-- **nonconformity score: APS(Adaptive Prediction Sets、Romano et al. 2020)型**。
-  `s(race,true_winner)=Σ_{j: p_j>=p_true_winner} p_j`(累積確率質量)。
+- **nonconformity score: APS(Adaptive Prediction Sets、Romano et al. 2020)型、
+  non-randomized固定**。`S_i=Σ_{j=1}^{r_i} p_(j)`(確率降順、真の勝ち馬の順位
+  r_iまでの累積確率質量)。quantileは`k=ceil((n+1)*(1-alpha))`、q_hat=2023
+  calibration scoreのk番目に小さい値(有限標本補正、percentile関数不使用)。
+  alpha=0.10。k>nはfail-closed(q_hat=1.0)。
 - **確率の入力は生PL確率(`pl_probs.all_tansho(w)`)、Isotonic較正前**。
   既存calibrator(`pl_calibrators_v6.pkl`)がvalid=2023でfitされておりin-sample
   問題を起こすため(DATA_AUDIT.md §1.4)、v6生スコア由来の確率をそのまま使う
@@ -190,10 +228,14 @@ PASSしても「2026 as-served相当の独立期間で再確認するまでは�
   個別レース保証は主張しない。
 - **calibration sampleの単位**: 一次的にはレース(APS標準単位)。統計的検定
   (Gate1のempirical coverage・Gate2のbootstrap)はEXP07/08と同じ開催日単位。
-- **race-level abstention score = prediction_set_size**(nominal coverageを
-  満たす予測集合の要素数、小さいほど参加寄り)。tie-breakはnonconformity score
-  (累積確率質量)の小さい方を優先。
+- **race-level abstention score = APS-derived abstention score**(prediction_set_size
+  を主要因とし、3段階tie-break(§3.5)で連続順位化したもの、小さいほど参加寄り)。
+- **coverage範囲は全eligibleレースのmarginal coverageのみ**、参加部分集合には
+  保証を主張しない(§3.5)。
 - **nominal_conformal_coverage = 0.90**(標準的な慣行値、2023データを見る前に
   固定。感度分析0.80/0.95も記録するが主判定は0.90)。
+- **例外処理カテゴリを固定**(同着・取消除外馬・NaN確率・確率和異常・極小頭数・
+  race_id重複・結果欠損、§3.5参照)。
+- **raw PL OOS provenance確認済み(Gate0 PASS)**(§3.5参照)。
 - モデル版hash・時系列分割境界(train<=2022年末/calibration=2023/OOS=2024-2025)
-  はDATA_AUDIT.md §3-4に記録済み。
+  はDATA_AUDIT.md §3-4・§9に記録済み。

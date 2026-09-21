@@ -16,8 +16,9 @@ EXP01-08・v6・EXP05・EXP05-F・compute_bets.py・EXP06は変更しない。�
 | 段階 | 状態 | 成果物 |
 |---|---|---|
 | Stage 0(先行研究・既存実装監査) | **完了** | `PRIOR_ART_AUDIT.md` — 厳密なConformalは未着手。近縁の3系統(chaos gate/participation gate/EXP06 OOD)が既に実装・検証済み。うち participation gateの旗艦数値「+5.31pt」は2026 as-servedで**符号反転・撤回済み**。EXP06のLR_CONTROLはJevに完勝(同一coverage)だが、Jevのrisk_prob自体はモデル自身の確信度を統制すると価値消失(FAIL) |
-| Stage 1(データ・定義監査) | **完了** | `DATA_AUDIT.md` — 予測対象=単勝(APS型conformal分類)、nonconformity score=APS累積確率質量、確率入力=生PL確率(既存calibratorのvalid=2023 in-sample問題を回避)、予測集合=レース単位・周辺coverageのみ主張、モデル版hash記録、nominal_conformal_coverage=0.90固定。**2024・2025年の性能・ROIは未開封** |
-| `MINIMAL_FALSIFICATION_PLAN.md` | **改訂・確定** | coverage/participation_rate/abstention_rateの用語分離、Gate0-5構造(主判定participation_rate=75%)、7方式の同一participation_rate比較、中止規律を確定 |
+| Stage 1(データ・定義監査) | **完了** | `DATA_AUDIT.md` — 予測対象=単勝(APS型conformal分類)、nonconformity score=APS累積確率質量(non-randomized、有限標本quantile k=ceil((n+1)(1-α))固定)、確率入力=生PL確率(既存calibratorのvalid=2023 in-sample問題を回避)、予測集合=レース単位・周辺coverageのみ主張、例外処理カテゴリ確定(同着2023=3/2024=6/2025=6件等)、raw PL OOS provenance確認済み(Git LFS hash一致でGate0 PASS)、モデル版hash記録、nominal_conformal_coverage=0.90固定。**2024・2025年の性能・ROIは未開封** |
+| spec.json | **凍結済み** | 上記全てを2024-2025結果を見る前にコミット。coverage_scope(all_eligible/participating/abstained分離)・tie-break3段階規則(APS-derived abstention score)・Stage2実装順(9ステップ)を含む |
+| `MINIMAL_FALSIFICATION_PLAN.md` | **確定** | coverage/participation_rate/abstention_rateの用語分離、Gate0-5構造(主判定participation_rate=75%)、7方式の同一participation_rate比較、中止規律を確定 |
 
 ## Stage 0の中心的発見
 
@@ -40,7 +41,19 @@ EXP01-08・v6・EXP05・EXP05-F・compute_bets.py・EXP06は変更しない。�
    符号反転が複数確認済み)。Conformalのcoverage保証を主張する場合は「モデル・
    calibratorの版が変わらない限り」という射程の明記が必須。
 
+## Stage 2実装(コード完成・合成テスト完了)
+
+| ファイル | 役割 |
+|---|---|
+| `eligible_races.py` | ステップ1。例外処理カテゴリ(同着・重複・NaN・少頭数・確率和異常・結果欠損)を適用しeligible race集合を確定 |
+| `aps.py` | ステップ2-6。APS nonconformity score・有限標本quantile(q_hat)・prediction set・3段階tie-break(APS-derived abstention score)・coverage 3分離出力 |
+| `comparators.py` | ステップ7。6方式(max-probability/entropy/OOD support/feature missing/2023-only LR_CONTROL/現行chaos gate)。実装中に発覚したバグ(`score_feature_missing`のyearsフィルタ未適用、全年混入)を修正・回帰テスト追加 |
+| `evaluate.py` | ステップ8。レース単位logloss/Brier(全7方式共通の生PL確率)・meeting-day paired bootstrap・Gate3 full-control回帰 |
+| `stage2_run.py` | ステップ1-9の統合ドライバ |
+| `test_*.py` | 合成テスト40件、全通過(実データ2024-2025は一切使わない) |
+
 ## 次の一手
 
-`MINIMAL_FALSIFICATION_PLAN.md`(§A正式確定版)をユーザーへ再提示済み。
-承認後、spec.json凍結→Stage 2(実装)へ進む。
+commit後、`stage2_run.py`を実行しGate1-4を評価する(初めて2024・2025年の
+結果を開封する段階)。Gate1-4の結果に基づき、通過した場合のみGate5(経済評価)
+へ進むかを判断する。

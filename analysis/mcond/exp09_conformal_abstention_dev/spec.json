@@ -1,0 +1,165 @@
+{
+  "_meta": {
+    "experiment": "EXP09",
+    "title": "Conformal/OODによる保証付き見送り",
+    "frozen_date": "2026-09-21",
+    "frozen_before": "2024・2025年の性能・ROIを開封する前",
+    "note": "APS形式・tie-break規則・例外処理は2024-2025結果を見た後に変更しない。訂正が必要な場合はamendmentとして追記し既存フィールドを黙って上書きしない(EXP07/08の規律を踏襲)。"
+  },
+
+  "terminology": {
+    "nominal_conformal_coverage": "conformal手続きが理論上主張する被覆率(1-alpha)",
+    "empirical_conformal_coverage": "評価期間で実測した、予測集合が真の結果(勝ち馬)を含んだ割合",
+    "participation_rate": "参加/見送りゲートが実際に参加を選んだレースの割合",
+    "abstention_rate": "1 - participation_rate",
+    "rule": "上記4語を厳守し混同表現(「participation_rateでcoverage達成」等)を使わない"
+  },
+
+  "prediction_target": {
+    "target": "単勝(1着、レース内のどの馬が勝つか)",
+    "rationale": "pl_probs.all_tansho(w)が標準的多クラス分類確率分布として使え、本番の参加ゲート(chaos/◎選択/p_win閾値)も既に単勝確率ベース。top3はマルチラベル問題でAPSの枠組みに直接載らないため対象外(Gate5到達時の副次観察のみ)。"
+  },
+
+  "aps_definition": {
+    "method": "APS(Adaptive Prediction Sets, Romano, Patterson & Candès 2020)、non-randomized版を主解析に固定(再現性優先、結果を見た後に変更しない)",
+    "nonconformity_score_formula": "レースiの馬確率を降順に並べ p_(1)>=p_(2)>=...>=p_(n)、真の勝ち馬の順位をr_iとして S_i = sum_{j=1}^{r_i} p_(j)",
+    "probability_input": "生PL確率(pl_probs.all_tansho(w)、Isotonic較正前)。理由はin-sample回避(下記provenance参照)",
+    "alpha": 0.10,
+    "nominal_conformal_coverage": 0.90,
+    "quantile_definition": {
+      "n": "2023 calibrationのレース数(eligible race集合確定後に実測、Gate0で報告)",
+      "k_formula": "k = ceil((n + 1) * (1 - alpha))",
+      "q_hat_definition": "2023 calibration score集合のk番目に小さい値(k-th smallest、一般的なpercentile関数を使わない)",
+      "fail_closed_on_k_gt_n": "k > n の場合(nが極端に小さい場合にのみ起こりうる)、q_hat = 1.0(=予測集合が全馬を含む、最も保守的な状態)としてfail-closedにする。この場合Gate0で警告を記録し、nの実測値と閾値充足を確認する(nは数千件を想定するため通常発生しない設計だが、明示的に定義する)。"
+    },
+    "randomization": "non-randomized APS固定。randomized APS(境界馬の包含をランダム化してcoverageをちょうどnominal値に合わせる手法)は本解析では使わない(再現性優先、determinism維持のため)。non-randomizedはconservative(empirical coverageがnominalをやや上回る傾向)になりうることを明記する。"
+  },
+
+  "prediction_set_generation": {
+    "calibration": "2023年のeligible race集合のみでq_hatを1回計算し凍結する",
+    "evaluation": "2024年・2025年の各レースについて、q_hatを再計算せず固定適用する。降順確率を累積し、S<=q_hatとなる最小の馬集合(または同値のprefix)を予測集合とする(標準APS手順)",
+    "no_reuse_of_2023": "2024・2025年の予測集合生成時、2023年のスコア分布・calibration setを一切参照しない(q_hatの値のみを使う)"
+  },
+
+  "coverage_scope": {
+    "guarantee_scope": "APSのnominal 90% coverage保証は、交換可能性を仮定した全対象(all eligible)レース上のmarginal coverageのみに限定する。APS-derived abstention scoreで選択した参加レース部分集合についてnominal coverageを保証すると表現してはならない。",
+    "reported_metrics": [
+      "empirical_coverage_all_eligible_races",
+      "empirical_coverage_participating_races(診断値)",
+      "empirical_coverage_abstained_races(診断値)"
+    ],
+    "gate1_uses": "empirical_coverage_all_eligible_racesのみ。参加/見送り部分集合のcoverageはGate1の保証判定には使わず、診断値として記録するのみ"
+  },
+
+  "participation_score_and_tie_break": {
+    "primary_note": "この参加スコアは「prediction-set sizeだけ」ではなく、tie-break込みで**APS-derived abstention score**と正確に表記する",
+    "ordering_rules_pre_fixed_no_result_labels": [
+      "1. prediction-set size(要素数)が小さいレースを優先(参加寄り)",
+      "2. 同じsizeなら、APS境界までのfractional effective set size(累積確率質量がq_hatに到達するまでの、最後に追加した馬の寄与割合を用いた連続値)で順位付け(小さいほど参加寄り)",
+      "3. それも同値なら、race_id(rid16)と固定seed(20260921)から作った決定論的hash(例: sha256(f'{seed}:{rid16}')の先頭バイトを整数化)で順位付け"
+    ],
+    "matched_participation_rate": "各participation_rate点(90/75/50/25%)で、全7方式が完全に同じレース数を選ぶ(スコアで昇順ソートし上位N件、Nは全方式共通)。結果ラベルを一切使わない。"
+  },
+
+  "exception_handling": {
+    "frozen_before": "2024・2025年の結果を見る前に固定、以後変更しない",
+    "categories": {
+      "dead_heat": {
+        "rule": "同着で1着馬が複数いるレースは単一ラベルAPSの前提(1レース1正解)を満たさないため主解析のeligible race集合から除外する。全比較方式(7方式全て)で同じレース集合を使う。",
+        "measured_count_structural_audit_only": {
+          "2023": 3, "2024": 6, "2025": 6,
+          "note": "着順==1が同一rid16で複数行出現するレースの件数(master_v2実測)。これは構造的データ品質チェックであり、性能・ROI評価ではない。"
+        }
+      },
+      "scratched_excluded_horses": "取消・除外馬は着順が非数値/欠損としてmaster_v2から既に除外されている(2023-2025年で着順欠損率0%を実測確認、取消・除外は元データ段階で除かれている構造)。対象レースへの影響は追加処理不要。",
+      "nan_probability_horses": "pl_probs.pl_weights()の入力スコアがNaNの馬が1頭でもいるレースは、そのレース全体をeligibleから除外する(部分的な馬だけ除外すると予測集合の確率質量が定義できないため)。件数はStage2実装時に実測・報告する。",
+      "probability_sum_anomaly": {
+        "tolerance": "|sum(p) - 1.0| <= 1e-6 は丸め誤差として再正規化可能(p / sum(p))。許容誤差を超える場合は黙って正規化せず、そのレースをeligibleから除外し異常件数として記録する。",
+        "frozen": "1e-6という許容誤差は2024-2025結果を見る前に固定、変更しない"
+      },
+      "extreme_small_field": "n_field < 3 のレースはeligibleから除外する(APSの予測集合が意味を持つ最低条件)。2023-2025年の実測ではn_field最小値=5のため、このルールで実際に除外されるレースは0件と見込まれる(構造監査で確認済み)。",
+      "duplicate_race_id": "同一rid16が複数出現する場合はeligibleから除外し件数を記録する。2023-2025年の実測では(rid16,馬番)の重複行は0件(構造監査で確認済み)。",
+      "missing_result": "着順が欠損しているレースはeligibleから除外する。2023-2025年の実測では着順欠損率0%(構造監査で確認済み)。",
+      "post_decision_time_scratch": "判断時点(historical_pre_snapshotまたはconformal評価の対象時点)より後に取消となった馬がいるレースの扱いは、historical batch評価(本Stage)では発生しない設計(master_v2は確定済み出走馬のみを収録)。前向き(forward)評価を将来行う場合は別途定義が必要と明記する。"
+    }
+  },
+
+  "raw_pl_oos_provenance": {
+    "claim": "unified_rank_v6.pklは2022年末までの学習であり、2023-2025年のいずれにも再fitされていない",
+    "verification_method": "manifest(train_unified_rank.py)・pickle内メタデータ・git LFS artifact hashの3経路で確認",
+    "evidence": {
+      "manifest": "train_unified_rank.py:6 'Split: train ≤ 2022, valid = 2023, test = 2024-2025'、:86 'df[df[\"split\"]==\"train\"]'でtrain行のみ学習に使用、:249 split定義に'train_max':2022を明記",
+      "artifact_hash_provenance": "models/unified_rank_v6.pklはGit LFS管理。commit 5d7cd9d0(2026-04-30)が唯一この経路を変更したコミット。LFSポインタのoid(sha256:0a040c4ec74fd7df00c05ef1440048def21ba940dc1ae67df00487b932701e8f)が現在の作業ツリーファイルのsha256と完全一致することを確認済み(2026-04-30以降、内容の変更が一切ないことをcryptographicに確認)。ファイルのmtime(2026-09-20)はLFSチェックアウト等による見かけ上の更新であり内容変更の証拠ではない。",
+      "conclusion": "Gate0 PASS。2023年のraw PLはcalibration期間に対して真にOOS。"
+    }
+  },
+
+  "model_version_hashes": {
+    "prediction_model": {"path": "models/unified_rank_v6.pkl", "sha256": "0a040c4ec74fd7df00c05ef1440048def21ba940dc1ae67df00487b932701e8f"},
+    "calibrator_reference_only_for_current_gate_comparator": {"path": "models/pl_calibrators_v6_serve.pkl", "sha256": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b"},
+    "calibrator_unused_base": {"path": "models/pl_calibrators_v6.pkl", "sha256": "c3defc2457f35dcfb8edead68bbc14c23aeb4b117be3ec23cd3ee80dbb2d4a8c", "note": "使用しない(in-sample回避のため生PL確率を採用)、参考記録のみ"},
+    "feature_schema": {"path": "data/serve_feature_baseline.json", "sha256": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e"},
+    "nonconformity_definition": "EXP09独自実装、実装後にhash記録",
+    "abstention_rule": "EXP09独自実装、実装後にhash記録",
+    "invalidation_rule": "上記いずれかが変わった場合、以前のcoverage保証は失効し再較正が必要"
+  },
+
+  "time_split": {
+    "base_model_train": "2013-01-05〜2022-12-28(train<=2022、master_v2実測n=485,252)",
+    "conformal_calibration": "2023-01-05〜2023-12-28(master_v2実測n=47,273)",
+    "historical_oos_evaluation": "2024-01-06〜2025-12-28(master_v2実測n=94,249)",
+    "note_2026": "2026年は既に開封済みのため新しいforward confirmationとして使わない。PRIOR_ART_AUDIT.md §2のprior-art evidence専用。本番採用判断にはEXP09固定後に新しく到来する未開封期間が必要。"
+  },
+
+  "seven_methods": {
+    "1_conformal": "APS-derived abstention score(本実験の対象)",
+    "2_max_probability": "argmax生PL確率(◎のp_win)、降順ソート",
+    "3_entropy": "全馬生PL確率分布のnormalized entropy、昇順ソート(低い=堅い=参加寄り)",
+    "4_ood_support": "ood_support.pyと同型設計をEXP09で独自実装(2023-only fit・PCA・k-NN距離)、in_distribution_support降順",
+    "5_feature_missing": "特徴欠損率、昇順ソート",
+    "6_lr_control_2023_only": "stage_b_gate_eval.py::_fit_lr_control()と同型設計を独自実装。目的変数は2023年developmentのみで固定(結果を見る前に確定、DATA_AUDIT.md参照)",
+    "7_current_gate": "production_policy.pyのchaos percentile、読み取り専用参照(コード変更なし)"
+  },
+
+  "participation_rate_points": {
+    "points": [0.90, 0.75, 0.50, 0.25],
+    "primary": 0.75,
+    "rule": "主判定はparticipation_rate=75%に固定。90/50/25%は感度分析。75%でFAILなら他の参加率が良好でも主仮説はFAIL(多重比較の事後選択禁止)。"
+  },
+
+  "gates": {
+    "gate0_data_timing_model_hash": {
+      "checks": ["eligible race集合の生成規則", "raw PL OOS provenance(上記)", "モデル版hash記録", "判断時点での入力再現性"],
+      "status": "本コミット時点で実施可能な項目はPASS(provenance確認済み)。eligible race集合の実件数はStage2実装時に確定・報告。"
+    },
+    "gate1_coverage_validity": "2024年・2025年それぞれでempirical_coverage_all_eligible_racesを測定し、nominal_conformal_coverage(0.90)を下回らないことを確認。乖離が大きい場合はexchangeability前提の崩れとして解釈し、以降のGateでの保証主張を縮小する。",
+    "gate2_same_participation_rate_comparison": {
+      "primary": "participation_rate=75%",
+      "requirements": ["2024・2025両方で同方向", "開催日単位paired bootstrap CI", "Conformalがmax-probability・entropy・LR_CONTROLの全てを上回る", "特定年度・競馬場・人気帯だけへの集中でない(Gate4で正式検証)"],
+      "sensitivity": "90/50/25%は同じ手順で記録するが主判定には使わない"
+    },
+    "gate3_full_control_incremental_value": "APS-derived scoreを、モデル自身の確信度(top prob・entropy・市場確率・市場entropy・AI市場乖離・頭数・人気帯・競馬場・芝ダ・距離帯・クラス帯・年度)全てを統制した回帰に追加項として入れ、係数の95%CIがゼロを跨がないことを要求する。単純相関(Gate2)でPASSしてもこの完全統制でFAILすれば終了(EXP06 Jevと同じ判定基準)。",
+    "gate4_stability": "Gate2(participation_rate=75%)の結果を年度(2024/2025個別)・10競馬場・人気帯・芝ダートで層別確認する。",
+    "gate5_economic": "Gate1-4全通過後のみ実施。情報指標(logloss/Brier)でGate1-4を判定、ROIで方式・閾値・participation_rateを選ばない。固定した同一馬券ルール・同一1レース投資額で評価(Conformal方式だけ賭け金・候補馬券・券種を変更しない)。PASSしても「2026 as-served相当の独立期間で再確認するまでは本番配線しない」と明記する。"
+  },
+
+  "implementation_order": [
+    "1. eligible race集合の生成",
+    "2. 2023 calibration score生成",
+    "3. q_hat固定",
+    "4. 2023を再利用せず2024・2025 prediction set生成",
+    "5. 全対象上のempirical coverage確認(Gate1)",
+    "6. APS-derived abstention score生成",
+    "7. 同一participation_rate比較(7方式)",
+    "8. Gate1〜4",
+    "9. 通過した場合だけGate5 ROI"
+  ],
+
+  "stop_discipline": {
+    "rule": "APS形式・alpha・quantile定義・tie-break規則・例外処理カテゴリ・許容誤差・participation_rate点・7方式定義・Gate0-4閾値・統制変数リスト・LR_CONTROLの目的変数定義・OOD方式のハイパーパラメータのいずれも、2024・2025年の結果を読んだ後に変更しない。",
+    "gate3_fail": "統制変数を減らして再検定しない",
+    "gate2_fail": "比較対象から都合の悪い方式を外して再判定しない",
+    "gate1_fail": "許容誤差を広げて通過させない",
+    "primary_fail": "participation_rate=75%でFAILした場合、90/50/25%が良好でも主仮説はFAILのまま"
+  }
+}
