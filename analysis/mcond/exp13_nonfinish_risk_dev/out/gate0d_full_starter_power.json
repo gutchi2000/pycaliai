@@ -1,0 +1,45 @@
+{
+ "s4_feature_count_fixed": 13,
+ "train_2013_2021": {
+  "year_range": "2013-2021",
+  "n_started_all_starter": 428338,
+  "n_positive_all_starter": 1456,
+  "positive_rate_all_starter_pct": 0.3399,
+  "n_started_complete_case": 352378,
+  "n_positive_complete_case": 1202,
+  "positive_rate_complete_case_pct": 0.3411,
+  "n_positive_lost_to_missingness": 254,
+  "epv_s4_all_starter": 112.0,
+  "epv_s4_complete_case": 92.46
+ },
+ "selection_2022": {
+  "year_range": "2022-2022",
+  "n_started_all_starter": 45873,
+  "n_positive_all_starter": 145,
+  "positive_rate_all_starter_pct": 0.3161,
+  "n_started_complete_case": 37759,
+  "n_positive_complete_case": 116,
+  "positive_rate_complete_case_pct": 0.3072,
+  "n_positive_lost_to_missingness": 29,
+  "epv_s4_all_starter": 11.15,
+  "epv_s4_complete_case": 8.92
+ },
+ "development_2023": {
+  "year_range": "2023-2023",
+  "n_started_all_starter": 46252,
+  "n_positive_all_starter": 145,
+  "positive_rate_all_starter_pct": 0.3135,
+  "n_started_complete_case": 42105,
+  "n_positive_complete_case": 127,
+  "positive_rate_complete_case_pct": 0.3016,
+  "n_positive_lost_to_missingness": 18,
+  "epv_s4_all_starter": 11.15,
+  "epv_s4_complete_case": 9.77
+ },
+ "power_note": "S4対S2のlogloss/Brier差の効果量に関する事前情報(パイロットデータ)が存在しないため、厳密な検出力計算はできない(GATE0_REPORT.md Gate0Dの既存結論のまま、恣意的な仮効果量を捏造して精度を偽装しない)。EPVヒューリスティック(Peduzzi et al. 1996)のみを判定材料として使う。",
+ "gate0d_verdict_input": {
+  "epv_s4_complete_case_2023": 9.77,
+  "epv_note": "目安下限(10)を超えるかどうかがGate0D判定の主要指標。理想は20。",
+  "missingness_caused_positive_loss_2023": 18
+ }
+}

@@ -1,16 +1,32 @@
 # EXP13 — 出走後の中止・非完走リスク（started_but_did_not_finish）
 
-## ★【2026-09-22 同日訂正】Gate 0Aの「市場snapshot 0%」は誤りだった
+## ★★【2026-09-22 再開・評価完了】Gate 0Bから再開、Gate 0B/0Dともユーザー基準未達
+
+ユーザー承認によりGate 0Aを訂正PASSとし、同一実験番号のままGate 0Bから
+再開・評価した。詳細・全数値は`GATE0B_GATE0D_REOPEN_REPORT.md`参照。
+
+**要旨**: 120特徴のうち**19特徴（course_n_prev/jockey_n_prev系6 +
+kako5系13）で実測非一致を確認**（該当行の最大1.8%、raw v6 score差は
+確認できた範囲で平均0.022・最大0.326）。原因は完全特定済み（dropna後
+母集団での位置/カウントベース集計、jockey/trainer_fukuバグ[[P0-5]]と
+対称の未修正issue）。全starter確率再計算では完走馬の確率が平均0.68pt・
+最大16.4pt変化。Gate 0Dは市場snapshot必須のcomplete-case制限で
+2022年selection EPV=8.92・2023development EPV=9.77となり目安下限(10)を
+下回る。**Gate 0B・0Dともユーザー事前基準「通過」とは言えず、S0-S5へは
+進んでいない**。モデル学習・2024/2025年開封・ROI評価は未実施。
+決定はユーザーに委ねる。
+
+副次的発見（EXP13の範囲外）: 上記19特徴の不一致は本番`master_v2`
+（v6学習データそのもの）にも実在する未修正issue。
+
+## ★【2026-09-22 同日訂正・旧記録】Gate 0Aの「市場snapshot 0%」は誤りだった
 
 `docs/research/MARKET_DATA_PROVENANCE_AUDIT_20260921.md`（横断provenance
-監査）により、Gate 0Aの結論を訂正する: `data/Time _series_odds/TANPUK_*.csv`
+監査）により、Gate 0Aの結論を訂正した: `data/Time _series_odds/TANPUK_*.csv`
 （2011-2025年）由来の`historical_pre_snapshot`（発走26-30分前、中央値28分）
 が実在し、2023年flatで正常完走馬91.0%・止(DNF)87.6%のcoverageがある
 （`exp05_design.parquet`という既存artifact経由、EXP01/04/05/06/07/08/09が
-既に使用中だった）。**下記の終了結論そのものは変更しない**——Gate 0B
-（numeric parity未検証）・Gate 0D（境界線上の検出力）が未解消のため、
-ユーザー指示によりEXP13は自動再開していない。正式な再開判断はユーザーに
-委ねる。詳細は`spec.json`の`correction_20260922_provenance_audit`参照。
+既に使用中だった）。この訂正を受けて上記の通りGate 0Bから再開した。
 
 ---
 

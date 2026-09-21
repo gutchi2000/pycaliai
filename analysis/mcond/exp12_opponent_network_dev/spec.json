@@ -2,6 +2,12 @@
   "exp": "EXP12",
   "title": "対戦ネットワークによる対戦相手の質",
   "stage": "1_terminated",
+  "market_data_provenance_note_20260922": {
+    "summary": "全モデル(O0-O3)のmarket_p_win(o1_opponent_quality_check.py 116-121行目、および同型の市場勝率がconfound_controls/modelsに使われている箇所)は外部kekkaファイルの単勝オッズ(タイムスタンプなし)のrace内正規化(1/odds→sum=1)由来であり、historical_pre_snapshot(TANPUK由来、発走26-30分前、2026-09-22の市場provenance横断監査で正式に確立した用語)ではない。",
+    "caveat": "市場統制には時刻不明で確定オッズに近い結果ファイル由来単勝オッズを使用したため、historical_pre_snapshot時点の実運用評価とは呼べない。結果は、より後時点の市場情報を統制した保守的分析として解釈する。",
+    "action": "EXP12は既にplacebo検定で決定的FAILし完全終了済み(結論=対戦相手identity固有の情報とは確認できなかった)。この注記は結論範囲の訂正ではなく市場特徴のprovenance注記のみ。再実行はしていない。事前停止規律によりEXP12は再走しない(終了判断を維持)。",
+    "reference": "docs/research/MARKET_DATA_PROVENANCE_AUDIT_20260921.md"
+  },
   "frozen_at": "2026-09-21",
   "process_note": "実装・検証・評価を反復的に行った後、本ファイルで最終定義を凍結してコミットした。2024・2025年は開発の全過程で一切参照・開封していない(実装順序は厳密に「まず凍結してから評価」ではなかったが、2024/2025年非開封の原則は常に遵守した)。",
 

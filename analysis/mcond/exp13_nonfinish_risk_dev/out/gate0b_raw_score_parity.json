@@ -1,0 +1,30 @@
+{
+ "n_total_finisher_rows_2013_2025": 626774,
+ "n_affected_rows_course_or_jockey_diff": 6453,
+ "pct_affected_of_total": 1.0296,
+ "raw_score_delta_stats": {
+  "mean_abs_delta": 0.021968839469505418,
+  "median_abs_delta": 0.012789654388599248,
+  "p95_abs_delta": 0.07900750928878976,
+  "max_abs_delta": 0.3259922211154977
+ },
+ "n_rows_exceeding_tolerance": {
+  "1e-06": {
+   "n_exceed": 5168,
+   "pct_of_affected": 80.087
+  },
+  "0.0001": {
+   "n_exceed": 5156,
+   "pct_of_affected": 79.901
+  },
+  "0.001": {
+   "n_exceed": 5015,
+   "pct_of_affected": 77.716
+  },
+  "0.01": {
+   "n_exceed": 3669,
+   "pct_of_affected": 56.857
+  }
+ },
+ "note": "この比較は他114特徴(既にstructurally_immune/likely_immuneと判定済み)を現行値のまま固定し、course_*/jockey_n_prev系6列のみをtrue-universe(DNF込み母集団)再計算値へ差し替えた場合のraw score差である。モデル自体の再学習・修正は一切行っていない(既存model.predict()をそのまま使用)。"
+}

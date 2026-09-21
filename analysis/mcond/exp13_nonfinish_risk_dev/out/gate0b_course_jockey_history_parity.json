@@ -1,0 +1,94 @@
+{
+ "n_true_universe": 631965,
+ "n_survivors_true": 626774,
+ "n_post_dropna_only": 626774,
+ "sanity_stored_repro_vs_master_v2": {
+  "course_n_prev": {
+   "compared": 626774,
+   "n_diff": 0,
+   "nan_mismatch": 0,
+   "max_abs_diff": 0.0,
+   "mean_abs_diff_where_diff": 0.0
+  },
+  "course_win_rate": {
+   "compared": 276771,
+   "n_diff": 0,
+   "nan_mismatch": 0,
+   "max_abs_diff": 9.71445146547012e-17,
+   "mean_abs_diff_where_diff": 0.0
+  },
+  "course_top3_rate": {
+   "compared": 276771,
+   "n_diff": 0,
+   "nan_mismatch": 0,
+   "max_abs_diff": 1.1102230246251565e-16,
+   "mean_abs_diff_where_diff": 0.0
+  },
+  "jockey_n_prev": {
+   "compared": 626774,
+   "n_diff": 0,
+   "nan_mismatch": 0,
+   "max_abs_diff": 0.0,
+   "mean_abs_diff_where_diff": 0.0
+  },
+  "jockey_win_rate": {
+   "compared": 298839,
+   "n_diff": 0,
+   "nan_mismatch": 0,
+   "max_abs_diff": 9.71445146547012e-17,
+   "mean_abs_diff_where_diff": 0.0
+  },
+  "jockey_top3_rate": {
+   "compared": 298839,
+   "n_diff": 0,
+   "nan_mismatch": 0,
+   "max_abs_diff": 1.1102230246251565e-16,
+   "mean_abs_diff_where_diff": 0.0
+  }
+ },
+ "true_universe_vs_post_dropna_repro": {
+  "course_n_prev": {
+   "compared": 626774,
+   "n_diff": 3401,
+   "nan_mismatch": 0,
+   "max_abs_diff": 2.0,
+   "mean_abs_diff_where_diff": 1.0085269038518083
+  },
+  "course_win_rate": {
+   "compared": 276771,
+   "n_diff": 1051,
+   "nan_mismatch": 781,
+   "max_abs_diff": 0.6666666666666667,
+   "mean_abs_diff_where_diff": 0.1068824039044977
+  },
+  "course_top3_rate": {
+   "compared": 276771,
+   "n_diff": 1802,
+   "nan_mismatch": 781,
+   "max_abs_diff": 0.6666666666666667,
+   "mean_abs_diff_where_diff": 0.1573601399326084
+  },
+  "jockey_n_prev": {
+   "compared": 626774,
+   "n_diff": 3854,
+   "nan_mismatch": 0,
+   "max_abs_diff": 4.0,
+   "mean_abs_diff_where_diff": 1.0246497145822522
+  },
+  "jockey_win_rate": {
+   "compared": 298839,
+   "n_diff": 1626,
+   "nan_mismatch": 500,
+   "max_abs_diff": 0.6666666666666667,
+   "mean_abs_diff_where_diff": 0.06867410936440566
+  },
+  "jockey_top3_rate": {
+   "compared": 298839,
+   "n_diff": 2505,
+   "nan_mismatch": 500,
+   "max_abs_diff": 0.6666666666666667,
+   "mean_abs_diff_where_diff": 0.11304406253663711
+  }
+ },
+ "n_rows_belonging_to_a_horse_with_any_dnf_in_dataset": 67677
+}

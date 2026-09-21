@@ -2,6 +2,12 @@
   "exp": "EXP10",
   "title": "大敗・中止・能力未発揮リスク",
   "stage": "1.5_terminated",
+  "market_data_provenance_note_20260922": {
+    "summary": "B1の市場特徴(models.B1.features内の「市場勝率(単勝オッズ由来)」「人気順位」)は外部kekkaファイルの単勝オッズ(stage1_5_features.py 16行目コメント「発走前最終」)を使用しており、これはhistorical_pre_snapshot(TANPUK由来、発走26-30分前、2026-09-22の市場provenance横断監査で正式に確立した用語)ではない。",
+    "caveat": "市場統制には時刻不明で確定オッズに近い結果ファイル由来単勝オッズを使用したため、historical_pre_snapshot時点の実運用評価とは呼べない。結果は、より後時点の市場情報を統制した保守的分析として解釈する。",
+    "action": "EXP10は既にGate 1.5でFAIL・完全終了済み(結論=既存の時点安全な表特徴だけを用いたAI◎のcatastrophic downside専用headはB3を上回らなかった)。この注記は結論範囲の訂正ではなく市場特徴のprovenance注記のみ。再実行はしていない。事前停止規律によりEXP10は再走しない。",
+    "reference": "docs/research/MARKET_DATA_PROVENANCE_AUDIT_20260921.md"
+  },
   "final_verdict_20260921": {
     "outcome": "TERMINATED_AT_STAGE1_5",
     "reason": "R1(最小構成)がB3に対しmeeting-day forward-chaining CV(2023development)で一貫した限界的寄与を示さず、8続行条件中6条件が不成立(logloss/Brier/PR-AUC悪化、両CI上限>0、較正悪化)",

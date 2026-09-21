@@ -1,0 +1,496 @@
+{
+ "population": "2023 flat started (止含む、外・消除外)、race_id結合",
+ "n_finisher": 46107,
+ "n_dnf": 145,
+ "coverage_finisher": {
+  "n": 46107,
+  "covered": 41978,
+  "pct": 91.04
+ },
+ "coverage_dnf": {
+  "n": 145,
+  "covered": 127,
+  "pct": 87.59
+ },
+ "excluded_dnf_positive_count": 18,
+ "excluded_finisher_count": 4129,
+ "complete_case_positive_rate_pct": 0.3016,
+ "all_starter_positive_rate_pct": 0.3135,
+ "coverage_diff_finisher_minus_dnf": 3.46,
+ "coverage_diff_95ci_pct": [
+  -1.91,
+  8.83
+ ],
+ "coverage_diff_ci_crosses_zero": true,
+ "dnf_timing_note": "止(中止)はレース開始後に発生するため、発走前のhistorical_pre_snapshotは定義上すべてDNF発生前の観測である。「DNF発生前後」という軸は本データでは自明(常にpre)であり、区別する意味のある分割にならない。",
+ "by_venue": {
+  "中京": {
+   "finisher": {
+    "n": 5146,
+    "covered": 4429,
+    "coverage_pct": 86.07
+   },
+   "DNF": {
+    "n": 12,
+    "covered": 8,
+    "coverage_pct": 66.67
+   }
+  },
+  "中山": {
+   "finisher": {
+    "n": 7141,
+    "covered": 6782,
+    "coverage_pct": 94.97
+   },
+   "DNF": {
+    "n": 16,
+    "covered": 16,
+    "coverage_pct": 100.0
+   }
+  },
+  "京都": {
+   "finisher": {
+    "n": 4555,
+    "covered": 3903,
+    "coverage_pct": 85.69
+   },
+   "DNF": {
+    "n": 18,
+    "covered": 15,
+    "coverage_pct": 83.33
+   }
+  },
+  "函館": {
+   "finisher": {
+    "n": 1759,
+    "covered": 1644,
+    "coverage_pct": 93.46
+   },
+   "DNF": {
+    "n": 1,
+    "covered": 1,
+    "coverage_pct": 100.0
+   }
+  },
+  "小倉": {
+   "finisher": {
+    "n": 3504,
+    "covered": 3312,
+    "coverage_pct": 94.52
+   },
+   "DNF": {
+    "n": 13,
+    "covered": 12,
+    "coverage_pct": 92.31
+   }
+  },
+  "新潟": {
+   "finisher": {
+    "n": 4115,
+    "covered": 3859,
+    "coverage_pct": 93.78
+   },
+   "DNF": {
+    "n": 14,
+    "covered": 12,
+    "coverage_pct": 85.71
+   }
+  },
+  "札幌": {
+   "finisher": {
+    "n": 2154,
+    "covered": 2004,
+    "coverage_pct": 93.04
+   },
+   "DNF": {
+    "n": 9,
+    "covered": 8,
+    "coverage_pct": 88.89
+   }
+  },
+  "東京": {
+   "finisher": {
+    "n": 7549,
+    "covered": 6682,
+    "coverage_pct": 88.52
+   },
+   "DNF": {
+    "n": 29,
+    "covered": 24,
+    "coverage_pct": 82.76
+   }
+  },
+  "福島": {
+   "finisher": {
+    "n": 3133,
+    "covered": 2989,
+    "coverage_pct": 95.4
+   },
+   "DNF": {
+    "n": 9,
+    "covered": 9,
+    "coverage_pct": 100.0
+   }
+  },
+  "阪神": {
+   "finisher": {
+    "n": 7051,
+    "covered": 6374,
+    "coverage_pct": 90.4
+   },
+   "DNF": {
+    "n": 24,
+    "covered": 22,
+    "coverage_pct": 91.67
+   }
+  }
+ },
+ "by_month": {
+  "01": {
+   "finisher": {
+    "n": 4222,
+    "covered": 3785,
+    "coverage_pct": 89.65
+   },
+   "DNF": {
+    "n": 11,
+    "covered": 9,
+    "coverage_pct": 81.82
+   }
+  },
+  "02": {
+   "finisher": {
+    "n": 3951,
+    "covered": 3463,
+    "coverage_pct": 87.65
+   },
+   "DNF": {
+    "n": 13,
+    "covered": 12,
+    "coverage_pct": 92.31
+   }
+  },
+  "03": {
+   "finisher": {
+    "n": 3658,
+    "covered": 3043,
+    "coverage_pct": 83.19
+   },
+   "DNF": {
+    "n": 11,
+    "covered": 9,
+    "coverage_pct": 81.82
+   }
+  },
+  "04": {
+   "finisher": {
+    "n": 4546,
+    "covered": 4395,
+    "coverage_pct": 96.68
+   },
+   "DNF": {
+    "n": 11,
+    "covered": 11,
+    "coverage_pct": 100.0
+   }
+  },
+  "05": {
+   "finisher": {
+    "n": 3602,
+    "covered": 2498,
+    "coverage_pct": 69.35
+   },
+   "DNF": {
+    "n": 21,
+    "covered": 14,
+    "coverage_pct": 66.67
+   }
+  },
+  "06": {
+   "finisher": {
+    "n": 3529,
+    "covered": 3338,
+    "coverage_pct": 94.59
+   },
+   "DNF": {
+    "n": 14,
+    "covered": 14,
+    "coverage_pct": 100.0
+   }
+  },
+  "07": {
+   "finisher": {
+    "n": 4264,
+    "covered": 4037,
+    "coverage_pct": 94.68
+   },
+   "DNF": {
+    "n": 8,
+    "covered": 8,
+    "coverage_pct": 100.0
+   }
+  },
+  "08": {
+   "finisher": {
+    "n": 3552,
+    "covered": 3299,
+    "coverage_pct": 92.88
+   },
+   "DNF": {
+    "n": 17,
+    "covered": 13,
+    "coverage_pct": 76.47
+   }
+  },
+  "09": {
+   "finisher": {
+    "n": 3338,
+    "covered": 3047,
+    "coverage_pct": 91.28
+   },
+   "DNF": {
+    "n": 10,
+    "covered": 10,
+    "coverage_pct": 100.0
+   }
+  },
+  "10": {
+   "finisher": {
+    "n": 3935,
+    "covered": 3762,
+    "coverage_pct": 95.6
+   },
+   "DNF": {
+    "n": 9,
+    "covered": 8,
+    "coverage_pct": 88.89
+   }
+  },
+  "11": {
+   "finisher": {
+    "n": 3561,
+    "covered": 3452,
+    "coverage_pct": 96.94
+   },
+   "DNF": {
+    "n": 10,
+    "covered": 10,
+    "coverage_pct": 100.0
+   }
+  },
+  "12": {
+   "finisher": {
+    "n": 3949,
+    "covered": 3859,
+    "coverage_pct": 97.72
+   },
+   "DNF": {
+    "n": 10,
+    "covered": 9,
+    "coverage_pct": 90.0
+   }
+  }
+ },
+ "by_ninki_band_descriptive_only": {
+  "1": {
+   "finisher": {
+    "n": 3415,
+    "covered": 3101,
+    "coverage_pct": 90.81
+   },
+   "DNF": {
+    "n": 7,
+    "covered": 7,
+    "coverage_pct": 100.0
+   }
+  },
+  "10+": {
+   "finisher": {
+    "n": 16338,
+    "covered": 14910,
+    "coverage_pct": 91.26
+   },
+   "DNF": {
+    "n": 55,
+    "covered": 49,
+    "coverage_pct": 89.09
+   }
+  },
+  "2-3": {
+   "finisher": {
+    "n": 6652,
+    "covered": 6045,
+    "coverage_pct": 90.87
+   },
+   "DNF": {
+    "n": 23,
+    "covered": 22,
+    "coverage_pct": 95.65
+   }
+  },
+  "4-6": {
+   "finisher": {
+    "n": 9972,
+    "covered": 9068,
+    "coverage_pct": 90.93
+   },
+   "DNF": {
+    "n": 30,
+    "covered": 26,
+    "coverage_pct": 86.67
+   }
+  },
+  "7-9": {
+   "finisher": {
+    "n": 9730,
+    "covered": 8854,
+    "coverage_pct": 91.0
+   },
+   "DNF": {
+    "n": 30,
+    "covered": 23,
+    "coverage_pct": 76.67
+   }
+  }
+ },
+ "by_odds_band_descriptive_only": {
+  "10-30": {
+   "finisher": {
+    "n": 11358,
+    "covered": 10336,
+    "coverage_pct": 91.0
+   },
+   "DNF": {
+    "n": 30,
+    "covered": 24,
+    "coverage_pct": 80.0
+   }
+  },
+  "100+": {
+   "finisher": {
+    "n": 10121,
+    "covered": 9186,
+    "coverage_pct": 90.76
+   },
+   "DNF": {
+    "n": 37,
+    "covered": 32,
+    "coverage_pct": 86.49
+   }
+  },
+  "2-5": {
+   "finisher": {
+    "n": 5742,
+    "covered": 5233,
+    "coverage_pct": 91.14
+   },
+   "DNF": {
+    "n": 16,
+    "covered": 16,
+    "coverage_pct": 100.0
+   }
+  },
+  "30-100": {
+   "finisher": {
+    "n": 11018,
+    "covered": 10060,
+    "coverage_pct": 91.31
+   },
+   "DNF": {
+    "n": 36,
+    "covered": 30,
+    "coverage_pct": 83.33
+   }
+  },
+  "5-10": {
+   "finisher": {
+    "n": 7124,
+    "covered": 6499,
+    "coverage_pct": 91.23
+   },
+   "DNF": {
+    "n": 23,
+    "covered": 22,
+    "coverage_pct": 95.65
+   }
+  },
+  "<2": {
+   "finisher": {
+    "n": 744,
+    "covered": 664,
+    "coverage_pct": 89.25
+   },
+   "DNF": {
+    "n": 3,
+    "covered": 3,
+    "coverage_pct": 100.0
+   }
+  }
+ },
+ "by_snapshot_file": {
+  "TANPUK_2021_2025": {
+   "finisher": {
+    "n": 46107,
+    "covered": 41978,
+    "coverage_pct": 91.04
+   },
+   "DNF": {
+    "n": 145,
+    "covered": 127,
+    "coverage_pct": 87.59
+   }
+  }
+ },
+ "by_missing_reason": [
+  {
+   "is_dnf": false,
+   "missing_reason": "no_tanpuk_record_at_all",
+   "n": 1937
+  },
+  {
+   "is_dnf": false,
+   "missing_reason": "not_missing",
+   "n": 41978
+  },
+  {
+   "is_dnf": false,
+   "missing_reason": "record_exists_outside_26_30_window",
+   "n": 2192
+  },
+  {
+   "is_dnf": true,
+   "missing_reason": "no_tanpuk_record_at_all",
+   "n": 12
+  },
+  {
+   "is_dnf": true,
+   "missing_reason": "not_missing",
+   "n": 127
+  },
+  {
+   "is_dnf": true,
+   "missing_reason": "record_exists_outside_26_30_window",
+   "n": 6
+  }
+ ],
+ "missingness_predictability": {
+  "logistic_auc_missing_vs_isdnf_venue_ninkiband": 0.6218,
+  "interpretation": "AUC~0.5ならmissingnessはほぼ予測不能(ランダム)、AUC>>0.5なら構造的欠損(選択バイアスの疑い)",
+  "chi2_is_dnf_vs_missing": {
+   "chi2": 1.7157,
+   "p_value": 0.190242,
+   "dof": 1
+  },
+  "crosstab_is_dnf_vs_missing": {
+   "false": {
+    "false": 41978,
+    "true": 127
+   },
+   "true": {
+    "false": 4129,
+    "true": 18
+   }
+  }
+ },
+ "final_odds_backfill_policy": "行っていない。欠損はhas_snapshot=Falseのまま保持。"
+}

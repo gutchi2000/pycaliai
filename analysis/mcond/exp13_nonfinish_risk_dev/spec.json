@@ -1,7 +1,41 @@
 {
   "exp": "EXP13",
   "title": "出走後の中止・非完走リスク (started_but_did_not_finish)",
-  "stage": "gate0_terminated",
+  "stage": "gate0b_reopened_not_passed",
+  "gate0b_reopen_20260922": {
+    "reason_reopened": "EXP13はGate 0Aの誤監査により一時停止したが、2011〜2025年のTANPUK時系列とhistorical_pre_snapshotの存在が確認され、2023年のDNF馬にも87.6%のcoverageがあると判明したため、同一実験番号のままGate 0Bから再開した",
+    "gate0b_feature_classification": {
+      "structurally_immune": 92, "likely_immune_unverified": 2,
+      "confirmed_immune": 4, "confirmed_divergent": 19, "na_always_nan": 3,
+      "confirmed_divergent_features": ["course_n_prev", "course_win_rate", "course_top3_rate", "jockey_n_prev", "jockey_win_rate", "jockey_top3_rate", "kako5_avg_pos", "kako5_std_pos", "kako5_best_pos", "kako5_avg_agari3f", "kako5_best_agari3f", "kako5_same_td_ratio", "kako5_same_dist_ratio", "kako5_same_place_ratio", "kako5_pos_trend", "kako5_race_count", "kako5_expected_good_count", "kako5_hidden_good_count", "kako5_same_cond_best_pos"],
+      "root_cause": "parse_kako5.py/build_master_v2.py compute_history_features()がdropna後(DNF除去後)の母集団に対して位置/カウントベース(固定5走window or 無制限expanding cumulative)集計をしているため。jockey/trainer_fukuバグ(P0-5, 2026-09-11修正済み)と対称だが未修正"
+    },
+    "gate0b_raw_score_parity": {
+      "affected_rows_course_jockey_only": 6453, "total_rows": 626774, "pct_affected": 1.03,
+      "mean_abs_score_delta": 0.022, "max_abs_score_delta": 0.326,
+      "note": "kako5系(13特徴、不一致行数はcourse/jockeyより多い)のraw score影響は計算コストの都合で個別定量化していない"
+    },
+    "gate0b_full_starter_probability_recompute": {
+      "n_dnf_2023_flat": 145, "n_feature_rows_built": 133,
+      "n_races_affected": 129,
+      "mean_finisher_prob_delta_pt": 0.68, "max_finisher_prob_delta_pt": 16.4,
+      "note": "完走馬のみで正規化する現行本番運用は、DNFがいたレースで他馬の確率をわずかに過大評価している可能性"
+    },
+    "market_coverage_diff_ci": {
+      "finisher_pct": 91.04, "dnf_pct": 87.59, "diff_pt": 3.46,
+      "ci95_pt": [-1.91, 8.83], "crosses_zero": true,
+      "missingness_predictability_auc": 0.622,
+      "chi2_isdnf_vs_missing_pvalue": 0.190
+    },
+    "gate0d_complete_case": {
+      "train_2013_2021_epv": 92.5, "selection_2022_epv": 8.92, "development_2023_epv": 9.77,
+      "epv_floor": 10, "verdict": "selection・developmentともEPV目安下限を下回る"
+    },
+    "verdict": "Gate 0B・0Dともユーザー事前基準を満たさない。S0-S5へは進んでいない。決定はユーザーに委ねる",
+    "not_proceeded": "モデル学習・2024/2025年開封・ROI評価は一切行っていない",
+    "production_side_finding_out_of_scope": "course_n_prev系/jockey_n_prev系/kako5系19特徴の不一致はEXP13固有ではなく本番master_v2(v6学習データ)自体の実測不正確さを意味する。DNF走を持つ馬の行に影響、本番pipeline修正は別スコープ",
+    "reference": "GATE0B_GATE0D_REOPEN_REPORT.md"
+  },
   "correction_20260922_provenance_audit": {
     "summary": "docs/research/MARKET_DATA_PROVENANCE_AUDIT_20260921.md により、Gate 0Aの「2023年historical_pre_snapshot coverage 0%」は誤りと判明。data/Time _series_odds/TANPUK_*.csv(2011-2025年)由来のhistorical_pre_snapshot(発走26-30分前、中央値28分)が実在し、2023年flat: 正常完走馬91.0%・止(DNF)87.6%のcoverageを確認(exp05_design.parquetという既存artifact経由、EXP01/04/05/06/07/08/09が既に使用中)。",
     "gate_0a_corrected_verdict": "PASS(訂正): 市場確率は2023年developmentで構築可能。確定オッズは依然として使わない方針を継続、historical_pre_snapshot(TANPUK由来、確定オッズではない)を使う。",
