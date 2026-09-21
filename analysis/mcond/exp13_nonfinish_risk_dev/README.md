@@ -1,27 +1,62 @@
 # EXP13 — 出走後の中止・非完走リスク（started_but_did_not_finish）
 
-## 状態: Stage 0承認済み → Stage 1 Gate 0A〜0D完了、S0-S5実装はユーザー判断待ち
+## 【2026-09-22】最終結論: Gate 0でデータ不足終了（2024・2025年は未開封）
 
-2026-09-21、ユーザーの明示指示により研究を再開し、EXP13としてStage 0監査を
-実施した（2026-09-22承認）。続けてStage 1のモデル学習前段階として
-Gate 0A〜0D（全出走馬の時点安全な評価基盤が再構築できるか）を実施した
-（2026-09-22、`GATE0_REPORT.md`）。**S0-S5モデルの実装・学習・バックテスト・
-2024/2025年性能開封・ROI評価はまだ一切行っていない**。
+> **EXP13は非完走リスクモデルの性能FAILではない。2013〜2025年の結果ラベルと
+> 事前特徴は存在するが、development期間である2023年に判断時点市場snapshotが
+> 存在せず、v6＋市場を統制した主仮説を時点安全に検証できないため、Gate 0で
+> データ不足終了した。**
 
-**Gate 0の結論（詳細は`GATE0_REPORT.md`）**:
-- **Gate 0A（市場オッズ時点）**: 2023年には判断時点の市場オッズスナップショット
-  （historical_pre_snapshot）が構造的に存在しない（EXP05-F/T-10の前向き
-  価格収集基盤は2026年新設のため）。確定オッズの代用は行わない方針。
-  市場確率を含むS1以降の変種は2023年評価では構築不能。
-- **Gate 0B（全starter特徴再構築）**: アーキテクチャ上は実現可能と判断
-  （既存raw CSVは非完走行を含んだままJOINされており、v6の120特徴に
-  オッズ・人気は含まれない等）。**raw score一致の数値照合は未実施**、
-  暫定PASSに留める。
+Gate 0A（市場オッズ取得時点）で、development期間である2023年に判断時点
+market snapshot（historical_pre_snapshot）が正常完走馬・止馬ともに構造的に
+0%であることが確定した。確定オッズ・最終人気・結果ファイル内オッズの代用は
+行わない。市場統制なしのS0/S2/S3/S4比較は予測可能性の探索にはなっても、
+主仮説「v6と市場の後にも非完走リスク情報が残る」を検証できないため、
+**S1以降は実装しない**。Gate 0D（2023年145陽性・EPV約11・事前効果量なし）は
+単独では即時中止理由ではないが、Gate 0Aの構造的欠損と合わせて継続根拠が
+不足すると判断した。**結果を見てS4の特徴を削減したり比較条件を緩めたりする
+ことは行っていない**。
+
+**結論の範囲は上記一文に厳密に限定する**。以下は**未検証**（失敗ではない）
+として記録し、EXP13への追加・再実行は禁止、実施する場合は必ず
+`spec.json`の`reopen_conditions`を全て満たした上でEXP13として再開する:
+非完走リスクの予測可能性／過去非完走履歴の価値／履歴変動・大敗・馬体重履歴
+の価値／LightGBMによる非完走モデル／binary hazard model／経済的な見送り価値。
+
+詳細は`GATE0_REPORT.md`・`spec.json`参照。
+
+### Gate 0の最終状態（詳細は`GATE0_REPORT.md`・`spec.json`）
+
+- **Gate 0A（市場オッズ時点）**: **FAIL（構造的制約）**。2023年には判断時点の
+  市場オッズスナップショット（historical_pre_snapshot）が構造的に存在しない
+  （EXP05-F/T-10の前向き価格収集基盤は2026年新設のため）。確定オッズの代用は
+  行わない方針。
+- **Gate 0B（全starter特徴再構築）**: **`architecture feasible / numeric
+  parity unverified`**（既存raw CSVは非完走行を含んだままJOINされており、
+  v6の120特徴にオッズ・人気は含まれない等、アーキテクチャ上の実現可能性は
+  確認済み。raw score一致の数値照合はGate 0Aで主検証が成立しないため今回は
+  実行せず、EXP13再開時の未完了タスクとして記録する）。
 - **Gate 0C（結果コード完全表）**: 完了。全36 unique値を`LABEL_CODEBOOK.md`
   に掲載、失格・タイムオーバーは本データソースに存在しないコードと確定。
-- **Gate 0D（標本数・検出力）**: 2023年flat 145陽性/46,252started。S4想定の
-  EPV(events per variable)は約11で目安の下限付近、厳密な検出力保証は
-  効果量の事前情報がないため不可能。境界線上の判定。
+- **Gate 0D（標本数・検出力）**: 境界線上（単独では中止理由に至らず）。
+  2023年flat 145陽性/46,252started。S4想定のEPV(events per variable)は
+  約11で目安の下限付近、厳密な検出力保証は効果量の事前情報がないため不可能。
+
+## 再開条件
+
+EXP13を再開できるのは、次を全て満たした場合だけである（`spec.json`
+`reopen_conditions`と同一）:
+判断時点market snapshotを持つ十分な年数／完走馬・非完走馬の両方を含む
+full-starter特徴／v6 raw scoreのnumeric parity／非完走陽性数の事前power
+analysis／train/development/OOSを分離できる期間／確定オッズを使わない設計。
+
+## 再利用可能な資産
+
+`LABEL_CODEBOOK.md`（結果コード完全表・主ラベル定義、2つの独立ソースで
+完全一致確認済み）／`result_code_audit.py`（結果コード監査+Gate0D集計の
+再現可能スクリプト、読み取り専用）／`PRIOR_ART_AUDIT.md`・`DATA_AUDIT.md`
+（先行研究・時点安全性監査）／`MINIMAL_FALSIFICATION_PLAN.md`（S0-S6設計案・
+Gate構造）。
 
 ## 目的
 
@@ -113,16 +148,10 @@ EXP13=出走馬全体で完走/非完走を目的変数にする）。詳細は
 
 ## 次の一手
 
-**S0-S5モデルの実装はまだ一切行っていない**。Gate 0A〜0D（`GATE0_REPORT.md`）
-の結果を報告し、以下の判断をユーザーに仰いでいる段階:
-1. Gate 0Aの制約（市場確率が2023年で構築不能）を踏まえ、S1以降の変種を
-   どう扱うか（市場確率抜きで評価／評価自体を見送る等）
-2. Gate 0Bのraw score数値照合（未実施）をStage1着手前に完了させるか
-3. Gate 0Dの境界線上の検出力（S4のEPV≈11）を踏まえ、S4の特徴数を絞るか、
-   2023年単独判定に留めるか、データ不足として終了するか
+**2026-09-22、ユーザー承認によりGate 0でデータ不足終了（本README冒頭の
+結論参照）**。S0-S5モデルの実装は一切行っていない。EXP13への追加・再実行は
+禁止。再開する場合は上記「再開条件」を全て満たすこと。
 
-上記の判断がユーザーから示され次第、対応するタスクから着手する。
-
-関連: [[project_exp10_downside_risk]] [[project_research_stopline_20260921]]
-[[project_kekka_ext_data_quirks]] [[feedback_asof_population_definition]]
-[[project_jravan_guideline_compliance]]
+関連: [[project_exp10_downside_risk]] [[project_exp13_nonfinish_risk]]
+[[project_research_stopline_20260921]] [[project_kekka_ext_data_quirks]]
+[[feedback_asof_population_definition]] [[project_jravan_guideline_compliance]]

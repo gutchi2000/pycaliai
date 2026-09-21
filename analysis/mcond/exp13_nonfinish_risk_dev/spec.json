@@ -1,0 +1,49 @@
+{
+  "exp": "EXP13",
+  "title": "出走後の中止・非完走リスク (started_but_did_not_finish)",
+  "stage": "gate0_terminated",
+  "final_verdict_20260922": {
+    "outcome": "TERMINATED_AT_GATE0_DATA_INSUFFICIENT",
+    "reason": "Gate 0A(市場オッズ取得時点)で、development期間である2023年に判断時点market snapshot(historical_pre_snapshot)が構造的に0%であることが確定。確定オッズ・最終人気・結果ファイル内オッズの代用は行わない方針のため、主仮説(v6+市場を統制した後の非完走リスク情報の有無)を時点安全に検証できない。Gate 0D(標本数・検出力、2023年145陽性・EPV約11・事前効果量なし)は単独では即時中止理由ではないが、Gate 0Aの構造的欠損と合わせて継続根拠が不足すると判断した。",
+    "conclusion_scope_20260922_user_confirmed": "EXP13は非完走リスクモデルの性能FAILではない。2013〜2025年の結果ラベルと事前特徴は存在するが、development期間である2023年に判断時点市場snapshotが存在せず、v6＋市場を統制した主仮説を時点安全に検証できないため、Gate 0でデータ不足終了した。結論はこの一文に厳密に限定する。",
+    "action": "S1以降(市場確率を含む比較モデル)は実装しない。S0/S2/S3/S4を市場統制なしで比較することも、予測可能性の探索にはなるが主仮説の検証にはならないため実装しない。2024・2025年は一切開封せず終了。陽性数不足を理由にS4の特徴削減・比較条件の緩和は行わない。",
+    "gate_results": {
+      "gate_0a_market_odds_timing": "FAIL(構造的制約): 2023年のhistorical_pre_snapshot coverageは正常完走馬・止馬ともに0%。EXP05-F/T-10前向き価格収集基盤(data/forward_prices/等)は2026年新設(最古2026-04-18)で2023年に遡及不可。既存の単勝オッズは確定オッズ(reference_odds_data_benter参照)であり判断時点スナップショットではないため代用しない。",
+      "gate_0b_full_starter_feature_reconstruction": "architecture feasible / numeric parity unverified — build_dataset.py結合元の4raw CSVは非完走行を含んだままJOINされており(JOIN後631,965行→dropna後626,774行、差5,191が止+外+消+丸数字と完全一致)、v6の120特徴にオッズ・人気は含まれない等、アーキテクチャ上の実現可能性は確認した。raw v6 scoreが既存master_v2経路と一致するかの数値照合(許容誤差固定)は、Gate 0Aで主検証が成立しないため今回は実行しない。EXP13再開時の未完了タスクとして記録する。",
+      "gate_0c_result_code_table": "完了。LABEL_CODEBOOK.mdに全36 unique値を掲載。失格・タイムオーバーは独立コード不在(0件)と確定。",
+      "gate_0d_sample_size_power": "境界線上(単独では中止理由に至らず)。2023年flat: 3,347レース/46,252started/145陽性(0.3135%)。S4想定特徴数(~13)でEPV≈11、理想(20)に届かない。効果量の事前情報なく厳密な検出力保証は不可能。結果を見た特徴削減・条件緩和は行っていない。"
+    },
+    "unverified_not_failed_out_of_scope": [
+      "非完走リスクの予測可能性",
+      "過去非完走履歴の価値",
+      "履歴変動・大敗・馬体重履歴の価値",
+      "LightGBMによる非完走モデル",
+      "binary hazard model",
+      "経済的な見送り価値"
+    ],
+    "out_of_scope_policy": "上記6項目はEXP13へ追加して再実行することを禁止する。EXP13を再開する場合は下記reopen_conditionsを全て満たした上で、既存EXP13への追加ではなく再開(同一EXP番号内での再着手)として扱う。",
+    "reopen_conditions": [
+      "判断時点market snapshotを持つ十分な年数(historical_pre_snapshot、確定オッズではない)",
+      "完走馬・非完走馬の両方を含むfull-starter特徴(Gate 0Bの数値照合完了)",
+      "v6 raw scoreのnumeric parity(既存master_v2経路との許容誤差固定の一致確認)",
+      "非完走陽性数の事前power analysis(効果量の事前推定に基づく)",
+      "train/development/OOSを分離できる期間",
+      "確定オッズを使わない設計"
+    ],
+    "reusable_assets": [
+      "LABEL_CODEBOOK.md(結果コード完全表・主ラベル定義、2つの独立ソースで完全一致確認済み)",
+      "result_code_audit.py(結果コード監査+Gate0D集計の再現可能スクリプト、読み取り専用)",
+      "PRIOR_ART_AUDIT.md / DATA_AUDIT.md(先行研究監査・時点安全性監査)",
+      "MINIMAL_FALSIFICATION_PLAN.md(S0-S6設計案、Gate構造)"
+    ]
+  },
+  "frozen_at": "2026-09-22",
+  "primary_hypothesis": "v6確率、raw score、市場確率、人気、頭数、出走回数、休養日数を統制した後にも、専用の非完走リスクモデルが started_but_did_not_finish を識別できるか",
+  "forbidden_design": "陽性数不足を理由にラベル範囲・母集団・特徴数・比較条件を事後的に緩和しない。障害・取消・除外を混ぜて陽性数を増やさない。",
+  "primary_label": {
+    "name": "started_but_did_not_finish",
+    "formula": "1[着順コード = 止(中止)]、母集団: started=1(数値着順+止+丸数字)、外・消は母集団から除外",
+    "population_scope": "平地(芝・ダート)のみ主解析、障害は別集計でモデルへ混ぜない",
+    "label_relaxation_forbidden": "2023年145陽性という件数を理由に丸数字(降着)・外・消を陽性または母集団に含める、障害を混ぜる等の範囲拡張は行わない"
+  }
+}

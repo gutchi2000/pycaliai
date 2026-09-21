@@ -34,14 +34,23 @@ EXP13以降の各実験も、これまでと同じStage 0（監査）→Stage 1�
 minimal falsification）→Gate評価（2023年内開発データのみ）→結論、という
 ライフサイクルに従う。
 
-**EXP13「出走後の中止・非完走リスク」Stage 0完了**（2026-09-22、
-`analysis/mcond/exp13_nonfinish_risk_dev/`）。実装・学習・バックテスト・
-2024/2025年性能開封・ROI評価は一切行っていない。主ラベル
-`started_but_did_not_finish`（中止=陽性、除外・取消は母集団から除外、
-降着は正常完走扱い）を2つの独立データソースで完全一致する形で確定。
-EXP10とは母集団が異なる独立実験（EXP10=完走馬限定、EXP13=出走馬全体）。
-詳細は`analysis/mcond/exp13_nonfinish_risk_dev/README.md`参照。**Stage1
-（実装）はユーザー報告・承認後に着手する**。
+**EXP13「出走後の中止・非完走リスク」完全終了**（2026-09-22、
+`analysis/mcond/exp13_nonfinish_risk_dev/`）。Stage 0監査完了後、
+Stage 1のモデル学習前段階としてGate 0A〜0D（時点安全な評価基盤の
+再構築可否）を実施し、**Gate 0でデータ不足終了**した。実装・学習・
+バックテスト・2024/2025年性能開封・ROI評価は一切行っていない。
+
+> EXP13は非完走リスクモデルの性能FAILではない。2013〜2025年の結果ラベルと
+> 事前特徴は存在するが、development期間である2023年に判断時点市場snapshotが
+> 存在せず、v6＋市場を統制した主仮説を時点安全に検証できないため、Gate 0で
+> データ不足終了した。
+
+Gate 0A（市場オッズ取得時点）で、2023年に判断時点market snapshot
+（historical_pre_snapshot）が構造的に0%であることが確定し、市場統制なしの
+比較では主仮説を検証できないためS1以降は実装しなかった。Gate 0D（2023年
+145陽性・EPV約11・事前効果量なし）は単独では中止理由でないが、Gate 0Aの
+構造的欠損と合わせ継続根拠不足と判断。詳細・再開条件・再利用可能資産は
+`analysis/mcond/exp13_nonfinish_risk_dev/README.md`・`spec.json`参照。
 
 ---
 
