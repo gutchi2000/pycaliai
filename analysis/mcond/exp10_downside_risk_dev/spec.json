@@ -1,8 +1,24 @@
 {
   "exp": "EXP10",
   "title": "大敗・中止・能力未発揮リスク",
-  "stage": "1",
+  "stage": "1.5_terminated",
+  "final_verdict_20260921": {
+    "outcome": "TERMINATED_AT_STAGE1_5",
+    "reason": "R1(最小構成)がB3に対しmeeting-day forward-chaining CV(2023development)で一貫した限界的寄与を示さず、8続行条件中6条件が不成立(logloss/Brier/PR-AUC悪化、両CI上限>0、較正悪化)",
+    "conditions_failed": ["agg_logloss_improves", "agg_brier_improves", "prauc_improves", "logloss_ci_upper_below_0", "brier_ci_upper_below_0", "calibration_not_worse"],
+    "conditions_passed": ["majority_folds_same_direction_logloss", "improvement_not_concentrated_single_fold"],
+    "agg_logloss_diff_r1_minus_b3": 0.0009571,
+    "agg_brier_diff_r1_minus_b3": 0.0001389,
+    "agg_prauc_diff_r1_minus_b3": -0.0018022,
+    "logloss_bootstrap_ci95": [-0.0017146, 0.0037027],
+    "brier_bootstrap_ci95": [-0.0006101, 0.0008968],
+    "calib_slope_b3": 0.8975, "calib_slope_r1": 0.8310,
+    "action": "2024・2025年は一切開封せず終了。Stage2(フルR1構築+Gate評価)・経済評価は実施しない。条件変更による救済は行わない",
+    "note": "この結果はR1の最小構成(時点安全監査で「既存列で対応可」の5特徴のみ)についてのもの。「要構築」の5候補は未検証のまま終了"
+  },
   "frozen_at": "2026-09-21",
+  "revised_at": "2026-09-21",
+  "revision_notes": "ユーザー指摘によるStage1修正3点: (1)q90ラベルをresolve_q90_label()のadaptive方式(n<=18は常に厳密DP、n>18のみWilson CI付きMC梯子)へ変更、モンテカルロ誤差を主ラベルから排除。(2)PL入力の整合性を実データ149レースで検証(pl_probsとの最大誤差1.11e-16)。(3)同着・除外件数をEXP09と比較可能なカテゴリへ分解、着順番号の欠番を1件新規発見、除外規則へ追加。2023年実件数を554/3379(16.40%)→551/3378(16.31%)へ再計算。Stage1.5はrandom foldを禁止しmeeting-day forward-chaining CVへ変更。",
   "primary_hypothesis": "v6確率、raw score、entropy、市場確率、人気、頭数、出走回数、休養日数を統制した後にも、専用の下方リスクモデルが大敗を識別できるか",
   "forbidden_design": "単に負けた馬(finish>N)を陽性にすることは禁止。相対的な期待(v6自身のPL分布・人気・AI予測順位)との乖離で定義する",
 
@@ -15,7 +31,9 @@
       "forbidden": ["馬番順", "較正後確率", "結果", "確定オッズ"]
     },
     "min_field_size": 3,
-    "excluded_dead_heat": "着順に重複がある(同着)レースは主解析から除外、件数記録",
+    "excluded_dead_heat": "着順に重複がある(任意順位の同着)レースは主解析から除外、件数記録",
+    "excluded_missing_finish_number": "観測されたユニーク着順が1..len(unique)の連番でないレースは除外(2023年1件、データ整合性異常)",
+    "excluded_duplicate_row": "同一race_id内で馬番が重複するレースは除外(2023年0件)",
     "excluded_no_v6_score": "取消・除外・中止でmaster_v2に行が存在しない馬は構造的に対象馬候補から除外"
   },
 
@@ -31,14 +49,31 @@
 
   "rank_distribution_engine": {
     "exact_representation": "Gumbel-max trick (Yellott 1977): rank_i = 1 + #{j!=i : s_j+g_j > s_i+g_i}, g~Gumbel(0,1) iid",
-    "production_method": "monte_carlo",
-    "mc_draws": 50000,
+    "production_method": "resolve_q90_label() adaptive resolver (修正2026-09-21)",
+    "q90_resolution_procedure": [
+      "1. n<=exact_dp_max_n(=18) なら常に厳密bitmask DPを使う(誤差ゼロ)",
+      "2. n>18ならK=50,000でMC推定、各順位CDFにWilson score interval(95%)、upper_CI(F(r-1))<0.90 かつ lower_CI(F(r))>=0.90 を満たすrのみ確定",
+      "3. 確定不能ならK=200,000→1,000,000と増やし再試行",
+      "4. それでも不能かつn<=dp_infeasible_n(=24)なら厳密DPへfallback",
+      "5. n>24で確定不能な場合のみq90_unresolvedとして除外・件数報告"
+    ],
+    "exact_dp_max_n": 18,
+    "dp_infeasible_n": 24,
+    "mc_ladder": [50000, 200000, 1000000],
     "mc_seed_derivation": "blake2b(f'{global_seed}:{race_id}') mod (2^31-1)",
     "mc_global_seed_primary_label": 20261010,
     "mc_global_seed_favorite_subsidiary": 20261011,
-    "validation_methods": ["exact_bitmask_dp (O(2^(n-1)*n), 中規模n検証)", "brute_force_permutation_enumeration (O(n!), n<=8のoracle専用)"],
-    "validated_max_abs_error_realdata_2023_n5to18": 0.00523,
-    "validated_max_q90_rank_diff_realdata": 1
+    "validation_methods": ["exact_bitmask_dp (O(2^(n-1)*n), 本番主経路+中規模n検証)", "brute_force_permutation_enumeration (O(n!), n<=8のoracle専用)"],
+    "realdata_2023_q90_method_distribution": {"exact_dp": 3378, "monte_carlo": 0},
+    "note": "2023年development全3,378レースがn<=18のため、最終ラベルはモンテカルロ誤差を一切含まない(100%厳密DP)",
+    "validated_max_abs_error_fixed_k50000_vs_dp_realdata_2023_n5to18": 0.00523,
+    "validated_max_q90_rank_diff_fixed_k50000_realdata": 1,
+    "validated_adaptive_ladder_forced_match_rate_realdata_42races": "42/42",
+    "pl_input_consistency_audit": {
+      "location_is_raw_score_not_exp_score": true,
+      "max_abs_error_vs_pl_probs_all_tansho_realdata_149races": 1.11e-16,
+      "max_order_invariance_error_realdata_149races": 5.69e-16
+    }
   },
 
   "subsidiary_labels": {
@@ -76,8 +111,30 @@
 
   "gates": {
     "stage1_5_minimal_falsification": {
-      "data": "2023年development、5-fold race単位交差検証",
-      "stop_if": "R1のB3に対するCV上のdeviance/partial R^2改善が実質ゼロ",
+      "data": "2023年developmentのみ",
+      "cv_design": "meeting-day(rid[:10])単位のforward-chaining(blocked chronological) CV。random foldは禁止。同一開催日をtrain/testへ分割しない",
+      "n_meeting_days_2023": 288,
+      "n_blocks": 6,
+      "n_folds": 5,
+      "preprocessing": "SimpleImputer(median)+StandardScaler、各train foldのみでfit",
+      "fixed_hyperparameters": {
+        "estimator": "LogisticRegression",
+        "penalty": "l2", "C": 1.0, "class_weight": null, "max_iter": 1000,
+        "random_state": 20261013,
+        "oversampling": "使わない(SMOTE等禁止)"
+      },
+      "r1_minimal_feature_set": "R1専用特徴10候補中「既存列で対応可」と判定した5特徴のみ(kako5_std_pos, kako5_amplitude, distance_change_abs, going_changed, venue_changed)。「要構築」の5候補はStage2で追加",
+      "continue_conditions": [
+        "集約logloss改善(R1<B3)",
+        "集約Brier改善(R1<B3)",
+        "PR-AUC改善(R1>B3)",
+        "loglossとBrier差の97.5%パーセンタイル(片側上限)が0未満",
+        "5foldの過半数(3以上)でR1が同方向に優位",
+        "改善が特定foldに集中しない",
+        "R1の較正slopeがB3より悪化しない"
+      ],
+      "fail_conditions": "ROC-AUCのみの改善、または陽性分類閾値変更依存の改善はFAILとする",
+      "stop_if": "続行条件を一つでも満たさない場合",
       "action_on_stop": "Stage2(2024/2025評価)へ進まず終了する"
     },
     "gate0": "データ・母集団定義の健全性(Stage2)",
@@ -100,35 +157,50 @@
   },
 
   "stop_discipline": [
-    "Stage1.5でR1がB3にCV上の限界的寄与を持たない場合Stage2へ進まない",
+    "Stage1.5の続行条件を一つでも満たさない場合Stage2へ進まない",
     "Gate3 FAILの場合、統制変数を減らす・q90を変える・参加率を変える等の条件変更による救済をしない",
     "Gate3 FAILの場合、経済評価を実施しない",
-    "q90・tie-break規則・MC draw数/seed・同着除外規則は2024/2025の結果を見た後に変更しない",
-    "2023陽性数(554件)は十分と判断済み、q90→q80の緩和はしない"
+    "q90・tie-break規則・adaptive resolver方式(exact_dp_max_n/dp_infeasible_n/mc_ladder)・同着/欠番/重複行の除外規則は2024/2025の結果を見た後に変更しない",
+    "2023陽性数(551件)は十分と判断済み、q90→q80の緩和はしない",
+    "Stage1.5のCV分割方式(meeting-day forward-chaining)・固定ハイパーパラメータは2024/2025の結果を見た後に変更しない"
   ],
 
   "flop_detector_equivalence": {
-    "target_relationship": "catastrophic_downside=1 は top3_failure=1 の厳密な部分集合 (2023実測: 554/554=100%が既存flop, 既存flop 1320件中554件=41.97%がcatastrophic)",
-    "simple_agreement_rate_2023": 0.7733,
+    "target_relationship": "catastrophic_downside=1 は top3_failure=1 の厳密な部分集合 (2023実測[修正後]: 551/551=100%が既存flop, 既存flop 1320件中551件=41.74%がcatastrophic)",
+    "simple_agreement_rate_2023": 0.7724,
     "feature_correspondence": "diag_flop_detector.py の entropy/gap_12/n/baba_n/score_std は B2 の n・max_probability・entropy・gap_12 とほぼ1対1対応",
     "prior_art_audit_correction": "Stage0では「強い重複」と評価したが、Stage1実測によりラベル定義が異なる新規性ありと訂正(重複は特徴セットのみ)"
   },
 
+  "dead_heat_reconciliation_vs_exp09": {
+    "exp09_2023_count": 3,
+    "exp09_definition": "(fin==1).sum()>1 (1着同着のみ、payout matching目的)",
+    "exp10_win_dead_heat_2023_realdata": 3,
+    "exp10_any_position_dead_heat_2023_realdata": 77,
+    "conclusion": "パーサバグ・全角数字変換漏れではない。1着同着のみに定義を揃えるとEXP09と完全一致(3件)。差は除外スコープの広さ(EXP10はPLの全順序前提のため任意順位の同着を除外)",
+    "new_finding": "着順番号の欠番を1件新規発見(rid=2023102204040405)、除外規則へ追加"
+  },
+
   "2023_development_counts": {
+    "revision": "2026-09-21修正版。missing_finish_number除外の追加により554/3379→551/3378へ再計算",
     "n_races_total_in_population": 3456,
     "n_excluded_small_field": 0,
     "n_tie_break_invoked": 0,
-    "n_dead_heat_excluded": 77,
-    "n_labeled": 3379,
-    "catastrophic_downside_positive": 554,
-    "catastrophic_downside_rate": 0.1640,
+    "n_dead_heat_excluded_any_position": 77,
+    "n_dead_heat_excluded_win_only": 3,
+    "n_missing_finish_number_excluded": 1,
+    "n_duplicate_row_excluded": 0,
+    "n_q90_unresolved": 0,
+    "n_labeled": 3378,
+    "catastrophic_downside_positive": 551,
+    "catastrophic_downside_rate": 0.1631,
     "top3_failure_positive": 1320,
-    "top3_failure_rate": 0.3906,
+    "top3_failure_rate": 0.3908,
     "favorite_subsidiary": {
-      "n_races_with_favorite_label": 3226,
+      "n_races_with_favorite_label": 3225,
       "n_no_odds_or_unmatched": 153,
-      "favorite_is_ai_focal_rate": 0.6045,
-      "catastrophic_positive_rate": 0.1280
+      "favorite_is_ai_focal_rate": 0.6047,
+      "catastrophic_positive_rate": 0.1281
     }
   }
 }

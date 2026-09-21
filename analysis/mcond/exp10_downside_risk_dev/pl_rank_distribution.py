@@ -162,3 +162,100 @@ def rank_percentile(rank: int, n: int) -> float:
     if n <= 1:
         return float("nan")
     return (rank - 1) / (n - 1)
+
+
+# ============================================================
+# 4. adaptive q90 解決（モンテカルロ誤差からラベルを保護する）
+# ============================================================
+# JRA平地レースの出走可能最大頭数は18頭。exact DPはO(2^(n-1)*n)なので、
+# n<=EXACT_DP_MAX_N は常に厳密解を使う(モンテカルロ誤差そのものを排除)。
+# 2023-2025年の実データでもn<=18が確認済み(この定数を超える運用は想定されて
+# いないが、コードパスとしては汎用的なフォールバック梯子を用意する)。
+EXACT_DP_MAX_N = 18
+# n<=DP_INFEASIBLE_NならMCで解決できなくても最終的にexact DPへfallbackする。
+# 2^23 * 24 ≈ 2億(数十秒〜1分程度)を目安の上限とする。
+DP_INFEASIBLE_N = 24
+MC_LADDER = (50_000, 200_000, 1_000_000)
+
+
+def wilson_ci(k: int, n_draws: int, z: float = 1.959963984540054) -> tuple[float, float]:
+    """Wilson score interval（両側95%既定）。np/正規近似より小標本・極端pで安定。
+    k=成功回数、n_draws=試行回数。戻り値=(lower, upper)。
+    """
+    if n_draws <= 0:
+        return 0.0, 1.0
+    phat = k / n_draws
+    z2 = z * z
+    denom = 1 + z2 / n_draws
+    center = phat + z2 / (2 * n_draws)
+    margin = z * np.sqrt(phat * (1 - phat) / n_draws + z2 / (4 * n_draws * n_draws))
+    lo = (center - margin) / denom
+    hi = (center + margin) / denom
+    return max(0.0, lo), min(1.0, hi)
+
+
+def _try_resolve_from_dist(cdf_counts: np.ndarray, n_draws: int, q: float) -> int | None:
+    """cdf_counts[r-1] = rank<=rとなったdraw数(累積)。各rについて
+    upper_CI(F(r-1)) < q かつ lower_CI(F(r)) >= q を満たす最小のrを返す。
+    見つからなければNone。
+    """
+    n = len(cdf_counts)
+    for r in range(1, n + 1):
+        k_r_minus_1 = int(cdf_counts[r - 2]) if r >= 2 else 0
+        k_r = int(cdf_counts[r - 1])
+        _, hi_rm1 = wilson_ci(k_r_minus_1, n_draws)
+        lo_r, _ = wilson_ci(k_r, n_draws)
+        if hi_rm1 < q and lo_r >= q:
+            return r
+    return None
+
+
+def resolve_q90_label(
+    scores: np.ndarray,
+    focal_idx: int,
+    race_id: str,
+    q: float = 0.90,
+    global_seed: int = 20261010,
+    exact_dp_max_n: int = EXACT_DP_MAX_N,
+    dp_infeasible_n: int = DP_INFEASIBLE_N,
+    mc_ladder: tuple[int, ...] = MC_LADDER,
+) -> dict:
+    """q90_predicted_rankをモンテカルロ誤差から保護しながら確定する。
+
+    手順(ユーザー指定):
+      1. n<=exact_dp_max_n なら常に厳密bitmask DPを使う(誤差ゼロ)。
+      2. それ以外はK=50,000でモンテカルロ推定、各順位のCDFにWilson信頼区間を
+         計算し、upper_CI(F(r-1))<q かつ lower_CI(F(r))>=q を満たすrが
+         一意に決まる場合のみ確定する。
+      3. 確定できなければKを200,000→1,000,000と増やして再試行する。
+      4. それでも確定できず、かつ n<=dp_infeasible_n なら厳密DPへfallbackする
+         (厳密解には信頼区間の概念が要らないので必ず確定する)。
+      5. n>dp_infeasible_nで確定不能な場合のみ q90_unresolved として返す
+         (このデータセットでは実際には発生しない設計上の安全弁)。
+
+    戻り値: dict(q90_rank, method, resolved, k_draws, dist)
+    dist は使用した手法で得られた順位分布(unresolvedの場合はNone、期待値等の
+    派生量の再計算に再利用できる)。
+    """
+    scores = np.asarray(scores, dtype=np.float64)
+    n = len(scores)
+
+    if n <= exact_dp_max_n:
+        dist = exact_rank_distribution(scores, focal_idx)
+        return dict(q90_rank=quantile_rank(dist, q), method="exact_dp", resolved=True,
+                    k_draws=None, dist=dist)
+
+    for K in mc_ladder:
+        dist = mc_rank_distribution(scores, focal_idx, K, global_seed, race_id)
+        counts = np.round(dist * K).astype(np.int64)
+        cdf_counts = np.cumsum(counts)
+        r = _try_resolve_from_dist(cdf_counts, K, q)
+        if r is not None:
+            return dict(q90_rank=r, method=f"mc_K{K}", resolved=True, k_draws=K, dist=dist)
+
+    if n <= dp_infeasible_n:
+        dist = exact_rank_distribution(scores, focal_idx)
+        return dict(q90_rank=quantile_rank(dist, q), method="exact_dp_fallback", resolved=True,
+                    k_draws=None, dist=dist)
+
+    return dict(q90_rank=None, method="unresolved", resolved=False, k_draws=mc_ladder[-1], dist=None)
