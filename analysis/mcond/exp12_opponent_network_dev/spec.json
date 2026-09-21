@@ -1,0 +1,111 @@
+{
+  "exp": "EXP12",
+  "title": "対戦ネットワークによる対戦相手の質",
+  "stage": "1_terminated",
+  "frozen_at": "2026-09-21",
+  "process_note": "実装・検証・評価を反復的に行った後、本ファイルで最終定義を凍結してコミットした。2024・2025年は開発の全過程で一切参照・開封していない(実装順序は厳密に「まず凍結してから評価」ではなかったが、2024/2025年非開封の原則は常に遵守した)。",
+
+  "primary_hypothesis": "対象馬hの過去対戦相手oを血統登録番号で追跡し、対象日tまでに判明した相手oの現在能力を使うことで、O2(既存ELO/Glicko/EXP02)を超える予測情報が得られるか",
+
+  "scratch_prior_art": {
+    "files": ["analysis/_tmp_oppstrength_gate.py", "analysis/_tmp_elo_strict_gate.py"],
+    "verdict": "O3と等価ではない(SCRATCH_PRIOR_ART_AUDIT.md参照)。field-strength平均ベースのO1/O2寄りアプローチで、対戦相手個体識別+事後的能力更新というO3の核心機構を欠く。train=2023/test=2024-2025という設計だったが実行痕跡なし、本Stage1では採用しない"
+  },
+
+  "node_key": {
+    "type": "血統登録番号(hid)、文字列のまま、数値変換禁止",
+    "verified": "実データで先頭ゼロ0件・IDコリジョン0件、合成テストでも文字列保持を確認"
+  },
+
+  "graph_construction": {
+    "fixation": "日初時点固定(day-start fixed)",
+    "edges": "対象日より前のJRAレースのみ、地方海外は構造的に不在(master_v2がJRA限定)",
+    "no_same_day_edges": true,
+    "no_target_race_coparticipant_edges": true,
+    "external_history_gap": "前走日付とmaster_v2上の直前行日付の不一致で1(EXP01established pattern踏襲)",
+    "deletion_invariance": {
+      "synthetic_tests": "test_opponent_graph.py、全通過",
+      "realdata_test": "2025年削除、2024年46,752行、11特徴列(10特徴+external_history_gap)全て不一致0件で完全一致確認済み"
+    }
+  },
+
+  "ability_base": {
+    "primary": "O3b: EXP02動的能力(dyn_skill_mu, data/_research/mcond/exp02_features.parquet)",
+    "sensitivity_o3a": "既存ELO(elo_T1M1_horse, data/elo_feats.parquet)",
+    "sensitivity_o3c": "v6 as-of能力proxy(model.predict()生スコア)",
+    "selection_rule": "O3bを主方式に事前固定。O3a/O3cは感度分析のみ、後から都合よく選ばない",
+    "note_stage1_scope": "Stage1はO3の最小反証に限定するためO3b(主方式)のみで評価を実施。O3a/O3cの感度分析はO3がGateを通過した場合の追加検証として設計したが、O3自体がGateで不合格だったため未実施"
+  },
+
+  "o3_features": [
+    "unique_opponent_count", "opponent_current_strength_mean", "opponent_current_strength_max",
+    "opponent_current_strength_top3_mean", "beaten_opponent_strength_mean",
+    "lost_to_opponent_strength_mean", "strongest_beaten_opponent",
+    "recency_weighted_opponent_strength", "opponent_strength_dispersion",
+    "opponent_later_proved_strong_count"
+  ],
+  "later_proved_strong_threshold": 3.0,
+  "recency_halflife_races": 5.0,
+
+  "models": {
+    "O0": ["v6_p_win", "market_p_win"],
+    "O1": ["v6_p_win", "market_p_win", "opponent_avg_quality_prev(前走field平均)"],
+    "O2": ["v6_p_win", "market_p_win", "elo_T1M1_horse", "g2_mu", "dyn_skill_mu"],
+    "O3": "O2 + 10特徴量(上記)",
+    "primary_comparison": "O3 vs O2(O3 vs O0だけでは採用しない、ユーザー指示)",
+    "estimator": "LogisticRegression(l2, C=1.0, class_weight=None), 前処理は各train foldのみでfit"
+  },
+
+  "confound_controls": [
+    "career_starts(kako5_race_count)", "days_since_last_race(間隔)", "horse_age(年齢)",
+    "field_size(n_field)", "class(class_ord)", "popularity(popularity_rank)",
+    "market_probability", "v6_probability", "entropy", "missing_history_rate",
+    "unique_opponent_count", "external_history_gap"
+  ],
+
+  "placebo_test": {
+    "design": "層(年齢帯×出走回数帯)内でopponent強度を経験的プール平均・標準偏差からの中心極限定理近似ブートストラップで置換。実際のdegree(unique_opponent_count)は維持。simplification_note: 計算量制約のため、真の識別子置換ではなくopponent_current_strength_mean/beaten_opponent_strength_mean/lost_to_opponent_strength_meanの3特徴のみを近似的にplacebo化(mean系のCLT近似、max/top3/dispersion等の順序統計は対象外)",
+    "n_iterations": 1000,
+    "seed": 20260921,
+    "result": {
+      "real_improvement_logloss": 0.00037,
+      "placebo_97_5_percentile": 0.00057,
+      "placebo_mean": 0.00045,
+      "passed": false
+    },
+    "verdict": "FAIL: 実際のO3改善(+0.00037)はplacebo分布の97.5%ile(+0.00057)を超えない。placebo平均(+0.00045)がむしろ実際の改善を上回っており、観測された小さな改善の大部分は層(年齢×経験数)の交絡で説明できることを示唆"
+  },
+
+  "stage1_cv": {
+    "design": "meeting-day forward-chaining CV、288日を6ブロック・5fold、2023年developmentのみ",
+    "n_meeting_days": 276,
+    "n_folds": 5,
+    "result": {
+      "logloss_O2": 0.21581, "logloss_O3": 0.21541, "logloss_diff_O3_minus_O2": -0.00040,
+      "brier_O2": 0.05991, "brier_O3": 0.05987, "brier_diff": -0.00004,
+      "prauc_O2": 0.30507, "prauc_O3": 0.30157,
+      "bootstrap_ci95": [-0.00086, 0.00002],
+      "n_folds_o3_better_logloss": 4, "n_folds_total": 5,
+      "calib_slope_O2": 0.865, "calib_slope_O3": 0.867
+    }
+  },
+
+  "continue_conditions": {
+    "1_logloss_improves_both_directions": "PASS(4/5fold、集約でも改善)",
+    "2_bootstrap_ci_upper_below_0": "FAIL(CI上限+0.00002、ゼロをわずかに超える)",
+    "3_abs_improvement_ge_0.0005_or_rel_ge_0.1pct": "絶対改善0.00040<0.0005だが相対改善0.185%>=0.1%のためOR条件はPASS",
+    "4_brier_improves": "PASS(ただし-0.00004と極小)",
+    "5_placebo_exceeds_97_5_percentile": "FAIL(決定的)",
+    "6_beats_degree_count_only_model": "未実施(項目5のFAILにより追加検証を打ち切り)",
+    "7_not_concentrated_in_few_entities": "未実施(同上)",
+    "8_o3a_o3c_no_extreme_sign_reversal": "未実施(Stage1はO3bのみで評価、同上)"
+  },
+
+  "final_verdict_20260921": {
+    "outcome": "TERMINATED_AT_STAGE1",
+    "reason": "8続行条件中、少なくとも2条件(bootstrap CI上限<0、placebo 97.5%ile超え)が明確に不合格。特にplacebo検定は「観測された小さな改善が年齢×経験数という交絡層だけで説明できてしまう」ことを直接示しており、対戦相手の個体識別情報がO2を超える固有価値を持つという主仮説を支持しない",
+    "action": "2024・2025年は一切開封せず終了。O4(2-hop/PageRank)・O5(embedding)・O6(GNN)は実装しない。「単純だったから高度化すればよい」という解釈はしない(ユーザー事前指示通り)",
+    "unfinished_verifications": ["degree/count-onlyモデルとの比較", "馬・騎手・競馬場への集中確認", "O3a(ELO)・O3c(v6 as-of)感度分析"],
+    "unfinished_verifications_note": "placebo/bootstrapで既に決定的FAILのため追加検証は行わなかった。仮にこれらを実施しても、上位のGate(placebo)が不合格である以上、続行の結論を覆すものではない"
+  }
+}

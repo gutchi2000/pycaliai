@@ -23,12 +23,24 @@ EXP01-11・v6・compute_bets.pyは変更しない。新規作業は
 している。詳細は`PRIOR_ART_AUDIT.md`冒頭参照。過去の未完了作業と見られ、
 Stage 0では実行していない。
 
-## 現在の進捗(2026-09-21時点)
+## 【2026-09-21】最終結論: Stage1でO3がGate不合格、EXP12終了
+
+O3(個体識別ベースの対戦相手ネットワーク特徴)はO2(既存ELO/Glicko/EXP02)に
+対し、meeting-day forward-chaining CV(2023年developmentのみ)で小さな
+logloss改善(-0.00040)を示したが、**placebo検定(層内交絡のみでの再現性
+検定)が決定的に不合格**(実際の改善+0.00037 < placebo分布97.5%ile
++0.00057、placebo平均+0.00045が実際の改善を上回る)。開催日bootstrap
+CI上限もわずかにゼロを超える。8続行条件中2条件が明確に不合格のため、
+事前登録した停止規律に従い2024・2025年を一切開封せずEXP12を終了する。
+O4(2-hop/PageRank)以降は実装しない。詳細は`STAGE1_DESIGN.md`参照。
+
+## 現在の進捗(2026-09-21時点、最終)
 
 | 段階 | 状態 | 成果物 |
 |---|---|---|
-| Stage 0(先行研究・データ監査) | **完了** | `PRIOR_ART_AUDIT.md` / `DATA_AUDIT.md` |
-| Stage 1以降 | **未着手** | ユーザー承認待ち |
+| Stage 0(先行研究・データ監査) | 完了 | `PRIOR_ART_AUDIT.md` / `DATA_AUDIT.md` |
+| Stage 1(O3最小反証) | **完了・Gate不合格でEXP12終了** | `SCRATCH_PRIOR_ART_AUDIT.md` / `STAGE1_DESIGN.md` / `spec.json` |
+| O4以降 | **実施せず** | — |
 
 ## Stage 0 の要点
 
@@ -54,6 +66,6 @@ Stage 0では実行していない。
 
 ## 次の一手
 
-ユーザー承認待ち。Stage1へ進む場合はO3(1-hop個体識別特徴、EXP01の前走
-日付検証を踏襲した厳密as-of実装)から着手し、full-control gateを通過
-した場合のみO4以降を検討する。
+なし。EXP12は終了。再走する場合は、少なくともplacebo検定を通過する
+新しい対戦相手強度の定式化（例えば個体識別を維持しつつ交絡層をより
+厳密に統制する設計）が必要だが、中止規律により本セッションでは実施しない。
