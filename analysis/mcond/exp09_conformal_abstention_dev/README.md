@@ -16,6 +16,8 @@ EXP01-08・v6・EXP05・EXP05-F・compute_bets.py・EXP06は変更しない。�
 | 段階 | 状態 | 成果物 |
 |---|---|---|
 | Stage 0(先行研究・既存実装監査) | **完了** | `PRIOR_ART_AUDIT.md` — 厳密なConformalは未着手。近縁の3系統(chaos gate/participation gate/EXP06 OOD)が既に実装・検証済み。うち participation gateの旗艦数値「+5.31pt」は2026 as-servedで**符号反転・撤回済み**。EXP06のLR_CONTROLはJevに完勝(同一coverage)だが、Jevのrisk_prob自体はモデル自身の確信度を統制すると価値消失(FAIL) |
+| Stage 1(データ・定義監査) | **完了** | `DATA_AUDIT.md` — 予測対象=単勝(APS型conformal分類)、nonconformity score=APS累積確率質量、確率入力=生PL確率(既存calibratorのvalid=2023 in-sample問題を回避)、予測集合=レース単位・周辺coverageのみ主張、モデル版hash記録、nominal_conformal_coverage=0.90固定。**2024・2025年の性能・ROIは未開封** |
+| `MINIMAL_FALSIFICATION_PLAN.md` | **改訂・確定** | coverage/participation_rate/abstention_rateの用語分離、Gate0-5構造(主判定participation_rate=75%)、7方式の同一participation_rate比較、中止規律を確定 |
 
 ## Stage 0の中心的発見
 
@@ -40,5 +42,5 @@ EXP01-08・v6・EXP05・EXP05-F・compute_bets.py・EXP06は変更しない。�
 
 ## 次の一手
 
-`MINIMAL_FALSIFICATION_PLAN.md`(最小反証実験・停止条件)をユーザーへ提示済み、
-承認後にStage 1(データ監査)へ進む。
+`MINIMAL_FALSIFICATION_PLAN.md`(§A正式確定版)をユーザーへ再提示済み。
+承認後、spec.json凍結→Stage 2(実装)へ進む。
