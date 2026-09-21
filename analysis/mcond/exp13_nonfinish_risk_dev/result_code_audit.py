@@ -26,7 +26,7 @@ OUT_DIR = HERE / "out"
 KEKKA_PATH = Path(r"E:\競馬過去走データ\raw_data\kekka_2010_2025_fix_raceid_v2__keyed.csv")
 
 COLS = ["日付", "レース名", "クラス名", "着順", "頭数", "出走頭数",
-        "単勝オッズ", "走破タイム", "芝・ダ", "race_id16", "年齢"]
+        "単勝オッズ", "走破タイム", "芝・ダ", "race_id16", "年齢", "場所"]
 
 
 def classify_code(code: str) -> str:
@@ -113,6 +113,50 @@ def audit(df: pd.DataFrame) -> dict:
     age = flat.groupby("age_grp").agg(started=("started", "sum"), positive=("positive", "sum"))
     age["rate_pct"] = (age["positive"] / age["started"] * 100).round(4)
     out["flat_by_age_group"] = age.to_dict(orient="index")
+
+    # ---- Gate 0D (2026-09-22追加): 2023年detailed breakdown + 2013-2022年別 ----
+    flat_2023 = flat[flat["year"] == 2023].copy()
+    out["gate0d_2023_unique_races"] = int(flat_2023["race_id16"].nunique())
+    out["gate0d_2023_started"] = int(flat_2023["started"].sum())
+    out["gate0d_2023_positive"] = int(flat_2023["positive"].sum())
+
+    venue = flat_2023.groupby("場所").agg(started=("started", "sum"), positive=("positive", "sum"))
+    venue["rate_pct"] = (venue["positive"] / venue["started"] * 100).round(4)
+    out["gate0d_2023_by_venue"] = venue.to_dict(orient="index")
+
+    surf2023 = flat_2023.groupby("surface").agg(started=("started", "sum"), positive=("positive", "sum"))
+    surf2023["rate_pct"] = (surf2023["positive"] / surf2023["started"] * 100).round(4)
+    out["gate0d_2023_by_surface"] = surf2023.to_dict(orient="index")
+
+    flat_2023["age_grp2"] = flat_2023["age_i"].apply(lambda a: str(int(a)) if a <= 6 else "7plus")
+    age2023 = flat_2023.groupby("age_grp2").agg(started=("started", "sum"), positive=("positive", "sum"))
+    age2023["rate_pct"] = (age2023["positive"] / age2023["started"] * 100).round(4)
+    out["gate0d_2023_by_age"] = age2023.to_dict(orient="index")
+
+    # 人気帯: 確定オッズから導出したrace内順位。記述統計専用、モデル入力ではない。
+    started_2023 = flat_2023[flat_2023["started"]].copy()
+    started_2023["odds_f"] = pd.to_numeric(started_2023["単勝オッズ"], errors="coerce")
+
+    def _add_ninki(g: pd.DataFrame) -> pd.DataFrame:
+        g = g.copy()
+        g["ninki"] = g["odds_f"].rank(method="first", ascending=True)
+        return g
+
+    started_2023 = started_2023.groupby("race_id16", group_keys=False).apply(
+        _add_ninki, include_groups=False).join(started_2023[["race_id16"]])
+    started_2023["ninki_band"] = pd.cut(
+        started_2023["ninki"], [0, 1, 3, 6, 9, 99],
+        labels=["1st", "2-3", "4-6", "7-9", "10plus"])
+    ninki = started_2023.groupby("ninki_band", observed=True).agg(
+        started=("started", "sum"), positive=("positive", "sum"))
+    ninki["rate_pct"] = (ninki["positive"] / ninki["started"] * 100).round(4)
+    out["gate0d_2023_by_popularity_band_DESCRIPTIVE_ONLY_NOT_A_MODEL_INPUT"] = (
+        ninki.to_dict(orient="index"))
+
+    per_year = flat[(flat["year"] >= 2013) & (flat["year"] <= 2022)].groupby("year").agg(
+        started=("started", "sum"), positive=("positive", "sum"))
+    per_year["rate_pct"] = (per_year["positive"] / per_year["started"] * 100).round(4)
+    out["gate0d_2013_2022_by_year"] = {int(k): v for k, v in per_year.to_dict(orient="index").items()}
 
     return out
 
