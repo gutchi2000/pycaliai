@@ -1,0 +1,134 @@
+{
+  "exp": "EXP10",
+  "title": "大敗・中止・能力未発揮リスク",
+  "stage": "1",
+  "frozen_at": "2026-09-21",
+  "primary_hypothesis": "v6確率、raw score、entropy、市場確率、人気、頭数、出走回数、休養日数を統制した後にも、専用の下方リスクモデルが大敗を識別できるか",
+  "forbidden_design": "単に負けた馬(finish>N)を陽性にすることは禁止。相対的な期待(v6自身のPL分布・人気・AI予測順位)との乖離で定義する",
+
+  "target_selection": {
+    "unit": "1レース1頭、raw v6 scoreが最大の馬",
+    "score_source": "backtest_pl_ev.score_test(include_valid=True) の _score 列 (unified_rank_v6, 2022年末までの学習で固定、較正器未使用)",
+    "tie_break": {
+      "method": "blake2b(f'{TIE_BREAK_SEED}:{race_id}:{血統登録番号}') の整数値が最小の馬",
+      "seed": 20261010,
+      "forbidden": ["馬番順", "較正後確率", "結果", "確定オッズ"]
+    },
+    "min_field_size": 3,
+    "excluded_dead_heat": "着順に重複がある(同着)レースは主解析から除外、件数記録",
+    "excluded_no_v6_score": "取消・除外・中止でmaster_v2に行が存在しない馬は構造的に対象馬候補から除外"
+  },
+
+  "primary_label": {
+    "name": "catastrophic_downside",
+    "formula": "1[observed_rank > q90_predicted_rank]",
+    "q90_predicted_rank": "quantile_rank(predicted_rank_dist, 0.90) = predicted_rank_distのCDFが0.90以上になる最小のrank",
+    "predicted_rank_dist": "focal馬のPlackett-Luce順位周辺分布 (pl_rank_distribution.py)",
+    "quantile_fixed": 0.90,
+    "quantile_relaxation_forbidden": "2023・2024・2025の結果を見てq90をq80等へ緩和しない。2023陽性数が少なすぎる場合はデータ不足で終了する(緩和しない)",
+    "dead_heat_handling": "同着はPLの前提外のため主解析から除外し件数を記録する"
+  },
+
+  "rank_distribution_engine": {
+    "exact_representation": "Gumbel-max trick (Yellott 1977): rank_i = 1 + #{j!=i : s_j+g_j > s_i+g_i}, g~Gumbel(0,1) iid",
+    "production_method": "monte_carlo",
+    "mc_draws": 50000,
+    "mc_seed_derivation": "blake2b(f'{global_seed}:{race_id}') mod (2^31-1)",
+    "mc_global_seed_primary_label": 20261010,
+    "mc_global_seed_favorite_subsidiary": 20261011,
+    "validation_methods": ["exact_bitmask_dp (O(2^(n-1)*n), 中規模n検証)", "brute_force_permutation_enumeration (O(n!), n<=8のoracle専用)"],
+    "validated_max_abs_error_realdata_2023_n5to18": 0.00523,
+    "validated_max_q90_rank_diff_realdata": 1
+  },
+
+  "subsidiary_labels": {
+    "continuous_downside_residual": "observed_rank_percentile - expected_rank_percentile, rank_percentile(r,n)=(r-1)/(n-1)",
+    "top3_failure": "observed_rank > 3 (既存flop detectorのhon_top3=0と同義)",
+    "bottom_half": "observed_rank_percentile > 0.5",
+    "favorite_catastrophic_downside": "1番人気(単勝オッズ最小、タイは馬番昇順)についてfocal馬と同じq90手法で計算。市場人気=市場データ由来、対象馬=◎とは別個体でありうる",
+    "raw_v6_top_probability_band": "focal_win_prob (PLの単勝確率換算) の五分位帯",
+    "rescue_forbidden": "副次目的変数で主判定(catastrophic_downside, Gate3)を救済しない"
+  },
+
+  "dnf_population": {
+    "separated_from_main": true,
+    "policy": "件数・データ可用性の記録のみ、EXP10本体のラベル・特徴には使わない(過去DNF履歴候補特徴を除く)",
+    "raw_codes_2023": {"止(中止)": 219, "外(除外)": 101, "消(取消)": 78, "丸数字(原因未確認)": 1}
+  },
+
+  "models": {
+    "B0": {"features": ["v6自身の下方尾部確率(predicted_rank_distの分布形状統計)"]},
+    "B1": {"features": ["B0", "市場勝率(単勝オッズ由来)", "人気順位"]},
+    "B2": {"features": ["B1", "field_size(n)", "max_probability(p1_max)", "entropy", "gap_12"]},
+    "B3": {"features": ["B2", "出走回数(kako5_race_count等)", "休養日数(間隔)"]},
+    "R1": {"features": ["B3", "下方リスク専用特徴(過去のみ、STAGE1_DESIGN.md §4.2)"]},
+    "primary_comparison": "R1 vs B3",
+    "estimator": "logistic regression (primary, 係数CI判定用)。頑健性確認用にGBM版を併記可だが主判定はロジスティック回帰"
+  },
+
+  "time_series_split": {
+    "feature_generation": "対象日より前のみ",
+    "base_model_train": "<=2022-12-28 (unified_rank_v6と同一)",
+    "label_definition_regularization_feature_selection": "2023年development(valid split)のみ",
+    "oos_evaluation": "2024・2025年(未実施、Stage2)",
+    "refit_forbidden_on_oos": true
+  },
+
+  "gates": {
+    "stage1_5_minimal_falsification": {
+      "data": "2023年development、5-fold race単位交差検証",
+      "stop_if": "R1のB3に対するCV上のdeviance/partial R^2改善が実質ゼロ",
+      "action_on_stop": "Stage2(2024/2025評価)へ進まず終了する"
+    },
+    "gate0": "データ・母集団定義の健全性(Stage2)",
+    "gate1": "ラベルの構造的妥当性(Stage2)",
+    "gate2": "単純方式との比較(Stage2、既存flop detector含む)",
+    "gate3": {
+      "description": "R1 vs B3のfull control、最重要関門",
+      "primary": true,
+      "criteria": [
+        "2024・2025年とも同方向",
+        "logloss差の97.5%CI上限<0",
+        "Brier差の97.5%CI上限<0",
+        "PR-AUC改善",
+        "年度・競馬場・人気帯・芝ダートで一部区分に集中しない",
+        "partial R^2/deviance改善が実質ゼロでない"
+      ],
+      "bootstrap": "開催日単位paired bootstrap"
+    },
+    "gate4": "経済評価(Gate1-4通過後のみ、見送り or 投資縮小の2案に限定、代替馬選択・券種変更は同時に行わない、同一participation_rateでmax_probability/entropy/既存flop detector/LR_CONTROLと比較)"
+  },
+
+  "stop_discipline": [
+    "Stage1.5でR1がB3にCV上の限界的寄与を持たない場合Stage2へ進まない",
+    "Gate3 FAILの場合、統制変数を減らす・q90を変える・参加率を変える等の条件変更による救済をしない",
+    "Gate3 FAILの場合、経済評価を実施しない",
+    "q90・tie-break規則・MC draw数/seed・同着除外規則は2024/2025の結果を見た後に変更しない",
+    "2023陽性数(554件)は十分と判断済み、q90→q80の緩和はしない"
+  ],
+
+  "flop_detector_equivalence": {
+    "target_relationship": "catastrophic_downside=1 は top3_failure=1 の厳密な部分集合 (2023実測: 554/554=100%が既存flop, 既存flop 1320件中554件=41.97%がcatastrophic)",
+    "simple_agreement_rate_2023": 0.7733,
+    "feature_correspondence": "diag_flop_detector.py の entropy/gap_12/n/baba_n/score_std は B2 の n・max_probability・entropy・gap_12 とほぼ1対1対応",
+    "prior_art_audit_correction": "Stage0では「強い重複」と評価したが、Stage1実測によりラベル定義が異なる新規性ありと訂正(重複は特徴セットのみ)"
+  },
+
+  "2023_development_counts": {
+    "n_races_total_in_population": 3456,
+    "n_excluded_small_field": 0,
+    "n_tie_break_invoked": 0,
+    "n_dead_heat_excluded": 77,
+    "n_labeled": 3379,
+    "catastrophic_downside_positive": 554,
+    "catastrophic_downside_rate": 0.1640,
+    "top3_failure_positive": 1320,
+    "top3_failure_rate": 0.3906,
+    "favorite_subsidiary": {
+      "n_races_with_favorite_label": 3226,
+      "n_no_odds_or_unmatched": 153,
+      "favorite_is_ai_focal_rate": 0.6045,
+      "catastrophic_positive_rate": 0.1280
+    }
+  }
+}
