@@ -1,0 +1,13 @@
+{
+ "source": "data\\Time _series_odds\\TANPUK_20210105-20251228.csv",
+ "date_min": "2021-01-05",
+ "date_max": "2025-12-28",
+ "snapshot_rule": "区分4(確定)。実測は発走のおよそ6-9分後(betting close後の公式確定値)",
+ "timestamp_provenance": "TANPUK CSVの「月日時分」列、区分=4の行",
+ "minutes_to_post_median": -7.0,
+ "minutes_to_post_min": -9.0,
+ "minutes_to_post_max": -6.0,
+ "final_odds": true,
+ "safe_for_decision_time": false,
+ "sha256": "3517585d0040cff27b7d18a43a86a99b6e60c2add9969ab83c487f877880597e"
+}

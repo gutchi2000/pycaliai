@@ -113,16 +113,20 @@ capacity』を追加するわけではない**。`PRIOR_ART_AUDIT.md`§1-3の3�
 存在しない」という問題は、**regime定義自体には一切関係しない**
 （regime gatingは市場データを必要としない設計にできる）。
 
-market確率をpooled modelの入力として使う場合（項目7の比較対象の一部）は、
-EXP13で確認済みの通り**2023年にhistorical_pre_snapshotが存在しないため
-確定オッズの代用はできない**という同一の制約がEXP14にも及ぶ——「pooled
-v6+市場」を比較対象に含める場合、市場確率部分は2023年developmentでは
-構築不能である点をEXP14でも踏襲する（EXP13 Gate0Aの結論を再利用、
-本セッションで新たに検証し直す必要はない）。
+**【2026-09-22訂正】** 上記のEXP13 Gate0A「2023年にhistorical_pre_snapshot
+不在」という前提は誤りだったことが`docs/research/
+MARKET_DATA_PROVENANCE_AUDIT_20260921.md`で確定した。`data/Time
+_series_odds/TANPUK_*.csv`（2011-2025年）由来の`historical_pre_snapshot`
+（発走26-30分前、中央値28分）が実在し、2023年の市場確率は`exp05_design.
+parquet`（EXP01/04/05/06/07/08/09が既に使用中の既存artifact）経由で
+構築可能——止馬（DNF）についても正常完走馬と同水準のcoverage(87.6%)が
+確認された。**「pooled v6＋市場」を比較対象に含めることはEXP14でも可能**
+（市場確率抜きに限定する必要はない）。
 
 **結論**: gating機構自体（regime判定）は結果・確定オッズ不要で構築可能。
-ただし比較対象に「市場確率込みpooled model」を含める場合は、EXP13と同じ
-制約（2023年の市場確率構築不能）に直面する。
+比較baselineに「市場確率込みpooled model」を含める場合も、
+`exp05_design.parquet`の既存`mkt_p3_pre`を再利用すれば2023年development
+で構築できる（EXP13時点の制約は解消済み）。
 
 ---
 

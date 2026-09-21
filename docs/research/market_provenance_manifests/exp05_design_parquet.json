@@ -1,0 +1,13 @@
+{
+ "source": "data\\_research\\mcond\\exp05_design.parquet",
+ "date_min": "2016-01-01",
+ "date_max": "2025-12-31",
+ "snapshot_rule": "analysis/mcond/exp05_market_residual_dev/build_features.py: base.parquetのmkt_p3_pre/mkt_pi_preを採用。EXP01/04/05/06/07(Stage2A)/08/09が共通利用",
+ "timestamp_provenance": "base.parquet継承(TANPUK区分1由来)",
+ "minutes_to_post_median": 28.0,
+ "minutes_to_post_min": 26.0,
+ "minutes_to_post_max": 30.0,
+ "final_odds": false,
+ "safe_for_decision_time": true,
+ "sha256": "442040281209c7d361a9b88199627e6f75b68eb6f117aca301a9ed29be04e877"
+}

@@ -1,0 +1,13 @@
+{
+ "source": "data\\Time _series_odds\\TANPUK_20210105-20251228.csv",
+ "date_min": "2021-01-05",
+ "date_max": "2025-12-28",
+ "snapshot_rule": "区分1(前売り)のうち同日かつ確定(区分4)より前で最新の1件を採用(analysis/mcond/market.py準拠)。実測は発走のおよそ26-30分前(中央値28分)",
+ "timestamp_provenance": "TANPUK CSVの「月日時分」列(MMDDHHMM整数)。master_v2の「発走時刻」と突合し実測",
+ "minutes_to_post_median": 28.0,
+ "minutes_to_post_min": 26.0,
+ "minutes_to_post_max": 30.0,
+ "final_odds": false,
+ "safe_for_decision_time": true,
+ "sha256": "3517585d0040cff27b7d18a43a86a99b6e60c2add9969ab83c487f877880597e"
+}

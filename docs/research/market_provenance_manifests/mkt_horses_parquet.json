@@ -1,0 +1,13 @@
+{
+ "source": "data\\_joint\\mkt_horses.parquet",
+ "date_min": "2013-01-01",
+ "date_max": "2025-12-31",
+ "snapshot_rule": "analysis/build_joint_substrate.py: TANPUK区分1のうち「9時(09:00最寄り)」を専用抽出(market.pyのam9と類似だが独立実装、同一ロジックか未検証)",
+ "timestamp_provenance": "TANPUK由来だがmarket.py非経由の独立抽出ロジック",
+ "minutes_to_post_median": null,
+ "minutes_to_post_min": null,
+ "minutes_to_post_max": null,
+ "final_odds": false,
+ "safe_for_decision_time": true,
+ "sha256": "e40a1295e5cf85480594ca68f6e4b4c2f66f7e5271d4559363b7b0a7d0788094"
+}

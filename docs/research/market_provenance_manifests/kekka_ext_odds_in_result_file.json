@@ -1,0 +1,13 @@
+{
+ "source": "E:\\競馬過去走データ\\raw_data\\kekka_2010_2025_fix_raceid_v2__keyed.csv",
+ "date_min": "2010-01-01",
+ "date_max": "2025-12-31",
+ "snapshot_rule": "結果ファイル内の単勝オッズ列。EXP10のB1市場特徴・EXP12のo1_opponent_quality_check.pyがこちらを使用(TANPUKのhistorical_pre_snapshotとは別物)",
+ "timestamp_provenance": "タイムスタンプ列なし(結果確定後の値、正確な取得時刻は不明)",
+ "minutes_to_post_median": null,
+ "minutes_to_post_min": null,
+ "minutes_to_post_max": null,
+ "final_odds": true,
+ "safe_for_decision_time": false,
+ "sha256": "839924521345d47ec9ccbae46a991c66f417b1f15df7199752c8d48cabeae510"
+}

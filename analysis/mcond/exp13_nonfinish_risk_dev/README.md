@@ -1,5 +1,19 @@
 # EXP13 — 出走後の中止・非完走リスク（started_but_did_not_finish）
 
+## ★【2026-09-22 同日訂正】Gate 0Aの「市場snapshot 0%」は誤りだった
+
+`docs/research/MARKET_DATA_PROVENANCE_AUDIT_20260921.md`（横断provenance
+監査）により、Gate 0Aの結論を訂正する: `data/Time _series_odds/TANPUK_*.csv`
+（2011-2025年）由来の`historical_pre_snapshot`（発走26-30分前、中央値28分）
+が実在し、2023年flatで正常完走馬91.0%・止(DNF)87.6%のcoverageがある
+（`exp05_design.parquet`という既存artifact経由、EXP01/04/05/06/07/08/09が
+既に使用中だった）。**下記の終了結論そのものは変更しない**——Gate 0B
+（numeric parity未検証）・Gate 0D（境界線上の検出力）が未解消のため、
+ユーザー指示によりEXP13は自動再開していない。正式な再開判断はユーザーに
+委ねる。詳細は`spec.json`の`correction_20260922_provenance_audit`参照。
+
+---
+
 ## 【2026-09-22】最終結論: Gate 0でデータ不足終了（2024・2025年は未開封）
 
 > **EXP13は非完走リスクモデルの性能FAILではない。2013〜2025年の結果ラベルと

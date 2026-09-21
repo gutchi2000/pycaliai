@@ -1,0 +1,13 @@
+{
+ "source": "data\\_research\\mcond\\market.parquet",
+ "date_min": "2013-01-01",
+ "date_max": "2025-12-31",
+ "snapshot_rule": "analysis/mcond/market.py: pre(区分1同日最新)/am9(9:30以前最新)/final(区分4)の3スナップショットをrid16+ban単位で保持",
+ "timestamp_provenance": "TANPUK由来、min_before_final列は「確定(final)からの分」であり「発走時刻からの分」ではない点に注意(本監査で新たに区別)",
+ "minutes_to_post_median": 35.0,
+ "minutes_to_post_min": 29.0,
+ "minutes_to_post_max": 52.0,
+ "final_odds": false,
+ "safe_for_decision_time": true,
+ "sha256": "c158f52a61b11c0913b221a07093a6bd4251b6b59dee5e66187fbeedb24ffea3"
+}

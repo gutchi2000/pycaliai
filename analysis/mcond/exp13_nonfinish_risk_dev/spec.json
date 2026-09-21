@@ -2,6 +2,13 @@
   "exp": "EXP13",
   "title": "出走後の中止・非完走リスク (started_but_did_not_finish)",
   "stage": "gate0_terminated",
+  "correction_20260922_provenance_audit": {
+    "summary": "docs/research/MARKET_DATA_PROVENANCE_AUDIT_20260921.md により、Gate 0Aの「2023年historical_pre_snapshot coverage 0%」は誤りと判明。data/Time _series_odds/TANPUK_*.csv(2011-2025年)由来のhistorical_pre_snapshot(発走26-30分前、中央値28分)が実在し、2023年flat: 正常完走馬91.0%・止(DNF)87.6%のcoverageを確認(exp05_design.parquetという既存artifact経由、EXP01/04/05/06/07/08/09が既に使用中)。",
+    "gate_0a_corrected_verdict": "PASS(訂正): 市場確率は2023年developmentで構築可能。確定オッズは依然として使わない方針を継続、historical_pre_snapshot(TANPUK由来、確定オッズではない)を使う。",
+    "termination_still_stands": true,
+    "reason_termination_still_stands": "Gate0Aが訂正されてもGate0B(raw v6 scoreのnumeric parity未検証)とGate0D(2023年145陽性、EPV≈11の境界線上の検出力)は未解消のまま。ユーザー指示によりEXP13は自動再開しない。",
+    "not_auto_resumed": "ユーザー指示: 「ただしEXP13を自動再開せず、止馬にも同じsnapshotが結合できるか・完走馬との差・時刻安全性を再監査して報告する」を実施済み(MARKET_DATA_PROVENANCE_AUDIT_20260921.md §6)。正式な再開判断はユーザーに委ねる。"
+  },
   "final_verdict_20260922": {
     "outcome": "TERMINATED_AT_GATE0_DATA_INSUFFICIENT",
     "reason": "Gate 0A(市場オッズ取得時点)で、development期間である2023年に判断時点market snapshot(historical_pre_snapshot)が構造的に0%であることが確定。確定オッズ・最終人気・結果ファイル内オッズの代用は行わない方針のため、主仮説(v6+市場を統制した後の非完走リスク情報の有無)を時点安全に検証できない。Gate 0D(標本数・検出力、2023年145陽性・EPV約11・事前効果量なし)は単独では即時中止理由ではないが、Gate 0Aの構造的欠損と合わせて継続根拠が不足すると判断した。",
