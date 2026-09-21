@@ -1,14 +1,17 @@
 # EXP09 — Conformal/OODによる保証付き見送り
 
-## 【2026-09-21】最終結論: Gate1 PASS・Gate2 PASS・Gate3 FAIL、EXP09終了
+## 【2026-09-21】最終結論: coverageは再現したが、abstentionに固有の価値なし
 
-Conformal(APS-derived abstention score)はnominal coverage保証自体は成立
-(Gate1)し、単純比較(Gate2、4参加率×6方式全て)でも一貫して優位だったが、
-モデル自身の確信度(最大予測確率・エントロピー・頭数)を完全統制した回帰
-(Gate3、★最重要関門)では固有の情報量を統計的に確認できなかった
-(係数95%CI=[-0.112,+0.172]、ゼロを跨ぐ)。EXP06のJev risk_probが失格した
-関門と同型のパターンが再現した。中止規律に従いGate4(層別安定性)・
-Gate5(経済評価)は実施せず終了する。詳細は`REPORT.md`。
+- **APS marginal coverage**: 再現した(Gate1 PASS、2024=0.9339/2025=0.9304)。
+- **APSによるraw selection**: 同一参加率の単純比較(Gate2)では改善した
+  (4参加率×6方式全てで一貫優位)。
+- **APS固有の追加情報**: max probability・entropy等のfull control後(Gate3)
+  に消失した(係数95%CI=[-0.112,+0.172]、ゼロを跨ぐ)。
+- **最終判定**: Conformalを独立した参加判断器として不採用。
+
+EXP06のJev risk_probが失格した関門と同型のパターンが再現した。中止規律に
+従いGate4(層別安定性)・Gate5(経済評価)・本番接続・条件変更による救済は
+行わない。詳細は`REPORT.md`。
 
 ## 目的
 
