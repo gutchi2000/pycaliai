@@ -1,0 +1,427 @@
+{
+ "created_at": "2026-09-22T10:22:20",
+ "master_v2_sha256_reference_unchanged": "b8032d1bd78176a939b615921fa4fd25faadbf493f685e44a06e7f2e9e780a76",
+ "shadow_corrected_19features_sha256": "bdfff8874842416b1342c4458f2471f88941f0b9fd43844fcd6d4ebf992aa0cc",
+ "shadow_path": "analysis\\mcond\\p0_dnf_history_parity_audit\\shadow\\corrected_19features.parquet",
+ "n_rows": 626774,
+ "n_races": 44907,
+ "affected_features": [
+  "course_n_prev",
+  "course_win_rate",
+  "course_top3_rate",
+  "jockey_n_prev",
+  "jockey_win_rate",
+  "jockey_top3_rate",
+  "kako5_avg_pos",
+  "kako5_std_pos",
+  "kako5_best_pos",
+  "kako5_avg_agari3f",
+  "kako5_best_agari3f",
+  "kako5_same_td_ratio",
+  "kako5_same_dist_ratio",
+  "kako5_same_place_ratio",
+  "kako5_pos_trend",
+  "kako5_race_count",
+  "kako5_expected_good_count",
+  "kako5_hidden_good_count",
+  "kako5_same_cond_best_pos"
+ ],
+ "finish_class_counts": {
+  "numeric": 626774,
+  "dnf": 2946,
+  "scratch_jogai": 1212,
+  "scratch_torikeshi": 1007,
+  "unknown": 26
+ },
+ "experience_population_size": 629720,
+ "overall": {
+  "n_rows_total": 626774,
+  "n_rows_19feat_diff": 6152,
+  "pct_rows_diff": 0.9815,
+  "n_races_affected": 5178,
+  "n_top1_changed_races": 27,
+  "score_abs_delta_all": {
+   "mean": 0.07501665426931288,
+   "median": 0.04153946623603799,
+   "p95": 0.2589544033807719,
+   "p99": 0.43414382152125375,
+   "max": 0.8392601281829475
+  }
+ },
+ "by_year": [
+  {
+   "year": 2013,
+   "n_rows_total": 49638,
+   "n_rows_19feat_diff": 273,
+   "pct_rows_diff": 0.55,
+   "n_unique_races_affected": 244,
+   "score_abs_delta": {
+    "mean": 0.04292096976265918,
+    "median": 0.02447093465137329,
+    "p95": 0.15499597605730506,
+    "p99": 0.22737282913455517,
+    "max": 0.3915378920158258,
+    "n": 273
+   },
+   "n_top1_changed_races": 1,
+   "max_rank_change": {
+    "mean": 0.19672131147540983,
+    "median": 0.0,
+    "p95": 1.0,
+    "max": 3
+   }
+  },
+  {
+   "year": 2014,
+   "n_rows_total": 49877,
+   "n_rows_19feat_diff": 506,
+   "pct_rows_diff": 1.0145,
+   "n_unique_races_affected": 419,
+   "score_abs_delta": {
+    "mean": 0.07358702141299284,
+    "median": 0.04503295100495239,
+    "p95": 0.25605602987304055,
+    "p99": 0.37271900663717916,
+    "max": 0.5183765403985293,
+    "n": 506
+   },
+   "n_top1_changed_races": 4,
+   "max_rank_change": {
+    "mean": 0.30787589498806683,
+    "median": 0.0,
+    "p95": 2.0,
+    "max": 4
+   }
+  },
+  {
+   "year": 2015,
+   "n_rows_total": 49609,
+   "n_rows_19feat_diff": 497,
+   "pct_rows_diff": 1.0018,
+   "n_unique_races_affected": 373,
+   "score_abs_delta": {
+    "mean": 0.0773779487315361,
+    "median": 0.04402537090678904,
+    "p95": 0.27875179322914306,
+    "p99": 0.4481645458971922,
+    "max": 0.556647386844147,
+    "n": 497
+   },
+   "n_top1_changed_races": 0,
+   "max_rank_change": {
+    "mean": 0.30831099195710454,
+    "median": 0.0,
+    "p95": 1.3999999999999773,
+    "max": 4
+   }
+  },
+  {
+   "year": 2016,
+   "n_rows_total": 49697,
+   "n_rows_19feat_diff": 498,
+   "pct_rows_diff": 1.0021,
+   "n_unique_races_affected": 417,
+   "score_abs_delta": {
+    "mean": 0.07646515210636778,
+    "median": 0.03932885682495035,
+    "p95": 0.24622365481637645,
+    "p99": 0.3902050035964589,
+    "max": 0.7676312781034004,
+    "n": 498
+   },
+   "n_top1_changed_races": 1,
+   "max_rank_change": {
+    "mean": 0.2422062350119904,
+    "median": 0.0,
+    "p95": 1.0,
+    "max": 3
+   }
+  },
+  {
+   "year": 2017,
+   "n_rows_total": 48922,
+   "n_rows_19feat_diff": 486,
+   "pct_rows_diff": 0.9934,
+   "n_unique_races_affected": 413,
+   "score_abs_delta": {
+    "mean": 0.08285661919145536,
+    "median": 0.04887697176815198,
+    "p95": 0.26289919897644926,
+    "p99": 0.4260987156929619,
+    "max": 0.8392601281829475,
+    "n": 486
+   },
+   "n_top1_changed_races": 1,
+   "max_rank_change": {
+    "mean": 0.3171912832929782,
+    "median": 0.0,
+    "p95": 2.0,
+    "max": 5
+   }
+  },
+  {
+   "year": 2018,
+   "n_rows_total": 48199,
+   "n_rows_19feat_diff": 500,
+   "pct_rows_diff": 1.0374,
+   "n_unique_races_affected": 418,
+   "score_abs_delta": {
+    "mean": 0.07412414150559282,
+    "median": 0.04216887333523012,
+    "p95": 0.2563919442555175,
+    "p99": 0.40659556596127133,
+    "max": 0.6266796163611943,
+    "n": 500
+   },
+   "n_top1_changed_races": 1,
+   "max_rank_change": {
+    "mean": 0.2583732057416268,
+    "median": 0.0,
+    "p95": 1.0,
+    "max": 3
+   }
+  },
+  {
+   "year": 2019,
+   "n_rows_total": 47118,
+   "n_rows_19feat_diff": 519,
+   "pct_rows_diff": 1.1015,
+   "n_unique_races_affected": 416,
+   "score_abs_delta": {
+    "mean": 0.08224813547163776,
+    "median": 0.040361890133926215,
+    "p95": 0.3077576729295091,
+    "p99": 0.5450461707392336,
+    "max": 0.6848775002770765,
+    "n": 519
+   },
+   "n_top1_changed_races": 4,
+   "max_rank_change": {
+    "mean": 0.2956730769230769,
+    "median": 0.0,
+    "p95": 2.0,
+    "max": 3
+   }
+  },
+  {
+   "year": 2020,
+   "n_rows_total": 47876,
+   "n_rows_19feat_diff": 510,
+   "pct_rows_diff": 1.0653,
+   "n_unique_races_affected": 421,
+   "score_abs_delta": {
+    "mean": 0.06704453318958313,
+    "median": 0.036978030287562746,
+    "p95": 0.23565590650469337,
+    "p99": 0.3896798959945252,
+    "max": 0.5876518481223263,
+    "n": 510
+   },
+   "n_top1_changed_races": 1,
+   "max_rank_change": {
+    "mean": 0.27078384798099764,
+    "median": 0.0,
+    "p95": 1.0,
+    "max": 4
+   }
+  },
+  {
+   "year": 2021,
+   "n_rows_total": 47476,
+   "n_rows_19feat_diff": 473,
+   "pct_rows_diff": 0.9963,
+   "n_unique_races_affected": 412,
+   "score_abs_delta": {
+    "mean": 0.07673440081040946,
+    "median": 0.047924923143666476,
+    "p95": 0.252913161164048,
+    "p99": 0.3803053088379695,
+    "max": 0.4978702138720901,
+    "n": 473
+   },
+   "n_top1_changed_races": 1,
+   "max_rank_change": {
+    "mean": 0.30097087378640774,
+    "median": 0.0,
+    "p95": 2.0,
+    "max": 3
+   }
+  },
+  {
+   "year": 2022,
+   "n_rows_total": 46840,
+   "n_rows_19feat_diff": 374,
+   "pct_rows_diff": 0.7985,
+   "n_unique_races_affected": 335,
+   "score_abs_delta": {
+    "mean": 0.08113194457349535,
+    "median": 0.047616177986316566,
+    "p95": 0.29674409860046674,
+    "p99": 0.39881521714411994,
+    "max": 0.583603038996211,
+    "n": 374
+   },
+   "n_top1_changed_races": 1,
+   "max_rank_change": {
+    "mean": 0.26865671641791045,
+    "median": 0.0,
+    "p95": 2.0,
+    "max": 5
+   }
+  },
+  {
+   "year": 2023,
+   "n_rows_total": 47273,
+   "n_rows_19feat_diff": 478,
+   "pct_rows_diff": 1.0111,
+   "n_unique_races_affected": 413,
+   "score_abs_delta": {
+    "mean": 0.07183685102648202,
+    "median": 0.03813968179753108,
+    "p95": 0.2543493268767202,
+    "p99": 0.4396321477996024,
+    "max": 0.6036811857293063,
+    "n": 478
+   },
+   "n_top1_changed_races": 5,
+   "max_rank_change": {
+    "mean": 0.24455205811138014,
+    "median": 0.0,
+    "p95": 1.0,
+    "max": 3
+   }
+  },
+  {
+   "year": 2024,
+   "n_rows_total": 46752,
+   "n_rows_19feat_diff": 455,
+   "pct_rows_diff": 0.9732,
+   "n_unique_races_affected": 397,
+   "score_abs_delta": {
+    "mean": 0.07293609952613664,
+    "median": 0.04257669971162442,
+    "p95": 0.24262205705084777,
+    "p99": 0.36181873257298985,
+    "max": 0.4901928728382208,
+    "n": 455
+   },
+   "n_top1_changed_races": 4,
+   "max_rank_change": {
+    "mean": 0.2871536523929471,
+    "median": 0.0,
+    "p95": 1.1999999999999886,
+    "max": 4
+   }
+  },
+  {
+   "year": 2025,
+   "n_rows_total": 47497,
+   "n_rows_19feat_diff": 583,
+   "pct_rows_diff": 1.2274,
+   "n_unique_races_affected": 500,
+   "score_abs_delta": {
+    "mean": 0.08171693374084958,
+    "median": 0.04298924420548833,
+    "p95": 0.2908080228096804,
+    "p99": 0.5198514119057107,
+    "max": 0.6643064663619345,
+    "n": 583
+   },
+   "n_top1_changed_races": 3,
+   "max_rank_change": {
+    "mean": 0.296,
+    "median": 0.0,
+    "p95": 2.0,
+    "max": 7
+   }
+  }
+ ],
+ "top10_score_delta_rows": [
+  {
+   "レースID(新/馬番無)": 2017051304010501,
+   "馬番": 13,
+   "year": 2017,
+   "_score_stored": -1.9899950096744072,
+   "_score_corrected": -2.8292551378573547,
+   "_score_delta": -0.8392601281829475
+  },
+  {
+   "レースID(新/馬番無)": 2016041006030608,
+   "馬番": 14,
+   "year": 2016,
+   "_score_stored": -0.7797450043418167,
+   "_score_corrected": -1.547376282445217,
+   "_score_delta": -0.7676312781034004
+  },
+  {
+   "レースID(新/馬番無)": 2019070707030401,
+   "馬番": 6,
+   "year": 2019,
+   "_score_stored": -0.690417313538442,
+   "_score_corrected": -1.3752948138155185,
+   "_score_delta": -0.6848775002770765
+  },
+  {
+   "レースID(新/馬番無)": 2025061505030407,
+   "馬番": 11,
+   "year": 2025,
+   "_score_stored": -1.413045402449107,
+   "_score_corrected": -2.0773518688110415,
+   "_score_delta": -0.6643064663619345
+  },
+  {
+   "レースID(新/馬番無)": 2025012610010210,
+   "馬番": 10,
+   "year": 2025,
+   "_score_stored": -0.7627959729368501,
+   "_score_corrected": -1.3979795533973263,
+   "_score_delta": -0.6351835804604762
+  },
+  {
+   "レースID(新/馬番無)": 2018100808040304,
+   "馬番": 2,
+   "year": 2018,
+   "_score_stored": -0.7036988192514191,
+   "_score_corrected": -1.3303784356126134,
+   "_score_delta": -0.6266796163611943
+  },
+  {
+   "レースID(新/馬番無)": 2025022310011010,
+   "馬番": 2,
+   "year": 2025,
+   "_score_stored": -0.6722704363181868,
+   "_score_corrected": -1.28453400290876,
+   "_score_delta": -0.6122635665905731
+  },
+  {
+   "レースID(新/馬番無)": 2023052105021005,
+   "馬番": 9,
+   "year": 2023,
+   "_score_stored": -1.567696582447241,
+   "_score_corrected": -2.1713777681765474,
+   "_score_delta": -0.6036811857293063
+  },
+  {
+   "レースID(新/馬番無)": 2019052505021104,
+   "馬番": 9,
+   "year": 2019,
+   "_score_stored": -1.8736632873741181,
+   "_score_corrected": -2.4728472933890733,
+   "_score_delta": -0.5991840060149551
+  },
+  {
+   "レースID(新/馬番無)": 2023112605050807,
+   "馬番": 15,
+   "year": 2023,
+   "_score_stored": -2.343325202099886,
+   "_score_corrected": -2.93850862555904,
+   "_score_delta": -0.595183423459154
+  }
+ ],
+ "invariants": {
+  "row_count_match": true,
+  "race_count_match": true,
+  "other_101_features_untouched": "shadowは19特徴のみ保持、他101特徴はv2から不変(別ファイルのため物理的に不可侵)"
+ },
+ "note_unknown_finish_code_26rows": "add_20130105-20251228.csvの着順で止/外/消/数値のいずれにも該当しない26行(joinギャップ等)が存在する。安全側でexperience_populationから除外した(母集団を恣意的に広げない)。EXP13旧GATE0_REPORT.mdの5,191件(止2,946+外1,212+消1,007+丸数字26)という記載の「丸数字26」は、実際には内部add.csvに丸数字コードが存在しないため、このunknown26行と同一の可能性が高い(要因未特定、性能に無関係な極小件数のため本監査ではこれ以上追跡しない)。"
+}

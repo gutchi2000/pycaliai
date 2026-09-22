@@ -1,0 +1,69 @@
+{
+ "production_n_trees": 515,
+ "optuna_best_params": {
+  "alpha": 0.03083978412534253,
+  "lr": 0.05083158501542684,
+  "num_leaves": 59,
+  "max_depth": 12,
+  "min_data_in_leaf": 197,
+  "ff": 0.876098829427658,
+  "bf": 0.7031707810405968,
+  "l1": 0.0011077902520957399,
+  "l2": 7.537933313450104
+ },
+ "sample_weight_alpha": 0.03083978412534253,
+ "seed": 42,
+ "A_current_model_current_master": {
+  "composite_pct": 54.698813728356264,
+  "n_race": 691.2,
+  "ndcg5": 0.5925314815810516,
+  "hon_top3_rate": 0.6067737132245301,
+  "hon_top2_rate": 0.4751185765791389,
+  "top3_subset_top5_rate": 0.30324234794174487,
+  "winner_in_top5_rate": 0.7693942765364763,
+  "ece_high_p": 0.012068408447239448,
+  "n_high_p_samples": 2293.4,
+  "p_pred_high_mean": 0.18234450317381665,
+  "actual_high_mean": 0.19441291162105612
+ },
+ "B_current_model_corrected_features": {
+  "composite_pct": 54.68408917539921,
+  "n_race": 691.2,
+  "ndcg5": 0.5923986812950828,
+  "hon_top3_rate": 0.6059054064227934,
+  "hon_top2_rate": 0.4745397053779811,
+  "top3_subset_top5_rate": 0.3035313652827853,
+  "winner_in_top5_rate": 0.7696837121370553,
+  "ece_high_p": 0.011935729310288978,
+  "n_high_p_samples": 2294.0,
+  "p_pred_high_mean": 0.18233889349835647,
+  "actual_high_mean": 0.19427462280864544
+ },
+ "C_shadow_retrained_corrected_features": {
+  "composite_pct": 54.324494516767594,
+  "n_race": 691.2,
+  "ndcg5": 0.5904863028802504,
+  "hon_top3_rate": 0.5923040244932786,
+  "hon_top2_rate": 0.4652790209380725,
+  "top3_subset_top5_rate": 0.3055565779677606,
+  "winner_in_top5_rate": 0.7725751403260752,
+  "ece_high_p": 0.01100488111197862,
+  "n_high_p_samples": 2287.6,
+  "p_pred_high_mean": 0.18358673680816415,
+  "actual_high_mean": 0.19459161792014276
+ },
+ "delta_B_minus_A": {
+  "composite_pct": -0.014724552957057213,
+  "hon_top3_rate_pt": -0.08683068017366624,
+  "ece_high_p": -0.0001326791369504702,
+  "ndcg5": -0.00013280028596884819
+ },
+ "delta_C_minus_A": {
+  "composite_pct": -0.37431921158866954,
+  "hon_top3_rate_pt": -1.446968873125154,
+  "ece_high_p": -0.0010635273352608277,
+  "ndcg5": -0.002045178700801231
+ },
+ "evaluation_scope": "valid(2023年development)のみ。test(2024-2025年)は開封していない",
+ "purpose_note": "新モデル探索が目的ではなく、19特徴のデータ定義修正がモデル出力に与える影響の確認のみ。Optuna再探索・特徴追加・閾値調整は行っていない。"
+}

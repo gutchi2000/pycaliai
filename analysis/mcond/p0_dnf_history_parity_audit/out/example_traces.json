@@ -1,0 +1,756 @@
+[
+ {
+  "race_id16": "2013012608020103",
+  "馬番": 4,
+  "血統登録番号": "2010102391",
+  "surface": "ダ",
+  "place": "京都",
+  "raw_history_last5_before_this_race": [
+   {
+    "date": "20130105",
+    "race_id": "2013010508010102",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "京都",
+    "distance": 1800,
+    "jockey": 1102
+   }
+  ],
+  "dnf_races_in_window": [
+   {
+    "date": "20130105",
+    "race_id": "2013010508010102",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "京都",
+    "distance": 1800,
+    "jockey": 1102
+   }
+  ],
+  "training_master_stored_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 0.0,
+   "jockey_win_rate": null,
+   "jockey_top3_rate": null,
+   "kako5_avg_pos": null,
+   "kako5_std_pos": null,
+   "kako5_best_pos": null,
+   "kako5_avg_agari3f": null,
+   "kako5_best_agari3f": null,
+   "kako5_same_td_ratio": null,
+   "kako5_same_dist_ratio": null,
+   "kako5_same_place_ratio": null,
+   "kako5_pos_trend": null,
+   "kako5_race_count": 0.0,
+   "kako5_expected_good_count": null,
+   "kako5_hidden_good_count": null,
+   "kako5_same_cond_best_pos": null
+  },
+  "corrected_shadow_19feat": {
+   "course_n_prev": 1.0,
+   "course_win_rate": 0.0,
+   "course_top3_rate": 0.0,
+   "jockey_n_prev": 0.0,
+   "jockey_win_rate": null,
+   "jockey_top3_rate": null,
+   "kako5_avg_pos": null,
+   "kako5_std_pos": null,
+   "kako5_best_pos": null,
+   "kako5_avg_agari3f": null,
+   "kako5_best_agari3f": null,
+   "kako5_same_td_ratio": 1.0,
+   "kako5_same_dist_ratio": 1.0,
+   "kako5_same_place_ratio": 1.0,
+   "kako5_pos_trend": null,
+   "kako5_race_count": 1.0,
+   "kako5_expected_good_count": 0.0,
+   "kako5_hidden_good_count": 0.0,
+   "kako5_same_cond_best_pos": null
+  },
+  "live_history_builder_note": "TARGETの週次kako5 CSV/jockey_stats.csv等は過去日付分を遡及保存していないため、この履歴実例についてlive serve相当値を再現することはできない。LIVE_SERVE_DNF_TRACE.mdの定性的結論(course/jockey 2013-2025分はtraining同様のバグを継承、kako5系はbuild_from_kako5()の別実装でwindow slot自体を欠落させる異なるバグ)を参照。",
+  "v6_raw_score": {
+   "stored": -0.3825520870500413,
+   "corrected": -0.2528805063402997,
+   "delta": 0.1296715807097416
+  },
+  "race_rank": {
+   "stored": 5,
+   "corrected": 5
+  },
+  "win_probability": {
+   "stored": 0.0914420434994075,
+   "corrected": 0.1028010807939182
+  },
+  "n_horses_in_race": 13
+ },
+ {
+  "race_id16": "2013022306020111",
+  "馬番": 4,
+  "血統登録番号": "2006106190",
+  "surface": "ダ",
+  "place": "中山",
+  "raw_history_last5_before_this_race": [
+   {
+    "date": "20130120",
+    "race_id": "2013012008010704",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "京都",
+    "distance": 2910,
+    "jockey": 1005
+   }
+  ],
+  "dnf_races_in_window": [
+   {
+    "date": "20130120",
+    "race_id": "2013012008010704",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "京都",
+    "distance": 2910,
+    "jockey": 1005
+   }
+  ],
+  "training_master_stored_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 0.0,
+   "jockey_win_rate": null,
+   "jockey_top3_rate": null,
+   "kako5_avg_pos": null,
+   "kako5_std_pos": null,
+   "kako5_best_pos": null,
+   "kako5_avg_agari3f": null,
+   "kako5_best_agari3f": null,
+   "kako5_same_td_ratio": null,
+   "kako5_same_dist_ratio": null,
+   "kako5_same_place_ratio": null,
+   "kako5_pos_trend": null,
+   "kako5_race_count": 0.0,
+   "kako5_expected_good_count": null,
+   "kako5_hidden_good_count": null,
+   "kako5_same_cond_best_pos": null
+  },
+  "corrected_shadow_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 0.0,
+   "jockey_win_rate": null,
+   "jockey_top3_rate": null,
+   "kako5_avg_pos": null,
+   "kako5_std_pos": null,
+   "kako5_best_pos": null,
+   "kako5_avg_agari3f": null,
+   "kako5_best_agari3f": null,
+   "kako5_same_td_ratio": 1.0,
+   "kako5_same_dist_ratio": 0.0,
+   "kako5_same_place_ratio": 0.0,
+   "kako5_pos_trend": null,
+   "kako5_race_count": 1.0,
+   "kako5_expected_good_count": 0.0,
+   "kako5_hidden_good_count": 0.0,
+   "kako5_same_cond_best_pos": null
+  },
+  "live_history_builder_note": "TARGETの週次kako5 CSV/jockey_stats.csv等は過去日付分を遡及保存していないため、この履歴実例についてlive serve相当値を再現することはできない。LIVE_SERVE_DNF_TRACE.mdの定性的結論(course/jockey 2013-2025分はtraining同様のバグを継承、kako5系はbuild_from_kako5()の別実装でwindow slot自体を欠落させる異なるバグ)を参照。",
+  "v6_raw_score": {
+   "stored": -0.48761585756129733,
+   "corrected": -0.42893513772700115,
+   "delta": 0.05868071983429618
+  },
+  "race_rank": {
+   "stored": 7,
+   "corrected": 7
+  },
+  "win_probability": {
+   "stored": 0.05637252578091353,
+   "corrected": 0.05957651508922131
+  },
+  "n_horses_in_race": 16
+ },
+ {
+  "race_id16": "2013022410010601",
+  "馬番": 3,
+  "血統登録番号": "2010104853",
+  "surface": "ダ",
+  "place": "小倉",
+  "raw_history_last5_before_this_race": [
+   {
+    "date": "20130114",
+    "race_id": "2013011406010503",
+    "finish_class": "numeric",
+    "着順": 7.0,
+    "surface": "ダ",
+    "place": "中山",
+    "distance": 1200,
+    "jockey": 1135
+   },
+   {
+    "date": "20130202",
+    "race_id": "2013020207010501",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "中京",
+    "distance": 1200,
+    "jockey": 1025
+   }
+  ],
+  "dnf_races_in_window": [
+   {
+    "date": "20130202",
+    "race_id": "2013020207010501",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "中京",
+    "distance": 1200,
+    "jockey": 1025
+   }
+  ],
+  "training_master_stored_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 0.0,
+   "jockey_win_rate": null,
+   "jockey_top3_rate": null,
+   "kako5_avg_pos": 7.0,
+   "kako5_std_pos": 0.0,
+   "kako5_best_pos": 7.0,
+   "kako5_avg_agari3f": 37.9,
+   "kako5_best_agari3f": 37.9,
+   "kako5_same_td_ratio": 1.0,
+   "kako5_same_dist_ratio": 1.0,
+   "kako5_same_place_ratio": 0.0,
+   "kako5_pos_trend": 0.0,
+   "kako5_race_count": 1.0,
+   "kako5_expected_good_count": 0.0,
+   "kako5_hidden_good_count": 0.0,
+   "kako5_same_cond_best_pos": 7.0
+  },
+  "corrected_shadow_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 0.0,
+   "jockey_win_rate": null,
+   "jockey_top3_rate": null,
+   "kako5_avg_pos": 7.0,
+   "kako5_std_pos": 0.0,
+   "kako5_best_pos": 7.0,
+   "kako5_avg_agari3f": 37.9,
+   "kako5_best_agari3f": 37.9,
+   "kako5_same_td_ratio": 1.0,
+   "kako5_same_dist_ratio": 1.0,
+   "kako5_same_place_ratio": 0.0,
+   "kako5_pos_trend": 0.0,
+   "kako5_race_count": 2.0,
+   "kako5_expected_good_count": 0.0,
+   "kako5_hidden_good_count": 0.0,
+   "kako5_same_cond_best_pos": 7.0
+  },
+  "live_history_builder_note": "TARGETの週次kako5 CSV/jockey_stats.csv等は過去日付分を遡及保存していないため、この履歴実例についてlive serve相当値を再現することはできない。LIVE_SERVE_DNF_TRACE.mdの定性的結論(course/jockey 2013-2025分はtraining同様のバグを継承、kako5系はbuild_from_kako5()の別実装でwindow slot自体を欠落させる異なるバグ)を参照。",
+  "v6_raw_score": {
+   "stored": -1.5602798796097523,
+   "corrected": -1.5602798796097523,
+   "delta": 0.0
+  },
+  "race_rank": {
+   "stored": 3,
+   "corrected": 3
+  },
+  "win_probability": {
+   "stored": 0.07529592828243119,
+   "corrected": 0.07529592828243119
+  },
+  "n_horses_in_race": 13
+ },
+ {
+  "race_id16": "2013030909010502",
+  "馬番": 12,
+  "血統登録番号": "2010102391",
+  "surface": "ダ",
+  "place": "阪神",
+  "raw_history_last5_before_this_race": [
+   {
+    "date": "20130105",
+    "race_id": "2013010508010102",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "京都",
+    "distance": 1800,
+    "jockey": 1102
+   },
+   {
+    "date": "20130126",
+    "race_id": "2013012608020103",
+    "finish_class": "numeric",
+    "着順": 3.0,
+    "surface": "ダ",
+    "place": "京都",
+    "distance": 1800,
+    "jockey": 732
+   },
+   {
+    "date": "20130216",
+    "race_id": "2013021608020702",
+    "finish_class": "numeric",
+    "着順": 3.0,
+    "surface": "ダ",
+    "place": "京都",
+    "distance": 1800,
+    "jockey": 732
+   }
+  ],
+  "dnf_races_in_window": [
+   {
+    "date": "20130105",
+    "race_id": "2013010508010102",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "京都",
+    "distance": 1800,
+    "jockey": 1102
+   }
+  ],
+  "training_master_stored_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 2.0,
+   "jockey_win_rate": 0.0,
+   "jockey_top3_rate": 1.0,
+   "kako5_avg_pos": 3.0,
+   "kako5_std_pos": 0.0,
+   "kako5_best_pos": 3.0,
+   "kako5_avg_agari3f": 37.8,
+   "kako5_best_agari3f": 37.8,
+   "kako5_same_td_ratio": 1.0,
+   "kako5_same_dist_ratio": 1.0,
+   "kako5_same_place_ratio": 0.0,
+   "kako5_pos_trend": -3.14018491736755e-16,
+   "kako5_race_count": 2.0,
+   "kako5_expected_good_count": 2.0,
+   "kako5_hidden_good_count": 0.0,
+   "kako5_same_cond_best_pos": 3.0
+  },
+  "corrected_shadow_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 2.0,
+   "jockey_win_rate": 0.0,
+   "jockey_top3_rate": 1.0,
+   "kako5_avg_pos": 3.0,
+   "kako5_std_pos": 0.0,
+   "kako5_best_pos": 3.0,
+   "kako5_avg_agari3f": 37.8,
+   "kako5_best_agari3f": 37.8,
+   "kako5_same_td_ratio": 1.0,
+   "kako5_same_dist_ratio": 1.0,
+   "kako5_same_place_ratio": 0.0,
+   "kako5_pos_trend": -3.14018491736755e-16,
+   "kako5_race_count": 3.0,
+   "kako5_expected_good_count": 2.0,
+   "kako5_hidden_good_count": 0.0,
+   "kako5_same_cond_best_pos": 3.0
+  },
+  "live_history_builder_note": "TARGETの週次kako5 CSV/jockey_stats.csv等は過去日付分を遡及保存していないため、この履歴実例についてlive serve相当値を再現することはできない。LIVE_SERVE_DNF_TRACE.mdの定性的結論(course/jockey 2013-2025分はtraining同様のバグを継承、kako5系はbuild_from_kako5()の別実装でwindow slot自体を欠落させる異なるバグ)を参照。",
+  "v6_raw_score": {
+   "stored": 0.8094676843803756,
+   "corrected": 0.8083158466618154,
+   "delta": -0.0011518377185602002
+  },
+  "race_rank": {
+   "stored": 1,
+   "corrected": 1
+  },
+  "win_probability": {
+   "stored": 0.288078167464318,
+   "corrected": 0.287841995736302
+  },
+  "n_horses_in_race": 13
+ },
+ {
+  "race_id16": "2013032307020503",
+  "馬番": 4,
+  "血統登録番号": "2010100524",
+  "surface": "ダ",
+  "place": "中京",
+  "raw_history_last5_before_this_race": [
+   {
+    "date": "20130210",
+    "race_id": "2013021005010604",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "芝",
+    "place": "東京",
+    "distance": 2000,
+    "jockey": 641
+   }
+  ],
+  "dnf_races_in_window": [
+   {
+    "date": "20130210",
+    "race_id": "2013021005010604",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "芝",
+    "place": "東京",
+    "distance": 2000,
+    "jockey": 641
+   }
+  ],
+  "training_master_stored_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 0.0,
+   "jockey_win_rate": null,
+   "jockey_top3_rate": null,
+   "kako5_avg_pos": null,
+   "kako5_std_pos": null,
+   "kako5_best_pos": null,
+   "kako5_avg_agari3f": null,
+   "kako5_best_agari3f": null,
+   "kako5_same_td_ratio": null,
+   "kako5_same_dist_ratio": null,
+   "kako5_same_place_ratio": null,
+   "kako5_pos_trend": null,
+   "kako5_race_count": 0.0,
+   "kako5_expected_good_count": null,
+   "kako5_hidden_good_count": null,
+   "kako5_same_cond_best_pos": null
+  },
+  "corrected_shadow_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 0.0,
+   "jockey_win_rate": null,
+   "jockey_top3_rate": null,
+   "kako5_avg_pos": null,
+   "kako5_std_pos": null,
+   "kako5_best_pos": null,
+   "kako5_avg_agari3f": null,
+   "kako5_best_agari3f": null,
+   "kako5_same_td_ratio": 0.0,
+   "kako5_same_dist_ratio": 0.0,
+   "kako5_same_place_ratio": 0.0,
+   "kako5_pos_trend": null,
+   "kako5_race_count": 1.0,
+   "kako5_expected_good_count": 0.0,
+   "kako5_hidden_good_count": 0.0,
+   "kako5_same_cond_best_pos": null
+  },
+  "live_history_builder_note": "TARGETの週次kako5 CSV/jockey_stats.csv等は過去日付分を遡及保存していないため、この履歴実例についてlive serve相当値を再現することはできない。LIVE_SERVE_DNF_TRACE.mdの定性的結論(course/jockey 2013-2025分はtraining同様のバグを継承、kako5系はbuild_from_kako5()の別実装でwindow slot自体を欠落させる異なるバグ)を参照。",
+  "v6_raw_score": {
+   "stored": -1.6333746749683566,
+   "corrected": -1.6333746749683566,
+   "delta": 0.0
+  },
+  "race_rank": {
+   "stored": 9,
+   "corrected": 9
+  },
+  "win_probability": {
+   "stored": 0.05079552782832242,
+   "corrected": 0.05079552782832242
+  },
+  "n_horses_in_race": 16
+ },
+ {
+  "race_id16": "2013040706030609",
+  "馬番": 1,
+  "血統登録番号": "2010103501",
+  "surface": "芝",
+  "place": "中山",
+  "raw_history_last5_before_this_race": [
+   {
+    "date": "20130119",
+    "race_id": "2013011906010609",
+    "finish_class": "numeric",
+    "着順": 14.0,
+    "surface": "芝",
+    "place": "中山",
+    "distance": 1600,
+    "jockey": 689
+   },
+   {
+    "date": "20130224",
+    "race_id": "2013022406020204",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "中山",
+    "distance": 1800,
+    "jockey": 1135
+   }
+  ],
+  "dnf_races_in_window": [
+   {
+    "date": "20130224",
+    "race_id": "2013022406020204",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "中山",
+    "distance": 1800,
+    "jockey": 1135
+   }
+  ],
+  "training_master_stored_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 0.0,
+   "jockey_win_rate": null,
+   "jockey_top3_rate": null,
+   "kako5_avg_pos": 14.0,
+   "kako5_std_pos": 0.0,
+   "kako5_best_pos": 14.0,
+   "kako5_avg_agari3f": 38.3,
+   "kako5_best_agari3f": 38.3,
+   "kako5_same_td_ratio": 1.0,
+   "kako5_same_dist_ratio": 1.0,
+   "kako5_same_place_ratio": 1.0,
+   "kako5_pos_trend": 0.0,
+   "kako5_race_count": 1.0,
+   "kako5_expected_good_count": 0.0,
+   "kako5_hidden_good_count": 0.0,
+   "kako5_same_cond_best_pos": 14.0
+  },
+  "corrected_shadow_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 0.0,
+   "jockey_win_rate": null,
+   "jockey_top3_rate": null,
+   "kako5_avg_pos": 14.0,
+   "kako5_std_pos": 0.0,
+   "kako5_best_pos": 14.0,
+   "kako5_avg_agari3f": 38.3,
+   "kako5_best_agari3f": 38.3,
+   "kako5_same_td_ratio": 0.5,
+   "kako5_same_dist_ratio": 1.0,
+   "kako5_same_place_ratio": 1.0,
+   "kako5_pos_trend": 0.0,
+   "kako5_race_count": 2.0,
+   "kako5_expected_good_count": 0.0,
+   "kako5_hidden_good_count": 0.0,
+   "kako5_same_cond_best_pos": 14.0
+  },
+  "live_history_builder_note": "TARGETの週次kako5 CSV/jockey_stats.csv等は過去日付分を遡及保存していないため、この履歴実例についてlive serve相当値を再現することはできない。LIVE_SERVE_DNF_TRACE.mdの定性的結論(course/jockey 2013-2025分はtraining同様のバグを継承、kako5系はbuild_from_kako5()の別実装でwindow slot自体を欠落させる異なるバグ)を参照。",
+  "v6_raw_score": {
+   "stored": -2.414676287307266,
+   "corrected": -2.515956275980192,
+   "delta": -0.10127998867292609
+  },
+  "race_rank": {
+   "stored": 12,
+   "corrected": 13
+  },
+  "win_probability": {
+   "stored": 0.013778016726209354,
+   "corrected": 0.012467463399189763
+  },
+  "n_horses_in_race": 13
+ },
+ {
+  "race_id16": "2013041403010410",
+  "馬番": 15,
+  "血統登録番号": "2010104940",
+  "surface": "芝",
+  "place": "福島",
+  "raw_history_last5_before_this_race": [
+   {
+    "date": "20130114",
+    "race_id": "2013011406010501",
+    "finish_class": "numeric",
+    "着順": 1.0,
+    "surface": "ダ",
+    "place": "中山",
+    "distance": 1200,
+    "jockey": 1134
+   },
+   {
+    "date": "20130310",
+    "race_id": "2013031006020604",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "中山",
+    "distance": 1200,
+    "jockey": 1134
+   }
+  ],
+  "dnf_races_in_window": [
+   {
+    "date": "20130310",
+    "race_id": "2013031006020604",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "中山",
+    "distance": 1200,
+    "jockey": 1134
+   }
+  ],
+  "training_master_stored_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 0.0,
+   "jockey_win_rate": null,
+   "jockey_top3_rate": null,
+   "kako5_avg_pos": 1.0,
+   "kako5_std_pos": 0.0,
+   "kako5_best_pos": 1.0,
+   "kako5_avg_agari3f": 38.6,
+   "kako5_best_agari3f": 38.6,
+   "kako5_same_td_ratio": 0.0,
+   "kako5_same_dist_ratio": 1.0,
+   "kako5_same_place_ratio": 0.0,
+   "kako5_pos_trend": 0.0,
+   "kako5_race_count": 1.0,
+   "kako5_expected_good_count": 1.0,
+   "kako5_hidden_good_count": 0.0,
+   "kako5_same_cond_best_pos": null
+  },
+  "corrected_shadow_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 0.0,
+   "jockey_win_rate": null,
+   "jockey_top3_rate": null,
+   "kako5_avg_pos": 1.0,
+   "kako5_std_pos": 0.0,
+   "kako5_best_pos": 1.0,
+   "kako5_avg_agari3f": 38.6,
+   "kako5_best_agari3f": 38.6,
+   "kako5_same_td_ratio": 0.0,
+   "kako5_same_dist_ratio": 1.0,
+   "kako5_same_place_ratio": 0.0,
+   "kako5_pos_trend": 0.0,
+   "kako5_race_count": 2.0,
+   "kako5_expected_good_count": 1.0,
+   "kako5_hidden_good_count": 0.0,
+   "kako5_same_cond_best_pos": null
+  },
+  "live_history_builder_note": "TARGETの週次kako5 CSV/jockey_stats.csv等は過去日付分を遡及保存していないため、この履歴実例についてlive serve相当値を再現することはできない。LIVE_SERVE_DNF_TRACE.mdの定性的結論(course/jockey 2013-2025分はtraining同様のバグを継承、kako5系はbuild_from_kako5()の別実装でwindow slot自体を欠落させる異なるバグ)を参照。",
+  "v6_raw_score": {
+   "stored": -2.5488779925266694,
+   "corrected": -2.5429924712289207,
+   "delta": 0.005885521297748664
+  },
+  "race_rank": {
+   "stored": 14,
+   "corrected": 13
+  },
+  "win_probability": {
+   "stored": 0.02162215414175936,
+   "corrected": 0.02174701138148655
+  },
+  "n_horses_in_race": 16
+ },
+ {
+  "race_id16": "2013042005020104",
+  "馬番": 6,
+  "血統登録番号": "2007101621",
+  "surface": "ダ",
+  "place": "東京",
+  "raw_history_last5_before_this_race": [
+   {
+    "date": "20130316",
+    "race_id": "2013031606020704",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "中山",
+    "distance": 2880,
+    "jockey": 1113
+   }
+  ],
+  "dnf_races_in_window": [
+   {
+    "date": "20130316",
+    "race_id": "2013031606020704",
+    "finish_class": "dnf",
+    "着順": null,
+    "surface": "ダ",
+    "place": "中山",
+    "distance": 2880,
+    "jockey": 1113
+   }
+  ],
+  "training_master_stored_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 0.0,
+   "jockey_win_rate": null,
+   "jockey_top3_rate": null,
+   "kako5_avg_pos": null,
+   "kako5_std_pos": null,
+   "kako5_best_pos": null,
+   "kako5_avg_agari3f": null,
+   "kako5_best_agari3f": null,
+   "kako5_same_td_ratio": null,
+   "kako5_same_dist_ratio": null,
+   "kako5_same_place_ratio": null,
+   "kako5_pos_trend": null,
+   "kako5_race_count": 0.0,
+   "kako5_expected_good_count": null,
+   "kako5_hidden_good_count": null,
+   "kako5_same_cond_best_pos": null
+  },
+  "corrected_shadow_19feat": {
+   "course_n_prev": 0.0,
+   "course_win_rate": null,
+   "course_top3_rate": null,
+   "jockey_n_prev": 1.0,
+   "jockey_win_rate": 0.0,
+   "jockey_top3_rate": 0.0,
+   "kako5_avg_pos": null,
+   "kako5_std_pos": null,
+   "kako5_best_pos": null,
+   "kako5_avg_agari3f": null,
+   "kako5_best_agari3f": null,
+   "kako5_same_td_ratio": 1.0,
+   "kako5_same_dist_ratio": 1.0,
+   "kako5_same_place_ratio": 0.0,
+   "kako5_pos_trend": null,
+   "kako5_race_count": 1.0,
+   "kako5_expected_good_count": 0.0,
+   "kako5_hidden_good_count": 0.0,
+   "kako5_same_cond_best_pos": null
+  },
+  "live_history_builder_note": "TARGETの週次kako5 CSV/jockey_stats.csv等は過去日付分を遡及保存していないため、この履歴実例についてlive serve相当値を再現することはできない。LIVE_SERVE_DNF_TRACE.mdの定性的結論(course/jockey 2013-2025分はtraining同様のバグを継承、kako5系はbuild_from_kako5()の別実装でwindow slot自体を欠落させる異なるバグ)を参照。",
+  "v6_raw_score": {
+   "stored": -0.7166811321337756,
+   "corrected": -0.5938972731221056,
+   "delta": 0.12278385901167
+  },
+  "race_rank": {
+   "stored": 6,
+   "corrected": 6
+  },
+  "win_probability": {
+   "stored": 0.0660852294600272,
+   "corrected": 0.07407905267465727
+  },
+  "n_horses_in_race": 13
+ }
+]
