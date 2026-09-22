@@ -60,6 +60,7 @@ import backtest_pl_ev as be
 from backtest_pl_ev import COL_RID, COL_BAN
 from export_marks_json import export_race
 from race_eligibility import evaluate_race, eligibility_metadata
+from eligibility_coverage_gate import check_coverage, AtomicPublish
 
 
 def build_tansho_idx_from_weekly(df: pd.DataFrame) -> dict:
@@ -264,7 +265,8 @@ def main() -> int:
     out_dir = Path(args.out_dir) if args.out_dir else (
         BASE / "reports" / "cowork_input" / date_str
     )
-    out_dir.mkdir(parents=True, exist_ok=True)
+    # ★ここでは mkdir しない。全成果物は temp へ作り、
+    #   全 Gate PASS 後に atomic replace する (transactional fail)。
 
     # ------ モデル & calibrator ロード ------
     tag = args.model
@@ -565,7 +567,28 @@ def main() -> int:
         umaren_idx = {}  # 週次CSV に馬連オッズなし
         logger.info("オッズソース: weekly CSV (単勝のみ、複勝・馬連 は null)")
 
-    # ------ race ごとに JSON 出力 ------
+    # ================================================================
+    # ★ bundle 生成前の完全性 Gate (transactional fail)
+    #   予定 race 集合 (weekly) と eligibility evidence 集合 (bunseki) を
+    #   突き合わせ、1 件でも欠ければ **bundle を作らずに非 0 終了**する。
+    #   空 bundle を「成功」として公開しない。既存成果物はそのまま残す。
+    # ================================================================
+    _scheduled = sorted({str(x)[:16] for x in df[COL_RID]})
+    _cov = check_coverage(date_str, _scheduled)
+    if not _cov.ok:
+        _cov.report()
+        logger.error("[coverage gate] %s → bundle 未生成・push/タスク登録なし",
+                     _cov.error_code)
+        return _cov.exit_code
+    logger.info(f"[coverage gate] OK expected={_cov.expected} "
+                f"flat={len(_cov.flat_rids)} jump={len(_cov.jump_rids)}")
+
+    # ------ race ごとに JSON 出力 (temp へ。commit まで本番へ触れない) ------
+    bundle_path = out_dir.parent / f"{date_str}_bundle.json"
+    publish = AtomicPublish(out_dir, bundle_path)
+    publish.__enter__()
+    write_dir = publish.tmp_dir
+
     n_done = 0
     n_skip = 0
     saved_paths: list[Path] = []
@@ -632,7 +655,7 @@ def main() -> int:
                         ped = None
                 if ped:
                     h["pedigree"] = ped
-        out_path = out_dir / f"{rid_s}.json"
+        out_path = write_dir / f"{rid_s}.json"
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, ensure_ascii=False)
         saved_paths.append(out_path)
@@ -641,7 +664,6 @@ def main() -> int:
     logger.info(f"[done] {n_done:,} JSON ({n_skip} skip) → {out_dir}")
 
     # ------ bundle (1 file に全 race) ------
-    bundle_path = out_dir.parent / f"{date_str}_bundle.json"
     races = []
     for p in sorted(saved_paths):
         with open(p, encoding="utf-8") as f:
@@ -670,13 +692,14 @@ def main() -> int:
     for vw in venue_warnings:
         logger.warning(f"[venue odds degraded] {vw}")
 
-    with open(bundle_path, "w", encoding="utf-8") as f:
+    with open(publish.tmp_bundle, "w", encoding="utf-8") as f:
         json.dump({"date": date_str, "model": tag,
                    "race_count": len(races), "races": races,
-                   "venue_warnings": venue_warnings},
+                   "venue_warnings": venue_warnings,
+                   "eligibility_coverage": _cov.as_dict()},
                   f, indent=2, ensure_ascii=False)
-    logger.info(f"[bundle] {bundle_path}  ({len(races):,} races, "
-                f"{bundle_path.stat().st_size/1024:.1f} KB)")
+    logger.info(f"[bundle:tmp] {publish.tmp_bundle}  ({len(races):,} races, "
+                f"{publish.tmp_bundle.stat().st_size/1024:.1f} KB)")
 
     # ------ 品質ゲート (audit 2026-06-11: 空・激減バンドルの無言 push 防止) ------
     # bundle は書き出した上で (デバッグ用に成果物は残す)、閾値割れなら非0 exit して
@@ -849,11 +872,16 @@ def main() -> int:
     if gate_errors:
         for ge in gate_errors:
             logger.error(f"[品質ゲート] {ge}")
-        print("=== ⚠ 品質ゲート不合格: bundle は生成済みだが push しないこと ===")
-        print(f"  集約: {bundle_path}")
+        # ★transactional fail: temp を捨て、既存の production 成果物を保持する
+        publish.abort()
+        print("=== ⚠ 品質ゲート不合格: bundle を公開しない "
+              "(temp を破棄し、直前の正常成果物を保持) ===")
+        print(f"  未公開のまま破棄: {bundle_path.name}")
         return 2
 
-    print(f"=== Cowork 入力 JSON 出力完了 ===")
+    # ★全 Gate PASS → ここで初めて atomic に本番へ差し替える
+    publish.commit()
+    print(f"=== Cowork 入力 JSON 出力完了 (atomic publish) ===")
     print(f"  個別: {out_dir}/")
     print(f"  集約: {bundle_path}")
     print(f"  → このファイルを Cowork (Anthropic Desktop App) に投げて買い目を受け取る")

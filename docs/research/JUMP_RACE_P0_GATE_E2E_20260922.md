@@ -158,23 +158,44 @@ D の朝には揃っている。22:30 の collector は D の夜に D の分を�
 
 ### 3.4 どれも無い場合
 
-**全 race を unknown として止める（fail-closed）。**
+> ### 運用表現（2026-09-22 訂正）
+>
+> **誤**: 「bunseki が無い朝は全 race を unknown で止め、その日 bundle が空になる」
+>
+> **正**: **「bunseki が無い、または予定 race を 100% 覆わない場合、
+> bundle を公開せず非 0 終了し、直前の正常成果物を保持する」**
+>
+> fail-closed とは**空の成果物を公開することではない**。
+> 処理を非 0 で終了させ、既存成果物をそのまま残すことである。
 
-`data/bunseki/{date}.csv` が朝に無ければ、その日の全レースが
-`determination="unknown"` となり `prediction_eligible=False` になる。
-つまり**その日は bundle が空になり、買い目も出ない**。
+`data/bunseki/{date}.csv` が朝に無い、または予定 race を 100% 覆わない場合、
+`eligibility_coverage_gate` が **bundle 生成前に**検出し、
+**`ELIGIBILITY_EVIDENCE_INCOMPLETE`（exit 3）で終了する**。
+
+このとき:
+
+- **production bundle を作らない／上書きしない**（temp すら作らずに戻る）
+- site / cowork 出力を更新しない
+- task 登録を行わない・既存 task を削除しない
+- `logs/eligibility_gate_error.log` へ
+  unknown race_id 一覧 / expected・observed・missing / bunseki path+hash /
+  weekly hash を JSON Lines で記録する
+- **直前の正常な bundle がそのまま残る**
 
 これは意図した設計である。理由:
 
 - 障害か否かを authoritative に判定できないまま予測・購入するより、
   **その日を止める方が安全**
-- 復旧は簡単（TARGET から出走馬分析を export して `_inbox` へ置くだけ）
+- 空 bundle を「成功」として公開すると、下流（site/Cowork/task）が
+  「今日はレースが無い」と誤認しうる。**非 0 終了 + 既存保持**ならその誤認が起きない
+- 復旧は簡単（TARGET から出走馬分析を export して `_inbox` へ置き、Phase A を再実行）
 - 実測では 8/8 日で前夜に揃っており、発生確率は低い
 - 夜 22:30 の collector が `MISSING_BUNSEKI_EXPORT`(exit 3) で
   `logs/jump_history_error.log` に記録するため、翌朝までに気付ける
 
-**残存リスク**: bunseki 未配置の朝は production が丸ごと止まる。
-これは「障害を誤って買う」より軽いと判断した上での trade-off である。
+**残存リスク**: bunseki 未配置の朝は当日の bundle が更新されない
+（前日までの成果物が残る）。これは「障害を誤って買う」より軽いと判断した
+上での trade-off である。
 
 ---
 
@@ -342,3 +363,121 @@ collector / collector task 登録 / ログ・canary・テスト・文書
 **行っていない**: モデル変更 / 特徴定義変更 / `_horse_history.parquet` 置換 /
 障害レース予測 / 障害馬券購入 / corrected-vNext / Optuna /
 EXP14 Stage 1 / ROI 評価
+
+---
+
+## 10. transactional fail（2026-09-22 追加、P0 完全クローズ条件）
+
+### 10.1 bundle 生成前の完全性 Gate
+
+`eligibility_coverage_gate.check_coverage()` を
+**`export_weekly_marks.py` の race ループ手前**で呼ぶ。
+当日の予定 race 集合（weekly）と eligibility evidence 集合（bunseki）を突き合わせる。
+
+| 必須条件 | 実装 |
+|---|---|
+| scheduled race coverage = 100% | `expected == observed` かつ `missing == 0` |
+| race_id 重複 = 0 | `Counter` で検出 |
+| authoritative track code coverage = 100% | `track_code_value is None` を不足として計上 |
+| 許可済み source のみ | `{raw_jv, bunseki, weekly_explicit, calendar}` 以外は不可 |
+| unknown race = 0 | `determination == "unknown"` を計上 |
+| flat/jump disagreement = 0 | `determination == "conflict"` を計上 |
+
+1 件でも満たさなければ **bundle 生成・push・task 登録をすべて中止**する。
+
+### 10.2 unknown 時の動作
+
+- exit code **3（非 0）**
+- **`ELIGIBILITY_EVIDENCE_INCOMPLETE`**
+- unknown race_id 一覧 / expected・observed・missing race 数
+- bunseki file path + sha256 / weekly sha256 / bias sha256
+- `logs/eligibility_gate_error.log` へ JSON Lines で追記
+- **production bundle を作らない・上書きしない**
+- site / cowork 出力を更新しない
+- **task 登録を行わない・既存 task を削除しない**
+- **空 bundle を「成功」として出力しない**
+
+### 10.3 atomic publish
+
+正常時も次の順番を守る。
+
+1. **temp directory**（`.{date}__tmp` / `.{date}_bundle.json__tmp`）へ全成果物を生成
+2. eligibility coverage Gate（※1 は 2 の後に開始する。Gate NG なら temp すら作らない）
+3. category / feature canary
+4. bundle 内部整合性（race 数・odds 被覆など既存の品質ゲート）
+5. 全 Gate PASS
+6. **atomic replace**（`os.replace` で bundle を差し替え、個別 JSON を本番へ移動）
+
+途中 FAIL 時は `publish.abort()` で **temp だけを破棄**し、
+**既存 production 成果物を保持**する。
+
+### 10.4 実ファイル回帰テスト — **28/28 PASS**
+
+`analysis/jump_history_only/p0_transactional_fail_test.py`
+（production を書き換えず、原本は必ず復元）
+
+**A. bunseki 全欠損**（実 weekly あり、対象日 20260913）
+
+| 検査 | 結果 |
+|---|---|
+| exit 非 0 | **PASS**（exit=3） |
+| `ELIGIBILITY_EVIDENCE_INCOMPLETE` を出力 | PASS |
+| 全 24 race が evidence 欠落（observed=0） | PASS |
+| `track_code_source` が全て `missing` | PASS |
+| **bundle 未生成・既存 bundle hash 不変** | **PASS**（sentinel 一致） |
+| task 登録 0 | PASS |
+| error log に記録 | PASS |
+| **A2**: bias も無い朝は（収集済み障害を除く）全 race が `unknown` | PASS（23/24。残り 1 は history-only store が証拠） |
+| A2 でも gate は FAIL し公開しない | PASS（exit=3） |
+
+**B. bunseki 部分欠損**（実 bunseki のコピーから `2026091306040405` の行だけ除去）
+
+| 検査 | 結果 |
+|---|---|
+| exit 非 0 | **PASS**（exit=3） |
+| **missing race_id を正確に報告** | **PASS**（`['2026091306040405']`） |
+| expected=24 / observed=23 | PASS |
+| **23/24 の部分 bundle を公開しない**（hash 不変） | **PASS** |
+| task 登録 0 | PASS |
+
+**C. 正常**（実 weekly + 完全 bunseki）
+
+| 検査 | 結果 |
+|---|---|
+| exit 0 | PASS |
+| coverage 100%（expected=observed=24, missing=0） | PASS |
+| unknown 0 / 重複 0 / 不許可 source 0 / disagreement 0 | PASS |
+| 障害 1 race は bundle へ入らず history-only に保存済み | PASS |
+| 通常 23 race のみが flat | PASS |
+| `abort()` で既存 bundle 不変・temp 消去 | PASS |
+| `commit()` で bundle 差し替え・個別 JSON 移動 | PASS |
+
+production の `reports/cowork_input/20260913_bundle.json` は
+A・B とも sha256 `75a5d043…` のまま不変。
+`data/bunseki` / `data/bias` の原本も復元済み（`.txfail_bak` 残留なし）。
+
+### 10.5 テスト収集エラーの扱い
+
+`analysis/mcond/` の同名 test import 衝突（`test_evaluate.py` ×2、
+`test_time_safety.py` ×5）は **本 P0 とは別件**として記録するに留める。
+将来 pytest の import mode か test package 名の整理で解消できるが、
+**今回は着手しない**。
+
+---
+
+## 11. P0 完全クローズ
+
+| 条件 | 状態 |
+|---|---|
+| 1. default 23 が eligibility 判定へ使われない | ✅ |
+| 2. 実ファイル 3 日で既知障害を全件拒否 | ✅（30/30） |
+| 3. 同日の通常 race を誤拒否しない | ✅（誤除外 0） |
+| 4. morning authoritative source が確定 | ✅（`data/bunseki`、前夜 +9.1〜11.0h） |
+| 5. 5 層すべてで unknown が fail-closed | ✅ |
+| 6. 実行したテスト範囲が明示される | ✅ |
+| **7. unknown 時の transactional fail** | ✅（28/28、空成果物を公開せず既存を保持） |
+
+**→ P0 完全クローズ。**
+
+以後は **2026-09-26（土）・09-27（日）の collector 観測のみ**を行い、
+**特徴接続は行わない**。

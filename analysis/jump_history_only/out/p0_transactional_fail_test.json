@@ -1,0 +1,186 @@
+{
+  "generated_at": "2026-09-22T23:33:57.860955",
+  "date": "20260913",
+  "jump_rid": "2026091306040401",
+  "dropped_rid_for_B": "2026091306040405",
+  "scenario_A": {
+    "exit_code": 3,
+    "expected": 24,
+    "observed": 0,
+    "missing": 24,
+    "n_unknown": 0,
+    "n_bad_source": 24,
+    "A2_n_unknown": 23,
+    "bundle_sha_before": "75a5d043af55828c405cec560d50f7035ef0153fce676f683a57c581eebae32c",
+    "bundle_sha_after": "75a5d043af55828c405cec560d50f7035ef0153fce676f683a57c581eebae32c",
+    "files": {
+      "bunseki_path": "E:\\PyCaLiAI\\data\\bunseki\\20260913.csv",
+      "bunseki_exists": false,
+      "bunseki_sha256": null,
+      "weekly_path": "E:\\PyCaLiAI\\data\\weekly\\20260913.csv",
+      "weekly_sha256": "8841ece29cd123dd5232205e63e536014137dc479158ec2c4cf97707193c0507",
+      "bias_sha256": "f8512ec19d11b9ed44dfeaf4b68097e1b41b3c2b20fb37dc85a0077d32676031"
+    }
+  },
+  "scenario_B": {
+    "exit_code": 3,
+    "dropped_rows": 11,
+    "expected": 24,
+    "observed": 23,
+    "missing_rids": [
+      "2026091306040405"
+    ],
+    "bundle_sha_before": "75a5d043af55828c405cec560d50f7035ef0153fce676f683a57c581eebae32c",
+    "bundle_sha_after": "75a5d043af55828c405cec560d50f7035ef0153fce676f683a57c581eebae32c"
+  },
+  "scenario_C": {
+    "exit_code": 0,
+    "expected": 24,
+    "observed": 24,
+    "n_flat": 23,
+    "n_jump": 1
+  },
+  "checks": [
+    {
+      "name": "A: exit 非 0",
+      "pass": true,
+      "detail": "exit=3"
+    },
+    {
+      "name": "A: ELIGIBILITY_EVIDENCE_INCOMPLETE",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "A: 全 race が evidence 欠落",
+      "pass": true,
+      "detail": "missing=24/24 observed=0"
+    },
+    {
+      "name": "A: track_code_source が全て missing",
+      "pass": true,
+      "detail": "n_bad_source=24"
+    },
+    {
+      "name": "A: bundle を生成しない (既存 hash 不変)",
+      "pass": true,
+      "detail": "sentinel hash 一致"
+    },
+    {
+      "name": "A: task 登録 0 (障害 rid のタスク無し)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "A: error log に記録",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "A2: bias も無い朝は (収集済み障害を除く) 全 race が unknown",
+      "pass": true,
+      "detail": "unknown=23/24 (収集済み障害 1 件は store が証拠)"
+    },
+    {
+      "name": "A2: それでも gate は FAIL する (公開しない)",
+      "pass": true,
+      "detail": "ok=False exit=3"
+    },
+    {
+      "name": "A2: bias 原本を復元した",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "B: exit 非 0",
+      "pass": true,
+      "detail": "exit=3"
+    },
+    {
+      "name": "B: missing race_id を正確に報告",
+      "pass": true,
+      "detail": "missing=['2026091306040405']"
+    },
+    {
+      "name": "B: 部分 bundle を公開しない (hash 不変)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "B: expected/observed が一致しない",
+      "pass": true,
+      "detail": "expected=24 observed=23"
+    },
+    {
+      "name": "B: task 登録 0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "C: exit 0",
+      "pass": true,
+      "detail": "exit=0"
+    },
+    {
+      "name": "C: coverage 100%",
+      "pass": true,
+      "detail": "expected=24 observed=24"
+    },
+    {
+      "name": "C: unknown 0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "C: 重複 0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "C: 不許可 source 0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "C: flat/jump 不一致 0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "C: 障害は bundle へ入らない",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "C: 通常 race のみが flat",
+      "pass": true,
+      "detail": "flat=23 / 23"
+    },
+    {
+      "name": "C: 障害は history-only に保存済み",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "C: abort で既存 bundle 不変",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "C: abort で temp が消える",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "C: commit で bundle が差し替わる",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "C: commit で個別 JSON が本番へ移る",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "n_fail": 0
+}
