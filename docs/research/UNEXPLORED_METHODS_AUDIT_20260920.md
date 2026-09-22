@@ -129,7 +129,7 @@
 |---|---|---|
 | 血統SVD埋め込み(Node2Vec代替) | C→REDUNDANT | `lab/features_dead/build_pedigree_emb.py`、`reports/race_ped_exp.json`でΔAUC −0.0013〜−0.0022（合格基準+0.008に遠く未達）、静的・単層・線形構造のみ検証 |
 | ELO/Glicko（二部グラフ的更新） | G（EXP02と重複） | `project_mcond_exp02_dynamic_skill`が既に厳密検証、ROI回収なしで終了 |
-| レース内配置の集合的相互作用(2/3体結合,Set Transformer予備) | C→NG | `project_statmech_coupling_3body`, `project_race_as_sample_settransformer_low_ev`。実券OOS黒字セル0/36 |
+| レース内配置の集合的相互作用(2/3体結合,~~Set Transformer予備~~) | C→NG | `project_statmech_coupling_3body`, `project_race_as_sample_settransformer_low_ev`。実券OOS黒字セル0/36。**[ERRATUM 2026-09-23]** ~~Set Transformer予備~~ は実際には M1 結合の GBM 読み出し（`exp_havoc_m1.py`）で Set Transformer ではない。また本監査は旧 RaceTransformer（`train_transformer.py` / `transformer_pl_v2`、同一レース全頭の self-attention）を見落とし、レース単位 NN を実質未着手として扱っていた。正: 旧 RaceTransformer は**実施済み**で単独成績は低かった（◎top3 54.36% vs v6 62.03%）が、旧特徴 48 本・旧 master・複勝 AUC 選択等の交絡がある。同一入力・同容量 no-context 対照による race context 固有効果は未検証（EXP15）。DeepSets・Sinkhorn 系・マルチタスクは未実装 |
 | **馬・騎手・調教師・競馬場の異種時間グラフ・GNN・message passing** | **E（完全未着手）** | `docs/research/NEXT_GEN_RESEARCH_PLAN_20260918.md`が「未着手だが配置情報が予測層で効かない強い既存証拠があり候補から除外」と明記。リポジトリ全体で`GNN\|graph_embed\|node2vec\|networkx\|hypergraph\|GraphSAGE\|torch_geometric\|dgl`は0件（血統embeddingのdocstring言及のみ）。`matchup_history.py`は対戦履歴の**表示専用**ユーティリティで予測特徴には未使用。 |
 
 **等価性照合表（血統SVD vs 異種時間グラフ/GNN）**

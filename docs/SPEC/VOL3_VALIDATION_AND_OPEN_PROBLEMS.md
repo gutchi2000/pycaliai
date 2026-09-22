@@ -97,7 +97,7 @@ Falsification criterion: 事前に固定した棄却条件
 | E4 | 格・クラス変動（v7/v11、15 特徴フル再学習）で **+0.62pt CI[−0.20, +1.45] = 非有意** | `reports/audit_marks_v11.json` |
 | E5 | 適性系（距離 / 場所 / 血統 / 回り左右）は **−0.3〜−0.68pt** | `reports/ablation_aptitude.json`, `ablation_direction.json` |
 | E6 | 物理（Keller / pace）・EVT（極値統計）・統計力学（2 体 / 3 体 / 自由エネルギー）は ΔAUC 微小 or 符号逆 or 直交ゼロ | `lab/physics_gates/` |
-| E7 | Transformer / Set Transformer は汎化ゼロ（配置情報は予測層で exploitable でない） | `exp_havoc_m1.py` |
+| E7 | ~~Transformer / Set Transformer は汎化ゼロ（配置情報は予測層で exploitable でない）~~ **[ERRATUM 2026-09-23]** 旧記述の根拠 `exp_havoc_m1.py` は M1 2体結合特徴を GBM に入れた波乱読み出しで、Transformer ではない（根拠の誤帰属）。正: 旧 RaceTransformer（`train_transformer.py` / `transformer_pl_v2`、同一レース全頭の self-attention・位置符号なし）は**実施済み**で、単独 ◎top3 54.36%（v6 62.03%、test 2024-25）と低かった。ただし旧特徴 48 本・旧 master・複勝 AUC 選択等の交絡がある。同一入力・同容量 no-context 対照による race context 固有効果は**未検証**（EXP15 で検定）。DeepSets・Sinkhorn 系・マルチタスクは未実装 | ~~`exp_havoc_m1.py`~~ `reports/evaluate_transformer_v6_stack.json`, `analysis/mcond/exp15_race_as_set_dev/` |
 | E8 | **独立に開発された別 AI「Keiba-ai」（58 特徴 / 2010-25 / NN 込 4 blend）も 58–62% 天井** | `project_keiba_ai_confirms_ceiling` |
 | E9 | 競合ベンチマーク（2026-07-19 リサーチ）でも 62% は業界の地の値。競合の高い公表値はチェリーピック | `project_competitor_benchmark_2026` |
 
@@ -163,6 +163,8 @@ ROI 回収ゼロが確定していたにもかかわらず、本書がそれを�
 
 **適用例**: `joint_m1 umaren` の項目（§3.2、§7.3、§9 Priority 2-1）を本改訂で修正済み。
 
+**適用例 2（2026-09-23, ERRATUM）**: E7 と §3.2 の「Transformer / Set Transformer は汎化ゼロ」を打ち消し線付きで訂正。これはバグによる反転ではなく**根拠の取り違え**（M1 結合 GBM の数値を Transformer の死因として引用）による過大主張の訂正。出典: EXP15 Stage 0 監査 `analysis/mcond/exp15_race_as_set_dev/RACE_AS_SET_PRIOR_ART_AUDIT.md` §5。
+
 ### 3.1 予測層・特徴量（すべて本番 v6 土俵で検定、採用ゼロ）
 
 | ルート | 型 | 死因 | 出典 |
@@ -190,7 +192,7 @@ ROI 回収ゼロが確定していたにもかかわらず、本書がそれを�
 
 | ルート | 死因 |
 |---|---|
-| Transformer / Set Transformer | 汎化ゼロ。gain 4.8% 使うのに ΔAUC −0.004 |
+| Transformer / Set Transformer | ~~汎化ゼロ。gain 4.8% 使うのに ΔAUC −0.004~~ **[ERRATUM 2026-09-23]** 旧記述の数値は M1 結合 GBM（`exp_havoc_m1.py`）のもので Transformer の結果ではない。旧 RaceTransformer は実施済みで単独成績は低い（◎top3 54.36% vs v6 62.03%）が、旧特徴 48 本・旧 master・複勝 AUC 選択の交絡があり**未決着**。同一入力・同容量 no-context 対照による context 固有効果は未検証（EXP15）。DeepSets・Sinkhorn 系・マルチタスクは未実装 |
 | Stacking meta | valid Brier 改善 ≤0.001、Isotonic 出力が常に >0.50 で 100% フォールバック（2026-03-28 廃止） |
 | MoE 距離別 expert | `models/expert_*_rejected.pkl` の命名通り不採用 |
 | custom profit loss | ログで棄却 |

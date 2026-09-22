@@ -1,0 +1,245 @@
+{
+  "experiment": "EXP15",
+  "title": "Race-as-a-Set: race context 固有効果の識別（同一入力・同一期間・同容量対照）",
+  "spec_version": "1.0",
+  "frozen_at": "2026-09-23",
+  "positioning": "完全新規アーキテクチャではない。既存RaceTransformer(2026-03, 交絡付きで劣後)を踏まえ、同一入力・同一期間・同容量no-context対照でrace context固有効果を識別する再設計実験",
+  "plan_doc": "MINIMAL_FALSIFICATION_PLAN.md (v2)",
+  "prior_art": "RACE_AS_SET_PRIOR_ART_AUDIT.md",
+
+  "periods": {
+    "base_train": ["2016-01-01", "2021-12-31"],
+    "selection": ["2022-01-01", "2022-12-31"],
+    "development_eval": ["2023-01-01", "2023-12-31"],
+    "protocol": "fixed-model: 全モデル2022年末で凍結。2023は学習・ES・較正・選択に不使用。online refitなし",
+    "load_filter": "master_v2をchunk読みし 20160101<=日付<=20231231 以外の行は保持しない。date.max()<=20231231をassert、行hashをログ",
+    "bootstrap_unit": "meeting_day = rid16[:10]"
+  },
+
+  "population": {
+    "source": "data/master_v2_20130105-20251228.csv",
+    "row_rule": "v6と同一: 着順が数値の行のみ (dropna後=DNF行なし)",
+    "race_key": "レースID(新/馬番無) -> rid16",
+    "train_min_field": 2,
+    "eval_min_field": 5,
+    "max_field": 18,
+    "win_metrics_exclude": "1着同着レース (件数報告)"
+  },
+
+  "feature_contract": {
+    "base": "models/unified_rank_v6.pkl feature_cols (120) + v6変換 (CAT_COLS 28はLabelEncoder, 他はpd.to_numeric(errors=coerce))",
+    "exclude_identifier_or_asof_violation": ["馬主(最新/仮想)", "前走レースID(新)", "前走レースID(新/馬番無)"],
+    "never_included": ["レースID(新)", "レースID(新/馬番無)", "血統登録番号", "馬名", "日付", "着順", "fukusho_flag", "roi_target", "split", "レース名", "発走時刻", "date_dt"],
+    "exclude_v6_dead_rule": "v6変換後にbase_trainで非NaN被覆率0%の列 (v6では全行-9999定数=情報ゼロ) を両モデルから除外。実測リストはout/feature_contract.jsonに記録",
+    "unique_id_guard": "カーディナリティ > base_train行数の1% の列は allowlist 外なら停止",
+    "unique_id_allowlist": [],
+    "representation": {
+      "R0": "カテゴリ=base_train fit LabelEncoder整数(unknown->__NaN__コード), 数値=coerce値, 欠損=-9999",
+      "NN": "カテゴリ=同一語彙の学習埋め込み dim=min(16,ceil(1.6*K^0.56)), 数値=coerce値→base_train中央値補完+欠損フラグ(base_trainで欠損>0の列)+(x-median)/IQR を[-10,10]にclip"
+    },
+    "derived_id_info_policy": "過去同一レース経験数・過去対戦回数・as-of集約は許可派生情報だが別ablation。本基本モデルに混ぜない",
+    "dnf_policy": "master_v2のまま (DNF行なし)。DNF-inclusive文脈はStage1範囲外"
+  },
+
+  "labels": {
+    "rel": "clip(6-着順,0,5)",
+    "win": "着順==1",
+    "top3": "着順<=3"
+  },
+
+  "models": {
+    "R0-clean": {
+      "role": "正式科学比較の基準",
+      "algo": "LightGBM lambdarank",
+      "fixed": {"lambdarank_truncation_level": 5, "metric": "ndcg", "eval_at": [5], "bagging_freq": 5, "deterministic": true, "force_col_wise": true, "feature_pre_filter": false, "early_stopping_rounds": 100, "max_rounds": 3000, "sample_weight": "uniform"},
+      "grid": [
+        {"name": "v6", "learning_rate": 0.05083158501542684, "num_leaves": 59, "max_depth": 12, "min_data_in_leaf": 197, "feature_fraction": 0.876098829427658, "bagging_fraction": 0.7031707810405968, "lambda_l1": 0.0011077902520957399, "lambda_l2": 7.537933313450104},
+        {"name": "v6_leaves_half", "learning_rate": 0.05083158501542684, "num_leaves": 30, "max_depth": 12, "min_data_in_leaf": 197, "feature_fraction": 0.876098829427658, "bagging_fraction": 0.7031707810405968, "lambda_l1": 0.0011077902520957399, "lambda_l2": 7.537933313450104},
+        {"name": "v6_leaves_double", "learning_rate": 0.05083158501542684, "num_leaves": 118, "max_depth": 12, "min_data_in_leaf": 197, "feature_fraction": 0.876098829427658, "bagging_fraction": 0.7031707810405968, "lambda_l1": 0.0011077902520957399, "lambda_l2": 7.537933313450104},
+        {"name": "v6_lr_half", "learning_rate": 0.02541579250771342, "num_leaves": 59, "max_depth": 12, "min_data_in_leaf": 197, "feature_fraction": 0.876098829427658, "bagging_fraction": 0.7031707810405968, "lambda_l1": 0.0011077902520957399, "lambda_l2": 7.537933313450104}
+      ],
+      "selection": "selection_seed=7 で各格子点を学習, 2022 race-level win logloss (2022でτ最尤) 最小の1点"
+    },
+    "R0-prodref": {
+      "role": "現行v6との差を説明する参考値。正式Gate不使用",
+      "differences_from_R0-clean": "v6の120列そのまま (疑義列含む, v6-dead列も-9999定数で含む) + v6 race重み 1+0.03083978412534253*log1p(winner_tansho/100) (winner_tansho=data/kekka_20130105-20251228.csv)",
+      "hyperparams": "R0-cleanの選択点を流用",
+      "production_untouched": true
+    },
+    "NN_common": {
+      "phi": "Linear(in,W)->LayerNorm->GELU->Dropout(p)->Linear(W,128)->LayerNorm->GELU",
+      "norm_rule": "BatchNorm禁止",
+      "loss": "pointwise MSE on rel (padding mask, uniform weight, race内結合なし)",
+      "optimizer": {"name": "AdamW", "weight_decay": 0.0001},
+      "batch_races": 256,
+      "max_epochs": 30,
+      "early_stopping": {"metric": "2022 race-level win logloss (各epochでτを2022最尤)", "patience": 4, "restore_best": true},
+      "grid": {"W": [256, 512], "dropout": [0.1, 0.2], "lr": [0.001, 0.0003]},
+      "selection": "selection_seed=7 で各格子点を R1 と R1-noctx の両方で学習し、2022 win logloss の平均が最小の1点を両者に共通適用",
+      "determinism": "torch.use_deterministic_algorithms(True), CUBLAS_WORKSPACE_CONFIG=:4096:8, epoch毎shuffleはtorch.Generator(seed)"
+    },
+    "R1": {
+      "role": "検定対象 (DeepSets)",
+      "context": "rival-only: m_-i=自分を除く平均(h_j), M_-i=自分を除く最大(h_j), log n; c_i=[m_-i, M_-i, log n]",
+      "rho": "Linear(4*128+1,256)->GELU->Dropout(p)->Linear(256,64)->GELU->Linear(64,1) on [h_i, c_i, h_i - m_-i]"
+    },
+    "R1-noctx": {
+      "role": "Context Gate 対照 (同一phi, 文脈経路なし)",
+      "rho": "Linear(128,H)->GELU->Dropout(p)->Linear(H,64)->GELU->Linear(64,1); H は総パラメータ数がR1の±5%になる最小整数",
+      "param_match_tolerance": 0.05
+    },
+    "R1-noctx-2x": {
+      "role": "容量診断 (Gate不使用)",
+      "rho": "R1-noctxと同形で H を総パラメータ数≈2×R1となるよう設定"
+    },
+    "R2_and_later": "Stage1では作らない (Context Gate判定前は禁止)"
+  },
+
+  "seeds": {
+    "main": [20260923, 20260924, 20260925, 20260926, 20260927],
+    "selection_seed": 7,
+    "pairing": "R1_s, R1-noctx_s, R1-noctx-2x_s, R0-clean_s は同一seedを対にする",
+    "fixed_per_seed": ["データ順(torch.Generator(seed))", "初期化(torch.manual_seed(seed))", "dropout", "early stopping規則", "max_epochs"],
+    "primary_estimate": "per-race Δ_r = mean_s[L_r(A_s) - L_r(B_s)] (ensemble予測は使わない)",
+    "report": ["各seed全指標", "median", "min", "max", "seed間SD", "方向一致seed数", "meeting-day paired bootstrap"],
+    "forbidden": "最良seedのみの採用"
+  },
+
+  "probability": {
+    "p_win": "softmax(s/τ) within race",
+    "tau": "モデル・seed毎に2022で1着条件付きロジット最尤 (analysis.mcond.v6base.fit_tau と同方式)"
+  },
+
+  "metrics": {
+    "primary": ["race_win_logloss", "race_win_brier"],
+    "secondary": ["ndcg@3", "ndcg@5", "hon_top3", "ece10_win", "longshot_AE"],
+    "definitions": {
+      "race_win_logloss": "-(1/R) Σ_r log p_win(winner_r)",
+      "race_win_brier": "(1/R) Σ_r Σ_i (p_ri - y_ri)^2",
+      "ndcg@k": "rel=clip(6-着順,0,5), gain=2^rel-1, discount=1/log2(rank+1), スコア同点は馬番昇順",
+      "hon_top3": "argmax score 馬が3着以内",
+      "ece10_win": "馬単位p_win 等幅10bin",
+      "longshot_AE": "p_win帯 [0,0.02),[0.02,0.05),[0.05,0.10) の 実勝数/期待勝数。帯はR0-clean(seed平均p)で固定、自モデルp版も併記"
+    },
+    "strata": {"field_size": [[5, 8], [9, 12], [13, 15], [16, 18]], "surface": ["芝", "ダ"], "venue": "10場 (報告のみ)"},
+    "bootstrap": {"reps": 3000, "seed": 20260923, "ci": 0.95, "method": "meeting_day resample, ratio of sums"}
+  },
+
+  "mde": {
+    "timing": "学習開始前に算出し out/mde.json をコミット",
+    "r0_proxy": "data/_research/mcond/oof_scores_c1master.parquet の2023 (train<=2021/ES 2022, v6レシピ)",
+    "pair_proxy": "data/oof_scores_v6params.parquet の2023 (旧OOF)。2代理の per-race 差の meeting-day クラスタSE",
+    "formula": "MDE = (z_0.975 + z_0.80) * SE_cluster(Δ)",
+    "sensitivity": "Var(Δ_r)=2σ²(1-ρ), ρ∈{0.90,0.95,0.98}, meeting-day design effect はR0代理から推定",
+    "metrics": ["race_win_logloss", "race_win_brier", "ndcg@3", "hon_top3"],
+    "practical_thresholds": {
+      "context": {"race_win_logloss_rel": 0.002, "race_win_brier_rel": 0.002, "ndcg@3_abs": 0.002, "hon_top3_abs": 0.005},
+      "replacement": {"race_win_logloss_rel": 0.005, "race_win_brier_rel": 0.005}
+    },
+    "fail_taxonomy": {
+      "statistically_nonsignificant": "CI95が0を含む",
+      "practically_small": "|Δ| < 実務閾値",
+      "underpowered": "MDE > 実務閾値"
+    },
+    "fail_statement": "現在の特徴、事前固定したモデル容量、2023 development、および本実験の検出力では、事前基準を超えるrace-context増分を検出できなかった"
+  },
+
+  "gates": {
+    "G0_tests": "required_tests 全PASS を学習前に記録",
+    "context_gate": {
+      "comparison": "R1 vs R1-noctx (同一seed対)",
+      "pass_all": [
+        "Δrace_win_logloss<0 かつ Δrace_win_brier<0",
+        "meeting-day bootstrap CI95上限<0 (両方)",
+        "5seed中4seed以上で logloss・Brier 両方が同方向(改善)",
+        "|Δ| >= min(MDE, context実務閾値) (logloss, Brier それぞれ)",
+        "出走頭数4帯いずれも ΔLL CI95下限>0 (有意悪化) でない",
+        "学習済みR1でpermutation invariance PASS"
+      ]
+    },
+    "c1_gate": {
+      "run_if": "context_gate PASS",
+      "rule": "G_real = median_s[LL(R1-noctx_s)-LL(R1_s)] > q97.5 of P3 placebo gains"
+    },
+    "c2_gate": {
+      "run_if": "context_gate PASS",
+      "rule": "G_real > q97.5 of P2 gains かつ > q97.5 of P4 gains"
+    },
+    "classification": {
+      "C1 PASS & C2 PASS": "構成＋個体間関係",
+      "C1 PASS & C2 FAIL": "構成効果のみ／個体間関係なし (モデル全体FAILにしない)",
+      "C1 FAIL": "レース固有構成効果は未検出 (条件一致別レース文脈で再現可能)。R2進行はユーザーに諮る"
+    },
+    "replacement_gate": {
+      "stage1": "R1 vs R0-clean を参考判定 (本判定はStage2でR2 vs R0-clean)",
+      "pass_all": [
+        "Δlogloss<0 かつ ΔBrier<0, CI95上限<0",
+        "5seed中4seed以上で方向一致",
+        "NDCG@3 と ◎top3 の少なくとも一方が悪化方向に有意でない",
+        "ECE10が悪化方向に有意でない",
+        "|Δ| >= max(MDE, replacement実務閾値)"
+      ]
+    },
+    "progression": {
+      "context FAIL": "R2を作らず終了",
+      "context PASS & R1 FAIL vs R0-clean": "R2へ進行可 (R1がR0に負けたことを理由にContext Gateを無効化しない)",
+      "R2 FAIL vs R0-clean": "終了",
+      "R2 PASS vs R0-clean": "2024/2025 OOS候補",
+      "stage2_start": "Stage1報告後ユーザー承認"
+    }
+  },
+
+  "placebos": {
+    "P1": "placebo ではなく必須不変性テスト (T1)。合成データ + 学習済みモデル(2023実レース)",
+    "principle": "自馬経路は常に真のx_i、文脈経路の相手集合のみ置換。相手はhorse vector一まとまり (列単位合成禁止)。race内一定列 (base_trainで全レース内一定の列を実測) は相手側も自レース値に上書き。相手は同一区分 (base_train/2022/2023) 内から取り、学習・ES・評価すべて同規則で置換 (全体再学習)",
+    "P3_race_context_exchange": {
+      "tests": "C1",
+      "match": "出走頭数 + 場所 + 芝・ダ + クラス群",
+      "fallback": ["場所を外す", "出走頭数±1", "出走頭数±2"],
+      "context": "r'から1頭をランダム除外した集合"
+    },
+    "P2_composition_preserving_relational": {
+      "tests": "C2",
+      "match": "P3の一致条件 + 能力分布(レース平均kako5_avg_posの区分内三分位) + 先行頭数区分(prev_pos_rel<=0.25の頭数: 0-1/2-3/4+)",
+      "fallback": ["場所を外す", "能力三分位を外す", "出走頭数±1"],
+      "context": "r'から1頭をランダム除外した集合"
+    },
+    "P4_horse_feature_coherence_break": {
+      "tests": "C2",
+      "rule": "各相手馬 j を、同一区分・同一(芝・ダ×クラス群)層で同一(先行フラグ×kako5_avg_pos十分位, 欠損は独立セル)セルの他レース実在馬ベクトルで1頭ずつ置換。horse i の文脈 = 置換後集合から i の代替を除いたもの"
+    },
+    "class_group": "クラス名を 新馬/未勝利/1勝/2勝/3勝/OP以上 に写像 (写像表はout/feature_contract.json)",
+    "B_per_placebo": 39,
+    "seed_cycle": "draw b は main seeds[b mod 5] を使用, placebo乱数seed = 1000+b",
+    "gain": "G_b = LL(R1-noctx_{s_b}) - LL(R1^{placebo}_b) on 2023",
+    "decision": "median_s G_real_s > quantile(G_b, 0.975)"
+  },
+
+  "capacity_report": ["parameter_count", "approx_flops_per_race", "epoch_seconds", "peak_gpu_memory_MB", "early_stopping_epoch", "R0: trees x leaves"],
+
+  "required_tests": {
+    "T1": "レース内の馬順を無作為置換 → 出力が同置換で移動 (誤差1e-5), Σp・race loss不変。合成+学習済みR1/R1-noctx(2023実レース)",
+    "T2": "同バッチの他レース入力を変えても当該レース出力が完全一致。モジュールにBatchNorm等が無いことを静的検査",
+    "T3": "padding行に乱数を入れても実馬出力一致、padding確率0",
+    "T4": "馬hを除外して集合を作り直した出力と一致 (文脈再計算)、残りΣp_win=1",
+    "T5": "n=5..18で動作しΣp_win=1、n>18はassertで停止",
+    "T6": "2023全評価レースで |Σp_win-1|<1e-6",
+    "T7": "日付T以降削除して入力行列を作り直してもT以前の行の入力が完全一致 (T=20190630, 20211231)",
+    "T8": "LabelEncoder語彙・中央値・IQR・欠損フラグ列がbase_train行のみからfitされていることをassert",
+    "T9": "入力に馬主(最新/仮想)・前走レースID2列・血統登録番号・馬名が無い、高カーディナリティ列ガード",
+    "T10": "入力に今走レースID・rid16・meeting_dayが無い (Ｒ・前走日付は条件/as-of列として許可)",
+    "T11": "入力に今走の単勝オッズ・人気・馬体重・着順・走破タイム・通過順・fukusho_flag・roi_targetが無い",
+    "T12": "ロード後 date.max()<=20231231, date.min()>=20160101",
+    "T13": "学習・評価とも rid16 同一行 = 集合 の同一規則",
+    "T14": "category_normalize適用後、serve表記(例 'ダート')が学習語彙値('ダ')へ写る",
+    "T15": "同一seed・同一設定で2回学習した R1 の2022予測が一致 (許容1e-6)",
+    "T16": "R1-noctxで他馬入力を任意変更しても自馬出力が不変"
+  },
+
+  "stage1_scope": {
+    "allowed": ["spec.json凍結", "clean feature contract", "R0-clean", "R0-prodref(参考)", "R1-noctx", "R1-noctx-2x(診断)", "R1", "synthetic invariance tests", "2023 fixed-development evaluation", "MDE", "5-seed実行", "Context Gate PASS時のみC1/C2 placebo"],
+    "forbidden": ["R2以降", "2024/2025性能開封", "ROI", "ticket generation", "production変更", "current v6置換", "EXP14との混合"],
+    "intermediate_dir": "data/_research/mcond/exp15/",
+    "committed_out_dir": "analysis/mcond/exp15_race_as_set_dev/out/"
+  }
+}
