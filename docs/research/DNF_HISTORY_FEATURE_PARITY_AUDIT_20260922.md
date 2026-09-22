@@ -58,13 +58,30 @@ Legacy-compatible経路の対象は**Bの4特徴のみ**（course/jockey6特徴�
 corrected training master・corrected offline replay・corrected serve
 builder・corrected modelを一組としてv6と混在させずに管理する。
 
-### ⑥DNF-inclusive v6 baseline（`dnf_inclusive_baseline.py`/`out/dnf_inclusive_baseline.json`）
+### ⑥DNF-inclusive v6 baseline — ★★2026-09-22再訂正: `provisional_invalid_aggregation`
 
-現行v6のモデル・ハイパーパラメータは一切変更せず、全starterへ適用
-(DNF=softmax分母へ含め勝ち/top3では失敗扱い、外・消は分母から除外)した
-場合の指標を測定した(race単位bootstrap、N=1000、meeting-day単位ではない)。
+**以下の第2ラウンドで報告した値は、ユーザー指摘により算術的に矛盾していることが
+判明し、`provisional_invalid_aggregation`として無効化する（詳細は
+`docs/research/DNF_INCLUSIVE_BASELINE_RECONCILED_20260922.md`参照）:**
 
-| 年(split) | finisher-only ◎top3 | DNF-inclusive ◎top3 | Δ |
+- 全体差 約0.2pt（2023/2024/2025年別の値として報告）
+- DNFありレースの3.66pt差（75.01%→71.35%）
+- DNFなしレース74.31%
+- これらに基づく「◎top3約62%はDNF-inclusiveでもほぼ変わらない」等の解釈
+
+**原因**: 「年別overall」（2023/2024/2025を個別に集計、約60-62%）と
+「DNFあり/なしレース別」（2013-2025年**全期間を混在**させて集計、約71-75%）を
+同一の文章内で並べて解釈してしまい、異なる母集団（年範囲）の数値を無断で
+比較していた。同一年・同一レース集合であれば
+`overall = dnf_race_share×dnf_race_top3 + (1-dnf_race_share)×non_dnf_race_top3`
+という加重平均恒等式が誤差1e-12以内で必ず成立するはずだが、上記の値は
+異なる母集団から来ているためこの恒等式を満たさない（全期間ブレンドには
+2013-2022年のtrain期間、すなわちモデルが学習時に直接見た行が大量に混入して
+おり、その分◎top3率が高く出る）。年別に完全分離し、恒等式をhard gateとして
+検証した再訂正版は`docs/research/DNF_INCLUSIVE_BASELINE_RECONCILED_20260922.md`
+に記載する。以下の元の記述は**訂正前の記録として取り消し線相当に保持**する。
+
+<del>| 年(split) | finisher-only ◎top3 | DNF-inclusive ◎top3 | Δ |
 |---|---:|---:|---:|
 | 2023(valid) | 60.71% | 60.53% | -0.17pt |
 | 2024(test) | 62.80% | 62.57% | -0.23pt |
@@ -82,7 +99,10 @@ builder・corrected modelを一組としてv6と混在させずに管理する�
 **旧来のfinisher-only評価は、DNFが発生したレースに限ると◎top3率を約3.7pt
 過大評価していた**（DNF発生レースは非発生レースよりむしろ高く見えていたが、
 訂正後は非発生レースを下回る、より妥当な値になる）。全体集計(全レースの
-94.3%はDNF非発生のため希釈)では -0.20pt程度の縮小に留まる。
+94.3%はDNF非発生のため希釈)では -0.20pt程度の縮小に留まる。</del>
+
+**再訂正版の数値は`DNF_INCLUSIVE_BASELINE_RECONCILED_20260922.md`参照。
+本節①〜③の解釈（-0.2pt/3.66pt/74.31%等）は上記の理由により撤回する。**
 
 ### ⑦corrected-vNext判断基準（詳細: `MIGRATION_PATHS_AND_VNEXT_DECISION.md`§7）
 
@@ -108,8 +128,9 @@ unaffected=1(EXP11) / exposed but decisive Gate independent=7
   §7の5条件はまだ揃っていない。**今すぐcorrected-vNextへ移行する合理性は
   不十分**、Bの実発生規模定量化とOptuna抜きの一次判定の精査を先に行うべき。
 - **production変更**: **非推奨（現時点）**。①Bの実データ規模が未測定、
-  ②同一HP比較が悪化、③DNF-inclusive baselineの効果は全体希釈で小さい
-  (-0.2pt)、の3点から、現時点でのcurrent v6変更・切替は正当化されない。
+  ②同一HP比較が悪化、の2点から、現時点でのcurrent v6変更・切替は
+  正当化されない（③「DNF-inclusive baselineの効果は全体希釈で小さい」は
+  算術矛盾により撤回、再訂正版は`DNF_INCLUSIVE_BASELINE_RECONCILED_20260922.md`参照）。
 
 ---
 
