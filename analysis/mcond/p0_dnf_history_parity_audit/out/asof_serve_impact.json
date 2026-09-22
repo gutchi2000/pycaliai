@@ -1,0 +1,145 @@
+{
+  "generated_at": "2026-09-22T21:49:06.311012",
+  "serve_population": {
+    "rows": 33827,
+    "races": 2440,
+    "horses": 9791
+  },
+  "missing_rows_total": 598,
+  "missing_rows_ped_resolved": 580,
+  "ped_resolve_status": {
+    "hit": 580,
+    "ambiguous": 17,
+    "new": 1
+  },
+  "candidate": {
+    "serve_rows": 102,
+    "serve_rows_share": 0.003015,
+    "serve_races": 51,
+    "serve_races_share": 0.020902,
+    "horses": 82,
+    "jump_then_flat_horses": 82,
+    "flat_then_jump_only_horses": 166
+  },
+  "branches": {
+    "A_shogai_own_surface": {
+      "rows_changed": 80,
+      "rows_changed_share_of_serve": 0.002365,
+      "races_changed": 37,
+      "races_changed_share_of_serve": 0.015164,
+      "horses_changed": 69,
+      "feature_change_counts": {
+        "horse_fuku30": 73,
+        "horse_fuku10": 45,
+        "hist_same_place_best_pos": 15
+      },
+      "by_date": {
+        "20260412": 1,
+        "20260418": 5,
+        "20260419": 4,
+        "20260502": 6,
+        "20260503": 1,
+        "20260509": 3,
+        "20260510": 1,
+        "20260517": 4,
+        "20260524": 2,
+        "20260711": 1,
+        "20260725": 1,
+        "20260726": 1,
+        "20260801": 1,
+        "20260808": 1,
+        "20260809": 2,
+        "20260816": 2,
+        "20260830": 3,
+        "20260906": 1,
+        "20260912": 1,
+        "20260913": 8,
+        "20260919": 12,
+        "20260920": 8,
+        "20260922": 11
+      },
+      "by_venue": {
+        "中山": 26,
+        "阪神": 22,
+        "新潟": 17,
+        "中京": 5,
+        "福島": 4,
+        "東京": 4,
+        "京都": 1,
+        "札幌": 1
+      },
+      "history_slot_position": {
+        "1走前": 159,
+        "2走前": 17,
+        "3走前": 5,
+        "4走前": 1,
+        "5走前": 1,
+        "6走前以前": 1
+      }
+    },
+    "B_recoded_to_flat": {
+      "rows_changed": 80,
+      "rows_changed_share_of_serve": 0.002365,
+      "races_changed": 37,
+      "races_changed_share_of_serve": 0.015164,
+      "horses_changed": 69,
+      "feature_change_counts": {
+        "horse_fuku30": 73,
+        "horse_fuku10": 45,
+        "hist_same_place_best_pos": 15,
+        "hist_same_cond_best_pos": 1,
+        "hist_same_cond_top3_rate": 1,
+        "hist_same_cond_count": 1
+      },
+      "by_date": {
+        "20260412": 1,
+        "20260418": 5,
+        "20260419": 4,
+        "20260502": 6,
+        "20260503": 1,
+        "20260509": 3,
+        "20260510": 1,
+        "20260517": 4,
+        "20260524": 2,
+        "20260711": 1,
+        "20260725": 1,
+        "20260726": 1,
+        "20260801": 1,
+        "20260808": 1,
+        "20260809": 2,
+        "20260816": 2,
+        "20260830": 3,
+        "20260906": 1,
+        "20260912": 1,
+        "20260913": 8,
+        "20260919": 12,
+        "20260920": 8,
+        "20260922": 11
+      },
+      "by_venue": {
+        "中山": 26,
+        "阪神": 22,
+        "新潟": 17,
+        "中京": 5,
+        "福島": 4,
+        "東京": 4,
+        "京都": 1,
+        "札幌": 1
+      },
+      "history_slot_position": {}
+    }
+  },
+  "undeterminable_features": {
+    "features": [
+      "jockey_n_prev",
+      "jockey_win_rate",
+      "jockey_top3_rate",
+      "jockey_fuku30",
+      "jockey_fuku90",
+      "trainer_fuku30",
+      "trainer_fuku90"
+    ],
+    "reason": "欠落行に騎手コード・調教師コードが存在せず (44/46 日で復元不能、ALT_SOURCE_RECOVERY_AUDIT §5)、変化の有無を判定できない",
+    "upper_bound_note": "jockey_fuku30/90・trainer_fuku30/90 は 馬ではなく騎手・調教師の直近 N 走 rolling のため、欠落騎乗 1 件がその騎手・調教師の後続 serve 行すべてに波及しうる。上限は serve 全行、下限は 0 で、現データでは特定不能。"
+  }
+}
