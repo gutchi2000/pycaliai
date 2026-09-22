@@ -1,6 +1,21 @@
 # EXP13 — 出走後の中止・非完走リスク（started_but_did_not_finish）
 
-## ★★【2026-09-22 再開・評価完了】Gate 0Bから再開、Gate 0B/0Dともユーザー基準未達
+## ★★★【2026-09-22 最終終了】Gate 0で終了（ユーザー承認・確定）
+
+> **historical_pre_snapshotは存在したが、full-starter再構築で19特徴の非parity
+> が判明し、market-complete母集団のselection 2022・development 2023はいずれも
+> 事前EPV基準を下回ったため、S0〜S5を実装せず終了した。**
+
+**この結論はモデル性能FAILを意味しない**——S0-S5のモデル実装・学習・比較は
+一度も行っていないため、性能についての判定自体が存在しない。終了理由は
+データ品質（19特徴非parity）とサンプルサイズ（EPV不足）の2点のみ。
+
+**次のステップはEXP14 Stage1ではない**。19特徴のtrain/serve/offline parity
+問題を独立したP0監査として実施する（`analysis/mcond/
+p0_dnf_history_parity_audit/`、EXP13・EXP14いずれの継続でもない）。
+詳細は`spec.json`の`final_verdict_20260922_gate0_reopen_closure`参照。
+
+## ★★【2026-09-22 再開・評価完了（経緯として保持）】Gate 0Bから再開、Gate 0B/0Dともユーザー基準未達
 
 ユーザー承認によりGate 0Aを訂正PASSとし、同一実験番号のままGate 0Bから
 再開・評価した。詳細・全数値は`GATE0B_GATE0D_REOPEN_REPORT.md`参照。

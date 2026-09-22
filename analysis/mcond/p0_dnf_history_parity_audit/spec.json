@@ -1,0 +1,43 @@
+{
+  "audit_id": "P0_DNF_HISTORY_PARITY",
+  "title": "19特徴(course_n_prev系6+kako5系13)のtrain/serve/offline parity監査",
+  "not_an_exp": "EXP13でもEXP14でもない独立したP0監査。EXP13はGate0で終了済み(historical_pre_snapshotは存在したが、full-starter再構築で19特徴の非parityが判明し、market-complete母集団のselection2022・development2023はいずれも事前EPV基準を下回ったため、S0〜S5を実装せず終了した)。EXP14 Stage1へは進んでいない",
+  "stage": "semantic_spec_fixed",
+  "created_at": "2026-09-22",
+  "origin": "EXP13 Gate0B再開作業で発見(project_gate0b_feature_dnf_audit_20260922)",
+  "affected_features": [
+    "course_n_prev", "course_win_rate", "course_top3_rate",
+    "jockey_n_prev", "jockey_win_rate", "jockey_top3_rate",
+    "kako5_avg_pos", "kako5_std_pos", "kako5_best_pos",
+    "kako5_avg_agari3f", "kako5_best_agari3f",
+    "kako5_same_td_ratio", "kako5_same_dist_ratio", "kako5_same_place_ratio",
+    "kako5_pos_trend", "kako5_race_count",
+    "kako5_expected_good_count", "kako5_hidden_good_count",
+    "kako5_same_cond_best_pos"
+  ],
+  "semantic_spec_file": "DNF_SEMANTIC_SPEC.md",
+  "semantic_spec_summary": {
+    "course_jockey_denominator": "止(DNF)は出走経験1回として含める。外・消は含めない",
+    "course_jockey_numerator": "既存ロジック(着順==1/着順<=3)は変更不要、着順NaNは自動的に0寄与",
+    "kako5_window_slot": "止は直近1走としてwindow slotへ含める。外・消は含めない",
+    "kako5_dnf_row_values": {"着順": null, "上り3F": null, "TD/距離/場所": "実際の値"},
+    "kako5_downstream_logic": "_compute_features()自体は変更しない。None値フィルタで自動的に正しく振る舞う",
+    "hist_same_cond_place_status": "対象外(値ベースフィルタのため元々無罪、EXP13 Gate0Bで実測済みdiff=0)"
+  },
+  "forbidden": [
+    "モデルのハイパーパラメータ変更", "Optuna再探索", "特徴追加",
+    "本番master上書き", "本番model差し替え", "EXP13再開", "EXP14 Stage1",
+    "2024/2025年追加探索", "ROI評価"
+  ],
+  "planned_sections": {
+    "1_scope_separation": "A:training master / B:offline replay / C:live serve を分離して調査",
+    "2_semantic_spec": "本ファイル+DNF_SEMANTIC_SPEC.md(完了、コミット対象)",
+    "3_real_example_trace": "DNF後再出走馬の実例追跡(芝ダ・競馬場・騎手継続変更を含む)",
+    "4_full_period_impact_audit": "年別: 対象行数・不一致行数・raw score変化・◎変更・順位変更(平均/中央値/95%/99%/最大)",
+    "5_shadow_corrected_master": "既存ファイル非破壊、hash記録、19特徴以外の完全一致検証",
+    "6_model_impact": "current v6×current master / current v6×corrected features / shadow retrained v6×corrected features の3群比較(同一ハイパーパラメータ)",
+    "7_production_fix_branch": "Cの結果次第でtrain/serve同時修正 or trainのみ修正の分岐",
+    "8_exp01_12_impact_classification": "19特徴/finisher-only softmaxを使った実験の影響分類(再実行はしない)",
+    "9_final_report": "docs/research/DNF_HISTORY_FEATURE_PARITY_AUDIT_20260922.md + manifest"
+  }
+}

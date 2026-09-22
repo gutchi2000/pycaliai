@@ -1,7 +1,14 @@
 {
   "exp": "EXP13",
   "title": "出走後の中止・非完走リスク (started_but_did_not_finish)",
-  "stage": "gate0b_reopened_not_passed",
+  "stage": "terminated_at_gate0_20260922_final",
+  "final_verdict_20260922_gate0_reopen_closure": {
+    "outcome": "TERMINATED_AT_GATE0",
+    "conclusion_scope_user_mandated_exact_wording": "historical_pre_snapshotは存在したが、full-starter再構築で19特徴の非parityが判明し、market-complete母集団のselection 2022・development 2023はいずれも事前EPV基準を下回ったため、S0〜S5を実装せず終了した",
+    "not_a_model_performance_fail": "上記結論はモデル性能FAILを意味しない。S0-S5のモデル実装・学習・比較は一度も行っていないため、性能についての判定自体が存在しない。終了理由はデータ品質(19特徴非parity)とサンプルサイズ(EPV不足)の2点のみ",
+    "action": "EXP14 Stage1へは進まない。19特徴のtrain/serve/offline parity問題をP0監査として別途実施する(analysis/mcond/p0_dnf_history_parity_audit/、EXP13/EXP14とは独立)",
+    "reopen_of_this_termination": "P0監査の結果によりcorrected masterでの再学習が正当化される場合、再開はEXP13として行う(新規EXP番号を使わない)か、P0監査自体の結論に従う"
+  },
   "gate0b_reopen_20260922": {
     "reason_reopened": "EXP13はGate 0Aの誤監査により一時停止したが、2011〜2025年のTANPUK時系列とhistorical_pre_snapshotの存在が確認され、2023年のDNF馬にも87.6%のcoverageがあると判明したため、同一実験番号のままGate 0Bから再開した",
     "gate0b_feature_classification": {
