@@ -1,7 +1,10 @@
 {
   "experiment": "EXP15",
   "title": "Race-as-a-Set: race context 固有効果の識別（同一入力・同一期間・同容量対照）",
-  "spec_version": "1.0",
+  "spec_version": "1.1",
+  "amendments": [
+    {"version": "1.1", "date": "2026-09-23", "before_any_training": true, "change": "feature_contract.unique_id_allowlist に kako5_avg_agari3f, trnH_days_ago を追加", "reason": "build_contract 実行で一意識別子ガード(カーディナリティ>base_train行数1%=2,893)が連続値2列で停止。kako5_avg_agari3f=過去5走上がり3F平均(秒, 13.06-54.6), trnH_days_ago=坂路調教からの日数(1-59918, 外れ値あり)で、いずれも馬・レースを一意に指す値ではない集約量。ガードの意図(ID検出)に該当しないため許可リストへ。モデル結果は一切見ていない段階での修正"}
+  ],
   "frozen_at": "2026-09-23",
   "positioning": "完全新規アーキテクチャではない。既存RaceTransformer(2026-03, 交絡付きで劣後)を踏まえ、同一入力・同一期間・同容量no-context対照でrace context固有効果を識別する再設計実験",
   "plan_doc": "MINIMAL_FALSIFICATION_PLAN.md (v2)",
@@ -32,7 +35,7 @@
     "never_included": ["レースID(新)", "レースID(新/馬番無)", "血統登録番号", "馬名", "日付", "着順", "fukusho_flag", "roi_target", "split", "レース名", "発走時刻", "date_dt"],
     "exclude_v6_dead_rule": "v6変換後にbase_trainで非NaN被覆率0%の列 (v6では全行-9999定数=情報ゼロ) を両モデルから除外。実測リストはout/feature_contract.jsonに記録",
     "unique_id_guard": "カーディナリティ > base_train行数の1% の列は allowlist 外なら停止",
-    "unique_id_allowlist": [],
+    "unique_id_allowlist": ["kako5_avg_agari3f", "trnH_days_ago"],
     "representation": {
       "R0": "カテゴリ=base_train fit LabelEncoder整数(unknown->__NaN__コード), 数値=coerce値, 欠損=-9999",
       "NN": "カテゴリ=同一語彙の学習埋め込み dim=min(16,ceil(1.6*K^0.56)), 数値=coerce値→base_train中央値補完+欠損フラグ(base_trainで欠損>0の列)+(x-median)/IQR を[-10,10]にclip"

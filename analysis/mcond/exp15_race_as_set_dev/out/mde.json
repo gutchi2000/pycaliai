@@ -1,0 +1,98 @@
+{
+ "computed_before_training": true,
+ "planned_counts_2023": {
+  "rows": 47273,
+  "races_all": 3456,
+  "races_eval_n>=5": 3456,
+  "races_single_winner": 3453,
+  "races_deadheat_excluded": 3,
+  "meeting_days": 288
+ },
+ "tau": {
+  "A": 0.8454510657080233,
+  "B": 0.8334273380982724
+ },
+ "proxies": {
+  "A": "oof_scores_c1master (train<=2021/ES2022)",
+  "B": "oof_scores_v6params (旧OOF)"
+ },
+ "z": 2.801585,
+ "metrics": {
+  "race_win_logloss": {
+   "r0_proxy_level": 2.0856420723442053,
+   "pair_delta_A_minus_B": 0.003040153717516888,
+   "se_cluster": 0.0027353418551980973,
+   "se_iid": 0.002826617397969546,
+   "design_effect_A": 1.1829483231707598,
+   "rho_empirical_A_B": 0.9835786665002684,
+   "MDE_primary": 0.007663292711395162,
+   "MDE_rho_grid": {
+    "0.9": 0.02051712145773619,
+    "0.95": 0.014507795713193291,
+    "0.98": 0.009175535656423544
+   },
+   "practical_context": 0.0041712841446884105,
+   "practical_replacement": 0.010428210361721027,
+   "context_threshold_min_MDE_practical": 0.0041712841446884105,
+   "replacement_threshold_max_MDE_practical": 0.010428210361721027,
+   "underpowered_vs_practical": true
+  },
+  "race_win_brier": {
+   "r0_proxy_level": 0.8310799364937708,
+   "pair_delta_A_minus_B": 0.001546288751072456,
+   "se_cluster": 0.0009390641242965723,
+   "se_iid": 0.0009536373801252499,
+   "design_effect_A": 1.1495570545584637,
+   "rho_empirical_A_B": 0.9740739792991469,
+   "MDE_primary": 0.0026308679646674126,
+   "MDE_rho_grid": {
+    "0.9": 0.00542921041260383,
+    "0.95": 0.0038390314992407834,
+    "0.98": 0.00242801670934637
+   },
+   "practical_context": 0.0016621598729875415,
+   "practical_replacement": 0.004155399682468854,
+   "context_threshold_min_MDE_practical": 0.0016621598729875415,
+   "replacement_threshold_max_MDE_practical": 0.004155399682468854,
+   "underpowered_vs_practical": true
+  },
+  "ndcg@3": {
+   "r0_proxy_level": 0.5074419302205296,
+   "pair_delta_A_minus_B": 0.0005169553893189844,
+   "se_cluster": 0.0018590274000007936,
+   "se_iid": 0.0020161888674103392,
+   "design_effect_A": 1.269534770184786,
+   "rho_empirical_A_B": 0.9183098495129765,
+   "MDE_primary": 0.005208223278431224,
+   "MDE_rho_grid": {
+    "0.9": 0.007006377935254221,
+    "0.95": 0.004954257349574063,
+    "0.98": 0.0031333474678566127
+   },
+   "practical_context": 0.002,
+   "practical_replacement": null,
+   "context_threshold_min_MDE_practical": 0.002,
+   "replacement_threshold_max_MDE_practical": null,
+   "underpowered_vs_practical": true
+  },
+  "hon_top3": {
+   "r0_proxy_level": 0.5946180555555556,
+   "pair_delta_A_minus_B": -0.004340277777777778,
+   "se_cluster": 0.00469429051740544,
+   "se_iid": 0.004745835561534235,
+   "design_effect_A": 1.1057629251318875,
+   "rho_empirical_A_B": 0.8383055793799282,
+   "MDE_primary": 0.01315145389920532,
+   "MDE_rho_grid": {
+    "0.9": 0.011004670275389304,
+    "0.95": 0.007781476976449813,
+    "0.98": 0.0049214381611483666
+   },
+   "practical_context": 0.005,
+   "practical_replacement": null,
+   "context_threshold_min_MDE_practical": 0.005,
+   "replacement_threshold_max_MDE_practical": null,
+   "underpowered_vs_practical": true
+  }
+ }
+}
