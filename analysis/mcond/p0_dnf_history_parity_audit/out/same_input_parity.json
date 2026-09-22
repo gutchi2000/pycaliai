@@ -1,0 +1,934 @@
+{
+ "course_jockey": [
+  {
+   "scenario": "1_no_dnf",
+   "course_n_prev": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "course_win_rate": {
+    "serve": 0.5,
+    "train_equivalent": 0.5,
+    "match": true
+   },
+   "course_top3_rate": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "jockey_n_prev": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "jockey_win_rate": {
+    "serve": 0.5,
+    "train_equivalent": 0.5,
+    "match": true
+   },
+   "jockey_top3_rate": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   }
+  },
+  {
+   "scenario": "2_one_dnf",
+   "course_n_prev": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "course_win_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "course_top3_rate": {
+    "serve": 0.5,
+    "train_equivalent": 0.5,
+    "match": true
+   },
+   "jockey_n_prev": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "jockey_win_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "jockey_top3_rate": {
+    "serve": 0.5,
+    "train_equivalent": 0.5,
+    "match": true
+   }
+  },
+  {
+   "scenario": "3_multi_dnf",
+   "course_n_prev": {
+    "serve": 3.0,
+    "train_equivalent": 3.0,
+    "match": true
+   },
+   "course_win_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "course_top3_rate": {
+    "serve": 0.3333333333333333,
+    "train_equivalent": 0.3333333333333333,
+    "match": true
+   },
+   "jockey_n_prev": {
+    "serve": 3.0,
+    "train_equivalent": 3.0,
+    "match": true
+   },
+   "jockey_win_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "jockey_top3_rate": {
+    "serve": 0.3333333333333333,
+    "train_equivalent": 0.3333333333333333,
+    "match": true
+   }
+  },
+  {
+   "scenario": "4_jockey_continuity",
+   "course_n_prev": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "course_win_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "course_top3_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "jockey_n_prev": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "jockey_win_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "jockey_top3_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   }
+  },
+  {
+   "scenario": "5_jockey_change",
+   "course_n_prev": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "course_win_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "course_top3_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "jockey_n_prev": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "jockey_win_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "jockey_top3_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   }
+  },
+  {
+   "scenario": "6_same_venue",
+   "course_n_prev": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "course_win_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "course_top3_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "jockey_n_prev": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "jockey_win_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "jockey_top3_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   }
+  },
+  {
+   "scenario": "7_venue_change",
+   "course_n_prev": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "course_win_rate": {
+    "serve": NaN,
+    "train_equivalent": NaN,
+    "match": true
+   },
+   "course_top3_rate": {
+    "serve": NaN,
+    "train_equivalent": NaN,
+    "match": true
+   },
+   "jockey_n_prev": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "jockey_win_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "jockey_top3_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   }
+  },
+  {
+   "scenario": "9_scratch_present_in_ent",
+   "course_n_prev": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "course_win_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "course_top3_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "jockey_n_prev": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "jockey_win_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "jockey_top3_rate": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   }
+  }
+ ],
+ "kako5": [
+  {
+   "scenario": "1_no_dnf",
+   "kako5_avg_pos": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "kako5_std_pos": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_best_pos": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_avg_ninki": {
+    "serve": 3.0,
+    "train_equivalent": 3.0,
+    "match": true
+   },
+   "kako5_pos_vs_ninki": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_avg_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_best_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_same_td_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_dist_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_place_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_pos_trend": {
+    "serve": -2.0,
+    "train_equivalent": -2.0,
+    "match": true
+   },
+   "kako5_race_count": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "kako5_expected_good_count": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "kako5_upset_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_hidden_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_same_cond_best_pos": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   }
+  },
+  {
+   "scenario": "2_one_dnf",
+   "kako5_avg_pos": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "kako5_std_pos": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_best_pos": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "kako5_avg_ninki": {
+    "serve": 3.0,
+    "train_equivalent": 3.0,
+    "match": true
+   },
+   "kako5_pos_vs_ninki": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_avg_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_best_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_same_td_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_dist_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_place_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_pos_trend": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_race_count": {
+    "serve": 1.0,
+    "train_equivalent": 2.0,
+    "match": false
+   },
+   "kako5_expected_good_count": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_upset_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_hidden_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_same_cond_best_pos": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   }
+  },
+  {
+   "scenario": "3_multi_dnf",
+   "kako5_avg_pos": {
+    "serve": 4.0,
+    "train_equivalent": 4.0,
+    "match": true
+   },
+   "kako5_std_pos": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_best_pos": {
+    "serve": 4.0,
+    "train_equivalent": 4.0,
+    "match": true
+   },
+   "kako5_avg_ninki": {
+    "serve": 3.0,
+    "train_equivalent": 3.0,
+    "match": true
+   },
+   "kako5_pos_vs_ninki": {
+    "serve": -1.0,
+    "train_equivalent": -1.0,
+    "match": true
+   },
+   "kako5_avg_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_best_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_same_td_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_dist_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_place_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_pos_trend": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_race_count": {
+    "serve": 1.0,
+    "train_equivalent": 3.0,
+    "match": false
+   },
+   "kako5_expected_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_upset_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_hidden_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_same_cond_best_pos": {
+    "serve": 4.0,
+    "train_equivalent": 4.0,
+    "match": true
+   }
+  },
+  {
+   "scenario": "8_dnf_at_slot1",
+   "kako5_avg_pos": {
+    "serve": 3.5,
+    "train_equivalent": 3.5,
+    "match": true
+   },
+   "kako5_std_pos": {
+    "serve": 1.118033988749895,
+    "train_equivalent": 1.118033988749895,
+    "match": true
+   },
+   "kako5_best_pos": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "kako5_avg_ninki": {
+    "serve": 3.0,
+    "train_equivalent": 3.0,
+    "match": true
+   },
+   "kako5_pos_vs_ninki": {
+    "serve": -0.5,
+    "train_equivalent": -0.5,
+    "match": true
+   },
+   "kako5_avg_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_best_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_same_td_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_dist_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_place_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_pos_trend": {
+    "serve": 1.0000000000000002,
+    "train_equivalent": 1.0000000000000002,
+    "match": true
+   },
+   "kako5_race_count": {
+    "serve": 4.0,
+    "train_equivalent": 5.0,
+    "match": false
+   },
+   "kako5_expected_good_count": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "kako5_upset_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_hidden_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_same_cond_best_pos": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   }
+  },
+  {
+   "scenario": "8_dnf_at_slot3",
+   "kako5_avg_pos": {
+    "serve": 3.0,
+    "train_equivalent": 3.0,
+    "match": true
+   },
+   "kako5_std_pos": {
+    "serve": 1.5811388300841898,
+    "train_equivalent": 1.5811388300841898,
+    "match": true
+   },
+   "kako5_best_pos": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_avg_ninki": {
+    "serve": 3.0,
+    "train_equivalent": 3.0,
+    "match": true
+   },
+   "kako5_pos_vs_ninki": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_avg_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_best_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_same_td_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_dist_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_place_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_pos_trend": {
+    "serve": 1.4,
+    "train_equivalent": 1.4,
+    "match": true
+   },
+   "kako5_race_count": {
+    "serve": 4.0,
+    "train_equivalent": 5.0,
+    "match": false
+   },
+   "kako5_expected_good_count": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "kako5_upset_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_hidden_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_same_cond_best_pos": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   }
+  },
+  {
+   "scenario": "8_dnf_at_slot5",
+   "kako5_avg_pos": {
+    "serve": 2.5,
+    "train_equivalent": 2.5,
+    "match": true
+   },
+   "kako5_std_pos": {
+    "serve": 1.118033988749895,
+    "train_equivalent": 1.118033988749895,
+    "match": true
+   },
+   "kako5_best_pos": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_avg_ninki": {
+    "serve": 3.0,
+    "train_equivalent": 3.0,
+    "match": true
+   },
+   "kako5_pos_vs_ninki": {
+    "serve": 0.5,
+    "train_equivalent": 0.5,
+    "match": true
+   },
+   "kako5_avg_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_best_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_same_td_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_dist_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_place_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_pos_trend": {
+    "serve": 0.9999999999999999,
+    "train_equivalent": 0.9999999999999999,
+    "match": true
+   },
+   "kako5_race_count": {
+    "serve": 4.0,
+    "train_equivalent": 5.0,
+    "match": false
+   },
+   "kako5_expected_good_count": {
+    "serve": 3.0,
+    "train_equivalent": 3.0,
+    "match": true
+   },
+   "kako5_upset_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_hidden_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_same_cond_best_pos": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   }
+  },
+  {
+   "scenario": "9_scratch_history",
+   "kako5_avg_pos": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "kako5_std_pos": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_best_pos": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "kako5_avg_ninki": {
+    "serve": 3.0,
+    "train_equivalent": 3.0,
+    "match": true
+   },
+   "kako5_pos_vs_ninki": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_avg_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_best_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_same_td_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_dist_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_same_place_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_pos_trend": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_race_count": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_expected_good_count": {
+    "serve": 1.0,
+    "train_equivalent": 1.0,
+    "match": true
+   },
+   "kako5_upset_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_hidden_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_same_cond_best_pos": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   }
+  },
+  {
+   "scenario": "10_dnf_different_condition",
+   "kako5_avg_pos": {
+    "serve": 2.5,
+    "train_equivalent": 2.5,
+    "match": true
+   },
+   "kako5_std_pos": {
+    "serve": 0.5,
+    "train_equivalent": 0.5,
+    "match": true
+   },
+   "kako5_best_pos": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "kako5_avg_ninki": {
+    "serve": 3.0,
+    "train_equivalent": 3.0,
+    "match": true
+   },
+   "kako5_pos_vs_ninki": {
+    "serve": 0.5,
+    "train_equivalent": 0.5,
+    "match": true
+   },
+   "kako5_avg_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_best_agari3f": {
+    "serve": 36.0,
+    "train_equivalent": 36.0,
+    "match": true
+   },
+   "kako5_same_td_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 0.6666666666666666,
+    "match": false
+   },
+   "kako5_same_dist_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 0.6666666666666666,
+    "match": false
+   },
+   "kako5_same_place_ratio": {
+    "serve": 1.0,
+    "train_equivalent": 0.6666666666666666,
+    "match": false
+   },
+   "kako5_pos_trend": {
+    "serve": 0.9999999999999994,
+    "train_equivalent": 0.9999999999999994,
+    "match": true
+   },
+   "kako5_race_count": {
+    "serve": 2.0,
+    "train_equivalent": 3.0,
+    "match": false
+   },
+   "kako5_expected_good_count": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   },
+   "kako5_upset_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_hidden_good_count": {
+    "serve": 0.0,
+    "train_equivalent": 0.0,
+    "match": true
+   },
+   "kako5_same_cond_best_pos": {
+    "serve": 2.0,
+    "train_equivalent": 2.0,
+    "match": true
+   }
+  }
+ ]
+}

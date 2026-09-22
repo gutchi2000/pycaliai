@@ -1,5 +1,120 @@
 # DNF History Feature Parity Audit（2026-09-22）
 
+## ★2026-09-22 第2ラウンド追加報告（本節が最新の判断材料、以下は第1ラウンドの記録として保持）
+
+ユーザー指示により、①解釈の訂正、②semantic bugとparity bugの分離(A-E分類)、
+③同一入力によるtrain/serve parity実測、④current v6の契約manifest化、
+⑤legacy-compatible/corrected-vNext二経路の設計、⑥DNF-inclusive baseline
+再計算、⑦corrected-vNext判断基準の明文化、⑧EXP01-12分類の4区分化、を実施した。
+**production master/model変更・Optuna・EXP再実行・EXP14 Stage1・ROI評価は
+一切行っていない。**
+
+### ①解釈の訂正
+- **EXP12**: decisive placebo FAILを維持する。実測改善(+0.00037)がplacebo
+  平均(+0.00045)を下回り97.5%ile(+0.00057)も超えていないため「coin-flip」
+  ではない。ただしreal armとplacebo armが同一の(バイアスを含む)career_band
+  層別変数を使う差分設計のため、系統的バイアスは両腕に対称に乗り相殺され
+  やすく、露出のみを理由に再評価対象へ自動的に含めない。
+- **EXP10**: EXP10は正常完走馬だけを対象にした研究であり、DNFを目的変数で
+  非イベント扱いした研究ではない。「catastrophic downsideと機械的に同じ
+  バグ」という広い主張はせず、「一部履歴特徴(kako5_std_pos/best_pos/
+  avg_pos、B3のkako5_race_count)が影響を受けるため数値再現性に注意」に
+  限定する。
+- **shadow retrain**: 同一ハイパーパラメータ比較の悪化(◎top3 -1.45pt)は
+  そのまま予測性能悪化として記録する。「ハイパーパラメータを再調整すれば
+  公平になる」という断定はしない(未検証の仮説)。この比較は特徴定義変更
+  だけの影響を見る正当なablationである。
+
+### ②19特徴のA-E分類（詳細: `SEMANTIC_VS_PARITY_CLASSIFICATION.md`）
+
+| 特徴群 | 分類 | 根拠 |
+|---|---|---|
+| course_n_prev/win_rate/top3_rate, jockey_n_prev/win_rate/top3_rate（6） | **A**（train=serveだが両方意味的に誤り） | 2013-2025分はserveが`master_v2`を再利用、同一データソース。同一入力を与えるとコードは完全一致(実測) |
+| course/jockey系の2026年分 | **D**（2026経路だけ別定義） | dropna無しの別ソース使用、外/消混入リスクは未計測 |
+| kako5_race_count, kako5_same_td/dist/place_ratio（4） | **B**（実際のserve skew） | 同一の正しい入力でもtrain相当とserveのコードが異なる値を返すことを実測確認 |
+| kako5の残り9特徴（avg_pos等） | **E**（未確認） | コード式は一致するが実際に投入される直近5走の実レース集合が食い違う可能性は未検証 |
+
+**「production bug」と呼ぶのはBと、現在liveへ影響するAのみ**。C該当なし。D・Eは未確定。
+
+### ③current live serveとの実parity（詳細: `train_serve_same_input_parity.py`/`out/same_input_parity.json`）
+
+同一入力(9シナリオ×course/jockey、8シナリオ×kako5)を実際の
+`serve_history_feats.compute_row_feats()`・`parse_kako5.build_from_kako5()`
+（実コードをそのままimport、複製ではない）へ与えて実測: course/jockey系は
+**全シナリオ完全一致**。kako5系は`kako5_race_count`/`same_td/dist/place_ratio`
+の4特徴のみ、DNFが異種条件(TD/距離/場所が現在レースと異なる)で存在する
+シナリオで不一致(train相当0.667 vs serve 1.0等)、残り9特徴は一致。
+
+### ④current v6契約manifest（`out/v6_contract_manifest.json`）
+
+training master sha256・feature schema hash(120特徴)・encoder hash・
+model pkl sha256・num_trees(515)・optuna_best_params・alphaを記録。
+**現行v6へcorrected featureを直接入力しない**ことを明記。
+
+### ⑤legacy-compatible / corrected-vNext 二経路（詳細: `MIGRATION_PATHS_AND_VNEXT_DECISION.md`）
+
+Legacy-compatible経路の対象は**Bの4特徴のみ**（course/jockey6特徴・kako5残り
+9特徴には現行v6が使い続ける間は手を付けない）。corrected-vNextは
+corrected training master・corrected offline replay・corrected serve
+builder・corrected modelを一組としてv6と混在させずに管理する。
+
+### ⑥DNF-inclusive v6 baseline（`dnf_inclusive_baseline.py`/`out/dnf_inclusive_baseline.json`）
+
+現行v6のモデル・ハイパーパラメータは一切変更せず、全starterへ適用
+(DNF=softmax分母へ含め勝ち/top3では失敗扱い、外・消は分母から除外)した
+場合の指標を測定した(race単位bootstrap、N=1000、meeting-day単位ではない)。
+
+| 年(split) | finisher-only ◎top3 | DNF-inclusive ◎top3 | Δ |
+|---|---:|---:|---:|
+| 2023(valid) | 60.71% | 60.53% | -0.17pt |
+| 2024(test) | 62.80% | 62.57% | -0.23pt |
+| 2025(test) | 61.33% | 61.13% | -0.20pt |
+
+**「◎top3約62%」はDNF-inclusiveでもほぼ変わらない（-0.2pt程度）**——全体
+平均では希釈されるが、DNFが実在したレースだけに絞ると効果は明確に大きい:
+
+| 母集団(全期間2013-2025、n=2,541レース) | ◎top3 | ◎win | logloss | Brier |
+|---|---:|---:|---:|---:|
+| DNF発生レースをfinisher-only評価(旧手法) | 75.01% | 43.49% | 0.2240 | 0.0632 |
+| 同レースをDNF-inclusive評価(訂正後) | **71.35%**(-3.66pt) | 41.44%(-2.05pt) | 0.2105 | 0.0587 |
+| DNF発生なしレース(参考) | 74.31% | 42.83% | 0.2084 | 0.0583 |
+
+**旧来のfinisher-only評価は、DNFが発生したレースに限ると◎top3率を約3.7pt
+過大評価していた**（DNF発生レースは非発生レースよりむしろ高く見えていたが、
+訂正後は非発生レースを下回る、より妥当な値になる）。全体集計(全レースの
+94.3%はDNF非発生のため希釈)では -0.20pt程度の縮小に留まる。
+
+### ⑦corrected-vNext判断基準（詳細: `MIGRATION_PATHS_AND_VNEXT_DECISION.md`§7）
+
+同一ハイパーパラメータ・同一seed・同一学習期間・同一評価期間での比較結果
+(◎top3悪化)を正式な一次判定として記録した。この結果が悪いことを理由に、
+意味的に正しいというだけでは production modelを差し替えない。
+
+### ⑧EXP01-12の4区分再分類（詳細: `EXP01_12_IMPACT_CLASSIFICATION.md`冒頭節）
+
+unaffected=1(EXP11) / exposed but decisive Gate independent=7
+(EXP01,05,06,07,08,09,**12**) / numerical metrics may shift=2(EXP02,**10**) /
+**core conclusion potentially affected=2(EXP03,04)のみ**。実験は再実行していない。
+
+### 推奨/非推奨（現時点）
+
+- **legacy-compatible修正の要否**: Bの4特徴(kako5_race_count・same_td/dist/
+  place_ratio)について、serve側`build_from_kako5()`のみの限定修正を**検討
+  価値あり**と判定する（実データでの発生規模定量化が先決、本監査ではコード
+  レベルの相違を確認したのみで実データ規模は未測定）。course/jockey6特徴・
+  kako5残り9特徴には**現行v6が稼働する間は手を付けない**。
+- **corrected-vNextを作る合理性**: 意味定義としては正しく、DNF-inclusive
+  baselineも構築できたが、同一ハイパーパラメータでの実測は性能悪化であり、
+  §7の5条件はまだ揃っていない。**今すぐcorrected-vNextへ移行する合理性は
+  不十分**、Bの実発生規模定量化とOptuna抜きの一次判定の精査を先に行うべき。
+- **production変更**: **非推奨（現時点）**。①Bの実データ規模が未測定、
+  ②同一HP比較が悪化、③DNF-inclusive baselineの効果は全体希釈で小さい
+  (-0.2pt)、の3点から、現時点でのcurrent v6変更・切替は正当化されない。
+
+---
+
+## 第1ラウンド記録（2026-09-22、以下は当初のGate0B由来監査。上記が最新の解釈）
+
 **状態**: READ-ONLY監査。本番`data/master_v2_20130105-20251228.csv`・
 `models/unified_rank_v6.pkl`・本番pipeline(`build_dataset.py`/`parse_kako5.py`/
 `build_master_v2.py`/`serve_history_feats.py`/`build_horse_history.py`)は
@@ -231,21 +346,19 @@ development)のみ、test(2024-2025年)は開封していない**。
 | B) 現行v6(再学習なし) × 修正済み特徴 | 54.684 (Δ-0.015) | 60.59% (Δ-0.09pt) | 0.5924 (Δ-0.0001) | 0.01194 (Δ-0.00013) |
 | C) shadow再学習v6(同一HP) × 修正済み特徴 | 54.324 (Δ-0.375) | 59.23% (Δ-1.45pt) | 0.5905 (Δ-0.0020) | 0.01100 (Δ-0.00106) |
 
-**解釈**:
+**解釈（2026-09-22訂正）**:
 - B（再学習なし、特徴だけ差し替え）はAとほぼ同一——影響行が全体の0.98%に
   留まるため、モデル自体を変えない限り集計指標への影響は小さい。
-  これは想定通り（既存モデルは既に「バグを含んだ」特徴分布で学習されて
-  いるため、少数行の特徴修正だけでは大局的な指標は動かない）。
 - C（同一ハイパーパラメータで再学習）は◎top3が-1.45pt、NDCG@5が-0.0020と
   明確に悪化する一方、ECEは0.00106改善（キャリブレーションは良化）。
-  **これは想定内の限界**: 現行のOptunaハイパーパラメータ（alpha=0.031、
-  num_leaves=59等）は「バグを含む特徴分布」に対して最適化されたものであり、
-  データだけを修正してハイパーパラメータを固定したままでは、真に公平な
-  「修正後データでの最適モデル」比較にはならない。ユーザー指示通りOptuna
-  再探索は行っていないため、この結果は**「データ定義修正の効果を
-  ハイパーパラメータ再探索なしで覗いた」参考値**であり、修正後データで
-  Optunaを再実行すれば結果は変わりうる（本監査ではその再探索は意図的に
-  実施していない）。
+  **この結果は予測性能の悪化として、そのまま記録する**。
+  同一ハイパーパラメータ・同一seed・同一学習期間・同一評価期間で
+  corrected definitionのみを変更するこの比較は、特徴定義変更**だけ**の
+  影響を見る正当なablationであり、「ハイパーパラメータを再調整すれば
+  公平になるはずだ」という断定はしない——それは検証していない仮説である。
+  Optuna再探索は別のモデル探索そのものであり、ユーザー指示によりまだ
+  実施していない。予測悪化がデータ定義移行直後の一時的な問題である
+  可能性はあるが、それを裏付ける検証は現時点で行っていない。
 - 目的は新モデル探索ではなくデータ定義修正の影響確認であり、上記の
   数値はその目的に沿って解釈すること。
 
