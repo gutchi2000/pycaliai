@@ -280,6 +280,8 @@ def dump(obj, name: str) -> Path:
     p = OUT / name
 
     def conv(o):
+        if isinstance(o, np.bool_):
+            return bool(o)
         if isinstance(o, (np.integer,)):
             return int(o)
         if isinstance(o, (np.floating,)):

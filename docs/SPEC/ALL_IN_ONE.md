@@ -2521,6 +2521,7 @@ ROI 回収ゼロが確定していたにもかかわらず、本書がそれを�
 | ルート | 死因 |
 |---|---|
 | Transformer / Set Transformer | ~~汎化ゼロ。gain 4.8% 使うのに ΔAUC −0.004~~ **[ERRATUM 2026-09-23]** 旧記述の数値は M1 結合 GBM（`exp_havoc_m1.py`）のもので Transformer の結果ではない。旧 RaceTransformer は実施済みで単独成績は低い（◎top3 54.36% vs v6 62.03%）が、旧特徴 48 本・旧 master・複勝 AUC 選択の交絡があり**未決着**。同一入力・同容量 no-context 対照による context 固有効果は未検証（EXP15）。DeepSets・Sinkhorn 系・マルチタスクは未実装 |
+| Race-as-a-Set DeepSets（EXP15, 2026-09-23） | **未検出（UNDERPOWERED 寄り）**: 同一入力111列・同容量の no-context 双子対照、2016-21 学習 / 2022 選択 / 2023 fixed-model。ΔLL −0.0073（CI 上限 −0.00004、5/5 seed）だが ΔBrier −0.0009 は CI が 0 をまたぎ、事前登録 Context Gate FAIL → R2 へ進まず終了。「現在の特徴、事前固定したモデル容量、2023 development、および本実験の検出力では、事前基準を超えるrace-context増分を検出できなかった」。NN 基準自体が R0-clean に ΔLL +0.068 劣後。`analysis/mcond/exp15_race_as_set_dev/REPORT.md` |
 | Stacking meta | valid Brier 改善 ≤0.001、Isotonic 出力が常に >0.50 で 100% フォールバック（2026-03-28 廃止） |
 | MoE 距離別 expert | `models/expert_*_rejected.pkl` の命名通り不採用 |
 | custom profit loss | ログで棄却 |

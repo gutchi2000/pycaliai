@@ -24,7 +24,7 @@ SPEC_NAME = {"ll": "race_win_logloss", "brier": "race_win_brier", "ndcg3": "ndcg
 
 
 def load_scores(df, model, seed):
-    z = np.load(SCORES / f"{model}_s{seed}.npz")
+    z = np.load(SCORES / f"{model}_s{seed}.npz", allow_pickle=True)
     key = (df["rid16"] + "_" + df["ban"].astype(str)).to_numpy()
     assert np.array_equal(key[z["rows"]], z["key"]), f"{model} s{seed} 行対応不一致"
     s = np.full(len(df), np.nan)
