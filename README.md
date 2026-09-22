@@ -12,10 +12,41 @@ short_description: AI 競馬予想 (NiceGUI 版)
 
 # 🏇 PyCaLiAI
 
-LightGBM **v6** LambdaRank モデル (`unified_rank_v6.pkl`) で JRA 中央競馬の
-印付け (◎〇▲△△) と Plackett-Luce 確率を算出し、買い目は完全トップダウン
-エンジン (`compute_bets.py`, `CB_ENGINE=topdown`) が生成、Cowork (Claude) は
-narrative 論評を担当する個人運用システム。
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-3776AB.svg)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/tests-pytest-0A9EDC.svg)](tests)
+
+PyCaLiAI は、JRA中央競馬を題材にした**時系列リーク耐性のあるランキング・確率校正・
+意思決定パイプライン**です。LightGBM LambdaRank、Plackett–Luce確率、時系列分割、
+forward shadow、training/serving parity監査、fail-closed検証を、継続運用できる一つの
+システムとして公開しています。
+
+単なる予想デモではなく、「予測時点で本当に利用可能だった情報だけで評価する」こと、
+漏洩した実験を不採用として記録すること、オフライン指標から本番判断までの境界を
+明示することを重視しています。
+
+> [!IMPORTANT]
+> MITライセンスの対象は、PyCaLiAI独自のソースコードとドキュメントです。
+> JRA-VAN、TARGET frontier JV、JRA、netkeiba等に由来するデータの権利は含みません。
+> 詳細は [NOTICE.md](NOTICE.md) と
+> [オープンソース範囲](docs/OPEN_SOURCE_SCOPE.md) を参照してください。
+
+## 主な特徴
+
+- **Leak-aware evaluation** — as-of / OOFを前提とし、目的変数リークや時系列混入を監査
+- **Calibrated ranking** — LambdaRankの順位スコアをPlackett–Luce確率と校正器へ接続
+- **Forward-first validation** — retrospective、shadow、live-forwardの証拠を区別
+- **Fail-closed operations** — ガード検証不能時は未検証の出力を公開しない
+- **Research ledger** — 不採用モデルや反証結果も台帳へ残し、再採用事故を防止
+- **Public presentation layer** — 生成済みの安全な出力を静的サイトで可視化
+
+## 現在の状態
+
+- 主開発ブランチ: `master`
+- Python: 3.11
+- 本番モデル系統: unified rank / calibrated Plackett–Luce stack
+- 保守形態: primary maintainerによる継続運用
+- 公開サイト: https://pycaliai.com
 
 ## 表示レイヤー（3系統）
 
@@ -75,6 +106,17 @@ python nicegui_app.py
 
 ブラウザで `http://localhost:8080` を開く。
 
+コアのテストは次で実行します。
+
+```powershell
+python -m pip install -r requirements.txt
+python -m pytest
+```
+
+フルパイプラインには別途ライセンスされたデータやWindows固有の連携が必要です。
+公開データを含む完全再現パッケージではありません。再現性の範囲と今後の分離方針は
+[docs/OPEN_SOURCE_SCOPE.md](docs/OPEN_SOURCE_SCOPE.md) に記載しています。
+
 ## 主要データソース
 
 - `data/weekly/{YYYYMMDD}.csv` — 週次出走表 (TARGET)
@@ -85,8 +127,22 @@ python nicegui_app.py
 
 ## ドキュメント
 
-- 全体像・引き継ぎ: `CLAUDE.md`（最重要）
+- OSSの範囲・再現性: `docs/OPEN_SOURCE_SCOPE.md`
+- コントリビューション: `CONTRIBUTING.md`
+- セキュリティ報告: `SECURITY.md`
+- 全体像・引き継ぎ: `AGENTS.md`
 - 週次フロー詳細: `WORKFLOW.md`
 - 買い目エンジン仕様: `docs/compute_bets_spec.md`
 - bundle スキーマ: `docs/marks_schema.md`
 - 実験スクリプト群: `lab/README.md`（root から `python -m lab.<theme>.<name>` で実行）
+
+## Contributing
+
+バグ報告、ドキュメント改善、合成fixture、リーク検査、校正・評価手法の改善を歓迎します。
+第三者の生データや資格情報はissue・PRへ添付しないでください。詳しくは
+[CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+
+## License
+
+独自のソースコードとドキュメントは [MIT License](LICENSE) で公開します。
+第三者データ・商標・サービスに関する除外事項は [NOTICE.md](NOTICE.md) に記載しています。

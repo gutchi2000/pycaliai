@@ -1,0 +1,32 @@
+name: Research proposal
+description: Propose a leak-safe experiment or evaluation improvement
+title: "[Research]: "
+labels: ["research"]
+body:
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Falsifiable hypothesis
+    validations:
+      required: true
+  - type: textarea
+    id: availability
+    attributes:
+      label: Prediction-time availability
+      description: Explain exactly when every proposed feature becomes available.
+    validations:
+      required: true
+  - type: textarea
+    id: split
+    attributes:
+      label: Evaluation design
+      description: State the chronological split, baseline, metrics, and rejection gate.
+    validations:
+      required: true
+  - type: textarea
+    id: provenance
+    attributes:
+      label: Data provenance and rights
+      description: Do not attach third-party raw data.
+    validations:
+      required: true
