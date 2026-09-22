@@ -233,14 +233,20 @@ def bet_id_for(ticket: dict) -> str:
     return umaren_bet_id(sel) if ticket.get("kind") == "umaren" else wide_bet_id(sel)
 
 
-def aite_switch_tickets(race: dict, market: dict) -> tuple[list[dict], str]:
+def aite_switch_tickets(race: dict, market: dict, cfg: dict | None = None
+                        ) -> tuple[list[dict], str]:
     """◎オッズ×相手オッズ(2026-09-05 実測)で券種を切り替える。
 
     相手 = model 上位馬連ペア(all_umaren argmax)のうち ◎ でない方。107R の
     後ろ向き検証 (analysis/aite_odds_switch.py 系の場当たり検証を本配線用に再実装)
     では相手オッズ帯が支配的で、◎オッズは「相手が現実的な帯での両方乗せ」補正にしか
     効かなかった。3 分岐とも判定できない場合は fail-closed で見送る。
+
+    cfg["aite_force_both"] = True の場合、オッズ帯による3分岐を無視し、
+    hard gate 通過・オッズ取得済みの全レースで常に 馬連本命1点+ワイド上位2点を
+    セットで買う (2026-09-22 大会最終日、選別を捨てて出走機会を最大化する設定)。
     """
+    force_both = bool((cfg or {}).get("aite_force_both"))
     import numpy as np
     import pl_probs as PL
     from compute_bets import pl_pair_probs
@@ -295,6 +301,9 @@ def aite_switch_tickets(race: dict, market: dict) -> tuple[list[dict], str]:
         uma_ticket_t["odds"] = float(market_umaren_odds)
     uma_ticket = [uma_ticket_t]
 
+    if force_both:
+        return (wide_tickets + uma_ticket,
+                f"aite_switch:両方[force](◎{hon_odds:.1f}倍/相手{aite_odds:.1f}倍)")
     if aite_odds >= AITE_ODDS_LONGSHOT:
         return wide_tickets, f"aite_switch:ワイド(相手{aite_odds:.1f}倍)"
     if hon_odds < HON_ODDS_CHALK:
@@ -478,7 +487,7 @@ def build_payload(race: dict, market: dict, shadow: dict, cfg: dict
 def build_payload_aite_switch(race: dict, market: dict, cfg: dict
                               ) -> tuple[dict | None, str, list[dict]]:
     """(bet_data 要素, 採用アーム/見送り理由, ticket 明細) を返す。arm="aite_switch" 用。"""
-    tickets, why = aite_switch_tickets(race, market)
+    tickets, why = aite_switch_tickets(race, market, cfg)
     return assemble_payload(race, market, tickets, why, cfg)
 
 
@@ -543,6 +552,11 @@ def load_bundle_race(date_str: str, rid: str) -> dict:
 def submit(payload: dict, cfg: dict, notify=None) -> dict:
     """login → POST → (1分待機) → check → logout。戻り値は台帳用の結果 dict。"""
     import netkeiba_api as api
+    # --- P0 hard gate (層5/5): 実送信の直前。上流で除外済みでも省略しない。
+    from race_eligibility import assert_bettable
+    _rid = rid16(payload.get("race_id") or payload.get("raceId") or "")
+    assert_bettable(_rid, payload.get("bet_data") or payload.get("bets"),
+                    layer="masters_vote.submit")
 
     result: dict = {"sent_at": datetime.now().isoformat(timespec="seconds"),
                     "verified": False}
@@ -637,6 +651,19 @@ def vote_race(date_str: str, rid: str, *, post_override: str | None = None,
     rid = rid16(rid)
     label = rid
     print(f"\n[{datetime.now():%H:%M:%S}] ▶ 大会投票 {rid} (date={date_str}, arm={cfg.get('arm')})")
+
+    # --- P0 hard gate (層5/5, 早期): 障害レースは投票経路に入れない ---
+    from race_eligibility import evaluate_race, log_exclusions
+    _el = evaluate_race(rid)
+    if not _el["bet_eligible"]:
+        log_exclusions([_el], layer="masters_vote")
+        save_ledger(date_str, {"race_id": rid, "label": label, "voted": False,
+                               "reason": "障害競走のため対象外 (P0 hard gate)",
+                               "arm": None,
+                               "at": datetime.now().isoformat(timespec="seconds")})
+        if notify:
+            notify(f"⚠ 大会投票 {rid}: 障害競走のため見送り (P0 hard gate)")
+        return 0
 
     post = post_datetime(date_str, rid, post_override)
     deadline = post - timedelta(minutes=3, seconds=int(cfg["submit_safety_sec"]))

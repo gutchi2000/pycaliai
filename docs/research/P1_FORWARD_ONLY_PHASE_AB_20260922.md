@@ -343,14 +343,14 @@ coverage 不足を明示したまま作る。
 
 ---
 
-## 8. ユーザー判断が要る点
+## 8. ユーザー判断 → **3 点とも確定・実装済み（2026-09-22）**
 
-1. **§0 の扱い** — 障害レースが本番 bundle に入る日がある。
-   買い目は付いていないが、コードレベルのゲートは無い。
-   `compute_bets.py` / `validate_cowork_bets.py` に
-   「`track_code` 51-59 を除外」する hard gate を入れるかどうか
-   （**これは production 変更なので、指示があるまで着手しない**）。
-2. **`PyCaLiAI_JumpHistory` タスクの登録可否**と実行時刻
-   （案: 毎日 22:30、bunseki が無い日は即終了）。
-3. bunseki のエクスポート運用 — 現在は手動。
-   forward collection を安定させるには毎開催日の出力が要る。
+1. **障害除外 hard gate = 実装した（P0）**。5 層すべてに独立したゲートを入れ、
+   既知 3 件の回帰テストと平地 positive control を固定した。
+   → `docs/research/JUMP_RACE_P0_GATE_20260922.md`
+2. **`PyCaLiAI_JumpHistory` = 登録済み**（毎日 22:30）。
+   「bunseki が無ければ常に exit 0」は**廃止**し、開催日判定に基づく
+   exit code 体系へ変更した。
+3. **bunseki 手動エクスポート = 当面維持 + 監視**。README へ開催日の
+   必須作業として明記し、取り込み監査記録を
+   `data/history_only/jump/intake_ledger.jsonl` へ残すようにした。

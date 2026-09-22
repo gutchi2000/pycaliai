@@ -49,6 +49,7 @@ import sys
 from pathlib import Path
 
 from production_policy import hard_skip_reasons
+from race_eligibility import evaluate_race, log_exclusions
 
 BASE = Path(__file__).resolve().parent
 INPUT_DIR = BASE / "reports" / "cowork_input"
@@ -205,8 +206,30 @@ def main() -> int:
     unverified_races: list[dict] = []  # bundle 不在なのに bets がある race (fail-closed)
     content_violations: list[dict] = []  # 馬番不在/不正券種/金額異常/重複 (見送り条件とは別軸)
 
+    jump_violations: list[dict] = []  # 障害レースに買い目 (P0 hard gate)
+
     for race in bet_races:
         rid = str(race.get("race_id"))
+        # --- P0 hard gate (層4/5): 障害レースに買い目があれば必ず違反にする。
+        #     bundle に無くても (=上流で除外済みでも) 独立に検査する。
+        _el = evaluate_race(rid)
+        if not _el["bet_eligible"] and race.get("bets"):
+            jump_violations.append({
+                "race_id": _el["race_id"], "label": race.get("race_label", ""),
+                "reason": _el["reason"], "raw_fields": _el["raw_fields"],
+                "n_bets": len(race.get("bets") or []),
+            })
+            violations.append({
+                "race_id": rid,
+                "label": race.get("race_label", ""),
+                "reasons": ["障害競走 (P0 hard gate)"],
+                "amount": race_bet_total(race),
+                "n_bets": len(race.get("bets", [])),
+                "_race": race,
+            })
+            if args.apply:
+                race["bets"] = []
+            continue
         brace = bundle.get(rid)
         if brace is None:
             missing_bundle.append(rid)
@@ -263,6 +286,13 @@ def main() -> int:
     print(f"  警告(見送り→買える): {len(under_skips)}")
     if missing_bundle:
         print(f"  bundle 不在 race  : {len(missing_bundle)} {missing_bundle}")
+    if jump_violations:
+        print(f"  ★障害レース買い   : {len(jump_violations)} (P0 hard gate 違反)")
+        for jv in jump_violations:
+            print(f"      {jv['race_id']} {jv['label']} bets={jv['n_bets']} "
+                  f"reason={jv['reason']}")
+        log_exclusions([{"race_id": jv["race_id"]} for jv in jump_violations],
+                       layer="validate_cowork_bets")
     if unverified_races:
         print(f"  ★未検証買い race  : {len(unverified_races)} (bundle 不在のため強制見送り対象)")
     print("-" * 64)

@@ -72,6 +72,30 @@ forward shadow、training/serving parity監査、fail-closed検証を、継続�
 - 当日は T-10 自動ライン（タスクスケジューラ `PyCaLiAI_T10` → `t10.ps1`）が
   発走10分前に JV-Link オッズ取得 → `compute_bets.py` → 検証 → 買い目表示。投票は人間が IPAT で行う
 
+#### ★開催日の必須作業: 「出走馬分析」のエクスポート
+
+**開催日には必ず TARGET の「出走馬分析」をエクスポートし `data/_inbox/` へ置くこと。**
+`place_weekly.py` が `data/bunseki/{日付}.csv` へ振り分ける。
+
+これは任意ではなく**必須**。理由は 2 つ:
+
+1. **障害レース除外の唯一の authoritative なソース**。`data/weekly` の障害包含は
+   日によって不安定で（8 日中 4 日で混入、2026-09-22 実測）、実際に 3 レースが
+   本番 bundle へ入り v6 に採点・印付けされていた。`トラックコード(JV)` を持つのは
+   bunseki だけで、これが無いと障害判定が `unknown` に落ちる。
+2. 障害レース履歴の forward-only 収集（`PyCaLiAI_JumpHistory`、毎日 22:30）の入力。
+
+**未エクスポートのまま 22:30 を迎えると、collector が開催日を検知して
+`MISSING_BUNSEKI_EXPORT`（exit 3）で失敗し `logs/jump_history_error.log` に
+記録される。** 翌朝そのログを確認し、エクスポートし直すこと。
+
+取り込みの監査記録は `data/history_only/jump/intake_ledger.jsonl` に
+append-only で残る（export 実施時刻 / source hash / 対象日 / race 数 /
+障害 race 数 / horse-row 数 / operator=manual / placed_at /
+collector 処理時刻）。
+
+> TARGET GUI の自動操作は導入していない。自動化は別タスク。
+
 ### 週次フロー外の手動コマンド
 
 ```powershell

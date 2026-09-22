@@ -59,6 +59,7 @@ from predict_weekly import parse_csv
 import backtest_pl_ev as be
 from backtest_pl_ev import COL_RID, COL_BAN
 from export_marks_json import export_race
+from race_eligibility import evaluate_race
 
 
 def build_tansho_idx_from_weekly(df: pd.DataFrame) -> dict:
@@ -181,11 +182,13 @@ def build_odds_from_od_csv(date_str: str):
     return tansho_idx, fuku_idx, umaren_idx
 
 
-# 開催日単位で正当に定数化しうるレース属性 (2026-08-07)。
+# 開催日単位で正当に定数化しうるレース属性 (2026-08-07、2026-09-22に開催/場所追加)。
 # 例: 全35R が 良(暫定)/晴(暫定) の快晴開催では 馬場状態/天気 が 1 値に潰れるが、
 # これはデータ死ではなく実態。定数=0.0 ルールを当てると canary が偽陽性で push を止める。
 # (baseline は多条件週の中央値で 100% なので閾値側では救えない)
-CONST_OK_COLS = {"馬場状態", "天気"}
+# 2026-09-22: 祝日開催などで1会場のみの週次CSV (例: 9/22中山単独) では 開催/場所 も
+# 全行同一値になるのが正常。同じ定数誤検知で品質ゲートが誤って止まっていた。
+CONST_OK_COLS = {"馬場状態", "天気", "開催", "場所"}
 
 
 def feature_coverage(s: pd.Series, allow_constant: bool = False) -> float:
@@ -420,8 +423,12 @@ def main() -> int:
         if _col not in df.columns or _col not in encs:
             continue
         _classes = set(encs[_col].classes_)
-        _s = df[_col].astype(str)
-        _nonnull = _s[~_s.isin(["nan", "__NaN__", ""])]
+        _raw = df[_col]
+        _s = _raw.astype(str)
+        # pandas 3 の string dtype では実欠損(<NA>)が .isin(["nan",...]) の
+        # 文字列一致に掛からず非欠損扱いされてしまう (2026-09-22発覚:
+        # 芝(内・外)が全行NaNの週に unknown_rate=100%誤検知)。isna() を必ず併用する。
+        _nonnull = _s[_raw.notna() & ~_s.isin(["nan", "__NaN__", ""])]
         if len(_nonnull) == 0:
             continue
         _unknown_vals = _nonnull[~_nonnull.isin(_classes)]
@@ -562,7 +569,24 @@ def main() -> int:
     n_done = 0
     n_skip = 0
     saved_paths: list[Path] = []
+    n_jump_excluded = 0
+    jump_excluded_rids: list[str] = []
     for rid, g in df.groupby(COL_RID, sort=False):
+        # --- P0 hard gate (層1/5): 障害レースは bundle へ入れない ---
+        # data/weekly の障害包含は日によって不安定で、実際に 3 レースが
+        # bundle へ入り v6 に採点されていた (2026-09-22 実測)。
+        _tc = None
+        if "トラックコード(JV)" in g.columns:
+            _tc = g["トラックコード(JV)"].iloc[0]
+        _el = evaluate_race(rid, track_code=_tc)
+        if not _el["prediction_eligible"]:
+            n_jump_excluded += 1
+            jump_excluded_rids.append(_el["race_id"])
+            logger.warning("  除外 rid=%s: %s (track_code=%s, 平障=%s)",
+                           _el["race_id"], _el["reason"],
+                           _el["raw_fields"].get("track_code"),
+                           _el["raw_fields"].get("hira_shogai"))
+            continue
         if len(g) < 5:
             n_skip += 1
             continue

@@ -379,6 +379,15 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     field = _num(rm.get("field_size")) or len(horses)
     rid = str(race.get("race_id") or rm.get("race_id") or "")
     label = race_label(rid, rm)
+    # --- P0 hard gate (層3/5): 障害レースは常に空の買い目を返す ---
+    from race_eligibility import evaluate_race, log_exclusions
+    _el = evaluate_race(rid)
+    if not _el["bet_eligible"]:
+        log_exclusions([_el], layer="compute_bets")
+        return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                "race_reason": "障害競走のため対象外 (P0 hard gate)。",
+                "excluded_reason": _el["reason"],
+                "is_jump": True, "bets": []}
     budget = int(budget) // 100 * 100
     if budget < MIN_BET:
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",

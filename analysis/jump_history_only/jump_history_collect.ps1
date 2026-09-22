@@ -55,14 +55,13 @@ function Write-Log($msg) {
 
 Write-Log "=== jump history collector start (Date=$Date All=$All Dry=$Dry) ==="
 
-# 収集対象日に bunseki が無ければ「何もしない正常終了」
-if (-not $All) {
-    $src = "data\bunseki\$Date.csv"
-    if (-not (Test-Path $src)) {
-        Write-Log "bunseki なし ($src) -> skip (正常終了)"
-        exit 0
-    }
-}
+# 開催日判定と bunseki 有無の扱いは collector 側 (Python) が行う。
+#   非開催日 & bunseki なし          -> exit 0
+#   開催日   & bunseki なし          -> exit 3 (MISSING_BUNSEKI_EXPORT)
+#   障害があるはずなのに raw card 0  -> exit 4 (JUMP_RACE_MISSING)
+#   venue coverage 異常              -> exit 5 (COVERAGE_ANOMALY)
+#   キー衝突                         -> exit 6 (COLLISION)
+# ここで「bunseki が無ければ常に exit 0」としてはいけない (欠落を見逃すため)。
 
 $argsList = @('-m', 'analysis.jump_history_only.jump_history_collector')
 if ($All) { $argsList += '--all' } else { $argsList += @('--date', $Date) }
@@ -74,19 +73,29 @@ $code = $LASTEXITCODE
 $out | ForEach-Object { Write-Log "  $_" }
 
 if ($code -ne 0) {
-    Write-Log "!! collector 失敗 (exit=$code)。append-only のため部分書込は発生しない。"
-    Write-Log "!! CollisionError の場合は同一キーで内容が変化している。"
-    Write-Log "!! 原本 bunseki/kekka を確認し、意図的な差し替えなら手動で判断すること。"
+    $meaning = switch ($code) {
+        3 { "MISSING_BUNSEKI_EXPORT — 開催日なのに bunseki が無い。TARGET『出走馬分析』を export し data\_inbox へ置いて place_weekly.py を走らせること" }
+        4 { "JUMP_RACE_MISSING — 他ソースが障害レースを示すのに raw card が 0 件" }
+        5 { "COVERAGE_ANOMALY — venue ごとの race/horse 数が異常" }
+        6 { "COLLISION — 同一キーで内容が変化。append-only のため全体停止 (部分書込なし)" }
+        default { "collector 失敗" }
+    }
+    Write-Log "!! exit=$code : $meaning"
+    Add-Content -Path (Join-Path $logDir "jump_history_error.log") -Encoding utf8 `
+        -Value ("[{0}] date={1} exit={2} {3}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $logDate, $code, $meaning)
     exit $code
 }
 
 # 収集後に hard invariant テストを必ず回す (FAIL なら異常終了)
 Write-Log "hard invariant test 実行"
-$t = & $py -m pytest 'analysis/jump_history_only/test_jump_history_invariants.py' -q 2>&1
+$t = & $py -m pytest 'analysis/jump_history_only/test_jump_history_invariants.py' `
+         'tests/test_jump_race_p0_gate.py' -q 2>&1
 $tcode = $LASTEXITCODE
 $t | Select-Object -Last 5 | ForEach-Object { Write-Log "  $_" }
 if ($tcode -ne 0) {
-    Write-Log "!! hard invariant FAIL -> 収集物を信用しない。特徴接続は絶対にしない。"
+    Write-Log "!! hard invariant / P0 gate FAIL -> 収集物を信用しない。特徴接続は絶対にしない。"
+    Add-Content -Path (Join-Path $logDir "jump_history_error.log") -Encoding utf8 `
+        -Value ("[{0}] date={1} TEST_FAIL exit={2}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $logDate, $tcode)
     exit $tcode
 }
 

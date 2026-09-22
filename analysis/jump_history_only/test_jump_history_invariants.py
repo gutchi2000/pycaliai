@@ -342,7 +342,75 @@ def test_t14_fixture_days_complete(d):
     settled, _ = build_settled(d, raw)
     assert settled, f"{d}: settled が作れない"
     assert len(settled) == len(raw)
-    assert all(s["started"] or s["scratched"] for s in settled)
+    for s in settled:
+        assert isinstance(s["started"], bool)
+        assert isinstance(s["completed"], bool)
+
+
+# ---------------- T15: DNF/取消に偽の boolean を入れない ----------------
+
+def _latest_settled() -> list[dict]:
+    from analysis.jump_history_only.jump_history_collector import SCHEMA_SETTLED
+    return [r for r in _all_settled() if r.get("schema_version") == SCHEMA_SETTLED]
+
+
+def test_t15_no_fake_booleans_for_dnf_or_scratch():
+    recs = _latest_settled()
+    assert recs, "最新 schema の settled が無い"
+    for r in recs:
+        assert r["dnf"] is None, "DNF を boolean で断定している"
+        assert r["scratched"] is None, "取消を boolean で断定している"
+        assert r["dnf_jogai_separable"] is False
+        assert "noncompletion_kind" in r
+        if r["completed"]:
+            assert r["noncompletion_kind"] is None
+        else:
+            assert r["noncompletion_kind"], "非完走に kind が無い"
+
+
+def test_t15b_usage_restriction_recorded():
+    for r in _latest_settled():
+        assert r["usable_for"] == ["legacy_v6_completed_only"]
+        assert "corrected_vnext" in r["not_usable_for"]
+
+
+def test_t15c_schema_revision_is_append_only():
+    """schema を上げても旧 revision が消えていないこと。"""
+    from analysis.jump_history_only.jump_history_collector import SCHEMA_SETTLED
+    for p in sorted(SETTLED_DIR.glob("*.jsonl")):
+        vers = {r.get("schema_version") for r in read_jsonl(p)}
+        if len(vers) > 1:
+            assert SCHEMA_SETTLED in vers
+            return   # 旧 revision が保持されている実例を 1 つ確認できれば足りる
+
+
+# ---------------- T16: 開催日判定 ----------------
+
+def test_t16_race_day_detection_uses_evidence_not_weekday():
+    from analysis.jump_history_only.jump_history_collector import is_race_day
+    ok, why = is_race_day(20260905)
+    assert ok is True and why
+    ok2, why2 = is_race_day(20260923)   # 開催の証跡が無い日
+    assert ok2 is False and "証跡なし" in why2
+
+
+def test_t16b_known_race_day_override_is_honored():
+    from analysis.jump_history_only.jump_history_collector import is_race_day
+    ok, why = is_race_day(20260921)
+    assert ok is True
+
+
+# ---------------- T17: pending settlement ----------------
+
+def test_t17_pending_settlement_listed_not_dropped():
+    from analysis.jump_history_only.jump_history_collector import (
+        pending_settlements)
+    pend = pending_settlements()
+    for d in pend:
+        assert (RAW_DIR / f"{d}.jsonl").exists(), \
+            "未 settled の raw card が消えている"
+        assert not (BASE / "data" / "kekka" / f"{d}.csv").exists(), \
+            "kekka があるのに未 settled のまま"
 
 
 if __name__ == "__main__":

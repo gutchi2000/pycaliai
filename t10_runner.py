@@ -221,14 +221,23 @@ def build_schedule(date_str: str, races: list, lead_min: float):
     post = load_post_times(date_str)
     base_day = datetime.strptime(date_str, "%Y%m%d")
     sched, missing = [], []
+    # --- P0 hard gate (層2/5): 障害レースは T-35/T-20/T-10/Vote の
+    #     タスク登録対象にしない。上流(bundle)で除外済みでも独立に検査する。
+    from race_eligibility import evaluate_race, log_exclusions
+    _dropped = []
     for r in races:
         rid = _rid16(r.get("race_id", ""))
         rm = r.get("race_meta", {})
         label = f"{rm.get('place','')} {rm.get('course','')} {rm.get('class','')}".strip()
+        _el = evaluate_race(rid)
+        if not _el["task_registration_eligible"]:
+            _dropped.append(_el)
+            continue
         hm = parse_hhmm(post.get(rid, ""))
         if hm is None:
             missing.append((rid, label)); continue
         sched.append((base_day.replace(hour=hm[0], minute=hm[1], second=0), rid, label))
+    log_exclusions(_dropped, layer="task_registration")
     sched.sort()
     return sched, missing
 
@@ -289,8 +298,44 @@ def run_cmd(cmd: list[str], timeout: int = 180) -> tuple[int, str]:
 
 
 
-def show_race_bets(date_str: str, rid16: str):
-    """apply/validate 後の prob-first 買い目を読み戻して表示・通知する。"""
+def wide_residual_lines(date_str: str, rid16: str) -> list[str]:
+    """wide residual shadow (v3 事前登録・実弾0円) の当該レース分を Discord 行にする。
+
+    compute_bets が T-10 価格から算出して reports/wide_residual_shadow/{date}_shadow.json
+    へ merge 済み。ここは読み戻して表示するだけで、判断は一切しない。
+    """
+    path = BASE / "reports" / "wide_residual_shadow" / f"{date_str}_shadow.json"
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    row = next((r for r in doc.get("races") or []
+                if _rid16(r.get("race_id", "")) == rid16), None)
+    if row is None:
+        return []
+    if not row.get("triggered"):
+        why = ("hard gate: " + " / ".join(row.get("hard_gate_reasons") or [])
+               if not row.get("hard_gate_passed") else "残差0〜+0.05に該当なし")
+        return [f"🧪 ワイド残差2点: **見送り** ({why})"]
+    tickets = row["arm_a"]
+    total = sum(int(t.get("virtual_stake_yen") or 0) for t in tickets)
+    out = [f"🧪 **ワイド残差2点 {len(tickets)}点 ¥{total:,}** — 検証中(shadow)"]
+    for t in tickets:
+        amt = int(t.get("virtual_stake_yen") or 0)
+        out.append(
+            f"ワイド `{t['selection']}` **¥{amt:,}** "
+            f"／ T-10 {t['odds_t10_low']:.1f}-{t['odds_t10_high']:.1f}倍 "
+            f"／ model {t['p_model']*100:.1f}% vs 市場 {t['p_market_fair']*100:.1f}% "
+            f"(残差 {t['residual']:+.3f})")
+    return out
+
+
+def show_race_bets(date_str: str, rid16: str, scheduled_post: datetime | None = None):
+    """apply/validate 後の prob-first 買い目を読み戻してローカルに表示、Discord には
+    「今から買う/検証してる対象」だけを通知する (2026-09-06: topdown の表示専用買い目は
+    実弾ではなく紙上の点数でユーザーの手を止めるノイズだったため Discord からは外した。
+    ローカルログには従来通り全部残す)。
+    """
     path = BASE / "reports" / "cowork_output" / f"{date_str}_bets.json"
     if not path.exists():
         return
@@ -304,31 +349,47 @@ def show_race_bets(date_str: str, rid16: str):
         from compute_bets import fmt_hosei
         hosei_line = fmt_hosei(e["hosei_marks"])
 
-    cb: list[str] = []   # Discord 行 (compute_bets = prob-first 側)
+    try:
+        from production_policy import real_money_enabled
+        live_money = real_money_enabled()
+    except Exception:
+        live_money = True
+    tag = "" if live_money else " 〔表示専用・実弾なし〕"
+
     has_bets = bool(e.get("bets"))
     if has_bets:
         tot = sum(b["購入額"] for b in e["bets"])
         head = (f"🎫 {e.get('race_label','')} [{e.get('race_nature','')}] "
-                f"prob-first {len(e['bets'])}点 ¥{tot:,}")
+                f"prob-first {len(e['bets'])}点 ¥{tot:,}{tag}")
         print(f"  {head}")
-        cb.append(f"**{head}**")
         for b in e["bets"]:
             print(f"     {b['馬券種']:3s} {b['買い目']:8s} ¥{b['購入額']:>5,}  {b.get('理由','')}")
-            cb.append(f"{b['馬券種']} `{b['買い目']}` ¥{b['購入額']:,}  {b.get('理由','')}")
         if hosei_line:
             print(f"     {hosei_line}")
-            cb.append(hosei_line)
         print(f"     → {e.get('race_reason','')}")
-        cb.append(f"_{e.get('race_reason','')}_")
     else:
         print(f"  — {e.get('race_label','')} [見送り] {e.get('race_reason','')}")
-        cb.append(f"🎫 {e.get('race_label','')} **prob-first 見送り** {e.get('race_reason','')}")
         if hosei_line:
             print(f"     {hosei_line}")
-            cb.append(hosei_line)
 
-    notify("\n".join(cb))
-    if has_bets:
+    wr = wide_residual_lines(date_str, rid16)
+    for line in wr:
+        print("     " + line.replace("**", "").replace("`", ""))
+
+    if scheduled_post is None:
+        hm = parse_hhmm(load_post_times(date_str).get(rid16, ""))
+        if hm:
+            scheduled_post = datetime.strptime(date_str, "%Y%m%d").replace(
+                hour=hm[0], minute=hm[1])
+    post_str = f"　発走{scheduled_post:%H:%M}" if scheduled_post else ""
+    SEP = "──────────"
+    discord = [f"{e.get('race_label','')}{post_str}", SEP]
+    discord.extend(wr if wr else ["（ワイド残差 対象外）"])
+    discord.append(SEP)
+    notify("\n".join(discord))
+    # 実弾を止めている間は topdown の点数でビープしない。
+    # 鳴らす価値があるのは「今から買う対象」だけ。
+    if (has_bets and live_money) or any("ワイド残差2点 " in x for x in wr):
         beep()
 
 
@@ -345,6 +406,52 @@ def ensure_plan(date_str: str) -> None:
               f"{'生成OK' if plan.exists() else '生成失敗→--plan無しで継続'}")
     except Exception as e:
         print(f"[plan] 生成スキップ ({e})→--plan無しで継続")
+
+
+def masters_vote_t10_preview(date_str: str, rid16: str,
+                             scheduled_post: datetime | None) -> None:
+    """学生大会 aite_switch の T-10 予告を Discord に出す。
+
+    実際の投票は masters_vote.py が T-4 の別スナップショットで独立に判定するので
+    ここでの結果と食い違うことがある (オッズが動いた場合)。判断は一切せず、
+    T-10 時点の同じロジック評価を先出しするだけ。
+    """
+    try:
+        import masters_vote as mv
+    except Exception as exc:
+        print(f"  [予告] masters_vote import失敗: {exc}")
+        return
+    try:
+        cfg = mv.load_config()
+        if mv.effective_arm(cfg, date_str) != "aite_switch":
+            return
+        market = json.loads((LIVE_DIR / f"{rid16}.json").read_text(encoding="utf-8"))
+        if not market.get("ok"):
+            return
+        race = mv.load_bundle_race(date_str, rid16)
+        tickets, why = mv.aite_switch_tickets(race, market, cfg)
+    except Exception as exc:
+        print(f"  [予告] 大会投票T-10予告 生成失敗: {exc}")
+        return
+
+    from compute_bets import race_label
+    head_label = race_label(rid16, race.get("race_meta") or {}) or rid16
+    post_str = f"　発走{scheduled_post:%H:%M}" if scheduled_post else ""
+    SEP = "──────────"
+    lines = [f"🔭 大会投票 T-10予告　{head_label}{post_str}", SEP]
+    if not tickets:
+        lines.append(f"（見送り想定 — {why}）")
+    else:
+        stake_cfg = cfg.get("stake_per_ticket_yen_by_kind") or cfg["stake_per_ticket_yen"]
+        for t in tickets:
+            label_kind = mv.KIND_LABEL.get(t.get("kind", "wide"), t.get("kind", "wide"))
+            note = mv.ticket_odds_note(t)
+            stake = mv._stake_for(t, stake_cfg)
+            lines.append(f"{label_kind} `{t['selection']}` ¥{stake:,}"
+                        + (f"（{note}）" if note else ""))
+    lines.append(SEP)
+    lines.append("※ T-4の最終オッズで変わることがあります。確定はT-4の通知")
+    notify("\n".join(lines))
 
 
 def process_race(date_str: str, bundle: Path, rid16: str, label: str,
@@ -366,6 +473,9 @@ def process_race(date_str: str, bundle: Path, rid16: str, label: str,
         if not dry:
             force_skip(date_str, rid16, label, "T-10価格取得失敗", notify)
         return True
+
+    if not dry:
+        masters_vote_t10_preview(date_str, rid16, scheduled_post)
 
     # 2. compute_bets (当該レースのみ、ライブ必須モード)
     cmd = [sys.executable, "compute_bets.py", "--bundle", str(bundle),
@@ -406,7 +516,7 @@ def process_race(date_str: str, bundle: Path, rid16: str, label: str,
             force_skip(date_str, rid16, label, reason, notify)
         return True
 
-    show_race_bets(date_str, rid16)
+    show_race_bets(date_str, rid16, scheduled_post=scheduled_post)
     return True
 
 

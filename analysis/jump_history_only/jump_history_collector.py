@@ -50,9 +50,23 @@ STORE = BASE / "data" / "history_only" / "jump"
 RAW_DIR = STORE / "raw_card"
 SETTLED_DIR = STORE / "settled"
 MANIFEST = STORE / "manifest.json"
+INTAKE_LEDGER = STORE / "intake_ledger.jsonl"
 
 SCHEMA_RAW = "jump-history-only/raw_card/1"
-SCHEMA_SETTLED = "jump-history-only/settled/1"
+# v2 (2026-09-22): DNF/取消を偽の boolean で埋めるのをやめ、
+#   dnf=null / scratched=null / noncompletion_kind で表現する。
+#   append-only を守るため、キーに schema_version を含めて **revision として追記**する
+#   (v1 レコードは削除しない)。読み手は最新 schema を採る。
+SCHEMA_SETTLED = "jump-history-only/settled/2"
+
+# 開催日判定に使う既知開催日リスト (曜日だけで判断しない)
+KNOWN_RACE_DAYS = BASE / "data" / "jra_known_race_days_override.json"
+
+EXIT_OK = 0
+EXIT_MISSING_BUNSEKI_EXPORT = 3
+EXIT_JUMP_RACE_MISSING = 4
+EXIT_COVERAGE_ANOMALY = 5
+EXIT_COLLISION = 6
 
 # JRA-VAN トラックコード 51-59 = 障害 (確定判定)
 JUMP_TRACK_MIN, JUMP_TRACK_MAX = 51, 59
@@ -232,6 +246,23 @@ def build_raw_card(date: int) -> tuple[list[dict], dict]:
 # settled layer
 # ------------------------------------------------------------------
 
+def is_race_day(date: int) -> tuple[bool, str]:
+    """開催日かどうかを既存の成果物から判定する。**曜日だけで判断しない。**"""
+    d = str(date)
+    try:
+        known = json.loads(KNOWN_RACE_DAYS.read_text(encoding="utf-8"))
+        if d in (known.get("known_race_days") or {}):
+            return True, "known_race_days_override"
+    except Exception:
+        pass
+    for sub, label in (("weekly", "data/weekly"), ("kekka", "data/kekka"),
+                       ("tyaku", "data/tyaku"), ("kako5", "data/kako5"),
+                       ("bias", "data/bias")):
+        if (BASE / "data" / sub / f"{d}.csv").exists():
+            return True, f"{label} に当日ファイルあり"
+    return False, "開催の証跡なし"
+
+
 def build_settled(date: int, raw_recs: list[dict]) -> tuple[list[dict], dict]:
     """結果が利用可能になった後にのみ生成する。raw card は一切書き換えない。"""
     p = KEKKA / f"{date}.csv"
@@ -255,19 +286,29 @@ def build_settled(date: int, raw_recs: list[dict]) -> tuple[list[dict], dict]:
     for raw in raw_recs:
         key = (raw["race_id"], raw["umaban"])
         kr = kmap.get(key)
+        # 偽の boolean を入れない。kekka は 止(DNF)/除外/取消 を区別できないため
+        # dnf / scratched は常に null とし、noncompletion_kind で表現する。
         if kr is None:
-            # card にあり結果に無い = 取消候補 (started=False)
+            # card にあり結果に無い。出走しなかった証跡だが、
+            # 取消か除外かデータ欠落かは判別できない。
             rec_core = {"finish_code_raw": None, "started": False,
-                        "completed": False, "dnf": False, "scratched": True}
+                        "completed": False,
+                        "noncompletion_kind": "absent_from_kekka",
+                        "dnf": None, "scratched": None}
         else:
             fin = kr.finish
             if pd.notna(fin) and fin > 0:
                 rec_core = {"finish_code_raw": kr.finish_raw, "started": True,
-                            "completed": True, "dnf": False, "scratched": False}
+                            "completed": True,
+                            "noncompletion_kind": None,
+                            "dnf": None, "scratched": None}
             else:
-                # 止(DNF) と 除外 は kekka 単独で分離できない (既確認)
-                rec_core = {"finish_code_raw": kr.finish_raw, "started": True,
-                            "completed": False, "dnf": None, "scratched": None}
+                raw_code = (kr.finish_raw or "").strip()
+                rec_core = {"finish_code_raw": raw_code or None, "started": True,
+                            "completed": False,
+                            # raw code があればそれを、無ければ unknown
+                            "noncompletion_kind": raw_code or "unknown",
+                            "dnf": None, "scratched": None}
         rec = {
             "schema_version": SCHEMA_SETTLED,
             "history_only": True,
@@ -280,6 +321,10 @@ def build_settled(date: int, raw_recs: list[dict]) -> tuple[list[dict], dict]:
             "race_date": raw["race_date"],
             **rec_core,
             "dnf_jogai_separable": False,
+            # 用途制限を明示する。DNF と除外が分離できない以上、
+            # corrected-vNext (DNF を 1 スロットとして数える契約) には使えない。
+            "usable_for": ["legacy_v6_completed_only"],
+            "not_usable_for": ["corrected_vnext"],
             "result_available_at": result_avail,
             "settled_at": settled_at,
             "result_source_file": str(p.relative_to(BASE)).replace("\\", "/"),
@@ -302,14 +347,97 @@ def collect(date: int, dry: bool) -> dict:
         key_fields=("race_id", "ped_id"),
         volatile=("captured_at",), dry=dry)
 
-    settled, smeta = build_settled(date, raw)
-    out["settled_meta"] = smeta
-    if settled:
-        out["settled_write"] = append_jsonl(
-            SETTLED_DIR / f"{date}.jsonl", settled,
-            key_fields=("race_id", "ped_id"),
-            volatile=("settled_at",), dry=dry)
+    out.update(settle_date(date, raw, dry))
+    record_intake(date, rmeta, dry)
     return out
+
+
+def record_intake(date: int, rmeta: dict, dry: bool) -> None:
+    """bunseki 手動エクスポート運用の監査記録 (append-only)。"""
+    src = BUNSEKI / f"{date}.csv"
+    if not src.exists():
+        return
+    try:
+        df = pd.read_csv(src, encoding="cp932", dtype=str, on_bad_lines="skip")
+        rid = df["レースID(新)"].astype(str).str.strip().str[:16]
+        n_race, n_row = int(rid.nunique()), int(len(df))
+    except Exception:
+        n_race = n_row = -1
+    rec = {
+        "target_date": date,
+        "source_file": str(src.relative_to(BASE)).replace("\\", "/"),
+        "source_sha256": rmeta.get("source_sha256"),
+        # TARGET からの export 実施時刻は mtime が最良の証跡
+        "exported_at": datetime.fromtimestamp(
+            src.stat().st_mtime, timezone.utc).astimezone().isoformat(
+            timespec="seconds"),
+        "placed_at": datetime.fromtimestamp(
+            src.stat().st_ctime, timezone.utc).astimezone().isoformat(
+            timespec="seconds"),
+        "collector_processed_at": datetime.now(timezone.utc).astimezone()
+            .isoformat(timespec="seconds"),
+        "race_count": n_race,
+        "jump_race_count": rmeta.get("races", 0),
+        "horse_row_count": n_row,
+        "jump_horse_row_count": rmeta.get("rows", 0),
+        "operator": "manual",           # TARGET GUI 手動 export
+        "intake_path": "data/_inbox -> place_weekly.py",
+    }
+    try:
+        append_jsonl(INTAKE_LEDGER, [rec],
+                     key_fields=("target_date", "source_sha256"),
+                     volatile=("collector_processed_at",), dry=dry)
+    except CollisionError:
+        # 同一日で内容が変わった = bunseki が差し替えられた。記録として別行を足す。
+        rec["source_sha256"] = f"{rec['source_sha256']}#resubmitted"
+        append_jsonl(INTAKE_LEDGER, [rec],
+                     key_fields=("target_date", "source_sha256"),
+                     volatile=("collector_processed_at",), dry=dry)
+
+
+def settle_date(date: int, raw: list[dict], dry: bool) -> dict:
+    """1 日ぶんの settled layer を (結果があれば) 追記する。"""
+    settled, smeta = build_settled(date, raw)
+    res: dict = {"settled_meta": smeta}
+    if settled:
+        res["settled_write"] = append_jsonl(
+            SETTLED_DIR / f"{date}.jsonl", settled,
+            # schema_version をキーに含めることで、契約変更を
+            # 上書きでなく **append-only の revision** として扱う
+            key_fields=("race_id", "ped_id", "schema_version"),
+            volatile=("settled_at",), dry=dry)
+    return res
+
+
+def pending_settlements() -> list[int]:
+    """raw card はあるが settled が無い / 未完の日付を古い順に返す。"""
+    pend = []
+    for p in sorted(RAW_DIR.glob("*.jsonl")):
+        if not p.stem.isdigit():
+            continue
+        d = int(p.stem)
+        raw_n = len(read_jsonl(p))
+        sp = SETTLED_DIR / f"{d}.jsonl"
+        cur = [r for r in read_jsonl(sp)
+               if r.get("schema_version") == SCHEMA_SETTLED] if sp.exists() else []
+        if len(cur) < raw_n:
+            pend.append(d)
+    return pend
+
+
+def sweep_pending(dry: bool) -> dict:
+    """過去の未 settled を毎回すべて見直す。期限で削除はしない。"""
+    done, still = [], []
+    for d in pending_settlements():
+        raw = read_jsonl(RAW_DIR / f"{d}.jsonl")
+        r = settle_date(d, raw, dry)
+        if r.get("settled_write"):
+            done.append(d)
+        else:
+            still.append({"date": d,
+                          "reason": r.get("settled_meta", {}).get(
+                              "reason", "kekka なし")})
+    return {"settled_now": done, "still_pending": still}
 
 
 def update_manifest(results: list[dict], dry: bool) -> dict:
@@ -333,6 +461,8 @@ def update_manifest(results: list[dict], dry: bool) -> dict:
             "policy": "推測補完しない / 馬名 join しない / 0 埋めしない",
         },
         "collected_dates": dates,
+        "collection_active": True,
+        "stop_history": prev.get("stop_history", []),
         "updated_at": datetime.now(timezone.utc).astimezone().isoformat(
             timespec="seconds"),
     }
@@ -346,7 +476,22 @@ def main():
     ap.add_argument("--date", type=int)
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--dry", action="store_true")
+    ap.add_argument("--record-stop", metavar="REASON",
+                    help="収集停止を manifest へ追記する (rollback 用)。"
+                         "収集済み artifact は削除しない")
     a = ap.parse_args()
+
+    if a.record_stop:
+        man = json.loads(MANIFEST.read_text(encoding="utf-8")) \
+            if MANIFEST.exists() else {}
+        hist = man.setdefault("stop_history", [])
+        hist.append({"stopped_at": datetime.now(timezone.utc).astimezone()
+                     .isoformat(timespec="seconds"), "reason": a.record_stop})
+        man["collection_active"] = False
+        atomic_write_text(MANIFEST, json.dumps(man, ensure_ascii=False, indent=2))
+        log(f"manifest へ停止を記録: {a.record_stop}")
+        log("※ collected artifact は保持する (append-only 監査記録を削除しない)")
+        return EXIT_OK
 
     if a.all:
         dates = sorted(int(p.stem) for p in BUNSEKI.glob("*.csv")
@@ -357,25 +502,102 @@ def main():
         ap.error("--date か --all が必要")
 
     log(f"収集対象: {dates}  (dry={a.dry})")
-    results = []
+    results, exit_code = [], EXIT_OK
     for d in dates:
+        raceday, why = is_race_day(d)
+        src = BUNSEKI / f"{d}.csv"
+        if not src.exists():
+            if raceday:
+                log(f"  {d}: !! MISSING_BUNSEKI_EXPORT — 開催日({why})なのに "
+                    f"bunseki が無い。TARGET 出走馬分析を export し "
+                    f"data/_inbox へ置いて place_weekly.py を走らせること。")
+                exit_code = EXIT_MISSING_BUNSEKI_EXPORT
+            else:
+                log(f"  {d}: 非開催日 ({why}) かつ bunseki なし → skip")
+            continue
         try:
             r = collect(d, a.dry)
         except CollisionError as e:
-            log(f"  {d}: !! COLLISION → 停止: {e}")
-            raise
+            log(f"  {d}: !! COLLISION → 全体停止: {e}")
+            return EXIT_COLLISION
         results.append(r)
         rm, sw = r.get("raw_meta", {}), r.get("settled_write")
+        reason = r.get("settled_meta", {}).get("reason", "")
         log(f"  {d}: raw={r.get('raw_write')} "
             f"({rm.get('races', 0)}R/{rm.get('rows', 0)}行) settled={sw}"
-            f"{'  ' + r.get('settled_meta', {}).get('reason', '') if r.get('settled_meta', {}).get('reason') else ''}")
+            f"{'  ' + reason if reason else ''}")
+
+        # 障害レースが 1 本も取れなかった場合の検査
+        if not r.get("raw_write"):
+            jm = _jump_expected(d)
+            if jm:
+                log(f"  {d}: !! JUMP_RACE_MISSING — 他ソースが障害レース "
+                    f"{jm} を示しているのに raw card が 0 件")
+                exit_code = EXIT_JUMP_RACE_MISSING
+            else:
+                log(f"  {d}: 障害レースなし (他ソースとも整合) → 正常")
+
+        # venue ごとの race/horse coverage 異常
+        anom = _coverage_anomalies(d)
+        if anom:
+            log(f"  {d}: !! COVERAGE_ANOMALY {anom}")
+            exit_code = EXIT_COVERAGE_ANOMALY
+
+    # --- pending settlement を毎回すべて見直す (期限削除はしない) ---
+    sweep = sweep_pending(a.dry)
+    if sweep["settled_now"]:
+        log(f"\n未settled を新たに確定: {sweep['settled_now']}")
+    if sweep["still_pending"]:
+        oldest = min(x["date"] for x in sweep["still_pending"])
+        log(f"未settled 残: {len(sweep['still_pending'])} 件 / 最古 {oldest}")
+        for x in sweep["still_pending"]:
+            log(f"    {x['date']}: {x['reason']}")
 
     man = update_manifest(results, a.dry)
     log(f"\nmanifest: coverage_start={man['jump_history_coverage_start']} "
-        f"collected={man['collected_dates']}")
+        f"collected={len(man['collected_dates'])} 日")
     if a.dry:
         log("(dry-run: ファイルは書いていない)")
+    return exit_code
+
+
+def _jump_expected(date: int) -> list[str]:
+    """bunseki 以外のソースが「その日に障害レースがある」と言っているか。"""
+    out = []
+    p = BASE / "data" / "bias" / f"{date}.csv"
+    if p.exists():
+        try:
+            b = pd.read_csv(p, encoding="cp932", dtype=str, on_bad_lines="skip")
+            if "平・障" in b.columns and "レースID" in b.columns:
+                hit = b[b["平・障"].astype(str).str.strip() == "1"]
+                out += [str(x)[:16] for x in hit["レースID"]]
+        except Exception:
+            pass
+    return sorted(set(out))
+
+
+def _coverage_anomalies(date: int) -> list[str]:
+    """bunseki の venue ごとの race/horse 数が明らかに欠けていないか。"""
+    p = BUNSEKI / f"{date}.csv"
+    if not p.exists():
+        return []
+    try:
+        df = pd.read_csv(p, encoding="cp932", dtype=str, on_bad_lines="skip")
+    except Exception as e:
+        return [f"bunseki 読込失敗: {e}"]
+    if "レースID(新)" not in df.columns:
+        return ["レースID(新) 列なし"]
+    rid = df["レースID(新)"].astype(str).str.strip().str[:16]
+    anom = []
+    for venue, g in df.assign(_v=rid.str[8:10]).groupby("_v"):
+        rids = g["レースID(新)"].astype(str).str[:16]
+        n_race = rids.nunique()
+        per = g.groupby(rids).size()
+        if n_race and per.min() < 5:
+            anom.append(f"venue={venue} に 5 頭未満のレース "
+                        f"{int((per < 5).sum())} 件")
+    return anom
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
