@@ -1,0 +1,62 @@
+{
+ "T1_synthetic_R1": {
+  "pass": true,
+  "detail": "max|diff|=2.24e-08"
+ },
+ "T1_synthetic_R1-noctx": {
+  "pass": true,
+  "detail": "max|diff|=1.49e-08"
+ },
+ "T2_no_cross_race": {
+  "pass": true,
+  "detail": "diff=0.00e+00 batchstat_layers=[]"
+ },
+ "T3_padding": {
+  "pass": true,
+  "detail": "diff=0.00e+00"
+ },
+ "T4_scratch_recompute": {
+  "pass": true,
+  "detail": "rebuilt_vs_masked=1.49e-08 sum_p=1.000000 context_changed_by=6.27e-03"
+ },
+ "T5_field_5_18": {
+  "pass": true,
+  "detail": "sum_ok=True n19_assert=True"
+ },
+ "T16_noctx_blind": {
+  "pass": true,
+  "detail": ""
+ },
+ "T12_no_2024plus": {
+  "pass": true,
+  "detail": "range=[20160105,20231228] hash=79cf2e2d013994a7"
+ },
+ "T9_no_ids": {
+  "pass": true,
+  "detail": "over_limit=['kako5_avg_agari3f', 'trnH_days_ago']"
+ },
+ "T10_no_race_id": {
+  "pass": true,
+  "detail": "Ｒ・前走日付は許可列"
+ },
+ "T11_no_current_outcome": {
+  "pass": true,
+  "detail": ""
+ },
+ "T8_fit_on_base_train_only": {
+  "pass": true,
+  "detail": "fit_rows=289288"
+ },
+ "T7_future_deletion": {
+  "pass": true,
+  "detail": "T20211231 R0=True NN=True; T20190630 raw=True sets=True"
+ },
+ "T13_same_set_rule": {
+  "pass": true,
+  "detail": "rid16 同一行=集合 (train/sel/dev)"
+ },
+ "T14_category_norm": {
+  "pass": true,
+  "detail": "['ダート', '芝']->['ダ', '芝'] vocab=[np.str_('__NaN__'), np.str_('ダ'), np.str_('芝')]"
+ }
+}

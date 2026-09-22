@@ -168,20 +168,35 @@ def softmax_race(s: np.ndarray, races: list[np.ndarray], tau: float) -> np.ndarr
     return p
 
 
-def fit_tau(s: np.ndarray, win: np.ndarray, races: list[np.ndarray]) -> float:
-    groups = [(s[i], win[i]) for i in races if win[i].sum() == 1]
+def fit_tau_padded(S: np.ndarray, W: np.ndarray, M: np.ndarray) -> tuple[float, float]:
+    """padded (R,H) スコアで 1着条件付きロジット最尤の温度 τ と、その τ での平均 NLL。
+    単独勝ちレースのみ使う (analysis.mcond.v6base.fit_tau と同じ目的関数)。"""
+    W = (W * M).astype(float)
+    keep = W.sum(1) == 1
+    S, W, M = S[keep], W[keep], M[keep]
+    S0 = np.where(M, S, 0.0)
+    sw = (S0 * W).sum(1)
 
     def nll(tau):
-        tot = 0.0
-        for sc, w in groups:
-            z = sc / tau
-            m = z.max()
-            tot -= (z[w == 1][0] - m - np.log(np.exp(z - m).sum()))
-        return tot / len(groups)
+        z = np.where(M, S0 / tau, -np.inf)
+        mx = z.max(1)
+        lse = mx + np.log(np.exp(z - mx[:, None]).sum(1))
+        return float((lse - sw / tau).mean())
 
-    r = minimize_scalar(nll, bounds=(0.02, 50.0), method="bounded",
-                        options={"xatol": 1e-4})
-    return float(r.x)
+    r = minimize_scalar(nll, bounds=(0.02, 50.0), method="bounded", options={"xatol": 1e-5})
+    return float(r.x), float(r.fun)
+
+
+def fit_tau(s: np.ndarray, win: np.ndarray, races: list[np.ndarray]) -> float:
+    H = max(len(i) for i in races)
+    S = np.zeros((len(races), H))
+    W = np.zeros((len(races), H))
+    M = np.zeros((len(races), H), dtype=bool)
+    for r, i in enumerate(races):
+        S[r, :len(i)] = s[i]
+        W[r, :len(i)] = win[i]
+        M[r, :len(i)] = True
+    return fit_tau_padded(S, W, M)[0]
 
 
 def race_metrics(df: pd.DataFrame, races: list[np.ndarray], s: np.ndarray,
