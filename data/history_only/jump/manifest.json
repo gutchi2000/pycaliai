@@ -1,0 +1,23 @@
+{
+  "schema_version_raw": "jump-history-only/raw_card/1",
+  "schema_version_settled": "jump-history-only/settled/1",
+  "jump_history_coverage_start": "20260905",
+  "known_unrecoverable_gap": {
+    "period": "2026-03-07 〜 収集開始日の前日",
+    "jump_races": 47,
+    "rows": 582,
+    "reason": "data/weekly が障害を含まず、共有 JV-Link ストアでの 過去 backfill は隔離不可のため永久中止 (判断分岐 B、2026-09-22)",
+    "policy": "推測補完しない / 馬名 join しない / 0 埋めしない"
+  },
+  "collected_dates": [
+    20260905,
+    20260906,
+    20260912,
+    20260913,
+    20260919,
+    20260920,
+    20260921,
+    20260922
+  ],
+  "updated_at": "2026-09-22T22:25:20+09:00"
+}
