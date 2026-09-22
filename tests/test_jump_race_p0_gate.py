@@ -51,7 +51,7 @@ def test_known_jump_is_detected(rid):
     assert el["is_jump"] is True
     assert el["determination"] == "authoritative"
     assert el["reason"] == "jump_race_excluded"
-    tc = el["raw_fields"]["track_code"]
+    tc = el["raw_fields"]["track_code_value"]
     assert tc is not None and JUMP_TRACK_MIN <= tc <= JUMP_TRACK_MAX
 
 
@@ -75,8 +75,9 @@ def test_known_jump_history_only_eligible(rid):
 @pytest.mark.parametrize("rid", KNOWN_JUMP_RIDS)
 def test_known_jump_has_raw_fields(rid):
     raw = evaluate_race(rid)["raw_fields"]
-    for k in ("race_id", "date", "track_code", "hira_shogai",
-              "in_jump_history_store"):
+    for k in ("race_id", "date", "track_code_value", "track_code_source",
+              "flat_jump_value", "flat_jump_source", "raw_presence",
+              "source_hashes", "in_jump_history_store"):
         assert k in raw
 
 
@@ -247,9 +248,9 @@ def test_conflict_is_fail_closed(monkeypatch):
     import race_eligibility as re_mod
     re_mod.clear_cache()
     monkeypatch.setattr(re_mod, "_bunseki_track_codes",
-                        lambda d: {"2026091306040402": 23})   # 平地
+                        lambda d: ({"2026091306040402": 23}, "h1"))   # 平地
     monkeypatch.setattr(re_mod, "_bias_hira_shogai",
-                        lambda d: {"2026091306040402": "1"})  # 障害
+                        lambda d: ({"2026091306040402": "1"}, "h2"))  # 障害
     monkeypatch.setattr(re_mod, "_collected_jump_rids", lambda d: frozenset())
     el = re_mod.evaluate_race("2026091306040402")
     assert el["is_jump"] is True
@@ -262,8 +263,8 @@ def test_unknown_determination_is_recorded(monkeypatch):
     """判定材料が無い場合は unknown として記録される (通すが黙らない)。"""
     import race_eligibility as re_mod
     re_mod.clear_cache()
-    monkeypatch.setattr(re_mod, "_bunseki_track_codes", lambda d: {})
-    monkeypatch.setattr(re_mod, "_bias_hira_shogai", lambda d: {})
+    monkeypatch.setattr(re_mod, "_bunseki_track_codes", lambda d: ({}, None))
+    monkeypatch.setattr(re_mod, "_bias_hira_shogai", lambda d: ({}, None))
     monkeypatch.setattr(re_mod, "_collected_jump_rids", lambda d: frozenset())
     el = re_mod.evaluate_race("2099010106040401")
     assert el["determination"] == "unknown"
@@ -272,9 +273,148 @@ def test_unknown_determination_is_recorded(monkeypatch):
 
 
 def test_explicit_track_code_argument_wins():
-    el = evaluate_race("2026091306040402", track_code=52)
+    el = evaluate_race("2026091306040402", track_code=52,
+                       track_code_source="raw_jv")
     assert el["is_jump"] is True
-    assert el["raw_fields"]["track_code_source"] == "argument"
+    assert el["raw_fields"]["track_code_source"] == "raw_jv"
+
+
+# ---------------- default 23 を証拠に使わない (最重要) ----------------
+
+def _isolated(monkeypatch):
+    """bunseki/bias/store をすべて空にして、引数の値だけで判定させる。"""
+    import race_eligibility as m
+    m.clear_cache()
+    monkeypatch.setattr(m, "_bunseki_track_codes", lambda d: ({}, None))
+    monkeypatch.setattr(m, "_bias_hira_shogai", lambda d: ({}, None))
+    monkeypatch.setattr(m, "_collected_jump_rids", lambda d: frozenset())
+    return m
+
+
+RID_T = "2026091306040499"   # どのソースにも無い架空 race_id
+
+
+def test_default_23_is_not_evidence(monkeypatch):
+    """predict_weekly の欠損埋め 23 を JV コードとして扱わない。"""
+    m = _isolated(monkeypatch)
+    el = m.evaluate_race(RID_T, track_code=23, track_code_source="default")
+    assert el["determination"] == "unknown"
+    assert el["reason"] == "jump_undetermined"
+    assert el["raw_fields"]["track_code_source"] == "default"
+    assert el["raw_fields"]["track_code_value"] == 23
+    m.clear_cache()
+
+
+def test_default_source_makes_all_ineligible(monkeypatch):
+    m = _isolated(monkeypatch)
+    el = m.evaluate_race(RID_T, track_code=23, track_code_source="default")
+    assert el["prediction_eligible"] is False
+    assert el["bet_eligible"] is False
+    assert el["task_registration_eligible"] is False
+    assert el["history_only_eligible"] is True
+    m.clear_cache()
+
+
+def test_unspecified_source_is_not_trusted(monkeypatch):
+    """source を明示しない値は証拠に採用しない (安全側)。"""
+    m = _isolated(monkeypatch)
+    el = m.evaluate_race(RID_T, track_code=23)
+    assert el["determination"] == "unknown"
+    m.clear_cache()
+
+
+def test_raw_presence_preserved_even_when_default(monkeypatch):
+    """23 へ変換する前の raw presence を保持する。"""
+    m = _isolated(monkeypatch)
+    el = m.evaluate_race(RID_T, track_code=23, track_code_source="default")
+    assert el["raw_fields"]["raw_presence"]["track_code_present"] is True
+    el2 = m.evaluate_race(RID_T)
+    assert el2["raw_fields"]["raw_presence"]["track_code_present"] is False
+    assert el2["raw_fields"]["track_code_source"] == "missing"
+    m.clear_cache()
+
+
+def test_authoritative_source_is_trusted(monkeypatch):
+    m = _isolated(monkeypatch)
+    for src in ("raw_jv", "bunseki", "weekly_explicit", "calendar"):
+        el = m.evaluate_race(RID_T, track_code=23, track_code_source=src)
+        assert el["determination"] == "authoritative"
+        assert el["is_jump"] is False
+        el2 = m.evaluate_race(RID_T, track_code=52, track_code_source=src)
+        assert el2["is_jump"] is True
+    m.clear_cache()
+
+
+def test_unknown_is_fail_closed_at_all_layers(monkeypatch):
+    """unknown が 5 層すべてで ineligible になる。"""
+    m = _isolated(monkeypatch)
+    el = m.evaluate_race(RID_T)
+    assert el["determination"] == "unknown"
+    # 層3
+    from compute_bets import compute_race_bets
+    race = {"race_id": RID_T,
+            "race_meta": {"race_id": RID_T, "place": "中山", "field_size": 12},
+            "race_confidence": {"field_chaos_score": 0.1},
+            "horses": [{"umaban": i, "mark": "◎" if i == 1 else "",
+                        "p_win": 0.2, "tansho_odds": 3.0} for i in range(1, 13)]}
+    out = compute_race_bets(race)
+    assert out["bets"] == []
+    assert out.get("eligibility_determination") == "unknown"
+    # 層5
+    with pytest.raises(JumpRaceBettingError):
+        m.assert_bettable(RID_T, SAMPLE_BETS, layer="test_unknown")
+    m.clear_cache()
+
+
+# ---------------- eligibility metadata の検証 ----------------
+
+def test_metadata_roundtrip_and_verification():
+    from race_eligibility import eligibility_metadata, verify_metadata
+    rid = FLAT_RIDS[0]
+    meta = eligibility_metadata(evaluate_race(rid))
+    assert meta["eligibility_schema_version"]
+    assert "evidence" in meta and "source_hashes" in meta
+    fresh = verify_metadata(meta, rid)
+    assert fresh["prediction_eligible"] is True
+
+
+def test_metadata_schema_mismatch_is_fail_closed():
+    from race_eligibility import (eligibility_metadata, verify_metadata,
+                                  EligibilityMetadataError)
+    meta = eligibility_metadata(evaluate_race(FLAT_RIDS[0]))
+    meta["eligibility_schema_version"] = "race-eligibility/999"
+    with pytest.raises(EligibilityMetadataError):
+        verify_metadata(meta, FLAT_RIDS[0])
+
+
+def test_metadata_source_hash_mismatch_is_fail_closed():
+    from race_eligibility import (eligibility_metadata, verify_metadata,
+                                  EligibilityMetadataError)
+    meta = eligibility_metadata(evaluate_race(FLAT_RIDS[0]))
+    if not meta["source_hashes"]:
+        pytest.skip("source hash が無い race")
+    k = next(iter(meta["source_hashes"]))
+    meta["source_hashes"][k] = "0" * 64
+    with pytest.raises(EligibilityMetadataError):
+        verify_metadata(meta, FLAT_RIDS[0])
+
+
+def test_metadata_missing_on_jump_is_fail_closed():
+    from race_eligibility import verify_metadata, EligibilityMetadataError
+    with pytest.raises(EligibilityMetadataError):
+        verify_metadata(None, KNOWN_JUMP_RIDS[0])
+
+
+def test_downstream_does_not_trust_boolean_only():
+    """metadata が『平地』と偽っていても、再計算で障害と判定されること。"""
+    from race_eligibility import eligibility_metadata, verify_metadata
+    rid = KNOWN_JUMP_RIDS[0]
+    meta = eligibility_metadata(evaluate_race(rid))
+    meta["computed"]["is_jump"] = False          # 改ざん
+    meta["computed"]["bet_eligible"] = True
+    fresh = verify_metadata(meta, rid)
+    assert fresh["is_jump"] is True
+    assert fresh["bet_eligible"] is False
 
 
 if __name__ == "__main__":

@@ -658,7 +658,10 @@ def vote_race(date_str: str, rid: str, *, post_override: str | None = None,
     if not _el["bet_eligible"]:
         log_exclusions([_el], layer="masters_vote")
         save_ledger(date_str, {"race_id": rid, "label": label, "voted": False,
-                               "reason": "障害競走のため対象外 (P0 hard gate)",
+                               "reason": ("障害競走のため対象外 (P0 hard gate)"
+                                          if _el["is_jump"] else
+                                          "eligibility 判定不能のため対象外 "
+                                          "(P0 hard gate, fail-closed)"),
                                "arm": None,
                                "at": datetime.now().isoformat(timespec="seconds")})
         if notify:

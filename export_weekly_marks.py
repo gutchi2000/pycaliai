@@ -59,7 +59,7 @@ from predict_weekly import parse_csv
 import backtest_pl_ev as be
 from backtest_pl_ev import COL_RID, COL_BAN
 from export_marks_json import export_race
-from race_eligibility import evaluate_race
+from race_eligibility import evaluate_race, eligibility_metadata
 
 
 def build_tansho_idx_from_weekly(df: pd.DataFrame) -> dict:
@@ -575,10 +575,12 @@ def main() -> int:
         # --- P0 hard gate (層1/5): 障害レースは bundle へ入れない ---
         # data/weekly の障害包含は日によって不安定で、実際に 3 レースが
         # bundle へ入り v6 に採点されていた (2026-09-22 実測)。
-        _tc = None
-        if "トラックコード(JV)" in g.columns:
-            _tc = g["トラックコード(JV)"].iloc[0]
-        _el = evaluate_race(rid, track_code=_tc)
+        #
+        # ★df の「トラックコード(JV)」は predict_weekly が欠損時に中央値 23 で
+        #   埋めたものでありうる。これを証拠にすると障害が平地として通るため、
+        #   **df の値は一切渡さない**。evaluate_race は data/bunseki の
+        #   authoritative な値だけを読む。
+        _el = evaluate_race(rid)
         if not _el["prediction_eligible"]:
             n_jump_excluded += 1
             jump_excluded_rids.append(_el["race_id"])
@@ -602,6 +604,8 @@ def main() -> int:
             n_skip += 1
             continue
         rid_s = payload["race_id"]
+        # 下流が boolean だけを信用しないよう、証拠付き metadata を残す
+        payload["eligibility"] = eligibility_metadata(_el)
         # kako5 history を horse ごとに注入 (Cowork advisor 用)
         # + horse_facts (sex/age) も同タイミングで注入 (出走表 表示用)
         # + 血統 (sire/sire_type/broodmare_sire/broodmare_sire_type) 注入 (血統分析用)

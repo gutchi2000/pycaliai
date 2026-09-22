@@ -379,15 +379,30 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     field = _num(rm.get("field_size")) or len(horses)
     rid = str(race.get("race_id") or rm.get("race_id") or "")
     label = race_label(rid, rm)
-    # --- P0 hard gate (層3/5): 障害レースは常に空の買い目を返す ---
-    from race_eligibility import evaluate_race, log_exclusions
-    _el = evaluate_race(rid)
+    # --- P0 hard gate (層3/5): 障害 / 判定不能は常に空の買い目を返す ---
+    #   bundle の eligibility metadata は boolean だけを信用せず、
+    #   共通関数で race_id から再計算して突き合わせる (改ざん・欠落は fail-closed)。
+    from race_eligibility import (verify_metadata, evaluate_race,
+                                  log_exclusions, EligibilityMetadataError)
+    try:
+        _el = verify_metadata(race.get("eligibility"), rid)
+    except EligibilityMetadataError as _e:
+        # metadata 欠落/不整合。このレースだけを fail-closed で落とす
+        # (バッチ全体を止めない)。判定自体は再計算結果を使う。
+        _el = evaluate_race(rid)
+        print(f"  ⚠ eligibility metadata 検証失敗 {rid}: {_e}", flush=True)
     if not _el["bet_eligible"]:
         log_exclusions([_el], layer="compute_bets")
+        _why = ("障害競走のため対象外 (P0 hard gate)。"
+                if _el["is_jump"] else
+                "障害か否かを authoritative に判定できないため対象外 "
+                "(P0 hard gate, fail-closed)。")
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",
-                "race_reason": "障害競走のため対象外 (P0 hard gate)。",
+                "race_reason": _why,
                 "excluded_reason": _el["reason"],
-                "is_jump": True, "bets": []}
+                "is_jump": _el["is_jump"],
+                "eligibility_determination": _el["determination"],
+                "bets": []}
     budget = int(budget) // 100 * 100
     if budget < MIN_BET:
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",

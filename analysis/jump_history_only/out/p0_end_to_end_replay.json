@@ -1,0 +1,281 @@
+{
+  "generated_at": "2026-09-22T22:50:16.724027",
+  "dates": [
+    20260913,
+    20260919,
+    20260920
+  ],
+  "results": [
+    {
+      "date": 20260913,
+      "input_hashes": {
+        "weekly": "8841ece29cd123dd5232205e63e536014137dc479158ec2c4cf97707193c0507",
+        "bunseki": "8b0678b7dbdb730e4f5e6c13b104f2be557ec1d13f2dbc994277e3a8af00ea8c",
+        "bundle_production": "75a5d043af55828c405cec560d50f7035ef0153fce676f683a57c581eebae32c"
+      },
+      "known_jump_rid": "2026091306040401",
+      "n_races_in_production_bundle": 24,
+      "n_races_in_weekly": 24,
+      "n_jump_races": 1,
+      "jump_race_ids": [
+        "2026091306040401"
+      ],
+      "n_flat_races": 23,
+      "n_unknown_races": 0,
+      "unknown_race_ids": [],
+      "jump_decision_evidence": {
+        "2026091306040401": {
+          "track_code_value": 52,
+          "track_code_source": "bunseki",
+          "flat_jump_value": "1",
+          "flat_jump_source": "bias",
+          "determination": "authoritative"
+        }
+      },
+      "flat_source_distribution": {
+        "bunseki": 23
+      },
+      "bundle_kept_flat_races": 23,
+      "bundle_excluded_jump_race_ids": [
+        "2026091306040401"
+      ],
+      "n_flat_in_production_bundle": 23,
+      "wrongly_excluded_flat_races": 0,
+      "task_schedule_jump_races": 0,
+      "task_schedule_flat_races": 23,
+      "compute_bets_on_known_jump": {
+        "n_bets": 0,
+        "race_nature": "見送り",
+        "excluded_reason": "jump_race_excluded"
+      },
+      "validate_rejects_nonempty_bets": true,
+      "validate_exit_code": 2,
+      "final_submit_refuses": true,
+      "masters_vote_submit_refuses": true,
+      "production_bundle_hash_after": "75a5d043af55828c405cec560d50f7035ef0153fce676f683a57c581eebae32c",
+      "production_bundle_unchanged": true
+    },
+    {
+      "date": 20260919,
+      "input_hashes": {
+        "weekly": "54fd31e94ebbb15a78c8c68e7b0504dbab8af6784a06f48c7bbadc5e51066b48",
+        "bunseki": "b2966c470bb080185ae0f311be94621a96afa9d1823ada10763c0fb5edd78e2b",
+        "bundle_production": "0b7c9fc6a006686b682639e28d9ef281b89c54440cf2ee14e7ed2b828285ce6b"
+      },
+      "known_jump_rid": "2026091909040504",
+      "n_races_in_production_bundle": 24,
+      "n_races_in_weekly": 24,
+      "n_jump_races": 1,
+      "jump_race_ids": [
+        "2026091909040504"
+      ],
+      "n_flat_races": 23,
+      "n_unknown_races": 0,
+      "unknown_race_ids": [],
+      "jump_decision_evidence": {
+        "2026091909040504": {
+          "track_code_value": 54,
+          "track_code_source": "bunseki",
+          "flat_jump_value": null,
+          "flat_jump_source": "missing",
+          "determination": "authoritative"
+        }
+      },
+      "flat_source_distribution": {
+        "bunseki": 23
+      },
+      "bundle_kept_flat_races": 23,
+      "bundle_excluded_jump_race_ids": [
+        "2026091909040504"
+      ],
+      "n_flat_in_production_bundle": 23,
+      "wrongly_excluded_flat_races": 0,
+      "task_schedule_jump_races": 0,
+      "task_schedule_flat_races": 23,
+      "compute_bets_on_known_jump": {
+        "n_bets": 0,
+        "race_nature": "見送り",
+        "excluded_reason": "jump_race_excluded"
+      },
+      "validate_rejects_nonempty_bets": true,
+      "validate_exit_code": 2,
+      "final_submit_refuses": true,
+      "masters_vote_submit_refuses": true,
+      "production_bundle_hash_after": "0b7c9fc6a006686b682639e28d9ef281b89c54440cf2ee14e7ed2b828285ce6b",
+      "production_bundle_unchanged": true
+    },
+    {
+      "date": 20260920,
+      "input_hashes": {
+        "weekly": "0f965786a65f7ca09aa35e16a146f32697c7b16f9a6f84f935956f9f02637e70",
+        "bunseki": "07f62e951c5e0450239060e3f01788a15ecea1b8546261ed7bcbbfd18b916cb5",
+        "bundle_production": "7ca0ba6accb3d7c8384796393d5cb6ce5be377ad94641545820e566660d699d3"
+      },
+      "known_jump_rid": "2026092009040601",
+      "n_races_in_production_bundle": 24,
+      "n_races_in_weekly": 24,
+      "n_jump_races": 1,
+      "jump_race_ids": [
+        "2026092009040601"
+      ],
+      "n_flat_races": 23,
+      "n_unknown_races": 0,
+      "unknown_race_ids": [],
+      "jump_decision_evidence": {
+        "2026092009040601": {
+          "track_code_value": 52,
+          "track_code_source": "bunseki",
+          "flat_jump_value": null,
+          "flat_jump_source": "missing",
+          "determination": "authoritative"
+        }
+      },
+      "flat_source_distribution": {
+        "bunseki": 23
+      },
+      "bundle_kept_flat_races": 23,
+      "bundle_excluded_jump_race_ids": [
+        "2026092009040601"
+      ],
+      "n_flat_in_production_bundle": 23,
+      "wrongly_excluded_flat_races": 0,
+      "task_schedule_jump_races": 0,
+      "task_schedule_flat_races": 23,
+      "compute_bets_on_known_jump": {
+        "n_bets": 0,
+        "race_nature": "見送り",
+        "excluded_reason": "jump_race_excluded"
+      },
+      "validate_rejects_nonempty_bets": true,
+      "validate_exit_code": 2,
+      "final_submit_refuses": true,
+      "masters_vote_submit_refuses": true,
+      "production_bundle_hash_after": "7ca0ba6accb3d7c8384796393d5cb6ce5be377ad94641545820e566660d699d3",
+      "production_bundle_unchanged": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "20260913 既知障害が bundle から除外",
+      "pass": true
+    },
+    {
+      "name": "20260913 task 登録 0 (障害)",
+      "pass": true
+    },
+    {
+      "name": "20260913 compute_bets 0 点",
+      "pass": true
+    },
+    {
+      "name": "20260913 validate が非空買い目を拒否",
+      "pass": true
+    },
+    {
+      "name": "20260913 submit 直前で拒否",
+      "pass": true
+    },
+    {
+      "name": "20260913 masters_vote.submit で拒否",
+      "pass": true
+    },
+    {
+      "name": "20260913 通常レースを誤除外していない",
+      "pass": true
+    },
+    {
+      "name": "20260913 通常レースが task に残る",
+      "pass": true
+    },
+    {
+      "name": "20260913 production bundle 不変",
+      "pass": true
+    },
+    {
+      "name": "20260913 default を証拠に使っていない",
+      "pass": true
+    },
+    {
+      "name": "20260919 既知障害が bundle から除外",
+      "pass": true
+    },
+    {
+      "name": "20260919 task 登録 0 (障害)",
+      "pass": true
+    },
+    {
+      "name": "20260919 compute_bets 0 点",
+      "pass": true
+    },
+    {
+      "name": "20260919 validate が非空買い目を拒否",
+      "pass": true
+    },
+    {
+      "name": "20260919 submit 直前で拒否",
+      "pass": true
+    },
+    {
+      "name": "20260919 masters_vote.submit で拒否",
+      "pass": true
+    },
+    {
+      "name": "20260919 通常レースを誤除外していない",
+      "pass": true
+    },
+    {
+      "name": "20260919 通常レースが task に残る",
+      "pass": true
+    },
+    {
+      "name": "20260919 production bundle 不変",
+      "pass": true
+    },
+    {
+      "name": "20260919 default を証拠に使っていない",
+      "pass": true
+    },
+    {
+      "name": "20260920 既知障害が bundle から除外",
+      "pass": true
+    },
+    {
+      "name": "20260920 task 登録 0 (障害)",
+      "pass": true
+    },
+    {
+      "name": "20260920 compute_bets 0 点",
+      "pass": true
+    },
+    {
+      "name": "20260920 validate が非空買い目を拒否",
+      "pass": true
+    },
+    {
+      "name": "20260920 submit 直前で拒否",
+      "pass": true
+    },
+    {
+      "name": "20260920 masters_vote.submit で拒否",
+      "pass": true
+    },
+    {
+      "name": "20260920 通常レースを誤除外していない",
+      "pass": true
+    },
+    {
+      "name": "20260920 通常レースが task に残る",
+      "pass": true
+    },
+    {
+      "name": "20260920 production bundle 不変",
+      "pass": true
+    },
+    {
+      "name": "20260920 default を証拠に使っていない",
+      "pass": true
+    }
+  ],
+  "n_checks": 30,
+  "n_fail": 0
+}

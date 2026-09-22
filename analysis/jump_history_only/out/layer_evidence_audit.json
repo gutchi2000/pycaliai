@@ -1,0 +1,71 @@
+{
+  "generated_at": "2026-09-22T23:08:01.647506",
+  "probe_race_ids": {
+    "jump": "2026091306040401",
+    "flat": "2026091306040402",
+    "unknown": "2099123106040401"
+  },
+  "layers": [
+    {
+      "layer": "1. bundle creation (export_weekly_marks)",
+      "available_fields": "race_id（df の トラックコード(JV) は **渡さない**)",
+      "authoritative_source": "data/bunseki/{date}.csv → トラックコード(JV) + data/bias → 平・障",
+      "uses_default": "No（df の欠損埋め 23 を一切渡さない）",
+      "unknown_behavior": "prediction_eligible=False で bundle から除外し、ERROR ログ + 標準出力へ警告",
+      "probe": {
+        "jump": false,
+        "flat": true,
+        "unknown": false
+      }
+    },
+    {
+      "layer": "2. task registration (t10_runner.build_schedule)",
+      "available_fields": "race_id（bundle の race dict から取得）",
+      "authoritative_source": "同上（race_id から再取得）",
+      "uses_default": "No",
+      "unknown_behavior": "task_registration_eligible=False で schedule から除外",
+      "probe": {
+        "jump": false,
+        "flat": true,
+        "unknown": false
+      }
+    },
+    {
+      "layer": "3. compute_bets",
+      "available_fields": "race_id + bundle の eligibility metadata",
+      "authoritative_source": "verify_metadata() が race_id から**再計算**し metadata と突合（boolean を信用しない）",
+      "uses_default": "No",
+      "unknown_behavior": "bets=[] / race_nature=見送り / eligibility_determination=unknown。metadata 欠落・schema 不一致・hash 不一致は そのレースだけ fail-closed（バッチは止めない）",
+      "probe": {
+        "jump": false,
+        "flat": true,
+        "unknown": false
+      }
+    },
+    {
+      "layer": "4. validate_cowork_bets",
+      "available_fields": "race_id（bets.json から）。bundle 不在でも可",
+      "authoritative_source": "evaluate_race() で race_id から独立に再取得",
+      "uses_default": "No",
+      "unknown_behavior": "非空買い目なら違反として計上し、--apply で bets=[] に矯正",
+      "probe": {
+        "jump": false,
+        "flat": true,
+        "unknown": false
+      }
+    },
+    {
+      "layer": "5. final submit (masters_vote.submit)",
+      "available_fields": "payload の race_id（+ 任意で metadata）",
+      "authoritative_source": "assert_bettable() → verify_metadata/evaluate_race で再取得",
+      "uses_default": "No",
+      "unknown_behavior": "非空買い目なら JumpRaceBettingError を送出して停止",
+      "probe": {
+        "jump": "REFUSED(JumpRaceBettingError)",
+        "flat": true,
+        "unknown": "REFUSED(JumpRaceBettingError)"
+      }
+    }
+  ],
+  "all_layers_ok": true
+}

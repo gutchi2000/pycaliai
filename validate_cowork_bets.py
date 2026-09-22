@@ -214,6 +214,8 @@ def main() -> int:
         #     bundle に無くても (=上流で除外済みでも) 独立に検査する。
         _el = evaluate_race(rid)
         if not _el["bet_eligible"] and race.get("bets"):
+            _kind = ("障害競走" if _el["is_jump"]
+                     else "eligibility 判定不能 (fail-closed)")
             jump_violations.append({
                 "race_id": _el["race_id"], "label": race.get("race_label", ""),
                 "reason": _el["reason"], "raw_fields": _el["raw_fields"],
@@ -222,7 +224,7 @@ def main() -> int:
             violations.append({
                 "race_id": rid,
                 "label": race.get("race_label", ""),
-                "reasons": ["障害競走 (P0 hard gate)"],
+                "reasons": [f"{_kind} (P0 hard gate)"],
                 "amount": race_bet_total(race),
                 "n_bets": len(race.get("bets", [])),
                 "_race": race,
