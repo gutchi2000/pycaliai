@@ -1,0 +1,184 @@
+{
+  "generated_at": "2026-09-22T21:29:41.242642",
+  "missing_set": {
+    "rows": 598,
+    "races": 50,
+    "dates": 46
+  },
+  "candidates": {
+    "data/tyaku": {
+      "granularity": "race (horse 行なし)",
+      "join_key": "レースID(新)[:16]",
+      "dates_covering_missing": 43,
+      "dates_needed": 46,
+      "races_recovered": 3,
+      "races_needed": 50,
+      "race_recovery_rate": 0.06,
+      "horse_rows_recovered": 0,
+      "column_fill": {
+        "surface": 3,
+        "distance": 3,
+        "race_class": 3
+      },
+      "supplies": [
+        "surface",
+        "distance",
+        "race_class",
+        "race_date",
+        "venue"
+      ],
+      "cannot_supply": [
+        "ped_id",
+        "jockey",
+        "trainer",
+        "sire",
+        "finish_status(horse)",
+        "umaban"
+      ]
+    },
+    "data/bias": {
+      "granularity": "race + 1〜3着馬のみ (全出走馬なし)",
+      "join_key": "レースID[:16]",
+      "dates_covering_missing": 11,
+      "dates_needed": 46,
+      "races_recovered": 13,
+      "races_needed": 50,
+      "race_recovery_rate": 0.26,
+      "horse_rows_recovered": 0,
+      "supplies": [
+        "surface",
+        "distance",
+        "race_class",
+        "平・障 flag"
+      ],
+      "cannot_supply": [
+        "ped_id",
+        "全出走馬行",
+        "jockey(4着以下)",
+        "trainer(4着以下)"
+      ]
+    },
+    "data/bunseki": {
+      "granularity": "horse (全出走馬・122列)",
+      "join_key": "レースID(新)[:16] + 馬番 (馬名 join 不要)",
+      "dates_covering_missing": 2,
+      "dates_needed": 46,
+      "races_recovered": 3,
+      "races_needed": 50,
+      "race_recovery_rate": 0.06,
+      "horse_rows_recovered": 16,
+      "horse_rows_needed": 598,
+      "horse_row_recovery_rate": 0.0268,
+      "column_fill_on_recovered": {
+        "ped_id": 16,
+        "jockey": 16,
+        "trainer": 16,
+        "sire": 16,
+        "surface": 16,
+        "distance": 16,
+        "race_class": 16
+      },
+      "supplies": [
+        "race_id",
+        "race_date",
+        "ped_id",
+        "finish_status",
+        "surface",
+        "distance",
+        "venue",
+        "jockey",
+        "trainer",
+        "sire",
+        "race_class"
+      ],
+      "cannot_supply": [
+        "finish_status (出走前カードのため着順なし → kekka と合成が必要)"
+      ],
+      "available_dates": [
+        20260905,
+        20260906,
+        20260912,
+        20260913,
+        20260919,
+        20260920,
+        20260921,
+        20260922
+      ]
+    },
+    "data/kako5 (past-run 遡及)": {
+      "granularity": "過去走レコード (月/日/場所/TD/距離/着順/人気/上り3F)",
+      "join_key": "無し (race_id も 血統登録番号 も持たない)",
+      "dates_available": 48,
+      "sampled_races_checked": 12,
+      "sampled_races_with_same_month_day_pastrun": 12,
+      "supplies": [
+        "surface",
+        "distance",
+        "venue",
+        "finish_status",
+        "race_date(年なし)"
+      ],
+      "cannot_supply": [
+        "race_id",
+        "ped_id",
+        "jockey",
+        "trainer",
+        "sire",
+        "年 (month/day のみ)",
+        "決定的な join key"
+      ],
+      "note": "過去走は当該馬が『後日また出走した』場合のみ現れる。欠落レースのみを走った馬・以後引退した馬は永久に現れない。また join key が無く、馬名照合を要するため本監査の禁止事項に抵触する。"
+    },
+    "data/走間分析": {
+      "granularity": "horse (13/13 必須列)",
+      "files": [
+        "走間分析・本レースより前の同年・前年全レース_20170105-20191222.csv",
+        "走間分析・本レースより前の同年・前年全レース_20190105-20221228.csv",
+        "走間分析・本レースより前の同年・前年全レース_20220105-20231223.csv",
+        "走間分析・本レースより前の同年・前年全レース_20230105-20241222.csv",
+        "走間分析・本レースより前の同年・前年全レース_20240106-20251221.csv"
+      ],
+      "period_end": "20251221 (2026 を含まない)",
+      "races_recovered": 0,
+      "verdict_reason": "2026 期間外のため欠落集合をまったく復元できない"
+    },
+    "外部 E:/競馬過去走データ": {
+      "2026_subdirs": [
+        "0104",
+        "0105",
+        "0110",
+        "0111",
+        "0112",
+        "0117",
+        "0118",
+        "0124",
+        "0125",
+        "0131",
+        "0201",
+        "0207",
+        "0208",
+        "0210",
+        "0214",
+        "0215",
+        "0221",
+        "0222",
+        "0228",
+        "0301"
+      ],
+      "2026_subdir_range": "0104〜0301",
+      "single_date_files": [
+        "全出走馬分析20260905.csv",
+        "出走馬分析20260905.csv",
+        "一覧20260830.csv",
+        "bias20260912.csv",
+        "bias20260913.csv",
+        "ROI用_20260906.csv"
+      ],
+      "kekka_masters": [
+        "kekka_20130105-20251228_v2.csv (2025 まで)",
+        "raw_data/kekka_1986_2025*.csv (2025 まで)"
+      ],
+      "verdict_reason": "2026 サブディレクトリは 0104〜0301 で止まっており、欠落集合(0307〜0906)をカバーしない。単日ファイルは 0830/0905/0906 のみ。"
+    }
+  }
+}

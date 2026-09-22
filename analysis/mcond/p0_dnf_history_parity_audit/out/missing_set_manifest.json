@@ -1,0 +1,1164 @@
+{
+  "generated_at": "2026-09-22T21:24:15.457777",
+  "scope": "2026 dates only (date > master_v2 max 20251228)",
+  "conclusion_framing_fixed": {
+    "build_horse_history_py": "code bug なし",
+    "_horse_history_parquet_vs_weekly": "weekly 入力に対して完全",
+    "data_weekly": "2026 履歴の authoritative source として不完全",
+    "_horse_history_parquet_vs_consumers": "全出走履歴を必要とする consumer には不完全",
+    "legacy_v6_shadow_replay": "再開条件未達"
+  },
+  "totals": {
+    "n_dates": 72,
+    "n_dates_without_weekly_file": 0,
+    "dates_without_weekly_file": [],
+    "kekka_rows": 32861,
+    "missing_rows": 598,
+    "missing_row_rate": 0.018198,
+    "kekka_races": 2370,
+    "races_with_any_missing": 50,
+    "races_wholly_missing": 49,
+    "races_partially_missing": 1,
+    "race_affected_rate": 0.021097
+  },
+  "by_miss_stage": {
+    "weekly_join": 597,
+    "name_filter": 1
+  },
+  "by_finish_status": {
+    "finished": 564,
+    "non_finish_zero": 34
+  },
+  "by_venue": {
+    "新潟": 174,
+    "中山": 113,
+    "阪神": 63,
+    "福島": 63,
+    "小倉": 55,
+    "東京": 51,
+    "中京": 44,
+    "京都": 35
+  },
+  "by_month": {
+    "5": 125,
+    "7": 104,
+    "6": 99,
+    "8": 92,
+    "3": 81,
+    "4": 81,
+    "9": 16
+  },
+  "by_weekday": {
+    "日": 310,
+    "土": 288
+  },
+  "required_column_availability_in_kekka": {
+    "race_id": true,
+    "race_date": true,
+    "血統登録番号": false,
+    "finish_status": true,
+    "surface": false,
+    "distance": false,
+    "venue": true,
+    "jockey": false,
+    "trainer": false,
+    "sire_pedigree": false,
+    "race_class": false,
+    "umaban": true,
+    "horse_name": true
+  },
+  "required_columns_missing_from_kekka": [
+    "血統登録番号",
+    "surface",
+    "distance",
+    "jockey",
+    "trainer",
+    "sire_pedigree",
+    "race_class"
+  ],
+  "per_date": [
+    {
+      "date": 20260104,
+      "kekka_rows": 334,
+      "weekly_rows": 334,
+      "joined": 334,
+      "name_filtered": 334,
+      "missing": 0
+    },
+    {
+      "date": 20260105,
+      "kekka_rows": 332,
+      "weekly_rows": 332,
+      "joined": 332,
+      "name_filtered": 332,
+      "missing": 0
+    },
+    {
+      "date": 20260110,
+      "kekka_rows": 358,
+      "weekly_rows": 358,
+      "joined": 358,
+      "name_filtered": 358,
+      "missing": 0
+    },
+    {
+      "date": 20260111,
+      "kekka_rows": 366,
+      "weekly_rows": 366,
+      "joined": 366,
+      "name_filtered": 366,
+      "missing": 0
+    },
+    {
+      "date": 20260112,
+      "kekka_rows": 370,
+      "weekly_rows": 370,
+      "joined": 370,
+      "name_filtered": 370,
+      "missing": 0
+    },
+    {
+      "date": 20260117,
+      "kekka_rows": 336,
+      "weekly_rows": 336,
+      "joined": 336,
+      "name_filtered": 336,
+      "missing": 0
+    },
+    {
+      "date": 20260118,
+      "kekka_rows": 351,
+      "weekly_rows": 351,
+      "joined": 351,
+      "name_filtered": 351,
+      "missing": 0
+    },
+    {
+      "date": 20260124,
+      "kekka_rows": 500,
+      "weekly_rows": 500,
+      "joined": 500,
+      "name_filtered": 500,
+      "missing": 0
+    },
+    {
+      "date": 20260125,
+      "kekka_rows": 516,
+      "weekly_rows": 516,
+      "joined": 516,
+      "name_filtered": 516,
+      "missing": 0
+    },
+    {
+      "date": 20260131,
+      "kekka_rows": 519,
+      "weekly_rows": 519,
+      "joined": 519,
+      "name_filtered": 519,
+      "missing": 0
+    },
+    {
+      "date": 20260201,
+      "kekka_rows": 501,
+      "weekly_rows": 501,
+      "joined": 501,
+      "name_filtered": 501,
+      "missing": 0
+    },
+    {
+      "date": 20260207,
+      "kekka_rows": 438,
+      "weekly_rows": 438,
+      "joined": 438,
+      "name_filtered": 438,
+      "missing": 0
+    },
+    {
+      "date": 20260208,
+      "kekka_rows": 165,
+      "weekly_rows": 165,
+      "joined": 165,
+      "name_filtered": 165,
+      "missing": 0
+    },
+    {
+      "date": 20260210,
+      "kekka_rows": 325,
+      "weekly_rows": 325,
+      "joined": 325,
+      "name_filtered": 325,
+      "missing": 0
+    },
+    {
+      "date": 20260214,
+      "kekka_rows": 539,
+      "weekly_rows": 539,
+      "joined": 539,
+      "name_filtered": 539,
+      "missing": 0
+    },
+    {
+      "date": 20260215,
+      "kekka_rows": 506,
+      "weekly_rows": 506,
+      "joined": 506,
+      "name_filtered": 506,
+      "missing": 0
+    },
+    {
+      "date": 20260221,
+      "kekka_rows": 530,
+      "weekly_rows": 530,
+      "joined": 530,
+      "name_filtered": 530,
+      "missing": 0
+    },
+    {
+      "date": 20260222,
+      "kekka_rows": 497,
+      "weekly_rows": 497,
+      "joined": 497,
+      "name_filtered": 497,
+      "missing": 0
+    },
+    {
+      "date": 20260228,
+      "kekka_rows": 520,
+      "weekly_rows": 520,
+      "joined": 520,
+      "name_filtered": 520,
+      "missing": 0
+    },
+    {
+      "date": 20260301,
+      "kekka_rows": 519,
+      "weekly_rows": 519,
+      "joined": 519,
+      "name_filtered": 519,
+      "missing": 0
+    },
+    {
+      "date": 20260307,
+      "kekka_rows": 348,
+      "weekly_rows": 334,
+      "joined": 334,
+      "name_filtered": 334,
+      "missing": 14
+    },
+    {
+      "date": 20260308,
+      "kekka_rows": 321,
+      "weekly_rows": 307,
+      "joined": 307,
+      "name_filtered": 307,
+      "missing": 14
+    },
+    {
+      "date": 20260314,
+      "kekka_rows": 517,
+      "weekly_rows": 517,
+      "joined": 517,
+      "name_filtered": 517,
+      "missing": 0
+    },
+    {
+      "date": 20260315,
+      "kekka_rows": 524,
+      "weekly_rows": 510,
+      "joined": 510,
+      "name_filtered": 510,
+      "missing": 14
+    },
+    {
+      "date": 20260321,
+      "kekka_rows": 508,
+      "weekly_rows": 508,
+      "joined": 508,
+      "name_filtered": 508,
+      "missing": 0
+    },
+    {
+      "date": 20260322,
+      "kekka_rows": 509,
+      "weekly_rows": 495,
+      "joined": 495,
+      "name_filtered": 495,
+      "missing": 14
+    },
+    {
+      "date": 20260328,
+      "kekka_rows": 494,
+      "weekly_rows": 483,
+      "joined": 483,
+      "name_filtered": 483,
+      "missing": 11
+    },
+    {
+      "date": 20260329,
+      "kekka_rows": 497,
+      "weekly_rows": 483,
+      "joined": 483,
+      "name_filtered": 483,
+      "missing": 14
+    },
+    {
+      "date": 20260404,
+      "kekka_rows": 342,
+      "weekly_rows": 328,
+      "joined": 328,
+      "name_filtered": 328,
+      "missing": 14
+    },
+    {
+      "date": 20260405,
+      "kekka_rows": 344,
+      "weekly_rows": 330,
+      "joined": 330,
+      "name_filtered": 330,
+      "missing": 14
+    },
+    {
+      "date": 20260411,
+      "kekka_rows": 526,
+      "weekly_rows": 512,
+      "joined": 512,
+      "name_filtered": 512,
+      "missing": 14
+    },
+    {
+      "date": 20260412,
+      "kekka_rows": 522,
+      "weekly_rows": 508,
+      "joined": 508,
+      "name_filtered": 508,
+      "missing": 14
+    },
+    {
+      "date": 20260418,
+      "kekka_rows": 483,
+      "weekly_rows": 483,
+      "joined": 483,
+      "name_filtered": 483,
+      "missing": 0
+    },
+    {
+      "date": 20260419,
+      "kekka_rows": 490,
+      "weekly_rows": 490,
+      "joined": 490,
+      "name_filtered": 490,
+      "missing": 0
+    },
+    {
+      "date": 20260425,
+      "kekka_rows": 509,
+      "weekly_rows": 498,
+      "joined": 498,
+      "name_filtered": 498,
+      "missing": 11
+    },
+    {
+      "date": 20260426,
+      "kekka_rows": 527,
+      "weekly_rows": 513,
+      "joined": 513,
+      "name_filtered": 513,
+      "missing": 14
+    },
+    {
+      "date": 20260502,
+      "kekka_rows": 492,
+      "weekly_rows": 481,
+      "joined": 481,
+      "name_filtered": 481,
+      "missing": 11
+    },
+    {
+      "date": 20260503,
+      "kekka_rows": 512,
+      "weekly_rows": 498,
+      "joined": 498,
+      "name_filtered": 498,
+      "missing": 14
+    },
+    {
+      "date": 20260509,
+      "kekka_rows": 495,
+      "weekly_rows": 484,
+      "joined": 484,
+      "name_filtered": 484,
+      "missing": 11
+    },
+    {
+      "date": 20260510,
+      "kekka_rows": 503,
+      "weekly_rows": 491,
+      "joined": 491,
+      "name_filtered": 491,
+      "missing": 12
+    },
+    {
+      "date": 20260516,
+      "kekka_rows": 493,
+      "weekly_rows": 493,
+      "joined": 493,
+      "name_filtered": 493,
+      "missing": 0
+    },
+    {
+      "date": 20260517,
+      "kekka_rows": 484,
+      "weekly_rows": 470,
+      "joined": 470,
+      "name_filtered": 470,
+      "missing": 14
+    },
+    {
+      "date": 20260523,
+      "kekka_rows": 549,
+      "weekly_rows": 522,
+      "joined": 522,
+      "name_filtered": 522,
+      "missing": 27
+    },
+    {
+      "date": 20260524,
+      "kekka_rows": 526,
+      "weekly_rows": 513,
+      "joined": 513,
+      "name_filtered": 513,
+      "missing": 13
+    },
+    {
+      "date": 20260530,
+      "kekka_rows": 361,
+      "weekly_rows": 348,
+      "joined": 348,
+      "name_filtered": 348,
+      "missing": 13
+    },
+    {
+      "date": 20260531,
+      "kekka_rows": 348,
+      "weekly_rows": 338,
+      "joined": 338,
+      "name_filtered": 338,
+      "missing": 10
+    },
+    {
+      "date": 20260606,
+      "kekka_rows": 332,
+      "weekly_rows": 318,
+      "joined": 318,
+      "name_filtered": 318,
+      "missing": 14
+    },
+    {
+      "date": 20260607,
+      "kekka_rows": 357,
+      "weekly_rows": 343,
+      "joined": 343,
+      "name_filtered": 343,
+      "missing": 14
+    },
+    {
+      "date": 20260613,
+      "kekka_rows": 498,
+      "weekly_rows": 488,
+      "joined": 488,
+      "name_filtered": 488,
+      "missing": 10
+    },
+    {
+      "date": 20260614,
+      "kekka_rows": 485,
+      "weekly_rows": 485,
+      "joined": 485,
+      "name_filtered": 485,
+      "missing": 0
+    },
+    {
+      "date": 20260620,
+      "kekka_rows": 505,
+      "weekly_rows": 496,
+      "joined": 496,
+      "name_filtered": 496,
+      "missing": 9
+    },
+    {
+      "date": 20260621,
+      "kekka_rows": 501,
+      "weekly_rows": 487,
+      "joined": 487,
+      "name_filtered": 487,
+      "missing": 14
+    },
+    {
+      "date": 20260627,
+      "kekka_rows": 448,
+      "weekly_rows": 424,
+      "joined": 424,
+      "name_filtered": 424,
+      "missing": 24
+    },
+    {
+      "date": 20260628,
+      "kekka_rows": 463,
+      "weekly_rows": 449,
+      "joined": 449,
+      "name_filtered": 449,
+      "missing": 14
+    },
+    {
+      "date": 20260704,
+      "kekka_rows": 466,
+      "weekly_rows": 454,
+      "joined": 454,
+      "name_filtered": 454,
+      "missing": 12
+    },
+    {
+      "date": 20260705,
+      "kekka_rows": 476,
+      "weekly_rows": 464,
+      "joined": 464,
+      "name_filtered": 464,
+      "missing": 12
+    },
+    {
+      "date": 20260711,
+      "kekka_rows": 476,
+      "weekly_rows": 465,
+      "joined": 465,
+      "name_filtered": 465,
+      "missing": 11
+    },
+    {
+      "date": 20260712,
+      "kekka_rows": 470,
+      "weekly_rows": 456,
+      "joined": 456,
+      "name_filtered": 456,
+      "missing": 14
+    },
+    {
+      "date": 20260718,
+      "kekka_rows": 468,
+      "weekly_rows": 448,
+      "joined": 448,
+      "name_filtered": 448,
+      "missing": 20
+    },
+    {
+      "date": 20260719,
+      "kekka_rows": 492,
+      "weekly_rows": 481,
+      "joined": 481,
+      "name_filtered": 481,
+      "missing": 11
+    },
+    {
+      "date": 20260725,
+      "kekka_rows": 449,
+      "weekly_rows": 439,
+      "joined": 439,
+      "name_filtered": 439,
+      "missing": 10
+    },
+    {
+      "date": 20260726,
+      "kekka_rows": 449,
+      "weekly_rows": 435,
+      "joined": 435,
+      "name_filtered": 435,
+      "missing": 14
+    },
+    {
+      "date": 20260801,
+      "kekka_rows": 463,
+      "weekly_rows": 452,
+      "joined": 452,
+      "name_filtered": 452,
+      "missing": 11
+    },
+    {
+      "date": 20260802,
+      "kekka_rows": 464,
+      "weekly_rows": 454,
+      "joined": 454,
+      "name_filtered": 454,
+      "missing": 10
+    },
+    {
+      "date": 20260808,
+      "kekka_rows": 462,
+      "weekly_rows": 452,
+      "joined": 452,
+      "name_filtered": 452,
+      "missing": 10
+    },
+    {
+      "date": 20260809,
+      "kekka_rows": 495,
+      "weekly_rows": 482,
+      "joined": 482,
+      "name_filtered": 482,
+      "missing": 13
+    },
+    {
+      "date": 20260815,
+      "kekka_rows": 487,
+      "weekly_rows": 476,
+      "joined": 476,
+      "name_filtered": 476,
+      "missing": 11
+    },
+    {
+      "date": 20260816,
+      "kekka_rows": 490,
+      "weekly_rows": 478,
+      "joined": 478,
+      "name_filtered": 478,
+      "missing": 12
+    },
+    {
+      "date": 20260829,
+      "kekka_rows": 494,
+      "weekly_rows": 482,
+      "joined": 482,
+      "name_filtered": 482,
+      "missing": 12
+    },
+    {
+      "date": 20260830,
+      "kekka_rows": 479,
+      "weekly_rows": 466,
+      "joined": 466,
+      "name_filtered": 466,
+      "missing": 13
+    },
+    {
+      "date": 20260905,
+      "kekka_rows": 455,
+      "weekly_rows": 447,
+      "joined": 447,
+      "name_filtered": 447,
+      "missing": 8
+    },
+    {
+      "date": 20260906,
+      "kekka_rows": 491,
+      "weekly_rows": 484,
+      "joined": 484,
+      "name_filtered": 483,
+      "missing": 8
+    }
+  ],
+  "missing_races": [
+    {
+      "rid16": "2026030706020304",
+      "missing_rows": 14,
+      "date": 260307,
+      "venue": "中山",
+      "month": 3,
+      "weekday": "土",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026030806020404",
+      "missing_rows": 14,
+      "date": 260308,
+      "venue": "中山",
+      "month": 3,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026031509010804",
+      "missing_rows": 14,
+      "date": 260315,
+      "venue": "阪神",
+      "month": 3,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026032206020804",
+      "missing_rows": 14,
+      "date": 260322,
+      "venue": "中山",
+      "month": 3,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026032809020108",
+      "missing_rows": 11,
+      "date": 260328,
+      "venue": "阪神",
+      "month": 3,
+      "weekday": "土",
+      "kekka_rows_in_race": 11,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026032909020204",
+      "missing_rows": 14,
+      "date": 260329,
+      "venue": "阪神",
+      "month": 3,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026040406030304",
+      "missing_rows": 14,
+      "date": 260404,
+      "venue": "中山",
+      "month": 4,
+      "weekday": "土",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026040506030404",
+      "missing_rows": 14,
+      "date": 260405,
+      "venue": "中山",
+      "month": 4,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026041106030504",
+      "missing_rows": 14,
+      "date": 260411,
+      "venue": "中山",
+      "month": 4,
+      "weekday": "土",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026041206030604",
+      "missing_rows": 14,
+      "date": 260412,
+      "venue": "中山",
+      "month": 4,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026042508030104",
+      "missing_rows": 11,
+      "date": 260425,
+      "venue": "京都",
+      "month": 4,
+      "weekday": "土",
+      "kekka_rows_in_race": 11,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026042608030204",
+      "missing_rows": 14,
+      "date": 260426,
+      "venue": "京都",
+      "month": 4,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026050204010104",
+      "missing_rows": 11,
+      "date": 260502,
+      "venue": "新潟",
+      "month": 5,
+      "weekday": "土",
+      "kekka_rows_in_race": 11,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026050304010204",
+      "missing_rows": 14,
+      "date": 260503,
+      "venue": "新潟",
+      "month": 5,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026050904010304",
+      "missing_rows": 11,
+      "date": 260509,
+      "venue": "新潟",
+      "month": 5,
+      "weekday": "土",
+      "kekka_rows_in_race": 11,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026051004010404",
+      "missing_rows": 12,
+      "date": 260510,
+      "venue": "新潟",
+      "month": 5,
+      "weekday": "日",
+      "kekka_rows_in_race": 12,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026051704010604",
+      "missing_rows": 14,
+      "date": 260517,
+      "venue": "新潟",
+      "month": 5,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026052304010701",
+      "missing_rows": 14,
+      "date": 260523,
+      "venue": "新潟",
+      "month": 5,
+      "weekday": "土",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026052304010704",
+      "missing_rows": 13,
+      "date": 260523,
+      "venue": "新潟",
+      "month": 5,
+      "weekday": "土",
+      "kekka_rows_in_race": 13,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026052404010804",
+      "missing_rows": 13,
+      "date": 260524,
+      "venue": "新潟",
+      "month": 5,
+      "weekday": "日",
+      "kekka_rows_in_race": 13,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026053005021104",
+      "missing_rows": 13,
+      "date": 260530,
+      "venue": "東京",
+      "month": 5,
+      "weekday": "土",
+      "kekka_rows_in_race": 13,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026053108031204",
+      "missing_rows": 10,
+      "date": 260531,
+      "venue": "京都",
+      "month": 5,
+      "weekday": "日",
+      "kekka_rows_in_race": 10,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026060605030101",
+      "missing_rows": 14,
+      "date": 260606,
+      "venue": "東京",
+      "month": 6,
+      "weekday": "土",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026060709030201",
+      "missing_rows": 14,
+      "date": 260607,
+      "venue": "阪神",
+      "month": 6,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026061305030304",
+      "missing_rows": 10,
+      "date": 260613,
+      "venue": "東京",
+      "month": 6,
+      "weekday": "土",
+      "kekka_rows_in_race": 10,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026062009030501",
+      "missing_rows": 9,
+      "date": 260620,
+      "venue": "阪神",
+      "month": 6,
+      "weekday": "土",
+      "kekka_rows_in_race": 9,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026062105030601",
+      "missing_rows": 14,
+      "date": 260621,
+      "venue": "東京",
+      "month": 6,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026062703020101",
+      "missing_rows": 14,
+      "date": 260627,
+      "venue": "福島",
+      "month": 6,
+      "weekday": "土",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026062703020104",
+      "missing_rows": 10,
+      "date": 260627,
+      "venue": "福島",
+      "month": 6,
+      "weekday": "土",
+      "kekka_rows_in_race": 10,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026062803020201",
+      "missing_rows": 14,
+      "date": 260628,
+      "venue": "福島",
+      "month": 6,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026070410020301",
+      "missing_rows": 12,
+      "date": 260704,
+      "venue": "小倉",
+      "month": 7,
+      "weekday": "土",
+      "kekka_rows_in_race": 12,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026070510020401",
+      "missing_rows": 12,
+      "date": 260705,
+      "venue": "小倉",
+      "month": 7,
+      "weekday": "日",
+      "kekka_rows_in_race": 12,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026071103020501",
+      "missing_rows": 11,
+      "date": 260711,
+      "venue": "福島",
+      "month": 7,
+      "weekday": "土",
+      "kekka_rows_in_race": 11,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026071203020601",
+      "missing_rows": 14,
+      "date": 260712,
+      "venue": "福島",
+      "month": 7,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026071810020701",
+      "missing_rows": 12,
+      "date": 260718,
+      "venue": "小倉",
+      "month": 7,
+      "weekday": "土",
+      "kekka_rows_in_race": 12,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026071810020704",
+      "missing_rows": 8,
+      "date": 260718,
+      "venue": "小倉",
+      "month": 7,
+      "weekday": "土",
+      "kekka_rows_in_race": 8,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026071910020801",
+      "missing_rows": 11,
+      "date": 260719,
+      "venue": "小倉",
+      "month": 7,
+      "weekday": "日",
+      "kekka_rows_in_race": 11,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026072504020109",
+      "missing_rows": 10,
+      "date": 260725,
+      "venue": "新潟",
+      "month": 7,
+      "weekday": "土",
+      "kekka_rows_in_race": 10,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026072604020209",
+      "missing_rows": 14,
+      "date": 260726,
+      "venue": "新潟",
+      "month": 7,
+      "weekday": "日",
+      "kekka_rows_in_race": 14,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026080107020309",
+      "missing_rows": 11,
+      "date": 260801,
+      "venue": "中京",
+      "month": 8,
+      "weekday": "土",
+      "kekka_rows_in_race": 11,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026080207020409",
+      "missing_rows": 10,
+      "date": 260802,
+      "venue": "中京",
+      "month": 8,
+      "weekday": "日",
+      "kekka_rows_in_race": 10,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026080807020509",
+      "missing_rows": 10,
+      "date": 260808,
+      "venue": "中京",
+      "month": 8,
+      "weekday": "土",
+      "kekka_rows_in_race": 10,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026080907020609",
+      "missing_rows": 13,
+      "date": 260809,
+      "venue": "中京",
+      "month": 8,
+      "weekday": "日",
+      "kekka_rows_in_race": 13,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026081504020709",
+      "missing_rows": 11,
+      "date": 260815,
+      "venue": "新潟",
+      "month": 8,
+      "weekday": "土",
+      "kekka_rows_in_race": 11,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026081604020809",
+      "missing_rows": 12,
+      "date": 260816,
+      "venue": "新潟",
+      "month": 8,
+      "weekday": "日",
+      "kekka_rows_in_race": 12,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026082904030301",
+      "missing_rows": 12,
+      "date": 260829,
+      "venue": "新潟",
+      "month": 8,
+      "weekday": "土",
+      "kekka_rows_in_race": 12,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026083004030401",
+      "missing_rows": 13,
+      "date": 260830,
+      "venue": "新潟",
+      "month": 8,
+      "weekday": "日",
+      "kekka_rows_in_race": 13,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026090506040101",
+      "missing_rows": 8,
+      "date": 260905,
+      "venue": "中山",
+      "month": 9,
+      "weekday": "土",
+      "kekka_rows_in_race": 8,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026090606040201",
+      "missing_rows": 7,
+      "date": 260906,
+      "venue": "中山",
+      "month": 9,
+      "weekday": "日",
+      "kekka_rows_in_race": 7,
+      "whole_race_missing": true
+    },
+    {
+      "rid16": "2026090609040211",
+      "missing_rows": 1,
+      "date": 260906,
+      "venue": "阪神",
+      "month": 9,
+      "weekday": "日",
+      "kekka_rows_in_race": 16,
+      "whole_race_missing": false
+    }
+  ],
+  "rows_csv": "out/missing_set_rows.csv",
+  "notes": [
+    "血統登録番号 は kekka/weekly いずれにも存在しない → 候補ソース探索が必要",
+    "止(DNF)/外(取消)/消(除外) は kekka『確定着順』で区別不能 (既確認: LIVE_SERVE_DNF_TRACE.md) → non_finish として一括計上"
+  ]
+}

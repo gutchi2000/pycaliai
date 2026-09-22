@@ -9,6 +9,29 @@ model変更・scheduler変更・Optuna・EXP再実行・EXP14 Stage1・ROI評価
 
 ---
 
+> ## ⚠ ERRATUM（2026-09-22、`ALT_SOURCE_RECOVERY_AUDIT_20260922.md` により更新）
+>
+> 本書 §5 は欠落原因を「上流 `data/weekly/{date}.csv` のレース単位欠落」と
+> 記述したが、その**正体を特定できていなかった**。後続監査で確定した:
+>
+> - 欠落 50 レースのうちクラス照合できた**丸ごと欠落 16 件は 16/16 が障害競走**
+>   （距離 2750〜3390m）。`data/weekly` は障害競走を含まない。
+> - これは CLAUDE.md「除外レース: 障害・新馬中心」と整合する
+>   **意図的な scope filter** であり、偶発的な収集失敗ではない。
+>   本書 §5 の「上流の週次データ収集・保存プロセスの欠落」という表現は、
+>   意図性を取り違えている点で不正確だった。
+> - ただし学習側 `master_v2` は障害競走を**含む**（1,538 レース / 3.42%）ため、
+>   **train/serve 間の母集団非対称は実在する**。よって本書の固定結論
+>   （`data/weekly` は 2026 履歴の authoritative source として不完全 /
+>   `_horse_history.parquet` は全出走履歴を必要とする consumer には不完全）は
+>   **そのまま維持される**。
+> - 本書 §5 が「不明」とした馬名一致 filter での 1 行消失は、
+>   `data/kekka` の**馬名 9 文字切り詰め**が原因と特定済み。
+>
+> 最新の根拠は `docs/research/ALT_SOURCE_RECOVERY_AUDIT_20260922.md` を参照。
+
+---
+
 ## 1. Artifact Contract（`build_horse_history.py`のdocstring+コード読解で確定）
 
 | 項目 | 内容 |
