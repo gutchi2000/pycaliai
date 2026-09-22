@@ -1,0 +1,1132 @@
+{
+ "contract": {
+  "generator_script": "build_horse_history.py",
+  "caller": "serve_history_feats.py (fill_history_features/_HistoryIndex/rolling_rate)、呼び出し元はexport_weekly_marks.py(v6本番経路)のみ。predict_weekly.py(旧アンサンブル経路)は使用していない(コード確認済み)。",
+  "update_method": "**全再構築(incrementalではない)**。main()は既存parquetを読まず、毎回master_v2(固定, 2013-2025)+data/kekka/2026*.csv全件+data/weekly/2026*.csv全件から最初から作り直す。",
+  "update_trigger": "docstring記載: 週次運用でPhase C(weekly_post.ps1)にてkekka配置後に再実行、2026分を追随させる想定。",
+  "intended_date_range": "2013-01-05(master_v2開始)〜実行時点でdata/kekka/に存在する最新2026日付まで。終了日の上限はない(都度伸びる)。",
+  "intended_retention_per_horse": "**全キャリア(docstring: '馬ごと全キャリア履歴')**。コード中に.tail(N)等の切り詰め処理は存在しない(load_master_history/load_2026_history/resolve_2026_ped_idsを全読しコード上確認済み)。",
+  "finish_type_inclusion_2013_2025": "止/外/消はmaster_v2自体に存在しないため(build_dataset.py dropna、構造的に不在)、2013-2025分は着順=NaNの行が原理的に発生しない。",
+  "finish_type_inclusion_2026": "kekka『確定着順』の0/空値をpos=NaNとして残す(止・外・消を区別せず一律NaN、データソース自体がこの3種を区別しない——LIVE_SERVE_DNF_TRACE.mdで既確認)。",
+  "horse_id_resolution_2013_2025": "master_v2の血統登録番号を直接使用(権威あるID)。",
+  "horse_id_resolution_2026": "resolve_2026_ped_ids(): 馬名完全一致でmaster由来のエンティティ表と照合、(種牡馬一致 or 生年±1一致)で1件に絞れればそのped_idを採用。0件または曖昧ならsynthetic_id(name, sire)(決定論的hash)を新規発行。**2026どうし(既存2026行)との照合はしない**——比較対象はmasterのみ。",
+  "explicit_full_history_contract": "**存在する**。docstring 6行目「馬ごと全キャリア履歴parquetを構築する」が明示的契約。",
+  "production_usage_confirmed": "course_n_prev/course_win_rate/course_top3_rate/jockey_n_prev/jockey_win_rate/jockey_top3_rate/hist_same_cond_best_pos/top3_rate/count/hist_same_place_best_pos/horse_fuku10/30/jockey_fuku30/90/trainer_fuku30/90 (serve_history_feats.NUM_FEATS、計16特徴)。kako5_*(13特徴)はこのparquetを使わない(parse_kako5.build_from_kako5()が別のTARGETkako5 CSVを直接読む、既知)。"
+ },
+ "authoritative_universe_summary": {
+  "n_dates": 72,
+  "total_kekka_rows": 32861,
+  "total_nonfinish_kekka_rows": 260,
+  "dates_missing_weekly": 0
+ },
+ "funnel_reproduction": {
+  "n_dates_2026_scope": 72,
+  "stage0_kekka_total": 32861,
+  "stage1_weekly_join_total": 32264,
+  "stage2_name_filter_total": 32263,
+  "total_lost_at_weekly_join": 597,
+  "total_lost_at_name_filter": 1,
+  "dates_with_weekly_missing": 0,
+  "by_date": [
+   {
+    "date": 20260104,
+    "stage0_kekka_rows": 334,
+    "stage1_weekly_join": 334,
+    "stage2_name_filter": 334,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260105,
+    "stage0_kekka_rows": 332,
+    "stage1_weekly_join": 332,
+    "stage2_name_filter": 332,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260110,
+    "stage0_kekka_rows": 358,
+    "stage1_weekly_join": 358,
+    "stage2_name_filter": 358,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260111,
+    "stage0_kekka_rows": 366,
+    "stage1_weekly_join": 366,
+    "stage2_name_filter": 366,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260112,
+    "stage0_kekka_rows": 370,
+    "stage1_weekly_join": 370,
+    "stage2_name_filter": 370,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260117,
+    "stage0_kekka_rows": 336,
+    "stage1_weekly_join": 336,
+    "stage2_name_filter": 336,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260118,
+    "stage0_kekka_rows": 351,
+    "stage1_weekly_join": 351,
+    "stage2_name_filter": 351,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260124,
+    "stage0_kekka_rows": 500,
+    "stage1_weekly_join": 500,
+    "stage2_name_filter": 500,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260125,
+    "stage0_kekka_rows": 516,
+    "stage1_weekly_join": 516,
+    "stage2_name_filter": 516,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260131,
+    "stage0_kekka_rows": 519,
+    "stage1_weekly_join": 519,
+    "stage2_name_filter": 519,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260201,
+    "stage0_kekka_rows": 501,
+    "stage1_weekly_join": 501,
+    "stage2_name_filter": 501,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260207,
+    "stage0_kekka_rows": 438,
+    "stage1_weekly_join": 438,
+    "stage2_name_filter": 438,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260208,
+    "stage0_kekka_rows": 165,
+    "stage1_weekly_join": 165,
+    "stage2_name_filter": 165,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260210,
+    "stage0_kekka_rows": 325,
+    "stage1_weekly_join": 325,
+    "stage2_name_filter": 325,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260214,
+    "stage0_kekka_rows": 539,
+    "stage1_weekly_join": 539,
+    "stage2_name_filter": 539,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260215,
+    "stage0_kekka_rows": 506,
+    "stage1_weekly_join": 506,
+    "stage2_name_filter": 506,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260221,
+    "stage0_kekka_rows": 530,
+    "stage1_weekly_join": 530,
+    "stage2_name_filter": 530,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260222,
+    "stage0_kekka_rows": 497,
+    "stage1_weekly_join": 497,
+    "stage2_name_filter": 497,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260228,
+    "stage0_kekka_rows": 520,
+    "stage1_weekly_join": 520,
+    "stage2_name_filter": 520,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260301,
+    "stage0_kekka_rows": 519,
+    "stage1_weekly_join": 519,
+    "stage2_name_filter": 519,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260307,
+    "stage0_kekka_rows": 348,
+    "stage1_weekly_join": 334,
+    "stage2_name_filter": 334,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260308,
+    "stage0_kekka_rows": 321,
+    "stage1_weekly_join": 307,
+    "stage2_name_filter": 307,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260314,
+    "stage0_kekka_rows": 517,
+    "stage1_weekly_join": 517,
+    "stage2_name_filter": 517,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260315,
+    "stage0_kekka_rows": 524,
+    "stage1_weekly_join": 510,
+    "stage2_name_filter": 510,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260321,
+    "stage0_kekka_rows": 508,
+    "stage1_weekly_join": 508,
+    "stage2_name_filter": 508,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260322,
+    "stage0_kekka_rows": 509,
+    "stage1_weekly_join": 495,
+    "stage2_name_filter": 495,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260328,
+    "stage0_kekka_rows": 494,
+    "stage1_weekly_join": 483,
+    "stage2_name_filter": 483,
+    "drop_at_join": 11,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260329,
+    "stage0_kekka_rows": 497,
+    "stage1_weekly_join": 483,
+    "stage2_name_filter": 483,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260404,
+    "stage0_kekka_rows": 342,
+    "stage1_weekly_join": 328,
+    "stage2_name_filter": 328,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260405,
+    "stage0_kekka_rows": 344,
+    "stage1_weekly_join": 330,
+    "stage2_name_filter": 330,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260411,
+    "stage0_kekka_rows": 526,
+    "stage1_weekly_join": 512,
+    "stage2_name_filter": 512,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260412,
+    "stage0_kekka_rows": 522,
+    "stage1_weekly_join": 508,
+    "stage2_name_filter": 508,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260418,
+    "stage0_kekka_rows": 483,
+    "stage1_weekly_join": 483,
+    "stage2_name_filter": 483,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260419,
+    "stage0_kekka_rows": 490,
+    "stage1_weekly_join": 490,
+    "stage2_name_filter": 490,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260425,
+    "stage0_kekka_rows": 509,
+    "stage1_weekly_join": 498,
+    "stage2_name_filter": 498,
+    "drop_at_join": 11,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260426,
+    "stage0_kekka_rows": 527,
+    "stage1_weekly_join": 513,
+    "stage2_name_filter": 513,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260502,
+    "stage0_kekka_rows": 492,
+    "stage1_weekly_join": 481,
+    "stage2_name_filter": 481,
+    "drop_at_join": 11,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260503,
+    "stage0_kekka_rows": 512,
+    "stage1_weekly_join": 498,
+    "stage2_name_filter": 498,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260509,
+    "stage0_kekka_rows": 495,
+    "stage1_weekly_join": 484,
+    "stage2_name_filter": 484,
+    "drop_at_join": 11,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260510,
+    "stage0_kekka_rows": 503,
+    "stage1_weekly_join": 491,
+    "stage2_name_filter": 491,
+    "drop_at_join": 12,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260516,
+    "stage0_kekka_rows": 493,
+    "stage1_weekly_join": 493,
+    "stage2_name_filter": 493,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260517,
+    "stage0_kekka_rows": 484,
+    "stage1_weekly_join": 470,
+    "stage2_name_filter": 470,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260523,
+    "stage0_kekka_rows": 549,
+    "stage1_weekly_join": 522,
+    "stage2_name_filter": 522,
+    "drop_at_join": 27,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260524,
+    "stage0_kekka_rows": 526,
+    "stage1_weekly_join": 513,
+    "stage2_name_filter": 513,
+    "drop_at_join": 13,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260530,
+    "stage0_kekka_rows": 361,
+    "stage1_weekly_join": 348,
+    "stage2_name_filter": 348,
+    "drop_at_join": 13,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260531,
+    "stage0_kekka_rows": 348,
+    "stage1_weekly_join": 338,
+    "stage2_name_filter": 338,
+    "drop_at_join": 10,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260606,
+    "stage0_kekka_rows": 332,
+    "stage1_weekly_join": 318,
+    "stage2_name_filter": 318,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260607,
+    "stage0_kekka_rows": 357,
+    "stage1_weekly_join": 343,
+    "stage2_name_filter": 343,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260613,
+    "stage0_kekka_rows": 498,
+    "stage1_weekly_join": 488,
+    "stage2_name_filter": 488,
+    "drop_at_join": 10,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260614,
+    "stage0_kekka_rows": 485,
+    "stage1_weekly_join": 485,
+    "stage2_name_filter": 485,
+    "drop_at_join": 0,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260620,
+    "stage0_kekka_rows": 505,
+    "stage1_weekly_join": 496,
+    "stage2_name_filter": 496,
+    "drop_at_join": 9,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260621,
+    "stage0_kekka_rows": 501,
+    "stage1_weekly_join": 487,
+    "stage2_name_filter": 487,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260627,
+    "stage0_kekka_rows": 448,
+    "stage1_weekly_join": 424,
+    "stage2_name_filter": 424,
+    "drop_at_join": 24,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260628,
+    "stage0_kekka_rows": 463,
+    "stage1_weekly_join": 449,
+    "stage2_name_filter": 449,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260704,
+    "stage0_kekka_rows": 466,
+    "stage1_weekly_join": 454,
+    "stage2_name_filter": 454,
+    "drop_at_join": 12,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260705,
+    "stage0_kekka_rows": 476,
+    "stage1_weekly_join": 464,
+    "stage2_name_filter": 464,
+    "drop_at_join": 12,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260711,
+    "stage0_kekka_rows": 476,
+    "stage1_weekly_join": 465,
+    "stage2_name_filter": 465,
+    "drop_at_join": 11,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260712,
+    "stage0_kekka_rows": 470,
+    "stage1_weekly_join": 456,
+    "stage2_name_filter": 456,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260718,
+    "stage0_kekka_rows": 468,
+    "stage1_weekly_join": 448,
+    "stage2_name_filter": 448,
+    "drop_at_join": 20,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260719,
+    "stage0_kekka_rows": 492,
+    "stage1_weekly_join": 481,
+    "stage2_name_filter": 481,
+    "drop_at_join": 11,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260725,
+    "stage0_kekka_rows": 449,
+    "stage1_weekly_join": 439,
+    "stage2_name_filter": 439,
+    "drop_at_join": 10,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260726,
+    "stage0_kekka_rows": 449,
+    "stage1_weekly_join": 435,
+    "stage2_name_filter": 435,
+    "drop_at_join": 14,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260801,
+    "stage0_kekka_rows": 463,
+    "stage1_weekly_join": 452,
+    "stage2_name_filter": 452,
+    "drop_at_join": 11,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260802,
+    "stage0_kekka_rows": 464,
+    "stage1_weekly_join": 454,
+    "stage2_name_filter": 454,
+    "drop_at_join": 10,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260808,
+    "stage0_kekka_rows": 462,
+    "stage1_weekly_join": 452,
+    "stage2_name_filter": 452,
+    "drop_at_join": 10,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260809,
+    "stage0_kekka_rows": 495,
+    "stage1_weekly_join": 482,
+    "stage2_name_filter": 482,
+    "drop_at_join": 13,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260815,
+    "stage0_kekka_rows": 487,
+    "stage1_weekly_join": 476,
+    "stage2_name_filter": 476,
+    "drop_at_join": 11,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260816,
+    "stage0_kekka_rows": 490,
+    "stage1_weekly_join": 478,
+    "stage2_name_filter": 478,
+    "drop_at_join": 12,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260829,
+    "stage0_kekka_rows": 494,
+    "stage1_weekly_join": 482,
+    "stage2_name_filter": 482,
+    "drop_at_join": 12,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260830,
+    "stage0_kekka_rows": 479,
+    "stage1_weekly_join": 466,
+    "stage2_name_filter": 466,
+    "drop_at_join": 13,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260905,
+    "stage0_kekka_rows": 455,
+    "stage1_weekly_join": 447,
+    "stage2_name_filter": 447,
+    "drop_at_join": 8,
+    "drop_at_name_filter": 0
+   },
+   {
+    "date": 20260906,
+    "stage0_kekka_rows": 491,
+    "stage1_weekly_join": 484,
+    "stage2_name_filter": 483,
+    "drop_at_join": 7,
+    "drop_at_name_filter": 1
+   }
+  ]
+ },
+ "parquet_comparison": {
+  "parquet_2026_total_rows": 32263,
+  "parquet_2026_date_range": [
+   20260104,
+   20260906
+  ],
+  "funnel_matches_parquet_exactly": true,
+  "n_dates_with_diff": 0,
+  "detail_by_date": [
+   {
+    "date": 20260104,
+    "funnel_final_expected": 334,
+    "parquet_actual": 334,
+    "diff": 0
+   },
+   {
+    "date": 20260105,
+    "funnel_final_expected": 332,
+    "parquet_actual": 332,
+    "diff": 0
+   },
+   {
+    "date": 20260110,
+    "funnel_final_expected": 358,
+    "parquet_actual": 358,
+    "diff": 0
+   },
+   {
+    "date": 20260111,
+    "funnel_final_expected": 366,
+    "parquet_actual": 366,
+    "diff": 0
+   },
+   {
+    "date": 20260112,
+    "funnel_final_expected": 370,
+    "parquet_actual": 370,
+    "diff": 0
+   },
+   {
+    "date": 20260117,
+    "funnel_final_expected": 336,
+    "parquet_actual": 336,
+    "diff": 0
+   },
+   {
+    "date": 20260118,
+    "funnel_final_expected": 351,
+    "parquet_actual": 351,
+    "diff": 0
+   },
+   {
+    "date": 20260124,
+    "funnel_final_expected": 500,
+    "parquet_actual": 500,
+    "diff": 0
+   },
+   {
+    "date": 20260125,
+    "funnel_final_expected": 516,
+    "parquet_actual": 516,
+    "diff": 0
+   },
+   {
+    "date": 20260131,
+    "funnel_final_expected": 519,
+    "parquet_actual": 519,
+    "diff": 0
+   },
+   {
+    "date": 20260201,
+    "funnel_final_expected": 501,
+    "parquet_actual": 501,
+    "diff": 0
+   },
+   {
+    "date": 20260207,
+    "funnel_final_expected": 438,
+    "parquet_actual": 438,
+    "diff": 0
+   },
+   {
+    "date": 20260208,
+    "funnel_final_expected": 165,
+    "parquet_actual": 165,
+    "diff": 0
+   },
+   {
+    "date": 20260210,
+    "funnel_final_expected": 325,
+    "parquet_actual": 325,
+    "diff": 0
+   },
+   {
+    "date": 20260214,
+    "funnel_final_expected": 539,
+    "parquet_actual": 539,
+    "diff": 0
+   },
+   {
+    "date": 20260215,
+    "funnel_final_expected": 506,
+    "parquet_actual": 506,
+    "diff": 0
+   },
+   {
+    "date": 20260221,
+    "funnel_final_expected": 530,
+    "parquet_actual": 530,
+    "diff": 0
+   },
+   {
+    "date": 20260222,
+    "funnel_final_expected": 497,
+    "parquet_actual": 497,
+    "diff": 0
+   },
+   {
+    "date": 20260228,
+    "funnel_final_expected": 520,
+    "parquet_actual": 520,
+    "diff": 0
+   },
+   {
+    "date": 20260301,
+    "funnel_final_expected": 519,
+    "parquet_actual": 519,
+    "diff": 0
+   },
+   {
+    "date": 20260307,
+    "funnel_final_expected": 334,
+    "parquet_actual": 334,
+    "diff": 0
+   },
+   {
+    "date": 20260308,
+    "funnel_final_expected": 307,
+    "parquet_actual": 307,
+    "diff": 0
+   },
+   {
+    "date": 20260314,
+    "funnel_final_expected": 517,
+    "parquet_actual": 517,
+    "diff": 0
+   },
+   {
+    "date": 20260315,
+    "funnel_final_expected": 510,
+    "parquet_actual": 510,
+    "diff": 0
+   },
+   {
+    "date": 20260321,
+    "funnel_final_expected": 508,
+    "parquet_actual": 508,
+    "diff": 0
+   },
+   {
+    "date": 20260322,
+    "funnel_final_expected": 495,
+    "parquet_actual": 495,
+    "diff": 0
+   },
+   {
+    "date": 20260328,
+    "funnel_final_expected": 483,
+    "parquet_actual": 483,
+    "diff": 0
+   },
+   {
+    "date": 20260329,
+    "funnel_final_expected": 483,
+    "parquet_actual": 483,
+    "diff": 0
+   },
+   {
+    "date": 20260404,
+    "funnel_final_expected": 328,
+    "parquet_actual": 328,
+    "diff": 0
+   },
+   {
+    "date": 20260405,
+    "funnel_final_expected": 330,
+    "parquet_actual": 330,
+    "diff": 0
+   },
+   {
+    "date": 20260411,
+    "funnel_final_expected": 512,
+    "parquet_actual": 512,
+    "diff": 0
+   },
+   {
+    "date": 20260412,
+    "funnel_final_expected": 508,
+    "parquet_actual": 508,
+    "diff": 0
+   },
+   {
+    "date": 20260418,
+    "funnel_final_expected": 483,
+    "parquet_actual": 483,
+    "diff": 0
+   },
+   {
+    "date": 20260419,
+    "funnel_final_expected": 490,
+    "parquet_actual": 490,
+    "diff": 0
+   },
+   {
+    "date": 20260425,
+    "funnel_final_expected": 498,
+    "parquet_actual": 498,
+    "diff": 0
+   },
+   {
+    "date": 20260426,
+    "funnel_final_expected": 513,
+    "parquet_actual": 513,
+    "diff": 0
+   },
+   {
+    "date": 20260502,
+    "funnel_final_expected": 481,
+    "parquet_actual": 481,
+    "diff": 0
+   },
+   {
+    "date": 20260503,
+    "funnel_final_expected": 498,
+    "parquet_actual": 498,
+    "diff": 0
+   },
+   {
+    "date": 20260509,
+    "funnel_final_expected": 484,
+    "parquet_actual": 484,
+    "diff": 0
+   },
+   {
+    "date": 20260510,
+    "funnel_final_expected": 491,
+    "parquet_actual": 491,
+    "diff": 0
+   },
+   {
+    "date": 20260516,
+    "funnel_final_expected": 493,
+    "parquet_actual": 493,
+    "diff": 0
+   },
+   {
+    "date": 20260517,
+    "funnel_final_expected": 470,
+    "parquet_actual": 470,
+    "diff": 0
+   },
+   {
+    "date": 20260523,
+    "funnel_final_expected": 522,
+    "parquet_actual": 522,
+    "diff": 0
+   },
+   {
+    "date": 20260524,
+    "funnel_final_expected": 513,
+    "parquet_actual": 513,
+    "diff": 0
+   },
+   {
+    "date": 20260530,
+    "funnel_final_expected": 348,
+    "parquet_actual": 348,
+    "diff": 0
+   },
+   {
+    "date": 20260531,
+    "funnel_final_expected": 338,
+    "parquet_actual": 338,
+    "diff": 0
+   },
+   {
+    "date": 20260606,
+    "funnel_final_expected": 318,
+    "parquet_actual": 318,
+    "diff": 0
+   },
+   {
+    "date": 20260607,
+    "funnel_final_expected": 343,
+    "parquet_actual": 343,
+    "diff": 0
+   },
+   {
+    "date": 20260613,
+    "funnel_final_expected": 488,
+    "parquet_actual": 488,
+    "diff": 0
+   },
+   {
+    "date": 20260614,
+    "funnel_final_expected": 485,
+    "parquet_actual": 485,
+    "diff": 0
+   },
+   {
+    "date": 20260620,
+    "funnel_final_expected": 496,
+    "parquet_actual": 496,
+    "diff": 0
+   },
+   {
+    "date": 20260621,
+    "funnel_final_expected": 487,
+    "parquet_actual": 487,
+    "diff": 0
+   },
+   {
+    "date": 20260627,
+    "funnel_final_expected": 424,
+    "parquet_actual": 424,
+    "diff": 0
+   },
+   {
+    "date": 20260628,
+    "funnel_final_expected": 449,
+    "parquet_actual": 449,
+    "diff": 0
+   },
+   {
+    "date": 20260704,
+    "funnel_final_expected": 454,
+    "parquet_actual": 454,
+    "diff": 0
+   },
+   {
+    "date": 20260705,
+    "funnel_final_expected": 464,
+    "parquet_actual": 464,
+    "diff": 0
+   },
+   {
+    "date": 20260711,
+    "funnel_final_expected": 465,
+    "parquet_actual": 465,
+    "diff": 0
+   },
+   {
+    "date": 20260712,
+    "funnel_final_expected": 456,
+    "parquet_actual": 456,
+    "diff": 0
+   },
+   {
+    "date": 20260718,
+    "funnel_final_expected": 448,
+    "parquet_actual": 448,
+    "diff": 0
+   },
+   {
+    "date": 20260719,
+    "funnel_final_expected": 481,
+    "parquet_actual": 481,
+    "diff": 0
+   },
+   {
+    "date": 20260725,
+    "funnel_final_expected": 439,
+    "parquet_actual": 439,
+    "diff": 0
+   },
+   {
+    "date": 20260726,
+    "funnel_final_expected": 435,
+    "parquet_actual": 435,
+    "diff": 0
+   },
+   {
+    "date": 20260801,
+    "funnel_final_expected": 452,
+    "parquet_actual": 452,
+    "diff": 0
+   },
+   {
+    "date": 20260802,
+    "funnel_final_expected": 454,
+    "parquet_actual": 454,
+    "diff": 0
+   },
+   {
+    "date": 20260808,
+    "funnel_final_expected": 452,
+    "parquet_actual": 452,
+    "diff": 0
+   },
+   {
+    "date": 20260809,
+    "funnel_final_expected": 482,
+    "parquet_actual": 482,
+    "diff": 0
+   },
+   {
+    "date": 20260815,
+    "funnel_final_expected": 476,
+    "parquet_actual": 476,
+    "diff": 0
+   },
+   {
+    "date": 20260816,
+    "funnel_final_expected": 478,
+    "parquet_actual": 478,
+    "diff": 0
+   },
+   {
+    "date": 20260829,
+    "funnel_final_expected": 482,
+    "parquet_actual": 482,
+    "diff": 0
+   },
+   {
+    "date": 20260830,
+    "funnel_final_expected": 466,
+    "parquet_actual": 466,
+    "diff": 0
+   },
+   {
+    "date": 20260905,
+    "funnel_final_expected": 447,
+    "parquet_actual": 447,
+    "diff": 0
+   },
+   {
+    "date": 20260906,
+    "funnel_final_expected": 483,
+    "parquet_actual": 483,
+    "diff": 0
+   }
+  ]
+ },
+ "horse_level_position_analysis": {
+  "method": "serve_history_feats._HistoryIndex.resolve()による名前ベース解決(このステップのみ)、複数走を持つ2026馬をサンプリングし日付間隔30日以上のギャップの経歴内位置を分類",
+  "n_horses_sampled": 300,
+  "position_distribution": {
+   "oldest_gap": 166,
+   "middle_gap": 38,
+   "latest_gap": 73,
+   "no_gap_detected": 23
+  }
+ },
+ "production_consumers": [
+  {
+   "consumer": "serve_history_feats.py: fill_history_features()/_HistoryIndex/rolling_rate()",
+   "columns_read": [
+    "ped_id/name/sire/birth_year/date/place/surface/dist/pos/jockey_code/trainer_code"
+   ],
+   "needs_full_history": true,
+   "features_affected_by_gaps": [
+    "course_n_prev",
+    "course_win_rate",
+    "course_top3_rate",
+    "jockey_n_prev",
+    "jockey_win_rate",
+    "jockey_top3_rate",
+    "hist_same_cond_best_pos",
+    "hist_same_cond_top3_rate",
+    "hist_same_cond_count",
+    "hist_same_place_best_pos",
+    "horse_fuku10",
+    "horse_fuku30",
+    "jockey_fuku30",
+    "jockey_fuku90",
+    "trainer_fuku30",
+    "trainer_fuku90"
+   ],
+   "used_in_current_serve": true,
+   "fallback_exists": "Yes(fail-open): fill_history_features失敗時はNaNのまま(export_weekly_marks.py try/except、値は変わらず欠損のまま)。個々の行の欠落自体にfallbackはない(黙って過小カウント/古い値になる、エラーにはならない)。",
+   "impact_status": "CONFIRMED(course/jockey/hist_same/fuku系、2026年の欠落分だけ経験数過小カウント。2013-2025分は本監査の対象外、既存validate_serve_history_feats.pyでparity検証済み)。"
+  },
+  {
+   "consumer": "predict_weekly.py(旧アンサンブル経路)",
+   "columns_read": [],
+   "needs_full_history": false,
+   "features_affected_by_gaps": [],
+   "used_in_current_serve": false,
+   "fallback_exists": "該当なし(jockey_stats.csv/trainer_stats.csvという別のbuild_dataset.py由来ファイルを使う、本parquetは不使用)",
+   "impact_status": "NO_IMPACT(本parquetを参照しない)"
+  },
+  {
+   "consumer": "parse_kako5.build_from_kako5()(kako5_*13特徴)",
+   "columns_read": [],
+   "needs_full_history": false,
+   "features_affected_by_gaps": [],
+   "used_in_current_serve": true,
+   "fallback_exists": "該当なし(TARGET週次kako5 CSVを直接読む、別データソース)",
+   "impact_status": "NO_IMPACT(本parquetを使わない、別途Category B/Eとして既に評価済み)"
+  },
+  {
+   "consumer": "analysis/validate_serve_history_feats.py・analysis/measure_serve_coverage.py(既存の検証/計測ツール)",
+   "columns_read": [
+    "全16列"
+   ],
+   "needs_full_history": true,
+   "features_affected_by_gaps": [
+    "上記16特徴と同一"
+   ],
+   "used_in_current_serve": false,
+   "fallback_exists": "該当なし(オフライン検証ツール)",
+   "impact_status": "POSSIBLE(検証範囲はtest=2024-2025のmaster_v2由来分のみ、2026補完分のカバレッジ測定は範囲外だった可能性——本監査で発見した欠損は事前に検知されていなかった)。"
+  }
+ ],
+ "gap_root_cause_classification": {
+  "weekly_missing_or_unparsed": "確認済み: 特定日・特定レースでweekly CSVが存在しない/パース失敗により当該レース全馬がstage1で消失",
+  "name_exact_match_filter": "確認済み: kekka側馬名とweekly側馬名(parse_weekly_lightの馬名S列)が完全一致しない場合、stage2で消失(具体的な原因—全角半角/空白/表記ゆれ等—は個別ケースにより異なり本監査では全件特定していない)",
+  "incremental_update_boundary": "該当なし(全再構築方式のため無関係)",
+  "horse_id_resolution_failure": "該当なし(resolve_2026_ped_idsは常にsynthetic_idへのfallbackを持ち、行自体を落とすことはない——行の消失はload_2026_history()のjoin/filter段階でのみ発生)",
+  "date_range_filter": "該当なし(d<=master_max_dateのみ、2026年は全て対象)",
+  "dropna_dnf_scratch": "該当なし(2026分はpos=NaNのまま保持、行自体は残る)",
+  "other_unresolved": "本監査で全ての消失をstage1(weekly join)/stage2(名前filter)のいずれかに分類できた(下記funnel_reproductionのby_date参照)。個々の名前不一致の具体的文字差分までは特定していない。"
+ }
+}
