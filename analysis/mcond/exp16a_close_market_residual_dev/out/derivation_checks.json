@@ -19,45 +19,80 @@
   "share_races_with_max_p_over_pi_gt_1/(1-t)": 0.9466666666666667,
   "note": "現金を持てる場合の参加条件は max_i p_i/π_i > 1/(1-t)。平均 KL と閾値の比較は停止規則にならない"
  },
+ "C2b_selection_with_estimation_noise": {
+  "by_noise": {
+   "q_noise_sd_0.0": {
+    "mean_growth_under_true_p": 0.02997633536527933,
+    "share_races_entered": 0.99,
+    "mean_stake_fraction": 0.12757558610803493,
+    "share_races_growth_positive": 0.99
+   },
+   "q_noise_sd_0.1": {
+    "mean_growth_under_true_p": 0.025660624320693434,
+    "share_races_entered": 0.995,
+    "mean_stake_fraction": 0.12380185627229295,
+    "share_races_growth_positive": 0.965
+   },
+   "q_noise_sd_0.2": {
+    "mean_growth_under_true_p": 0.01704854723055793,
+    "share_races_entered": 0.995,
+    "mean_stake_fraction": 0.13674614807048552,
+    "share_races_growth_positive": 0.79
+   },
+   "q_noise_sd_0.4": {
+    "mean_growth_under_true_p": -0.011385931872581223,
+    "share_races_entered": 1.0,
+    "mean_stake_fraction": 0.2107109958161405,
+    "share_races_growth_positive": 0.305
+   },
+   "q_noise_sd_0.8": {
+    "mean_growth_under_true_p": -0.1358780628902771,
+    "share_races_entered": 1.0,
+    "mean_stake_fraction": 0.3543894883275215,
+    "share_races_growth_positive": 0.035
+   }
+  },
+  "note": "q=p+推定ノイズ で q_i/π_i 選抜 → 現金込み Kelly → 真の p で期待対数成長を評価。結論はノイズ水準に依存するので、この表をそのまま報告する"
+ },
  "C3_self_dilution": {
   "growth_by_stake_share_of_pool": {
-   "stake_share_0.0": -0.12752537933052036,
-   "stake_share_0.001": -0.12869503453925588,
-   "stake_share_0.005": -0.13335886741269912,
-   "stake_share_0.02": -0.15064116377798048,
-   "stake_share_0.05": -0.18426519755868903
+   "stake_share_0.0": -0.11110996153506329,
+   "stake_share_0.001": -0.11237581453825386,
+   "stake_share_0.005": -0.11741831539307337,
+   "stake_share_0.02": -0.13603804046365,
+   "stake_share_0.05": -0.17199349678363546
   },
   "note": "プールに対する賭け金比率が上がるほど実現オッズが下がり成長率が落ちる"
  },
  "C4_decision_vs_final_odds_symmetric_noise": {
   "mean_growth_by_drift_sd": {
-   "drift_sd_0.0": -0.07663166432492434,
-   "drift_sd_0.05": -0.0775109793333615,
-   "drift_sd_0.1": -0.07413310236818174,
-   "drift_sd_0.2": -0.060970363773049076
+   "drift_sd_0.0": -0.07766334478471745,
+   "drift_sd_0.05": -0.07724709384167022,
+   "drift_sd_0.1": -0.07198352877823808,
+   "drift_sd_0.2": -0.059638669255338825
   },
   "note": "対称で情報を持たない drift は成長率を系統的には下げない (Jensen により僅かに上げることすらある)。『判断時点と確定が違う』こと自体は害の理由にならない"
  },
  "C4b_adverse_correction_drift": {
   "by_lambda": {
    "correction_lambda_0.0": {
-    "mean_growth": -0.0798402890068481,
-    "mean_max_p_over_pi_final": 3.316600064465493
+    "mean_growth": -0.07104814864945123,
+    "mean_max_p_over_pi_final": 3.392513883759303
    },
    "correction_lambda_0.25": {
-    "mean_growth": -0.1387506178834586,
-    "mean_max_p_over_pi_final": 2.360530975379228
+    "mean_growth": -0.14064956383186136,
+    "mean_max_p_over_pi_final": 2.3737356953056934
    },
    "correction_lambda_0.5": {
-    "mean_growth": -0.18337551116265086,
-    "mean_max_p_over_pi_final": 1.7649815681043979
+    "mean_growth": -0.18572392848459515,
+    "mean_max_p_over_pi_final": 1.7422607864730273
    },
    "correction_lambda_0.75": {
-    "mean_growth": -0.2135918166120167,
-    "mean_max_p_over_pi_final": 1.2960708585346732
+    "mean_growth": -0.21377218037433177,
+    "mean_max_p_over_pi_final": 1.2926386310580775
    },
    "correction_lambda_1.0": {
-    "mean_growth": -0.22314355131420968,
+    "mean_growth": -0.22314355131420974,
     "mean_max_p_over_pi_final": 1.0000000000000002
    }
   },
@@ -65,9 +100,9 @@
  },
  "C5_granularity_and_breakage": {
   "mean_growth_by_unit": {
-   "unit_1yen_of_10000": -0.0861531669251938,
-   "unit_100yen_of_10000": -0.08901952482267961,
-   "unit_500yen_of_10000": -0.11694631339273025
+   "unit_1yen_of_10000": -0.08364355753517394,
+   "unit_100yen_of_10000": -0.08602087126165811,
+   "unit_500yen_of_10000": -0.11010135188601941
   },
   "note": "100 円単位と 0.1 刻みオッズの切り捨ては成長率を押し下げる"
  }

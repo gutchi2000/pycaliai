@@ -8,8 +8,7 @@ provenance.py — EXP16A Stage 0: 単勝市場データの素性実測 + dry run
   - 欠損・取消(出走表に無い馬番)・返還相当の扱い
   - race 内 de-vig (比例) と overround
   - ファイル sha256
-  - dry run: **2022 のみ** で Q0(確定 de-vig) と pre_snapshot 市場の race-level categorical logloss
-出力: out/market_provenance.json, STAGE0_DRY_RUN.json
+出力: out/market_provenance.json (STAGE0_DRY_RUN.json は race_population.py が作る)
 実行: python -m analysis.mcond.exp16a_close_market_residual_dev.provenance
 """
 from __future__ import annotations
@@ -202,58 +201,9 @@ def main():
     (OUT / "market_provenance.json").write_text(json.dumps(prov, ensure_ascii=False, indent=1,
                                                            default=float), encoding="utf-8")
 
-    # ---- dry run: 2022 のみ (selection 年)。2023 は Stage 0 では評価しない
-    def race_ll(pi_col: str, sub: pd.DataFrame):
-        lls, top1 = [], []
-        for _, r in sub.iterrows():
-            pi = r.get(pi_col)
-            w = r["winner"]
-            if not isinstance(pi, dict) or not pi or r["dead_heat"] or w is None or w not in pi:
-                continue
-            lls.append(-np.log(max(pi[w], 1e-12)))
-            top1.append(int(max(pi, key=pi.get) == w))
-        return {"n_races": len(lls), "race_categorical_logloss": float(np.mean(lls)) if lls else None,
-                "favorite_top1_rate": float(np.mean(top1)) if top1 else None}
-
-    sel = R[R["period"] == "selection"]
-    dry = {
-        "purpose": "Stage 0 の実行可能性確認。学習なし・2023 は評価しない・ROI なし",
-        "period_counts": {k: {"races_master": int((meta["period"] == k).sum()),
-                              "races_with_pre": int(((R["period"] == k) & R["pre_snap_min"].notna()).sum()),
-                              "races_with_final": int(((R["period"] == k) & R["has_final"]).sum())}
-                          for k in PERIODS},
-        "selection_2022_market_baselines": {
-            "Q0_final_devig": race_ll("final_pi", sel),
-            "pre_snapshot_devig": race_ll("pre_pi", sel),
-        },
-        "subset_thresholds_fixed_on_2022_only": {},
-        "notes": [
-            "2023 development の指標は Stage 0 では一切計算していない",
-            "model-market disagreement の閾値は Q1 が必要なため Stage 1 の学習後に 2022 のみで固定する",
-        ],
-    }
-    # サブセット閾値 (2022 のみで事前固定)
-    s2 = sel.copy()
-    s2["fav_odds_pre"] = s2["pre_pi"].map(lambda d: (1.0 / max(d.values())) if isinstance(d, dict) and d else np.nan)
-    s2["entropy_pre"] = s2["pre_pi"].map(
-        lambda d: float(-sum(p * np.log(p) for p in d.values() if p > 0)) if isinstance(d, dict) and d else np.nan)
-    s2["votes"] = pd.to_numeric(s2["pre_votes_tan"], errors="coerce")
-    dry["subset_thresholds_fixed_on_2022_only"] = {
-        "field_size_bins": [[5, 8], [9, 12], [13, 15], [16, 18]],
-        "surface": ["芝", "ダ"],
-        "venue": sorted(s2["venue"].dropna().unique().tolist()),
-        "class_groups": "新馬/未勝利/1勝/2勝/3勝/OP以上 (EXP15 feature_contract.json の class_group_map と同じ写像)",
-        "favorite_pre_odds_tertiles": [float(s2["fav_odds_pre"].quantile(1/3)), float(s2["fav_odds_pre"].quantile(2/3))],
-        "market_entropy_pre_tertiles": [float(s2["entropy_pre"].quantile(1/3)), float(s2["entropy_pre"].quantile(2/3))],
-        "pre_votes_tansho_tertiles": [float(s2["votes"].quantile(1/3)), float(s2["votes"].quantile(2/3))],
-        "n_races_used_for_thresholds": int(s2["fav_odds_pre"].notna().sum()),
-    }
-    (HERE / "STAGE0_DRY_RUN.json").write_text(json.dumps(dry, ensure_ascii=False, indent=1,
-                                                         default=float), encoding="utf-8")
-    print(json.dumps(dry["period_counts"], ensure_ascii=False))
-    print(json.dumps(dry["selection_2022_market_baselines"], ensure_ascii=False))
-    print(json.dumps(per_year.get(2022, {}), ensure_ascii=False)[:600])
-    print("[saved] out/market_provenance.json, STAGE0_DRY_RUN.json")
+    # STAGE0_DRY_RUN.json は race_population.py が正式 race set 上で作る (ここでは書かない)
+    print(json.dumps({k: v for k, v in per_year.items() if k in (2022, 2023)}, ensure_ascii=False)[:400])
+    print("[saved] out/market_provenance.json")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,159 @@
+{
+ "scope": "2016-2023 のみ",
+ "anomaly_code_identification": {
+  "method": "異常コード別に『確定オッズを持つ割合』を実測。締切プールに残っていた = 出走可能だった側を DNF 系とみなす",
+  "by_code": {
+   "4": {
+    "n": 1748,
+    "has_final_odds": 1748,
+    "share_with_final_odds": 1.0
+   },
+   "3": {
+    "n": 676,
+    "has_final_odds": 0,
+    "share_with_final_odds": 0.0
+   },
+   "7": {
+    "n": 20,
+    "has_final_odds": 20,
+    "share_with_final_odds": 1.0
+   },
+   "5": {
+    "n": 1,
+    "has_final_odds": 1,
+    "share_with_final_odds": 1.0
+   }
+  },
+  "codes_treated_as_ran_or_in_pool": [
+   4,
+   7
+  ],
+  "code_-9": "外部 kekka に該当行が無い (join 失敗)"
+ },
+ "official_race_set_rule": [
+  "勝馬が一意 (同着除外)",
+  "出走頭数 >= 5",
+  "着順のある馬が全員 確定オッズを持つ",
+  "確定プールに居て着順が無い馬 (DNF / 締切後除外) が 0 頭",
+  "pre と確定の両方で de-vig 可能"
+ ],
+ "per_year": {
+  "2016": {
+   "races": 3454,
+   "official": 3269,
+   "excl_no_unique_winner": 5,
+   "excl_small_field": 0,
+   "excl_finisher_without_market": 0,
+   "excl_dnf_or_late_scratch": 180,
+   "horses_dnf_or_late": 213,
+   "horses_pre_only_scratch": 83,
+   "races_with_pre_only_scratch": 78
+  },
+  "2017": {
+   "races": 3455,
+   "official": 3245,
+   "excl_no_unique_winner": 3,
+   "excl_small_field": 0,
+   "excl_finisher_without_market": 0,
+   "excl_dnf_or_late_scratch": 207,
+   "horses_dnf_or_late": 226,
+   "horses_pre_only_scratch": 68,
+   "races_with_pre_only_scratch": 68
+  },
+  "2018": {
+   "races": 3454,
+   "official": 3254,
+   "excl_no_unique_winner": 6,
+   "excl_small_field": 0,
+   "excl_finisher_without_market": 0,
+   "excl_dnf_or_late_scratch": 194,
+   "horses_dnf_or_late": 234,
+   "horses_pre_only_scratch": 100,
+   "races_with_pre_only_scratch": 96
+  },
+  "2019": {
+   "races": 3452,
+   "official": 3257,
+   "excl_no_unique_winner": 5,
+   "excl_small_field": 1,
+   "excl_finisher_without_market": 0,
+   "excl_dnf_or_late_scratch": 189,
+   "horses_dnf_or_late": 227,
+   "horses_pre_only_scratch": 80,
+   "races_with_pre_only_scratch": 78
+  },
+  "2020": {
+   "races": 3456,
+   "official": 3238,
+   "excl_no_unique_winner": 9,
+   "excl_small_field": 0,
+   "excl_finisher_without_market": 0,
+   "excl_dnf_or_late_scratch": 209,
+   "horses_dnf_or_late": 251,
+   "horses_pre_only_scratch": 70,
+   "races_with_pre_only_scratch": 68
+  },
+  "2021": {
+   "races": 3456,
+   "official": 3276,
+   "excl_no_unique_winner": 9,
+   "excl_small_field": 0,
+   "excl_finisher_without_market": 0,
+   "excl_dnf_or_late_scratch": 171,
+   "horses_dnf_or_late": 184,
+   "horses_pre_only_scratch": 76,
+   "races_with_pre_only_scratch": 76
+  },
+  "2022": {
+   "races": 3456,
+   "official": 3276,
+   "excl_no_unique_winner": 4,
+   "excl_small_field": 1,
+   "excl_finisher_without_market": 0,
+   "excl_dnf_or_late_scratch": 175,
+   "horses_dnf_or_late": 214,
+   "horses_pre_only_scratch": 101,
+   "races_with_pre_only_scratch": 98
+  },
+  "2023": {
+   "races": 3456,
+   "official": 3261,
+   "excl_no_unique_winner": 3,
+   "excl_small_field": 0,
+   "excl_finisher_without_market": 0,
+   "excl_dnf_or_late_scratch": 192,
+   "horses_dnf_or_late": 220,
+   "horses_pre_only_scratch": 98,
+   "races_with_pre_only_scratch": 94
+  }
+ },
+ "totals": {
+  "races": 27639,
+  "official": 26076,
+  "excl_no_unique_winner": 44,
+  "excl_small_field": 2,
+  "excl_finisher_without_market": 0,
+  "excl_dnf_or_late_scratch": 1517,
+  "horses_dnf_or_late": 1769,
+  "horses_pre_only_scratch": 676,
+  "races_with_pre_only_scratch": 656
+ },
+ "post_close_refund_audit": {
+  "定義": "確定プールに居たのに着順が無い馬 = DNF または 締切後の発走除外。後者は返還が発生する",
+  "件数": "per_year.horses_dnf_or_late (異常コード内訳は anomaly_code_identification 参照)",
+  "pre→close の間に消えた馬 (= 締切前取消、pre 側にだけ居る)": "per_year.horses_pre_only_scratch"
+ },
+ "sensitivity_2022": {
+  "official_set_races": 3276,
+  "Q0_ll_starter_normalization": 1.8970806499824489,
+  "Q0_ll_finisher_renormalization": 1.8970806499824489,
+  "diff": 0.0,
+  "note": "正式 set では starters == finishers なので定義上一致する。差は DNF ありレースでのみ生じる",
+  "dnf_races_only": {
+   "n_races": 174,
+   "Q0_ll_starter_normalization": 1.7550917304498501,
+   "Q0_ll_finisher_renormalization": 1.7550917304498501,
+   "diff": 0.0
+  }
+ }
+}

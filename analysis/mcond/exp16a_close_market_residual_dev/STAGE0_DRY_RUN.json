@@ -1,35 +1,55 @@
 {
  "purpose": "Stage 0 の実行可能性確認。学習なし・2023 は評価しない・ROI なし",
- "period_counts": {
+ "official_race_set": {
   "train": {
-   "races_master": 20727,
-   "races_with_pre": 20727,
-   "races_with_final": 20727
+   "races": 3276
   },
   "selection": {
-   "races_master": 3456,
-   "races_with_pre": 3456,
-   "races_with_final": 3456
+   "races": 3276
   },
   "development": {
-   "races_master": 3456,
-   "races_with_pre": 3456,
-   "races_with_final": 3456
+   "races": 3261
   }
  },
- "selection_2022_market_baselines": {
-  "Q0_final_devig": {
-   "n_races": 3451,
-   "race_categorical_logloss": 1.8895626572607362,
-   "favorite_top1_rate": 0.34279918864097364
+ "official_counts_by_period": {
+  "train": 19539,
+  "selection": 3276,
+  "development": 3261
+ },
+ "reference_values_2022_official_set": {
+  "n_races": 3276,
+  "terminal_close_market": {
+   "race_categorical_logloss": 1.8970806499824489,
+   "favorite_top1_rate": 0.3415750915750916
   },
-  "pre_snapshot_devig": {
-   "n_races": 3451,
-   "race_categorical_logloss": 1.938841309641276,
-   "favorite_top1_rate": 0.3314981164879745
-  }
+  "historical_pre_snapshot": {
+   "race_categorical_logloss": 1.9448067755299354,
+   "favorite_top1_rate": 0.3302808302808303
+  },
+  "pre_minus_close_gap_nats": 0.047726125547486564,
+  "R0_clean_table_only": "Stage 1 で rolling OOF (train<=2020 / ES 2021 / predict 2022) を作ってから同一 race set で再計算する。EXP15 の 2022 スコアは ES に 2022 を使っているため OOS ではなく、ここでは使わない"
  },
- "subset_thresholds_fixed_on_2022_only": {
+ "power_audit_2022": {
+  "primary": {
+   "method": "一次近似。π_close を time-safe な表信号 z (前走確定着順の race 内 z) で δ だけ傾けたとき per-race 改善は Δ_r ≈ δ·u_r, u_r = z_winner − Σ π_i z_i。平均も SE も δ に比例するので、検出可否は u の形 (平均/cluster SE 比) で決まる",
+   "u_mean_c": -0.016112757150777944,
+   "u_sd": 0.7535619809277644,
+   "u_cluster_se": 0.01302740894876839,
+   "detect_ratio_z*SE/|c|": 2.265124035458646,
+   "MDE_at_0.005_shape_nats": 0.01132562017729323,
+   "practical_floor_nats_per_race": 0.005,
+   "MDE_le_floor": false,
+   "interpretation": "detect_ratio <= 1 なら、この信号と同じ per-race 分散形をもつ 0.005 nats の効果を 80% 検出力で検出できる。逆に > 1 なら検出力不足",
+   "caveat": "この参照信号 (前走着順) 自体は close 市場に対して改善方向ではない。ここで使っているのは 効果量ではなく per-race 分散の形だけ"
+  },
+  "secondary_reference": {
+   "method": "per-race (LL(pre) - LL(close))。差が大きい対なので SE も大きく、Gate A の代理としては過大",
+   "se_cluster": 0.004676635946951016,
+   "MDE_80pct_power": 0.013101993119438764
+  },
+  "decision_rule": "primary の MDE <= 0.005 なら 2023 評価へ進行可。> 0.005 なら 2023 を開封せず停止または設計変更"
+ },
+ "subset_thresholds_fixed_on_2022_official_set": {
   "field_size_bins": [
    [
     5,
@@ -63,23 +83,25 @@
    "福島",
    "阪神"
   ],
-  "class_groups": "新馬/未勝利/1勝/2勝/3勝/OP以上 (EXP15 feature_contract.json の class_group_map と同じ写像)",
+  "class_groups": "新馬/未勝利/1勝/2勝/3勝/OP以上",
   "favorite_pre_odds_tertiles": [
-   2.9352544259653532,
-   4.139468605457669
+   2.9313831318610886,
+   4.142645469093173
   ],
   "market_entropy_pre_tertiles": [
-   1.977632708055387,
-   2.221909210873227
+   1.9778177307702935,
+   2.224232835674263
   ],
-  "pre_votes_tansho_tertiles": [
-   61853.33333333333,
-   95683.66666666666
-  ],
-  "n_races_used_for_thresholds": 3456
+  "n_races_used": 3276,
+  "model_market_disagreement": "Q1 rolling OOF が必要なため Stage 1 で 2022 のみを使って固定する"
+ },
+ "files_sha256": {
+  "TANPUK_20110105-20151227.csv": "b6c5bbee52a35866",
+  "TANPUK_20160105-20201227.csv": "5a7da2cd050cd633",
+  "TANPUK_20210105-20251228.csv": "3517585d0040cff2"
  },
  "notes": [
   "2023 development の指標は Stage 0 では一切計算していない",
-  "model-market disagreement の閾値は Q1 が必要なため Stage 1 の学習後に 2022 のみで固定する"
+  "2022 の R0-clean 基準値は rolling OOF 未作成のため空欄 (Stage 1 で埋める)"
  ]
 }

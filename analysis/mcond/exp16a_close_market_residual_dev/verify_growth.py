@@ -100,6 +100,54 @@ def main():
         "note": "現金を持てる場合の参加条件は max_i p_i/π_i > 1/(1-t)。平均 KL と閾値の比較は停止規則にならない",
     }
 
+    # --- C2b: 推定ノイズ付きの選択的参加 (結論を事前固定しない)
+    def kelly_cash_subset(q, pi, sel, t=T):
+        """信念 q で、選抜された馬 sel にだけ現金込み Kelly。戻り: bet 配分 (index 対応)"""
+        o = (1 - t) / pi
+        idx = np.where(sel)[0]
+        if len(idx) == 0:
+            return np.zeros(len(q))
+        def neg(b):
+            w = b[0] + np.array([b[1 + k] * o[i] for k, i in enumerate(idx)])
+            full = np.full(len(q), b[0])
+            for k, i in enumerate(idx):
+                full[i] = b[0] + b[1 + k] * o[i]
+            return -float(np.sum(q * np.log(np.clip(full, 1e-12, None))))
+        b0 = np.full(len(idx) + 1, 1.0 / (len(idx) + 1))
+        r = minimize(neg, b0, bounds=[(0, 1)] * (len(idx) + 1),
+                     constraints=[{"type": "eq", "fun": lambda b: b.sum() - 1.0}],
+                     method="SLSQP", options={"maxiter": 300, "ftol": 1e-10})
+        out = np.zeros(len(q))
+        for k, i in enumerate(idx):
+            out[i] = max(r.x[1 + k], 0.0)
+        return out
+
+    c2b = {}
+    for sd_noise in (0.0, 0.1, 0.2, 0.4, 0.8):
+        g_real, entered, stake = [], [], []
+        for _ in range(200):
+            p, pi = make_race(RNG.integers(8, 19), 0.8, 0.45)
+            z = np.log(p) + RNG.normal(0, sd_noise, len(p))      # 推定ノイズ
+            q = np.exp(z - z.max()); q /= q.sum()
+            sel = (q / pi) > 1 / (1 - T)                          # 信念ベースの選抜
+            b = kelly_cash_subset(q, pi, sel)
+            cash = max(0.0, 1.0 - b.sum())
+            w = cash + b * ((1 - T) / pi)
+            g_real.append(float(np.sum(p * np.log(np.clip(w, 1e-12, None)))))   # 真の p で評価
+            entered.append(float(sel.any()))
+            stake.append(float(b.sum()))
+        c2b[f"q_noise_sd_{sd_noise}"] = {
+            "mean_growth_under_true_p": float(np.mean(g_real)),
+            "share_races_entered": float(np.mean(entered)),
+            "mean_stake_fraction": float(np.mean(stake)),
+            "share_races_growth_positive": float(np.mean(np.array(g_real) > 1e-9)),
+        }
+    res["C2b_selection_with_estimation_noise"] = {
+        "by_noise": c2b,
+        "note": "q=p+推定ノイズ で q_i/π_i 選抜 → 現金込み Kelly → 真の p で期待対数成長を評価。"
+                "結論はノイズ水準に依存するので、この表をそのまま報告する",
+    }
+
     # --- C3: pari-mutuel の自己希釈 (賭け金 s がプール P に入る)
     dil = {}
     p, pi = make_race(14, 0.8, 0.6)
