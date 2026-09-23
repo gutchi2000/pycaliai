@@ -1,6 +1,10 @@
 # 再開メモ（2026-09-23 23:xx 時点 / セッション中断）
 
-ユーザー指示 A〜F のうち、**A/C の実測が走行中、B/D の一部が未完、E は対応不要、F は未着手**。
+**[更新 2026-09-24] A・B・C・D・E は完了しコミット済み。残るは F（EXP16 Stage 0）のみ。**
+A/C の実測値と B/D の訂正は `REPORT.md`（冒頭の訂正バナー・§1 表・§5・§A・§C）に反映済み。
+下の §2 は走行当時のメモなので、最終値は `REPORT.md` §A/§C と `out/serve_coverage.json` を正とする。
+
+旧: ユーザー指示 A〜F のうち、**A/C の実測が走行中、B/D の一部が未完、E は対応不要、F は未着手**。
 以下だけ読めば再開できる。
 
 ---
@@ -35,7 +39,13 @@
 **注意**: S2 は counterfactual。bunseki 無しの過去日に対して 2026-09 時点のスナップショットを当てるため、
 S2 自体が time-unsafe（将来情報）である。性能改善とは呼ばない、と REPORT に明記すること。
 
-## 3. 残作業（この順で）
+## 3. 残作業
+
+**F: EXP16 Stage 0 のみ**。成果物は `analysis/mcond/exp16_ticket_candidates_dev/` に
+`PRIOR_ART_AUDIT.md` / `DATA_AVAILABILITY_AUDIT.md` / `MINIMAL_FALSIFICATION_PLAN.md` / `spec_draft.json`。
+実 API・学習・2024/2025 新規評価・ROI・production 変更はしない。材料は §4・§5・§6 に保存済み（再調査不要）。
+
+### 旧・残作業リスト（すべて完了済み、記録用）
 
 1. 実測完了を確認し、`out/serve_coverage_table.md` を読む。
 2. **B（production 影響の表現訂正）**を REPORT.md に反映。実測は「日によって変わる」ケースなので、

@@ -8,6 +8,8 @@
 | `馬主(最新/仮想)` | **future overwrite 確定（leakage）**。過去レース行に、そのレースより後の所有者が入っている |
 | `前走レースID(新)` / `(新/馬番無)` | **time-safe**（未来 ID 0 件）。ただし別の問題が3点あり、正式入力には戻さない |
 
+**[訂正 2026-09-24]** 初版で「serve 被覆率 0.0」と書いたのは誤り。根拠にした `serve_feature_baseline.json` は bunseki 配線前の古い baseline だった。v6 へ渡る直前の 120 列行列で実測し直した結果は §A に示す（`out/serve_coverage.json`）。
+
 **やっていないこと**: production の変更、v6 の再学習、EXP16 の実装、2024/2025 の新規性能評価、ROI 評価。
 §4 の A/B/C/D だけは、指示された比較のため EXP15 と同じ凍結プロトコルで4本学習した（production には未接触）。
 
@@ -29,7 +31,7 @@
 | 過去 race で当時の馬主か | **いいえ**（§2・§3 参照） | — |
 | 過去年を最新値で上書きしているか | **はい**（§2） | いいえ |
 | live serve で何が入るか | weekly CSV に馬主列は**存在しない**。`export_weekly_marks.py:454-461` が欠損カテゴリを `"__NaN__"` で埋める。bunseki がある週だけ `parse_bunseki` が **馬名 join** で復元する | weekly CSV に無い → `np.nan` → −9999（`export_weekly_marks.py:462-463`） |
-| serve 被覆率 | `data/serve_feature_baseline.json` で **0.0** | 同じく **0.0** |
+| serve 被覆率（**実測、2026 の 78 日**） | **日により変わる**。bunseki のある 8 日は非欠損 93.2-97.4%（平均 95.8%）、うち v6 語彙内は 84.5-90.8%（平均 88.4%）。bunseki の無い 70 日は **0%**。列自体は常に存在するため predict 直前の −9999 は 0%（欠損は `__NaN__` コード 102 として入る） | `data/serve_feature_baseline.json` で 0.0（未実測） |
 | unknown 処理 | 学習語彙に無い値は `__NaN__` クラスへ。bunseki 復元値のうち **5.6% が v6 の語彙外**（実測、2026-09 の8日分・1,454頭） | 数値なので該当なし |
 | encoder fit 期間 | `optuna_v6_marks.py:119-135`、split=="train"（日付 ≤ 2022-12-31）のみで fit | — |
 
@@ -186,8 +188,13 @@ A との差（seed 対、開催日 bootstrap CI95）:
 - **leakage 確定**として記録する。
 - **current v6 の過去評価は要再解釈**。v6 は gain 15 位でこの列を使って学習している。
   ただし §4 の通り、切り離したときの測定可能な差は 2023 で有意でない。
-  また serve 被覆が 0% のため、**本番の予測時にはこの列の値は届いていない**
-  （＝ leakage は主に offline の学習・評価に影響し、同時に train/serve skew を生む）。
+- **production への影響（§A の実測に基づく）**: 被覆は日によって変わるため、次の2つが同時に起きている。
+  - **bunseki のある日（実測 8 日）**: future-overwritten な *現在の* 馬主が **一部だけ live へ届く**（非欠損 95.8%、
+    ただし v6 語彙内は 88.4% で、残りは encoder unknown として `__NaN__` に落ちる）。
+    **日ごとに feature contract が変わる**、より複雑な serve skew である。
+  - **bunseki の無い日（実測 70 日）**: 馬主値は live に届かない（0%）。しかしモデルは owner 分岐を学習済みで、
+    live は常に missing 相当の分岐（学習時に一度も現れない `__NaN__` コード 102）へ入る。
+    したがって **offline 限定ではなく、production prediction にも train/serve skew として影響する**。**影響量は未測定**。
 - **production model は即変更しない**。
 - **time-safe な馬主列は別 artifact として作る**（TARGET で `馬主(レース時)` を含めて再 export する、が唯一の経路）。
 - **current-v6 contract には混ぜない**。
@@ -231,6 +238,57 @@ v6 の数値変換後、base_train（2016-2021）で非欠損 0% ＝ 全行 −9
 3. EXP16 Ticket Candidate Generation Stage 0 … **未着手**
 4. Native categorical は Race-as-a-Set と分離した別仮説として保持 … 記録済み
 
-**再 export の要望（実行はしていない）**: `馬主(レース時)` と `馬主タイプ(レース時)` を含めた
-走間分析 / cat の再 export があれば、§3 の直接照合（全行一致率・不一致馬数・年別・馬主変更前後）が
-そのまま実行できる。現状はその列が空のため不可能である。
+**再 export について**: `馬主(レース時)` を含む再 export は **当面不要**（2026-09-24 判断）。
+future overwrite は §3.2 の異時点スナップショット比較で既に確定しており、直接照合は
+time-safe な馬主特徴を実際に作る段階まで延期する。ユーザーの手作業を増やさない。
+
+
+---
+
+## §A serve coverage の実測（v6 へ渡る直前の 120 列行列、2026 の 78 日）
+
+`serve_coverage.py`。production 経路を書き込みなしで再現した:
+`parse_csv`（内部で `apply_bunseki` = **馬名 join**）→ `ensure_date_column` → `_SERVE_RENAME` →
+`category_normalize` → 不足列補完 → `serve_history_feats` → `export_race` と同じ encoder 適用 →
+`to_numeric().fillna(-9999)` → `model.predict`。測定点は encoder 直前 / 直後 / predict 直前。
+
+| 区分 | 日数 | encoder 直前 非欠損 | v6 語彙内（実効既知） | predict 直前 −9999 |
+|---|---|---|---|---|
+| bunseki **有**（2026-09-05〜09-22） | 8 | 93.2〜97.4%（平均 **95.8%**） | 84.5〜90.8%（平均 **88.4%**） | 0% |
+| bunseki **無**（2026-01〜09-04） | 70 | **0%** | **0%** | 0% |
+
+- 列自体は常に存在するので **−9999 は発生しない**。欠損・語彙外はすべて `__NaN__`（コード **102**／2,548 クラス）になる。
+  学習時この列の被覆は 100% だったため、**`__NaN__` は学習中に一度も現れないコード**である。
+- 非欠損 95.8% と語彙内 88.4% の差（約 7.4pt）は、**bunseki が返した馬主名が v6 の語彙に無い**ぶん。
+
+**馬名 join の健全性（bunseki 有りの 8 日）**
+
+| 項目 | 実測 |
+|---|---|
+| join 失敗率 | 平均 **4.2%** |
+| 表記正規化（`$` 接頭辞・空白）で回復可能 | 合計 **71 頭** |
+| bunseki 内の同名重複 | **0** |
+| 同名で血統登録番号が違う馬 | **0** |
+| 切詰め候補 | **0** |
+| 誤 join の直接検出 | **不可**（weekly CSV に血統登録番号が無く、production は馬名しかキーにできない） |
+
+---
+
+## §C no-label shadow 差分（S0 / S1 / S2、結果・払戻・ROI 不使用）
+
+| 比較 | 対象 | 結果 |
+|---|---|---|
+| **S0 = S1**（owner を強制 missing） | bunseki 無しの 70 日 | **全日で raw score が完全一致** → その週の実 serve は実質 owner 0% |
+| S0 vs S1 | bunseki 有りの 8 日 | 平均 \|Δscore\| **0.0443**、◎変更 **11/196 レース（5.6%）**、top3 印集合変更 **35/196（17.9%）** |
+| S0 vs S2（counterfactual） | bunseki 無しの 70 日 | ◎変更 **63/2,220 レース（2.8%）** |
+
+- **S2 は counterfactual であって性能改善ではない**。さらに S2 は 2026-09 時点のスナップショットを
+  2026-01 のレースへ当てるため、**S2 自体が time-unsafe（将来情報）**である。
+- **再現の忠実さ**: 2026-09-21 は本番 bundle の `ai_score` と **100% 一致**（max \|Δ\| 0.000）。
+  他の日は一致率が低い（46 日中 1 日のみ >50%）。原因は補助データの as-of ドリフト
+  （hosei・kako5・調教 CSV・`_horse_history.parquet` が当時より新しい）。
+  パイプライン再現自体は 09-21 の完全一致で妥当性が取れているが、**Δscore の絶対値は
+  「今日の補助データで再現した serve」上の値**である点に注意。
+- 既知の軽微な欠陥: `out/shadow_s0s1s2.json` の `owner_known_rate` は `!= "__NaN__"` で数えており、
+  実欠損（文字列 `nan`）を既知に数えてしまう。正しい被覆は `out/serve_coverage.json` の
+  `pre_encoder_nonnull_rate` / `effective_known_rate_excl___NaN__` を見ること。
