@@ -1,0 +1,207 @@
+{
+ "column": "馬主(最新/仮想)",
+ "files": {
+  "master_v2": {
+   "mtime": "2026-09-11"
+  },
+  "cat_export": {
+   "mtime": "2026-03-01"
+  }
+ },
+ "§1_per_horse_constancy": {
+  "n_horses": 67973,
+  "n_rows": 626774,
+  "owner_multi_value_horses": 0,
+  "owner_multi_value_rate": 0.0,
+  "control_trainer_multi_value_rate": 0.11785561914289497,
+  "control_breeder_multi_value_rate": 0.0,
+  "control_jockey_multi_value_rate": 0.8591793800479602,
+  "multi_year_horses": 42470,
+  "owner_changed_among_multi_year": 0,
+  "trainer_changed_among_multi_year": 7440,
+  "span_ge_3y_horses": 11456,
+  "owner_changed_among_span_ge_3y": 0,
+  "unique_owner_values": 2852,
+  "missing_rate": 0.0,
+  "per_year_unique": {
+   "2013": 1421,
+   "2014": 1398,
+   "2015": 1422,
+   "2016": 1412,
+   "2017": 1438,
+   "2018": 1450,
+   "2019": 1466,
+   "2020": 1500,
+   "2021": 1482,
+   "2022": 1519,
+   "2023": 1513,
+   "2024": 1499,
+   "2025": 1493
+  }
+ },
+ "§3_historical_truth_availability": {
+  "target_has_racetime_column": true,
+  "racetime_column_populated_in_local_exports": false,
+  "files": {
+   "走間分析・本レースより前の同年・前年全レース_20170105-20191222.csv": {
+    "export_mtime": "2026-06-15",
+    "head200k_latest_nonnull": 0.0,
+    "head200k_racetime_nonnull": 0.0
+   },
+   "走間分析・本レースより前の同年・前年全レース_20190105-20221228.csv": {
+    "export_mtime": "2026-06-15",
+    "head200k_latest_nonnull": 0.0,
+    "head200k_racetime_nonnull": 0.0
+   },
+   "走間分析・本レースより前の同年・前年全レース_20220105-20231223.csv": {
+    "export_mtime": "2026-06-15",
+    "head200k_latest_nonnull": 1.0,
+    "head200k_racetime_nonnull": 0.0
+   },
+   "走間分析・本レースより前の同年・前年全レース_20230105-20241222.csv": {
+    "export_mtime": "2026-06-15",
+    "head200k_latest_nonnull": 1.0,
+    "head200k_racetime_nonnull": 0.0
+   },
+   "走間分析・本レースより前の同年・前年全レース_20240106-20251221.csv": {
+    "export_mtime": "2026-06-15",
+    "head200k_latest_nonnull": 1.0,
+    "head200k_racetime_nonnull": 0.0
+   }
+  },
+  "note": "TARGET は 馬主(レース時)/馬主タイプ(レース時) を列として持つが、手元の export は全て空。当時の馬主との直接照合は、その列を含めた再 export がない限り不可能"
+ },
+ "§2_cross_snapshot_drift": {
+  "snapshot_a": "cat export (2026-03-01)",
+  "snapshot_b": "走間分析 export (2026-06-15)",
+  "join_key": "rid16 + 血統登録番号 (馬名 join は不使用)",
+  "overlap_rows": 151441,
+  "overlap_races": 13680,
+  "overlap_horses": 19892,
+  "mismatch_rows": 501,
+  "mismatch_races": 491,
+  "mismatch_horses": 68,
+  "mismatch_rate_rows": 0.0033082190423993504,
+  "horse_level_change_rate_in_window": 0.0034184596822843354,
+  "window_days": 106,
+  "by_race_year": {
+   "22": {
+    "rows": 30552,
+    "mismatch": 29,
+    "rate": 0.0009492013616129877
+   },
+   "23": {
+    "rows": 42701,
+    "mismatch": 98,
+    "rate": 0.0022950282194796373
+   },
+   "24": {
+    "rows": 42234,
+    "mismatch": 142,
+    "rate": 0.003362220012312355
+   },
+   "25": {
+    "rows": 35954,
+    "mismatch": 232,
+    "rate": 0.006452689547755465
+   }
+  },
+  "examples": [
+   {
+    "rid16": "2025120709050203",
+    "血統登録番号": "2023105761",
+    "own_a": "ケイアイスタリオン",
+    "own_b": "亀田和弘"
+   },
+   {
+    "rid16": "2025120606050107",
+    "血統登録番号": "2022110132",
+    "own_a": "石部高史",
+    "own_b": "ビジュピコ"
+   },
+   {
+    "rid16": "2025120609050102",
+    "血統登録番号": "2023105762",
+    "own_a": "ケイアイスタリオン",
+    "own_b": "亀田和弘"
+   },
+   {
+    "rid16": "2025113008040804",
+    "血統登録番号": "2022106177",
+    "own_a": "田中真史",
+    "own_b": "タナカモータース"
+   },
+   {
+    "rid16": "2025113008040804",
+    "血統登録番号": "2022106582",
+    "own_a": "ケイアイスタリオン",
+    "own_b": "亀田和弘"
+   },
+   {
+    "rid16": "2025113008040804",
+    "血統登録番号": "2022101565",
+    "own_a": "ノースヒルズ",
+    "own_b": "齋藤慎"
+   },
+   {
+    "rid16": "2025113008040803",
+    "血統登録番号": "2023105113",
+    "own_a": "早川隆雄",
+    "own_b": "山崎太嗣"
+   },
+   {
+    "rid16": "2025112908040706",
+    "血統登録番号": "2023102075",
+    "own_a": "奥裕嗣",
+    "own_b": "奥雅哉"
+   },
+   {
+    "rid16": "2025112403030603",
+    "血統登録番号": "2021104320",
+    "own_a": "嶋田賢",
+    "own_b": "嶋田一成"
+   },
+   {
+    "rid16": "2025112305050512",
+    "血統登録番号": "2022101765",
+    "own_a": "石部高史",
+    "own_b": "ビジュピコ"
+   }
+  ],
+  "interpretation": "同一の過去レース行に対し、export 時点が違うと馬主が変わる = 過去行が将来の所有者で上書きされている",
+  "prospective_future_owner_substitution": {
+   "horses": 68,
+   "master_rows_of_those_horses": 582,
+   "master_races": 568,
+   "all_race_dates_before_change": true,
+   "note": "これらの馬は 2026-03 と 2026-06 の間に所有者が変わった。master の該当行 (全てそれ以前のレース) は現時点で『レース後の所有者』を保持しており、再 export すればさらに別の値へ変わる"
+  },
+  "estimated_annual_owner_change_rate": 0.011722031999813032,
+  "estimated_future_owner_substitution_by_race_age": {
+   "1y": 0.011722031999813032,
+   "3y": 0.03475548857475508,
+   "5y": 0.05725211225554361,
+   "10y": 0.11122642015336581
+  }
+ },
+ "§1_serve_path": {
+  "bunseki_files": [
+   "20260905.csv",
+   "20260906.csv",
+   "20260912.csv",
+   "20260913.csv",
+   "20260919.csv",
+   "20260920.csv",
+   "20260921.csv",
+   "20260922.csv"
+  ],
+  "bunseki_mtime": "2026-09-21",
+  "horses_joined_with_cat": 1454,
+  "agree_with_cat_snapshot": 1430,
+  "disagree": 24,
+  "disagree_rate": 0.016506189821182942,
+  "serve_value_in_v6_encoder_vocab_rate": 0.9442916093535075,
+  "v6_encoder_classes": 2548,
+  "note": "serve では weekly CSV に馬主列が無く、bunseki がある週だけ 馬名 join で復元される (未検証の定義一致)"
+ }
+}

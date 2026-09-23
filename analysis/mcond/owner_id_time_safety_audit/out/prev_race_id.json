@@ -1,0 +1,39 @@
+{
+ "columns": [
+  "前走レースID(新)",
+  "前走レースID(新/馬番無)"
+ ],
+ "rows": 626774,
+ "coverage_前走レースID(新/馬番無)": 0.9037771190253584,
+ "first_run_rows": 67973,
+ "§6_is_strictly_past": {
+  "rows_with_value": 566464,
+  "value_ge_current_race_id": 0,
+  "value_lt_current_race_id_rate": 1.0
+ },
+ "§6_matches_actual_previous_run": {
+  "rows_compared": 558444,
+  "match": 537326,
+  "match_rate": 0.9621842118457715,
+  "note": "master 内の同一馬の直前行 (rid16) と一致するか。母集団は dropna 後なので DNF 走が抜ける分は不一致になりうる"
+ },
+ "§6_date_proxy": {
+  "corr_with_prev_date": 0.9999999999985913,
+  "first8_digits_equal_prev_date_rate": 1.0,
+  "prev_date_format": "前走日付 は YYMMDD (例 121201.0)。ID 先頭8桁は YYYYMMDD",
+  "note": "先頭8桁が前走日付そのもの = 数値として入れると日付 proxy になる"
+ },
+ "§6_float_precision": {
+  "max_abs_value_18digit": 2.0251221070506112e+17,
+  "exceeds_float64_exact_int_range_2^53": true,
+  "distinct_18digit_values": 54958,
+  "distinct_16digit_values": 55024
+ },
+ "§6_links_horses_from_same_previous_race": {
+  "races_with_at_least_one_shared_previous_race": 36143,
+  "total_races": 41248,
+  "rate": 0.8762364235841738,
+  "rows_in_shared_groups": 180724,
+  "note": "集合モデルなら『前走が同じレースだった馬』を ID 一致で検出できる経路になる"
+ }
+}

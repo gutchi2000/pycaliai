@@ -1,0 +1,25 @@
+{
+ "method": "master_v2 から将来行を削除して再構築し、残った行の値が一致するかを見る",
+ "cases": {
+  "delete_after_20231231": {
+   "rows_kept": 532525,
+   "identical": {
+    "馬主(最新/仮想)": true,
+    "前走レースID(新)": true,
+    "前走レースID(新/馬番無)": true
+   }
+  },
+  "delete_after_20221231": {
+   "rows_kept": 485252,
+   "identical": {
+    "馬主(最新/仮想)": true,
+    "前走レースID(新)": true,
+    "前走レースID(新/馬番無)": true
+   }
+  }
+ },
+ "verdict": "PASS (repo 側で再計算していないので一致する)",
+ "limitation": "master_v2 は静的な成果物で、馬主は TARGET export 時点の値をそのまま持つ。上書きは export 上流で起きるため、この削除テストでは原理的に検出できない。検出には export 時点の異なるスナップショット比較 (§2_cross_snapshot_drift) が必要",
+ "owner_changed_horses_inside_master": 0,
+ "note_changed_horses": "master 内では 0 頭。変更が記録されていないこと自体が『当時の値ではない』ことの証拠で、『変更前レースの値が将来所有者に変わっていないか』は master 単独では検証不能"
+}
