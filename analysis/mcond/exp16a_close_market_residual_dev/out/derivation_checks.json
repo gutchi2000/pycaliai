@@ -1,0 +1,74 @@
+{
+ "takeout": 0.2,
+ "bound_-ln(1-t)": 0.2231435513142097,
+ "seed": 20260924,
+ "C1_full_investment_identity": {
+  "max_abs_diff_W_minus_(KL-bound)": 2.220446049250313e-16,
+  "mean_KL": 0.14576220036590756,
+  "share_of_races_with_KL>bound": 0.158,
+  "mean_W": -0.07738135094830212,
+  "note": "W = D(p||π) + log(1-t) が数値的に厳密一致することの確認"
+ },
+ "C2_cash_option": {
+  "mean_KL": 0.027015850945016014,
+  "bound": 0.2231435513142097,
+  "mean_KL_below_bound": true,
+  "mean_growth_full_investment": -0.1961277003691937,
+  "mean_growth_with_cash": 0.003711253433352966,
+  "share_races_positive_growth_with_cash": 0.9466666666666667,
+  "share_races_with_max_p_over_pi_gt_1/(1-t)": 0.9466666666666667,
+  "note": "現金を持てる場合の参加条件は max_i p_i/π_i > 1/(1-t)。平均 KL と閾値の比較は停止規則にならない"
+ },
+ "C3_self_dilution": {
+  "growth_by_stake_share_of_pool": {
+   "stake_share_0.0": -0.12752537933052036,
+   "stake_share_0.001": -0.12869503453925588,
+   "stake_share_0.005": -0.13335886741269912,
+   "stake_share_0.02": -0.15064116377798048,
+   "stake_share_0.05": -0.18426519755868903
+  },
+  "note": "プールに対する賭け金比率が上がるほど実現オッズが下がり成長率が落ちる"
+ },
+ "C4_decision_vs_final_odds_symmetric_noise": {
+  "mean_growth_by_drift_sd": {
+   "drift_sd_0.0": -0.07663166432492434,
+   "drift_sd_0.05": -0.0775109793333615,
+   "drift_sd_0.1": -0.07413310236818174,
+   "drift_sd_0.2": -0.060970363773049076
+  },
+  "note": "対称で情報を持たない drift は成長率を系統的には下げない (Jensen により僅かに上げることすらある)。『判断時点と確定が違う』こと自体は害の理由にならない"
+ },
+ "C4b_adverse_correction_drift": {
+  "by_lambda": {
+   "correction_lambda_0.0": {
+    "mean_growth": -0.0798402890068481,
+    "mean_max_p_over_pi_final": 3.316600064465493
+   },
+   "correction_lambda_0.25": {
+    "mean_growth": -0.1387506178834586,
+    "mean_max_p_over_pi_final": 2.360530975379228
+   },
+   "correction_lambda_0.5": {
+    "mean_growth": -0.18337551116265086,
+    "mean_max_p_over_pi_final": 1.7649815681043979
+   },
+   "correction_lambda_0.75": {
+    "mean_growth": -0.2135918166120167,
+    "mean_max_p_over_pi_final": 1.2960708585346732
+   },
+   "correction_lambda_1.0": {
+    "mean_growth": -0.22314355131420968,
+    "mean_max_p_over_pi_final": 1.0000000000000002
+   }
+  },
+  "note": "害になるのは『自分が張る側へ不利に動く drift』。市場が締切までに真値へ寄るほど、判断時点で見えたエッジは確定オッズでは消える (lambda=1 で成長率は log(1-t) に収束)"
+ },
+ "C5_granularity_and_breakage": {
+  "mean_growth_by_unit": {
+   "unit_1yen_of_10000": -0.0861531669251938,
+   "unit_100yen_of_10000": -0.08901952482267961,
+   "unit_500yen_of_10000": -0.11694631339273025
+  },
+  "note": "100 円単位と 0.1 刻みオッズの切り捨ては成長率を押し下げる"
+ }
+}

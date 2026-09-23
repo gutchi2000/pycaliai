@@ -1,0 +1,352 @@
+{
+ "scope": "2016-01-01..2023-12-31 のみ (2024/2025 は読み込み時に破棄)",
+ "files": {
+  "TANPUK_20110105-20151227.csv": {
+   "sha256": "b6c5bbee52a358661b1a08f5440d2dbed8ec74409b6e9d508edb3ccf4d8a5b13",
+   "size_bytes": 14853386,
+   "encoding": "cp932"
+  },
+  "TANPUK_20160105-20201227.csv": {
+   "sha256": "5a7da2cd050cd633c693979768691aca5c3f8a5f15ba2d550f5082dadd856862",
+   "size_bytes": 24217343,
+   "encoding": "cp932"
+  },
+  "TANPUK_20210105-20251228.csv": {
+   "sha256": "3517585d0040cff27b7d18a43a86a99b6e60c2add9969ab83c487f877880597e",
+   "size_bytes": 23720272,
+   "encoding": "cp932"
+  }
+ },
+ "master_sha256_note": "master_v2 は 519MB のため hash は取らない (行 hash は EXP15 out/feature_contract.json)",
+ "definitions": {
+  "historical_pre_snapshot": "区分1 (途中) のうち、レース当日かつ 区分4 の 15 分以上前の最後の1本 (analysis/mcond/market.py と同契約)。T-10 とは呼ばない",
+  "final_confirmed": "区分4 (確定)。記録時刻は post の後",
+  "close_odds": "JRA は pari-mutuel で post 時に締切。手元データには『締切時点の板』そのものの断面は無く、最も近いのは 区分4 (確定) である。close と final を別物として区別できるデータは無い",
+  "result_file_odds": "kekka 系ファイル内のオッズ列 (単勝配当の括弧など)。**時刻が無く素性不明**のため Q0/Q3 のどちらにも使わない。照合用のみ",
+  "devig": "race 内比例正規化 pi = (1/o) / Σ(1/o)。出走表 (master, 着順が数値の馬) に居る馬だけで正規化",
+  "missing_rule": "オッズ <= 1.0 は欠損扱い (market.py と同じ)",
+  "scratch_rule": "オッズはあるが master に居ない馬番 = 取消/除外。de-vig の分母から外す"
+ },
+ "per_year": {
+  "2016": {
+   "races_in_master": 3454,
+   "races_with_tanpuk": 3454,
+   "races_with_final": 3454,
+   "races_with_pre": 3454,
+   "pre_minutes_before_post": {
+    "p1": 25.0,
+    "p50": 27.0,
+    "p99": 30.0,
+    "mean": 27.456572090330052
+   },
+   "final_minutes_after_post": {
+    "p1": 5.0,
+    "p50": 7.0,
+    "p99": 12.0,
+    "mean": 7.162130862767805
+   },
+   "pre_gap_to_final_min": {
+    "p1": 30.53,
+    "p50": 34.0,
+    "p99": 40.4699999999998,
+    "mean": 34.61870295309786
+   },
+   "pre_overround": {
+    "p1": 1.0784552964142933,
+    "p50": 1.260522737782758,
+    "p99": 1.2979433514271186,
+    "mean": 1.2540819958400713
+   },
+   "final_overround": {
+    "p1": 1.1424306439383498,
+    "p50": 1.2623761517090304,
+    "p99": 1.2947490267673627,
+    "mean": 1.2576773862491368
+   },
+   "races_with_missing_horse_in_pre": 0,
+   "races_with_missing_horse_in_final": 0,
+   "entries_not_in_master_pre_total": 296,
+   "dead_heat_races": 5
+  },
+  "2017": {
+   "races_in_master": 3455,
+   "races_with_tanpuk": 3455,
+   "races_with_final": 3455,
+   "races_with_pre": 3455,
+   "pre_minutes_before_post": {
+    "p1": 25.0,
+    "p50": 27.0,
+    "p99": 30.0,
+    "mean": 27.555426917510854
+   },
+   "final_minutes_after_post": {
+    "p1": 5.0,
+    "p50": 7.0,
+    "p99": 12.0,
+    "mean": 7.144138929088278
+   },
+   "pre_gap_to_final_min": {
+    "p1": 31.0,
+    "p50": 35.0,
+    "p99": 40.0,
+    "mean": 34.69956584659913
+   },
+   "pre_overround": {
+    "p1": 1.0781253403535165,
+    "p50": 1.2590841437037046,
+    "p99": 1.2937535994694878,
+    "mean": 1.2470508279912158
+   },
+   "final_overround": {
+    "p1": 1.0941377450582093,
+    "p50": 1.261203028234519,
+    "p99": 1.2910656425755587,
+    "mean": 1.2506536832859316
+   },
+   "races_with_missing_horse_in_pre": 0,
+   "races_with_missing_horse_in_final": 0,
+   "entries_not_in_master_pre_total": 294,
+   "dead_heat_races": 3
+  },
+  "2018": {
+   "races_in_master": 3454,
+   "races_with_tanpuk": 3454,
+   "races_with_final": 3454,
+   "races_with_pre": 3454,
+   "pre_minutes_before_post": {
+    "p1": 25.0,
+    "p50": 27.0,
+    "p99": 30.0,
+    "mean": 27.528662420382165
+   },
+   "final_minutes_after_post": {
+    "p1": 5.0,
+    "p50": 7.0,
+    "p99": 12.0,
+    "mean": 7.142443543717429
+   },
+   "pre_gap_to_final_min": {
+    "p1": 31.0,
+    "p50": 35.0,
+    "p99": 40.0,
+    "mean": 34.671105964099596
+   },
+   "pre_overround": {
+    "p1": 1.0482083967763152,
+    "p50": 1.2597182208406252,
+    "p99": 1.2969252580220734,
+    "mean": 1.2465088684403847
+   },
+   "final_overround": {
+    "p1": 1.0953714899793885,
+    "p50": 1.261448452763577,
+    "p99": 1.2937775743896711,
+    "mean": 1.2508356280939212
+   },
+   "races_with_missing_horse_in_pre": 0,
+   "races_with_missing_horse_in_final": 0,
+   "entries_not_in_master_pre_total": 334,
+   "dead_heat_races": 6
+  },
+  "2019": {
+   "races_in_master": 3452,
+   "races_with_tanpuk": 3452,
+   "races_with_final": 3452,
+   "races_with_pre": 3452,
+   "pre_minutes_before_post": {
+    "p1": 25.0,
+    "p50": 27.0,
+    "p99": 30.0,
+    "mean": 27.530996523754347
+   },
+   "final_minutes_after_post": {
+    "p1": 5.0,
+    "p50": 7.0,
+    "p99": 12.0,
+    "mean": 7.162804171494786
+   },
+   "pre_gap_to_final_min": {
+    "p1": 31.0,
+    "p50": 35.0,
+    "p99": 40.0,
+    "mean": 34.69380069524913
+   },
+   "pre_overround": {
+    "p1": 1.0677952469159842,
+    "p50": 1.2592642791318047,
+    "p99": 1.2964237115267692,
+    "mean": 1.2466118164781712
+   },
+   "final_overround": {
+    "p1": 1.1123074405496758,
+    "p50": 1.2611448845420372,
+    "p99": 1.2921592579287013,
+    "mean": 1.2507795862021662
+   },
+   "races_with_missing_horse_in_pre": 0,
+   "races_with_missing_horse_in_final": 0,
+   "entries_not_in_master_pre_total": 307,
+   "dead_heat_races": 5
+  },
+  "2020": {
+   "races_in_master": 3456,
+   "races_with_tanpuk": 3456,
+   "races_with_final": 3456,
+   "races_with_pre": 3456,
+   "pre_minutes_before_post": {
+    "p1": 25.0,
+    "p50": 28.0,
+    "p99": 30.0,
+    "mean": 27.56423611111111
+   },
+   "final_minutes_after_post": {
+    "p1": 5.0,
+    "p50": 7.0,
+    "p99": 13.0,
+    "mean": 7.296585648148148
+   },
+   "pre_gap_to_final_min": {
+    "p1": 31.0,
+    "p50": 35.0,
+    "p99": 41.0,
+    "mean": 34.86082175925926
+   },
+   "pre_overround": {
+    "p1": 1.0414649595955567,
+    "p50": 1.2594850373087283,
+    "p99": 1.2938379576580847,
+    "mean": 1.2460699494944099
+   },
+   "final_overround": {
+    "p1": 1.0705452666756081,
+    "p50": 1.2610603318058276,
+    "p99": 1.290484268162472,
+    "mean": 1.2487725841129265
+   },
+   "races_with_missing_horse_in_pre": 0,
+   "races_with_missing_horse_in_final": 0,
+   "entries_not_in_master_pre_total": 321,
+   "dead_heat_races": 9
+  },
+  "2021": {
+   "races_in_master": 3456,
+   "races_with_tanpuk": 3456,
+   "races_with_final": 3456,
+   "races_with_pre": 3456,
+   "pre_minutes_before_post": {
+    "p1": 25.0,
+    "p50": 28.0,
+    "p99": 30.0,
+    "mean": 27.588541666666668
+   },
+   "final_minutes_after_post": {
+    "p1": 5.0,
+    "p50": 7.0,
+    "p99": 12.0,
+    "mean": 7.328125
+   },
+   "pre_gap_to_final_min": {
+    "p1": 31.0,
+    "p50": 35.0,
+    "p99": 40.0,
+    "mean": 34.916666666666664
+   },
+   "pre_overround": {
+    "p1": 1.0881446967761523,
+    "p50": 1.259503278540854,
+    "p99": 1.2920448037035086,
+    "mean": 1.2475716113634068
+   },
+   "final_overround": {
+    "p1": 1.1318642613911645,
+    "p50": 1.2608731531692992,
+    "p99": 1.290473047921711,
+    "mean": 1.2508826975577383
+   },
+   "races_with_missing_horse_in_pre": 0,
+   "races_with_missing_horse_in_final": 0,
+   "entries_not_in_master_pre_total": 260,
+   "dead_heat_races": 9
+  },
+  "2022": {
+   "races_in_master": 3456,
+   "races_with_tanpuk": 3456,
+   "races_with_final": 3456,
+   "races_with_pre": 3456,
+   "pre_minutes_before_post": {
+    "p1": 25.0,
+    "p50": 28.0,
+    "p99": 30.0,
+    "mean": 27.624131944444443
+   },
+   "final_minutes_after_post": {
+    "p1": 5.0,
+    "p50": 7.0,
+    "p99": 12.0,
+    "mean": 7.300636574074074
+   },
+   "pre_gap_to_final_min": {
+    "p1": 31.0,
+    "p50": 35.0,
+    "p99": 41.0,
+    "mean": 34.92476851851852
+   },
+   "pre_overround": {
+    "p1": 1.062429217321935,
+    "p50": 1.2594729849413344,
+    "p99": 1.2958192847396794,
+    "mean": 1.2469009302323142
+   },
+   "final_overround": {
+    "p1": 1.114606355965002,
+    "p50": 1.261256708709245,
+    "p99": 1.2943800510726455,
+    "mean": 1.2510755410910628
+   },
+   "races_with_missing_horse_in_pre": 0,
+   "races_with_missing_horse_in_final": 0,
+   "entries_not_in_master_pre_total": 315,
+   "dead_heat_races": 4
+  },
+  "2023": {
+   "races_in_master": 3456,
+   "races_with_tanpuk": 3456,
+   "races_with_final": 3456,
+   "races_with_pre": 3456,
+   "pre_minutes_before_post": {
+    "p1": 25.0,
+    "p50": 28.0,
+    "p99": 30.0,
+    "mean": 27.839988425925927
+   },
+   "final_minutes_after_post": {
+    "p1": 5.0,
+    "p50": 7.0,
+    "p99": 13.0,
+    "mean": 7.301215277777778
+   },
+   "pre_gap_to_final_min": {
+    "p1": 31.0,
+    "p50": 35.0,
+    "p99": 41.0,
+    "mean": 35.1412037037037
+   },
+   "pre_overround": {
+    "p1": 1.012772482032933,
+    "p50": 1.259464093133023,
+    "p99": 1.2970031412574,
+    "mean": 1.24468183806176
+   },
+   "final_overround": {
+    "p1": 1.068861525989216,
+    "p50": 1.261109374465168,
+    "p99": 1.2924370877892022,
+    "mean": 1.2491798312906672
+   },
+   "races_with_missing_horse_in_pre": 0,
+   "races_with_missing_horse_in_final": 0,
+   "entries_not_in_master_pre_total": 318,
+   "dead_heat_races": 3
+  }
+ }
+}

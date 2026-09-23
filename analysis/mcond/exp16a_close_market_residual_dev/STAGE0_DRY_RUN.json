@@ -1,0 +1,85 @@
+{
+ "purpose": "Stage 0 の実行可能性確認。学習なし・2023 は評価しない・ROI なし",
+ "period_counts": {
+  "train": {
+   "races_master": 20727,
+   "races_with_pre": 20727,
+   "races_with_final": 20727
+  },
+  "selection": {
+   "races_master": 3456,
+   "races_with_pre": 3456,
+   "races_with_final": 3456
+  },
+  "development": {
+   "races_master": 3456,
+   "races_with_pre": 3456,
+   "races_with_final": 3456
+  }
+ },
+ "selection_2022_market_baselines": {
+  "Q0_final_devig": {
+   "n_races": 3451,
+   "race_categorical_logloss": 1.8895626572607362,
+   "favorite_top1_rate": 0.34279918864097364
+  },
+  "pre_snapshot_devig": {
+   "n_races": 3451,
+   "race_categorical_logloss": 1.938841309641276,
+   "favorite_top1_rate": 0.3314981164879745
+  }
+ },
+ "subset_thresholds_fixed_on_2022_only": {
+  "field_size_bins": [
+   [
+    5,
+    8
+   ],
+   [
+    9,
+    12
+   ],
+   [
+    13,
+    15
+   ],
+   [
+    16,
+    18
+   ]
+  ],
+  "surface": [
+   "芝",
+   "ダ"
+  ],
+  "venue": [
+   "中京",
+   "中山",
+   "函館",
+   "小倉",
+   "新潟",
+   "札幌",
+   "東京",
+   "福島",
+   "阪神"
+  ],
+  "class_groups": "新馬/未勝利/1勝/2勝/3勝/OP以上 (EXP15 feature_contract.json の class_group_map と同じ写像)",
+  "favorite_pre_odds_tertiles": [
+   2.9352544259653532,
+   4.139468605457669
+  ],
+  "market_entropy_pre_tertiles": [
+   1.977632708055387,
+   2.221909210873227
+  ],
+  "pre_votes_tansho_tertiles": [
+   61853.33333333333,
+   95683.66666666666
+  ],
+  "n_races_used_for_thresholds": 3456
+ },
+ "notes": [
+  "2023 development の指標は Stage 0 では一切計算していない",
+  "model-market disagreement の閾値は Q1 が必要なため Stage 1 の学習後に 2022 のみで固定する"
+ ]
+}

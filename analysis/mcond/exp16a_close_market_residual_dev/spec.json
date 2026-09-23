@@ -1,0 +1,155 @@
+{
+  "experiment": "EXP16A",
+  "title": "Close-Market Residual Information Bound — 単勝市場に対する time-safe 表特徴の残差情報",
+  "spec_version": "0.1 (Stage 0 草案、レビュー後に凍結)",
+  "created": "2026-09-24",
+  "purpose": "単勝について、time-safeな表特徴が確定市場確率に対して結果情報を追加できるか(Gate A)、その情報を historical_pre_snapshot 時点で再現できるか(Gate B)を段階的に検証する。学生大会最適化や上位手法の模倣ではなく、将来の実運用で市場控除を超えうる独自情報の存在確認が目的",
+  "not_this_experiment": ["候補馬券生成 (EXP16 Ticket Candidate Generation は保留)", "資金配分", "参加/見送り判断", "ROI 最終判定"],
+
+  "periods": {
+    "train": ["2016-01-01", "2021-12-31"],
+    "selection_calibration_subset_fixing": ["2022-01-01", "2022-12-31"],
+    "development": ["2023-01-01", "2023-12-31"],
+    "sealed": ["2024-01-01", "2025-12-31"],
+    "rule": "2024/2025 はロード時に破棄し assert。Gate 通過前に開封しない"
+  },
+
+  "feature_contract": {
+    "official": "R0-clean 111列 (analysis/mcond/exp15_race_as_set_dev/out/feature_contract.json の features.clean)",
+    "excluded": {
+      "馬主(最新/仮想)": "future overwrite 確定 (owner_id_time_safety_audit/REPORT.md)。bunseki 由来の現在馬主も Q1/Q2/Q3 へ入れない",
+      "前走レースID(新)/(新/馬番無)": "raw ID・日付 proxy・float精度欠落",
+      "情報ゼロ6列": "開催 / 前走走破タイム / 母馬 / kako5_avg_ninki / kako5_pos_vs_ninki / kako5_upset_good_count (base_train 被覆0%)"
+    },
+    "shared": "Q1/Q2/Q3 は同一の R0-clean 特徴契約・同一 race set・同一学習手順を使う",
+    "legacy_v6": "current v6 は legacy reference のみ。Gate 判定に使わない。理由: owner leakage と、bunseki の有無で本番入力被覆が 0%→約88% に変わる train/serve skew"
+  },
+
+  "market_data": {
+    "bet_type": "単勝のみ (複勝/馬連は本実験では扱わない)",
+    "source": "data/Time _series_odds/TANPUK_*.csv (cp932)。sha256 は out/market_provenance.json",
+    "historical_pre_snapshot": "区分1 (途中) のうちレース当日かつ確定の15分以上前の最後の1本。実測 発走25-30分前 (中央値27-28分)。T-10 と呼ばない",
+    "final_confirmed": "区分4 (確定)。実測 発走5-13分後に記録。締切価格ではなく事後の確定値であり、Q0 は原理的に oracle",
+    "close_odds": "手元に存在しない (締切ちょうどの板の断面が無い)。close と final を区別できるデータは無い",
+    "result_file_odds": "kekka 系の時刻なしオッズ。Q0/Q3 のいずれにも使わない (照合のみ)",
+    "devig": "比例正規化のみ pi=(1/o)/Σ(1/o)。母集団は master に居る出走馬。正規化は一度だけ (mcond の二重正規化はしない)",
+    "missing_rule": "オッズ<=1.0 は欠損 → 分母から外す (実測 0 レース)",
+    "scratch_rule": "オッズはあるが master に居ない馬番は取消/除外として分母から外す (年 260-334 頭)",
+    "coverage_measured": "2016-2023 の全 27,639 レースで pre・確定とも 100%"
+  },
+
+  "eligible_race_set": {
+    "rule": "Q0/Q1/Q2/Q3/LEGACY-v6 すべてを同一集合で評価する。先に1回だけ確定し assert する",
+    "conditions": ["master に着順が数値の行がある", "出走頭数 >= 5", "1着が一意 (同着レースは除外し件数報告)", "pre と確定の両方で de-vig 可能"],
+    "known_exclusions": {"dead_heat_races_per_year": "3-9", "kyoto_absent_2021_2023": "改修により京都が存在しない"}
+  },
+
+  "models": {
+    "Q0": {
+      "role": "oracle 診断。実運用モデルとは呼ばない",
+      "definition": "確定オッズ (区分4) の race 内比例 de-vig 確率",
+      "isolation": "Q0 由来の量は Q3 の特徴・ハイパラ・サブセット定義に一切触れない (物理的に別ディレクトリ・別スクリプト)"
+    },
+    "Q1": {
+      "role": "特徴のみの確率モデル",
+      "definition": "R0-clean 111列の LightGBM lambdarank (EXP15 R0-clean と同一レシピ・同一ハイパラ・同一 5 seed)。p_win = softmax(score/τ)、τ は 2022 で条件付きロジット最尤",
+      "reuse": "EXP15 で学習済みの R0-clean scores を再利用する (追加学習なし)"
+    },
+    "Q2": {
+      "role": "oracle 診断 (確定市場に対する残差)",
+      "definition": "レース内条件付きロジット。offset = log(Q0 確率)、共変量 = log(Q1 確率) を主とし、副次に R0-clean 由来の残差特徴を追加した版",
+      "fit": "係数は train 2016-2021 で fit、変種選択は 2022 のみ",
+      "caveat": "確定オッズを使うため実運用不可能。情報の存在確認にのみ使う"
+    },
+    "Q3": {
+      "role": "実運用可能性の測定",
+      "definition": "Q2 と同型だが offset = log(historical_pre_snapshot 確率)",
+      "fit": "同上。Q0 由来の情報を一切使わない"
+    },
+    "LEGACY-v6": {"role": "参考値のみ", "excluded_from_gates": true}
+  },
+
+  "calibration_policy": {
+    "forbidden": "models/pl_calibrators_v6*.pkl (valid=2023 全体で fit のため 2023 評価が in-sample になる)",
+    "allowed": ["train 2016-2021 のみで fit", "2022 のみで fit", "2023 内の事前固定 blocked split (H1 2023-01-05..06-25 で fit → H2 07-01..12-28 で適用)"],
+    "requirement": "どれを使ったか、用途 (較正か評価か) を成果物に明記する"
+  },
+
+  "metrics": {
+    "primary": {
+      "name": "race-level categorical logloss",
+      "definition": "-(1/R) Σ_r log p(winner_r)、p は race 内で正規化",
+      "comparisons": ["Q2 − Q0", "Q3 − pre_snapshot market"]
+    },
+    "secondary": ["multiclass Brier", "calibration intercept/slope (exp07 gate_j1_calibration の実装を再利用)", "adaptive-bin ECE", "NDCG@3/@5", "top1", "top3", "meeting-day bootstrap CI"],
+    "breakdowns": ["年月", "競馬場", "芝ダート", "出走頭数", "人気帯"],
+    "statistics": {"unit": "meeting_day = rid16[:10]", "bootstrap_reps": 3000, "seed": 20260924, "ci": 0.95},
+    "reference_2022_measured": {
+      "Q0_final_devig_race_logloss": 1.8895626572607362,
+      "pre_snapshot_race_logloss": 1.938841309641276,
+      "favorite_top1_rate_final": 0.34279918864097364,
+      "favorite_top1_rate_pre": 0.3314981164879745,
+      "n_races": 3451,
+      "note": "Stage 0 の dry run で 2022 のみ測定。2023 は未評価"
+    }
+  },
+
+  "subsets": {
+    "rule": "2023 を見て best decile を選ばない。2022 だけで事前固定する。全体評価を必ず主とし、サブセットだけの改善を全体改善として扱わない",
+    "fixed_on_2022": {
+      "field_size_bins": [[5, 8], [9, 12], [13, 15], [16, 18]],
+      "surface": ["芝", "ダ"],
+      "venue": ["中京", "中山", "函館", "小倉", "新潟", "札幌", "東京", "福島", "阪神"],
+      "class_groups": "新馬/未勝利/1勝/2勝/3勝/OP以上",
+      "favorite_pre_odds_tertiles": [2.9352544259653532, 4.139468605457669],
+      "market_entropy_pre_tertiles": [1.977632708055387, 2.221909210873227],
+      "pre_votes_tansho_tertiles": [61853.33333333333, 95683.66666666666]
+    },
+    "deferred": "model-market disagreement の閾値は Q1 が必要なため、Stage 1 で 2022 のみを使って固定してから 2023 を開く"
+  },
+
+  "gates": {
+    "A_close_market_residual": {
+      "comparison": "Q2 vs Q0",
+      "pass_conditions": ["Δ race-level categorical logloss < 0", "meeting-day bootstrap CI95 上限 < 0", "|Δ| >= 事前固定の実務閾値"],
+      "practical_threshold_nats_per_race": 0.002,
+      "mde_rule": "2023 を開く前に、2022 の市場 baseline 残差分散から MDE を算出し out/mde.json にコミットする。MDE > 実務閾値なら検出力不足として明示する",
+      "meaning": "情報の存在確認のみ。実運用可能性・利益・成長率のいずれも意味しない"
+    },
+    "B_decision_time_reproducibility": {
+      "run_if": "Gate A PASS",
+      "comparison": "Q3 vs historical_pre_snapshot market",
+      "pass_conditions": ["同じ基準 (Δ<0・CI95 上限<0・|Δ|>=実務閾値)", "Q2 の改善方向を再現している"]
+    },
+    "fail_statement_gateA": "単勝close市場に対するR0-cleanの残差情報を2023 developmentで検出できなかった。全券種・JRA全研究・馬券依存構造へ一般化しない",
+    "forbidden_threshold": "-ln(1-takeout) = 0.2231 nats を hard Gate に使わない (INFORMATION_TO_GROWTH_DERIVATION.md、合成例 C1-C5)"
+  },
+
+  "auxiliary_economic_checks": {
+    "run_if": "Gate A かつ Gate B PASS",
+    "period": "2023 development のみ",
+    "items": ["p × close odds", "shrinkage 後の正 edge 被覆", "expected hits / actual hits", "払戻上限を置いた ROI", "最大払戻 上位5/10/20件 除外", "払戻0.9倍", "利益集中度", "前後半の方向一致"],
+    "status": "最終 ROI 判定ではない。候補生成・配分最適化・production 接続には進まない"
+  },
+
+  "direct_comparisons": {
+    "same_race_set": true,
+    "arms": ["close favorite", "historical_pre_snapshot favorite", "Q1 top pick", "Q3 top pick", "Q3 blend", "LEGACY-v6 top pick (参考値のみ)"]
+  },
+
+  "traps_to_avoid": [
+    "oracle 汚染: Q0/Q2 の量が Q3 の特徴・ハイパラ・サブセットに触れたら crosspool と同じ ORACLE になる",
+    "確定は発走後の記録であり締切価格ではない",
+    "pl_calibrators_v6 は valid=2023 fit なので 2023 評価に使わない",
+    "指標の置き換え (race-level 多項 vs 馬単位二値) を新結果と誤読しない。EXP05 M4>M3 の言い換えでないことを事前登録で区別する",
+    "二重正規化をしない。Q0 と Q3 を同一の馬集合に載せる",
+    "同着の除外件数をアーム間でずらさない",
+    "評価年でのサブセット選択 (clean-band の前例)",
+    "情報の存在を『エッジ』と語らない (EXP05 は頑健な logloss 改善を ROI へ変換できなかった)",
+    "被覆差が静かな選抜にならないよう共通適格集合を先に固定する"
+  ],
+
+  "stage0_deliverables": ["PRIOR_ART_AUDIT.md", "INFORMATION_TO_GROWTH_DERIVATION.md", "MARKET_DATA_PROVENANCE.md", "spec.json", "STAGE0_DRY_RUN.json"],
+  "stage0_prohibitions": ["production 変更", "候補馬券生成", "資金配分変更", "2024/2025 開封", "ROI 本評価", "学習 (Stage 0 では Q1 の再利用も含め新規学習を行わない)"],
+  "stage1_entry_condition": "本 spec のレビューと凍結の後に着手する"
+}
