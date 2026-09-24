@@ -1,0 +1,150 @@
+{
+ "seed": 20260925,
+ "reps": 400,
+ "structure": {
+  "races": 14391,
+  "meeting_days": 540,
+  "pairs": 697784,
+  "pairs_per_race_mean": 48.48752692655132,
+  "within_race_sd_bmu": 0.44449172442876456,
+  "sigma_eta": 0.22224586221438228,
+  "b": 0.10326343569501212,
+  "years": {
+   "2019": 110,
+   "2020": 109,
+   "2021": 106,
+   "2022": 108,
+   "2023": 107
+  },
+  "max_gain_with_perfect_eta_knowledge": 0.010645469813036221
+ },
+ "calibrated_noise_by_target": {
+  "0.0005": 1.3707160949707031,
+  "0.001": 0.9509086608886719,
+  "0.002": 0.6402015686035156,
+  "0.005": 0.3285408020019531,
+  "0.01": 0.07772445678710938,
+  "0.02": null
+ },
+ "mechanism_floor_nats_per_pair": 0.001,
+ "power_by_true_effect": {
+  "0.0005": {
+   "true_effect_nats_per_pair": 0.0005,
+   "noise_sd": 1.3707160949707031,
+   "reps": 400,
+   "success_detect": 400,
+   "power_detect": 1.0,
+   "wilson95_detect": [
+    0.9904877055170676,
+    1.0000000000000002
+   ],
+   "power_ci_only": 1.0,
+   "success_detect_and_floor": 0,
+   "power_detect_and_floor": 0.0,
+   "wilson95_detect_and_floor": [
+    0.0,
+    0.009512294482932589
+   ],
+   "realized_mean_effect": 0.0005276353293032162,
+   "realized_effect_sd_across_reps": 6.55222900062446e-05
+  },
+  "0.001": {
+   "true_effect_nats_per_pair": 0.001,
+   "noise_sd": 0.9509086608886719,
+   "reps": 400,
+   "success_detect": 400,
+   "power_detect": 1.0,
+   "wilson95_detect": [
+    0.9904877055170676,
+    1.0000000000000002
+   ],
+   "power_ci_only": 1.0,
+   "success_detect_and_floor": 255,
+   "power_detect_and_floor": 0.6375,
+   "wilson95_detect_and_floor": [
+    0.5892885147438963,
+    0.6830956042732971
+   ],
+   "realized_mean_effect": 0.0010395627952505544,
+   "realized_effect_sd_across_reps": 9.789373193072559e-05
+  },
+  "0.002": {
+   "true_effect_nats_per_pair": 0.002,
+   "noise_sd": 0.6402015686035156,
+   "reps": 400,
+   "success_detect": 400,
+   "power_detect": 1.0,
+   "wilson95_detect": [
+    0.9904877055170676,
+    1.0000000000000002
+   ],
+   "power_ci_only": 1.0,
+   "success_detect_and_floor": 400,
+   "power_detect_and_floor": 1.0,
+   "wilson95_detect_and_floor": [
+    0.9904877055170676,
+    1.0000000000000002
+   ],
+   "realized_mean_effect": 0.002033201295974926,
+   "realized_effect_sd_across_reps": 0.0001327933272549409
+  },
+  "0.005": {
+   "true_effect_nats_per_pair": 0.005,
+   "noise_sd": 0.3285408020019531,
+   "reps": 400,
+   "success_detect": 400,
+   "power_detect": 1.0,
+   "wilson95_detect": [
+    0.9904877055170676,
+    1.0000000000000002
+   ],
+   "power_ci_only": 1.0,
+   "success_detect_and_floor": 400,
+   "power_detect_and_floor": 1.0,
+   "wilson95_detect_and_floor": [
+    0.9904877055170676,
+    1.0000000000000002
+   ],
+   "realized_mean_effect": 0.005065264016361117,
+   "realized_effect_sd_across_reps": 0.00020951393308313011
+  },
+  "0.01": {
+   "true_effect_nats_per_pair": 0.01,
+   "noise_sd": 0.07772445678710938,
+   "reps": 400,
+   "success_detect": 400,
+   "power_detect": 1.0,
+   "wilson95_detect": [
+    0.9904877055170676,
+    1.0000000000000002
+   ],
+   "power_ci_only": 1.0,
+   "success_detect_and_floor": 400,
+   "power_detect_and_floor": 1.0,
+   "wilson95_detect_and_floor": [
+    0.9904877055170676,
+    1.0000000000000002
+   ],
+   "realized_mean_effect": 0.010017828865849803,
+   "realized_effect_sd_across_reps": 0.0003574259385634227
+  },
+  "0.02": {
+   "skipped": "target exceeds max achievable gain"
+  }
+ },
+ "mde_80pct_detect": "<= 0.0005 (smallest tested level already >= 80%)",
+ "cluster_se_validation": {
+  "rep_mean": -0.0009040366765784743,
+  "normal_se": 9.994663764549505e-05,
+  "bootstrap_se": 0.0001010550515805126,
+  "bootstrap_ci95_upper": -0.0007084479268112975,
+  "normal_ci95_upper": -0.0007081448648722593
+ },
+ "decision_rule": "機構 floor 0.001 nats/pair を注入したとき detect (CI95上限<0 ∧ 4/5年 ∧ LOO) の power ≥ 0.80 なら G1 は検出可能。floor 到達 (点推定 ≤ -floor) を同時に要求した PASS 確率は別に報告し進行可否には使わない (EXP16A と同じ分離)",
+ "caveats": [
+  "placebo 条件は合成では満たされたものとして扱う (実 power はこれより低い)",
+  "生成モデルは per-horse 潜在 η (scalar rating が知らない race-day 変動) を PATH が部分観測する形。真の pair 固有 (非推移的) 効果ではなく、『scalar rating が持たない情報を pair 表現が持つ』最良ケースの代理",
+  "cluster SE は正規近似。1 rep の bootstrap で検証 (cluster_se_validation)"
+ ],
+ "elapsed_sec": 167.58446311950684
+}

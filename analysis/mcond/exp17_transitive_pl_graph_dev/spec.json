@@ -2,9 +2,9 @@
   "experiment_id": "EXP17",
   "slug": "dynamic_common_opponent_hodge_pl",
   "title": "Dynamic Common-Opponent Hodge-Plackett-Luce",
-  "version": "0.1-draft",
-  "date": "2026-09-24",
-  "status": "review_required_not_frozen",
+  "version": "0.2 (Stage 0 complete, terminated)",
+  "date": "2026-09-25",
+  "status": "terminated_at_stage0",
   "production_impact": "none",
   "primary_hypothesis": "For current-race horse pairs that have never met, shared-opponent paths contain pair-specific time-safe information beyond scalar dynamic PL, R0-clean, and the terminal close win market.",
   "prior_art_boundary": {
@@ -13,7 +13,8 @@
       "Glicko-2 pair decomposition",
       "EXP02 scalar dynamic Bayesian Plackett-Luce",
       "EXP12 one-hop opponent identity summaries",
-      "field-strength scalar averages"
+      "field-strength scalar averages",
+      "statistical-mechanics M1 pair coupling term in the PL partition function (style-based; umaren ECE -33%, zero realized ROI)"
     ],
     "equivalence_warning": "A single scalar theta per horse with logistic pair probabilities is already implicit in EXP02 and is not a new experiment.",
     "new_component": "Keep common-opponent-derived d_ij as a target-pair-specific antisymmetric matrix until weighted Hodge projection at prediction time.",
@@ -24,7 +25,12 @@
       "GNN",
       "non-JRA history",
       "other betting pools"
-    ]
+    ],
+    "equivalence_result_stage0": {
+      "E0_A": "Hodge projection output is one scalar per horse by construction; pair-specific evidence survives only in the projection residual. The race-level probability arm is therefore in the same model family as EXP02 (different estimator only). Verified synthetically: gradient input returns theta (max err 2.3e-13), pure curl input returns s=0.",
+      "E0_B": "2022 label-free: Var(d_ij - b*dmu_ij) real / BT-null mean = 0.840, CI95 [0.825, 0.856]; preregistered FAIL rule upper < 1.10 satisfied.",
+      "E0_C": "median 47% of pair-evidence sum of squares is discarded by the projection."
+    }
   },
   "population": {
     "horse_key": "血統登録番号 as string",
@@ -35,10 +41,34 @@
       "one unique official winner",
       "at least 5 valid starters",
       "exclude scratches and pre-start exclusions",
-      "exclude DNF-containing races from formal race-level Gates",
+      "exclude DNF-containing races from formal race-level Gates (proxy: master rows < 出走頭数)",
       "omit tied pairs from pairwise labels"
     ],
-    "dnf_caveat": "Result-conditioned DNF exclusion is temporary until a full-starter scoring contract exists."
+    "dnf_caveat": "Result-conditioned DNF exclusion is temporary until a full-starter scoring contract exists.",
+    "measured_2019_2023": {
+      "flat": 16645,
+      "excl_no_unique_winner": 37,
+      "excl_small_field": 1,
+      "excl_dnf_proxy": 656,
+      "official": 15951,
+      "by_year": {
+        "2019": 3185,
+        "2020": 3169,
+        "2021": 3200,
+        "2022": 3206,
+        "2023": 3191
+      },
+      "matches_EXP16A_official_set": true,
+      "id_audit": {
+        "rows_total_2013_2023": 532525,
+        "hid_missing_or_nan": 0,
+        "hid_not_10_digits": 0,
+        "hids_with_multiple_names": 0,
+        "hids_total": 58080,
+        "names_shared_by_multiple_hids": 261,
+        "note": "同一 ID に複数馬名 = 衝突 (fail-closed 対象)。同一馬名に複数 ID は正常 (馬名 join 禁止の根拠)"
+      }
+    }
   },
   "time_safety": {
     "snapshot": "start_of_calendar_day",
@@ -65,7 +95,41 @@
     "common_opponent_contribution": "d_ij_c=ell_ic-ell_jc",
     "aggregate": "weighted mean over shared opponents using frozen reliability, recency, and condition-similarity weights",
     "missing_rule": "missing evidence remains missing and is not a zero observation",
-    "direct_meetings": "reported separately and excluded from the primary mechanism sample"
+    "direct_meetings": "reported separately and excluded from the primary mechanism sample",
+    "stage0_parameters": {
+      "alpha": 1.0,
+      "eps": 0.01,
+      "half_life_days": null,
+      "cond_bonus": 0.0,
+      "lookback_days": null,
+      "hodge_lambda": 1e-06,
+      "include_direct_in_projection": false,
+      "omega": "harmonic-mean reliability n_ic*n_jc/(n_ic+n_jc) * (1 + cond_bonus*match_rate)"
+    },
+    "grid_that_would_have_been_frozen_on_le_2018": {
+      "alpha": [
+        0.5,
+        1,
+        2
+      ],
+      "half_life_days": [
+        null,
+        730
+      ],
+      "cond_bonus": [
+        0,
+        0.5
+      ],
+      "lookback_days": [
+        null,
+        1095
+      ],
+      "include_direct_in_projection": [
+        false,
+        true
+      ],
+      "note": "未実施。E0 FAIL のため Stage 1 に進まない"
+    }
   },
   "projection": {
     "method": "weighted Hodge least squares",
@@ -100,7 +164,7 @@
       "major_band_relative_coverage_floor": 0.5
     },
     "power": {
-      "inference_unit": "meeting day",
+      "inference_unit": "calendar_meeting_day",
       "method": "effect injection on label-free historical race structures",
       "minimum_power": 0.8,
       "report": [
@@ -111,12 +175,35 @@
         "Wilson interval"
       ],
       "race_level_practical_floor_nats": 0.005,
-      "mechanism_floor": "must be fixed after Stage 0 power audit and before 2019-2023 outcome evaluation"
+      "mechanism_floor": "must be fixed after Stage 0 power audit and before 2019-2023 outcome evaluation",
+      "inference_unit_note": "開催日 (暦日, 540 days in 2019-2023). EXP16A used venue-day rid16[:10]; EXP17 pools venues on the same day (more conservative).",
+      "mechanism_floor_nats_per_pair": 0.001,
+      "result": {
+        "power_detect_at_floor": 1.0,
+        "wilson95": [
+          0.9904877055170676,
+          1.0000000000000002
+        ],
+        "power_detect_and_point_beyond_floor_at_floor": 0.6375,
+        "mde_80pct_detect": "<= 0.0005 (smallest tested level already >= 80%)",
+        "reps": 400,
+        "seed": 20260925,
+        "max_gain_under_generative_model": 0.010645469813036221
+      }
     }
   },
   "rolling_protocol": {
-    "development": [2019, 2020, 2021, 2022, 2023],
-    "sealed": [2024, 2025],
+    "development": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023
+    ],
+    "sealed": [
+      2024,
+      2025
+    ],
     "year_y_rules": [
       "graph uses races strictly before each target day",
       "all learned parameters use years before Y",
@@ -152,10 +239,38 @@
   ],
   "placebos": {
     "draws_minimum": 200,
-    "primary": "degree-preserving opponent-identity rewiring within frozen age, career-start, surface, calendar, and field-size cells",
-    "direction_null": "randomly reverse eligible edge directions while preserving endpoints",
-    "identity_free": "replace path values with degree, experience, recency, and component-size functions only",
-    "pass_rule": "real improvement must exceed each preregistered placebo 97.5th percentile"
+    "seed_rule": "20260925 + draw index",
+    "pass_rule": "real improvement must exceed the 97.5th percentile of P1 and of P2, and exceed P3",
+    "P1_degree_preserving_identity_rewire": {
+      "operation": "for each target horse h, resample opponent identities c from the cell pool with replacement, count = degree(h); keep edge attributes (date, won, surf, dband)",
+      "preserved": [
+        "horse degree",
+        "edge age distribution",
+        "W/L counts",
+        "condition-match rate",
+        "field size",
+        "age band x career band composition"
+      ],
+      "broken": [
+        "opponent identity",
+        "common-opponent structure (n_common changes; recorded per draw and controlled in M3_BASE)"
+      ],
+      "cells": "year x surface x field-size band x age band x career-starts band (target horse)"
+    },
+    "P2_direction_null": {
+      "operation": "flip won with probability 0.5 per (h,c) edge; endpoints, n_hc and coverage unchanged",
+      "preserved": [
+        "all structure incl. identity"
+      ],
+      "broken": [
+        "direction information"
+      ]
+    },
+    "P3_identity_free_control": {
+      "operation": "replace d_ij by a function of degree difference, career-starts difference, rest-days difference, recency and component size fitted on <= Y-1",
+      "draws": 0
+    },
+    "comparison_to_EXP12": "EXP12 replaced horse-row aggregated opponent-strength means via a CLT approximation (3 mean features, 1000 draws) preserving degree/age-career stratum/missing rate. EXP17 P1 resamples identities on the edge list without approximation, additionally preserving edge age, W/L and condition match; only common-opponent structure is (intentionally) broken."
   },
   "gates": {
     "G1_mechanism": {
@@ -169,7 +284,13 @@
         "real effect beats all placebo 97.5th percentiles",
         "effect meets frozen Stage 0 mechanism floor"
       ],
-      "fail_action": "stop without PageRank, longer paths, embedding, or GNN rescue"
+      "fail_action": "stop without PageRank, longer paths, embedding, or GNN rescue",
+      "mechanism_floor_nats_per_pair": 0.001,
+      "grading": {
+        "DETECT": "CI95 upper < 0 and 4/5 years and 4/5 seeds and all LOO CI95 upper < 0 and beats P1,P2 97.5th percentile and beats P3",
+        "FLOOR_REACHED": "DETECT and CI95 upper < -0.001",
+        "point_estimate_not_used_as_grade_condition": true
+      }
     },
     "G2_terminal_close_residual": {
       "run_if": "G1 passes",
@@ -218,5 +339,74 @@
     "synthetic invariant tests",
     "final numbered spec.json"
   ],
-  "freeze_policy": "After review, record version and commit. Any later change requires a new version and pre-result commit with reason and affected fields."
+  "freeze_policy": "After review, record version and commit. Any later change requires a new version and pre-result commit with reason and affected fields.",
+  "fail_statement": "事前固定した時点安全な 2-hop 共通対戦馬表現は、対象母集団・期間・統制の下で必要なペア固有情報を追加しなかった。",
+  "stage0_results": {
+    "official_race_set_2019_2023": 15951,
+    "invariant_tests": {
+      "n_checks": 17,
+      "all_passed": true
+    },
+    "coverage_floor_check": {
+      "never_met_pair_common_opponent_rate": {
+        "value": 0.5367160500854166,
+        "floor": 0.5,
+        "pass": true
+      },
+      "race_rate_with_half_pairs_covered": {
+        "value": 0.6167011472634945,
+        "floor": 0.8,
+        "pass": false
+      },
+      "non_debut_starter_graph_membership": {
+        "value": 0.9507762709633657,
+        "floor": 0.9,
+        "pass": true
+      },
+      "major_band_relative_coverage_floor": {
+        "min_major_band_rate": 0.4409400123685838,
+        "overall_rate": 0.5367160500854166,
+        "pass": true
+      },
+      "all_pass": false
+    },
+    "coverage_key_numbers": {
+      "never_met_pair_common_opponent_rate": 0.5367160500854166,
+      "race_rate_with_half_of_all_pairs_covered": 0.6167011472634945,
+      "non_debut_graph_membership": 0.9507762709633657,
+      "share_used_edges_with_one_meeting": 0.787559632507332,
+      "curl_share_median": 0.4707024277670002
+    },
+    "E0_B_rho": 0.8398399821508369,
+    "E0_B_rho_ci95": [
+      0.825382565366412,
+      0.8557164620379472
+    ],
+    "E0_B_fail_rule_upper": 1.1,
+    "E0_verdict": "FAIL",
+    "power_at_mechanism_floor": 1.0,
+    "stop_rules_triggered": [
+      1,
+      2
+    ],
+    "not_done": [
+      "2019-2023 outcome evaluation",
+      "2024/2025 access",
+      "ROI/payout",
+      "ticket generation",
+      "staking",
+      "production change",
+      "PageRank",
+      "3-hop+",
+      "embedding",
+      "GNN",
+      "post-result threshold changes"
+    ]
+  },
+  "freeze_record": {
+    "version": "0.2",
+    "frozen_as": "Stage 0 complete / terminated",
+    "commit": "(filled at commit)",
+    "rule": "No further change of gates, thresholds, population, arms, placebo, stop rules under EXP17. Reopening requires a new experiment number and an unused evaluation plan."
+  }
 }

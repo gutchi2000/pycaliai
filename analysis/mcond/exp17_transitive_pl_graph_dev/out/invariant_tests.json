@@ -1,0 +1,44 @@
+{
+ "future_deletion_bitwise": true,
+ "target_result_mutation_invariance": true,
+ "same_day_snapshot_shared": true,
+ "common_opponent_post_target_excluded": true,
+ "id_collision_fail_closed": true,
+ "invalid_id_fail_closed": true,
+ "no_name_recovery": true,
+ "antisymmetry_max_abs": 0.0,
+ "antisymmetry_ok": true,
+ "horse_order_invariance": true,
+ "row_order_invariance": true,
+ "hodge_reproducible": true,
+ "prob_sum_abs_err": 0.0,
+ "prob_sum_ok": true,
+ "components_detected": [
+  [
+   0,
+   1
+  ],
+  [
+   2,
+   3
+  ],
+  [
+   4
+  ]
+ ],
+ "component_zero_centered": true,
+ "uncovered_flag_and_zero": true,
+ "disconnected_ok": true,
+ "primary_sample_excludes_direct": true,
+ "n_pairs_direct": 8,
+ "n_pairs_2hop_primary": 20,
+ "missing_not_zero": true,
+ "gradient_input_returns_theta_maxerr": 2.311484337269576e-13,
+ "gradient_input_residual_max": 3.5438318946034997e-13,
+ "algebraic_reduction_when_transitive": true,
+ "curl_input_projected_scores_max": 0.0,
+ "curl_input_residual_equals_d": true,
+ "pair_specific_info_survives_only_in_residual": true,
+ "all_passed": true,
+ "n_checks": 17
+}

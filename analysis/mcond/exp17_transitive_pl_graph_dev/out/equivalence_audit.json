@@ -1,0 +1,70 @@
+{
+ "population": {
+  "year": 2022,
+  "official_races": 3206,
+  "never_met_pairs_with_common_opponent_and_mu": 138717,
+  "triples_ijc": 965299,
+  "unique_hc_edges": 1197881,
+  "meetings": 1439200
+ },
+ "bt_pair_scale": {
+  "b": 0.10326343569501212,
+  "n_meetings": 300000,
+  "max_meeting_date": 20181231,
+  "pair_logloss_bt": 0.6433543868157318,
+  "pair_logloss_coinflip": 0.6931471805599453
+ },
+ "E0_A_algebraic": {
+  "statement": "Hodge 射影の出力 s は馬ごとのスカラー。pair 固有情報は射影残差にのみ残り、softmax(s/tau) には入らない",
+  "synthetic_check": "test_invariants.json: algebraic_reduction_when_transitive / pair_specific_info_survives_only_in_residual",
+  "verdict": "race-level 確率 arm は構造的に scalar-rating モデル (EXP02 と同じモデル族、推定量が異なるだけ)"
+ },
+ "E0_B_projected_score_vs_exp02_mu": {
+  "n_horse_rows": 37331,
+  "race_demeaned_slope": 0.03493417012986218,
+  "race_demeaned_R2": 0.2358555048631802,
+  "race_demeaned_corr": 0.4856495700226447
+ },
+ "E0_B_pair_d_vs_bt_gap": {
+  "slope_d_on_bdmu": 0.3037300719864154,
+  "R2": 0.14622476069491597,
+  "corr": 0.3824245036879189,
+  "var_d_real": 0.4068385906206063,
+  "var_bdmu": 0.6449133791033534,
+  "var_residual_real": 0.6599762913054847
+ },
+ "E0_B_excess_variance_vs_bt_null": {
+  "n_null_draws": 200,
+  "seed": 20260925,
+  "var_residual_null_mean": 0.785835760778238,
+  "var_residual_null_sd_across_draws": 0.0026405264019193457,
+  "rho_real_over_null": 0.8398399821508369,
+  "rho_ci95_day_block_bootstrap": [
+   0.825382565366412,
+   0.8557164620379472
+  ],
+  "fail_rule": "rho CI95 upper < 1.1 → pair 固有状態は BT 抽選ノイズと区別できない",
+  "fail": true,
+  "reconstruction_max_abs_err_real_d": 0.0
+ },
+ "E0_B_cross_common_opponent_agreement": {
+  "n_pairs_with_ge2_common_opponents": 107594,
+  "corr_real": 0.39062313575135643,
+  "corr_null_mean": 0.3276117967904099,
+  "corr_null_p97_5": 0.33459253879582845,
+  "exceeds_null_97_5": true,
+  "caveat": "null は μ を真値扱い。μ 推定誤差は real の相関を正側に押すので、超過は pair 固有状態の十分条件ではない"
+ },
+ "E0_C_projection": {
+  "curl_share_median": 0.46662158152704675,
+  "curl_share_mean": 0.452832089471762,
+  "meaning": "pair 証拠の二乗和のうち射影で捨てられる割合 = 確率 arm に届かない pair 固有成分の大きさ"
+ },
+ "meeting_count_structure": {
+  "share_edges_n_eq1": 0.847185154451903,
+  "share_edges_n_le2": 0.9656351507370098,
+  "mean_meetings_per_edge": 1.2014549024485737,
+  "note": "n=1 の辺の ell は ±logit((1+α)/(1+2α)) の2値。d_ij^(c) は事実上 3 値の符号情報"
+ },
+ "elapsed_sec": 121.7777144908905
+}

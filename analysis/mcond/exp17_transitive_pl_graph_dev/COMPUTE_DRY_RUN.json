@@ -1,0 +1,54 @@
+{
+ "measured_stage0": {
+  "load_master_2013_2023_sec": 6.998001337051392,
+  "build_history_store_sec": 5.191390752792358,
+  "store_directed_meetings": 7030704,
+  "store_arrays_bytes": 133583376,
+  "query_races": 15951,
+  "query_sec_per_race": 0.02518635792804283,
+  "query_sec_total": 401.7475953102112,
+  "equivalence_audit_2022_sec": 121.8,
+  "power_audit_sec": 167.58446311950684,
+  "rss_not_measured": "psutil 未導入のため RSS 未計測 (配列 134MB + pandas master 読込 ~2-3GB の見込み)",
+  "artifact_bytes": {
+   "invariant_tests.json": 1131,
+   "races_2019_2023.parquet": 401835,
+   "horses_2019_2023.parquet": 1171282,
+   "pairs_2019_2023.parquet": 7686358,
+   "edges_2022.parquet": 4223713,
+   "GRAPH_COVERAGE.json": 13134,
+   "race_population.json": 545,
+   "compute_timings.json": 403,
+   "equivalence_audit.json": 2799,
+   "power_audit.json": 4682
+  },
+  "cpu_count": 16
+ },
+ "stage1_extrapolation_if_it_had_proceeded": {
+  "one_parameter_setting_2019_2023_sec": 413.93698740005493,
+  "hyperparameter_grid_on_le_2018": {
+   "grid": "alpha{0.5,1,2} x half_life{inf,730d} x cond_bonus{0,0.5} x lookback{inf,1095d}",
+   "n_settings": 24,
+   "single_core_hours": 2.7595799160003662,
+   "16_core_hours": 0.1724737447500229
+  },
+  "placebo_P1_and_P2": {
+   "draws_each": 200,
+   "sec_per_draw": 413.93698740005493,
+   "single_core_hours_total": 45.9929986000061,
+   "16_core_hours_total": 2.8745624125003815
+  },
+  "hodge_projection": "レース内 n<=18 の線形系; 全体で 1 秒未満",
+  "storage": {
+   "pairs_primary_sample_per_setting_bytes": 7686358,
+   "edges_ijc_one_year_bytes": 4223713,
+   "edges_ijc_5_years_est_bytes": 21118565,
+   "full_pair_matrix_audit_rows": 1472988,
+   "full_pair_matrix_audit_est_bytes": 58919520,
+   "placebo_summaries": "draw ごとに構造量と改善値のみ (数KB/draw)"
+  },
+  "gpu": "不要",
+  "seeds": "graph 構築と Hodge は決定論的 (seed 不要)。seed は M2_R0 の rolling OOF と placebo 抽選のみ"
+ },
+ "note": "E0 FAIL と被覆床 FAIL により Stage 1 には進まない。上記は進んだ場合の見積りとして記録"
+}

@@ -1,0 +1,373 @@
+{
+ "params_stage0_provisional": {
+  "alpha": 1.0,
+  "eps": 0.01,
+  "half_life_days": null,
+  "cond_bonus": 0.0,
+  "lookback_days": null,
+  "lam": 1e-06,
+  "include_direct_in_projection": false
+ },
+ "history_scope": "JRA平地 finisher 行 2013-2023 (date<day)",
+ "overall": {
+  "races": 15951,
+  "pairs_total": 1472988,
+  "pairs_direct": 172889,
+  "pairs_never_met": 1300099,
+  "pairs_never_met_with_common_opponent": 697784,
+  "never_met_pair_common_opponent_rate": 0.5367160500854166,
+  "race_rate_with_half_of_all_pairs_covered": 0.6167011472634945,
+  "race_rate_with_half_of_never_met_pairs_covered": 0.5906839696570748,
+  "median_n_common_per_covered_never_met_pair": 3.0,
+  "components_ge2_mean": 1.024575261739076,
+  "largest_component_share_mean": 0.8258475860667498,
+  "race_rate_single_component_covering_all": 0.5672371638141809,
+  "curl_share_of_pair_evidence_removed_by_projection_median": 0.4707024277670002
+ },
+ "horses_overall": {
+  "horses": 220221,
+  "debut": 22674,
+  "covered_rate_all": 0.8528841481965843,
+  "non_debut_graph_membership_rate": 0.9507762709633657,
+  "degree_median": 8.0
+ },
+ "by_year": {
+  "2019": {
+   "races": 3185,
+   "pairs_total": 291087,
+   "pairs_direct": 34312,
+   "pairs_never_met": 256775,
+   "pairs_never_met_with_common_opponent": 136697,
+   "never_met_pair_common_opponent_rate": 0.5323610164540941,
+   "race_rate_with_half_of_all_pairs_covered": 0.6235478806907379,
+   "race_rate_with_half_of_never_met_pairs_covered": 0.598116169544741,
+   "median_n_common_per_covered_never_met_pair": 3.0,
+   "components_ge2_mean": 1.031397174254317,
+   "largest_component_share_mean": 0.8296873849568004,
+   "race_rate_single_component_covering_all": 0.5736263736263736,
+   "curl_share_of_pair_evidence_removed_by_projection_median": 0.4595012796850854
+  },
+  "2020": {
+   "races": 3169,
+   "pairs_total": 298370,
+   "pairs_direct": 35676,
+   "pairs_never_met": 262694,
+   "pairs_never_met_with_common_opponent": 141094,
+   "never_met_pair_common_opponent_rate": 0.5371040069434398,
+   "race_rate_with_half_of_all_pairs_covered": 0.6216472073209214,
+   "race_rate_with_half_of_never_met_pairs_covered": 0.5964026506784474,
+   "median_n_common_per_covered_never_met_pair": 3.0,
+   "components_ge2_mean": 1.0255601136005048,
+   "largest_component_share_mean": 0.831668364222705,
+   "race_rate_single_component_covering_all": 0.5749447775323446,
+   "curl_share_of_pair_evidence_removed_by_projection_median": 0.4776008854755871
+  },
+  "2021": {
+   "races": 3200,
+   "pairs_total": 297429,
+   "pairs_direct": 35153,
+   "pairs_never_met": 262276,
+   "pairs_never_met_with_common_opponent": 141979,
+   "never_met_pair_common_opponent_rate": 0.5413343195717488,
+   "race_rate_with_half_of_all_pairs_covered": 0.6178125,
+   "race_rate_with_half_of_never_met_pairs_covered": 0.5921875,
+   "median_n_common_per_covered_never_met_pair": 3.0,
+   "components_ge2_mean": 1.0171875,
+   "largest_component_share_mean": 0.8275369780342205,
+   "race_rate_single_component_covering_all": 0.5628125,
+   "curl_share_of_pair_evidence_removed_by_projection_median": 0.4787653370167535
+  },
+  "2022": {
+   "races": 3206,
+   "pairs_total": 290792,
+   "pairs_direct": 33925,
+   "pairs_never_met": 256867,
+   "pairs_never_met_with_common_opponent": 138717,
+   "never_met_pair_common_opponent_rate": 0.5400343368357944,
+   "race_rate_with_half_of_all_pairs_covered": 0.6175920149719276,
+   "race_rate_with_half_of_never_met_pairs_covered": 0.5907673112913288,
+   "median_n_common_per_covered_never_met_pair": 3.0,
+   "components_ge2_mean": 1.029008109794136,
+   "largest_component_share_mean": 0.8209328367242297,
+   "race_rate_single_component_covering_all": 0.567373674360574,
+   "curl_share_of_pair_evidence_removed_by_projection_median": 0.46662158152704675
+  },
+  "2023": {
+   "races": 3191,
+   "pairs_total": 295310,
+   "pairs_direct": 33823,
+   "pairs_never_met": 261487,
+   "pairs_never_met_with_common_opponent": 139297,
+   "never_met_pair_common_opponent_rate": 0.5327109951928777,
+   "race_rate_with_half_of_all_pairs_covered": 0.6029457850203698,
+   "race_rate_with_half_of_never_met_pairs_covered": 0.5759949858978377,
+   "median_n_common_per_covered_never_met_pair": 3.0,
+   "components_ge2_mean": 1.0197430272641805,
+   "largest_component_share_mean": 0.8194780550906235,
+   "race_rate_single_component_covering_all": 0.5575054841742401,
+   "curl_share_of_pair_evidence_removed_by_projection_median": 0.46712926416286454
+  }
+ },
+ "horses_by_year": {
+  "2019": {
+   "horses": 43726,
+   "debut": 4566,
+   "covered_rate_all": 0.8528792937840186,
+   "non_debut_graph_membership_rate": 0.9523237997957099,
+   "degree_median": 8.0
+  },
+  "2020": {
+   "horses": 44203,
+   "debut": 4581,
+   "covered_rate_all": 0.8543085310951746,
+   "non_debut_graph_membership_rate": 0.9530816213214881,
+   "degree_median": 9.0
+  },
+  "2021": {
+   "horses": 44329,
+   "debut": 4434,
+   "covered_rate_all": 0.8550835795980058,
+   "non_debut_graph_membership_rate": 0.9501190625391653,
+   "degree_median": 9.0
+  },
+  "2022": {
+   "horses": 43859,
+   "debut": 4515,
+   "covered_rate_all": 0.8516154039079779,
+   "non_debut_graph_membership_rate": 0.9493442456283042,
+   "degree_median": 9.0
+  },
+  "2023": {
+   "horses": 44104,
+   "debut": 4578,
+   "covered_rate_all": 0.8505124251768547,
+   "non_debut_graph_membership_rate": 0.9490208976369985,
+   "degree_median": 8.0
+  }
+ },
+ "by_field_band": {
+  "13-15": {
+   "races": 4757,
+   "pairs_total": 444038,
+   "pairs_direct": 51650,
+   "pairs_never_met": 392388,
+   "pairs_never_met_with_common_opponent": 216643,
+   "never_met_pair_common_opponent_rate": 0.5521142338705567,
+   "race_rate_with_half_of_all_pairs_covered": 0.6491486230817742,
+   "race_rate_with_half_of_never_met_pairs_covered": 0.6241328568425478,
+   "median_n_common_per_covered_never_met_pair": 3.0,
+   "components_ge2_mean": 1.0365776750052553,
+   "largest_component_share_mean": 0.8516448095384401,
+   "race_rate_single_component_covering_all": 0.605213369770864,
+   "curl_share_of_pair_evidence_removed_by_projection_median": 0.48767023917574176
+  },
+  "16-18": {
+   "races": 6303,
+   "pairs_total": 794506,
+   "pairs_direct": 93249,
+   "pairs_never_met": 701257,
+   "pairs_never_met_with_common_opponent": 372497,
+   "never_met_pair_common_opponent_rate": 0.5311847154466908,
+   "race_rate_with_half_of_all_pairs_covered": 0.5965413295256227,
+   "race_rate_with_half_of_never_met_pairs_covered": 0.5708392828811677,
+   "median_n_common_per_covered_never_met_pair": 3.0,
+   "components_ge2_mean": 1.0214183722037125,
+   "largest_component_share_mean": 0.8374106530866616,
+   "race_rate_single_component_covering_all": 0.5287958115183246,
+   "curl_share_of_pair_evidence_removed_by_projection_median": 0.4828388181536015
+  },
+  "5-8": {
+   "races": 818,
+   "pairs_total": 19944,
+   "pairs_direct": 2157,
+   "pairs_never_met": 17787,
+   "pairs_never_met_with_common_opponent": 7843,
+   "never_met_pair_common_opponent_rate": 0.4409400123685838,
+   "race_rate_with_half_of_all_pairs_covered": 0.49877750611246946,
+   "race_rate_with_half_of_never_met_pairs_covered": 0.4718826405867971,
+   "median_n_common_per_covered_never_met_pair": 3.0,
+   "components_ge2_mean": 0.9229828850855746,
+   "largest_component_share_mean": 0.6932675515193852,
+   "race_rate_single_component_covering_all": 0.48533007334963324,
+   "curl_share_of_pair_evidence_removed_by_projection_median": 0.30184180854954656
+  },
+  "9-12": {
+   "races": 4073,
+   "pairs_total": 214500,
+   "pairs_direct": 25833,
+   "pairs_never_met": 188667,
+   "pairs_never_met_with_common_opponent": 100801,
+   "never_met_pair_common_opponent_rate": 0.5342799747703626,
+   "race_rate_with_half_of_all_pairs_covered": 0.6336852442916769,
+   "race_rate_with_half_of_never_met_pairs_covered": 0.6061870856862264,
+   "median_n_common_per_covered_never_met_pair": 3.0,
+   "components_ge2_mean": 1.0358458138963909,
+   "largest_component_share_mean": 0.8044508428255052,
+   "race_rate_single_component_covering_all": 0.5988215074883378,
+   "curl_share_of_pair_evidence_removed_by_projection_median": 0.43572825789012687
+  }
+ },
+ "by_surface": {
+  "ダ": {
+   "races": 7977,
+   "pairs_total": 762668,
+   "pairs_direct": 82600,
+   "pairs_never_met": 680068,
+   "pairs_never_met_with_common_opponent": 380145,
+   "never_met_pair_common_opponent_rate": 0.5589808666192204,
+   "race_rate_with_half_of_all_pairs_covered": 0.6414692240190548,
+   "race_rate_with_half_of_never_met_pairs_covered": 0.6127616898583428,
+   "median_n_common_per_covered_never_met_pair": 3.0,
+   "components_ge2_mean": 1.0427479002131126,
+   "largest_component_share_mean": 0.8658996358272403,
+   "race_rate_single_component_covering_all": 0.58518239939827,
+   "curl_share_of_pair_evidence_removed_by_projection_median": 0.4908024527019192
+  },
+  "芝": {
+   "races": 7974,
+   "pairs_total": 710320,
+   "pairs_direct": 90289,
+   "pairs_never_met": 620031,
+   "pairs_never_met_with_common_opponent": 317639,
+   "never_met_pair_common_opponent_rate": 0.5122953529742867,
+   "race_rate_with_half_of_all_pairs_covered": 0.5919237521946326,
+   "race_rate_with_half_of_never_met_pairs_covered": 0.5685979433157763,
+   "median_n_common_per_covered_never_met_pair": 3.0,
+   "components_ge2_mean": 1.0063957863054929,
+   "largest_component_share_mean": 0.7857804678150029,
+   "race_rate_single_component_covering_all": 0.5492851768246803,
+   "curl_share_of_pair_evidence_removed_by_projection_median": 0.44340728213854047
+  }
+ },
+ "horses_by_age_band": {
+  "2": {
+   "horses": 39943,
+   "debut": 15672,
+   "covered_rate_all": 0.4662644268082017,
+   "non_debut_graph_membership_rate": 0.767335503275514,
+   "degree_median": 0.0
+  },
+  "3": {
+   "horses": 93673,
+   "debut": 6892,
+   "covered_rate_all": 0.883531006800252,
+   "non_debut_graph_membership_rate": 0.95369954252659,
+   "degree_median": 7.0
+  },
+  "4": {
+   "horses": 40182,
+   "debut": 75,
+   "covered_rate_all": 0.99728734259121,
+   "non_debut_graph_membership_rate": 0.9991522676839455,
+   "degree_median": 12.0
+  },
+  "5": {
+   "horses": 26343,
+   "debut": 28,
+   "covered_rate_all": 0.9984056485593896,
+   "non_debut_graph_membership_rate": 0.9994679840395212,
+   "degree_median": 13.0
+  },
+  "6-99": {
+   "horses": 20080,
+   "debut": 7,
+   "covered_rate_all": 0.9991035856573706,
+   "non_debut_graph_membership_rate": 0.9994520001992726,
+   "degree_median": 13.0
+  }
+ },
+ "horses_by_career_band": {
+  "0": {
+   "horses": 22674,
+   "debut": 22674,
+   "covered_rate_all": 0.0,
+   "non_debut_graph_membership_rate": null,
+   "degree_median": 0.0
+  },
+  "1-5": {
+   "horses": 84009,
+   "debut": 0,
+   "covered_rate_all": 0.8851551619469342,
+   "non_debut_graph_membership_rate": 0.8851551619469342,
+   "degree_median": 5.0
+  },
+  "11-20": {
+   "horses": 44761,
+   "debut": 0,
+   "covered_rate_all": 0.9997989321060745,
+   "non_debut_graph_membership_rate": 0.9997989321060745,
+   "degree_median": 13.0
+  },
+  "21-999": {
+   "horses": 24887,
+   "debut": 0,
+   "covered_rate_all": 0.9999196367581468,
+   "non_debut_graph_membership_rate": 0.9999196367581468,
+   "degree_median": 13.0
+  },
+  "6-10": {
+   "horses": 43890,
+   "debut": 0,
+   "covered_rate_all": 0.9985190248348144,
+   "non_debut_graph_membership_rate": 0.9985190248348144,
+   "degree_median": 11.0
+  }
+ },
+ "edge_age_days_used": {
+  "p10": 29.0,
+  "p50": 210.0,
+  "p90": 721.0,
+  "mean": 305.52312689543794,
+  "n": 20176076
+ },
+ "condition_match_rate_used_edges": {
+  "mean": 0.7220963225589312,
+  "share_zero": 0.25724105123315355,
+  "share_one": 0.700010596708696
+ },
+ "meetings_per_used_hc_edge": {
+  "p50": 1.0,
+  "p90": 2.0,
+  "share_eq1": 0.787559632507332,
+  "share_le2": 0.9387634146501034,
+  "mean": 1.307201013715452
+ },
+ "provisional_floors_from_spec": {
+  "never_met_pair_common_opponent_rate": 0.5,
+  "race_rate_with_half_pairs_covered": 0.8,
+  "non_debut_starter_graph_membership": 0.9,
+  "major_band_relative_coverage_floor": 0.5
+ },
+ "floor_check": {
+  "never_met_pair_common_opponent_rate": {
+   "value": 0.5367160500854166,
+   "floor": 0.5,
+   "pass": true
+  },
+  "race_rate_with_half_pairs_covered": {
+   "value": 0.6167011472634945,
+   "floor": 0.8,
+   "pass": false
+  },
+  "non_debut_starter_graph_membership": {
+   "value": 0.9507762709633657,
+   "floor": 0.9,
+   "pass": true
+  },
+  "major_band_relative_coverage_floor": {
+   "min_major_band_rate": 0.4409400123685838,
+   "overall_rate": 0.5367160500854166,
+   "pass": true
+  },
+  "all_pass": false
+ },
+ "id_audit": {
+  "rows_total_2013_2023": 532525,
+  "hid_missing_or_nan": 0,
+  "hid_not_10_digits": 0,
+  "hids_with_multiple_names": 0,
+  "hids_total": 58080,
+  "names_shared_by_multiple_hids": 261,
+  "note": "同一 ID に複数馬名 = 衝突 (fail-closed 対象)。同一馬名に複数 ID は正常 (馬名 join 禁止の根拠)"
+ }
+}
