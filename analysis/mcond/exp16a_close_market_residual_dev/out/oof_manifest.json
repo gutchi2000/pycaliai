@@ -1,0 +1,1920 @@
+{
+ "spec_version": "0.4 (frozen at commit e7603678)",
+ "role": "Q1 rolling OOF の artifact 契約。学習・予測のみ。結果指標は含まない",
+ "created": "2026-09-24 21:23:56 +0900",
+ "master_v2": {
+  "absolute_path": "E:\\PyCaLiAI\\data\\master_v2_20130105-20251228.csv",
+  "size_bytes": 518835750,
+  "mtime": "2026-09-11 22:32:42",
+  "sha256": "b8032d1bd78176a939b615921fa4fd25faadbf493f685e44a06e7f2e9e780a76",
+  "row_hash_2016_2023": "79cf2e2d013994a7e6f25bb0a9286809ebcd2cc379d4282b4e4c9374b16c7e84",
+  "exp15_recorded_row_hash": "79cf2e2d013994a7e6f25bb0a9286809ebcd2cc379d4282b4e4c9374b16c7e84"
+ },
+ "feature_schema": {
+  "source": "E:\\PyCaLiAI\\analysis\\mcond\\exp15_race_as_set_dev\\out\\feature_contract.json",
+  "file_sha256": "5e120492e4c1f7e5a0deeba611765233a620022bcc4eb8e7d382ec25143be567",
+  "n_clean": 111,
+  "n_cat": 27,
+  "schema_hash": "e7c297440df884c38908e22e31a99a54ea5e78ec44e118d5b11a0467f52dddfb"
+ },
+ "race_population": {
+  "json_sha256": "e5eaa58c7d8657dd716cd24a1feaa2a09033f70d6559fdb9548956edfa866955",
+  "official_rid_list_sha256": "8b2cb18f1bc8ba289f4a5db19f85f7e50152bc1bc2dd4b571ba9ee05c2d32b67",
+  "n_official_races": 25501,
+  "rule": "平地 (トラックコード(JV) 51..59 を除外) / 勝馬一意 / starter>=5 / DNF なし"
+ },
+ "p0_5_status": {
+  "blocks_with_2plus_horses": 13174,
+  "blocks_with_multiple_values": 0,
+  "is_post_p0_5_c1_artifact": true,
+  "method": "C1 (最小修正) は同一 (調教師, レース) ブロックへ先頭行の値を配る。ブロック内に複数値が残っていれば修正前 artifact",
+  "reference": "build_dataset.py add_rolling_stats / Vol.III 欠陥台帳 P0-5"
+ },
+ "feature_provenance": {
+  "jockey_fuku90": {
+   "train_side": "build_dataset.py add_rolling_stats。直近90『馬走』の複勝率を shift(1) で as-of 計算し、同一 (騎手, レース) ブロックへ先頭値を配る (C1, 2026-09-11)",
+   "serve_side": "data/jockey_stats.csv のスナップショット (predict_weekly.py:523 / app.py:858)。**as-of ではなく現在値**",
+   "used_here": "train 側 (master_v2) のみ"
+  },
+  "prev_hosei": {
+   "train_side": "build_master_v2.py:70 で data/hosei の 『前走補正』を rename (TARGET 由来)",
+   "serve_side": "make_weekly_hosei.py。旧実装は前々走を入れる off-by-one があり proxy で修正済み",
+   "used_here": "train 側 (master_v2) のみ"
+  }
+ },
+ "recipe": {
+  "family": "v6_lr_half (EXP15 で 2022 選択済み)",
+  "params": {
+   "learning_rate": 0.02541579250771342,
+   "num_leaves": 59,
+   "max_depth": 12,
+   "min_data_in_leaf": 197,
+   "feature_fraction": 0.876098829427658,
+   "bagging_fraction": 0.7031707810405968,
+   "lambda_l1": 0.0011077902520957399,
+   "lambda_l2": 7.537933313450104
+  },
+  "fixed": {
+   "objective": "lambdarank",
+   "lambdarank_truncation_level": 5,
+   "metric": "ndcg",
+   "eval_at": [
+    5
+   ],
+   "bagging_freq": 5,
+   "deterministic": true,
+   "force_col_wise": true,
+   "feature_pre_filter": false,
+   "verbose": -1,
+   "n_jobs": -1
+  },
+  "max_rounds": 3000,
+  "early_stopping_rounds": 100,
+  "label": "rel = clip(6 - 着順, 0, 5)",
+  "sample_weight": "uniform",
+  "train_population": "master_v2 の着順が数値の全行 (EXP15 R0-clean と同一。障害を含む)",
+  "tau_population": "Y-1 の **正式 race set 行のみ** (平地・DNF なし) で条件付きロジット最尤。ただし Y=2016 は ES 年 2015 の正式 race set が存在しない (市場データ突合は 2016 以降) ため 2015 の全レース (単独勝ちのみ) で最尤推定する。いずれも Y-1 に閉じている"
+ },
+ "fits": {
+  "Y2016_s20260923": {
+   "year": 2016,
+   "seed": 20260923,
+   "train_period": [
+    20130105,
+    20141228
+   ],
+   "es_period": [
+    20150104,
+    20151227
+   ],
+   "predict_period": [
+    20160105,
+    20161225
+   ],
+   "n_train_rows": 99515,
+   "n_train_races": 6905,
+   "n_es_rows": 49609,
+   "n_es_races": 3454,
+   "n_es_official_rows": 49609,
+   "n_es_official_races": 3454,
+   "n_predict_rows": 49697,
+   "n_predict_races": 3454,
+   "encoder_hash": "983d3a22bf7bebc69694304579c7fb8070368c976e61818870f837d7ebc853c4",
+   "tau_population": "all_races_of_Y_minus_1 (正式 race set が無い年。市場データ突合は 2016 以降のため Y=2016 のみ該当。Y-1 に閉じているので時間安全)",
+   "best_iter": 246,
+   "tau": 0.8288417389905481,
+   "es_official_tau_nll": 2.1995446376678753,
+   "model_sha256": "3f1e53fd19a84015edf4a99298e1f26dea0aa16d9f9bfdc55e50955499ee79ad",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2016_s20260923.npz",
+   "prediction_artifact_sha256": "4f98b301768b34c5401afaf18731e51c6fb55a5b13cdaf03c7dff472568a14b6",
+   "future_row_check": {
+    "train_max_date": 20141228,
+    "train_max_year": 2014,
+    "es_year_set": [
+     2015
+    ],
+    "predict_year_set": [
+     2016
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 3.4
+  },
+  "Y2016_s20260924": {
+   "year": 2016,
+   "seed": 20260924,
+   "train_period": [
+    20130105,
+    20141228
+   ],
+   "es_period": [
+    20150104,
+    20151227
+   ],
+   "predict_period": [
+    20160105,
+    20161225
+   ],
+   "n_train_rows": 99515,
+   "n_train_races": 6905,
+   "n_es_rows": 49609,
+   "n_es_races": 3454,
+   "n_es_official_rows": 49609,
+   "n_es_official_races": 3454,
+   "n_predict_rows": 49697,
+   "n_predict_races": 3454,
+   "encoder_hash": "983d3a22bf7bebc69694304579c7fb8070368c976e61818870f837d7ebc853c4",
+   "tau_population": "all_races_of_Y_minus_1 (正式 race set が無い年。市場データ突合は 2016 以降のため Y=2016 のみ該当。Y-1 に閉じているので時間安全)",
+   "best_iter": 267,
+   "tau": 0.8449605344143958,
+   "es_official_tau_nll": 2.1974704810899235,
+   "model_sha256": "6c1fc46fa185c2e7bc858133bdc10be1f90eae8030d6d7444582020ebc4f9e3b",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2016_s20260924.npz",
+   "prediction_artifact_sha256": "27e75327a667a0cf44294a62591ebb65cb1194a50fb4afcedd588aea9f44713c",
+   "future_row_check": {
+    "train_max_date": 20141228,
+    "train_max_year": 2014,
+    "es_year_set": [
+     2015
+    ],
+    "predict_year_set": [
+     2016
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 3.3
+  },
+  "Y2016_s20260925": {
+   "year": 2016,
+   "seed": 20260925,
+   "train_period": [
+    20130105,
+    20141228
+   ],
+   "es_period": [
+    20150104,
+    20151227
+   ],
+   "predict_period": [
+    20160105,
+    20161225
+   ],
+   "n_train_rows": 99515,
+   "n_train_races": 6905,
+   "n_es_rows": 49609,
+   "n_es_races": 3454,
+   "n_es_official_rows": 49609,
+   "n_es_official_races": 3454,
+   "n_predict_rows": 49697,
+   "n_predict_races": 3454,
+   "encoder_hash": "983d3a22bf7bebc69694304579c7fb8070368c976e61818870f837d7ebc853c4",
+   "tau_population": "all_races_of_Y_minus_1 (正式 race set が無い年。市場データ突合は 2016 以降のため Y=2016 のみ該当。Y-1 に閉じているので時間安全)",
+   "best_iter": 567,
+   "tau": 0.8866209466458179,
+   "es_official_tau_nll": 2.189906897051808,
+   "model_sha256": "13a54acdb957c60e96c301813b85f219c85d944ea2314b465ce58ee51b395a51",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2016_s20260925.npz",
+   "prediction_artifact_sha256": "ef9f70137503c7854c8351757c0f7cb0df049b7630744f65abf05496eab6e229",
+   "future_row_check": {
+    "train_max_date": 20141228,
+    "train_max_year": 2014,
+    "es_year_set": [
+     2015
+    ],
+    "predict_year_set": [
+     2016
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 5.8
+  },
+  "Y2016_s20260926": {
+   "year": 2016,
+   "seed": 20260926,
+   "train_period": [
+    20130105,
+    20141228
+   ],
+   "es_period": [
+    20150104,
+    20151227
+   ],
+   "predict_period": [
+    20160105,
+    20161225
+   ],
+   "n_train_rows": 99515,
+   "n_train_races": 6905,
+   "n_es_rows": 49609,
+   "n_es_races": 3454,
+   "n_es_official_rows": 49609,
+   "n_es_official_races": 3454,
+   "n_predict_rows": 49697,
+   "n_predict_races": 3454,
+   "encoder_hash": "983d3a22bf7bebc69694304579c7fb8070368c976e61818870f837d7ebc853c4",
+   "tau_population": "all_races_of_Y_minus_1 (正式 race set が無い年。市場データ突合は 2016 以降のため Y=2016 のみ該当。Y-1 に閉じているので時間安全)",
+   "best_iter": 400,
+   "tau": 0.8645957159635309,
+   "es_official_tau_nll": 2.1887215177080925,
+   "model_sha256": "833be52eb61f965efec808f99ba8d20881bfd4d6da4eb5a0f3c340c87f9424de",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2016_s20260926.npz",
+   "prediction_artifact_sha256": "abd70cacd9f028a350d9b61782fa44deceb967bc9d3331a1c6003b1aa8e4ebf8",
+   "future_row_check": {
+    "train_max_date": 20141228,
+    "train_max_year": 2014,
+    "es_year_set": [
+     2015
+    ],
+    "predict_year_set": [
+     2016
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 5.2
+  },
+  "Y2016_s20260927": {
+   "year": 2016,
+   "seed": 20260927,
+   "train_period": [
+    20130105,
+    20141228
+   ],
+   "es_period": [
+    20150104,
+    20151227
+   ],
+   "predict_period": [
+    20160105,
+    20161225
+   ],
+   "n_train_rows": 99515,
+   "n_train_races": 6905,
+   "n_es_rows": 49609,
+   "n_es_races": 3454,
+   "n_es_official_rows": 49609,
+   "n_es_official_races": 3454,
+   "n_predict_rows": 49697,
+   "n_predict_races": 3454,
+   "encoder_hash": "983d3a22bf7bebc69694304579c7fb8070368c976e61818870f837d7ebc853c4",
+   "tau_population": "all_races_of_Y_minus_1 (正式 race set が無い年。市場データ突合は 2016 以降のため Y=2016 のみ該当。Y-1 に閉じているので時間安全)",
+   "best_iter": 254,
+   "tau": 0.8375926619868552,
+   "es_official_tau_nll": 2.20138849024218,
+   "model_sha256": "3ca805a6c507d3ad23b067ad2bf95648123965c64e3cf2dc02f611a73231d98a",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2016_s20260927.npz",
+   "prediction_artifact_sha256": "a1914d56887a0d1040125f169219ef901d3d38aeb7e603106963dc50482c6404",
+   "future_row_check": {
+    "train_max_date": 20141228,
+    "train_max_year": 2014,
+    "es_year_set": [
+     2015
+    ],
+    "predict_year_set": [
+     2016
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 3.4
+  },
+  "Y2017_s20260923": {
+   "year": 2017,
+   "seed": 20260923,
+   "train_period": [
+    20130105,
+    20151227
+   ],
+   "es_period": [
+    20160105,
+    20161225
+   ],
+   "predict_period": [
+    20170105,
+    20171228
+   ],
+   "n_train_rows": 149124,
+   "n_train_races": 10359,
+   "n_es_rows": 49697,
+   "n_es_races": 3454,
+   "n_es_official_rows": 46262,
+   "n_es_official_races": 3189,
+   "n_predict_rows": 48922,
+   "n_predict_races": 3455,
+   "encoder_hash": "4250fc11e255fc45a69758195d521db4b388b4479e63b2e7e7661ba24af3917c",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 361,
+   "tau": 0.8043840392056202,
+   "es_official_tau_nll": 2.1289365185631475,
+   "model_sha256": "f523f8cdc38c6d26bc69398b62532f361b1fefc8c0e92b042f387ae9544bd8cb",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2017_s20260923.npz",
+   "prediction_artifact_sha256": "3256566a8c3d889db8434223e1c0d234da14dd81a9327a96f43ec36e3b9df733",
+   "future_row_check": {
+    "train_max_date": 20151227,
+    "train_max_year": 2015,
+    "es_year_set": [
+     2016
+    ],
+    "predict_year_set": [
+     2017
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 6.9
+  },
+  "Y2017_s20260924": {
+   "year": 2017,
+   "seed": 20260924,
+   "train_period": [
+    20130105,
+    20151227
+   ],
+   "es_period": [
+    20160105,
+    20161225
+   ],
+   "predict_period": [
+    20170105,
+    20171228
+   ],
+   "n_train_rows": 149124,
+   "n_train_races": 10359,
+   "n_es_rows": 49697,
+   "n_es_races": 3454,
+   "n_es_official_rows": 46262,
+   "n_es_official_races": 3189,
+   "n_predict_rows": 48922,
+   "n_predict_races": 3455,
+   "encoder_hash": "4250fc11e255fc45a69758195d521db4b388b4479e63b2e7e7661ba24af3917c",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 421,
+   "tau": 0.8137082928070107,
+   "es_official_tau_nll": 2.1282579674258293,
+   "model_sha256": "011081c03dc0e7ef15f79bd92a1209933a8b70fdd1cb1af08b7a60a789047072",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2017_s20260924.npz",
+   "prediction_artifact_sha256": "a630d5fc5566056d4a473ef31aeb15841df67bec18e4e95f6f6bf7ea4fdba2c5",
+   "future_row_check": {
+    "train_max_date": 20151227,
+    "train_max_year": 2015,
+    "es_year_set": [
+     2016
+    ],
+    "predict_year_set": [
+     2017
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 7.2
+  },
+  "Y2017_s20260925": {
+   "year": 2017,
+   "seed": 20260925,
+   "train_period": [
+    20130105,
+    20151227
+   ],
+   "es_period": [
+    20160105,
+    20161225
+   ],
+   "predict_period": [
+    20170105,
+    20171228
+   ],
+   "n_train_rows": 149124,
+   "n_train_races": 10359,
+   "n_es_rows": 49697,
+   "n_es_races": 3454,
+   "n_es_official_rows": 46262,
+   "n_es_official_races": 3189,
+   "n_predict_rows": 48922,
+   "n_predict_races": 3455,
+   "encoder_hash": "4250fc11e255fc45a69758195d521db4b388b4479e63b2e7e7661ba24af3917c",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 345,
+   "tau": 0.8048786827112864,
+   "es_official_tau_nll": 2.1299325554356896,
+   "model_sha256": "54c82e60798437bb3d167bff1ca69a343c63b65864533c73e8de29d9268f2f26",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2017_s20260925.npz",
+   "prediction_artifact_sha256": "6a06a0aae8bb8f2b0848bdbb3581078ecf8b0d85bae003eca05200a6c5f6fa5a",
+   "future_row_check": {
+    "train_max_date": 20151227,
+    "train_max_year": 2015,
+    "es_year_set": [
+     2016
+    ],
+    "predict_year_set": [
+     2017
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 6.0
+  },
+  "Y2017_s20260926": {
+   "year": 2017,
+   "seed": 20260926,
+   "train_period": [
+    20130105,
+    20151227
+   ],
+   "es_period": [
+    20160105,
+    20161225
+   ],
+   "predict_period": [
+    20170105,
+    20171228
+   ],
+   "n_train_rows": 149124,
+   "n_train_races": 10359,
+   "n_es_rows": 49697,
+   "n_es_races": 3454,
+   "n_es_official_rows": 46262,
+   "n_es_official_races": 3189,
+   "n_predict_rows": 48922,
+   "n_predict_races": 3455,
+   "encoder_hash": "4250fc11e255fc45a69758195d521db4b388b4479e63b2e7e7661ba24af3917c",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 341,
+   "tau": 0.791960446868804,
+   "es_official_tau_nll": 2.124768703766388,
+   "model_sha256": "133eb1f4dcee29dd00b7555824e4f9b81a7e82588c7e3e6230c013e88fca019a",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2017_s20260926.npz",
+   "prediction_artifact_sha256": "e14c41c74d7f991327832f95111647d4cd4ee78c8735ca88d10e921596a15907",
+   "future_row_check": {
+    "train_max_date": 20151227,
+    "train_max_year": 2015,
+    "es_year_set": [
+     2016
+    ],
+    "predict_year_set": [
+     2017
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 5.8
+  },
+  "Y2017_s20260927": {
+   "year": 2017,
+   "seed": 20260927,
+   "train_period": [
+    20130105,
+    20151227
+   ],
+   "es_period": [
+    20160105,
+    20161225
+   ],
+   "predict_period": [
+    20170105,
+    20171228
+   ],
+   "n_train_rows": 149124,
+   "n_train_races": 10359,
+   "n_es_rows": 49697,
+   "n_es_races": 3454,
+   "n_es_official_rows": 46262,
+   "n_es_official_races": 3189,
+   "n_predict_rows": 48922,
+   "n_predict_races": 3455,
+   "encoder_hash": "4250fc11e255fc45a69758195d521db4b388b4479e63b2e7e7661ba24af3917c",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 402,
+   "tau": 0.8115341944331524,
+   "es_official_tau_nll": 2.124406019846422,
+   "model_sha256": "f3ab5451a1f64acba05bbec493a6cdcd84f6fcd8fd369dd14122cdea2279d8b0",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2017_s20260927.npz",
+   "prediction_artifact_sha256": "e53a42cefa4732352898c9b103ab082142f53bc9575de0a564c033c26472c5fe",
+   "future_row_check": {
+    "train_max_date": 20151227,
+    "train_max_year": 2015,
+    "es_year_set": [
+     2016
+    ],
+    "predict_year_set": [
+     2017
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 6.5
+  },
+  "Y2018_s20260923": {
+   "year": 2018,
+   "seed": 20260923,
+   "train_period": [
+    20130105,
+    20161225
+   ],
+   "es_period": [
+    20170105,
+    20171228
+   ],
+   "predict_period": [
+    20180106,
+    20181228
+   ],
+   "n_train_rows": 198821,
+   "n_train_races": 13813,
+   "n_es_rows": 48922,
+   "n_es_races": 3455,
+   "n_es_official_rows": 45379,
+   "n_es_official_races": 3177,
+   "n_predict_rows": 48199,
+   "n_predict_races": 3454,
+   "encoder_hash": "38c0c7d6f50f39260d05066907da8f225556e40cd68284d8b87891e2246eba7e",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 430,
+   "tau": 0.8568128323559294,
+   "es_official_tau_nll": 2.1175769218034897,
+   "model_sha256": "ff3a930ffcd11cd68404ad1d43e446f9a9aaed5fca91bebacac6dab66daeecc0",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2018_s20260923.npz",
+   "prediction_artifact_sha256": "7500255dc7fd73bc3717a913d7bf4e33cd3d56c18acef7ddd23eee52782f0244",
+   "future_row_check": {
+    "train_max_date": 20161225,
+    "train_max_year": 2016,
+    "es_year_set": [
+     2017
+    ],
+    "predict_year_set": [
+     2018
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 8.5
+  },
+  "Y2018_s20260924": {
+   "year": 2018,
+   "seed": 20260924,
+   "train_period": [
+    20130105,
+    20161225
+   ],
+   "es_period": [
+    20170105,
+    20171228
+   ],
+   "predict_period": [
+    20180106,
+    20181228
+   ],
+   "n_train_rows": 198821,
+   "n_train_races": 13813,
+   "n_es_rows": 48922,
+   "n_es_races": 3455,
+   "n_es_official_rows": 45379,
+   "n_es_official_races": 3177,
+   "n_predict_rows": 48199,
+   "n_predict_races": 3454,
+   "encoder_hash": "38c0c7d6f50f39260d05066907da8f225556e40cd68284d8b87891e2246eba7e",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 811,
+   "tau": 0.8686212794462341,
+   "es_official_tau_nll": 2.107942271269718,
+   "model_sha256": "c1ade16eece61781ecccef7ea11bd48a1fa0cdaee6e74094d289ec38fedd6a60",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2018_s20260924.npz",
+   "prediction_artifact_sha256": "3e7edd926d9a0609b359d28a6ae127d29a8bc5737314f16aa1ecf2fd585f435e",
+   "future_row_check": {
+    "train_max_date": 20161225,
+    "train_max_year": 2016,
+    "es_year_set": [
+     2017
+    ],
+    "predict_year_set": [
+     2018
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 12.8
+  },
+  "Y2018_s20260925": {
+   "year": 2018,
+   "seed": 20260925,
+   "train_period": [
+    20130105,
+    20161225
+   ],
+   "es_period": [
+    20170105,
+    20171228
+   ],
+   "predict_period": [
+    20180106,
+    20181228
+   ],
+   "n_train_rows": 198821,
+   "n_train_races": 13813,
+   "n_es_rows": 48922,
+   "n_es_races": 3455,
+   "n_es_official_rows": 45379,
+   "n_es_official_races": 3177,
+   "n_predict_rows": 48199,
+   "n_predict_races": 3454,
+   "encoder_hash": "38c0c7d6f50f39260d05066907da8f225556e40cd68284d8b87891e2246eba7e",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 627,
+   "tau": 0.8573951530699429,
+   "es_official_tau_nll": 2.1122026277563157,
+   "model_sha256": "68897a98ec5cb659ff4d3de3193d5a0485492a1204fd988b686a94849d2cd12a",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2018_s20260925.npz",
+   "prediction_artifact_sha256": "ee26d2352556ae996961f434e4b7d43409109e563b4feacb9b574e0ab98a4b25",
+   "future_row_check": {
+    "train_max_date": 20161225,
+    "train_max_year": 2016,
+    "es_year_set": [
+     2017
+    ],
+    "predict_year_set": [
+     2018
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 9.6
+  },
+  "Y2018_s20260926": {
+   "year": 2018,
+   "seed": 20260926,
+   "train_period": [
+    20130105,
+    20161225
+   ],
+   "es_period": [
+    20170105,
+    20171228
+   ],
+   "predict_period": [
+    20180106,
+    20181228
+   ],
+   "n_train_rows": 198821,
+   "n_train_races": 13813,
+   "n_es_rows": 48922,
+   "n_es_races": 3455,
+   "n_es_official_rows": 45379,
+   "n_es_official_races": 3177,
+   "n_predict_rows": 48199,
+   "n_predict_races": 3454,
+   "encoder_hash": "38c0c7d6f50f39260d05066907da8f225556e40cd68284d8b87891e2246eba7e",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 300,
+   "tau": 0.8250447329080419,
+   "es_official_tau_nll": 2.123990749914196,
+   "model_sha256": "00e353088a6fa5996dbfc2c64ffe6d6262dcd842eaf67f527e20422493165241",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2018_s20260926.npz",
+   "prediction_artifact_sha256": "0fb2a31619417085f196eb90a6309a025991ee5de34d41f2e3814fb534eecc0b",
+   "future_row_check": {
+    "train_max_date": 20161225,
+    "train_max_year": 2016,
+    "es_year_set": [
+     2017
+    ],
+    "predict_year_set": [
+     2018
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 5.3
+  },
+  "Y2018_s20260927": {
+   "year": 2018,
+   "seed": 20260927,
+   "train_period": [
+    20130105,
+    20161225
+   ],
+   "es_period": [
+    20170105,
+    20171228
+   ],
+   "predict_period": [
+    20180106,
+    20181228
+   ],
+   "n_train_rows": 198821,
+   "n_train_races": 13813,
+   "n_es_rows": 48922,
+   "n_es_races": 3455,
+   "n_es_official_rows": 45379,
+   "n_es_official_races": 3177,
+   "n_predict_rows": 48199,
+   "n_predict_races": 3454,
+   "encoder_hash": "38c0c7d6f50f39260d05066907da8f225556e40cd68284d8b87891e2246eba7e",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 463,
+   "tau": 0.8488173866044628,
+   "es_official_tau_nll": 2.1127018302544633,
+   "model_sha256": "941e1e13cef9f491f19c55745cbbdeb4bffea167534b294a7f2df3df4cc54c65",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2018_s20260927.npz",
+   "prediction_artifact_sha256": "6f78c301d3c13caec33cdb72b1108161d8813b777c47b205015e170ab4b076ef",
+   "future_row_check": {
+    "train_max_date": 20161225,
+    "train_max_year": 2016,
+    "es_year_set": [
+     2017
+    ],
+    "predict_year_set": [
+     2018
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 7.2
+  },
+  "Y2019_s20260923": {
+   "year": 2019,
+   "seed": 20260923,
+   "train_period": [
+    20130105,
+    20171228
+   ],
+   "es_period": [
+    20180106,
+    20181228
+   ],
+   "predict_period": [
+    20190105,
+    20191228
+   ],
+   "n_train_rows": 247743,
+   "n_train_races": 17268,
+   "n_es_rows": 48199,
+   "n_es_races": 3454,
+   "n_es_official_rows": 44731,
+   "n_es_official_races": 3184,
+   "n_predict_rows": 47118,
+   "n_predict_races": 3452,
+   "encoder_hash": "9c836efd4f0416b59b4ee67e9a7eabcf5d63ac4849487830273fb568a929bad1",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 592,
+   "tau": 0.8529484879548128,
+   "es_official_tau_nll": 2.0616377349093336,
+   "model_sha256": "2784450c6e629323fa3c574a04a195a451677a0e8d8b8cb0fe3deda763ff7226",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2019_s20260923.npz",
+   "prediction_artifact_sha256": "1bfd73d502c9374aa338de372fd268fec815cc7b161f9578030b9c7070de35c2",
+   "future_row_check": {
+    "train_max_date": 20171228,
+    "train_max_year": 2017,
+    "es_year_set": [
+     2018
+    ],
+    "predict_year_set": [
+     2019
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 12.3
+  },
+  "Y2019_s20260924": {
+   "year": 2019,
+   "seed": 20260924,
+   "train_period": [
+    20130105,
+    20171228
+   ],
+   "es_period": [
+    20180106,
+    20181228
+   ],
+   "predict_period": [
+    20190105,
+    20191228
+   ],
+   "n_train_rows": 247743,
+   "n_train_races": 17268,
+   "n_es_rows": 48199,
+   "n_es_races": 3454,
+   "n_es_official_rows": 44731,
+   "n_es_official_races": 3184,
+   "n_predict_rows": 47118,
+   "n_predict_races": 3452,
+   "encoder_hash": "9c836efd4f0416b59b4ee67e9a7eabcf5d63ac4849487830273fb568a929bad1",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 418,
+   "tau": 0.8502091423321161,
+   "es_official_tau_nll": 2.070878409234101,
+   "model_sha256": "0fde294365d85753116e84d1b21d1bf159cfdccd33803c564bcc612ebd70a33a",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2019_s20260924.npz",
+   "prediction_artifact_sha256": "4a320db80980a518a5686151ff510125ecfaf8dd185e342fdbac23c95d1c29b4",
+   "future_row_check": {
+    "train_max_date": 20171228,
+    "train_max_year": 2017,
+    "es_year_set": [
+     2018
+    ],
+    "predict_year_set": [
+     2019
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 8.4
+  },
+  "Y2019_s20260925": {
+   "year": 2019,
+   "seed": 20260925,
+   "train_period": [
+    20130105,
+    20171228
+   ],
+   "es_period": [
+    20180106,
+    20181228
+   ],
+   "predict_period": [
+    20190105,
+    20191228
+   ],
+   "n_train_rows": 247743,
+   "n_train_races": 17268,
+   "n_es_rows": 48199,
+   "n_es_races": 3454,
+   "n_es_official_rows": 44731,
+   "n_es_official_races": 3184,
+   "n_predict_rows": 47118,
+   "n_predict_races": 3452,
+   "encoder_hash": "9c836efd4f0416b59b4ee67e9a7eabcf5d63ac4849487830273fb568a929bad1",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 564,
+   "tau": 0.8559287663335959,
+   "es_official_tau_nll": 2.0611800567022343,
+   "model_sha256": "917a54864089d4eb7b9225cfdf937687ef0cd1551a13f6d1852cc59481ca54a3",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2019_s20260925.npz",
+   "prediction_artifact_sha256": "b7d059c9f3a7e298b28e4de9d18d690cf4bbe369b1465333f0a250494a0ed9d9",
+   "future_row_check": {
+    "train_max_date": 20171228,
+    "train_max_year": 2017,
+    "es_year_set": [
+     2018
+    ],
+    "predict_year_set": [
+     2019
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 10.3
+  },
+  "Y2019_s20260926": {
+   "year": 2019,
+   "seed": 20260926,
+   "train_period": [
+    20130105,
+    20171228
+   ],
+   "es_period": [
+    20180106,
+    20181228
+   ],
+   "predict_period": [
+    20190105,
+    20191228
+   ],
+   "n_train_rows": 247743,
+   "n_train_races": 17268,
+   "n_es_rows": 48199,
+   "n_es_races": 3454,
+   "n_es_official_rows": 44731,
+   "n_es_official_races": 3184,
+   "n_predict_rows": 47118,
+   "n_predict_races": 3452,
+   "encoder_hash": "9c836efd4f0416b59b4ee67e9a7eabcf5d63ac4849487830273fb568a929bad1",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 870,
+   "tau": 0.8632701536275293,
+   "es_official_tau_nll": 2.0673890599469367,
+   "model_sha256": "7450935f1c3dd35aeba11c3dd096208aaaaeaf990adbb78ffeeb37c568e9bfac",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2019_s20260926.npz",
+   "prediction_artifact_sha256": "02c4968f6e58a7f8e17b1d6c0572510e15a96835c1a0937388002ddbf0c476f7",
+   "future_row_check": {
+    "train_max_date": 20171228,
+    "train_max_year": 2017,
+    "es_year_set": [
+     2018
+    ],
+    "predict_year_set": [
+     2019
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 16.6
+  },
+  "Y2019_s20260927": {
+   "year": 2019,
+   "seed": 20260927,
+   "train_period": [
+    20130105,
+    20171228
+   ],
+   "es_period": [
+    20180106,
+    20181228
+   ],
+   "predict_period": [
+    20190105,
+    20191228
+   ],
+   "n_train_rows": 247743,
+   "n_train_races": 17268,
+   "n_es_rows": 48199,
+   "n_es_races": 3454,
+   "n_es_official_rows": 44731,
+   "n_es_official_races": 3184,
+   "n_predict_rows": 47118,
+   "n_predict_races": 3452,
+   "encoder_hash": "9c836efd4f0416b59b4ee67e9a7eabcf5d63ac4849487830273fb568a929bad1",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 431,
+   "tau": 0.8449295515495533,
+   "es_official_tau_nll": 2.068332789810812,
+   "model_sha256": "74f3d05237d58fb7bac8953830d94f6957060fcddf8a39aaa2da8c9173f7372f",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2019_s20260927.npz",
+   "prediction_artifact_sha256": "100769de973a08a21487ef8d9966a49a941f6783948a900692a13b96f9781b31",
+   "future_row_check": {
+    "train_max_date": 20171228,
+    "train_max_year": 2017,
+    "es_year_set": [
+     2018
+    ],
+    "predict_year_set": [
+     2019
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 9.3
+  },
+  "Y2020_s20260923": {
+   "year": 2020,
+   "seed": 20260923,
+   "train_period": [
+    20130105,
+    20181228
+   ],
+   "es_period": [
+    20190105,
+    20191228
+   ],
+   "predict_period": [
+    20200105,
+    20201227
+   ],
+   "n_train_rows": 295942,
+   "n_train_races": 20722,
+   "n_es_rows": 47118,
+   "n_es_races": 3452,
+   "n_es_official_rows": 43726,
+   "n_es_official_races": 3185,
+   "n_predict_rows": 47876,
+   "n_predict_races": 3456,
+   "encoder_hash": "7eee5c0727f8a16fdd8ecffe2a475920dac93fb6527ed1e6420337b7c037ea01",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 803,
+   "tau": 0.8904602117816707,
+   "es_official_tau_nll": 2.0855018842381745,
+   "model_sha256": "635c3da14ed4ae1815a9660b7c5685f9f0ddb2ec2c1258890d20509b9802863d",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2020_s20260923.npz",
+   "prediction_artifact_sha256": "5f5a95733dcecdcc357f3a52349234f5f55300df6f264cedcfd79a146e0ef660",
+   "future_row_check": {
+    "train_max_date": 20181228,
+    "train_max_year": 2018,
+    "es_year_set": [
+     2019
+    ],
+    "predict_year_set": [
+     2020
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 16.7
+  },
+  "Y2020_s20260924": {
+   "year": 2020,
+   "seed": 20260924,
+   "train_period": [
+    20130105,
+    20181228
+   ],
+   "es_period": [
+    20190105,
+    20191228
+   ],
+   "predict_period": [
+    20200105,
+    20201227
+   ],
+   "n_train_rows": 295942,
+   "n_train_races": 20722,
+   "n_es_rows": 47118,
+   "n_es_races": 3452,
+   "n_es_official_rows": 43726,
+   "n_es_official_races": 3185,
+   "n_predict_rows": 47876,
+   "n_predict_races": 3456,
+   "encoder_hash": "7eee5c0727f8a16fdd8ecffe2a475920dac93fb6527ed1e6420337b7c037ea01",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 456,
+   "tau": 0.8793303686884898,
+   "es_official_tau_nll": 2.0928817955628185,
+   "model_sha256": "7755472460731d4b0fabc6d6aa26495538e076d95c061586508757595f65726f",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2020_s20260924.npz",
+   "prediction_artifact_sha256": "b82892ef4a91d7dcb701b31c2f85fd9ebc550f25869522f8afa756fe6de7ae7e",
+   "future_row_check": {
+    "train_max_date": 20181228,
+    "train_max_year": 2018,
+    "es_year_set": [
+     2019
+    ],
+    "predict_year_set": [
+     2020
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 11.6
+  },
+  "Y2020_s20260925": {
+   "year": 2020,
+   "seed": 20260925,
+   "train_period": [
+    20130105,
+    20181228
+   ],
+   "es_period": [
+    20190105,
+    20191228
+   ],
+   "predict_period": [
+    20200105,
+    20201227
+   ],
+   "n_train_rows": 295942,
+   "n_train_races": 20722,
+   "n_es_rows": 47118,
+   "n_es_races": 3452,
+   "n_es_official_rows": 43726,
+   "n_es_official_races": 3185,
+   "n_predict_rows": 47876,
+   "n_predict_races": 3456,
+   "encoder_hash": "7eee5c0727f8a16fdd8ecffe2a475920dac93fb6527ed1e6420337b7c037ea01",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 499,
+   "tau": 0.8828560941998636,
+   "es_official_tau_nll": 2.092211736088027,
+   "model_sha256": "6e4a02468612ebf9123de2c585159e3175c30aa9785b0a92dceeb9462cc16e25",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2020_s20260925.npz",
+   "prediction_artifact_sha256": "28e803506e2424355d1adaa1de712bad3bdd3c98c45c4217e4b11fdca1df1df9",
+   "future_row_check": {
+    "train_max_date": 20181228,
+    "train_max_year": 2018,
+    "es_year_set": [
+     2019
+    ],
+    "predict_year_set": [
+     2020
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 11.4
+  },
+  "Y2020_s20260926": {
+   "year": 2020,
+   "seed": 20260926,
+   "train_period": [
+    20130105,
+    20181228
+   ],
+   "es_period": [
+    20190105,
+    20191228
+   ],
+   "predict_period": [
+    20200105,
+    20201227
+   ],
+   "n_train_rows": 295942,
+   "n_train_races": 20722,
+   "n_es_rows": 47118,
+   "n_es_races": 3452,
+   "n_es_official_rows": 43726,
+   "n_es_official_races": 3185,
+   "n_predict_rows": 47876,
+   "n_predict_races": 3456,
+   "encoder_hash": "7eee5c0727f8a16fdd8ecffe2a475920dac93fb6527ed1e6420337b7c037ea01",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 739,
+   "tau": 0.8936717886204049,
+   "es_official_tau_nll": 2.086654130561696,
+   "model_sha256": "6bf14a603d5e5e314231bd0d499d3434005d41586c498449aed8ba5af77f9869",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2020_s20260926.npz",
+   "prediction_artifact_sha256": "cf942711cc88ef1333ee4cfb3c38a347e71a5e6cb2ad53de059a6653d7d8317d",
+   "future_row_check": {
+    "train_max_date": 20181228,
+    "train_max_year": 2018,
+    "es_year_set": [
+     2019
+    ],
+    "predict_year_set": [
+     2020
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 15.2
+  },
+  "Y2020_s20260927": {
+   "year": 2020,
+   "seed": 20260927,
+   "train_period": [
+    20130105,
+    20181228
+   ],
+   "es_period": [
+    20190105,
+    20191228
+   ],
+   "predict_period": [
+    20200105,
+    20201227
+   ],
+   "n_train_rows": 295942,
+   "n_train_races": 20722,
+   "n_es_rows": 47118,
+   "n_es_races": 3452,
+   "n_es_official_rows": 43726,
+   "n_es_official_races": 3185,
+   "n_predict_rows": 47876,
+   "n_predict_races": 3456,
+   "encoder_hash": "7eee5c0727f8a16fdd8ecffe2a475920dac93fb6527ed1e6420337b7c037ea01",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 800,
+   "tau": 0.8904187268119189,
+   "es_official_tau_nll": 2.0868096186917593,
+   "model_sha256": "fed61355f1f0107430e26f5f2aa83c235c1e9c53354f739779768a074580dc21",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2020_s20260927.npz",
+   "prediction_artifact_sha256": "eb014978dc15415f6c0d9406e7aa26718e9fd768d69cc5c88a76f38d2f215959",
+   "future_row_check": {
+    "train_max_date": 20181228,
+    "train_max_year": 2018,
+    "es_year_set": [
+     2019
+    ],
+    "predict_year_set": [
+     2020
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 17.5
+  },
+  "Y2021_s20260923": {
+   "year": 2021,
+   "seed": 20260923,
+   "train_period": [
+    20130105,
+    20191228
+   ],
+   "es_period": [
+    20200105,
+    20201227
+   ],
+   "predict_period": [
+    20210105,
+    20211228
+   ],
+   "n_train_rows": 343060,
+   "n_train_races": 24174,
+   "n_es_rows": 47876,
+   "n_es_races": 3456,
+   "n_es_official_rows": 44203,
+   "n_es_official_races": 3169,
+   "n_predict_rows": 47476,
+   "n_predict_races": 3456,
+   "encoder_hash": "128f01dfe1eefa8c86cc90158ee8bd3b9663d92e288467662a1b6311f0d8660e",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 707,
+   "tau": 0.9128290729082137,
+   "es_official_tau_nll": 2.1321782176291184,
+   "model_sha256": "c79343a31ecc5b17cdd85d5318f4a5987d6623bfab787dcc7a4444218f92303a",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2021_s20260923.npz",
+   "prediction_artifact_sha256": "1153229406c56263b5f08e9f60c6f205097da8b6c706931cc0d67fcc3784289a",
+   "future_row_check": {
+    "train_max_date": 20191228,
+    "train_max_year": 2019,
+    "es_year_set": [
+     2020
+    ],
+    "predict_year_set": [
+     2021
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 18.0
+  },
+  "Y2021_s20260924": {
+   "year": 2021,
+   "seed": 20260924,
+   "train_period": [
+    20130105,
+    20191228
+   ],
+   "es_period": [
+    20200105,
+    20201227
+   ],
+   "predict_period": [
+    20210105,
+    20211228
+   ],
+   "n_train_rows": 343060,
+   "n_train_races": 24174,
+   "n_es_rows": 47876,
+   "n_es_races": 3456,
+   "n_es_official_rows": 44203,
+   "n_es_official_races": 3169,
+   "n_predict_rows": 47476,
+   "n_predict_races": 3456,
+   "encoder_hash": "128f01dfe1eefa8c86cc90158ee8bd3b9663d92e288467662a1b6311f0d8660e",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 551,
+   "tau": 0.9089195835432988,
+   "es_official_tau_nll": 2.133643510917378,
+   "model_sha256": "4261dc55d9b20f673a5c1f3a78cb8a6ddbeeca007df0f4d4a68e7be3ff5d931a",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2021_s20260924.npz",
+   "prediction_artifact_sha256": "ed11149bdd5d68f8ff2bd04ba91790a1d15f1cf2ad890e6a3633104c07113c3c",
+   "future_row_check": {
+    "train_max_date": 20191228,
+    "train_max_year": 2019,
+    "es_year_set": [
+     2020
+    ],
+    "predict_year_set": [
+     2021
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 14.7
+  },
+  "Y2021_s20260925": {
+   "year": 2021,
+   "seed": 20260925,
+   "train_period": [
+    20130105,
+    20191228
+   ],
+   "es_period": [
+    20200105,
+    20201227
+   ],
+   "predict_period": [
+    20210105,
+    20211228
+   ],
+   "n_train_rows": 343060,
+   "n_train_races": 24174,
+   "n_es_rows": 47876,
+   "n_es_races": 3456,
+   "n_es_official_rows": 44203,
+   "n_es_official_races": 3169,
+   "n_predict_rows": 47476,
+   "n_predict_races": 3456,
+   "encoder_hash": "128f01dfe1eefa8c86cc90158ee8bd3b9663d92e288467662a1b6311f0d8660e",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 526,
+   "tau": 0.9094413547729117,
+   "es_official_tau_nll": 2.1353048804122707,
+   "model_sha256": "a0779adc6a2e5c0c90b8ef1be95a530949dae158656ccfeade48d621ed319cc8",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2021_s20260925.npz",
+   "prediction_artifact_sha256": "d76d8ed3143b7ddea0b88bcad6230dc16d4a135afe21db250e30fbdee40c4015",
+   "future_row_check": {
+    "train_max_date": 20191228,
+    "train_max_year": 2019,
+    "es_year_set": [
+     2020
+    ],
+    "predict_year_set": [
+     2021
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 16.1
+  },
+  "Y2021_s20260926": {
+   "year": 2021,
+   "seed": 20260926,
+   "train_period": [
+    20130105,
+    20191228
+   ],
+   "es_period": [
+    20200105,
+    20201227
+   ],
+   "predict_period": [
+    20210105,
+    20211228
+   ],
+   "n_train_rows": 343060,
+   "n_train_races": 24174,
+   "n_es_rows": 47876,
+   "n_es_races": 3456,
+   "n_es_official_rows": 44203,
+   "n_es_official_races": 3169,
+   "n_predict_rows": 47476,
+   "n_predict_races": 3456,
+   "encoder_hash": "128f01dfe1eefa8c86cc90158ee8bd3b9663d92e288467662a1b6311f0d8660e",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 908,
+   "tau": 0.9087472963003725,
+   "es_official_tau_nll": 2.127150410204444,
+   "model_sha256": "cb1ae9f6e76e3b871fb021dddeb12333690e19d741bf0ce4f40b093ff33e334a",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2021_s20260926.npz",
+   "prediction_artifact_sha256": "6a1fc999415adfaad88c492bce70c79a5d00c37de3dee6c423bcee3e387b927d",
+   "future_row_check": {
+    "train_max_date": 20191228,
+    "train_max_year": 2019,
+    "es_year_set": [
+     2020
+    ],
+    "predict_year_set": [
+     2021
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 21.8
+  },
+  "Y2021_s20260927": {
+   "year": 2021,
+   "seed": 20260927,
+   "train_period": [
+    20130105,
+    20191228
+   ],
+   "es_period": [
+    20200105,
+    20201227
+   ],
+   "predict_period": [
+    20210105,
+    20211228
+   ],
+   "n_train_rows": 343060,
+   "n_train_races": 24174,
+   "n_es_rows": 47876,
+   "n_es_races": 3456,
+   "n_es_official_rows": 44203,
+   "n_es_official_races": 3169,
+   "n_predict_rows": 47476,
+   "n_predict_races": 3456,
+   "encoder_hash": "128f01dfe1eefa8c86cc90158ee8bd3b9663d92e288467662a1b6311f0d8660e",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 444,
+   "tau": 0.9029151424369559,
+   "es_official_tau_nll": 2.1360423040221304,
+   "model_sha256": "80ea438b652006c84d3ee765fa156eddaf3b60445c00433e510f31f2a5955ee8",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2021_s20260927.npz",
+   "prediction_artifact_sha256": "1f8c828cf9ce85815d27d550731192cefbd3f50feeee1c51a3ce63f98832b2c5",
+   "future_row_check": {
+    "train_max_date": 20191228,
+    "train_max_year": 2019,
+    "es_year_set": [
+     2020
+    ],
+    "predict_year_set": [
+     2021
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 13.3
+  },
+  "Y2022_s20260923": {
+   "year": 2022,
+   "seed": 20260923,
+   "train_period": [
+    20130105,
+    20201227
+   ],
+   "es_period": [
+    20210105,
+    20211228
+   ],
+   "predict_period": [
+    20220105,
+    20221228
+   ],
+   "n_train_rows": 390936,
+   "n_train_races": 27630,
+   "n_es_rows": 47476,
+   "n_es_races": 3456,
+   "n_es_official_rows": 44329,
+   "n_es_official_races": 3200,
+   "n_predict_rows": 46840,
+   "n_predict_races": 3456,
+   "encoder_hash": "b34a4c6a85cf557880343b345df1bccc777bd5bee185e07629f16f50379bd339",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 751,
+   "tau": 0.8798731019753018,
+   "es_official_tau_nll": 2.106038476197878,
+   "model_sha256": "1e1fed806ec8e6f707dd8f9a14c99bd55eb993cee534092834ef70834780bf8e",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2022_s20260923.npz",
+   "prediction_artifact_sha256": "ca7320217a7036c850d1bd845bab26846aef0b651efb79ee873783e2d3157ae8",
+   "future_row_check": {
+    "train_max_date": 20201227,
+    "train_max_year": 2020,
+    "es_year_set": [
+     2021
+    ],
+    "predict_year_set": [
+     2022
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 22.3
+  },
+  "Y2022_s20260924": {
+   "year": 2022,
+   "seed": 20260924,
+   "train_period": [
+    20130105,
+    20201227
+   ],
+   "es_period": [
+    20210105,
+    20211228
+   ],
+   "predict_period": [
+    20220105,
+    20221228
+   ],
+   "n_train_rows": 390936,
+   "n_train_races": 27630,
+   "n_es_rows": 47476,
+   "n_es_races": 3456,
+   "n_es_official_rows": 44329,
+   "n_es_official_races": 3200,
+   "n_predict_rows": 46840,
+   "n_predict_races": 3456,
+   "encoder_hash": "b34a4c6a85cf557880343b345df1bccc777bd5bee185e07629f16f50379bd339",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 578,
+   "tau": 0.8762314844858575,
+   "es_official_tau_nll": 2.1088890676077017,
+   "model_sha256": "c6090b380d224ca36091164a29b2c7263d56880c8c04af063ee2ab9277dc5130",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2022_s20260924.npz",
+   "prediction_artifact_sha256": "13ae677747dbfbc3f4db7eab313553ec3895bdfa0e745ce58e0788276eab9899",
+   "future_row_check": {
+    "train_max_date": 20201227,
+    "train_max_year": 2020,
+    "es_year_set": [
+     2021
+    ],
+    "predict_year_set": [
+     2022
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 18.2
+  },
+  "Y2022_s20260925": {
+   "year": 2022,
+   "seed": 20260925,
+   "train_period": [
+    20130105,
+    20201227
+   ],
+   "es_period": [
+    20210105,
+    20211228
+   ],
+   "predict_period": [
+    20220105,
+    20221228
+   ],
+   "n_train_rows": 390936,
+   "n_train_races": 27630,
+   "n_es_rows": 47476,
+   "n_es_races": 3456,
+   "n_es_official_rows": 44329,
+   "n_es_official_races": 3200,
+   "n_predict_rows": 46840,
+   "n_predict_races": 3456,
+   "encoder_hash": "b34a4c6a85cf557880343b345df1bccc777bd5bee185e07629f16f50379bd339",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 498,
+   "tau": 0.8765155738987525,
+   "es_official_tau_nll": 2.112170202203432,
+   "model_sha256": "11c70790cdfadb34aa91bf7410ee1bd0745481403715c75345c947b1faff4802",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2022_s20260925.npz",
+   "prediction_artifact_sha256": "392081c824cf1b51f8bca76d25ce83d73b85c280ab411c3330a3992079f5594b",
+   "future_row_check": {
+    "train_max_date": 20201227,
+    "train_max_year": 2020,
+    "es_year_set": [
+     2021
+    ],
+    "predict_year_set": [
+     2022
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 16.4
+  },
+  "Y2022_s20260926": {
+   "year": 2022,
+   "seed": 20260926,
+   "train_period": [
+    20130105,
+    20201227
+   ],
+   "es_period": [
+    20210105,
+    20211228
+   ],
+   "predict_period": [
+    20220105,
+    20221228
+   ],
+   "n_train_rows": 390936,
+   "n_train_races": 27630,
+   "n_es_rows": 47476,
+   "n_es_races": 3456,
+   "n_es_official_rows": 44329,
+   "n_es_official_races": 3200,
+   "n_predict_rows": 46840,
+   "n_predict_races": 3456,
+   "encoder_hash": "b34a4c6a85cf557880343b345df1bccc777bd5bee185e07629f16f50379bd339",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 484,
+   "tau": 0.8798913831267218,
+   "es_official_tau_nll": 2.1132059703880737,
+   "model_sha256": "98c95beae8622e32acda05fe2b078f6c91b7bea3c7aaabe8388186888471c285",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2022_s20260926.npz",
+   "prediction_artifact_sha256": "325456ad21a91560caa73ab32099d208a0c73a006aebed7bc44fca1d0c183929",
+   "future_row_check": {
+    "train_max_date": 20201227,
+    "train_max_year": 2020,
+    "es_year_set": [
+     2021
+    ],
+    "predict_year_set": [
+     2022
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 16.5
+  },
+  "Y2022_s20260927": {
+   "year": 2022,
+   "seed": 20260927,
+   "train_period": [
+    20130105,
+    20201227
+   ],
+   "es_period": [
+    20210105,
+    20211228
+   ],
+   "predict_period": [
+    20220105,
+    20221228
+   ],
+   "n_train_rows": 390936,
+   "n_train_races": 27630,
+   "n_es_rows": 47476,
+   "n_es_races": 3456,
+   "n_es_official_rows": 44329,
+   "n_es_official_races": 3200,
+   "n_predict_rows": 46840,
+   "n_predict_races": 3456,
+   "encoder_hash": "b34a4c6a85cf557880343b345df1bccc777bd5bee185e07629f16f50379bd339",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 587,
+   "tau": 0.8813834211654478,
+   "es_official_tau_nll": 2.110555577309534,
+   "model_sha256": "fc35e40311b624d7bc2415b5f44b2900f9ce06ffa2f3c873d7e6e48c2cc61e7f",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2022_s20260927.npz",
+   "prediction_artifact_sha256": "9bdcccd3d086952f26a5288f01514bb808e9b00a0dda874a65545631a5436812",
+   "future_row_check": {
+    "train_max_date": 20201227,
+    "train_max_year": 2020,
+    "es_year_set": [
+     2021
+    ],
+    "predict_year_set": [
+     2022
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 17.9
+  },
+  "Y2023_s20260923": {
+   "year": 2023,
+   "seed": 20260923,
+   "train_period": [
+    20130105,
+    20211228
+   ],
+   "es_period": [
+    20220105,
+    20221228
+   ],
+   "predict_period": [
+    20230105,
+    20231228
+   ],
+   "n_train_rows": 438412,
+   "n_train_races": 31086,
+   "n_es_rows": 46840,
+   "n_es_races": 3456,
+   "n_es_official_rows": 43859,
+   "n_es_official_races": 3206,
+   "n_predict_rows": 47273,
+   "n_predict_races": 3456,
+   "encoder_hash": "41e21b1969f021196f914454ea0be043d442d5ac1b2575de3a4d1cfbd3cd4111",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 670,
+   "tau": 0.8457081948029218,
+   "es_official_tau_nll": 2.066879468930999,
+   "model_sha256": "3f141f2be104698f1529112c7ef630bdcee26253d58f8f9fdfde3716026e174d",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2023_s20260923.npz",
+   "prediction_artifact_sha256": "e27879e5d0a4b17c0959ed5092e5f97cc072838b906a5375329380c759ec2c50",
+   "future_row_check": {
+    "train_max_date": 20211228,
+    "train_max_year": 2021,
+    "es_year_set": [
+     2022
+    ],
+    "predict_year_set": [
+     2023
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 22.3
+  },
+  "Y2023_s20260924": {
+   "year": 2023,
+   "seed": 20260924,
+   "train_period": [
+    20130105,
+    20211228
+   ],
+   "es_period": [
+    20220105,
+    20221228
+   ],
+   "predict_period": [
+    20230105,
+    20231228
+   ],
+   "n_train_rows": 438412,
+   "n_train_races": 31086,
+   "n_es_rows": 46840,
+   "n_es_races": 3456,
+   "n_es_official_rows": 43859,
+   "n_es_official_races": 3206,
+   "n_predict_rows": 47273,
+   "n_predict_races": 3456,
+   "encoder_hash": "41e21b1969f021196f914454ea0be043d442d5ac1b2575de3a4d1cfbd3cd4111",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 890,
+   "tau": 0.8510858764365357,
+   "es_official_tau_nll": 2.058068795317904,
+   "model_sha256": "662cf6bb0b68e7e5a2d9d13f137fcd894f5a02f12ef7336941e7dd337f3fb0bc",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2023_s20260924.npz",
+   "prediction_artifact_sha256": "7d2552abc0b1c13136559d0df25c77bad1ea3ed0293eafb6007ab8558e64ca91",
+   "future_row_check": {
+    "train_max_date": 20211228,
+    "train_max_year": 2021,
+    "es_year_set": [
+     2022
+    ],
+    "predict_year_set": [
+     2023
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 26.5
+  },
+  "Y2023_s20260925": {
+   "year": 2023,
+   "seed": 20260925,
+   "train_period": [
+    20130105,
+    20211228
+   ],
+   "es_period": [
+    20220105,
+    20221228
+   ],
+   "predict_period": [
+    20230105,
+    20231228
+   ],
+   "n_train_rows": 438412,
+   "n_train_races": 31086,
+   "n_es_rows": 46840,
+   "n_es_races": 3456,
+   "n_es_official_rows": 43859,
+   "n_es_official_races": 3206,
+   "n_predict_rows": 47273,
+   "n_predict_races": 3456,
+   "encoder_hash": "41e21b1969f021196f914454ea0be043d442d5ac1b2575de3a4d1cfbd3cd4111",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 665,
+   "tau": 0.8433835658917298,
+   "es_official_tau_nll": 2.0643916278918577,
+   "model_sha256": "4daa5bc94e325883669393fe0188df2ffe2f86c6ddc83d075d8540d807205e0f",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2023_s20260925.npz",
+   "prediction_artifact_sha256": "aff0599423d08c962d2da1c90d720971f9521361c357e7c9e53ce0234e1ccead",
+   "future_row_check": {
+    "train_max_date": 20211228,
+    "train_max_year": 2021,
+    "es_year_set": [
+     2022
+    ],
+    "predict_year_set": [
+     2023
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 20.8
+  },
+  "Y2023_s20260926": {
+   "year": 2023,
+   "seed": 20260926,
+   "train_period": [
+    20130105,
+    20211228
+   ],
+   "es_period": [
+    20220105,
+    20221228
+   ],
+   "predict_period": [
+    20230105,
+    20231228
+   ],
+   "n_train_rows": 438412,
+   "n_train_races": 31086,
+   "n_es_rows": 46840,
+   "n_es_races": 3456,
+   "n_es_official_rows": 43859,
+   "n_es_official_races": 3206,
+   "n_predict_rows": 47273,
+   "n_predict_races": 3456,
+   "encoder_hash": "41e21b1969f021196f914454ea0be043d442d5ac1b2575de3a4d1cfbd3cd4111",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 504,
+   "tau": 0.8419218648802095,
+   "es_official_tau_nll": 2.0686432843409377,
+   "model_sha256": "cf60ffb8e4e6f1c2ba929714df36c29877fbadbf540634665550260472e37f88",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2023_s20260926.npz",
+   "prediction_artifact_sha256": "696ff680e45633fe6502c4484bfbbcb829f6d5771956229fff31c509da01499b",
+   "future_row_check": {
+    "train_max_date": 20211228,
+    "train_max_year": 2021,
+    "es_year_set": [
+     2022
+    ],
+    "predict_year_set": [
+     2023
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 16.6
+  },
+  "Y2023_s20260927": {
+   "year": 2023,
+   "seed": 20260927,
+   "train_period": [
+    20130105,
+    20211228
+   ],
+   "es_period": [
+    20220105,
+    20221228
+   ],
+   "predict_period": [
+    20230105,
+    20231228
+   ],
+   "n_train_rows": 438412,
+   "n_train_races": 31086,
+   "n_es_rows": 46840,
+   "n_es_races": 3456,
+   "n_es_official_rows": 43859,
+   "n_es_official_races": 3206,
+   "n_predict_rows": 47273,
+   "n_predict_races": 3456,
+   "encoder_hash": "41e21b1969f021196f914454ea0be043d442d5ac1b2575de3a4d1cfbd3cd4111",
+   "tau_population": "official_race_set_of_Y_minus_1",
+   "best_iter": 822,
+   "tau": 0.8438834209633692,
+   "es_official_tau_nll": 2.0597982689024152,
+   "model_sha256": "3344fe7f83e7ecad666302842976bcd1f747e202e85032a84278da7beff35e01",
+   "prediction_artifact": "data\\_research\\mcond\\exp16a\\scores\\Q1_Y2023_s20260927.npz",
+   "prediction_artifact_sha256": "9aa96b4baf193d472eb81f9e9ce3f424838e0b816cfe754deef816229add3456",
+   "future_row_check": {
+    "train_max_date": 20211228,
+    "train_max_year": 2021,
+    "es_year_set": [
+     2022
+    ],
+    "predict_year_set": [
+     2023
+    ],
+    "train_before_Y_minus_1": true,
+    "es_is_Y_minus_1": true,
+    "predict_is_Y": true
+   },
+   "seconds": 25.8
+  }
+ }
+}

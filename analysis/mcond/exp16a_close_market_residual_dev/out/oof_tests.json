@@ -1,0 +1,47 @@
+{
+ "role": "rolling OOF の検査。勝敗を使わない。2019-2023 の結果指標は計算しない",
+ "created": "2026-09-24 21:33:29 +0900",
+ "T4_reproducibility": {
+  "fit": "Y2022_s20260923",
+  "best_iter_saved": 751,
+  "best_iter_rerun": 751,
+  "max_abs_score_diff": 0.0,
+  "bitwise_identical": true
+ },
+ "T5_deletion_invariance": {
+  "removed_races": 665,
+  "kept_rows": 37830,
+  "max_abs_diff": 0.0,
+  "bitwise_identical": true,
+  "meaning": "他の馬・他のレースを消しても残った行のスコアが変わらない (行単位スコアであること)"
+ },
+ "T7_seed_spread": {
+  "definition": "各 seed の log(Q1/π_close) をレース内標準化した方向 s_seed の per-horse SD",
+  "mean_per_horse_sd_across_seeds": 0.1742983610608119,
+  "median_per_horse_sd_across_seeds": 0.1599590125977249,
+  "mean_pairwise_correlation": 0.9618210492820752,
+  "use": "検出力監査 (power_audit) の seed_jitter を実測値で置き換えるための参照値"
+ },
+ "T1_row_correspondence": {
+  "checked_fits": 40,
+  "key_mismatch": 0,
+  "rows_not_unique": 0,
+  "rows_not_sorted": 0,
+  "row_count_mismatch": 0
+ },
+ "T2_coverage": {
+  "missing_horse_rows": 0,
+  "duplicate_horse_rows": 0,
+  "n_official_horse_rows": 356593
+ },
+ "T3_probability_sum": {
+  "max_abs_sum_minus_one": 6.661338147750939e-16,
+  "races_checked": 25501
+ },
+ "T6_future_rows": {
+  "violations": [],
+  "checked": 40
+ },
+ "all_passed": true,
+ "elapsed_sec": 45.8
+}

@@ -17,6 +17,7 @@ race_population.py — EXP16A Stage 0 (改訂2): 正式 race set の確定と母
   * 学習で決まる subset 境界 (favorite odds / market entropy) は
     評価年 Y ごとに **Y-1 以前だけ** から作る (2022 固定値の遡及適用をしない)。
   * 検出力監査は power_audit.py へ分離。STAGE0_DRY_RUN.json は stage0_dry_run.py が書く。
+  * Stage 1 用に official race の artifact を 2 種類保存する (le2022 / all)。母集団規則は変えない。
 出力:
   out/race_population.json
   data/_research/mcond/exp16a/official_races_le2022.npz  (power_audit 用、gitignore)
@@ -283,27 +284,40 @@ def main():
     (OUT / "race_population.json").write_text(
         json.dumps(pop, ensure_ascii=False, indent=1, default=float), encoding="utf-8")
 
-    # ---- power_audit 用に 2022 以前の official race を保存 (gitignore 配下)
-    keep = R[(R["cls_set"] == "official_eligible") & (R["year"] <= REF_YEAR_MAX)].reset_index(drop=True)
-    rid, yr, day, wpos, ban, pic, pip, off = [], [], [], [], [], [], [], [0]
-    for _, r in keep.iterrows():
-        pic_d, _, _ = devig(r["od_fin"], r["starters"])
-        pip_d, _, _ = devig(r["od_pre"], r["starters"])
-        bs = [b for b in r["starters"] if b in pic_d and b in pip_d]
-        if r["winner"] not in bs or len(bs) < 5:
-            continue
-        sc = np.array([pic_d[b] for b in bs]); sc = sc / sc.sum()
-        sp = np.array([pip_d[b] for b in bs]); sp = sp / sp.sum()
-        rid.append(r["rid16"]); yr.append(r["year"]); day.append(r["rid16"][:10])
-        wpos.append(bs.index(r["winner"]))
-        ban.extend(bs); pic.extend(sc.tolist()); pip.extend(sp.tolist())
-        off.append(len(ban))
-    np.savez_compressed(RESEARCH / "official_races_le2022.npz",
-                        rid16=np.array(rid), year=np.array(yr, dtype=np.int32),
-                        day=np.array(day), winner_pos=np.array(wpos, dtype=np.int32),
-                        ban=np.array(ban, dtype=np.int32), pi_close=np.array(pic),
-                        pi_pre=np.array(pip), offsets=np.array(off, dtype=np.int64))
-    print(f"[saved] official_races_le2022.npz races={len(rid):,} horses={len(ban):,}")
+    # ---- official race の artifact を保存 (gitignore 配下)
+    #      le2022 = 検出力監査用 (2023 を読まない)、all = Stage 1 評価用 (2016-2023)
+    def dump_official(sub: pd.DataFrame, name: str) -> dict:
+        rid, yr, day, wpos, ban, pic, pip, off = [], [], [], [], [], [], [], [0]
+        for _, r in sub.iterrows():
+            pic_d, _, _ = devig(r["od_fin"], r["starters"])
+            pip_d, _, _ = devig(r["od_pre"], r["starters"])
+            bs = [b for b in r["starters"] if b in pic_d and b in pip_d]
+            if r["winner"] not in bs or len(bs) < 5:
+                continue
+            sc = np.array([pic_d[b] for b in bs]); sc = sc / sc.sum()
+            sp = np.array([pip_d[b] for b in bs]); sp = sp / sp.sum()
+            rid.append(r["rid16"]); yr.append(r["year"]); day.append(r["rid16"][:10])
+            wpos.append(bs.index(r["winner"]))
+            ban.extend(bs); pic.extend(sc.tolist()); pip.extend(sp.tolist())
+            off.append(len(ban))
+        np.savez_compressed(RESEARCH / name,
+                            rid16=np.array(rid), year=np.array(yr, dtype=np.int32),
+                            day=np.array(day), winner_pos=np.array(wpos, dtype=np.int32),
+                            ban=np.array(ban, dtype=np.int32), pi_close=np.array(pic),
+                            pi_pre=np.array(pip), offsets=np.array(off, dtype=np.int64))
+        print(f"[saved] {name} races={len(rid):,} horses={len(ban):,}")
+        return {"races": len(rid), "horses": len(ban),
+                "rids_by_year": {str(y): sorted(rid[i] for i in range(len(rid)) if yr[i] == y)
+                                 for y in sorted(set(yr))}}
+
+    offi_all = R[R["cls_set"] == "official_eligible"]
+    dump_official(offi_all[offi_all["year"] <= REF_YEAR_MAX].reset_index(drop=True),
+                  "official_races_le2022.npz")
+    meta_all = dump_official(offi_all.reset_index(drop=True), "official_races_all.npz")
+    (RESEARCH / "official_rids_by_year.json").write_text(
+        json.dumps(meta_all["rids_by_year"], ensure_ascii=False), encoding="utf-8")
+    print(f"[saved] official_rids_by_year.json years="
+          f"{sorted(meta_all['rids_by_year'])} total={meta_all['races']:,}")
 
     print(json.dumps(totals, ensure_ascii=False))
     print(json.dumps(ref.get("2022"), ensure_ascii=False))
