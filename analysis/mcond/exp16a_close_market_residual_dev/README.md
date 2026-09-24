@@ -27,6 +27,9 @@
 | 時刻 | 内容 | spec への影響 |
 |---|---|---|
 | 2026-09-24 21:17 | 本 README を新設（凍結記録・実行手順） | なし |
+| 2026-09-24 21:2x | Stage 1-1: rolling OOF 40 fit と検査を追加（`build_oof.py` / `oof_tests.py`、`race_population.py` に official race artifact の保存を追加） | なし（母集団規則・基準値は不変） |
+| 2026-09-24 21:4x | Stage 1-2: 実方向 `log(Q1/π)` の検出力監査を追加（`power_audit_q1.py`） | なし（判定規則・実務床・等級は spec v0.4 のまま） |
+| 2026-09-24 21:5x | Stage 1-3: 2019-2023 評価と REPORT を追加（`evaluate.py` / `REPORT.md`） | なし（Gate 判定は `gate_grade.grade_gate` のみ） |
 
 ---
 
@@ -57,7 +60,21 @@ python -m analysis.mcond.exp16a_close_market_residual_dev.gate_grade
 python -m analysis.mcond.exp16a_close_market_residual_dev.stage0_dry_run
 ```
 
-Stage 1 以降のスクリプト（`build_oof.py` / `evaluate.py`）も同じ形式で実行する。
+Stage 1 のスクリプトも同じ形式で実行する（実行順）。
+
+```bash
+# Stage 1-1: rolling OOF 40 fit → out/oof_manifest.json, out/oof_build_checks.json
+python -m analysis.mcond.exp16a_close_market_residual_dev.build_oof
+
+# Stage 1-1b: OOF の検査 (行対応・被覆・確率和・再現性・削除不変性・未来行・seed ばらつき)
+python -m analysis.mcond.exp16a_close_market_residual_dev.oof_tests
+
+# Stage 1-2: 実方向 log(Q1/π) の検出力監査 (2019-2023 の結果を開ける前に必ず実行)
+python -m analysis.mcond.exp16a_close_market_residual_dev.power_audit_q1
+
+# Stage 1-3: 2019-2023 crossfit 評価 (power Gate 通過後のみ)
+python -m analysis.mcond.exp16a_close_market_residual_dev.evaluate
+```
 
 ## 3. ファイルの役割
 
@@ -72,6 +89,10 @@ Stage 1 以降のスクリプト（`build_oof.py` / `evaluate.py`）も同じ形
 | `OOF_STACKING_PLAN.md` | rolling OOF と `retrospective_rolling_crossfit_development`、artifact 契約 |
 | `POWER_AUDIT.md` | 検出力監査 3 段と等級別 power |
 | `STAGE0_DRY_RUN.json` | Stage 0 の集約成果物（母集団・基準値・power・artifact 契約） |
+| `build_oof.py` / `oof_tests.py` | Stage 1-1: rolling OOF の構築と検査 |
+| `power_audit_q1.py` | Stage 1-2: 実方向 `log(Q1/π)` の検出力監査 |
+| `evaluate.py` | Stage 1-3: 2019-2023 crossfit 評価（Gate 判定は `gate_grade` のみ） |
+| `REPORT.md` | Stage 1 の結果報告 |
 | `out/*.json` | 各スクリプトの実測値 |
 
 ## 4. 禁止事項（Stage 1 実行中も継続）
