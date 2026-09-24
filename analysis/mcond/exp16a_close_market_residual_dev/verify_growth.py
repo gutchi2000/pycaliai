@@ -6,6 +6,7 @@ verify_growth.py — INFORMATION_TO_GROWTH_DERIVATION.md の合成例による�
 確認すること:
   C1 全資金投入・比例賭けの成長率 W* = D(p||π) + log(1-t) （恒等式）
   C2 現金(no-bet)を許すと、平均 KL < -log(1-t) でも成長率は正になりうる
+  C2c 真の改善量を 0.005/0.02/0.05 へ較正した傾斜での参加率・馬数・成長率・ノイズ感度
   C3 pari-mutuel の自己希釈 (賭け金がプールに入る) で成長率が下がる
   C4 判断時点オッズと確定オッズのズレ (drift) で実現成長率が下がる
   C5 最小賭け金単位・端数切り捨て (breakage) の影響
@@ -146,6 +147,96 @@ def main():
         "by_noise": c2b,
         "note": "q=p+推定ノイズ で q_i/π_i 選抜 → 現金込み Kelly → 真の p で期待対数成長を評価。"
                 "結論はノイズ水準に依存するので、この表をそのまま報告する",
+    }
+
+    # --- C2c: 傾斜の大きさを「真の改善量」で較正した選択的参加 (結論を事前固定しない)
+    #   pi を先に作り、真の確率を p = pi*exp(eps*s)/Z とする。eps は
+    #   平均 KL(p||pi) が 0.005 / 0.02 / 0.05 になるよう較正する。
+    def make_market(n):
+        a = RNG.dirichlet(np.full(n, 0.8))
+        return a / a.sum()
+
+    def tilted(pi, s, eps):
+        z = np.log(pi) + eps * s
+        p = np.exp(z - z.max())
+        return p / p.sum()
+
+    fields = [RNG.integers(8, 19) for _ in range(300)]
+    mkts = [make_market(n) for n in fields]
+    sigs = []
+    for n in fields:
+        s = RNG.normal(size=n)
+        sigs.append((s - s.mean()) / (s.std() + 1e-9))
+
+    def mean_kl(eps):
+        return float(np.mean([kl(tilted(pi, s, eps), pi) for pi, s in zip(mkts, sigs)]))
+
+    c2c = {}
+    for target in (0.005, 0.02, 0.05):
+        lo, hi = 0.0, 0.1
+        while mean_kl(hi) < target:
+            hi *= 2
+        for _ in range(60):
+            mid = 0.5 * (lo + hi)
+            if mean_kl(mid) < target:
+                lo = mid
+            else:
+                hi = mid
+        eps = 0.5 * (lo + hi)
+        thr = 1 / (1 - T)
+        entered, nsel, stake, g_true, g_full = [], [], [], [], []
+        for pi, s in zip(mkts, sigs):
+            p = tilted(pi, s, eps)
+            sel = (p / pi) > thr
+            entered.append(float(sel.any()))
+            nsel.append(float(sel.sum()))
+            b = kelly_cash_subset(p, pi, sel)
+            cash = max(0.0, 1.0 - b.sum())
+            w = cash + b * ((1 - T) / pi)
+            g_true.append(float(np.sum(p * np.log(np.clip(w, 1e-12, None)))))
+            g_full.append(growth_full_investment(p, pi))
+            stake.append(float(b.sum()))
+        noise = {}
+        for sd_noise in (0.0, 0.05, 0.1, 0.2, 0.4):
+            gg, ss, ee = [], [], []
+            for pi, s in zip(mkts, sigs):
+                p = tilted(pi, s, eps)
+                z = np.log(p) + RNG.normal(0, sd_noise, len(p))
+                q = np.exp(z - z.max()); q /= q.sum()
+                sel = (q / pi) > thr
+                b = kelly_cash_subset(q, pi, sel)
+                cash = max(0.0, 1.0 - b.sum())
+                w = cash + b * ((1 - T) / pi)
+                gg.append(float(np.sum(p * np.log(np.clip(w, 1e-12, None)))))
+                ss.append(float(b.sum()))
+                ee.append(float(sel.sum()))
+            noise[f"noise_sd_{sd_noise}"] = {"mean_growth_under_true_p": float(np.mean(gg)),
+                                             "mean_stake_fraction": float(np.mean(ss)),
+                                             "mean_selected_horses": float(np.mean(ee))}
+        # 符号反転点 (線形補間)
+        xs = [0.0, 0.05, 0.1, 0.2, 0.4]
+        ys = [noise[f"noise_sd_{x}"]["mean_growth_under_true_p"] for x in xs]
+        flip = None
+        for i in range(1, len(xs)):
+            if ys[i - 1] > 0 >= ys[i]:
+                flip = xs[i - 1] + (xs[i] - xs[i - 1]) * ys[i - 1] / (ys[i - 1] - ys[i])
+                break
+        c2c[f"true_improvement_{target}"] = {
+            "eps": eps, "realized_mean_KL": mean_kl(eps),
+            "share_races_participation_condition": float(np.mean(entered)),
+            "mean_selected_horses_true_belief": float(np.mean(nsel)),
+            "mean_growth_true_belief_cash_kelly": float(np.mean(g_true)),
+            "mean_growth_full_investment": float(np.mean(g_full)),
+            "cash_minus_full_investment": float(np.mean(g_true) - np.mean(g_full)),
+            "mean_stake_fraction_true_belief": float(np.mean(stake)),
+            "by_estimation_noise": noise,
+            "sign_flip_noise_sd": flip,
+        }
+    res["C2c_calibrated_tilt_selection"] = {
+        "setup": "pi を先に置き、真の p = pi*exp(eps*s)/Z を平均 KL = 0.005/0.02/0.05 へ較正。"
+                 "参加条件 max_i q_i/pi_i > 1/(1-t)、現金込み Kelly、評価は常に真の p。",
+        "by_target": c2c,
+        "note": "結果を先に決めない。符号はそのまま報告する",
     }
 
     # --- C3: pari-mutuel の自己希釈 (賭け金 s がプール P に入る)

@@ -1,6 +1,6 @@
 # EXP16A — 単勝市場データの素性（実測）
 
-**作成日**: 2026-09-24　**測定**: `provenance.py` → `out/market_provenance.json`
+**作成日**: 2026-09-24　**改訂**: 2026-09-24（改訂2: 障害除外後の正式 set で基準値を再計算）　**測定**: `provenance.py` → `out/market_provenance.json`
 **範囲**: 2016-01-01〜2023-12-31 のみ。2024/2025 は読み込み時に破棄している。
 
 ---
@@ -84,7 +84,7 @@ JRA は pari-mutuel で、発走時刻に投票が締め切られ、そこでプ
 
 **共通の適格レース集合**を最初に1回だけ作り、Q0/Q1/Q2a/Q2b/Q3a/Q3b/Q3-placebo/LEGACY-v6 のすべてが
 同じレース集合の上で評価されることを assert する（被覆差が静かな選抜になるのを防ぐ）。
-正式 race set の規則と実測（26,076 / 27,639 レース）は `RACE_POPULATION_AUDIT.md` を参照。
+正式 race set の規則と実測（**25,501 / 27,639 レース**、障害 1,011R と平地 DNF 1,072R を除外後）は `RACE_POPULATION_AUDIT.md` を参照。
 **DNF を含むレースは主評価から除外**し、感度分析としてのみ報告する。
 
 ## 6. ファイル hash
@@ -108,15 +108,21 @@ JRA は pari-mutuel で、発走時刻に投票が締め切られ、そこでプ
    確定側の票数と混同しない**。
 
 
-## 8. 正式 race set での基準値（2022 selection、3,276R）
+## 8. 正式 race set での基準値（2022、**3,206R**）
+
+**改訂2（2026-09-24）**: 障害（`トラックコード(JV) 51..59`）を除外し、starter を「確定オッズ > 1.0 を持つ馬番」
+として再定義した正式 race set 上で再計算した。改訂前の値（3,276R / 1.89708 / 1.94481 / gap 0.04773）とは**一致しない**。
 
 | 指標 | terminal_close_market | historical_pre_snapshot |
 |---|---|---|
-| race-level categorical logloss | **1.89708** | **1.94481** |
-| favorite top1 | 34.16% | 33.03% |
+| race-level categorical logloss | **1.90060** | **1.94805** |
+| favorite top1 | 34.12% | 32.94% |
 
-pre → close の gap は **0.04773 nats**。`recovery_ratio` の分母にはこの量を使う
+pre → close の gap は **0.04746 nats**。`recovery_ratio` の分母にはこの量を使う
 （分母が 0.01 nats 未満なら比を報告せず、絶対改善だけで判定する）。
+
+2016〜2022 の年別基準値は `RACE_POPULATION_AUDIT.md` §9 と `out/race_population.json` を参照。
+**2023 の基準値は Stage 0 では計算していない**（開封しない）。
 
 R0-clean table-only の基準値は、rolling OOF（train ≤2020 / ES 2021 / predict 2022）を作ってから
 同一 race set で再計算する（Stage 1）。EXP15 の 2022 スコアは ES に 2022 を使っているため OOS ではなく、

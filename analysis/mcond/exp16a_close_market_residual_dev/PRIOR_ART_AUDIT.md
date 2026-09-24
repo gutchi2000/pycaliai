@@ -149,5 +149,22 @@ Benter 型 blend、オッズ軌跡、CLV、crosspool。
 | 閾値 | 実務床 0.005 nats/race・recovery ratio 10% を **MDE より先に** 2022 のみで固定 |
 | placebo | Q3b が改善を示した場合の**必須**検証（20 draw）。Q3a の log(Q1) 部分とは混ぜない |
 
-**検出力の実測（2022 正式 set）**: 一次近似の per-race 分散形から、0.005 nats 相当の効果に対する
-MDE は **0.0113 nats** で床を上回った。事前登録の規則により **現設計では 2023 を開封しない**。
+## 11. 本監査の改訂2（2026-09-24、Fable 再レビュー + ユーザー指示）
+
+| 項目 | 改訂内容 |
+|---|---|
+| 検出力 | **3 段に分離**。理論式（`SD(Δ_r) ≈ sqrt(2Δ̄)` / `MDE ≈ 2·2.8²/R`）は仮定を明記した**楽観側の基準**に格下げし、正式判定は 2022 以前のデータへ 0.005 nats/race を注入した**経験的 cluster power**（年別 fit → 年層化 meeting-day bootstrap → seed 判定 → leave-one-year-out まで通す）で行う（`POWER_AUDIT.md`） |
+| 開発期間 | 2019〜2023 の rolling crossfit を採用し **`retrospective_rolling_crossfit_development`** と命名。過去研究で接触済みの期間を含むため独立 holdout ではなく仮説探索・内部再現性の評価。2024/2025 は封印継続、自動開封を spec に書かない |
+| 5 年判定 | pooled・CI95 上限<0・4/5 年・4/5 seed に加え、**最大効果年を除いた leave-one-year-out** を hard 条件に追加 |
+| 障害 | `トラックコード(JV) 51..59` を正式 race set から除外。production の P0 hard gate（`race_eligibility.py`）と定義を一致させた |
+| 馬の集合 | starter（確定オッズ > 1.0）/ finisher / scratch / DNF を**別々に構築**。旧実装は starter を finisher から作っていたため DNF 感度の差が構造的に 0 だった（Fable 指摘） |
+| subset 境界 | 学習で決まる境界は評価年ごとに Y−1 以前だけから作る。2022 固定値の遡及適用を禁止 |
+| C2c | 真の改善量を 0.005/0.02/0.05 へ較正した傾斜で、参加率・選択馬数・成長率・ノイズ反転点を測定（結論は事前固定しない） |
+| artifact 契約 | master_v2 の path/size/mtime/sha256/row hash、feature schema hash、encoder hash、race population hash、年別期間、seed 別 model hash、P0-5 修正後かの**実測判定**、`jockey_fuku90`・`prev_hosei` の provenance を必須記録に |
+
+**検出力の実測（2016-2022 正式 set 22,310R、150 反復）**: 真の効果 **0.005 nats/race** を注入したとき、
+CI95 上限 < 0 の条件は **100%** 通るが、「点推定が床 0.005 を超える」条件が 22〜47% しか通らず、
+これを最大効果年を除いて再度課す leave-one-year-out まで含めた**規則全体の pass 確率は 10〜21%**（seed jitter 0/0.1/0.25）。
+80% に届かないため、事前登録の規則により **2019〜2023 の結果を開けない**。
+規則全体が 80% で通るのは真の効果が **約 0.0069 nats/race** 以上のときである。
+旧版に記載した一次近似 MDE **0.0113 nats** は、この経験的測定に置き換えた（**supersede**）。

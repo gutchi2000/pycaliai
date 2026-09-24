@@ -29,6 +29,8 @@ D_MIN, D_MAX = 20160101, 20231231
 PERIODS = {"train": (20160101, 20211231), "selection": (20220101, 20221231),
            "development": (20230101, 20231231)}
 MIN_GAP_PRE = 15  # analysis/mcond/market.py と同じ契約 (確定の 15 分以上前)
+# JRA-VAN トラックコード 51..59 = 障害。production の P0 hard gate (race_eligibility.py:48-49) と同一定義
+JUMP_MIN, JUMP_MAX = 51, 59
 
 
 def sha256(p: Path, limit_mb: int = 400) -> str:
@@ -41,7 +43,7 @@ def sha256(p: Path, limit_mb: int = 400) -> str:
 
 def load_master():
     cols = ["日付", "レースID(新/馬番無)", "馬番", "着順", "発走時刻", "場所", "芝・ダ",
-            "出走頭数", "クラス名"]
+            "出走頭数", "クラス名", "トラックコード(JV)"]
     parts = []
     for ch in pd.read_csv(MASTER, encoding="utf-8-sig", dtype=str, usecols=cols, chunksize=200_000):
         d = pd.to_numeric(ch["日付"], errors="coerce")
@@ -57,6 +59,9 @@ def load_master():
     hm = df["発走時刻"].astype(str).str.extract(r"(\d{1,2}):(\d{2})")
     df["post_min"] = pd.to_numeric(hm[0], errors="coerce") * 60 + pd.to_numeric(hm[1], errors="coerce")
     df["year"] = df["date"] // 10000
+    tc = pd.to_numeric(df["トラックコード(JV)"], errors="coerce")
+    df["track_code"] = tc
+    df["is_jump"] = ((tc >= JUMP_MIN) & (tc <= JUMP_MAX)).fillna(False)
     df["period"] = None
     for k, (a, b) in PERIODS.items():
         df.loc[(df["date"] >= a) & (df["date"] <= b), "period"] = k

@@ -1,55 +1,430 @@
 {
- "purpose": "Stage 0 の実行可能性確認。学習なし・2023 は評価しない・ROI なし",
+ "purpose": "Stage 0 の実行可能性確認。学習なし・2019-2023 の結果は評価しない・ROI なし",
+ "naming": {
+  "development_design": "retrospective_rolling_crossfit_development",
+  "note": "2019-2023 は過去研究で接触済みの期間を含むため、独立した未使用 holdout ではない。仮説探索・内部再現性の評価である。2024/2025 は封印を維持する"
+ },
  "official_race_set": {
-  "train": {
-   "races": 3276
+  "rules": [
+   "平地 (トラックコード(JV) が 51..59 でない)",
+   "勝馬が一意 (同着除外)",
+   "勝馬が pre・確定の両方でオッズを持ち、着順のある馬が全員 starter",
+   "starter >= 5",
+   "DNF が 0 頭"
+  ],
+  "funnel_order": [
+   "excl_jump",
+   "excl_no_unique_winner",
+   "excl_odds_missing",
+   "excl_small_field",
+   "excl_flat_dnf",
+   "official_eligible"
+  ],
+  "per_year": {
+   "2016": {
+    "races_joined": 3454,
+    "excl_jump": 128,
+    "flat_races": 3326,
+    "flat_races_with_dnf_any": 132,
+    "excl_no_unique_winner": 5,
+    "excl_odds_missing": 1,
+    "excl_small_field": 0,
+    "excl_flat_dnf": 131,
+    "official_eligible": 3189,
+    "meeting_days_official": 288,
+    "horses_dnf_flat": 150,
+    "horses_dnf_jump": 63,
+    "horses_scratch_pre_only": 83,
+    "races_with_scratch": 78
+   },
+   "2017": {
+    "races_joined": 3455,
+    "excl_jump": 126,
+    "flat_races": 3329,
+    "flat_races_with_dnf_any": 149,
+    "excl_no_unique_winner": 3,
+    "excl_odds_missing": 2,
+    "excl_small_field": 0,
+    "excl_flat_dnf": 147,
+    "official_eligible": 3177,
+    "meeting_days_official": 288,
+    "horses_dnf_flat": 154,
+    "horses_dnf_jump": 72,
+    "horses_scratch_pre_only": 68,
+    "races_with_scratch": 68
+   },
+   "2018": {
+    "races_joined": 3454,
+    "excl_jump": 126,
+    "flat_races": 3328,
+    "flat_races_with_dnf_any": 138,
+    "excl_no_unique_winner": 6,
+    "excl_odds_missing": 0,
+    "excl_small_field": 0,
+    "excl_flat_dnf": 138,
+    "official_eligible": 3184,
+    "meeting_days_official": 288,
+    "horses_dnf_flat": 150,
+    "horses_dnf_jump": 84,
+    "horses_scratch_pre_only": 100,
+    "races_with_scratch": 96
+   },
+   "2019": {
+    "races_joined": 3452,
+    "excl_jump": 127,
+    "flat_races": 3325,
+    "flat_races_with_dnf_any": 135,
+    "excl_no_unique_winner": 5,
+    "excl_odds_missing": 2,
+    "excl_small_field": 0,
+    "excl_flat_dnf": 133,
+    "official_eligible": 3185,
+    "meeting_days_official": 288,
+    "horses_dnf_flat": 146,
+    "horses_dnf_jump": 81,
+    "horses_scratch_pre_only": 80,
+    "races_with_scratch": 78
+   },
+   "2020": {
+    "races_joined": 3456,
+    "excl_jump": 125,
+    "flat_races": 3331,
+    "flat_races_with_dnf_any": 153,
+    "excl_no_unique_winner": 9,
+    "excl_odds_missing": 4,
+    "excl_small_field": 0,
+    "excl_flat_dnf": 149,
+    "official_eligible": 3169,
+    "meeting_days_official": 289,
+    "horses_dnf_flat": 170,
+    "horses_dnf_jump": 81,
+    "horses_scratch_pre_only": 70,
+    "races_with_scratch": 68
+   },
+   "2021": {
+    "races_joined": 3456,
+    "excl_jump": 127,
+    "flat_races": 3329,
+    "flat_races_with_dnf_any": 121,
+    "excl_no_unique_winner": 9,
+    "excl_odds_missing": 0,
+    "excl_small_field": 0,
+    "excl_flat_dnf": 120,
+    "official_eligible": 3200,
+    "meeting_days_official": 288,
+    "horses_dnf_flat": 123,
+    "horses_dnf_jump": 61,
+    "horses_scratch_pre_only": 76,
+    "races_with_scratch": 76
+   },
+   "2022": {
+    "races_joined": 3456,
+    "excl_jump": 125,
+    "flat_races": 3331,
+    "flat_races_with_dnf_any": 120,
+    "excl_no_unique_winner": 4,
+    "excl_odds_missing": 1,
+    "excl_small_field": 1,
+    "excl_flat_dnf": 119,
+    "official_eligible": 3206,
+    "meeting_days_official": 288,
+    "horses_dnf_flat": 131,
+    "horses_dnf_jump": 83,
+    "horses_scratch_pre_only": 101,
+    "races_with_scratch": 98
+   },
+   "2023": {
+    "races_joined": 3456,
+    "excl_jump": 127,
+    "flat_races": 3329,
+    "flat_races_with_dnf_any": 135,
+    "excl_no_unique_winner": 3,
+    "excl_odds_missing": 0,
+    "excl_small_field": 0,
+    "excl_flat_dnf": 135,
+    "official_eligible": 3191,
+    "meeting_days_official": 288,
+    "horses_dnf_flat": 137,
+    "horses_dnf_jump": 83,
+    "horses_scratch_pre_only": 98,
+    "races_with_scratch": 94
+   }
   },
-  "selection": {
-   "races": 3276
+  "totals": {
+   "races_joined": 27639,
+   "excl_jump": 1011,
+   "flat_races": 26628,
+   "flat_races_with_dnf_any": 1083,
+   "excl_no_unique_winner": 44,
+   "excl_odds_missing": 10,
+   "excl_small_field": 1,
+   "excl_flat_dnf": 1072,
+   "official_eligible": 25501,
+   "meeting_days_official": 2305,
+   "horses_dnf_flat": 1161,
+   "horses_dnf_jump": 608,
+   "horses_scratch_pre_only": 676,
+   "races_with_scratch": 656
   },
-  "development": {
-   "races": 3261
+  "provisional_population_note": "DNF ありレースの除外は『完走したか』という結果による条件付けである。DNF-inclusive な Q1 を構築できるまでの暫定母集団と明記する"
+ },
+ "retrospective_rolling_crossfit_development": {
+  "2019": {
+   "q1_train_years": "2013..2017",
+   "q1_early_stopping_year": 2018,
+   "predict_year": 2019,
+   "q2_q3_coef_fit_oof_years": "2016..2018",
+   "calibration_tau_subset_placebo_cells": "<= 2018 のみ",
+   "official_races_in_predict_year": 3185,
+   "meeting_days_in_predict_year": 288
+  },
+  "2020": {
+   "q1_train_years": "2013..2018",
+   "q1_early_stopping_year": 2019,
+   "predict_year": 2020,
+   "q2_q3_coef_fit_oof_years": "2016..2019",
+   "calibration_tau_subset_placebo_cells": "<= 2019 のみ",
+   "official_races_in_predict_year": 3169,
+   "meeting_days_in_predict_year": 289
+  },
+  "2021": {
+   "q1_train_years": "2013..2019",
+   "q1_early_stopping_year": 2020,
+   "predict_year": 2021,
+   "q2_q3_coef_fit_oof_years": "2016..2020",
+   "calibration_tau_subset_placebo_cells": "<= 2020 のみ",
+   "official_races_in_predict_year": 3200,
+   "meeting_days_in_predict_year": 288
+  },
+  "2022": {
+   "q1_train_years": "2013..2020",
+   "q1_early_stopping_year": 2021,
+   "predict_year": 2022,
+   "q2_q3_coef_fit_oof_years": "2016..2021",
+   "calibration_tau_subset_placebo_cells": "<= 2021 のみ",
+   "official_races_in_predict_year": 3206,
+   "meeting_days_in_predict_year": 288
+  },
+  "2023": {
+   "q1_train_years": "2013..2021",
+   "q1_early_stopping_year": 2022,
+   "predict_year": 2023,
+   "q2_q3_coef_fit_oof_years": "2016..2022",
+   "calibration_tau_subset_placebo_cells": "<= 2022 のみ",
+   "official_races_in_predict_year": 3191,
+   "meeting_days_in_predict_year": 288
   }
  },
- "official_counts_by_period": {
-  "train": 19539,
-  "selection": 3276,
-  "development": 3261
+ "reference_values_by_year_le2022": {
+  "2016": {
+   "n_races": 3189,
+   "n_meeting_days": 288,
+   "terminal_close_market_logloss": 1.982857903172583,
+   "historical_pre_snapshot_logloss": 2.0163692255691137,
+   "pre_minus_close_gap_nats": 0.03351132239653065,
+   "favorite_top1_close": 0.3292568203198495,
+   "favorite_top1_pre": 0.3308247099404202
+  },
+  "2017": {
+   "n_races": 3177,
+   "n_meeting_days": 288,
+   "terminal_close_market_logloss": 1.96521453632055,
+   "historical_pre_snapshot_logloss": 2.0095354430041636,
+   "pre_minus_close_gap_nats": 0.04432090668361366,
+   "favorite_top1_close": 0.3342776203966006,
+   "favorite_top1_pre": 0.3276676109537299
+  },
+  "2018": {
+   "n_races": 3184,
+   "n_meeting_days": 288,
+   "terminal_close_market_logloss": 1.9271382302496243,
+   "historical_pre_snapshot_logloss": 1.9631900485347524,
+   "pre_minus_close_gap_nats": 0.03605181828512816,
+   "favorite_top1_close": 0.3203517587939699,
+   "favorite_top1_pre": 0.32317839195979897
+  },
+  "2019": {
+   "n_races": 3185,
+   "n_meeting_days": 288,
+   "terminal_close_market_logloss": 1.956667431364696,
+   "historical_pre_snapshot_logloss": 1.9962641004014563,
+   "pre_minus_close_gap_nats": 0.0395966690367604,
+   "favorite_top1_close": 0.3271585557299843,
+   "favorite_top1_pre": 0.32150706436420723
+  },
+  "2020": {
+   "n_races": 3169,
+   "n_meeting_days": 289,
+   "terminal_close_market_logloss": 1.9864719066758338,
+   "historical_pre_snapshot_logloss": 2.018684795832371,
+   "pre_minus_close_gap_nats": 0.032212889156537194,
+   "favorite_top1_close": 0.32281476806563586,
+   "favorite_top1_pre": 0.31934364152729566
+  },
+  "2021": {
+   "n_races": 3200,
+   "n_meeting_days": 288,
+   "terminal_close_market_logloss": 1.9512144862185783,
+   "historical_pre_snapshot_logloss": 2.002009875521866,
+   "pre_minus_close_gap_nats": 0.05079538930328753,
+   "favorite_top1_close": 0.325,
+   "favorite_top1_pre": 0.321875
+  },
+  "2022": {
+   "n_races": 3206,
+   "n_meeting_days": 288,
+   "terminal_close_market_logloss": 1.900595678649463,
+   "historical_pre_snapshot_logloss": 1.9480537946626655,
+   "pre_minus_close_gap_nats": 0.04745811601320238,
+   "favorite_top1_close": 0.34123518402994385,
+   "favorite_top1_pre": 0.32938240798502805
+  }
  },
  "reference_values_2022_official_set": {
-  "n_races": 3276,
+  "n_races": 3206,
   "terminal_close_market": {
-   "race_categorical_logloss": 1.8970806499824489,
-   "favorite_top1_rate": 0.3415750915750916
+   "race_categorical_logloss": 1.900595678649463,
+   "favorite_top1_rate": 0.34123518402994385
   },
   "historical_pre_snapshot": {
-   "race_categorical_logloss": 1.9448067755299354,
-   "favorite_top1_rate": 0.3302808302808303
+   "race_categorical_logloss": 1.9480537946626655,
+   "favorite_top1_rate": 0.32938240798502805
   },
-  "pre_minus_close_gap_nats": 0.047726125547486564,
-  "R0_clean_table_only": "Stage 1 で rolling OOF (train<=2020 / ES 2021 / predict 2022) を作ってから同一 race set で再計算する。EXP15 の 2022 スコアは ES に 2022 を使っているため OOS ではなく、ここでは使わない"
+  "pre_minus_close_gap_nats": 0.04745811601320238,
+  "R0_clean_table_only": "Stage 1 で rolling OOF (train<=2020 / ES 2021 / predict 2022) を作ってから同一 race set で再計算する。EXP15 の 2022 スコアは ES に 2022 を使っているため OOS ではなく、ここでは使わない",
+  "note": "障害除外・DNF 除外後の正式 set 上の値。改訂前 (障害を含む) の値とは一致しない"
  },
- "power_audit_2022": {
-  "primary": {
-   "method": "一次近似。π_close を time-safe な表信号 z (前走確定着順の race 内 z) で δ だけ傾けたとき per-race 改善は Δ_r ≈ δ·u_r, u_r = z_winner − Σ π_i z_i。平均も SE も δ に比例するので、検出可否は u の形 (平均/cluster SE 比) で決まる",
-   "u_mean_c": -0.016112757150777944,
-   "u_sd": 0.7535619809277644,
-   "u_cluster_se": 0.01302740894876839,
-   "detect_ratio_z*SE/|c|": 2.265124035458646,
-   "MDE_at_0.005_shape_nats": 0.01132562017729323,
-   "practical_floor_nats_per_race": 0.005,
-   "MDE_le_floor": false,
-   "interpretation": "detect_ratio <= 1 なら、この信号と同じ per-race 分散形をもつ 0.005 nats の効果を 80% 検出力で検出できる。逆に > 1 なら検出力不足",
-   "caveat": "この参照信号 (前走着順) 自体は close 市場に対して改善方向ではない。ここで使っているのは 効果量ではなく per-race 分散の形だけ"
+ "dnf_sensitivity": {
+  "official_set_le2022": {
+   "n_races_total": 22310,
+   "n_races_scored": 22310,
+   "Q0_ll_starter_normalization": 1.9528077052005588,
+   "Q0_ll_finisher_renormalization": 1.9528077052005588,
+   "diff_starter_minus_finisher": 0.0,
+   "mean_dnf_horses_per_race": 0.0
   },
-  "secondary_reference": {
-   "method": "per-race (LL(pre) - LL(close))。差が大きい対なので SE も大きく、Gate A の代理としては過大",
-   "se_cluster": 0.004676635946951016,
-   "MDE_80pct_power": 0.013101993119438764
+  "flat_dnf_races_le2022": {
+   "n_races_total": 937,
+   "n_races_scored": 937,
+   "Q0_ll_starter_normalization": 2.045110596828148,
+   "Q0_ll_finisher_renormalization": 1.9837446529509188,
+   "diff_starter_minus_finisher": 0.06136594387722916,
+   "mean_dnf_horses_per_race": 1.08110992529349
   },
-  "decision_rule": "primary の MDE <= 0.005 なら 2023 評価へ進行可。> 0.005 なら 2023 を開封せず停止または設計変更"
+  "jump_races_le2022": {
+   "n_races_total": 884,
+   "n_races_scored": 883,
+   "Q0_ll_starter_normalization": 1.891899500985626,
+   "Q0_ll_finisher_renormalization": 1.8466008227881001,
+   "diff_starter_minus_finisher": 0.04529867819752598,
+   "mean_dnf_horses_per_race": 0.5938914027149321
+  }
  },
- "subset_thresholds_fixed_on_2022_official_set": {
+ "learned_subset_boundaries_by_eval_year": {
+  "2019": {
+   "fit_years": [
+    2016,
+    2017,
+    2018
+   ],
+   "n_races_used": 9550,
+   "favorite_pre_odds_tertiles": [
+    2.9028528499616617,
+    4.138167691853261
+   ],
+   "market_entropy_pre_tertiles": [
+    2.0067166677114874,
+    2.2599056061510456
+   ]
+  },
+  "2020": {
+   "fit_years": [
+    2016,
+    2017,
+    2018,
+    2019
+   ],
+   "n_races_used": 12735,
+   "favorite_pre_odds_tertiles": [
+    2.902273120907854,
+    4.143522033700927
+   ],
+   "market_entropy_pre_tertiles": [
+    2.000186414579372,
+    2.2558783179567454
+   ]
+  },
+  "2021": {
+   "fit_years": [
+    2016,
+    2017,
+    2018,
+    2019,
+    2020
+   ],
+   "n_races_used": 15904,
+   "favorite_pre_odds_tertiles": [
+    2.905818532604727,
+    4.137980754347282
+   ],
+   "market_entropy_pre_tertiles": [
+    1.9990394642848668,
+    2.254903199414685
+   ]
+  },
+  "2022": {
+   "fit_years": [
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021
+   ],
+   "n_races_used": 19104,
+   "favorite_pre_odds_tertiles": [
+    2.910944801440244,
+    4.142210153347709
+   ],
+   "market_entropy_pre_tertiles": [
+    1.9996558991212907,
+    2.2550558914744148
+   ]
+  },
+  "2023": {
+   "fit_years": [
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022
+   ],
+   "n_races_used": 22310,
+   "favorite_pre_odds_tertiles": [
+    2.913372604830984,
+    4.143259425743676
+   ],
+   "market_entropy_pre_tertiles": [
+    1.9965052822750622,
+    2.251321403197708
+   ]
+  }
+ },
+ "fixed_domain_partitions": {
+  "venues": [
+   "札幌",
+   "函館",
+   "福島",
+   "新潟",
+   "東京",
+   "中山",
+   "中京",
+   "京都",
+   "阪神",
+   "小倉"
+  ],
   "field_size_bins": [
    [
     5,
@@ -72,36 +447,345 @@
    "芝",
    "ダ"
   ],
-  "venue": [
-   "中京",
-   "中山",
-   "函館",
-   "小倉",
-   "新潟",
-   "札幌",
-   "東京",
-   "福島",
-   "阪神"
-  ],
   "class_groups": "新馬/未勝利/1勝/2勝/3勝/OP以上",
-  "favorite_pre_odds_tertiles": [
-   2.9313831318610886,
-   4.142645469093173
-  ],
-  "market_entropy_pre_tertiles": [
-   1.9778177307702935,
-   2.224232835674263
-  ],
-  "n_races_used": 3276,
-  "model_market_disagreement": "Q1 rolling OOF が必要なため Stage 1 で 2022 のみを使って固定する"
+  "note": "結果を見ずに決めたドメイン区分。年ごとに学習しない"
  },
- "files_sha256": {
-  "TANPUK_20110105-20151227.csv": "b6c5bbee52a35866",
-  "TANPUK_20160105-20201227.csv": "5a7da2cd050cd633",
-  "TANPUK_20210105-20251228.csv": "3517585d0040cff2"
+ "thresholds_fixed_before_power_audit": {
+  "absolute_practical_floor_nats_per_race": 0.005,
+  "recovery_ratio_floor": 0.1,
+  "ci_condition": "年層化 meeting-day bootstrap CI95 上限 < 0",
+  "fixed_before": "検出力監査より先に固定した。監査結果で変更しない"
  },
- "notes": [
-  "2023 development の指標は Stage 0 では一切計算していない",
-  "2022 の R0-clean 基準値は rolling OOF 未作成のため空欄 (Stage 1 で埋める)"
- ]
+ "power_audit": {
+  "tier1_ideal_local_approximation": {
+   "formulas": {
+    "SD(Delta_r)": "sqrt(2*Delta_bar)",
+    "MDE": "2*2.8^2/R = 15.68/R"
+   },
+   "assumptions": [
+    "局所指数傾斜 (δ→0)",
+    "方向が最適 (正しい 1 次元スコア)",
+    "モデル仕様が正しい (係数推定の誤差を無視)",
+    "レースが独立 (meeting-day クラスタなし)",
+    "点推定を床と比べる条件・seed 判定・年ごとの方向一致条件を課さない"
+   ],
+   "status": "理論的な楽観側の基準。本実験に対する厳密式・保証値ではない",
+   "SD_at_floor": 0.1,
+   "races_required_for_floor": 3135.9999999999995,
+   "MDE_by_R": {
+    "2018": 0.004924623115577889,
+    "2019": 0.004923076923076922,
+    "2020": 0.004947933101924897,
+    "2021": 0.004899999999999999,
+    "2022": 0.0048908296943231434,
+    "pooled_5y_le2022": 0.0009834420471650776
+   }
+  },
+  "tier2_empirical_cluster_power": {
+   "pass_at_floor": {
+    "terminal_close_market__prefixed_residual_linear__true_0.005": {
+     "seed_jitter_0.0": 0.18666666666666668,
+     "seed_jitter_0.1": 0.21333333333333335,
+     "seed_jitter_0.25": 0.1
+    },
+    "terminal_close_market__standardized_random__true_0.005": {
+     "seed_jitter_0.1": 0.18666666666666668
+    },
+    "historical_pre_snapshot__prefixed_residual_linear__true_0.005": {
+     "seed_jitter_0.1": 0.17333333333333334
+    }
+   },
+   "power_curve_primary": {
+    "base": "terminal_close_market",
+    "direction": "prefixed_residual_linear",
+    "seed_jitter": 0.1,
+    "true_effect_nats": [
+     0.005,
+     0.0075,
+     0.01,
+     0.015,
+     0.02,
+     0.03
+    ],
+    "pass_rate": [
+     0.21333333333333335,
+     0.9666666666666667,
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "min_true_effect_for_80pct_pass_nats": 0.006946902654867256
+   },
+   "decision_rule": {
+    "official": "真の効果 = 0.005 を注入したときの pass 確率が、事前固定した全ての seed_jitter 水準で 80% 以上なら進行可",
+    "fail": "80% 未満なら 2019-2023 の結果を開けず、期間・設計を見直す",
+    "forbidden": "理論 MDE (tier1) だけで進行可否を決めない",
+    "conditions_simulated": [
+     "pooled median <= -0.005",
+     "meeting-day bootstrap CI95 上限 < 0",
+     "5 年中 4 年以上で改善方向",
+     "5 seed 中 4 以上で改善方向",
+     "最大効果年を除いた leave-one-year-out でも床と CI を満たす"
+    ],
+    "structural_note": "判定規則は『点推定が床 0.005 を超える』ことを要求する。真の効果がちょうど 0.005 の場合、点推定は 0.005 の前後に散らばるため pass 確率はレース数を増やしても原理的に 50% を超えない (係数推定による減衰があるのでさらに下がる)。したがって『0.005 で 80%』は R では達成できない。R が決めるのは『何 nats なら 80% で通るか』であり、それが min_true_effect_for_80pct_pass_nats である",
+    "known_optimism": [
+     "方向 s は正しく与えられている (Q1 の推定誤差は seed_jitter でのみ近似)",
+     "真のモデルが厳密に局所指数傾斜である",
+     "評価年は 2018-2022 で、実判定の 2019-2023 と 1 年ずれる"
+    ]
+   }
+  },
+  "tier3_secondary_reference_check": {
+   "target": "2022 の per-race (LL(pre) − LL(close)) で理論 SD と実測 cluster SE を比較する",
+   "n_races": 3206,
+   "n_meeting_days": 288,
+   "mean_gap_nats": 0.04745811601320203,
+   "measured_sd_per_race": 0.2706096881442374,
+   "theoretical_sd_sqrt_2mean": 0.30808478058223526,
+   "sd_ratio_measured_over_theoretical": 0.878361104475283,
+   "iid_se": 0.004779270171052335,
+   "meeting_day_cluster_se": 0.0046827996793767845,
+   "cluster_over_iid_se": 0.9798148068171862,
+   "theoretical_iid_se_at_this_mean": 0.00544112227499803,
+   "interpretation": "pre→close 差は局所傾斜ではなく大きな差 (平均 0.047 nats) なので、理論 SD 式と一致する保証はない。一致しても普遍式の証明とは扱わない"
+  },
+  "directions": {
+   "q1_log_ratio": {
+    "status": "pending_stage1",
+    "definition": "log(Q1/π)。rolling OOF Q1 が必要なため Stage 0 では測れない",
+    "requirement": "Stage 1 で rolling OOF を作った直後、**結果を開封する前に** この方向で tier2 を再実行する"
+   },
+   "prefixed_residual_linear": {
+    "features_and_signs": {
+     "前走確定着順": {
+      "non_null_share": 0.9019901500532819,
+      "sign": -1.0
+     },
+     "前走上り3F順": {
+      "non_null_share": 0.9000636822416149,
+      "sign": -1.0
+     },
+     "kako5_avg_pos": {
+      "non_null_share": 0.8995900655703081,
+      "sign": -1.0
+     },
+     "kako5_best_pos": {
+      "non_null_share": 0.8995900655703081,
+      "sign": -1.0
+     },
+     "horse_fuku30": {
+      "non_null_share": 0.5819212836291837,
+      "sign": 1.0
+     },
+     "jockey_fuku90": {
+      "non_null_share": 0.9981567351170761,
+      "sign": 1.0
+     },
+     "prev_hosei": {
+      "non_null_share": 0.873211537046104,
+      "sign": -1.0
+     },
+     "間隔": {
+      "non_null_share": 0.9019901500532819,
+      "sign": 0.0
+     }
+    },
+    "construction": "各特徴をレース内 z 化 → 事前固定符号で等重み和 → 再標準化。符号 0 の列は合成方向に使わない"
+   },
+   "standardized_random": {
+    "construction": "N(0,1) をレース内 z 化。効果量は同じ値へ較正するので、per-race 分散の形だけを変える対照"
+   }
+  }
+ },
+ "growth_checks": {
+  "C1_full_investment_identity": {
+   "max_abs_diff_W_minus_(KL-bound)": 2.220446049250313e-16,
+   "mean_KL": 0.14576220036590756,
+   "share_of_races_with_KL>bound": 0.158,
+   "mean_W": -0.07738135094830212,
+   "note": "W = D(p||π) + log(1-t) が数値的に厳密一致することの確認"
+  },
+  "C2_cash_option": {
+   "mean_KL": 0.027015850945016014,
+   "bound": 0.2231435513142097,
+   "mean_KL_below_bound": true,
+   "mean_growth_full_investment": -0.1961277003691937,
+   "mean_growth_with_cash": 0.003711253433352966,
+   "share_races_positive_growth_with_cash": 0.9466666666666667,
+   "share_races_with_max_p_over_pi_gt_1/(1-t)": 0.9466666666666667,
+   "note": "現金を持てる場合の参加条件は max_i p_i/π_i > 1/(1-t)。平均 KL と閾値の比較は停止規則にならない"
+  },
+  "C2b_selection_with_estimation_noise": {
+   "by_noise": {
+    "q_noise_sd_0.0": {
+     "mean_growth_under_true_p": 0.02997633536527933,
+     "share_races_entered": 0.99,
+     "mean_stake_fraction": 0.12757558610803493,
+     "share_races_growth_positive": 0.99
+    },
+    "q_noise_sd_0.1": {
+     "mean_growth_under_true_p": 0.025660624320693434,
+     "share_races_entered": 0.995,
+     "mean_stake_fraction": 0.12380185627229295,
+     "share_races_growth_positive": 0.965
+    },
+    "q_noise_sd_0.2": {
+     "mean_growth_under_true_p": 0.01704854723055793,
+     "share_races_entered": 0.995,
+     "mean_stake_fraction": 0.13674614807048552,
+     "share_races_growth_positive": 0.79
+    },
+    "q_noise_sd_0.4": {
+     "mean_growth_under_true_p": -0.011385931872581223,
+     "share_races_entered": 1.0,
+     "mean_stake_fraction": 0.2107109958161405,
+     "share_races_growth_positive": 0.305
+    },
+    "q_noise_sd_0.8": {
+     "mean_growth_under_true_p": -0.1358780628902771,
+     "share_races_entered": 1.0,
+     "mean_stake_fraction": 0.3543894883275215,
+     "share_races_growth_positive": 0.035
+    }
+   },
+   "note": "q=p+推定ノイズ で q_i/π_i 選抜 → 現金込み Kelly → 真の p で期待対数成長を評価。結論はノイズ水準に依存するので、この表をそのまま報告する"
+  },
+  "C2c_calibrated_tilt_selection": {
+   "setup": "pi を先に置き、真の p = pi*exp(eps*s)/Z を平均 KL = 0.005/0.02/0.05 へ較正。参加条件 max_i q_i/pi_i > 1/(1-t)、現金込み Kelly、評価は常に真の p。",
+   "note": "結果を先に決めない。符号はそのまま報告する"
+  },
+  "C3_self_dilution": {
+   "growth_by_stake_share_of_pool": {
+    "stake_share_0.0": -0.18150078468990863,
+    "stake_share_0.001": -0.18258521113622408,
+    "stake_share_0.005": -0.1869102144426541,
+    "stake_share_0.02": -0.20295102179106386,
+    "stake_share_0.05": -0.23422331857883635
+   },
+   "note": "プールに対する賭け金比率が上がるほど実現オッズが下がり成長率が落ちる"
+  },
+  "C4_decision_vs_final_odds_symmetric_noise": {
+   "mean_growth_by_drift_sd": {
+    "drift_sd_0.0": -0.07350496777834041,
+    "drift_sd_0.05": -0.07515606660622247,
+    "drift_sd_0.1": -0.07758140568551747,
+    "drift_sd_0.2": -0.050680014626666534
+   },
+   "note": "対称で情報を持たない drift は成長率を系統的には下げない (Jensen により僅かに上げることすらある)。『判断時点と確定が違う』こと自体は害の理由にならない"
+  },
+  "C4b_adverse_correction_drift": {
+   "by_lambda": {
+    "correction_lambda_0.0": {
+     "mean_growth": -0.07739139472260073,
+     "mean_max_p_over_pi_final": 3.327263142931382
+    },
+    "correction_lambda_0.25": {
+     "mean_growth": -0.14053426870707839,
+     "mean_max_p_over_pi_final": 2.4148562269205383
+    },
+    "correction_lambda_0.5": {
+     "mean_growth": -0.1846046410077675,
+     "mean_max_p_over_pi_final": 1.7554121119887125
+    },
+    "correction_lambda_0.75": {
+     "mean_growth": -0.21341915976399178,
+     "mean_max_p_over_pi_final": 1.3100990451893775
+    },
+    "correction_lambda_1.0": {
+     "mean_growth": -0.2231435513142097,
+     "mean_max_p_over_pi_final": 1.0000000000000004
+    }
+   },
+   "note": "害になるのは『自分が張る側へ不利に動く drift』。市場が締切までに真値へ寄るほど、判断時点で見えたエッジは確定オッズでは消える (lambda=1 で成長率は log(1-t) に収束)"
+  },
+  "C5_granularity_and_breakage": {
+   "mean_growth_by_unit": {
+    "unit_1yen_of_10000": -0.08210556693569085,
+    "unit_100yen_of_10000": -0.08970784151660777,
+    "unit_500yen_of_10000": -0.1093984553009973
+   },
+   "note": "100 円単位と 0.1 刻みオッズの切り捨ては成長率を押し下げる"
+  }
+ },
+ "market_provenance_summary": {
+  "files": {
+   "TANPUK_20110105-20151227.csv": "b6c5bbee52a35866",
+   "TANPUK_20160105-20201227.csv": "5a7da2cd050cd633",
+   "TANPUK_20210105-20251228.csv": "3517585d0040cff2"
+  },
+  "pre_snapshot_minutes_before_post_2022": {
+   "p1": 25.0,
+   "p50": 28.0,
+   "p99": 30.0,
+   "mean": 27.624131944444443
+  },
+  "final_minutes_after_post_2022": {
+   "p1": 5.0,
+   "p50": 7.0,
+   "p99": 12.0,
+   "mean": 7.300636574074074
+  }
+ },
+ "artifact_contract": {
+  "master_v2": {
+   "absolute_path": "E:\\PyCaLiAI\\data\\master_v2_20130105-20251228.csv",
+   "size_bytes": 518835750,
+   "mtime": "2026-09-11 22:32:42",
+   "sha256": "b8032d1bd78176a939b615921fa4fd25faadbf493f685e44a06e7f2e9e780a76",
+   "row_hash_2016_2023": "79cf2e2d013994a7e6f25bb0a9286809ebcd2cc379d4282b4e4c9374b16c7e84",
+   "row_hash_matches_exp15": true,
+   "exp15_recorded_row_hash": "79cf2e2d013994a7e6f25bb0a9286809ebcd2cc379d4282b4e4c9374b16c7e84",
+   "rehash_policy": "EXP15 の hash を流用せず、今回読み込んだ実ファイルから再計算して一致を検証した"
+  },
+  "feature_schema": {
+   "source": "E:\\PyCaLiAI\\analysis\\mcond\\exp15_race_as_set_dev\\out\\feature_contract.json",
+   "file_sha256": "5e120492e4c1f7e5a0deeba611765233a620022bcc4eb8e7d382ec25143be567",
+   "n_clean": 111,
+   "schema_hash": "e7c297440df884c38908e22e31a99a54ea5e78ec44e118d5b11a0467f52dddfb",
+   "columns_missing_from_current_master_header": [],
+   "verified": true
+  },
+  "race_population": {
+   "json_sha256": "e5eaa58c7d8657dd716cd24a1feaa2a09033f70d6559fdb9548956edfa866955",
+   "official_rid_list_sha256_le2022": "b4f6897c5c1678a4b0d0baa2af6dcf309d25758861bc55f3ea9604d18d7574a9",
+   "n_official_races_le2022": 22310
+  },
+  "p0_5_status": {
+   "blocks_with_2plus_horses": 13174,
+   "blocks_with_multiple_values": 0,
+   "is_post_p0_5_c1_artifact": true,
+   "method": "C1 (最小修正) は同一 (調教師, レース) ブロックへ先頭行の値を配る。ブロック内に複数値が残っていれば修正前 artifact",
+   "reference": "build_dataset.py add_rolling_stats / Vol.III 欠陥台帳 P0-5"
+  },
+  "feature_provenance": {
+   "jockey_fuku90": {
+    "train_side": "build_dataset.py add_rolling_stats。直近90『馬走』の複勝率を shift(1) で as-of 計算し、同一 (騎手, レース) ブロックへ先頭値を配る (C1, 2026-09-11)",
+    "serve_side": "data/jockey_stats.csv のスナップショットを weekly へ join (predict_weekly.py:523 / app.py:858)。**as-of ではなく現在値**",
+    "risk": "train は as-of・serve はスナップショットという provenance 差がある。EXP16A は master_v2 (train 側) のみを使うが、将来 production へ渡す場合はこの差が残る",
+    "measured_non_null_share_in_official_set": 0.9981567351170761
+   },
+   "prev_hosei": {
+    "train_side": "build_master_v2.py:70 で data/hosei の 『前走補正』を rename。TARGET 由来の補正タイム (前走)",
+    "serve_side": "make_weekly_hosei.py。旧実装は前々走を入れる off-by-one があり (make_weekly_hosei.py:166-176)、proxy 方式で修正済み",
+    "risk": "train 側は TARGET 実測値・serve 側は proxy。EXP16A は train 側のみを使う",
+    "measured_non_null_share_in_official_set": 0.873211537046104
+   }
+  },
+  "pending_stage1": {
+   "encoder_hash": "Stage 1 で category encoder を作った時点で oof_manifest.json に記録する",
+   "model_hash_per_seed": "各 (年, seed) の LightGBM model と score npz の sha256",
+   "q1_direction_power": "rolling OOF 作成直後、結果開封前に power_audit を log(Q1/π) 方向で再実行"
+  }
+ },
+ "stage0_prohibitions_observed": [
+  "production 変更なし",
+  "候補馬券生成なし",
+  "資金配分変更なし",
+  "2024/2025 開封なし",
+  "2019-2023 の結果評価なし",
+  "ROI 本評価なし",
+  "学習 (rolling OOF 作成) なし"
+ ],
+ "elapsed_sec": 9.7
 }

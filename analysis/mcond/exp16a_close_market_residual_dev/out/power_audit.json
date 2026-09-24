@@ -1,0 +1,617 @@
+{
+ "role": "検出力監査。実務床 0.005 nats/race は MDE を見る前に固定済みで、監査結果で変更しない",
+ "data": {
+  "npz": "E:\\PyCaLiAI\\data\\_research\\mcond\\exp16a\\official_races_le2022.npz",
+  "races": 22310,
+  "horses": 312489,
+  "races_by_year": {
+   "2016": 3189,
+   "2017": 3177,
+   "2018": 3184,
+   "2019": 3185,
+   "2020": 3169,
+   "2021": 3200,
+   "2022": 3206
+  },
+  "note": "2022 以前の正式 race set (障害除外・DNF なし・平地) のみ。2023 は読まない"
+ },
+ "tier1_ideal_local_approximation": {
+  "formulas": {
+   "SD(Delta_r)": "sqrt(2*Delta_bar)",
+   "MDE": "2*2.8^2/R = 15.68/R"
+  },
+  "assumptions": [
+   "局所指数傾斜 (δ→0)",
+   "方向が最適 (正しい 1 次元スコア)",
+   "モデル仕様が正しい (係数推定の誤差を無視)",
+   "レースが独立 (meeting-day クラスタなし)",
+   "点推定を床と比べる条件・seed 判定・年ごとの方向一致条件を課さない"
+  ],
+  "status": "理論的な楽観側の基準。本実験に対する厳密式・保証値ではない",
+  "SD_at_floor": 0.1,
+  "races_required_for_floor": 3135.9999999999995,
+  "MDE_by_R": {
+   "2018": 0.004924623115577889,
+   "2019": 0.004923076923076922,
+   "2020": 0.004947933101924897,
+   "2021": 0.004899999999999999,
+   "2022": 0.0048908296943231434,
+   "pooled_5y_le2022": 0.0009834420471650776
+  }
+ },
+ "directions": {
+  "q1_log_ratio": {
+   "status": "pending_stage1",
+   "definition": "log(Q1/π)。rolling OOF Q1 が必要なため Stage 0 では測れない",
+   "requirement": "Stage 1 で rolling OOF を作った直後、**結果を開封する前に** この方向で tier2 を再実行する"
+  },
+  "prefixed_residual_linear": {
+   "features_and_signs": {
+    "前走確定着順": {
+     "non_null_share": 0.9019901500532819,
+     "sign": -1.0
+    },
+    "前走上り3F順": {
+     "non_null_share": 0.9000636822416149,
+     "sign": -1.0
+    },
+    "kako5_avg_pos": {
+     "non_null_share": 0.8995900655703081,
+     "sign": -1.0
+    },
+    "kako5_best_pos": {
+     "non_null_share": 0.8995900655703081,
+     "sign": -1.0
+    },
+    "horse_fuku30": {
+     "non_null_share": 0.5819212836291837,
+     "sign": 1.0
+    },
+    "jockey_fuku90": {
+     "non_null_share": 0.9981567351170761,
+     "sign": 1.0
+    },
+    "prev_hosei": {
+     "non_null_share": 0.873211537046104,
+     "sign": -1.0
+    },
+    "間隔": {
+     "non_null_share": 0.9019901500532819,
+     "sign": 0.0
+    }
+   },
+   "construction": "各特徴をレース内 z 化 → 事前固定符号で等重み和 → 再標準化。符号 0 の列は合成方向に使わない"
+  },
+  "standardized_random": {
+   "construction": "N(0,1) をレース内 z 化。効果量は同じ値へ較正するので、per-race 分散の形だけを変える対照"
+  }
+ },
+ "tier2_empirical_cluster_power": {
+  "runs": {
+   "terminal_close_market__prefixed_residual_linear__true_0.005": {
+    "base_market": "terminal_close_market",
+    "direction": "prefixed_residual_linear",
+    "injected_delta": 0.12513533249796965,
+    "realized_true_improvement_nats": 0.005,
+    "target_nats": 0.005,
+    "practical_floor_used": 0.005,
+    "n_races": 22310,
+    "eval_years": [
+     2018,
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "reps": 150,
+    "seeds": 5,
+    "by_seed_jitter": {
+     "seed_jitter_0.0": {
+      "pass_rate_all_conditions": 0.18666666666666668,
+      "pass_rate_by_condition": {
+       "floor": 0.47333333333333333,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 0.18666666666666668
+      },
+      "median_estimate_nats": -0.004913640117329589,
+      "attenuation_vs_injected": 0.9827280234659178,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.0034046798048553003,
+      "median_loo_max_year_estimate": -0.004362134314626422
+     },
+     "seed_jitter_0.1": {
+      "pass_rate_all_conditions": 0.21333333333333335,
+      "pass_rate_by_condition": {
+       "floor": 0.43333333333333335,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 0.21333333333333335
+      },
+      "median_estimate_nats": -0.004868548457699674,
+      "attenuation_vs_injected": 0.9737096915399347,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.003353887632561877,
+      "median_loo_max_year_estimate": -0.0043703478436447184
+     },
+     "seed_jitter_0.25": {
+      "pass_rate_all_conditions": 0.1,
+      "pass_rate_by_condition": {
+       "floor": 0.22,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 0.1
+      },
+      "median_estimate_nats": -0.004486640885203104,
+      "attenuation_vs_injected": 0.8973281770406207,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.0030258729490587897,
+      "median_loo_max_year_estimate": -0.004005748073162951
+     }
+    }
+   },
+   "terminal_close_market__prefixed_residual_linear__true_0.0075": {
+    "base_market": "terminal_close_market",
+    "direction": "prefixed_residual_linear",
+    "injected_delta": 0.1541838649036134,
+    "realized_true_improvement_nats": 0.007500000000000001,
+    "target_nats": 0.0075,
+    "practical_floor_used": 0.005,
+    "n_races": 22310,
+    "eval_years": [
+     2018,
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "reps": 150,
+    "seeds": 5,
+    "by_seed_jitter": {
+     "seed_jitter_0.1": {
+      "pass_rate_all_conditions": 0.9666666666666667,
+      "pass_rate_by_condition": {
+       "floor": 1.0,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 0.9666666666666667
+      },
+      "median_estimate_nats": -0.007378834302167313,
+      "attenuation_vs_injected": 0.9838445736223084,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.005574230083923876,
+      "median_loo_max_year_estimate": -0.006691217228839471
+     }
+    }
+   },
+   "terminal_close_market__prefixed_residual_linear__true_0.01": {
+    "base_market": "terminal_close_market",
+    "direction": "prefixed_residual_linear",
+    "injected_delta": 0.1789645209163082,
+    "realized_true_improvement_nats": 0.009999999999999998,
+    "target_nats": 0.01,
+    "practical_floor_used": 0.005,
+    "n_races": 22310,
+    "eval_years": [
+     2018,
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "reps": 150,
+    "seeds": 5,
+    "by_seed_jitter": {
+     "seed_jitter_0.1": {
+      "pass_rate_all_conditions": 1.0,
+      "pass_rate_by_condition": {
+       "floor": 1.0,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 1.0
+      },
+      "median_estimate_nats": -0.009999332741691503,
+      "attenuation_vs_injected": 0.9999332741691502,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.007873660925907626,
+      "median_loo_max_year_estimate": -0.009324651240569111
+     }
+    }
+   },
+   "terminal_close_market__prefixed_residual_linear__true_0.015": {
+    "base_market": "terminal_close_market",
+    "direction": "prefixed_residual_linear",
+    "injected_delta": 0.22116691531721466,
+    "realized_true_improvement_nats": 0.015,
+    "target_nats": 0.015,
+    "practical_floor_used": 0.005,
+    "n_races": 22310,
+    "eval_years": [
+     2018,
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "reps": 150,
+    "seeds": 5,
+    "by_seed_jitter": {
+     "seed_jitter_0.1": {
+      "pass_rate_all_conditions": 1.0,
+      "pass_rate_by_condition": {
+       "floor": 1.0,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 1.0
+      },
+      "median_estimate_nats": -0.014612972253404913,
+      "attenuation_vs_injected": 0.9741981502269943,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.012022534079191233,
+      "median_loo_max_year_estimate": -0.013661846617376017
+     }
+    }
+   },
+   "terminal_close_market__prefixed_residual_linear__true_0.02": {
+    "base_market": "terminal_close_market",
+    "direction": "prefixed_residual_linear",
+    "injected_delta": 0.25739749479086116,
+    "realized_true_improvement_nats": 0.019999999999999997,
+    "target_nats": 0.02,
+    "practical_floor_used": 0.005,
+    "n_races": 22310,
+    "eval_years": [
+     2018,
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "reps": 150,
+    "seeds": 5,
+    "by_seed_jitter": {
+     "seed_jitter_0.1": {
+      "pass_rate_all_conditions": 1.0,
+      "pass_rate_by_condition": {
+       "floor": 1.0,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 1.0
+      },
+      "median_estimate_nats": -0.01986775862486175,
+      "attenuation_vs_injected": 0.9933879312430874,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.016772321477827572,
+      "median_loo_max_year_estimate": -0.018776798219306046
+     }
+    }
+   },
+   "terminal_close_market__prefixed_residual_linear__true_0.03": {
+    "base_market": "terminal_close_market",
+    "direction": "prefixed_residual_linear",
+    "injected_delta": 0.31962481889714367,
+    "realized_true_improvement_nats": 0.029999999999999992,
+    "target_nats": 0.03,
+    "practical_floor_used": 0.005,
+    "n_races": 22310,
+    "eval_years": [
+     2018,
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "reps": 150,
+    "seeds": 5,
+    "by_seed_jitter": {
+     "seed_jitter_0.1": {
+      "pass_rate_all_conditions": 1.0,
+      "pass_rate_by_condition": {
+       "floor": 1.0,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 1.0
+      },
+      "median_estimate_nats": -0.029668402026643226,
+      "attenuation_vs_injected": 0.9889467342214409,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.025964505559323156,
+      "median_loo_max_year_estimate": -0.028132548380765614
+     }
+    }
+   },
+   "terminal_close_market__standardized_random__true_0.005": {
+    "base_market": "terminal_close_market",
+    "direction": "standardized_random",
+    "injected_delta": 0.10741091932821123,
+    "realized_true_improvement_nats": 0.005,
+    "target_nats": 0.005,
+    "practical_floor_used": 0.005,
+    "n_races": 22310,
+    "eval_years": [
+     2018,
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "reps": 150,
+    "seeds": 5,
+    "by_seed_jitter": {
+     "seed_jitter_0.1": {
+      "pass_rate_all_conditions": 0.18666666666666668,
+      "pass_rate_by_condition": {
+       "floor": 0.37333333333333335,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 0.18666666666666668
+      },
+      "median_estimate_nats": -0.004778809169553505,
+      "attenuation_vs_injected": 0.955761833910701,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.003251839418434599,
+      "median_loo_max_year_estimate": -0.0042450872759603395
+     }
+    }
+   },
+   "historical_pre_snapshot__prefixed_residual_linear__true_0.005": {
+    "base_market": "historical_pre_snapshot",
+    "direction": "prefixed_residual_linear",
+    "injected_delta": 0.11688934923128358,
+    "realized_true_improvement_nats": 0.005,
+    "target_nats": 0.005,
+    "practical_floor_used": 0.005,
+    "n_races": 22310,
+    "eval_years": [
+     2018,
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "reps": 150,
+    "seeds": 5,
+    "by_seed_jitter": {
+     "seed_jitter_0.1": {
+      "pass_rate_all_conditions": 0.17333333333333334,
+      "pass_rate_by_condition": {
+       "floor": 0.3933333333333333,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 0.17333333333333334
+      },
+      "median_estimate_nats": -0.004757297527197039,
+      "attenuation_vs_injected": 0.9514595054394078,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.0032769448284860046,
+      "median_loo_max_year_estimate": -0.004320146632993492
+     }
+    }
+   },
+   "terminal_close_market__standardized_random__true_0.01": {
+    "base_market": "terminal_close_market",
+    "direction": "standardized_random",
+    "injected_delta": 0.1520471908478161,
+    "realized_true_improvement_nats": 0.009999999999999997,
+    "target_nats": 0.01,
+    "practical_floor_used": 0.005,
+    "n_races": 22310,
+    "eval_years": [
+     2018,
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "reps": 150,
+    "seeds": 5,
+    "by_seed_jitter": {
+     "seed_jitter_0.1": {
+      "pass_rate_all_conditions": 1.0,
+      "pass_rate_by_condition": {
+       "floor": 1.0,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 1.0
+      },
+      "median_estimate_nats": -0.009739148522017436,
+      "attenuation_vs_injected": 0.9739148522017436,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.007655061314853007,
+      "median_loo_max_year_estimate": -0.00901170778843774
+     }
+    }
+   },
+   "historical_pre_snapshot__prefixed_residual_linear__true_0.01": {
+    "base_market": "historical_pre_snapshot",
+    "direction": "prefixed_residual_linear",
+    "injected_delta": 0.167063238270788,
+    "realized_true_improvement_nats": 0.01,
+    "target_nats": 0.01,
+    "practical_floor_used": 0.005,
+    "n_races": 22310,
+    "eval_years": [
+     2018,
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "reps": 150,
+    "seeds": 5,
+    "by_seed_jitter": {
+     "seed_jitter_0.1": {
+      "pass_rate_all_conditions": 1.0,
+      "pass_rate_by_condition": {
+       "floor": 1.0,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 1.0
+      },
+      "median_estimate_nats": -0.009757861643081886,
+      "attenuation_vs_injected": 0.9757861643081885,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.007652349291250829,
+      "median_loo_max_year_estimate": -0.009027958378609393
+     }
+    }
+   },
+   "terminal_close_market__standardized_random__true_0.02": {
+    "base_market": "terminal_close_market",
+    "direction": "standardized_random",
+    "injected_delta": 0.21543349000294143,
+    "realized_true_improvement_nats": 0.02,
+    "target_nats": 0.02,
+    "practical_floor_used": 0.005,
+    "n_races": 22310,
+    "eval_years": [
+     2018,
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "reps": 150,
+    "seeds": 5,
+    "by_seed_jitter": {
+     "seed_jitter_0.1": {
+      "pass_rate_all_conditions": 1.0,
+      "pass_rate_by_condition": {
+       "floor": 1.0,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 1.0
+      },
+      "median_estimate_nats": -0.019890722534584307,
+      "attenuation_vs_injected": 0.9945361267292153,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.016767437993142578,
+      "median_loo_max_year_estimate": -0.018909849777378234
+     }
+    }
+   },
+   "historical_pre_snapshot__prefixed_residual_linear__true_0.02": {
+    "base_market": "historical_pre_snapshot",
+    "direction": "prefixed_residual_linear",
+    "injected_delta": 0.24004135529829623,
+    "realized_true_improvement_nats": 0.02,
+    "target_nats": 0.02,
+    "practical_floor_used": 0.005,
+    "n_races": 22310,
+    "eval_years": [
+     2018,
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "reps": 150,
+    "seeds": 5,
+    "by_seed_jitter": {
+     "seed_jitter_0.1": {
+      "pass_rate_all_conditions": 1.0,
+      "pass_rate_by_condition": {
+       "floor": 1.0,
+       "ci": 1.0,
+       "year_dir": 1.0,
+       "seed_dir": 1.0,
+       "loo_max": 1.0
+      },
+      "median_estimate_nats": -0.019382332764476595,
+      "attenuation_vs_injected": 0.9691166382238298,
+      "floor_used": 0.005,
+      "median_ci95_upper": -0.01652918747707886,
+      "median_loo_max_year_estimate": -0.01841845446320771
+     }
+    }
+   }
+  },
+  "power_curve_primary": {
+   "base": "terminal_close_market",
+   "direction": "prefixed_residual_linear",
+   "seed_jitter": 0.1,
+   "true_effect_nats": [
+    0.005,
+    0.0075,
+    0.01,
+    0.015,
+    0.02,
+    0.03
+   ],
+   "pass_rate": [
+    0.21333333333333335,
+    0.9666666666666667,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "min_true_effect_for_80pct_pass_nats": 0.006946902654867256
+  },
+  "pass_at_floor": {
+   "terminal_close_market__prefixed_residual_linear__true_0.005": {
+    "seed_jitter_0.0": 0.18666666666666668,
+    "seed_jitter_0.1": 0.21333333333333335,
+    "seed_jitter_0.25": 0.1
+   },
+   "terminal_close_market__standardized_random__true_0.005": {
+    "seed_jitter_0.1": 0.18666666666666668
+   },
+   "historical_pre_snapshot__prefixed_residual_linear__true_0.005": {
+    "seed_jitter_0.1": 0.17333333333333334
+   }
+  },
+  "verdict": {
+   "min_pass_rate_at_floor_over_all_configs": 0.1,
+   "threshold": 0.8,
+   "result": "do_not_open_2019_2023",
+   "statement": "真の効果 0.005 nats/race を注入したときの pass 確率が 80% 未満である。事前登録した規則により 2019-2023 の結果を開けず、期間・設計を見直す。"
+  },
+  "decision_rule": {
+   "official": "真の効果 = 0.005 を注入したときの pass 確率が、事前固定した全ての seed_jitter 水準で 80% 以上なら進行可",
+   "fail": "80% 未満なら 2019-2023 の結果を開けず、期間・設計を見直す",
+   "forbidden": "理論 MDE (tier1) だけで進行可否を決めない",
+   "conditions_simulated": [
+    "pooled median <= -0.005",
+    "meeting-day bootstrap CI95 上限 < 0",
+    "5 年中 4 年以上で改善方向",
+    "5 seed 中 4 以上で改善方向",
+    "最大効果年を除いた leave-one-year-out でも床と CI を満たす"
+   ],
+   "structural_note": "判定規則は『点推定が床 0.005 を超える』ことを要求する。真の効果がちょうど 0.005 の場合、点推定は 0.005 の前後に散らばるため pass 確率はレース数を増やしても原理的に 50% を超えない (係数推定による減衰があるのでさらに下がる)。したがって『0.005 で 80%』は R では達成できない。R が決めるのは『何 nats なら 80% で通るか』であり、それが min_true_effect_for_80pct_pass_nats である",
+   "known_optimism": [
+    "方向 s は正しく与えられている (Q1 の推定誤差は seed_jitter でのみ近似)",
+    "真のモデルが厳密に局所指数傾斜である",
+    "評価年は 2018-2022 で、実判定の 2019-2023 と 1 年ずれる"
+   ]
+  }
+ },
+ "tier3_secondary_reference_check": {
+  "target": "2022 の per-race (LL(pre) − LL(close)) で理論 SD と実測 cluster SE を比較する",
+  "n_races": 3206,
+  "n_meeting_days": 288,
+  "mean_gap_nats": 0.04745811601320203,
+  "measured_sd_per_race": 0.2706096881442374,
+  "theoretical_sd_sqrt_2mean": 0.30808478058223526,
+  "sd_ratio_measured_over_theoretical": 0.878361104475283,
+  "iid_se": 0.004779270171052335,
+  "meeting_day_cluster_se": 0.0046827996793767845,
+  "cluster_over_iid_se": 0.9798148068171862,
+  "theoretical_iid_se_at_this_mean": 0.00544112227499803,
+  "interpretation": "pre→close 差は局所傾斜ではなく大きな差 (平均 0.047 nats) なので、理論 SD 式と一致する保証はない。一致しても普遍式の証明とは扱わない"
+ },
+ "elapsed_sec": 741.7
+}

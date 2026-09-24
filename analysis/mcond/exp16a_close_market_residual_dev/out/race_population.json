@@ -1,159 +1,435 @@
 {
- "scope": "2016-2023 のみ",
+ "scope": "2016-2023。結果を使う指標は 2022 以前のみ (2023 は開封しない)",
+ "horse_set_definitions": {
+  "starter": "確定 (区分4) の単勝オッズ > 1.0 を持つ馬番。締切プールに居た馬",
+  "finisher": "master (着順が数値) に完走順位を持つ馬番",
+  "scratch": "pre スナップショットに居て確定に居ない馬番 = 締切前取消",
+  "dnf": "starter − finisher。出走したが完走順位が無い (止/失格 等)",
+  "finisher_without_market": "finisher − starter。着順があるのに確定オッズが無い異常",
+  "fix_note": "旧実装は starter を finisher から作っていたため starter/finisher 正規化の差が 構造的に 0 になっていた。本改訂で別々に構築した"
+ },
+ "jump_exclusion": {
+  "definition": "トラックコード(JV) 51..59 = 障害",
+  "production_parity": "race_eligibility.py:48-49 の P0 hard gate と同一定義",
+  "observed_track_codes_jump": [
+   52,
+   54,
+   55,
+   56,
+   57
+  ]
+ },
  "anomaly_code_identification": {
-  "method": "異常コード別に『確定オッズを持つ割合』を実測。締切プールに残っていた = 出走可能だった側を DNF 系とみなす",
+  "method": "異常コード別に『確定オッズを持つ割合』を実測。締切プールに残っていた側を DNF 系とみなす",
   "by_code": {
    "4": {
     "n": 1748,
     "has_final_odds": 1748,
+    "in_jump_race": 607,
     "share_with_final_odds": 1.0
    },
    "3": {
     "n": 676,
     "has_final_odds": 0,
+    "in_jump_race": 15,
     "share_with_final_odds": 0.0
    },
    "7": {
     "n": 20,
     "has_final_odds": 20,
+    "in_jump_race": 1,
     "share_with_final_odds": 1.0
    },
    "5": {
     "n": 1,
     "has_final_odds": 1,
+    "in_jump_race": 0,
     "share_with_final_odds": 1.0
    }
   },
-  "codes_treated_as_ran_or_in_pool": [
-   4,
-   7
-  ],
   "code_-9": "外部 kekka に該当行が無い (join 失敗)"
  },
  "official_race_set_rule": [
+  "平地 (トラックコード(JV) が 51..59 でない)",
   "勝馬が一意 (同着除外)",
-  "出走頭数 >= 5",
-  "着順のある馬が全員 確定オッズを持つ",
-  "確定プールに居て着順が無い馬 (DNF / 締切後除外) が 0 頭",
-  "pre と確定の両方で de-vig 可能"
+  "勝馬が pre・確定の両方でオッズを持ち、着順のある馬が全員 starter",
+  "starter >= 5",
+  "DNF が 0 頭"
+ ],
+ "provisional_population_note": "DNF ありレースの除外は『完走したか』という結果による条件付けである。DNF-inclusive な Q1 を構築できるまでの暫定母集団と明記する",
+ "funnel_order": [
+  "excl_jump",
+  "excl_no_unique_winner",
+  "excl_odds_missing",
+  "excl_small_field",
+  "excl_flat_dnf",
+  "official_eligible"
  ],
  "per_year": {
   "2016": {
-   "races": 3454,
-   "official": 3269,
+   "races_joined": 3454,
+   "excl_jump": 128,
+   "flat_races": 3326,
+   "flat_races_with_dnf_any": 132,
    "excl_no_unique_winner": 5,
+   "excl_odds_missing": 1,
    "excl_small_field": 0,
-   "excl_finisher_without_market": 0,
-   "excl_dnf_or_late_scratch": 180,
-   "horses_dnf_or_late": 213,
-   "horses_pre_only_scratch": 83,
-   "races_with_pre_only_scratch": 78
+   "excl_flat_dnf": 131,
+   "official_eligible": 3189,
+   "meeting_days_official": 288,
+   "horses_dnf_flat": 150,
+   "horses_dnf_jump": 63,
+   "horses_scratch_pre_only": 83,
+   "races_with_scratch": 78
   },
   "2017": {
-   "races": 3455,
-   "official": 3245,
+   "races_joined": 3455,
+   "excl_jump": 126,
+   "flat_races": 3329,
+   "flat_races_with_dnf_any": 149,
    "excl_no_unique_winner": 3,
+   "excl_odds_missing": 2,
    "excl_small_field": 0,
-   "excl_finisher_without_market": 0,
-   "excl_dnf_or_late_scratch": 207,
-   "horses_dnf_or_late": 226,
-   "horses_pre_only_scratch": 68,
-   "races_with_pre_only_scratch": 68
+   "excl_flat_dnf": 147,
+   "official_eligible": 3177,
+   "meeting_days_official": 288,
+   "horses_dnf_flat": 154,
+   "horses_dnf_jump": 72,
+   "horses_scratch_pre_only": 68,
+   "races_with_scratch": 68
   },
   "2018": {
-   "races": 3454,
-   "official": 3254,
+   "races_joined": 3454,
+   "excl_jump": 126,
+   "flat_races": 3328,
+   "flat_races_with_dnf_any": 138,
    "excl_no_unique_winner": 6,
+   "excl_odds_missing": 0,
    "excl_small_field": 0,
-   "excl_finisher_without_market": 0,
-   "excl_dnf_or_late_scratch": 194,
-   "horses_dnf_or_late": 234,
-   "horses_pre_only_scratch": 100,
-   "races_with_pre_only_scratch": 96
+   "excl_flat_dnf": 138,
+   "official_eligible": 3184,
+   "meeting_days_official": 288,
+   "horses_dnf_flat": 150,
+   "horses_dnf_jump": 84,
+   "horses_scratch_pre_only": 100,
+   "races_with_scratch": 96
   },
   "2019": {
-   "races": 3452,
-   "official": 3257,
+   "races_joined": 3452,
+   "excl_jump": 127,
+   "flat_races": 3325,
+   "flat_races_with_dnf_any": 135,
    "excl_no_unique_winner": 5,
-   "excl_small_field": 1,
-   "excl_finisher_without_market": 0,
-   "excl_dnf_or_late_scratch": 189,
-   "horses_dnf_or_late": 227,
-   "horses_pre_only_scratch": 80,
-   "races_with_pre_only_scratch": 78
+   "excl_odds_missing": 2,
+   "excl_small_field": 0,
+   "excl_flat_dnf": 133,
+   "official_eligible": 3185,
+   "meeting_days_official": 288,
+   "horses_dnf_flat": 146,
+   "horses_dnf_jump": 81,
+   "horses_scratch_pre_only": 80,
+   "races_with_scratch": 78
   },
   "2020": {
-   "races": 3456,
-   "official": 3238,
+   "races_joined": 3456,
+   "excl_jump": 125,
+   "flat_races": 3331,
+   "flat_races_with_dnf_any": 153,
    "excl_no_unique_winner": 9,
+   "excl_odds_missing": 4,
    "excl_small_field": 0,
-   "excl_finisher_without_market": 0,
-   "excl_dnf_or_late_scratch": 209,
-   "horses_dnf_or_late": 251,
-   "horses_pre_only_scratch": 70,
-   "races_with_pre_only_scratch": 68
+   "excl_flat_dnf": 149,
+   "official_eligible": 3169,
+   "meeting_days_official": 289,
+   "horses_dnf_flat": 170,
+   "horses_dnf_jump": 81,
+   "horses_scratch_pre_only": 70,
+   "races_with_scratch": 68
   },
   "2021": {
-   "races": 3456,
-   "official": 3276,
+   "races_joined": 3456,
+   "excl_jump": 127,
+   "flat_races": 3329,
+   "flat_races_with_dnf_any": 121,
    "excl_no_unique_winner": 9,
+   "excl_odds_missing": 0,
    "excl_small_field": 0,
-   "excl_finisher_without_market": 0,
-   "excl_dnf_or_late_scratch": 171,
-   "horses_dnf_or_late": 184,
-   "horses_pre_only_scratch": 76,
-   "races_with_pre_only_scratch": 76
+   "excl_flat_dnf": 120,
+   "official_eligible": 3200,
+   "meeting_days_official": 288,
+   "horses_dnf_flat": 123,
+   "horses_dnf_jump": 61,
+   "horses_scratch_pre_only": 76,
+   "races_with_scratch": 76
   },
   "2022": {
-   "races": 3456,
-   "official": 3276,
+   "races_joined": 3456,
+   "excl_jump": 125,
+   "flat_races": 3331,
+   "flat_races_with_dnf_any": 120,
    "excl_no_unique_winner": 4,
+   "excl_odds_missing": 1,
    "excl_small_field": 1,
-   "excl_finisher_without_market": 0,
-   "excl_dnf_or_late_scratch": 175,
-   "horses_dnf_or_late": 214,
-   "horses_pre_only_scratch": 101,
-   "races_with_pre_only_scratch": 98
+   "excl_flat_dnf": 119,
+   "official_eligible": 3206,
+   "meeting_days_official": 288,
+   "horses_dnf_flat": 131,
+   "horses_dnf_jump": 83,
+   "horses_scratch_pre_only": 101,
+   "races_with_scratch": 98
   },
   "2023": {
-   "races": 3456,
-   "official": 3261,
+   "races_joined": 3456,
+   "excl_jump": 127,
+   "flat_races": 3329,
+   "flat_races_with_dnf_any": 135,
    "excl_no_unique_winner": 3,
+   "excl_odds_missing": 0,
    "excl_small_field": 0,
-   "excl_finisher_without_market": 0,
-   "excl_dnf_or_late_scratch": 192,
-   "horses_dnf_or_late": 220,
-   "horses_pre_only_scratch": 98,
-   "races_with_pre_only_scratch": 94
+   "excl_flat_dnf": 135,
+   "official_eligible": 3191,
+   "meeting_days_official": 288,
+   "horses_dnf_flat": 137,
+   "horses_dnf_jump": 83,
+   "horses_scratch_pre_only": 98,
+   "races_with_scratch": 94
   }
  },
  "totals": {
-  "races": 27639,
-  "official": 26076,
+  "races_joined": 27639,
+  "excl_jump": 1011,
+  "flat_races": 26628,
+  "flat_races_with_dnf_any": 1083,
   "excl_no_unique_winner": 44,
-  "excl_small_field": 2,
-  "excl_finisher_without_market": 0,
-  "excl_dnf_or_late_scratch": 1517,
-  "horses_dnf_or_late": 1769,
-  "horses_pre_only_scratch": 676,
-  "races_with_pre_only_scratch": 656
+  "excl_odds_missing": 10,
+  "excl_small_field": 1,
+  "excl_flat_dnf": 1072,
+  "official_eligible": 25501,
+  "meeting_days_official": 2305,
+  "horses_dnf_flat": 1161,
+  "horses_dnf_jump": 608,
+  "horses_scratch_pre_only": 676,
+  "races_with_scratch": 656
  },
- "post_close_refund_audit": {
-  "定義": "確定プールに居たのに着順が無い馬 = DNF または 締切後の発走除外。後者は返還が発生する",
-  "件数": "per_year.horses_dnf_or_late (異常コード内訳は anomaly_code_identification 参照)",
-  "pre→close の間に消えた馬 (= 締切前取消、pre 側にだけ居る)": "per_year.horses_pre_only_scratch"
- },
- "sensitivity_2022": {
-  "official_set_races": 3276,
-  "Q0_ll_starter_normalization": 1.8970806499824489,
-  "Q0_ll_finisher_renormalization": 1.8970806499824489,
-  "diff": 0.0,
-  "note": "正式 set では starters == finishers なので定義上一致する。差は DNF ありレースでのみ生じる",
-  "dnf_races_only": {
-   "n_races": 174,
-   "Q0_ll_starter_normalization": 1.7550917304498501,
-   "Q0_ll_finisher_renormalization": 1.7550917304498501,
-   "diff": 0.0
+ "reference_values_by_year_le2022": {
+  "2016": {
+   "n_races": 3189,
+   "n_meeting_days": 288,
+   "terminal_close_market_logloss": 1.982857903172583,
+   "historical_pre_snapshot_logloss": 2.0163692255691137,
+   "pre_minus_close_gap_nats": 0.03351132239653065,
+   "favorite_top1_close": 0.3292568203198495,
+   "favorite_top1_pre": 0.3308247099404202
+  },
+  "2017": {
+   "n_races": 3177,
+   "n_meeting_days": 288,
+   "terminal_close_market_logloss": 1.96521453632055,
+   "historical_pre_snapshot_logloss": 2.0095354430041636,
+   "pre_minus_close_gap_nats": 0.04432090668361366,
+   "favorite_top1_close": 0.3342776203966006,
+   "favorite_top1_pre": 0.3276676109537299
+  },
+  "2018": {
+   "n_races": 3184,
+   "n_meeting_days": 288,
+   "terminal_close_market_logloss": 1.9271382302496243,
+   "historical_pre_snapshot_logloss": 1.9631900485347524,
+   "pre_minus_close_gap_nats": 0.03605181828512816,
+   "favorite_top1_close": 0.3203517587939699,
+   "favorite_top1_pre": 0.32317839195979897
+  },
+  "2019": {
+   "n_races": 3185,
+   "n_meeting_days": 288,
+   "terminal_close_market_logloss": 1.956667431364696,
+   "historical_pre_snapshot_logloss": 1.9962641004014563,
+   "pre_minus_close_gap_nats": 0.0395966690367604,
+   "favorite_top1_close": 0.3271585557299843,
+   "favorite_top1_pre": 0.32150706436420723
+  },
+  "2020": {
+   "n_races": 3169,
+   "n_meeting_days": 289,
+   "terminal_close_market_logloss": 1.9864719066758338,
+   "historical_pre_snapshot_logloss": 2.018684795832371,
+   "pre_minus_close_gap_nats": 0.032212889156537194,
+   "favorite_top1_close": 0.32281476806563586,
+   "favorite_top1_pre": 0.31934364152729566
+  },
+  "2021": {
+   "n_races": 3200,
+   "n_meeting_days": 288,
+   "terminal_close_market_logloss": 1.9512144862185783,
+   "historical_pre_snapshot_logloss": 2.002009875521866,
+   "pre_minus_close_gap_nats": 0.05079538930328753,
+   "favorite_top1_close": 0.325,
+   "favorite_top1_pre": 0.321875
+  },
+  "2022": {
+   "n_races": 3206,
+   "n_meeting_days": 288,
+   "terminal_close_market_logloss": 1.900595678649463,
+   "historical_pre_snapshot_logloss": 1.9480537946626655,
+   "pre_minus_close_gap_nats": 0.04745811601320238,
+   "favorite_top1_close": 0.34123518402994385,
+   "favorite_top1_pre": 0.32938240798502805
   }
+ },
+ "dnf_sensitivity": {
+  "official_set_le2022": {
+   "n_races_total": 22310,
+   "n_races_scored": 22310,
+   "Q0_ll_starter_normalization": 1.9528077052005588,
+   "Q0_ll_finisher_renormalization": 1.9528077052005588,
+   "diff_starter_minus_finisher": 0.0,
+   "mean_dnf_horses_per_race": 0.0
+  },
+  "flat_dnf_races_le2022": {
+   "n_races_total": 937,
+   "n_races_scored": 937,
+   "Q0_ll_starter_normalization": 2.045110596828148,
+   "Q0_ll_finisher_renormalization": 1.9837446529509188,
+   "diff_starter_minus_finisher": 0.06136594387722916,
+   "mean_dnf_horses_per_race": 1.08110992529349
+  },
+  "jump_races_le2022": {
+   "n_races_total": 884,
+   "n_races_scored": 883,
+   "Q0_ll_starter_normalization": 1.891899500985626,
+   "Q0_ll_finisher_renormalization": 1.8466008227881001,
+   "diff_starter_minus_finisher": 0.04529867819752598,
+   "mean_dnf_horses_per_race": 0.5938914027149321
+  }
+ },
+ "learned_subset_boundaries_by_eval_year": {
+  "2019": {
+   "fit_years": [
+    2016,
+    2017,
+    2018
+   ],
+   "n_races_used": 9550,
+   "favorite_pre_odds_tertiles": [
+    2.9028528499616617,
+    4.138167691853261
+   ],
+   "market_entropy_pre_tertiles": [
+    2.0067166677114874,
+    2.2599056061510456
+   ]
+  },
+  "2020": {
+   "fit_years": [
+    2016,
+    2017,
+    2018,
+    2019
+   ],
+   "n_races_used": 12735,
+   "favorite_pre_odds_tertiles": [
+    2.902273120907854,
+    4.143522033700927
+   ],
+   "market_entropy_pre_tertiles": [
+    2.000186414579372,
+    2.2558783179567454
+   ]
+  },
+  "2021": {
+   "fit_years": [
+    2016,
+    2017,
+    2018,
+    2019,
+    2020
+   ],
+   "n_races_used": 15904,
+   "favorite_pre_odds_tertiles": [
+    2.905818532604727,
+    4.137980754347282
+   ],
+   "market_entropy_pre_tertiles": [
+    1.9990394642848668,
+    2.254903199414685
+   ]
+  },
+  "2022": {
+   "fit_years": [
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021
+   ],
+   "n_races_used": 19104,
+   "favorite_pre_odds_tertiles": [
+    2.910944801440244,
+    4.142210153347709
+   ],
+   "market_entropy_pre_tertiles": [
+    1.9996558991212907,
+    2.2550558914744148
+   ]
+  },
+  "2023": {
+   "fit_years": [
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022
+   ],
+   "n_races_used": 22310,
+   "favorite_pre_odds_tertiles": [
+    2.913372604830984,
+    4.143259425743676
+   ],
+   "market_entropy_pre_tertiles": [
+    1.9965052822750622,
+    2.251321403197708
+   ]
+  }
+ },
+ "fixed_domain_partitions": {
+  "venues": [
+   "札幌",
+   "函館",
+   "福島",
+   "新潟",
+   "東京",
+   "中山",
+   "中京",
+   "京都",
+   "阪神",
+   "小倉"
+  ],
+  "field_size_bins": [
+   [
+    5,
+    8
+   ],
+   [
+    9,
+    12
+   ],
+   [
+    13,
+    15
+   ],
+   [
+    16,
+    18
+   ]
+  ],
+  "surface": [
+   "芝",
+   "ダ"
+  ],
+  "class_groups": "新馬/未勝利/1勝/2勝/3勝/OP以上",
+  "note": "結果を見ずに決めたドメイン区分。年ごとに学習しない"
  }
 }

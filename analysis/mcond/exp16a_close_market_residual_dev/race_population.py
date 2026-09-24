@@ -1,16 +1,25 @@
 # -*- coding: utf-8 -*-
 """
-race_population.py — EXP16A Stage 0: 正式 race set の確定と母集団監査 + 2022 の基準値再計算
-============================================================================================
-学習しない。2023 の指標は計算しない (2022 selection のみ)。ROI も候補生成もしない。
+race_population.py — EXP16A Stage 0 (改訂2): 正式 race set の確定と母集団監査
+============================================================================
+学習しない。2023 の結果指標は計算しない (基準値は 2022 以前のみ)。ROI も候補生成もしない。
 
-やること:
-  1. 馬の分類: finisher (master) / DNF (締切プールに居たが着順なし) / 取消 (締切前) / 発走除外 (締切後)
-     - 異常コードの意味は「確定オッズを持つ割合」から実証的に判定する (仮定しない)
-  2. 正式 race set: 勝馬が一意・出走頭数>=5・DNF なし・締切後取消なし・pre/close 両方で de-vig 可能
-  3. 感度分析: finisher 再正規化方式 と 全 starter 正規化方式 の Q0 logloss 差
-  4. 2022 のみ: terminal_close_market / historical_pre_snapshot の基準値、pre→close gap、MDE、subset 閾値
-出力: out/race_population.json, STAGE0_DRY_RUN.json (更新)
+改訂2 (2026-09-24, Fable 再レビュー + ユーザー指示):
+  * 障害 (トラックコード(JV) 51..59) を正式 race set から除外。production の
+    P0 hard gate (race_eligibility.py) と同一定義にそろえる。
+  * 馬の集合を 4 種類に **別々に** 構築する:
+      starter    = 確定単勝オッズ > 1.0 を持つ馬番 (締切プールに居た馬)
+      finisher   = master に完走順位を持つ馬番
+      scratch    = pre スナップショットにだけ居る馬番 (締切前取消)
+      dnf        = starter − finisher (出走したが完走順位が無い = 止/失格 等)
+    旧実装は starter を master 由来の finisher から作っていたため、
+    starter 正規化と finisher 再正規化の差が構造的に 0 になっていた (Fable 指摘)。
+  * 学習で決まる subset 境界 (favorite odds / market entropy) は
+    評価年 Y ごとに **Y-1 以前だけ** から作る (2022 固定値の遡及適用をしない)。
+  * 検出力監査は power_audit.py へ分離。STAGE0_DRY_RUN.json は stage0_dry_run.py が書く。
+出力:
+  out/race_population.json
+  data/_research/mcond/exp16a/official_races_le2022.npz  (power_audit 用、gitignore)
 実行: python -m analysis.mcond.exp16a_close_market_residual_dev.race_population
 """
 from __future__ import annotations
@@ -21,11 +30,16 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .provenance import (BASE, HERE, OUT, PERIODS, MIN_GAP_PRE, load_master, load_tanpuk,
-                         odds_matrix, devig, sha256, TANPUK_DIR)
+from .provenance import (BASE, OUT, MIN_GAP_PRE, JUMP_MIN, JUMP_MAX, load_master,
+                         load_tanpuk, odds_matrix, devig)
 
 EXT_KEKKA = Path(r"E:\競馬過去走データ\raw_data\kekka_1986_2025_enhanced.csv")
-Z = 1.959964 + 0.841621  # 両側5% / 検出力80%
+RESEARCH = BASE / "data" / "_research" / "mcond" / "exp16a"
+# 事前固定 (結果を見ずに決めたドメイン区分。年ごとに学習しない)
+JRA_VENUES = ["札幌", "函館", "福島", "新潟", "東京", "中山", "中京", "京都", "阪神", "小倉"]
+FIELD_SIZE_BINS = [[5, 8], [9, 12], [13, 15], [16, 18]]
+CROSSFIT_YEARS = [2019, 2020, 2021, 2022, 2023]
+REF_YEAR_MAX = 2022          # 基準値・感度分析は 2022 以前のみ (2023 は開封しない)
 
 
 def load_ext_codes() -> pd.DataFrame:
@@ -41,25 +55,29 @@ def load_ext_codes() -> pd.DataFrame:
     e["R"] = pd.to_numeric(e["レース番号"], errors="coerce")
     e["ban"] = pd.to_numeric(e["馬番"], errors="coerce")
     e["code"] = pd.to_numeric(e["異常コード"], errors="coerce").fillna(0).astype(int)
-    e["jyun"] = pd.to_numeric(e["確定着順"], errors="coerce")
-    return e.dropna(subset=["date", "R", "ban"])[["date", "場所", "R", "ban", "code", "jyun"]]
+    return e.dropna(subset=["date", "R", "ban"])[["date", "場所", "R", "ban", "code"]]
+
+
+def ll_and_top1(sub: pd.DataFrame, key: str, mode: str):
+    """race-level categorical logloss と favorite top1。mode: starters / finishers"""
+    lls, hit = [], []
+    for _, r in sub.iterrows():
+        od = r[key]
+        denom = r["starters"] if mode == "starters" else r["finishers"]
+        pi, _, _ = devig(od, denom)
+        w = r["winner"]
+        if not pi or w not in pi:
+            continue
+        lls.append(-np.log(max(pi[w], 1e-12)))
+        hit.append(int(max(pi, key=pi.get) == w))
+    return np.array(lls), (float(np.mean(hit)) if hit else None)
 
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    RESEARCH.mkdir(parents=True, exist_ok=True)
     m = load_master()
     m["R"] = pd.to_numeric(m["レースID(新/馬番無)"].astype(str).str[14:16], errors="coerce")
-    # 検出力監査用の time-safe な表信号 (前走確定着順) を別読みして結合する
-    sig_parts = []
-    for ch in pd.read_csv(BASE / "data" / "master_v2_20130105-20251228.csv", encoding="utf-8-sig",
-                          dtype=str, usecols=["日付", "レースID(新/馬番無)", "馬番", "前走確定着順"],
-                          chunksize=200_000):
-        dd = pd.to_numeric(ch["日付"], errors="coerce")
-        sig_parts.append(ch[(dd >= 20160101) & (dd <= 20231231)])
-    sg = pd.concat(sig_parts, ignore_index=True)
-    sg["rid16"] = sg["レースID(新/馬番無)"].astype(str).str.replace(r"\.0$", "", regex=True).str[:16]
-    sg["ban"] = pd.to_numeric(sg["馬番"], errors="coerce")
-    m = m.merge(sg[["rid16", "ban", "前走確定着順"]], on=["rid16", "ban"], how="left")
     t = load_tanpuk(set(m["rid16"]))
     ext = load_ext_codes()
     print(f"master {len(m):,} / tanpuk {len(t):,} / ext {len(ext):,}", flush=True)
@@ -67,12 +85,13 @@ def main():
     meta = (m.groupby("rid16")
               .agg(date=("date", "first"), year=("year", "first"), period=("period", "first"),
                    post_min=("post_min", "first"), venue=("場所", "first"), surface=("芝・ダ", "first"),
-                   cls=("クラス名", "first"), R=("R", "first"), n_fin=("ban", "size")))
+                   cls=("クラス名", "first"), R=("R", "first"), track_code=("track_code", "first"),
+                   is_jump=("is_jump", "first"), n_fin=("ban", "size")))
     fin_set = m.groupby("rid16")["ban"].apply(set)
     winner = m[m["win"] == 1].groupby("rid16")["ban"].apply(list)
     ext_idx = ext.set_index(["date", "場所", "R", "ban"])["code"]
 
-    rows = []
+    rows, code_stat = [], {}
     for rid, g in t.groupby("rid16", sort=False):
         if rid not in meta.index:
             continue
@@ -89,238 +108,206 @@ def main():
             continue
         p0 = ok.iloc[-1]
         od_fin, od_pre = odds_matrix(f0), odds_matrix(p0)
-        S_fin, S_pre, F = set(od_fin), set(od_pre), fin_set[rid]
-        dnf_or_late = sorted(S_fin - F)          # 締切プールに居たが着順なし
-        pre_only = sorted(S_pre - S_fin)          # 締切前に消えた = 取消
-        fin_not_market = sorted(F - S_fin)        # 着順はあるが確定オッズなし (異常)
-        codes = {}
-        for b in dnf_or_late + pre_only:
+        # ---- 4 集合を別々に構築する
+        starters = sorted(od_fin)                      # 確定オッズ > 1.0 を持つ馬 = 締切プールに居た
+        finishers = sorted(fin_set[rid])               # 完走順位を持つ馬
+        dnf = sorted(set(starters) - set(finishers))   # 出走したが完走順位なし
+        scratch = sorted(set(od_pre) - set(starters))  # pre にだけ居る = 締切前取消
+        fin_not_market = sorted(set(finishers) - set(starters))
+        is_jump = bool(md.is_jump)
+        for b in dnf + scratch:
             k = (int(md.date), md.venue, int(md.R) if pd.notna(md.R) else -1, int(b))
-            codes[b] = int(ext_idx.get(k, -9))
+            c = str(int(ext_idx.get(k, -9)))
+            d = code_stat.setdefault(c, {"n": 0, "has_final_odds": 0, "in_jump_race": 0})
+            d["n"] += 1
+            d["has_final_odds"] += int(b in od_fin)
+            d["in_jump_race"] += int(is_jump)
         rows.append({
             "rid16": rid, "date": int(md.date), "year": int(md.year), "period": md.period,
-            "venue": md.venue, "surface": md.surface, "cls": md.cls, "n_fin": int(md.n_fin),
-            "n_market_final": len(S_fin), "n_market_pre": len(S_pre),
-            "dnf_or_late_scratch": dnf_or_late, "pre_only_scratch": pre_only,
-            "fin_not_in_market": fin_not_market, "codes": codes,
+            "venue": md.venue, "surface": md.surface, "cls": md.cls,
+            "track_code": (int(md.track_code) if pd.notna(md.track_code) else None),
+            "is_jump": is_jump,
+            "starters": starters, "finishers": finishers, "dnf": dnf, "scratch": scratch,
+            "fin_not_in_market": fin_not_market,
+            "n_starters": len(starters), "n_finishers": len(finishers),
+            "od_fin": od_fin, "od_pre": od_pre,
             "winner": winner.get(rid, [None])[0] if rid in winner.index else None,
-            "dead_heat": len(winner.get(rid, [])) > 1 if rid in winner.index else False,
-            "od_fin": od_fin, "od_pre": od_pre, "starters": sorted(F),
+            "dead_heat": (len(winner.get(rid, [])) > 1) if rid in winner.index else False,
         })
-    R = pd.DataFrame(rows)
-    print(f"races joined {len(R):,}", flush=True)
-
-    # ---- 異常コードの意味を実証的に判定 (確定オッズを持つ割合)
-    code_stat = {}
-    for _, r in R.iterrows():
-        for b, c in r["codes"].items():
-            d = code_stat.setdefault(c, {"n": 0, "has_final_odds": 0})
-            d["n"] += 1
-            d["has_final_odds"] += int(b in r["od_fin"])
     for c, d in code_stat.items():
         d["share_with_final_odds"] = d["has_final_odds"] / d["n"] if d["n"] else None
-    # 締切プールに残っていた (=出走した/できる状態) 側を DNF 系、消えていた側を取消系とみなす
-    dnf_codes = sorted(c for c, d in code_stat.items() if d["n"] >= 20 and d["share_with_final_odds"] >= 0.9)
+    R = pd.DataFrame(rows)
+    print(f"races joined {len(R):,} (jump {int(R['is_jump'].sum()):,})", flush=True)
 
-    # ---- 正式 race set
+    # ---- 正式 race set (funnel: 障害 → 一意winner → odds欠損 → 頭数 → DNF)
     def classify(r):
+        if r["is_jump"]:
+            return "excl_jump"
         if r["dead_heat"] or r["winner"] is None:
             return "excl_no_unique_winner"
-        if r["n_fin"] < 5:
+        if r["fin_not_in_market"] or r["winner"] not in r["od_fin"] or r["winner"] not in r["od_pre"]:
+            return "excl_odds_missing"
+        if r["n_starters"] < 5:
             return "excl_small_field"
-        if r["fin_not_in_market"]:
-            return "excl_finisher_without_market"
-        if r["dnf_or_late_scratch"]:
-            return "excl_dnf_or_late_scratch"
-        return "official"
+        if r["dnf"]:
+            return "excl_flat_dnf"
+        return "official_eligible"
+
     R["cls_set"] = R.apply(classify, axis=1)
+    FUNNEL = ["excl_jump", "excl_no_unique_winner", "excl_odds_missing", "excl_small_field",
+              "excl_flat_dnf", "official_eligible"]
     per_year = {}
     for y, g in R.groupby("year"):
+        flat = g[~g["is_jump"]]
         per_year[int(y)] = {
-            "races": int(len(g)),
-            "official": int((g["cls_set"] == "official").sum()),
-            **{k: int((g["cls_set"] == k).sum()) for k in
-               ["excl_no_unique_winner", "excl_small_field", "excl_finisher_without_market",
-                "excl_dnf_or_late_scratch"]},
-            "horses_dnf_or_late": int(g["dnf_or_late_scratch"].map(len).sum()),
-            "horses_pre_only_scratch": int(g["pre_only_scratch"].map(len).sum()),
-            "races_with_pre_only_scratch": int((g["pre_only_scratch"].map(len) > 0).sum()),
+            "races_joined": int(len(g)),
+            "excl_jump": int(g["is_jump"].sum()),
+            "flat_races": int(len(flat)),
+            "flat_races_with_dnf_any": int((flat["dnf"].map(len) > 0).sum()),
+            "excl_no_unique_winner": int((g["cls_set"] == "excl_no_unique_winner").sum()),
+            "excl_odds_missing": int((g["cls_set"] == "excl_odds_missing").sum()),
+            "excl_small_field": int((g["cls_set"] == "excl_small_field").sum()),
+            "excl_flat_dnf": int((g["cls_set"] == "excl_flat_dnf").sum()),
+            "official_eligible": int((g["cls_set"] == "official_eligible").sum()),
+            "meeting_days_official": int(
+                g[g["cls_set"] == "official_eligible"]["rid16"].str[:10].nunique()),
+            "horses_dnf_flat": int(flat["dnf"].map(len).sum()),
+            "horses_dnf_jump": int(g[g["is_jump"]]["dnf"].map(len).sum()),
+            "horses_scratch_pre_only": int(g["scratch"].map(len).sum()),
+            "races_with_scratch": int((g["scratch"].map(len) > 0).sum()),
+        }
+        assert per_year[int(y)]["races_joined"] == sum(
+            per_year[int(y)][k] for k in FUNNEL), f"funnel mismatch {y}"
+    totals = {k: int(sum(v[k] for v in per_year.values())) for k in per_year[2016]}
+
+    # ---- 基準値 (2022 以前のみ)。official set 上で starter 正規化
+    ref = {}
+    for y in range(2016, REF_YEAR_MAX + 1):
+        off_y = R[(R["cls_set"] == "official_eligible") & (R["year"] == y)]
+        ll_c, t1_c = ll_and_top1(off_y, "od_fin", "starters")
+        ll_p, t1_p = ll_and_top1(off_y, "od_pre", "starters")
+        ref[str(y)] = {
+            "n_races": int(len(ll_c)),
+            "n_meeting_days": int(off_y["rid16"].str[:10].nunique()),
+            "terminal_close_market_logloss": float(ll_c.mean()),
+            "historical_pre_snapshot_logloss": float(ll_p.mean()),
+            "pre_minus_close_gap_nats": float(ll_p.mean() - ll_c.mean()),
+            "favorite_top1_close": t1_c, "favorite_top1_pre": t1_p,
         }
 
-    # ---- 2022 基準値 (正式 race set) と感度分析
-    def ll_top1(sub, key, mode):
-        lls, hit = [], []
+    # ---- DNF 感度分析 (starter 全頭正規化 vs finisher のみ正規化)
+    sens = {}
+    for label, sub in [("official_set_le2022",
+                        R[(R["cls_set"] == "official_eligible") & (R["year"] <= REF_YEAR_MAX)]),
+                       ("flat_dnf_races_le2022",
+                        R[(R["cls_set"] == "excl_flat_dnf") & (R["year"] <= REF_YEAR_MAX)]),
+                       ("jump_races_le2022",
+                        R[(R["cls_set"] == "excl_jump") & (R["year"] <= REF_YEAR_MAX)])]:
+        a, _ = ll_and_top1(sub, "od_fin", "starters")
+        b, _ = ll_and_top1(sub, "od_fin", "finishers")
+        sens[label] = {
+            "n_races_total": int(len(sub)),
+            "n_races_scored": int(len(a)),
+            "Q0_ll_starter_normalization": float(a.mean()) if len(a) else None,
+            "Q0_ll_finisher_renormalization": float(b.mean()) if len(b) else None,
+            "diff_starter_minus_finisher": float(a.mean() - b.mean()) if len(a) and len(b) else None,
+            "mean_dnf_horses_per_race": float(sub["dnf"].map(len).mean()) if len(sub) else None,
+        }
+
+    # ---- 学習で決まる subset 境界: 評価年 Y ごとに Y-1 以前だけから作る
+    def boundaries(sub):
+        fav, ent = [], []
         for _, r in sub.iterrows():
-            od = r[key]
-            starters = r["starters"] if mode == "starters" else [b for b in r["starters"] if b in od]
-            pi, ov, miss = devig(od, starters)
-            w = r["winner"]
-            if not pi or w not in pi:
-                continue
-            lls.append(-np.log(max(pi[w], 1e-12)))
-            hit.append(int(max(pi, key=pi.get) == w))
-        return np.array(lls), float(np.mean(hit)) if hit else None
+            pi, _, _ = devig(r["od_pre"], r["starters"])
+            if pi:
+                fav.append(1.0 / max(pi.values()))
+                ent.append(float(-sum(p * np.log(p) for p in pi.values() if p > 0)))
+        if not fav:
+            return {}
+        fav, ent = np.array(fav), np.array(ent)
+        return {"n_races_used": int(len(fav)),
+                "favorite_pre_odds_tertiles": [float(np.quantile(fav, 1 / 3)),
+                                               float(np.quantile(fav, 2 / 3))],
+                "market_entropy_pre_tertiles": [float(np.quantile(ent, 1 / 3)),
+                                                float(np.quantile(ent, 2 / 3))]}
 
-    off = R[(R["cls_set"] == "official") & (R["period"] == "selection")]
-    ll_close, top1_close = ll_top1(off, "od_fin", "starters")
-    ll_pre, top1_pre = ll_top1(off, "od_pre", "starters")
-    # 感度: 旧来方式 (finisher だけで再正規化) — 正式 set では starters==finishers なので一致するはず
-    ll_close_f, _ = ll_top1(off, "od_fin", "finishers")
-    # DNF ありレースも含めた場合 (参考)
-    dnf_sub = R[(R["period"] == "selection") & (R["cls_set"] == "excl_dnf_or_late_scratch")]
-    ll_close_dnf_starters, _ = ll_top1(dnf_sub, "od_fin", "starters")
-    ll_close_dnf_fin, _ = ll_top1(dnf_sub, "od_fin", "finishers")
-
-    # ---- 検出力監査 (一次近似)
-    # π を time-safe な表信号 z (race 内 z 化) で僅かに傾けると q ∝ π exp(δz) となり、
-    # per-race の改善は一次で Δ_r ≈ δ·u_r,  u_r = z_winner - Σ_i π_i z_i。
-    # 平均も SE も δ に比例するので「何 nats を検出できるか」は δ ではなく **u の形** で決まる。
-    # そこで u の平均 c・meeting-day cluster SE を測り、0.005 nats 相当に換算した MDE を出す。
-    prevpos = pd.to_numeric(m["前走確定着順"], errors="coerce")
-    mm = m.assign(v=prevpos)
-    sig = {}
-    for rid, g in mm[mm["rid16"].isin(set(off["rid16"]))].groupby("rid16"):
-        v = g["v"].to_numpy(dtype=float)
-        mu = np.nanmean(v)
-        v = np.where(np.isnan(v), mu if np.isfinite(mu) else 0.0, v)
-        z = (v - v.mean()) / (v.std() + 1e-9)
-        sig[rid] = dict(zip(g["ban"].to_numpy(), -z))     # 前走着順が良い(小さい)ほど +
-    u_list, u_days = [], []
-    for _, r in off.iterrows():
-        pi, _, _ = devig(r["od_fin"], r["starters"])
-        w, s = r["winner"], sig.get(r["rid16"], {})
-        if not pi or w not in pi:
-            continue
-        zz = {b2: s.get(b2, 0.0) for b2 in pi}
-        u_list.append(zz[w] - sum(pi[b2] * zz[b2] for b2 in pi))
-        u_days.append(r["rid16"][:10])
-    u = np.array(u_list); u_day = np.array(u_days)
-    c_mean = float(u.mean()); u_sd = float(u.std(ddof=1))
-
-    day = off["rid16"].str[:10].to_numpy()
-    d = ll_pre - ll_close
-    rng = np.random.default_rng(20260924)
-    days = np.unique(day)
-    pos = {x: np.where(day == x)[0] for x in days}
-    bs = np.array([d[np.concatenate([pos[x] for x in rng.choice(days, len(days))])].mean()
-                   for _ in range(3000)])
-    se = float(bs.std(ddof=1))
-    mde = float(Z * se)
-    ud = np.unique(u_day)
-    upos = {x: np.where(u_day == x)[0] for x in ud}
-    bs_u = np.array([u[np.concatenate([upos[x] for x in rng.choice(ud, len(ud))])].mean()
-                     for _ in range(3000)])
-    se_u = float(bs_u.std(ddof=1))
-    ratio = float(Z * se_u / abs(c_mean)) if c_mean else None      # 1 以下なら 0.005 を検出できる
-    mde_tilt = float(0.005 * ratio) if ratio is not None else None
-
-    # ---- subset 閾値 (2022 正式 set のみ)
-    fav, ent, votes = [], [], []
-    tv = t[(t["kubun"] == 1)].set_index(["rid16", "snap_min"])["votes_tan"].to_dict()
-    for _, r in off.iterrows():
-        pi, _, _ = devig(r["od_pre"], r["starters"])
-        if pi:
-            fav.append(1.0 / max(pi.values()))
-            ent.append(float(-sum(p * np.log(p) for p in pi.values() if p > 0)))
-    fav, ent = np.array(fav), np.array(ent)
+    learned = {}
+    offi = R[R["cls_set"] == "official_eligible"]
+    for y in CROSSFIT_YEARS:
+        past = offi[offi["year"] <= y - 1]
+        learned[str(y)] = {"fit_years": [int(x) for x in sorted(past["year"].unique())],
+                           **boundaries(past)}
 
     pop = {
-        "scope": "2016-2023 のみ",
+        "scope": "2016-2023。結果を使う指標は 2022 以前のみ (2023 は開封しない)",
+        "horse_set_definitions": {
+            "starter": "確定 (区分4) の単勝オッズ > 1.0 を持つ馬番。締切プールに居た馬",
+            "finisher": "master (着順が数値) に完走順位を持つ馬番",
+            "scratch": "pre スナップショットに居て確定に居ない馬番 = 締切前取消",
+            "dnf": "starter − finisher。出走したが完走順位が無い (止/失格 等)",
+            "finisher_without_market": "finisher − starter。着順があるのに確定オッズが無い異常",
+            "fix_note": "旧実装は starter を finisher から作っていたため starter/finisher 正規化の差が "
+                        "構造的に 0 になっていた。本改訂で別々に構築した",
+        },
+        "jump_exclusion": {
+            "definition": f"トラックコード(JV) {JUMP_MIN}..{JUMP_MAX} = 障害",
+            "production_parity": "race_eligibility.py:48-49 の P0 hard gate と同一定義",
+            "observed_track_codes_jump": sorted(
+                {int(v) for v in R[R["is_jump"]]["track_code"].dropna().unique()}),
+        },
         "anomaly_code_identification": {
-            "method": "異常コード別に『確定オッズを持つ割合』を実測。締切プールに残っていた = 出走可能だった側を DNF 系とみなす",
+            "method": "異常コード別に『確定オッズを持つ割合』を実測。締切プールに残っていた側を DNF 系とみなす",
             "by_code": code_stat,
-            "codes_treated_as_ran_or_in_pool": dnf_codes,
             "code_-9": "外部 kekka に該当行が無い (join 失敗)",
         },
         "official_race_set_rule": [
-            "勝馬が一意 (同着除外)", "出走頭数 >= 5", "着順のある馬が全員 確定オッズを持つ",
-            "確定プールに居て着順が無い馬 (DNF / 締切後除外) が 0 頭",
-            "pre と確定の両方で de-vig 可能",
+            f"平地 (トラックコード(JV) が {JUMP_MIN}..{JUMP_MAX} でない)",
+            "勝馬が一意 (同着除外)",
+            "勝馬が pre・確定の両方でオッズを持ち、着順のある馬が全員 starter",
+            "starter >= 5",
+            "DNF が 0 頭",
         ],
+        "provisional_population_note": "DNF ありレースの除外は『完走したか』という結果による条件付けである。"
+                                       "DNF-inclusive な Q1 を構築できるまでの暫定母集団と明記する",
+        "funnel_order": FUNNEL,
         "per_year": per_year,
-        "totals": {k: int(sum(v[k] for v in per_year.values()))
-                   for k in ["races", "official", "excl_no_unique_winner", "excl_small_field",
-                             "excl_finisher_without_market", "excl_dnf_or_late_scratch",
-                             "horses_dnf_or_late", "horses_pre_only_scratch",
-                             "races_with_pre_only_scratch"]},
-        "post_close_refund_audit": {
-            "定義": "確定プールに居たのに着順が無い馬 = DNF または 締切後の発走除外。後者は返還が発生する",
-            "件数": "per_year.horses_dnf_or_late (異常コード内訳は anomaly_code_identification 参照)",
-            "pre→close の間に消えた馬 (= 締切前取消、pre 側にだけ居る)": "per_year.horses_pre_only_scratch",
-        },
-        "sensitivity_2022": {
-            "official_set_races": int(len(ll_close)),
-            "Q0_ll_starter_normalization": float(ll_close.mean()),
-            "Q0_ll_finisher_renormalization": float(ll_close_f.mean()),
-            "diff": float(ll_close.mean() - ll_close_f.mean()),
-            "note": "正式 set では starters == finishers なので定義上一致する。差は DNF ありレースでのみ生じる",
-            "dnf_races_only": {
-                "n_races": int(len(ll_close_dnf_starters)),
-                "Q0_ll_starter_normalization": float(ll_close_dnf_starters.mean()) if len(ll_close_dnf_starters) else None,
-                "Q0_ll_finisher_renormalization": float(ll_close_dnf_fin.mean()) if len(ll_close_dnf_fin) else None,
-                "diff": float(ll_close_dnf_starters.mean() - ll_close_dnf_fin.mean()) if len(ll_close_dnf_starters) else None,
-            },
-        },
+        "totals": totals,
+        "reference_values_by_year_le2022": ref,
+        "dnf_sensitivity": sens,
+        "learned_subset_boundaries_by_eval_year": learned,
+        "fixed_domain_partitions": {"venues": JRA_VENUES, "field_size_bins": FIELD_SIZE_BINS,
+                                    "surface": ["芝", "ダ"],
+                                    "class_groups": "新馬/未勝利/1勝/2勝/3勝/OP以上",
+                                    "note": "結果を見ずに決めたドメイン区分。年ごとに学習しない"},
     }
-    (OUT / "race_population.json").write_text(json.dumps(pop, ensure_ascii=False, indent=1, default=float),
-                                              encoding="utf-8")
+    (OUT / "race_population.json").write_text(
+        json.dumps(pop, ensure_ascii=False, indent=1, default=float), encoding="utf-8")
 
-    dry = {
-        "purpose": "Stage 0 の実行可能性確認。学習なし・2023 は評価しない・ROI なし",
-        "official_race_set": {k: {"races": per_year[k2]["official"] for k2 in per_year
-                                  if PERIODS[k][0] // 10000 <= k2 <= PERIODS[k][1] // 10000}
-                              for k in PERIODS},
-        "official_counts_by_period": {
-            k: int(((R["cls_set"] == "official") & (R["period"] == k)).sum()) for k in PERIODS},
-        "reference_values_2022_official_set": {
-            "n_races": int(len(ll_close)),
-            "terminal_close_market": {"race_categorical_logloss": float(ll_close.mean()),
-                                      "favorite_top1_rate": top1_close},
-            "historical_pre_snapshot": {"race_categorical_logloss": float(ll_pre.mean()),
-                                        "favorite_top1_rate": top1_pre},
-            "pre_minus_close_gap_nats": float(ll_pre.mean() - ll_close.mean()),
-            "R0_clean_table_only": "Stage 1 で rolling OOF (train<=2020 / ES 2021 / predict 2022) を作ってから同一 race set で再計算する。EXP15 の 2022 スコアは ES に 2022 を使っているため OOS ではなく、ここでは使わない",
-        },
-        "power_audit_2022": {
-            "primary": {
-                "method": "一次近似。π_close を time-safe な表信号 z (前走確定着順の race 内 z) で δ だけ傾けたとき "
-                          "per-race 改善は Δ_r ≈ δ·u_r, u_r = z_winner − Σ π_i z_i。平均も SE も δ に比例するので、"
-                          "検出可否は u の形 (平均/cluster SE 比) で決まる",
-                "u_mean_c": c_mean, "u_sd": u_sd, "u_cluster_se": se_u,
-                "detect_ratio_z*SE/|c|": ratio,
-                "MDE_at_0.005_shape_nats": mde_tilt,
-                "practical_floor_nats_per_race": 0.005,
-                "MDE_le_floor": bool(mde_tilt is not None and mde_tilt <= 0.005),
-                "interpretation": "detect_ratio <= 1 なら、この信号と同じ per-race 分散形をもつ 0.005 nats の効果を "
-                                  "80% 検出力で検出できる。逆に > 1 なら検出力不足",
-                "caveat": "この参照信号 (前走着順) 自体は close 市場に対して改善方向ではない。ここで使っているのは "
-                          "効果量ではなく per-race 分散の形だけ",
-            },
-            "secondary_reference": {
-                "method": "per-race (LL(pre) - LL(close))。差が大きい対なので SE も大きく、Gate A の代理としては過大",
-                "se_cluster": se, "MDE_80pct_power": mde,
-            },
-            "decision_rule": "primary の MDE <= 0.005 なら 2023 評価へ進行可。> 0.005 なら 2023 を開封せず停止または設計変更",
-        },
-        "subset_thresholds_fixed_on_2022_official_set": {
-            "field_size_bins": [[5, 8], [9, 12], [13, 15], [16, 18]],
-            "surface": ["芝", "ダ"],
-            "venue": sorted(off["venue"].dropna().unique().tolist()),
-            "class_groups": "新馬/未勝利/1勝/2勝/3勝/OP以上",
-            "favorite_pre_odds_tertiles": [float(np.quantile(fav, 1/3)), float(np.quantile(fav, 2/3))],
-            "market_entropy_pre_tertiles": [float(np.quantile(ent, 1/3)), float(np.quantile(ent, 2/3))],
-            "n_races_used": int(len(fav)),
-            "model_market_disagreement": "Q1 rolling OOF が必要なため Stage 1 で 2022 のみを使って固定する",
-        },
-        "files_sha256": {p.name: sha256(p)[:16] for p in sorted(TANPUK_DIR.glob("TANPUK_*.csv"))},
-        "notes": ["2023 development の指標は Stage 0 では一切計算していない",
-                  "2022 の R0-clean 基準値は rolling OOF 未作成のため空欄 (Stage 1 で埋める)"],
-    }
-    (HERE / "STAGE0_DRY_RUN.json").write_text(json.dumps(dry, ensure_ascii=False, indent=1, default=float),
-                                              encoding="utf-8")
-    print(json.dumps({k: v for k, v in pop["totals"].items()}, ensure_ascii=False))
-    print(json.dumps(dry["reference_values_2022_official_set"], ensure_ascii=False)[:400])
-    print(json.dumps(dry["power_audit_2022"], ensure_ascii=False))
+    # ---- power_audit 用に 2022 以前の official race を保存 (gitignore 配下)
+    keep = R[(R["cls_set"] == "official_eligible") & (R["year"] <= REF_YEAR_MAX)].reset_index(drop=True)
+    rid, yr, day, wpos, ban, pic, pip, off = [], [], [], [], [], [], [], [0]
+    for _, r in keep.iterrows():
+        pic_d, _, _ = devig(r["od_fin"], r["starters"])
+        pip_d, _, _ = devig(r["od_pre"], r["starters"])
+        bs = [b for b in r["starters"] if b in pic_d and b in pip_d]
+        if r["winner"] not in bs or len(bs) < 5:
+            continue
+        sc = np.array([pic_d[b] for b in bs]); sc = sc / sc.sum()
+        sp = np.array([pip_d[b] for b in bs]); sp = sp / sp.sum()
+        rid.append(r["rid16"]); yr.append(r["year"]); day.append(r["rid16"][:10])
+        wpos.append(bs.index(r["winner"]))
+        ban.extend(bs); pic.extend(sc.tolist()); pip.extend(sp.tolist())
+        off.append(len(ban))
+    np.savez_compressed(RESEARCH / "official_races_le2022.npz",
+                        rid16=np.array(rid), year=np.array(yr, dtype=np.int32),
+                        day=np.array(day), winner_pos=np.array(wpos, dtype=np.int32),
+                        ban=np.array(ban, dtype=np.int32), pi_close=np.array(pic),
+                        pi_pre=np.array(pip), offsets=np.array(off, dtype=np.int64))
+    print(f"[saved] official_races_le2022.npz races={len(rid):,} horses={len(ban):,}")
+
+    print(json.dumps(totals, ensure_ascii=False))
+    print(json.dumps(ref.get("2022"), ensure_ascii=False))
+    print(json.dumps(sens, ensure_ascii=False))
     print("code_stat:", json.dumps(code_stat, ensure_ascii=False))
 
 

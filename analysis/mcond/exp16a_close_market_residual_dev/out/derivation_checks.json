@@ -54,55 +54,175 @@
   },
   "note": "q=p+推定ノイズ で q_i/π_i 選抜 → 現金込み Kelly → 真の p で期待対数成長を評価。結論はノイズ水準に依存するので、この表をそのまま報告する"
  },
+ "C2c_calibrated_tilt_selection": {
+  "setup": "pi を先に置き、真の p = pi*exp(eps*s)/Z を平均 KL = 0.005/0.02/0.05 へ較正。参加条件 max_i q_i/pi_i > 1/(1-t)、現金込み Kelly、評価は常に真の p。",
+  "by_target": {
+   "true_improvement_0.005": {
+    "eps": 0.10654168258889521,
+    "realized_mean_KL": 0.005000000000000002,
+    "share_races_participation_condition": 0.22666666666666666,
+    "mean_selected_horses_true_belief": 0.24333333333333335,
+    "mean_growth_true_belief_cash_kelly": 6.947354679900232e-06,
+    "mean_growth_full_investment": -0.21814355131420968,
+    "cash_minus_full_investment": 0.21815049866888958,
+    "mean_stake_fraction_true_belief": 0.00031724335670844337,
+    "by_estimation_noise": {
+     "noise_sd_0.0": {
+      "mean_growth_under_true_p": 6.947354679899733e-06,
+      "mean_stake_fraction": 0.00031724335701715833,
+      "mean_selected_horses": 0.24333333333333335
+     },
+     "noise_sd_0.05": {
+      "mean_growth_under_true_p": -2.596184151580169e-05,
+      "mean_stake_fraction": 0.0008760504758655528,
+      "mean_selected_horses": 0.38666666666666666
+     },
+     "noise_sd_0.1": {
+      "mean_growth_under_true_p": -0.0003464863305802042,
+      "mean_stake_fraction": 0.0032951083523216486,
+      "mean_selected_horses": 0.8433333333333334
+     },
+     "noise_sd_0.2": {
+      "mean_growth_under_true_p": -0.004195914241651785,
+      "mean_stake_fraction": 0.02067388574532314,
+      "mean_selected_horses": 1.7733333333333334
+     },
+     "noise_sd_0.4": {
+      "mean_growth_under_true_p": -0.03315730388688742,
+      "mean_stake_fraction": 0.10094454011521602,
+      "mean_selected_horses": 3.0
+     }
+    },
+    "sign_flip_noise_sd": 0.010555339362568802
+   },
+   "true_improvement_0.02": {
+    "eps": 0.21330400897652785,
+    "realized_mean_KL": 0.019999999999999993,
+    "share_races_participation_condition": 0.9066666666666666,
+    "mean_selected_horses_true_belief": 1.93,
+    "mean_growth_true_belief_cash_kelly": 0.0013834307592620468,
+    "mean_growth_full_investment": -0.2031435513142097,
+    "cash_minus_full_investment": 0.20452698207347172,
+    "mean_stake_fraction_true_belief": 0.01869731943468518,
+    "by_estimation_noise": {
+     "noise_sd_0.0": {
+      "mean_growth_under_true_p": 0.0013834307592620661,
+      "mean_stake_fraction": 0.018697319450509297,
+      "mean_selected_horses": 1.93
+     },
+     "noise_sd_0.05": {
+      "mean_growth_under_true_p": 0.0011579212182226714,
+      "mean_stake_fraction": 0.02006771769563335,
+      "mean_selected_horses": 1.9666666666666666
+     },
+     "noise_sd_0.1": {
+      "mean_growth_under_true_p": 0.0004657722778731712,
+      "mean_stake_fraction": 0.024774883467430044,
+      "mean_selected_horses": 2.0966666666666667
+     },
+     "noise_sd_0.2": {
+      "mean_growth_under_true_p": -0.0045028249214922045,
+      "mean_stake_fraction": 0.045806954438800375,
+      "mean_selected_horses": 2.4566666666666666
+     },
+     "noise_sd_0.4": {
+      "mean_growth_under_true_p": -0.031788462403227476,
+      "mean_stake_fraction": 0.1232241141357583,
+      "mean_selected_horses": 3.2333333333333334
+     }
+    },
+    "sign_flip_noise_sd": 0.10937432154759222
+   },
+   "true_improvement_0.05": {
+    "eps": 0.3384749888458807,
+    "realized_mean_KL": 0.05,
+    "share_races_participation_condition": 0.9766666666666667,
+    "mean_selected_horses_true_belief": 2.9833333333333334,
+    "mean_growth_true_belief_cash_kelly": 0.010019037942918568,
+    "mean_growth_full_investment": -0.17314355131420972,
+    "cash_minus_full_investment": 0.18316258925712828,
+    "mean_stake_fraction_true_belief": 0.07128771437600513,
+    "by_estimation_noise": {
+     "noise_sd_0.0": {
+      "mean_growth_under_true_p": 0.010019037942918854,
+      "mean_stake_fraction": 0.07128771440466504,
+      "mean_selected_horses": 2.9833333333333334
+     },
+     "noise_sd_0.05": {
+      "mean_growth_under_true_p": 0.009603401397211657,
+      "mean_stake_fraction": 0.07293939760546363,
+      "mean_selected_horses": 3.04
+     },
+     "noise_sd_0.1": {
+      "mean_growth_under_true_p": 0.00843435296060093,
+      "mean_stake_fraction": 0.07603487749697659,
+      "mean_selected_horses": 3.0033333333333334
+     },
+     "noise_sd_0.2": {
+      "mean_growth_under_true_p": 0.002985742464030155,
+      "mean_stake_fraction": 0.0984608082808245,
+      "mean_selected_horses": 3.1533333333333333
+     },
+     "noise_sd_0.4": {
+      "mean_growth_under_true_p": -0.02294692727785615,
+      "mean_stake_fraction": 0.15813263725691074,
+      "mean_selected_horses": 3.5766666666666667
+     }
+    },
+    "sign_flip_noise_sd": 0.22302688071647017
+   }
+  },
+  "note": "結果を先に決めない。符号はそのまま報告する"
+ },
  "C3_self_dilution": {
   "growth_by_stake_share_of_pool": {
-   "stake_share_0.0": -0.11110996153506329,
-   "stake_share_0.001": -0.11237581453825386,
-   "stake_share_0.005": -0.11741831539307337,
-   "stake_share_0.02": -0.13603804046365,
-   "stake_share_0.05": -0.17199349678363546
+   "stake_share_0.0": -0.18150078468990863,
+   "stake_share_0.001": -0.18258521113622408,
+   "stake_share_0.005": -0.1869102144426541,
+   "stake_share_0.02": -0.20295102179106386,
+   "stake_share_0.05": -0.23422331857883635
   },
   "note": "プールに対する賭け金比率が上がるほど実現オッズが下がり成長率が落ちる"
  },
  "C4_decision_vs_final_odds_symmetric_noise": {
   "mean_growth_by_drift_sd": {
-   "drift_sd_0.0": -0.07766334478471745,
-   "drift_sd_0.05": -0.07724709384167022,
-   "drift_sd_0.1": -0.07198352877823808,
-   "drift_sd_0.2": -0.059638669255338825
+   "drift_sd_0.0": -0.07350496777834041,
+   "drift_sd_0.05": -0.07515606660622247,
+   "drift_sd_0.1": -0.07758140568551747,
+   "drift_sd_0.2": -0.050680014626666534
   },
   "note": "対称で情報を持たない drift は成長率を系統的には下げない (Jensen により僅かに上げることすらある)。『判断時点と確定が違う』こと自体は害の理由にならない"
  },
  "C4b_adverse_correction_drift": {
   "by_lambda": {
    "correction_lambda_0.0": {
-    "mean_growth": -0.07104814864945123,
-    "mean_max_p_over_pi_final": 3.392513883759303
+    "mean_growth": -0.07739139472260073,
+    "mean_max_p_over_pi_final": 3.327263142931382
    },
    "correction_lambda_0.25": {
-    "mean_growth": -0.14064956383186136,
-    "mean_max_p_over_pi_final": 2.3737356953056934
+    "mean_growth": -0.14053426870707839,
+    "mean_max_p_over_pi_final": 2.4148562269205383
    },
    "correction_lambda_0.5": {
-    "mean_growth": -0.18572392848459515,
-    "mean_max_p_over_pi_final": 1.7422607864730273
+    "mean_growth": -0.1846046410077675,
+    "mean_max_p_over_pi_final": 1.7554121119887125
    },
    "correction_lambda_0.75": {
-    "mean_growth": -0.21377218037433177,
-    "mean_max_p_over_pi_final": 1.2926386310580775
+    "mean_growth": -0.21341915976399178,
+    "mean_max_p_over_pi_final": 1.3100990451893775
    },
    "correction_lambda_1.0": {
-    "mean_growth": -0.22314355131420974,
-    "mean_max_p_over_pi_final": 1.0000000000000002
+    "mean_growth": -0.2231435513142097,
+    "mean_max_p_over_pi_final": 1.0000000000000004
    }
   },
   "note": "害になるのは『自分が張る側へ不利に動く drift』。市場が締切までに真値へ寄るほど、判断時点で見えたエッジは確定オッズでは消える (lambda=1 で成長率は log(1-t) に収束)"
  },
  "C5_granularity_and_breakage": {
   "mean_growth_by_unit": {
-   "unit_1yen_of_10000": -0.08364355753517394,
-   "unit_100yen_of_10000": -0.08602087126165811,
-   "unit_500yen_of_10000": -0.11010135188601941
+   "unit_1yen_of_10000": -0.08210556693569085,
+   "unit_100yen_of_10000": -0.08970784151660777,
+   "unit_500yen_of_10000": -0.1093984553009973
   },
   "note": "100 円単位と 0.1 刻みオッズの切り捨ては成長率を押し下げる"
  }
