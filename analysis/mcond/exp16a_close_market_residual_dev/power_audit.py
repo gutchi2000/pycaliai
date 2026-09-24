@@ -1,24 +1,27 @@
 # -*- coding: utf-8 -*-
 """
-power_audit.py — EXP16A Stage 0 (改訂2): 検出力監査を 3 段に分ける
-==================================================================
+power_audit.py — EXP16A Stage 0 (改訂3): 検出力監査を 3 段に分け、等級別に測る
+==============================================================================
 学習しない (LightGBM は使わない)。2023 は一切読まない。ROI 評価も候補生成もしない。
 
   tier1 `ideal_local_approximation`
         SD(Δ_r) ≈ sqrt(2Δ̄) と MDE ≈ 2·2.8²/R。局所指数傾斜・最適方向・正しいモデル
         仕様・独立レースを仮定した **理論的な楽観側の基準**。本実験の保証値ではない。
   tier2 `empirical_cluster_power`  ← 正式な検出力判定
-        2022 以前の正式 race set の実構造 (年・頭数・市場 entropy・meeting-day) を保ったまま、
-        真の期待 logloss 改善が指定値になる局所傾斜 p_δ(i) ∝ π(i)·exp(δ·s_i) を注入し、
-        合成 winner を反復生成して **実際と同じ 年別 fit → meeting-day bootstrap → seed 判定**
-        を最後まで通し、pass 確率を測る。
+        2022 以前の正式 race set の実構造を保ったまま、真の期待 logloss 改善が指定値になる
+        局所傾斜 p_δ(i) ∝ π(i)·exp(δ·s_i) を注入し、合成 winner を反復生成して
+        **実際と同じ 年別 fit → 年層化 meeting-day bootstrap → seed 判定 → leave-one-year-out**
+        を通し、gate_grade.grade_gate で **PASS-PRACTICAL / PASS-SIGNAL / FAIL** を判定する。
+        進行条件は `真の効果 0.005 で PASS-PRACTICAL ∪ PASS-SIGNAL の確率 >= 80%`。
+        PASS-PRACTICAL 単独の 80% は要求しない (真の効果が境界値と等しいとき、CI 全体で
+        境界を超える証明力が低いのは統計的に自然)。
   tier3 `secondary_reference_check`
         2022 の pre→close 差について理論 SD と実測 cluster SE を比較する。一致しても
         普遍式の証明とは扱わない。
 
 方向 (s):
   * `q1_log_ratio`              = log(Q1/π)。rolling OOF Q1 が必要なため Stage 0 では測れない
-                                  (Stage 1 で OOF 作成直後、結果開封前に必ず測る)
+                                  (Stage 1 で OOF 作成直後・結果開封前に必ず測る)
   * `prefixed_residual_linear`  = 事前固定した残差特徴の線形予測子 (符号のみ事前固定・等重み)
   * `standardized_random`       = 標準化した乱数方向 (per-race 分散の形だけを変える対照)
 
@@ -35,17 +38,20 @@ import numpy as np
 import pandas as pd
 
 from .provenance import BASE, OUT, MASTER
+from .gate_grade import FLOOR, grade_gate, wilson
 
 RESEARCH = BASE / "data" / "_research" / "mcond" / "exp16a"
 NPZ = RESEARCH / "official_races_le2022.npz"
 Z80 = 1.959964 + 0.841621        # 両側 5% / 検出力 80% ≒ 2.80
-FLOOR = 0.005                    # 事前固定した実務床 (MDE を見る前に決めた。監査結果で変えない)
 EVAL_YEARS = [2018, 2019, 2020, 2021, 2022]      # 5 年判定の ≤2022 版アナログ
 FIT_YEAR_MIN = 2016
 SEEDS = 5
 JITTERS = [0.0, 0.1, 0.25]       # seed 間ばらつきの事前固定水準 (Stage 1 で実測値へ差し替え)
-CURVE = [0.005, 0.0075, 0.010, 0.015, 0.020, 0.030]
-REPS = 150
+# 真の効果の水準。0.005 = 実務床、0.0069 = 実務床超えを 80% 程度で証明できる効果量として記録する値
+DECISION_TARGETS = [0.005, 0.0069]
+CURVE_TARGETS = [0.005, 0.0069, 0.0075, 0.010, 0.015, 0.020, 0.030]
+REPS_DECISION = 400
+REPS_CURVE = 200
 BOOT = 1000
 RNG_SEED = 20260924
 
@@ -206,7 +212,7 @@ class DayBoot:
             dd, inv = np.unique(days[sel], return_inverse=True)
             self.groups.append((y, np.flatnonzero(sel), inv, len(dd)))
 
-    def quantile(self, val: np.ndarray, rng, drop_year=None, boot=BOOT, q=0.975):
+    def ci(self, val: np.ndarray, rng, drop_year=None, boot=BOOT) -> tuple[float, float]:
         sums, cnts = [], []
         for y, rows, inv, nd in self.groups:
             if drop_year is not None and y == drop_year:
@@ -217,17 +223,14 @@ class DayBoot:
             sums.append(ds[pick].sum(1))
             cnts.append(dc[pick].sum(1))
         tot = np.sum(sums, axis=0) / np.sum(cnts, axis=0)
-        return float(np.quantile(tot, q))
+        return float(np.quantile(tot, 0.025)), float(np.quantile(tot, 0.975))
 
 
 # ---------------------------------------------------------------- tier 2
-def empirical_power(pi_all, s_all, sg_all, meta, direction_name, base_name,
-                    reps=REPS, jitters=JITTERS, target=FLOOR, floor=FLOOR, rng_seed=RNG_SEED):
-    """真の効果 = target を注入したときの、事前登録した判定規則全体の pass 確率
-
-    floor は **事前固定した実務床 0.005 に固定** し、注入量 target とは独立に扱う。
-    (両者を同じ値にすると『真の効果 = 床』の場合しか測れない)
-    """
+def empirical_power(pi_all, s_all, sg_all, meta, direction_name, base_name, gate: str,
+                    reps: int, jitters, target: float, floor: float = FLOOR,
+                    rng_seed: int = RNG_SEED):
+    """真の効果 = target を注入したときの等級別 pass 確率 (gate_grade を通す)"""
     year, day = meta["year"], meta["day"]
     delta, real_impr = calibrate_delta(pi_all, s_all, sg_all, target)
     n_race = sg_all.R
@@ -246,11 +249,12 @@ def empirical_power(pi_all, s_all, sg_all, meta, direction_name, base_name,
         r0, r1 = yslice[FIT_YEAR_MIN][0], yslice[y - 1][1]
         fitsets[y] = (r0, r1, sub_seg(r0, r1), int(sg_all.off[r0]), int(sg_all.off[r1]))
     boot = DayBoot(year, day, EVAL_YEARS)
-    rng = np.random.default_rng(rng_seed)
 
     out = {}
     for eta in jitters:
-        cond = {k: 0 for k in ["floor", "ci", "year_dir", "seed_dir", "loo_max", "all"]}
+        rng = np.random.default_rng(rng_seed)          # 水準ごとに同じ乱数列から始める
+        counts = {"PASS-PRACTICAL": 0, "PASS-SIGNAL": 0, "FAIL": 0}
+        fail_reasons = {}
         est, warm = [], {y: delta for y in EVAL_YEARS}
         for _ in range(reps):
             win_rows = draw_winners(pi_all, s_all, delta, sg_all, rng)
@@ -275,39 +279,53 @@ def empirical_power(pi_all, s_all, sg_all, meta, direction_name, base_name,
             pooled = np.array(pooled)
             k = int(np.argsort(pooled)[SEEDS // 2])          # median seed
             med_val, med_year = dvals[k], per_year_vals[k]
-            c_floor = bool(pooled[k] <= -floor)
-            ci_up = boot.quantile(med_val, rng)
-            c_ci = bool(ci_up < 0)
-            c_year = int((med_year < 0).sum()) >= 4
-            c_seed = int((pooled < 0).sum()) >= 4
-            worst = EVAL_YEARS[int(np.argmin(med_year))]     # 最も効果が大きい年
-            loo_rows = np.concatenate([np.arange(*yslice[y]) for y in EVAL_YEARS if y != worst])
-            loo_mean = float(np.nanmean(med_val[loo_rows]))
-            c_loo = bool(loo_mean <= -floor and boot.quantile(med_val, rng, drop_year=worst) < 0)
-            for key, ok in [("floor", c_floor), ("ci", c_ci), ("year_dir", c_year),
-                            ("seed_dir", c_seed), ("loo_max", c_loo)]:
-                cond[key] += int(ok)
-            cond["all"] += int(c_floor and c_ci and c_year and c_seed and c_loo)
-            est.append([pooled[k], ci_up, loo_mean])
+            lo, hi = boot.ci(med_val, rng)
+            loo_uppers = [boot.ci(med_val, rng, drop_year=y)[1] for y in EVAL_YEARS]
+            g = grade_gate(gate, point=float(pooled[k]), ci_lower=lo, ci_upper=hi,
+                           years_improved=int((med_year < 0).sum()), n_years=len(EVAL_YEARS),
+                           seeds_improved=int((pooled < 0).sum()), n_seeds=SEEDS,
+                           loo_ci_uppers=loo_uppers,
+                           placebo_exceeded=(True if gate == "A" else None), floor=floor)
+            counts[g["grade"]] += 1
+            for r in g["fail_reasons"]:
+                fail_reasons[r.split(" ")[0]] = fail_reasons.get(r.split(" ")[0], 0) + 1
+            est.append([pooled[k], lo, hi, max(loo_uppers)])
         est = np.array(est)
+        n_practical = counts["PASS-PRACTICAL"]
+        n_detect = counts["PASS-PRACTICAL"] + counts["PASS-SIGNAL"]
+        wp, wd = wilson(n_practical, reps), wilson(n_detect, reps)
         out[f"seed_jitter_{eta}"] = {
-            "pass_rate_all_conditions": cond["all"] / reps,
-            "pass_rate_by_condition": {k: cond[k] / reps for k in cond if k != "all"},
-            "median_estimate_nats": float(np.median(est[:, 0])),
+            "reps": reps, "rng_seed": rng_seed,
+            "counts": counts,
+            "successes_pass_practical": n_practical,
+            "successes_pass_practical_or_signal": n_detect,
+            "power_pass_practical": n_practical / reps,
+            "power_pass_practical_or_signal": n_detect / reps,
+            "wilson95_pass_practical": [wp[0], wp[1]],
+            "wilson95_pass_practical_or_signal": [wd[0], wd[1]],
+            "fail_reason_counts": fail_reasons,
+            "median_point_estimate": float(np.median(est[:, 0])),
+            "median_ci95": [float(np.median(est[:, 1])), float(np.median(est[:, 2]))],
+            "median_worst_loo_ci_upper": float(np.median(est[:, 3])),
+            "share_point_estimate_beyond_floor": float((est[:, 0] < -floor).mean()),
             "attenuation_vs_injected": float(np.median(est[:, 0]) / -target),
-            "floor_used": floor,
-            "median_ci95_upper": float(np.median(est[:, 1])),
-            "median_loo_max_year_estimate": float(np.median(est[:, 2])),
         }
-    return {"base_market": base_name, "direction": direction_name,
+    return {"base_market": base_name, "direction": direction_name, "gate": gate,
             "injected_delta": delta, "realized_true_improvement_nats": real_impr,
             "target_nats": target, "practical_floor_used": floor, "n_races": int(n_race),
-            "eval_years": EVAL_YEARS, "reps": reps, "seeds": SEEDS,
+            "eval_years": EVAL_YEARS, "seeds": SEEDS,
+            "placebo_in_simulation": ("満たされたものとして扱う (placebo は合成できないため)"
+                                       if gate == "A" else "Gate B の等級条件に placebo は含めない"),
             "by_seed_jitter": out}
 
 
 def interp_threshold(xs, ys, level=0.80):
-    """pass 確率が level に達する最小の真の効果を線形補間で求める"""
+    """pass 確率が level に達する最小の真の効果を線形補間で求める。
+    最小の試験水準で既に level を超えている場合は『xs[0] 以下』を意味する xs[0] を返す。"""
+    if not xs:
+        return None
+    if ys[0] >= level:
+        return xs[0]
     for i in range(1, len(xs)):
         if ys[i] >= level:
             if ys[i] == ys[i - 1]:
@@ -326,10 +344,11 @@ def main():
     year, day = d["year"], d["day"]
     n_by_year = {int(y): int((year == y).sum()) for y in sorted(set(year.tolist()))}
     res = {
-        "role": "検出力監査。実務床 0.005 nats/race は MDE を見る前に固定済みで、監査結果で変更しない",
+        "role": "検出力監査。実務床 0.005 nats/race は事前固定で、監査結果によって変更しない",
         "data": {"npz": str(NPZ), "races": int(sg.R), "horses": int(len(d["ban"])),
                  "races_by_year": n_by_year,
                  "note": "2022 以前の正式 race set (障害除外・DNF なし・平地) のみ。2023 は読まない"},
+        "grading_implementation": "gate_grade.grade_gate (spec.json の gates と同一実装。境界テストは stage0_checks.py)",
     }
 
     # ---------------- tier 1: 理想化した局所近似 (楽観側の基準)
@@ -339,7 +358,7 @@ def main():
         "assumptions": ["局所指数傾斜 (δ→0)", "方向が最適 (正しい 1 次元スコア)",
                         "モデル仕様が正しい (係数推定の誤差を無視)",
                         "レースが独立 (meeting-day クラスタなし)",
-                        "点推定を床と比べる条件・seed 判定・年ごとの方向一致条件を課さない"],
+                        "等級条件 (CI と床の比較・seed 判定・年方向・LOO・placebo) を課さない"],
         "status": "理論的な楽観側の基準。本実験に対する厳密式・保証値ではない",
         "SD_at_floor": float(np.sqrt(2 * FLOOR)),
         "races_required_for_floor": float(2 * 2.8 ** 2 / FLOOR),
@@ -366,68 +385,84 @@ def main():
     # ---------------- tier 2: 経験的 cluster power (正式判定)
     runs = {}
 
-    def run(base_name, pi, dname, s, jitters, target):
+    def run(base_name, pi, dname, s, gate, jitters, target, reps):
         key = f"{base_name}__{dname}__true_{target}"
-        print(f"[tier2] {key} jitters={jitters} ({round(time.time()-t0)}s)", flush=True)
-        runs[key] = empirical_power(pi, s, sg, d, dname, base_name, jitters=jitters, target=target)
-        print("   ", json.dumps({k: [v["pass_rate_all_conditions"], v["pass_rate_by_condition"]]
+        print(f"[tier2] {key} gate={gate} jitters={jitters} reps={reps} "
+              f"({round(time.time()-t0)}s)", flush=True)
+        runs[key] = empirical_power(pi, s, sg, d, dname, base_name, gate,
+                                    reps=reps, jitters=jitters, target=target)
+        print("   ", json.dumps({k: [v["power_pass_practical"],
+                                     v["power_pass_practical_or_signal"]]
                                  for k, v in runs[key]["by_seed_jitter"].items()}), flush=True)
 
-    run("terminal_close_market", d["pi_close"], "prefixed_residual_linear", s_pref, JITTERS, FLOOR)
-    for tg in CURVE[1:]:
-        run("terminal_close_market", d["pi_close"], "prefixed_residual_linear", s_pref, [0.1], tg)
-    for tg in (0.005, 0.010, 0.020):
-        run("terminal_close_market", d["pi_close"], "standardized_random", s_rand, [0.1], tg)
-        run("historical_pre_snapshot", d["pi_pre"], "prefixed_residual_linear", s_pref, [0.1], tg)
+    # 判定に使う 2 水準は 400 反復・3 jitter
+    for tg in DECISION_TARGETS:
+        run("terminal_close_market", d["pi_close"], "prefixed_residual_linear", s_pref, "A",
+            JITTERS, tg, REPS_DECISION)
+    # power curve (jitter 0.1)
+    for tg in CURVE_TARGETS:
+        if tg in DECISION_TARGETS:
+            continue
+        run("terminal_close_market", d["pi_close"], "prefixed_residual_linear", s_pref, "A",
+            [0.1], tg, REPS_CURVE)
+    # 対照方向と Gate B 基準 (pre)
+    run("terminal_close_market", d["pi_close"], "standardized_random", s_rand, "A",
+        [0.1], 0.005, REPS_DECISION)
+    for tg in (0.005, 0.0069):
+        run("historical_pre_snapshot", d["pi_pre"], "prefixed_residual_linear", s_pref, "B",
+            [0.1], tg, REPS_DECISION)
 
-    def curve_for(base, dname, eta="seed_jitter_0.1"):
+    def curve_for(metric, eta="seed_jitter_0.1"):
         xs, ys = [], []
-        for tg in CURVE:
-            k = f"{base}__{dname}__true_{tg}"
+        for tg in CURVE_TARGETS:
+            k = f"terminal_close_market__prefixed_residual_linear__true_{tg}"
             if k in runs and eta in runs[k]["by_seed_jitter"]:
                 xs.append(tg)
-                ys.append(runs[k]["by_seed_jitter"][eta]["pass_rate_all_conditions"])
+                ys.append(runs[k]["by_seed_jitter"][eta][metric])
         return xs, ys
 
-    xs, ys = curve_for("terminal_close_market", "prefixed_residual_linear")
-    at_floor = {k: {j: v2["pass_rate_all_conditions"] for j, v2 in v["by_seed_jitter"].items()}
-                for k, v in runs.items() if v["target_nats"] == FLOOR}
-    worst_at_floor = min(min(d.values()) for d in at_floor.values())
+    xs_p, ys_p = curve_for("power_pass_practical")
+    xs_d, ys_d = curve_for("power_pass_practical_or_signal")
+    floor_key = "terminal_close_market__prefixed_residual_linear__true_0.005"
+    at_floor = runs[floor_key]["by_seed_jitter"]
+    worst_detect = min(v["power_pass_practical_or_signal"] for v in at_floor.values())
+    worst_detect_wilson_lo = min(v["wilson95_pass_practical_or_signal"][0] for v in at_floor.values())
+    proceed = bool(worst_detect >= 0.80 and worst_detect_wilson_lo >= 0.75)
     res["tier2_empirical_cluster_power"] = {
         "runs": runs,
-        "power_curve_primary": {"base": "terminal_close_market",
-                                "direction": "prefixed_residual_linear",
-                                "seed_jitter": 0.1,
-                                "true_effect_nats": xs, "pass_rate": ys,
-                                "min_true_effect_for_80pct_pass_nats": interp_threshold(xs, ys)},
-        "pass_at_floor": at_floor,
-        "verdict": {
-            "min_pass_rate_at_floor_over_all_configs": worst_at_floor,
-            "threshold": 0.80,
-            "result": ("proceed" if worst_at_floor >= 0.80 else "do_not_open_2019_2023"),
-            "statement": ("真の効果 0.005 nats/race を注入したときの pass 確率が 80% 未満である。"
-                          "事前登録した規則により 2019-2023 の結果を開けず、期間・設計を見直す。"
-                          if worst_at_floor < 0.80 else
-                          "真の効果 0.005 nats/race を全ての設定で 80% 以上検出できる。"),
-        },
-        "decision_rule": {
-            "official": "真の効果 = 0.005 を注入したときの pass 確率が、事前固定した全ての "
-                        "seed_jitter 水準で 80% 以上なら進行可",
-            "fail": "80% 未満なら 2019-2023 の結果を開けず、期間・設計を見直す",
+        "progression_rule": {
+            "condition": "真の効果 0.005 で PASS-PRACTICAL ∪ PASS-SIGNAL の検出確率 >= 80%",
+            "not_required": "PASS-PRACTICAL 単独の 80% は要求しない",
+            "wilson_requirement": "推定 power だけでなく Wilson 95% CI 下限が大きく 80% を割っていないことを確認する "
+                                   "(本実装では下限 >= 0.75 を確認条件にした)",
+            "reps_note": "反復数が少なく 100% になっている場合は反復数を増やして確認する "
+                          f"(判定水準は {REPS_DECISION} 反復)",
             "forbidden": "理論 MDE (tier1) だけで進行可否を決めない",
-            "conditions_simulated": ["pooled median <= -0.005", "meeting-day bootstrap CI95 上限 < 0",
-                                     "5 年中 4 年以上で改善方向", "5 seed 中 4 以上で改善方向",
-                                     "最大効果年を除いた leave-one-year-out でも床と CI を満たす"],
-            "structural_note": "判定規則は『点推定が床 0.005 を超える』ことを要求する。真の効果が"
-                               "ちょうど 0.005 の場合、点推定は 0.005 の前後に散らばるため pass 確率は"
-                               "レース数を増やしても原理的に 50% を超えない (係数推定による減衰があるので"
-                               "さらに下がる)。したがって『0.005 で 80%』は R では達成できない。"
-                               "R が決めるのは『何 nats なら 80% で通るか』であり、それが "
-                               "min_true_effect_for_80pct_pass_nats である",
-            "known_optimism": ["方向 s は正しく与えられている (Q1 の推定誤差は seed_jitter でのみ近似)",
-                               "真のモデルが厳密に局所指数傾斜である",
-                               "評価年は 2018-2022 で、実判定の 2019-2023 と 1 年ずれる"],
         },
+        "verdict": {
+            "min_power_detect_at_floor": worst_detect,
+            "min_wilson95_lower_at_floor": worst_detect_wilson_lo,
+            "power_pass_practical_at_floor": {k: v["power_pass_practical"]
+                                              for k, v in at_floor.items()},
+            "power_pass_practical_at_0_0069": {
+                k: v["power_pass_practical"] for k, v in
+                runs["terminal_close_market__prefixed_residual_linear__true_0.0069"]
+                ["by_seed_jitter"].items()},
+            "result": ("proceed_to_stage1_pending_review" if proceed else "do_not_open_2019_2023"),
+        },
+        "power_curves": {
+            "base": "terminal_close_market", "direction": "prefixed_residual_linear",
+            "seed_jitter": 0.1,
+            "true_effect_nats": xs_p,
+            "power_pass_practical": ys_p,
+            "power_pass_practical_or_signal": ys_d,
+            "min_true_effect_for_80pct_pass_practical_nats": interp_threshold(xs_p, ys_p),
+            "min_true_effect_for_80pct_detect_nats": interp_threshold(xs_d, ys_d),
+        },
+        "known_optimism": ["方向 s は正しく与えられている (Q1 の推定誤差は seed_jitter でのみ近似)",
+                           "真のモデルが厳密に局所指数傾斜である",
+                           "Gate A の placebo 条件は満たされたものとして扱っている",
+                           "評価年は 2018-2022 で、実判定の 2019-2023 と 1 年ずれる"],
     }
 
     # ---------------- tier 3: 2022 pre→close の理論 SD と実測 cluster SE
@@ -439,8 +474,7 @@ def main():
     dd = lp - lc
     rng = np.random.default_rng(RNG_SEED)
     dboot = DayBoot(np.full(len(sel), 2022), day[sel], [2022])
-    hi = dboot.quantile(dd, rng, boot=4000, q=0.975)
-    lo = dboot.quantile(dd, rng, boot=4000, q=0.025)
+    lo, hi = dboot.ci(dd, rng, boot=4000)
     se_cluster = (hi - lo) / (2 * 1.959964)
     res["tier3_secondary_reference_check"] = {
         "target": "2022 の per-race (LL(pre) − LL(close)) で理論 SD と実測 cluster SE を比較する",
@@ -460,9 +494,8 @@ def main():
     res["elapsed_sec"] = round(time.time() - t0, 1)
     (OUT / "power_audit.json").write_text(json.dumps(res, ensure_ascii=False, indent=1,
                                                      default=float), encoding="utf-8")
-    print(json.dumps(res["tier1_ideal_local_approximation"], ensure_ascii=False))
-    print(json.dumps(res["tier2_empirical_cluster_power"]["power_curve_primary"], ensure_ascii=False))
-    print(json.dumps(res["tier3_secondary_reference_check"], ensure_ascii=False))
+    print(json.dumps(res["tier2_empirical_cluster_power"]["verdict"], ensure_ascii=False))
+    print(json.dumps(res["tier2_empirical_cluster_power"]["power_curves"], ensure_ascii=False))
     print(f"[saved] out/power_audit.json  ({res['elapsed_sec']}s)")
 
 

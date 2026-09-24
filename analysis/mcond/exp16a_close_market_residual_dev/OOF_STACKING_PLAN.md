@@ -66,25 +66,38 @@ EXP15 の R0-clean は **2022 を early stopping に使っている**ので、
 - 正式 race set（障害除外・DNF なし・平地）の各年レース数は
   STAGE0_DRY_RUN.json の `retrospective_rolling_crossfit_development` を参照。
 
-## 5. 5 年判定（2019〜2023）
+## 5. 5 年判定（2019〜2023）— 3 等級
 
-**主判定（すべて満たすこと）**
+評価は **2019〜2023 pooled / median seed / 年層化 meeting-day bootstrap**。
+判定は `gate_grade.py` の `grade_gate()` が唯一の実装で、spec.json の `gates` と同じ規則である。
 
-1. 2019〜2023 pooled の Δ（= LL(arm) − LL(baseline)）の median seed 推定が **≤ −0.005 nats/race**
-2. **年層化 meeting-day bootstrap** の CI95 上限 < 0
-3. 5 年中 **4 年以上**で改善方向
-4. 5 seed 中 **4 以上**で改善方向
-5. **最大効果年を除いた leave-one-year-out** でも 1. と 2. を満たす
-   （単一年の大勝ちで pooled PASS にならないことを保証する hard 条件）
+**安定性条件（3 等級すべてに共通で必要）**
+
+- 5 年中 **4 年以上**で改善方向
+- 5 seed 中 **4 以上**で改善方向
+- **leave-one-year-out の全結果**（各年を除いた 5 通り）で CI95 上限 < 0
+- （Gate A のみ）placebo の 97.5 パーセンタイルを超える
+
+**等級**
+
+| 等級 | 条件 | 帰結 |
+|---|---|---|
+| **PASS-PRACTICAL** | CI95 上限 **< −0.005** ＋ 安定性条件 | Gate B へ進む。Gate A/B がともに PASS-PRACTICAL のときだけ economic checks 可。候補生成・配分最適化・production 接続は不可 |
+| **PASS-SIGNAL** | CI95 上限 < 0 だが **< −0.005 ではない** ＋ 安定性条件 | Gate B は時点再現性の科学的診断として実施可。economic checks は行わない。候補生成・ROI・配分最適化へ進まない |
+| **FAIL** | CI95 上限 ≥ 0、または安定性条件のいずれか不成立 | scoped fail statement で終了 |
+
+**点推定は等級条件に使わない**。点推定が −0.005 を下回っても CI95 上限が −0.005 を下回らなければ
+実務床超えは未証明なので PASS-SIGNAL である。点推定は報告値として残す。
 
 **必ず報告するもの**
 
+- pooled point estimate と CI95、point estimate が −0.005 を超えたか、CI 全体が −0.005 を超えたか
 - 各年の効果、各年の race 数・meeting-day 数
-- pooled 効果と CI
 - 年別異質性（年効果の分散・最大年と最小年の差）
-- 最大年を除いた leave-one-year-out
+- **leave-one-year-out の全結果**（各年を除いた 5 通り）
 - 2019〜2022 だけ / 2023 だけ
 - seed ごとの値・median・方向一致数
+- 真の効果 0.005 での PASS-PRACTICAL 確率、真の効果 0.0069 での PASS-PRACTICAL 確率（POWER_AUDIT.md）
 
 ## 6. seed 規約
 

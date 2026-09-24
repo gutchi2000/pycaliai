@@ -30,6 +30,7 @@ import numpy as np
 import pandas as pd
 
 from .provenance import BASE, HERE, OUT, MASTER, TANPUK_DIR, sha256, load_master
+from .gate_grade import run_boundary_tests
 
 EXP15_OUT = BASE / "analysis" / "mcond" / "exp15_race_as_set_dev" / "out"
 RESEARCH = BASE / "data" / "_research" / "mcond" / "exp16a"
@@ -71,6 +72,7 @@ def main():
     prov = json.loads((OUT / "market_provenance.json").read_text(encoding="utf-8"))
     der = json.loads((OUT / "derivation_checks.json").read_text(encoding="utf-8"))
     contract = json.loads((EXP15_OUT / "feature_contract.json").read_text(encoding="utf-8"))
+    spec_gates = json.loads((HERE / "spec.json").read_text(encoding="utf-8"))["gates"]
 
     # ---- artifact 契約: master の実測
     st = os.stat(MASTER)
@@ -183,14 +185,36 @@ def main():
         "fixed_domain_partitions": pop["fixed_domain_partitions"],
         "thresholds_fixed_before_power_audit": THRESHOLDS,
         "power_audit": {
+            "grading_implementation": pw.get("grading_implementation"),
             "tier1_ideal_local_approximation": pw["tier1_ideal_local_approximation"],
             "tier2_empirical_cluster_power": {
-                "pass_at_floor": t2["pass_at_floor"],
-                "power_curve_primary": t2["power_curve_primary"],
-                "decision_rule": t2["decision_rule"],
+                "progression_rule": t2["progression_rule"],
+                "verdict": t2["verdict"],
+                "power_curves": t2["power_curves"],
+                "known_optimism": t2["known_optimism"],
+                "runs_summary": {
+                    k: {j: {"reps": v2["reps"], "rng_seed": v2["rng_seed"],
+                            "counts": v2["counts"],
+                            "power_pass_practical": v2["power_pass_practical"],
+                            "power_pass_practical_or_signal": v2["power_pass_practical_or_signal"],
+                            "wilson95_pass_practical": v2["wilson95_pass_practical"],
+                            "wilson95_pass_practical_or_signal": v2["wilson95_pass_practical_or_signal"],
+                            "median_point_estimate": v2["median_point_estimate"],
+                            "median_ci95": v2["median_ci95"]}
+                        for j, v2 in v["by_seed_jitter"].items()}
+                    for k, v in t2["runs"].items()},
             },
             "tier3_secondary_reference_check": pw["tier3_secondary_reference_check"],
             "directions": pw["directions"],
+        },
+        "gate_grades": {
+            "implementation": "gate_grade.grade_gate",
+            "A": spec_gates["A_close_market_residual"]["grades"],
+            "B": spec_gates["B_decision_time_reproducibility"]["grades"],
+            "economic_checks_condition": spec_gates["economic_checks_condition"],
+            "point_estimate_policy": spec_gates["point_estimate_policy"],
+            "boundary_tests": ("ALL PASSED" if not run_boundary_tests()
+                               else run_boundary_tests()),
         },
         "growth_checks": {k: (v if not isinstance(v, dict) else
                              {k2: v2 for k2, v2 in v.items() if k2 != "by_target"})
@@ -209,7 +233,7 @@ def main():
     (HERE / "STAGE0_DRY_RUN.json").write_text(
         json.dumps(dry, ensure_ascii=False, indent=1, default=float), encoding="utf-8")
     print(json.dumps(dry["official_race_set"]["totals"], ensure_ascii=False))
-    print(json.dumps(dry["power_audit"]["tier2_empirical_cluster_power"]["power_curve_primary"],
+    print(json.dumps(dry["power_audit"]["tier2_empirical_cluster_power"]["verdict"],
                      ensure_ascii=False))
     print(json.dumps(artifact["master_v2"], ensure_ascii=False))
     print(json.dumps(artifact["feature_schema"], ensure_ascii=False))

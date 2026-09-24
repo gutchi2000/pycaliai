@@ -1,9 +1,21 @@
 {
   "experiment": "EXP16A",
   "title": "Close-Market Residual Information Bound — 締切市場に対する time-safe 表特徴の残差情報",
-  "spec_version": "0.3 (Stage 0 改訂2、Fable 再レビュー + 検出力3段化。レビュー後に凍結)",
+  "spec_version": "0.4 (Stage 0 改訂3、Gate を 3 等級へ分離。レビュー後に凍結)",
   "created": "2026-09-24",
   "revised": "2026-09-24",
+  "revision_notes_v0_4": [
+    "Gate A / Gate B を **PASS-PRACTICAL / PASS-SIGNAL / FAIL** の 3 等級に分離した。存在検定 (CI95 上限 < 0) と実務床判定 (CI95 上限 < -0.005) を別の等級にし、点推定だけで実務床超えを主張しない",
+    "点推定 <= -0.005 は等級条件にしない。点推定・CI95・床超え判定は報告値として残す",
+    "安定性条件を『leave-one-year-out の全結果で CI95 上限 < 0』に統一した (最大効果年だけを落とす旧条件は廃止)",
+    "判定を gate_grade.py の grade_gate() に一本化し、simulation・本判定・境界テストが同じ実装を通るようにした",
+    "power audit の進行条件を『真の効果 0.005 で PASS-PRACTICAL ∪ PASS-SIGNAL >= 80%』に変更。PASS-PRACTICAL 単独の 80% は要求しない",
+    "power simulation に反復数・random seed・成功回数・推定 power・Wilson 95% CI を記録し、Wilson 下限も確認する",
+    "0.0069 nats/race を『実務床の変更ではなく、実務床超えを 80% 程度で証明できる真の効果量』として記録した",
+    "economic checks を実施できるのは Gate A と Gate B がともに PASS-PRACTICAL のときだけにした",
+    "C2c の実測値と固定解釈 (0.005 付近では期待成長の規模がほぼゼロで候補生成の根拠にならない) を spec へ記録した",
+    "DNF の finisher 再正規化が Q0 を約 0.061 nats (全体平均 約 0.0025/race) 有利に見せることを prior-art 注記として追記した"
+  ],
   "revision_notes_v0_3": [
     "検出力を 3 段に分離: ideal_local_approximation / empirical_cluster_power / secondary_reference_check。理論式は楽観側の基準として扱い、進行可否は合成注入による経験的 cluster power で判定する",
     "2019-2023 の rolling crossfit を採用し retrospective_rolling_crossfit_development と命名。独立 holdout ではなく仮説探索・内部再現性の評価と明記。2024/2025 は封印継続、自動開封を書かない",
@@ -185,16 +197,23 @@
 
   "five_year_judgement": {
     "years": [2019, 2020, 2021, 2022, 2023],
+    "evaluation_basis": "2019-2023 pooled / median seed / 年層化 meeting-day bootstrap (3000 reps)",
+    "grading": "等級は gates.A_close_market_residual.grades と gates.B_decision_time_reproducibility.grades に従う (PASS-PRACTICAL / PASS-SIGNAL / FAIL)。実装は gate_grade.grade_gate",
     "primary_conditions": [
-      "2019-2023 pooled の median seed 推定が <= -0.005 nats/race",
-      "年層化 meeting-day bootstrap の CI95 上限 < 0",
+      "検出: CI95 上限 < 0",
+      "実務床超えの証明: CI95 上限 < -0.005 nats/race (これを満たさなければ PASS-SIGNAL)",
       "5 年中 4 年以上で改善方向",
       "5 seed 中 4 以上で改善方向",
-      "最大効果年を除いた leave-one-year-out でも上記 1. と 2. を満たす (単一年の大勝ちで pooled PASS にしない hard 条件)"
+      "leave-one-year-out の **全結果** で CI95 上限 < 0 (単一年の大勝ちで pooled PASS にしない)",
+      "(Gate A) placebo 97.5 パーセンタイルを超える"
     ],
-    "reports": ["各年の効果", "各年の race 数・meeting-day 数", "pooled 効果と CI", "年別異質性",
-                 "最大年を除いた leave-one-year-out", "2019-2022 だけ", "2023 だけ",
-                 "seed ごとの値・median・方向一致数"],
+    "point_estimate_role": "報告値。等級条件には使わない (gates.point_estimate_policy)",
+    "reports": ["pooled point estimate と CI95", "point estimate が -0.005 を超えたか",
+                 "CI 全体が -0.005 を超えたか", "各年の効果", "各年の race 数・meeting-day 数",
+                 "年別異質性", "leave-one-year-out の全結果 (各年を除いた 5 通り)",
+                 "2019-2022 だけ", "2023 だけ",
+                 "seed ごとの値・median・方向一致数",
+                 "真の効果 0.005 での PASS-PRACTICAL 確率", "真の効果 0.0069 での PASS-PRACTICAL 確率"],
     "sealed_data_rule": "2024/2025 を開ける条件は本 Gate 通過後に別途レビューを受けることとし、spec には自動開封を書かない"
   },
 
@@ -206,11 +225,12 @@
   },
 
   "power_audit": {
-    "role": "閾値を変更する材料ではなく検出力監査。code: power_audit.py / 結果: out/power_audit.json / 文書: POWER_AUDIT.md",
+    "role": "閾値を変更する材料ではなく検出力監査。code: power_audit.py / 判定実装: gate_grade.py / 結果: out/power_audit.json / 文書: POWER_AUDIT.md",
     "tier1_ideal_local_approximation": {
       "formulas": {"SD(Delta_r)": "sqrt(2*Delta_bar)", "MDE": "2*2.8^2/R = 15.68/R"},
       "assumptions": ["局所指数傾斜", "方向が最適", "モデル仕様が正しい (係数推定誤差なし)",
-                       "レースが独立 (meeting-day クラスタなし)", "点推定と床を比べる条件を課さない"],
+                       "レースが独立 (meeting-day クラスタなし)",
+                       "等級条件 (CI と床の比較・seed 判定・年方向・LOO・placebo) を課さない"],
       "status": "理論的な楽観側の基準。本実験に対する厳密式・保証値として扱わない"
     },
     "tier2_empirical_cluster_power": {
@@ -220,60 +240,137 @@
       "directions": ["q1_log_ratio = log(Q1/π) (Stage 1 で必須・Stage 0 では測れない)",
                       "prefixed_residual_linear (事前固定符号の等重み線形予測子)",
                       "standardized_random (per-race 分散の形だけを変える対照)"],
-      "pipeline": "合成 winner を反復生成し、実際と同じ 年別 fit → 年層化 meeting-day bootstrap → seed 判定 → leave-one-year-out まで通す",
+      "pipeline": "合成 winner を反復生成し、実際と同じ 年別 fit → 年層化 meeting-day bootstrap → seed 判定 → leave-one-year-out を通し、gate_grade.grade_gate で等級を付ける",
       "seed_jitter_levels": [0.0, 0.1, 0.25],
-      "reps": 150,
-      "decision_rule": "真の効果 0.005 nats/race を注入したときの pass 確率が、事前固定した全ての seed_jitter 水準で 80% 以上なら進行可。80% 未満なら 2019-2023 の結果を開けず期間・設計を見直す。理論 MDE (tier1) だけで進行可否を決めない"
+      "reps": {"decision_levels": 400, "curve_levels": 200},
+      "recorded_per_run": ["simulation 反復数", "random seed", "成功回数 (等級別)", "推定 power",
+                            "Wilson 95% CI"],
+      "progression_rule": "真の効果 0.005 で **PASS-PRACTICAL ∪ PASS-SIGNAL** の検出確率 >= 80% なら Stage 1 へ進める",
+      "not_required": "PASS-PRACTICAL 単独の 80% は要求しない。真の効果が境界値と等しい場合、信頼区間全体で境界を超える証明力が低いのは統計的に自然である",
+      "wilson_requirement": "推定 power だけでなく Wilson 95% CI 下限が大きく 80% を割っていないことを確認する (本実装の確認条件は下限 >= 0.75)。反復数が少なく 100% になっている場合は反復数を増やして確認する",
+      "forbidden": "理論 MDE (tier1) だけで進行可否を決めない"
     },
     "tier3_secondary_reference_check": {
       "status": "参考照合",
       "target": "2022 の pre→close 差で理論 SD と実測 cluster SE を比較する",
-      "rule": "一致しても普遍式の証明とは扱わない"
+      "rule": "一致しても普遍式の証明とは扱わない",
+      "measured": {"mean_gap_nats": 0.04745811601320203, "measured_sd_per_race": 0.2706096881442374,
+                    "theoretical_sd_sqrt_2mean": 0.30808478058223526, "meeting_day_cluster_se": 0.0046382440431533885,
+                    "cluster_over_iid_se": 0.9704921205850361}
     },
     "tier2_result": {
-      "measured_at": "2026-09-24 Stage 0",
-      "pass_rate_at_floor_by_seed_jitter": {"0.0": 0.18666666666666668, "0.1": 0.21333333333333335,
-                                             "0.25": 0.1},
-      "min_pass_rate_at_floor": 0.1,
-      "pass_rate_at_floor_other_configs": {"close__standardized_random__jitter0.1": 0.18666666666666668,
-                                            "pre__prefixed_residual__jitter0.1": 0.17333333333333334},
-      "pass_rate_without_loo_hard_condition_at_floor": {"0.0": 0.47333333333333333, "0.1": 0.43333333333333335, "0.25": 0.22},
-      "binding_conditions": "CI95 上限 < 0 は 100% 通る。落ちるのは『点推定が床 0.005 を超える』条件 (22-47%) と、それを最大効果年を除いて再度課す leave-one-year-out 条件",
-      "min_true_effect_for_80pct_pass_nats": 0.006946902654867256,
-      "result": "do_not_open_2019_2023",
-      "statement": "真の効果 0.005 nats/race を注入したときの pass 確率は 10-21% (全設定の最小 0.100) で 80% に届かない。leave-one-year-out を hard 条件から外しても 22-47% で 80% に届かないため、結論はその設計選択に依存しない。事前登録した規則により 2019-2023 の結果を開けず、期間・設計の見直しをレビューへ回す",
-      "structural_note": "判定規則が『点推定 <= -0.005』を要求する限り、真の効果がちょうど 0.005 のときの pass 確率はレース数を増やしても 50% を超えない (係数推定の減衰でさらに下がる)。R が決めるのは『何 nats なら 80% で通るか』であり、その値が min_true_effect_for_80pct_pass_nats である。実務床 0.005 自体は変更しない",
+      "measured_at": "2026-09-24 Stage 0 改訂3",
+      "reps_decision_level": 400, "rng_seed": 20260924,
+      "power_pass_practical_or_signal_at_floor": {"0.0": 1.0, "0.1": 1.0, "0.25": 1.0},
+      "wilson95_lower_pass_practical_or_signal_at_floor": {"0.0": 0.9904877055170676, "0.1": 0.9904877055170676, "0.25": 0.9904877055170676},
+      "power_pass_practical_at_floor": {"0.0": 0.02, "0.1": 0.015, "0.25": 0.0075},
+      "power_pass_practical_at_0_0069": {"0.0": 0.575, "0.1": 0.465, "0.25": 0.335},
+      "min_true_effect_for_80pct_pass_practical_nats": 0.008160377358490567,
+      "min_true_effect_for_80pct_detect_nats": 0.005,
+      "effect_size_provable_at_80pct": {
+        "recorded_value_from_review": 0.0069,
+        "recorded_as": "実務床の変更ではなく、『実務床超えを 80% 程度の確率で証明できる真の効果量』として記録する値",
+        "origin": "改訂2 の旧判定規則 (点推定 <= 床 + 最大効果年 LOO) での 80% 点",
+        "measured_pass_practical_probability_at_this_value": {"0.0": 0.575, "0.1": 0.465, "0.25": 0.335},
+        "measured_80pct_point_under_revision3_grading": 0.008160377358490567,
+        "note": "改訂3 の等級規則 (CI95 上限 < -0.005) では 0.0069 の PASS-PRACTICAL 確率は 46.5% (jitter 0.1) で 80% に届かない。等級規則での 80% 点は 0.00816 nats/race である。いずれも実務床 0.005 の変更ではない"
+      },
+      "control_direction_at_floor": {"direction": "standardized_random", "seed_jitter": 0.1,
+                                      "power_pass_practical_or_signal": 1.0,
+                                      "power_pass_practical": 0.0175},
+      "gate_b_base_at_floor": {"base": "historical_pre_snapshot", "seed_jitter": 0.1,
+                                "power_pass_practical_or_signal": 1.0,
+                                "power_pass_practical": 0.015},
+      "gate_b_base_at_0_0069": {"power_pass_practical_or_signal": 1.0,
+                                 "power_pass_practical": 0.4575},
+      "median_point_estimate_at_floor": -0.004880016894742825,
+      "median_ci95_at_floor": [-0.00639268475105818, -0.003315168139569683],
+      "placebo_in_simulation": "Gate A の placebo 条件は満たされたものとして扱った (placebo は合成できない)。実際の power はこれより低くなりうる",
+      "result": "proceed_to_stage1_pending_review",
+      "statement": "真の効果 0.005 nats/race を注入したときの PASS-PRACTICAL ∪ PASS-SIGNAL の検出確率は jitter 0.0=1.000, jitter 0.1=1.000, jitter 0.25=1.000 (Wilson 95% 下限の最小 0.990)。進行条件 80% を満たすため Stage 1 はレビュー後に着手できる。PASS-PRACTICAL 単独の確率は jitter 0.0=0.020, jitter 0.1=0.015, jitter 0.25=0.007 であり、真の効果が床と等しい場合に実務床超えを証明できる確率は低い。実務床超えを 80% 程度で証明できる真の効果量は 0.008160 nats/race である",
       "pending_q1_direction": "Stage 1 で rolling OOF を作った直後、**結果を開封する前に** log(Q1/π) 方向で tier2 を再実行する"
     }
   },
 
   "gates": {
-    "entry_condition": "power_audit.tier2 の判定で進行可となり、かつ本 spec のレビュー・凍結が済んでいること",
+    "entry_condition": "power_audit.tier2 の進行条件 (真の効果 0.005 で PASS-PRACTICAL ∪ PASS-SIGNAL >= 80%) を満たし、本 spec のレビューと凍結が済んでいること",
+    "grading_implementation": "gate_grade.py の grade_gate() が唯一の実装。power_audit.py の simulation と Stage 1 の本判定と stage0_checks.py の境界テストが同じ関数を通る",
+    "evaluation_basis": "2019-2023 pooled / median seed / 年層化 meeting-day bootstrap",
+    "point_estimate_policy": "点推定 <= -0.005 を PASS-PRACTICAL の条件にしない。点推定が -0.005 を超えていても CI95 上限が -0.005 を下回らなければ実務床超えは未証明であり PASS-SIGNAL とする",
+    "reported_values": ["pooled point estimate", "CI95 (下限・上限)",
+                         "point estimate が -0.005 を超えたか", "CI 全体が -0.005 を超えたか",
+                         "真の効果 0.005 での PASS-PRACTICAL 確率",
+                         "真の効果 0.0069 での PASS-PRACTICAL 確率"],
+    "stability_conditions": ["5 年中 4 年以上で改善方向", "5 seed 中 4 以上で改善方向",
+                              "leave-one-year-out の **全結果** で CI95 上限 < 0",
+                              "(Gate A のみ) placebo 97.5 パーセンタイルを超える"],
     "A_close_market_residual": {
       "comparison": "Q2a vs Q0 (追加残差特徴の価値は Q2b vs Q2a で別途)",
-      "pass_conditions": "five_year_judgement.primary_conditions をすべて満たすこと",
-      "meaning": "情報の存在確認のみ。実運用可能性・利益・成長率のいずれも意味しない",
-      "fail_statement": "単勝close市場に対するR0-cleanの残差情報を2019-2023 crossfitで検出できなかった。全券種・JRA全研究・馬券依存構造へ一般化しない"
+      "grades": {
+        "PASS-PRACTICAL": {
+          "conditions": ["logloss 差の CI95 上限 < -0.005 nats/race", "5 年中 4 年以上で改善方向",
+                          "5 seed 中 4 以上で改善方向", "leave-one-year-out の全結果で CI95 上限 < 0",
+                          "placebo 97.5 パーセンタイルを超える"],
+          "statement": "締切市場に対する残差情報が存在し、かつ 0.005 nats/race の実務床を超える証拠が得られた",
+          "consequences": ["Gate B へ進む", "auxiliary economic checks を実施してよい",
+                            "候補生成・配分最適化・production 接続にはまだ進まない"]
+        },
+        "PASS-SIGNAL": {
+          "conditions": ["CI95 上限 < 0", "CI95 上限 < -0.005 は満たさない", "5 年中 4 年以上で改善方向",
+                          "5 seed 中 4 以上で改善方向", "leave-one-year-out の全結果で CI95 上限 < 0",
+                          "placebo 97.5 パーセンタイルを超える"],
+          "statement": "締切市場に対する残差情報は検出されたが、0.005 nats/race の実務床を超える証拠は得られなかった",
+          "consequences": ["Gate B は情報の時点再現性を確認する科学的診断として実施してよい",
+                            "auxiliary economic checks は実施しない",
+                            "候補生成・ROI 評価・配分最適化へ進まない"]
+        },
+        "FAIL": {
+          "conditions": ["CI95 上限 >= 0", "または年方向条件不成立", "または seed 方向条件不成立",
+                          "または leave-one-year-out 条件不成立", "または placebo 条件不成立"],
+          "statement": "単勝close市場に対するR0-cleanの残差情報を2019-2023 crossfitで検出できなかった。全券種・JRA全研究・馬券依存構造へ一般化しない",
+          "consequences": ["scoped fail statement を使用して終了する", "結果後の救済探索をしない"]
+        }
+      },
+      "meaning": "情報の存在と実務床超えの証拠を分けて判定する。いずれの等級も利益・成長率を意味しない"
     },
     "B_decision_time_reproducibility": {
-      "run_if": "Gate A PASS",
-      "hard_conditions": ["Q3a が pre 市場を 0.005 nats/race 以上改善 (median seed)",
-                           "年層化 meeting-day bootstrap CI95 上限 < 0",
-                           "5 年中 4 年以上・5 seed 中 4 以上で改善方向",
-                           "最大効果年を除いた leave-one-year-out でも床と CI を満たす",
-                           "主要な競馬場・芝ダートで致命的反転なし"],
+      "comparison": "Q3a vs historical_pre_snapshot",
+      "run_if": "Gate A が PASS-PRACTICAL または PASS-SIGNAL",
+      "grades": {
+        "PASS-PRACTICAL": {
+          "conditions": ["CI95 上限 < -0.005", "5 年中 4 年以上で改善方向", "5 seed 中 4 以上で改善方向",
+                          "leave-one-year-out の全結果で CI95 上限 < 0"],
+          "statement": "historical_pre_snapshot 時点でも残差情報が再現され、かつ 0.005 nats/race の実務床を超える証拠が得られた",
+          "consequences": ["Gate A も PASS-PRACTICAL の場合にかぎり economic checks を実施してよい",
+                            "Gate A が PASS-SIGNAL なら economic checks へ自動進行しない"]
+        },
+        "PASS-SIGNAL": {
+          "conditions": ["CI95 上限 < 0", "CI95 上限 < -0.005 は満たさない", "同じ安定性条件を満たす"],
+          "statement": "historical_pre_snapshot 時点で残差情報は再現されたが、0.005 nats/race の実務床を超える証拠は得られなかった",
+          "consequences": ["economic checks は実施しない", "候補生成・ROI 評価へ進まない"]
+        },
+        "FAIL": {
+          "conditions": ["CI が 0 を含む", "または安定性条件不成立"],
+          "statement": "締切市場に対する残差情報は検出されたが、historical_pre_snapshot時点で同等の実用可能な改善を再現できなかった",
+          "consequences": ["scoped fail statement を使用する", "『市場に吸収された』と断定しない"]
+        }
+      },
       "supplementary": {"name": "recover_vs_close_residual", "definition": "ΔB / ΔA",
                          "report": "同符号か、50% 以上かを報告する",
                          "not_a_hard_gate": "根拠のない 50% を単独 hard gate にしない"},
-      "fail_statement_A_pass_B_fail": "締切市場に対する残差情報は検出されたが、historical_pre_snapshot時点で同等の実用可能な改善を再現できなかった",
       "forbidden_wording": "『市場に吸収された』と断定しない。原因は pre 市場ノイズ・較正・結合モデル・データ可用性でもありうる"
+    },
+    "economic_checks_condition": {
+      "rule": "auxiliary economic checks を実施できるのは **Gate A と Gate B がともに PASS-PRACTICAL** の場合だけ",
+      "reason": "Gate B が PASS-PRACTICAL でも上流の Gate A が実務床未証明なら自動進行しない",
+      "implementation": "gate_grade.economic_checks_allowed()"
     },
     "placebo": {
       "arm": "Q3-placebo",
-      "trigger": "Gate B 通過時だけでなく、**Q3b が改善を示した場合の必須検証**",
+      "role": "Gate A の等級条件の一部。加えて Q3b が改善を示した場合の必須検証",
       "draws": 20,
       "construction": "残差特徴のベクトルを、事前固定セル (芝ダ × 出走頭数帯 × pre 人気オッズ三分位) の中で馬単位にまとめて置換する。セル境界は評価年ごとに Y-1 以前から作る。列単位の分解はしない",
-      "decision": "real improvement が placebo の 97.5 パーセンタイルを超えない場合、残差特徴の効果は FAIL",
+      "decision": "real improvement が placebo の 97.5 パーセンタイルを超えない場合 FAIL",
       "separation": "Q3a の log(Q1) 部分と Q3b の追加残差特徴を混ぜて判定しない"
     },
     "forbidden_threshold": "-log(1-t) = 0.2231 nats を hard Gate に使わない (INFORMATION_TO_GROWTH_DERIVATION.md §2)"
@@ -319,7 +416,8 @@
   },
 
   "auxiliary_economic_checks": {
-    "run_if": "Gate A かつ Gate B PASS",
+    "run_if": "Gate A と Gate B が **ともに PASS-PRACTICAL** の場合だけ (gate_grade.economic_checks_allowed)",
+    "not_run_if": "いずれかが PASS-SIGNAL または FAIL のとき。PASS-SIGNAL は科学的診断までで止める",
     "period": "crossfit 5 年のみ (2024/2025 は開けない)",
     "items": ["p × close odds", "shrinkage 後の正 edge 被覆", "expected hits / actual hits",
                "払戻上限を置いた ROI", "最大払戻 上位5/10/20件 除外", "払戻0.9倍", "利益集中度", "年別の方向一致"],
@@ -330,6 +428,20 @@
     "same_race_set": true,
     "arms": ["close favorite", "historical_pre_snapshot favorite", "Q1 top pick", "Q3a top pick", "Q3b top pick",
               "LEGACY-v6 top pick (参考値のみ)"]
+  },
+
+  "c2c_economic_scale_fixed_interpretation": {
+    "source": "INFORMATION_TO_GROWTH_DERIVATION.md §4 / verify_growth.py / out/derivation_checks.json",
+    "measured": {
+      "delta_0.005": {"participation_share_of_races": 0.22666666666666666,
+                       "mean_selected_horses_per_race": 0.24333333333333335,
+                       "expected_log_growth": 6.947354679900232e-06,
+                       "sign_flip_noise_sd": 0.010555339362568802},
+      "delta_0.02": {"expected_log_growth": 0.0013834307592620468},
+      "delta_0.05": {"expected_log_growth": 0.010019037942918568}
+    },
+    "fixed_interpretation": "統計的な残差情報の存在は、そのまま選択的賭けの経済価値を意味しない。特に 0.005 付近の PASS-SIGNAL / PASS-PRACTICAL は、科学的には意味があっても期待成長の規模はほぼゼロであり、候補生成へ進む根拠にはならない",
+    "caveat": "上記はすべて合成シミュレーションの前提 (π の生成分布・現金込み Kelly・価格受容・単位無限分割) に依存する数値である。実データの推定ノイズ σ と補正 drift は未測定"
   },
 
   "traps_to_avoid": [
@@ -343,14 +455,16 @@
     "情報の存在を『エッジ』と語らない",
     "被覆差が静かな選抜にならないよう共通適格集合を先に固定する",
     "in-sample な Q1 予測を係数学習に使わない",
-    "理論 MDE 式を保証値として引用しない"
+    "理論 MDE 式を保証値として引用しない",
+    "点推定が -0.005 を下回ったことだけで実務床超えを主張しない (CI95 上限で判定する)",
+    "PASS-SIGNAL を PASS-PRACTICAL と同じ意味で語らない。PASS-SIGNAL では economic checks も候補生成も行わない"
   ],
 
   "stage0_deliverables": ["PRIOR_ART_AUDIT.md", "INFORMATION_TO_GROWTH_DERIVATION.md",
                            "MARKET_DATA_PROVENANCE.md", "RACE_POPULATION_AUDIT.md", "OOF_STACKING_PLAN.md",
                            "POWER_AUDIT.md", "spec.json", "STAGE0_DRY_RUN.json",
-                           "power_audit.py", "stage0_dry_run.py", "stage0_checks.py"],
+                           "power_audit.py", "gate_grade.py", "stage0_dry_run.py", "stage0_checks.py"],
   "stage0_prohibitions": ["production 変更", "候補馬券生成", "資金配分変更", "2024/2025 開封",
                            "2019-2023 の結果評価", "ROI 本評価", "学習 (rolling OOF 作成を含む)"],
-  "stage1_entry_condition": "本 spec のレビューと凍結、および power_audit.tier2 の判定 (現状 do_not_open_2019_2023) に対する設計変更の合意。合意前に rolling OOF 学習・結果評価へ進まない"
+  "stage1_entry_condition": "本 spec のレビューと凍結。power_audit.tier2 の進行条件 (真の効果 0.005 で PASS-PRACTICAL ∪ PASS-SIGNAL >= 80%) は満たしている。Stage 1 の最初の工程は rolling OOF 作成と、log(Q1/π) 方向での検出力再確認 (結果開封前) であり、それらを通るまで 2019-2023 の結果を評価しない"
 }

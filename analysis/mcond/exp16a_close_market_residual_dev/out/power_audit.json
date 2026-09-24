@@ -1,5 +1,5 @@
 {
- "role": "検出力監査。実務床 0.005 nats/race は MDE を見る前に固定済みで、監査結果で変更しない",
+ "role": "検出力監査。実務床 0.005 nats/race は事前固定で、監査結果によって変更しない",
  "data": {
   "npz": "E:\\PyCaLiAI\\data\\_research\\mcond\\exp16a\\official_races_le2022.npz",
   "races": 22310,
@@ -15,6 +15,7 @@
   },
   "note": "2022 以前の正式 race set (障害除外・DNF なし・平地) のみ。2023 は読まない"
  },
+ "grading_implementation": "gate_grade.grade_gate (spec.json の gates と同一実装。境界テストは stage0_checks.py)",
  "tier1_ideal_local_approximation": {
   "formulas": {
    "SD(Delta_r)": "sqrt(2*Delta_bar)",
@@ -25,7 +26,7 @@
    "方向が最適 (正しい 1 次元スコア)",
    "モデル仕様が正しい (係数推定の誤差を無視)",
    "レースが独立 (meeting-day クラスタなし)",
-   "点推定を床と比べる条件・seed 判定・年ごとの方向一致条件を課さない"
+   "等級条件 (CI と床の比較・seed 判定・年方向・LOO・placebo) を課さない"
   ],
   "status": "理論的な楽観側の基準。本実験に対する厳密式・保証値ではない",
   "SD_at_floor": 0.1,
@@ -91,6 +92,7 @@
    "terminal_close_market__prefixed_residual_linear__true_0.005": {
     "base_market": "terminal_close_market",
     "direction": "prefixed_residual_linear",
+    "gate": "A",
     "injected_delta": 0.12513533249796965,
     "realized_true_improvement_nats": 0.005,
     "target_nats": 0.005,
@@ -103,59 +105,216 @@
      2021,
      2022
     ],
-    "reps": 150,
     "seeds": 5,
+    "placebo_in_simulation": "満たされたものとして扱う (placebo は合成できないため)",
     "by_seed_jitter": {
      "seed_jitter_0.0": {
-      "pass_rate_all_conditions": 0.18666666666666668,
-      "pass_rate_by_condition": {
-       "floor": 0.47333333333333333,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 0.18666666666666668
+      "reps": 400,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 8,
+       "PASS-SIGNAL": 392,
+       "FAIL": 0
       },
-      "median_estimate_nats": -0.004913640117329589,
-      "attenuation_vs_injected": 0.9827280234659178,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.0034046798048553003,
-      "median_loo_max_year_estimate": -0.004362134314626422
+      "successes_pass_practical": 8,
+      "successes_pass_practical_or_signal": 400,
+      "power_pass_practical": 0.02,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.010168386739211567,
+       0.038963415964403725
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9904877055170676,
+       1.0
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.005016324797832209,
+      "median_ci95": [
+       -0.006565250603098396,
+       -0.003500979475006183
+      ],
+      "median_worst_loo_ci_upper": -0.0028269781417204222,
+      "share_point_estimate_beyond_floor": 0.5175,
+      "attenuation_vs_injected": 1.0032649595664418
      },
      "seed_jitter_0.1": {
-      "pass_rate_all_conditions": 0.21333333333333335,
-      "pass_rate_by_condition": {
-       "floor": 0.43333333333333335,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 0.21333333333333335
+      "reps": 400,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 6,
+       "PASS-SIGNAL": 394,
+       "FAIL": 0
       },
-      "median_estimate_nats": -0.004868548457699674,
-      "attenuation_vs_injected": 0.9737096915399347,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.003353887632561877,
-      "median_loo_max_year_estimate": -0.0043703478436447184
+      "successes_pass_practical": 6,
+      "successes_pass_practical_or_signal": 400,
+      "power_pass_practical": 0.015,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.006892291879069094,
+       0.03233463376937552
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9904877055170676,
+       1.0
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.004880016894742825,
+      "median_ci95": [
+       -0.00639268475105818,
+       -0.003315168139569683
+      ],
+      "median_worst_loo_ci_upper": -0.0026797934930754812,
+      "share_point_estimate_beyond_floor": 0.4525,
+      "attenuation_vs_injected": 0.976003378948565
      },
      "seed_jitter_0.25": {
-      "pass_rate_all_conditions": 0.1,
-      "pass_rate_by_condition": {
-       "floor": 0.22,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 0.1
+      "reps": 400,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 3,
+       "PASS-SIGNAL": 397,
+       "FAIL": 0
       },
-      "median_estimate_nats": -0.004486640885203104,
-      "attenuation_vs_injected": 0.8973281770406207,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.0030258729490587897,
-      "median_loo_max_year_estimate": -0.004005748073162951
+      "successes_pass_practical": 3,
+      "successes_pass_practical_or_signal": 400,
+      "power_pass_practical": 0.0075,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.00255388917540412,
+       0.021815720890284482
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9904877055170676,
+       1.0
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.004599445202352894,
+      "median_ci95": [
+       -0.006077803421508215,
+       -0.003079937757688978
+      ],
+      "median_worst_loo_ci_upper": -0.0024382520183709473,
+      "share_point_estimate_beyond_floor": 0.315,
+      "attenuation_vs_injected": 0.9198890404705787
+     }
+    }
+   },
+   "terminal_close_market__prefixed_residual_linear__true_0.0069": {
+    "base_market": "terminal_close_market",
+    "direction": "prefixed_residual_linear",
+    "gate": "A",
+    "injected_delta": 0.14768800156106898,
+    "realized_true_improvement_nats": 0.0069000000000000025,
+    "target_nats": 0.0069,
+    "practical_floor_used": 0.005,
+    "n_races": 22310,
+    "eval_years": [
+     2018,
+     2019,
+     2020,
+     2021,
+     2022
+    ],
+    "seeds": 5,
+    "placebo_in_simulation": "満たされたものとして扱う (placebo は合成できないため)",
+    "by_seed_jitter": {
+     "seed_jitter_0.0": {
+      "reps": 400,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 230,
+       "PASS-SIGNAL": 170,
+       "FAIL": 0
+      },
+      "successes_pass_practical": 230,
+      "successes_pass_practical_or_signal": 400,
+      "power_pass_practical": 0.575,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.5260675367024519,
+       0.6225056191251082
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9904877055170676,
+       1.0
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.006941472896766027,
+      "median_ci95": [
+       -0.008716360666805607,
+       -0.00517128295746178
+      ],
+      "median_worst_loo_ci_upper": -0.004375863502366063,
+      "share_point_estimate_beyond_floor": 0.9925,
+      "attenuation_vs_injected": 1.0060105647486994
+     },
+     "seed_jitter_0.1": {
+      "reps": 400,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 186,
+       "PASS-SIGNAL": 214,
+       "FAIL": 0
+      },
+      "successes_pass_practical": 186,
+      "successes_pass_practical_or_signal": 400,
+      "power_pass_practical": 0.465,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.41668591701131785,
+       0.5139799436024876
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9904877055170676,
+       1.0
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.006749417605161295,
+      "median_ci95": [
+       -0.008498698097176252,
+       -0.0049439936890500755
+      ],
+      "median_worst_loo_ci_upper": -0.004111786590470238,
+      "share_point_estimate_beyond_floor": 0.98,
+      "attenuation_vs_injected": 0.9781764645161297
+     },
+     "seed_jitter_0.25": {
+      "reps": 400,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 134,
+       "PASS-SIGNAL": 266,
+       "FAIL": 0
+      },
+      "successes_pass_practical": 134,
+      "successes_pass_practical_or_signal": 400,
+      "power_pass_practical": 0.335,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.290509081094798,
+       0.38262997608456983
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9904877055170676,
+       1.0
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.006344524393452639,
+      "median_ci95": [
+       -0.008067331024852652,
+       -0.0046116346092967215
+      ],
+      "median_worst_loo_ci_upper": -0.0038044013652038227,
+      "share_point_estimate_beyond_floor": 0.9475,
+      "attenuation_vs_injected": 0.9194962889061796
      }
     }
    },
    "terminal_close_market__prefixed_residual_linear__true_0.0075": {
     "base_market": "terminal_close_market",
     "direction": "prefixed_residual_linear",
+    "gate": "A",
     "injected_delta": 0.1541838649036134,
     "realized_true_improvement_nats": 0.007500000000000001,
     "target_nats": 0.0075,
@@ -168,29 +327,45 @@
      2021,
      2022
     ],
-    "reps": 150,
     "seeds": 5,
+    "placebo_in_simulation": "満たされたものとして扱う (placebo は合成できないため)",
     "by_seed_jitter": {
      "seed_jitter_0.1": {
-      "pass_rate_all_conditions": 0.9666666666666667,
-      "pass_rate_by_condition": {
-       "floor": 1.0,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 0.9666666666666667
+      "reps": 200,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 146,
+       "PASS-SIGNAL": 54,
+       "FAIL": 0
       },
-      "median_estimate_nats": -0.007378834302167313,
-      "attenuation_vs_injected": 0.9838445736223084,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.005574230083923876,
-      "median_loo_max_year_estimate": -0.006691217228839471
+      "successes_pass_practical": 146,
+      "successes_pass_practical_or_signal": 200,
+      "power_pass_practical": 0.73,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.6645656474709799,
+       0.786765502261297
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9811546733310369,
+       0.9999999999999999
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.007442701674008397,
+      "median_ci95": [
+       -0.009290935506138569,
+       -0.005571269409447413
+      ],
+      "median_worst_loo_ci_upper": -0.004656774876059295,
+      "share_point_estimate_beyond_floor": 0.995,
+      "attenuation_vs_injected": 0.9923602232011196
      }
     }
    },
    "terminal_close_market__prefixed_residual_linear__true_0.01": {
     "base_market": "terminal_close_market",
     "direction": "prefixed_residual_linear",
+    "gate": "A",
     "injected_delta": 0.1789645209163082,
     "realized_true_improvement_nats": 0.009999999999999998,
     "target_nats": 0.01,
@@ -203,29 +378,45 @@
      2021,
      2022
     ],
-    "reps": 150,
     "seeds": 5,
+    "placebo_in_simulation": "満たされたものとして扱う (placebo は合成できないため)",
     "by_seed_jitter": {
      "seed_jitter_0.1": {
-      "pass_rate_all_conditions": 1.0,
-      "pass_rate_by_condition": {
-       "floor": 1.0,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 1.0
+      "reps": 200,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 199,
+       "PASS-SIGNAL": 1,
+       "FAIL": 0
       },
-      "median_estimate_nats": -0.009999332741691503,
-      "attenuation_vs_injected": 0.9999332741691502,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.007873660925907626,
-      "median_loo_max_year_estimate": -0.009324651240569111
+      "successes_pass_practical": 199,
+      "successes_pass_practical_or_signal": 200,
+      "power_pass_practical": 0.995,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.972226295303572,
+       0.9991168312941546
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9811546733310369,
+       0.9999999999999999
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.00993933983895786,
+      "median_ci95": [
+       -0.012073127503945392,
+       -0.0077466008567698245
+      ],
+      "median_worst_loo_ci_upper": -0.006779996035651105,
+      "share_point_estimate_beyond_floor": 1.0,
+      "attenuation_vs_injected": 0.993933983895786
      }
     }
    },
    "terminal_close_market__prefixed_residual_linear__true_0.015": {
     "base_market": "terminal_close_market",
     "direction": "prefixed_residual_linear",
+    "gate": "A",
     "injected_delta": 0.22116691531721466,
     "realized_true_improvement_nats": 0.015,
     "target_nats": 0.015,
@@ -238,29 +429,45 @@
      2021,
      2022
     ],
-    "reps": 150,
     "seeds": 5,
+    "placebo_in_simulation": "満たされたものとして扱う (placebo は合成できないため)",
     "by_seed_jitter": {
      "seed_jitter_0.1": {
-      "pass_rate_all_conditions": 1.0,
-      "pass_rate_by_condition": {
-       "floor": 1.0,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 1.0
+      "reps": 200,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 200,
+       "PASS-SIGNAL": 0,
+       "FAIL": 0
       },
-      "median_estimate_nats": -0.014612972253404913,
-      "attenuation_vs_injected": 0.9741981502269943,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.012022534079191233,
-      "median_loo_max_year_estimate": -0.013661846617376017
+      "successes_pass_practical": 200,
+      "successes_pass_practical_or_signal": 200,
+      "power_pass_practical": 1.0,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.9811546733310369,
+       0.9999999999999999
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9811546733310369,
+       0.9999999999999999
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.014887379600485756,
+      "median_ci95": [
+       -0.017463827152847753,
+       -0.012275083758108592
+      ],
+      "median_worst_loo_ci_upper": -0.01117479901650827,
+      "share_point_estimate_beyond_floor": 1.0,
+      "attenuation_vs_injected": 0.992491973365717
      }
     }
    },
    "terminal_close_market__prefixed_residual_linear__true_0.02": {
     "base_market": "terminal_close_market",
     "direction": "prefixed_residual_linear",
+    "gate": "A",
     "injected_delta": 0.25739749479086116,
     "realized_true_improvement_nats": 0.019999999999999997,
     "target_nats": 0.02,
@@ -273,29 +480,45 @@
      2021,
      2022
     ],
-    "reps": 150,
     "seeds": 5,
+    "placebo_in_simulation": "満たされたものとして扱う (placebo は合成できないため)",
     "by_seed_jitter": {
      "seed_jitter_0.1": {
-      "pass_rate_all_conditions": 1.0,
-      "pass_rate_by_condition": {
-       "floor": 1.0,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 1.0
+      "reps": 200,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 200,
+       "PASS-SIGNAL": 0,
+       "FAIL": 0
       },
-      "median_estimate_nats": -0.01986775862486175,
-      "attenuation_vs_injected": 0.9933879312430874,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.016772321477827572,
-      "median_loo_max_year_estimate": -0.018776798219306046
+      "successes_pass_practical": 200,
+      "successes_pass_practical_or_signal": 200,
+      "power_pass_practical": 1.0,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.9811546733310369,
+       0.9999999999999999
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9811546733310369,
+       0.9999999999999999
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.01987114670762137,
+      "median_ci95": [
+       -0.02282037021954505,
+       -0.0168605502205986
+      ],
+      "median_worst_loo_ci_upper": -0.015499076994865657,
+      "share_point_estimate_beyond_floor": 1.0,
+      "attenuation_vs_injected": 0.9935573353810685
      }
     }
    },
    "terminal_close_market__prefixed_residual_linear__true_0.03": {
     "base_market": "terminal_close_market",
     "direction": "prefixed_residual_linear",
+    "gate": "A",
     "injected_delta": 0.31962481889714367,
     "realized_true_improvement_nats": 0.029999999999999992,
     "target_nats": 0.03,
@@ -308,29 +531,45 @@
      2021,
      2022
     ],
-    "reps": 150,
     "seeds": 5,
+    "placebo_in_simulation": "満たされたものとして扱う (placebo は合成できないため)",
     "by_seed_jitter": {
      "seed_jitter_0.1": {
-      "pass_rate_all_conditions": 1.0,
-      "pass_rate_by_condition": {
-       "floor": 1.0,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 1.0
+      "reps": 200,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 200,
+       "PASS-SIGNAL": 0,
+       "FAIL": 0
       },
-      "median_estimate_nats": -0.029668402026643226,
-      "attenuation_vs_injected": 0.9889467342214409,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.025964505559323156,
-      "median_loo_max_year_estimate": -0.028132548380765614
+      "successes_pass_practical": 200,
+      "successes_pass_practical_or_signal": 200,
+      "power_pass_practical": 1.0,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.9811546733310369,
+       0.9999999999999999
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9811546733310369,
+       0.9999999999999999
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.029655338909992696,
+      "median_ci95": [
+       -0.03331481929294074,
+       -0.02609420068620253
+      ],
+      "median_worst_loo_ci_upper": -0.02448178629146045,
+      "share_point_estimate_beyond_floor": 1.0,
+      "attenuation_vs_injected": 0.9885112969997566
      }
     }
    },
    "terminal_close_market__standardized_random__true_0.005": {
     "base_market": "terminal_close_market",
     "direction": "standardized_random",
+    "gate": "A",
     "injected_delta": 0.10741091932821123,
     "realized_true_improvement_nats": 0.005,
     "target_nats": 0.005,
@@ -343,29 +582,45 @@
      2021,
      2022
     ],
-    "reps": 150,
     "seeds": 5,
+    "placebo_in_simulation": "満たされたものとして扱う (placebo は合成できないため)",
     "by_seed_jitter": {
      "seed_jitter_0.1": {
-      "pass_rate_all_conditions": 0.18666666666666668,
-      "pass_rate_by_condition": {
-       "floor": 0.37333333333333335,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 0.18666666666666668
+      "reps": 400,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 7,
+       "PASS-SIGNAL": 393,
+       "FAIL": 0
       },
-      "median_estimate_nats": -0.004778809169553505,
-      "attenuation_vs_injected": 0.955761833910701,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.003251839418434599,
-      "median_loo_max_year_estimate": -0.0042450872759603395
+      "successes_pass_practical": 7,
+      "successes_pass_practical_or_signal": 400,
+      "power_pass_practical": 0.0175,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.008502291060486266,
+       0.03567707311554369
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9904877055170676,
+       1.0
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.0049458245843734035,
+      "median_ci95": [
+       -0.00647592880976613,
+       -0.003440880121224296
+      ],
+      "median_worst_loo_ci_upper": -0.002673803541786686,
+      "share_point_estimate_beyond_floor": 0.46,
+      "attenuation_vs_injected": 0.9891649168746807
      }
     }
    },
    "historical_pre_snapshot__prefixed_residual_linear__true_0.005": {
     "base_market": "historical_pre_snapshot",
     "direction": "prefixed_residual_linear",
+    "gate": "B",
     "injected_delta": 0.11688934923128358,
     "realized_true_improvement_nats": 0.005,
     "target_nats": 0.005,
@@ -378,67 +633,48 @@
      2021,
      2022
     ],
-    "reps": 150,
     "seeds": 5,
+    "placebo_in_simulation": "Gate B の等級条件に placebo は含めない",
     "by_seed_jitter": {
      "seed_jitter_0.1": {
-      "pass_rate_all_conditions": 0.17333333333333334,
-      "pass_rate_by_condition": {
-       "floor": 0.3933333333333333,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 0.17333333333333334
+      "reps": 400,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 6,
+       "PASS-SIGNAL": 394,
+       "FAIL": 0
       },
-      "median_estimate_nats": -0.004757297527197039,
-      "attenuation_vs_injected": 0.9514595054394078,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.0032769448284860046,
-      "median_loo_max_year_estimate": -0.004320146632993492
+      "successes_pass_practical": 6,
+      "successes_pass_practical_or_signal": 400,
+      "power_pass_practical": 0.015,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.006892291879069094,
+       0.03233463376937552
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9904877055170676,
+       1.0
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.004793171460862715,
+      "median_ci95": [
+       -0.006315346044365908,
+       -0.0032974327501507843
+      ],
+      "median_worst_loo_ci_upper": -0.0026394355921604677,
+      "share_point_estimate_beyond_floor": 0.4125,
+      "attenuation_vs_injected": 0.9586342921725429
      }
     }
    },
-   "terminal_close_market__standardized_random__true_0.01": {
-    "base_market": "terminal_close_market",
-    "direction": "standardized_random",
-    "injected_delta": 0.1520471908478161,
-    "realized_true_improvement_nats": 0.009999999999999997,
-    "target_nats": 0.01,
-    "practical_floor_used": 0.005,
-    "n_races": 22310,
-    "eval_years": [
-     2018,
-     2019,
-     2020,
-     2021,
-     2022
-    ],
-    "reps": 150,
-    "seeds": 5,
-    "by_seed_jitter": {
-     "seed_jitter_0.1": {
-      "pass_rate_all_conditions": 1.0,
-      "pass_rate_by_condition": {
-       "floor": 1.0,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 1.0
-      },
-      "median_estimate_nats": -0.009739148522017436,
-      "attenuation_vs_injected": 0.9739148522017436,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.007655061314853007,
-      "median_loo_max_year_estimate": -0.00901170778843774
-     }
-    }
-   },
-   "historical_pre_snapshot__prefixed_residual_linear__true_0.01": {
+   "historical_pre_snapshot__prefixed_residual_linear__true_0.0069": {
     "base_market": "historical_pre_snapshot",
     "direction": "prefixed_residual_linear",
-    "injected_delta": 0.167063238270788,
-    "realized_true_improvement_nats": 0.01,
-    "target_nats": 0.01,
+    "gate": "B",
+    "injected_delta": 0.13791893504714015,
+    "realized_true_improvement_nats": 0.006899999999999997,
+    "target_nats": 0.0069,
     "practical_floor_used": 0.005,
     "n_races": 22310,
     "eval_years": [
@@ -448,156 +684,105 @@
      2021,
      2022
     ],
-    "reps": 150,
     "seeds": 5,
+    "placebo_in_simulation": "Gate B の等級条件に placebo は含めない",
     "by_seed_jitter": {
      "seed_jitter_0.1": {
-      "pass_rate_all_conditions": 1.0,
-      "pass_rate_by_condition": {
-       "floor": 1.0,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 1.0
+      "reps": 400,
+      "rng_seed": 20260924,
+      "counts": {
+       "PASS-PRACTICAL": 183,
+       "PASS-SIGNAL": 217,
+       "FAIL": 0
       },
-      "median_estimate_nats": -0.009757861643081886,
-      "attenuation_vs_injected": 0.9757861643081885,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.007652349291250829,
-      "median_loo_max_year_estimate": -0.009027958378609393
-     }
-    }
-   },
-   "terminal_close_market__standardized_random__true_0.02": {
-    "base_market": "terminal_close_market",
-    "direction": "standardized_random",
-    "injected_delta": 0.21543349000294143,
-    "realized_true_improvement_nats": 0.02,
-    "target_nats": 0.02,
-    "practical_floor_used": 0.005,
-    "n_races": 22310,
-    "eval_years": [
-     2018,
-     2019,
-     2020,
-     2021,
-     2022
-    ],
-    "reps": 150,
-    "seeds": 5,
-    "by_seed_jitter": {
-     "seed_jitter_0.1": {
-      "pass_rate_all_conditions": 1.0,
-      "pass_rate_by_condition": {
-       "floor": 1.0,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 1.0
-      },
-      "median_estimate_nats": -0.019890722534584307,
-      "attenuation_vs_injected": 0.9945361267292153,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.016767437993142578,
-      "median_loo_max_year_estimate": -0.018909849777378234
-     }
-    }
-   },
-   "historical_pre_snapshot__prefixed_residual_linear__true_0.02": {
-    "base_market": "historical_pre_snapshot",
-    "direction": "prefixed_residual_linear",
-    "injected_delta": 0.24004135529829623,
-    "realized_true_improvement_nats": 0.02,
-    "target_nats": 0.02,
-    "practical_floor_used": 0.005,
-    "n_races": 22310,
-    "eval_years": [
-     2018,
-     2019,
-     2020,
-     2021,
-     2022
-    ],
-    "reps": 150,
-    "seeds": 5,
-    "by_seed_jitter": {
-     "seed_jitter_0.1": {
-      "pass_rate_all_conditions": 1.0,
-      "pass_rate_by_condition": {
-       "floor": 1.0,
-       "ci": 1.0,
-       "year_dir": 1.0,
-       "seed_dir": 1.0,
-       "loo_max": 1.0
-      },
-      "median_estimate_nats": -0.019382332764476595,
-      "attenuation_vs_injected": 0.9691166382238298,
-      "floor_used": 0.005,
-      "median_ci95_upper": -0.01652918747707886,
-      "median_loo_max_year_estimate": -0.01841845446320771
+      "successes_pass_practical": 183,
+      "successes_pass_practical_or_signal": 400,
+      "power_pass_practical": 0.4575,
+      "power_pass_practical_or_signal": 1.0,
+      "wilson95_pass_practical": [
+       0.40931357921845224,
+       0.5064949658125971
+      ],
+      "wilson95_pass_practical_or_signal": [
+       0.9904877055170676,
+       1.0
+      ],
+      "fail_reason_counts": {},
+      "median_point_estimate": -0.006670301545079811,
+      "median_ci95": [
+       -0.008443991256932425,
+       -0.00488839460979696
+      ],
+      "median_worst_loo_ci_upper": -0.004093830395349111,
+      "share_point_estimate_beyond_floor": 0.9775,
+      "attenuation_vs_injected": 0.9667103688521466
      }
     }
    }
   },
-  "power_curve_primary": {
+  "progression_rule": {
+   "condition": "真の効果 0.005 で PASS-PRACTICAL ∪ PASS-SIGNAL の検出確率 >= 80%",
+   "not_required": "PASS-PRACTICAL 単独の 80% は要求しない",
+   "wilson_requirement": "推定 power だけでなく Wilson 95% CI 下限が大きく 80% を割っていないことを確認する (本実装では下限 >= 0.75 を確認条件にした)",
+   "reps_note": "反復数が少なく 100% になっている場合は反復数を増やして確認する (判定水準は 400 反復)",
+   "forbidden": "理論 MDE (tier1) だけで進行可否を決めない"
+  },
+  "verdict": {
+   "min_power_detect_at_floor": 1.0,
+   "min_wilson95_lower_at_floor": 0.9904877055170676,
+   "power_pass_practical_at_floor": {
+    "seed_jitter_0.0": 0.02,
+    "seed_jitter_0.1": 0.015,
+    "seed_jitter_0.25": 0.0075
+   },
+   "power_pass_practical_at_0_0069": {
+    "seed_jitter_0.0": 0.575,
+    "seed_jitter_0.1": 0.465,
+    "seed_jitter_0.25": 0.335
+   },
+   "result": "proceed_to_stage1_pending_review"
+  },
+  "power_curves": {
    "base": "terminal_close_market",
    "direction": "prefixed_residual_linear",
    "seed_jitter": 0.1,
    "true_effect_nats": [
     0.005,
+    0.0069,
     0.0075,
     0.01,
     0.015,
     0.02,
     0.03
    ],
-   "pass_rate": [
-    0.21333333333333335,
-    0.9666666666666667,
+   "power_pass_practical": [
+    0.015,
+    0.465,
+    0.73,
+    0.995,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "power_pass_practical_or_signal": [
+    1.0,
+    1.0,
+    1.0,
     1.0,
     1.0,
     1.0,
     1.0
    ],
-   "min_true_effect_for_80pct_pass_nats": 0.006946902654867256
+   "min_true_effect_for_80pct_pass_practical_nats": 0.008160377358490567,
+   "min_true_effect_for_80pct_detect_nats": 0.005,
+   "detect_threshold_note": "検出 (P∪S) は最小の試験水準 0.005 で既に 100% なので、80% 点は 0.005 以下である (0.005 より小さい水準は測っていない)"
   },
-  "pass_at_floor": {
-   "terminal_close_market__prefixed_residual_linear__true_0.005": {
-    "seed_jitter_0.0": 0.18666666666666668,
-    "seed_jitter_0.1": 0.21333333333333335,
-    "seed_jitter_0.25": 0.1
-   },
-   "terminal_close_market__standardized_random__true_0.005": {
-    "seed_jitter_0.1": 0.18666666666666668
-   },
-   "historical_pre_snapshot__prefixed_residual_linear__true_0.005": {
-    "seed_jitter_0.1": 0.17333333333333334
-   }
-  },
-  "verdict": {
-   "min_pass_rate_at_floor_over_all_configs": 0.1,
-   "threshold": 0.8,
-   "result": "do_not_open_2019_2023",
-   "statement": "真の効果 0.005 nats/race を注入したときの pass 確率が 80% 未満である。事前登録した規則により 2019-2023 の結果を開けず、期間・設計を見直す。"
-  },
-  "decision_rule": {
-   "official": "真の効果 = 0.005 を注入したときの pass 確率が、事前固定した全ての seed_jitter 水準で 80% 以上なら進行可",
-   "fail": "80% 未満なら 2019-2023 の結果を開けず、期間・設計を見直す",
-   "forbidden": "理論 MDE (tier1) だけで進行可否を決めない",
-   "conditions_simulated": [
-    "pooled median <= -0.005",
-    "meeting-day bootstrap CI95 上限 < 0",
-    "5 年中 4 年以上で改善方向",
-    "5 seed 中 4 以上で改善方向",
-    "最大効果年を除いた leave-one-year-out でも床と CI を満たす"
-   ],
-   "structural_note": "判定規則は『点推定が床 0.005 を超える』ことを要求する。真の効果がちょうど 0.005 の場合、点推定は 0.005 の前後に散らばるため pass 確率はレース数を増やしても原理的に 50% を超えない (係数推定による減衰があるのでさらに下がる)。したがって『0.005 で 80%』は R では達成できない。R が決めるのは『何 nats なら 80% で通るか』であり、それが min_true_effect_for_80pct_pass_nats である",
-   "known_optimism": [
-    "方向 s は正しく与えられている (Q1 の推定誤差は seed_jitter でのみ近似)",
-    "真のモデルが厳密に局所指数傾斜である",
-    "評価年は 2018-2022 で、実判定の 2019-2023 と 1 年ずれる"
-   ]
-  }
+  "known_optimism": [
+   "方向 s は正しく与えられている (Q1 の推定誤差は seed_jitter でのみ近似)",
+   "真のモデルが厳密に局所指数傾斜である",
+   "Gate A の placebo 条件は満たされたものとして扱っている",
+   "評価年は 2018-2022 で、実判定の 2019-2023 と 1 年ずれる"
+  ]
  },
  "tier3_secondary_reference_check": {
   "target": "2022 の per-race (LL(pre) − LL(close)) で理論 SD と実測 cluster SE を比較する",
@@ -608,10 +793,10 @@
   "theoretical_sd_sqrt_2mean": 0.30808478058223526,
   "sd_ratio_measured_over_theoretical": 0.878361104475283,
   "iid_se": 0.004779270171052335,
-  "meeting_day_cluster_se": 0.0046827996793767845,
-  "cluster_over_iid_se": 0.9798148068171862,
+  "meeting_day_cluster_se": 0.0046382440431533885,
+  "cluster_over_iid_se": 0.9704921205850361,
   "theoretical_iid_se_at_this_mean": 0.00544112227499803,
   "interpretation": "pre→close 差は局所傾斜ではなく大きな差 (平均 0.047 nats) なので、理論 SD 式と一致する保証はない。一致しても普遍式の証明とは扱わない"
  },
- "elapsed_sec": 741.7
+ "elapsed_sec": 1873.3
 }

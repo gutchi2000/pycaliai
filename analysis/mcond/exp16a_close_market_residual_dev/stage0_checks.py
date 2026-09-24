@@ -14,6 +14,9 @@ import sys
 import time
 from pathlib import Path
 
+from .gate_grade import (FLOOR, STATEMENTS, economic_checks_allowed,
+                         run_boundary_tests)
+
 HERE = Path(__file__).resolve().parent
 BASE = HERE.parents[2]
 OUT = HERE / "out"
@@ -23,7 +26,7 @@ JSONS = ["spec.json", "STAGE0_DRY_RUN.json"]
 OUT_JSONS = ["race_population.json", "power_audit.json", "market_provenance.json",
              "derivation_checks.json"]
 CODE = ["provenance.py", "race_population.py", "power_audit.py", "verify_growth.py",
-        "stage0_dry_run.py", "stage0_checks.py"]
+        "gate_grade.py", "stage0_dry_run.py", "stage0_checks.py"]
 
 fails: list[str] = []
 oks: list[str] = []
@@ -67,7 +70,8 @@ def main():
     for k in ["experiment", "spec_version", "purpose", "periods", "official_race_set", "arms",
               "metrics", "thresholds_fixed_before_power_audit", "power_audit", "gates",
               "five_year_judgement", "artifact_contract", "stage0_deliverables",
-              "stage1_entry_condition"]:
+              "stage1_entry_condition", "c2c_economic_scale_fixed_interpretation",
+              "auxiliary_economic_checks"]:
         check(f"spec_key:{k}", k in spec)
 
     # ---- 3. race 母集団の一致 (spec / dry-run / race_population.json / 監査文書)
@@ -133,20 +137,111 @@ def main():
     check("recovery_ratio:spec", num(th["recovery_ratio_floor"]) == 0.10)
     check("recovery_ratio:metrics", num(spec["metrics"]["recovery_ratio"]["floor"]) == 0.10)
 
-    # ---- 8. 検出力の結論が全文書で一致
-    ver = pw["tier2_empirical_cluster_power"]["verdict"]
-    check("power_verdict:spec", spec["power_audit"]["tier2_result"]["result"] == ver["result"])
-    check("power_verdict:dry",
-          dry["power_audit"]["tier2_empirical_cluster_power"]["verdict"]["result"] == ver["result"]
-          if "verdict" in dry["power_audit"]["tier2_empirical_cluster_power"] else True)
-    check("power_verdict:doc", ("do_not_open" in texts["POWER_AUDIT.md"]
-                                if ver["result"] == "do_not_open_2019_2023"
-                                else "proceed" in texts["POWER_AUDIT.md"]))
-    check("power_pass_at_floor:spec",
-          abs(num(spec["power_audit"]["tier2_result"]["min_pass_rate_at_floor"]) -
-              num(ver["min_pass_rate_at_floor_over_all_configs"])) < 1e-12)
+    # ---- 8. 検出力の結論と進行規則が全文書で一致
+    t2 = pw["tier2_empirical_cluster_power"]
+    ver, sres = t2["verdict"], spec["power_audit"]["tier2_result"]
+    check("power_verdict:spec", sres["result"] == ver["result"])
+    check("power_verdict:doc", ver["result"] in texts["POWER_AUDIT.md"])
+    check("power_progression_rule:spec",
+          "PASS-PRACTICAL ∪ PASS-SIGNAL" in json.dumps(spec["power_audit"], ensure_ascii=False) and
+          "80%" in json.dumps(spec["power_audit"], ensure_ascii=False))
+    check("power_progression_rule:not_practical_only",
+          "PASS-PRACTICAL 単独の 80% は要求しない" in
+          json.dumps(spec["power_audit"], ensure_ascii=False))
+    check("power_detect_at_floor:spec==json",
+          abs(num(min(sres["power_pass_practical_or_signal_at_floor"].values())) -
+              num(ver["min_power_detect_at_floor"])) < 1e-12)
+    check("power_practical_at_0069:spec==json",
+          sorted(num(x) for x in sres["power_pass_practical_at_0_0069"].values()) ==
+          sorted(num(x) for x in ver["power_pass_practical_at_0_0069"].values()),
+          "spec=%s json=%s" % (sres["power_pass_practical_at_0_0069"],
+                               ver["power_pass_practical_at_0_0069"]))
+    check("power_0069_not_a_floor_change",
+          "床の変更ではな" in json.dumps(sres, ensure_ascii=False))
     check("power_tier1_not_a_gate",
           "理論 MDE" in json.dumps(spec["power_audit"], ensure_ascii=False))
+    # 各 run が反復数・seed・成功回数・power・Wilson CI を記録している
+    need = ["reps", "rng_seed", "successes_pass_practical", "successes_pass_practical_or_signal",
+            "power_pass_practical", "power_pass_practical_or_signal",
+            "wilson95_pass_practical", "wilson95_pass_practical_or_signal"]
+    ok_rec = all(all(k in v for k in need)
+                 for r in t2["runs"].values() for v in r["by_seed_jitter"].values())
+    check("power_runs_record_required_fields", ok_rec)
+    dec = t2["runs"]["terminal_close_market__prefixed_residual_linear__true_0.005"]["by_seed_jitter"]
+    check("power_decision_reps>=400", all(v["reps"] >= 400 for v in dec.values()),
+          str({k: v["reps"] for k, v in dec.items()}))
+    check("power_wilson_lower_recorded",
+          all(isinstance(v["wilson95_pass_practical_or_signal"], list) for v in dec.values()))
+    check("power_wilson_lower_not_far_below_80",
+          num(ver["min_wilson95_lower_at_floor"]) >= 0.75 or ver["result"] != "proceed_to_stage1_pending_review",
+          str(ver["min_wilson95_lower_at_floor"]))
+
+    # ---- 8b. Gate の 3 等級 (境界テストと文言一致)
+    bad = run_boundary_tests()
+    check("gate_grade_boundary_tests", not bad, "; ".join(bad))
+    for g in ["A", "B"]:
+        gk = "A_close_market_residual" if g == "A" else "B_decision_time_reproducibility"
+        grades = spec["gates"][gk]["grades"]
+        check(f"gate_{g}_has_three_grades",
+              sorted(grades) == ["FAIL", "PASS-PRACTICAL", "PASS-SIGNAL"], str(sorted(grades)))
+        for grade, stmt in STATEMENTS[g].items():
+            check(f"gate_{g}_statement_matches_code:{grade}",
+                  grades[grade]["statement"] == stmt)
+    check("gate_A_practical_requires_ci_below_floor",
+          any("CI95 上限 < -0.005" in c
+              for c in spec["gates"]["A_close_market_residual"]["grades"]["PASS-PRACTICAL"]["conditions"]))
+    check("gate_A_signal_excludes_floor",
+          any("CI95 上限 < -0.005 は満たさない" in c
+              for c in spec["gates"]["A_close_market_residual"]["grades"]["PASS-SIGNAL"]["conditions"]))
+    check("point_estimate_not_a_condition",
+          "点推定 <= -0.005 を PASS-PRACTICAL の条件にしない" in spec["gates"]["point_estimate_policy"])
+    for v in ["pooled point estimate", "CI95 (下限・上限)"]:
+        check(f"reported_values_contains:{v}", v in spec["gates"]["reported_values"])
+    check("economic_checks_both_practical",
+          "ともに PASS-PRACTICAL" in spec["gates"]["economic_checks_condition"]["rule"] and
+          "ともに PASS-PRACTICAL" in spec["auxiliary_economic_checks"]["run_if"])
+    check("economic_checks_helper", economic_checks_allowed("PASS-PRACTICAL", "PASS-PRACTICAL") and
+          not economic_checks_allowed("PASS-SIGNAL", "PASS-PRACTICAL"))
+    check("grade_names_in_power_doc",
+          all(x in texts["POWER_AUDIT.md"] for x in ["PASS-PRACTICAL", "PASS-SIGNAL", "FAIL"]))
+    check("gate_grade_module_is_single_source",
+          "gate_grade" in spec["gates"]["grading_implementation"] and
+          "gate_grade" in pw.get("grading_implementation", ""))
+
+    # ---- 8c. C2c の固定解釈
+    c2c = spec["c2c_economic_scale_fixed_interpretation"]
+    dc = data["derivation_checks.json"]["C2c_calibrated_tilt_selection"]["by_target"]
+    check("c2c:participation_0.005",
+          abs(num(c2c["measured"]["delta_0.005"]["participation_share_of_races"]) -
+              num(dc["true_improvement_0.005"]["share_races_participation_condition"])) < 1e-12)
+    check("c2c:growth_0.005",
+          abs(num(c2c["measured"]["delta_0.005"]["expected_log_growth"]) -
+              num(dc["true_improvement_0.005"]["mean_growth_true_belief_cash_kelly"])) < 1e-15)
+    check("c2c:flip_0.005",
+          abs(num(c2c["measured"]["delta_0.005"]["sign_flip_noise_sd"]) -
+              num(dc["true_improvement_0.005"]["sign_flip_noise_sd"])) < 1e-12)
+    check("c2c:growth_0.02",
+          abs(num(c2c["measured"]["delta_0.02"]["expected_log_growth"]) -
+              num(dc["true_improvement_0.02"]["mean_growth_true_belief_cash_kelly"])) < 1e-15)
+    check("c2c:growth_0.05",
+          abs(num(c2c["measured"]["delta_0.05"]["expected_log_growth"]) -
+              num(dc["true_improvement_0.05"]["mean_growth_true_belief_cash_kelly"])) < 1e-15)
+    check("c2c:fixed_interpretation_wording",
+          "候補生成へ進む根拠にはならない" in c2c["fixed_interpretation"])
+    check("c2c:simulation_caveat", "合成シミュレーションの前提" in c2c["caveat"])
+
+    # ---- 8d. DNF 再正規化の prior-art 注記
+    md_pa = texts["PRIOR_ART_AUDIT.md"]
+    sens = pop["dnf_sensitivity"]["flat_dnf_races_le2022"]
+    flat_le2022 = sum(pop["per_year"][str(y)]["flat_races"] for y in range(2016, 2023))
+    overall = num(sens["diff_starter_minus_finisher"]) * sens["n_races_total"] / flat_le2022
+    check("prior_art_dnf_note_present", "DNF の市場再正規化" in md_pa)
+    check("prior_art_dnf_0.061", "0.061366" in md_pa or "0.061" in md_pa)
+    check("prior_art_dnf_overall_matches", f"{overall:.5f}"[:6] in md_pa or "0.00247" in md_pa,
+          f"{overall:.6f}")
+    check("prior_art_dnf_not_overturning",
+          "それだけで過去実験の結論を覆すものではない" in md_pa)
+    check("prior_art_dnf_exp16a_avoids", "平地・DNF なし" in md_pa)
 
     # ---- 9. crossfit 年の一致
     yrs = [2019, 2020, 2021, 2022, 2023]
@@ -219,6 +314,9 @@ def main():
     fy = spec["five_year_judgement"]
     check("five_year:loo_hard_condition",
           any("leave-one-year-out" in c for c in fy["primary_conditions"]))
+    check("five_year:grades_referenced",
+          "PASS-PRACTICAL" in json.dumps(fy, ensure_ascii=False) or
+          "gates" in json.dumps(fy, ensure_ascii=False))
     check("five_year:doc",
           "leave-one-year-out" in texts["OOF_STACKING_PLAN.md"])
     check("five_year:years", fy["years"] == yrs)
