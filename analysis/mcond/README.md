@@ -50,7 +50,7 @@ python -m analysis.mcond.serve_gap_diagnosis --regen-prec1
 ```
 中間データは `data/_research/mcond/` (gitignore)。
 
-## 実験インデックス（EXP01〜EXP16A、2026-09-25 現在）
+## 実験インデックス（EXP01〜EXP17、2026-09-25 現在）
 
 各実験の結論は**その実験の範囲に限定**される。一般化の可否は各 `spec.json` / REPORT / memory を参照。
 
@@ -73,6 +73,7 @@ python -m analysis.mcond.serve_gap_diagnosis --regen-prec1
 | EXP15 `exp15_race_as_set_dev` | Race-as-a-Set（同一レース内 interaction） | 終了（Context Gate FAIL） |
 | **EXP16A** `exp16a_close_market_residual_dev` | 締切市場に対する表特徴の残差情報 | **Stage 1 完了。Gate A FAIL / Gate B NOT_APPLICABLE**（[REPORT](exp16a_close_market_residual_dev/REPORT.md)） |
 | EXP16 | Ticket Candidate Generation | **現行確率源を使う経路は終了**（EXP16A §11。他券種・共同分布・新規情報源・局所的市場非効率へは一般化しない） |
+| EXP17 `exp17_transitive_pl_graph_dev` | 共通対戦馬 2-hop → Hodge 射影 → PL | Stage 0 で終了（E0 FAIL・被覆床 FAIL）。閉じたのは EXP12 の 1-hop 表現と、時点安全な共通対戦 2-hop 表現＋Hodge スカラー射影。curl 成分 / identity pair coupling を直接 race 確率へ運ぶ方式は未実装・未検証（ただし使用辺の 84.7% が対戦 1 回で現データでは新実験の根拠不足） |
 
 EXP16A の副次結果: 事前固定 8 残差特徴に terminal close 市場に対する再現性のある subfloor signal
 （Δ −0.0036、5/5 年・5/5 seed、placebo 超過）が残ったが**実務床 0.005 未満**のため EXP16B として追試しない。

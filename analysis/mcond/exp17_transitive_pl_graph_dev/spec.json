@@ -24,7 +24,8 @@
       "graph embedding",
       "GNN",
       "non-JRA history",
-      "other betting pools"
+      "other betting pools",
+      "curl component or identity pair coupling carried directly into race probability (not implemented / not tested; no EXP17 rescue under the freeze rule; current data insufficient to start a new experiment because 84.7% of used edges in 2022 (78.8% in 2019-2023) are single meetings)"
     ],
     "equivalence_result_stage0": {
       "E0_A": "Hodge projection output is one scalar per horse by construction; pair-specific evidence survives only in the projection residual. The race-level probability arm is therefore in the same model family as EXP02 (different estimator only). Verified synthetically: gradient input returns theta (max err 2.3e-13), pure curl input returns s=0.",
@@ -402,6 +403,14 @@
       "GNN",
       "post-result threshold changes"
     ]
+  },
+  "conclusion_scope": {
+    "revised": "2026-09-25 (wording only; gates, thresholds, population, arms, placebo, stop rules and results unchanged)",
+    "closed": "EXP12 で検証した 1-hop 表現と、EXP17 で検証した時点安全な共通対戦 2-hop 表現＋Hodge スカラー射影を閉じた",
+    "not_claimed": "対戦相手 identity 系全体を閉じたとは主張しない",
+    "s_vs_mu": "s と μ の差は、事前固定した超過分散基準では null 抽選ノイズを上回らず、追加の pair 固有状態として Stage 1 へ進める根拠にならなかった",
+    "untested": "curl 成分または identity pair coupling を直接 race 確率へ運ぶ方式は未実装・未検証 (失敗ではない)",
+    "data_limit": "使用辺の 84.7% (2022; 2019-2023 は 78.8%) が対戦 1 回であり、現データで新実験を開始する根拠は不足している"
   },
   "freeze_record": {
     "version": "0.2",

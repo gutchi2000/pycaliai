@@ -244,7 +244,7 @@ baba馬場適性収縮特徴、ELO（4アーム）、Glicko-2、レースレベ�
 
 ---
 
-## 9. ★2026-09-25 追記: EXP14 / EXP15 / EXP16A の状態と EXP16 の終了範囲
+## 9. ★2026-09-25 追記: EXP14 / EXP15 / EXP16A / EXP17 の状態と EXP16 の終了範囲
 
 本節は §1 の状態一覧に対する追記である。EXP01〜EXP13 の記述・再実験禁止項目は変更しない。
 
@@ -253,6 +253,7 @@ baba馬場適性収縮特徴、ELO（4アーム）、Glicko-2、レースレベ�
 | EXP14 レジーム分離 / MoE | Stage 0 完了・Stage 1 未着手（手動条件分割は 3 件の独立実験で既に否定済み） |
 | EXP15 Race-as-a-Set | **終了**。Context Gate FAIL（ΔLL は有意だが ΔBrier は非有意で 2 指標規則を満たさない）。R2・placebo は結果後に救済実行しない |
 | **EXP16A Close-Market Residual Information Bound** | **Stage 1 完了**。spec v0.4 を commit `e7603678` で凍結し、rolling OOF 40 fit → 実方向 power audit → 2019-2023 crossfit 評価を実施 |
+| EXP17 共通対戦馬 Hodge–PL | **Stage 0 で終了**（E0 FAIL・被覆床 FAIL）。閉じたのは EXP12 で検証した 1-hop 表現と、EXP17 で検証した時点安全な共通対戦 2-hop 表現＋Hodge スカラー射影。s と μ の差は事前固定した超過分散基準で null 抽選ノイズを上回らず、Stage 1 へ進める根拠にならなかった。curl 成分 / identity pair coupling を直接 race 確率へ運ぶ方式は未実装・未検証（使用辺の 84.7% が対戦 1 回のため現データでは新実験の根拠不足） |
 
 ### EXP16A の結論（範囲を限定した記述）
 
