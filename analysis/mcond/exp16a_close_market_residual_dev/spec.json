@@ -460,6 +460,60 @@
     "PASS-SIGNAL を PASS-PRACTICAL と同じ意味で語らない。PASS-SIGNAL では economic checks も候補生成も行わない"
   ],
 
+  "final_status": {
+    "note": "本領域は Stage 1 完了後に追加した **管理上の記録** である。凍結した gates / thresholds_fixed_before_power_audit / official_race_set / arms / placebo / seed 規約は一切変更していない",
+    "stage": "Stage 1 完了 (2026-09-25)",
+    "frozen_spec": "v0.4 (commit e7603678, frozen_at 2026-09-24 21:17:12 +0900)",
+    "stage1_commits": ["51878bb2 凍結記録", "d6e187d1 rolling OOF 40 fit + 検査",
+                        "780bf705 実方向 power audit + 進行判断", "1610d398 2019-2023 評価 + REPORT"],
+    "gate_A": {"grade": "FAIL", "delta_nats": -1.4627778057409819e-05,
+                "ci95": [-0.0002385650073099773, 0.00020739205620397494],
+                "years_improved": "2/5", "seeds_improved": "3/5",
+                "placebo_exceeded": false,
+                "statement": "単勝close市場に対するR0-cleanの残差情報を2019-2023 crossfitで検出できなかった。全券種・JRA全研究・馬券依存構造へ一般化しない"},
+    "gate_B": {"grade": "NOT_APPLICABLE",
+                "reason": "凍結 spec の run_if (Gate A が PASS-PRACTICAL または PASS-SIGNAL) を満たさない",
+                "computed_for_reference_only": "PASS-PRACTICAL (Q3a 対 pre Δ -0.010147, CI [-0.012329, -0.007962])",
+                "rule": "diagnostics の Q3a を Gate B として再等級化しない"},
+    "economic_checks": "実施しない (Gate A と Gate B がともに PASS-PRACTICAL のときだけ許可)",
+    "sealed": "2024/2025 は開封していない。ROI 評価・候補生成・資金配分最適化・production 変更も行っていない",
+    "mechanism_interpretation": {
+      "observation": "Q2a と Q3a は同じ rolling OOF Q1・同じ正式 race set・同型の条件付き結合を使用し、主要な違いは市場 offset の情報時点である。Q3a は historical_pre_snapshot 市場を改善した一方、Q2a は terminal close 市場を改善しなかった",
+      "official_wording": "within-experiment 対照では情報時点が主要な差であり、市場吸収が最も有力な解釈である。ただし、この実験だけで唯一の原因とは断定しない",
+      "prohibited_claims": ["残る説明は市場吸収だけ", "因果的に市場吸収を証明した",
+                             "λ=1 を確定した", "遅い資金の 23% を予測した"],
+      "why_not_identified": "pre と close では offset 分布・係数推定・較正難度・モデルミススペックが異なるため完全な因果同定ではない"
+    },
+    "secondary_finding_Q2b_minus_Q2a": {
+      "delta_nats": -0.003586, "ci95": [-0.004977, -0.002210],
+      "direction": "5/5 年・5/5 seed で同方向",
+      "placebo": "残差特徴のセル内置換 (20 draw) で超過。測定は Q3b の文脈で実行 (real -0.002229 < 閾値 +0.000100)。Q2b−Q2a は同じ 8 特徴・同じ置換構成",
+      "trend": "2019-2022 約 -0.0040 から 2023 約 -0.0020 へ縮小",
+      "vs_floor": "practical floor 0.005 未満",
+      "economic_scale": "C2c 上の期待成長規模は小さい",
+      "conclusion": "事前固定した8残差特徴にはterminal close市場に対する再現性のあるsubfloor signalが観測されたが、事前実務床を超えなかったため、EXP16Bとして追試しない",
+      "forbidden_wording": "Q2b が存在するため『決済価格に対する情報はゼロ』とは書かない"
+    },
+    "recovery_ratio_reading": {
+      "value": 0.23272574717965386,
+      "meaning": "historical_pre_snapshot から terminal close までの logloss gap のうち、Q3a が回収した割合",
+      "prohibited_wording": ["遅い資金の 23%", "投票量の 23%", "市場参加者の 23%",
+                              "23% の価格変動を正確に予測"],
+      "note": "情報指標上の比率であり資金フローの割合ではない。Gate B が NOT_APPLICABLE のため Gate の代わりにも使わない"
+    },
+    "exp16_termination_scope": {
+      "statement": "現在のR0-clean/Q1と事前固定8残差特徴を確率源とし、単勝市場を起点に候補生成を最適化する経路は、terminal close市場に対する実務床以上の増分情報を確認できなかったため終了する",
+      "allowed_statement": "候補生成を工夫しても確率源の不足を自動的に補えない",
+      "no_generalization": ["どの切り方でも +EV は出ない", "JRA 全券種で +EV は不可能",
+                             "他プールでも不可能", "共同着順分布や払戻依存構造にも情報がない",
+                             "新しい非表形式データでも不可能", "局所的な市場非効率が存在しない"]
+    },
+    "relation_to_exp05": "EXP16Aの結果は、EXP05で観測された判断時点の予測改善が締切までに市場へ反映され、決済価格に対する優位へ残らなかった可能性を支持する。ただしEXP05のROI不改善を単一原因で説明したものではない",
+    "forward_data": "forward の T-35/T-10/close 収集は 2026 年でも同じ時間構造が続くかを測る用途として保持する。2019-2023 の結果を forward で再確認するだけの作業は直ちに開始しない (必要観測数・最低期間・判定条件の設計が先)",
+    "final_conclusion": "EXP16Aでは、R0-cleanの集約予測はterminal close単勝市場へ実務床以上の増分情報を追加しなかった。事前固定8残差特徴には再現性のあるsubfloor signalが残ったが、実務床未満である。historical_pre_snapshotに対する改善とterminal closeに対する消失の対照は、表特徴が持つ情報の多くが締切までに市場へ反映される解釈と強く整合する。現行確率源を用いたEXP16候補生成は終了するが、他券種・共同分布・新規情報源・局所的市場非効率へは一般化しない",
+    "artifacts": ["REPORT.md", "out/eval_2019_2023.json", "out/oof_manifest.json",
+                   "out/oof_tests.json", "out/oof_build_checks.json", "out/power_audit_q1.json"]
+  },
   "stage0_deliverables": ["PRIOR_ART_AUDIT.md", "INFORMATION_TO_GROWTH_DERIVATION.md",
                            "MARKET_DATA_PROVENANCE.md", "RACE_POPULATION_AUDIT.md", "OOF_STACKING_PLAN.md",
                            "POWER_AUDIT.md", "spec.json", "STAGE0_DRY_RUN.json",

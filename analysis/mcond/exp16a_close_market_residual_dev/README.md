@@ -5,6 +5,20 @@
 
 ---
 
+## 0. 最終状態（Stage 1 完了、2026-09-25）
+
+| 項目 | 結果 |
+|---|---|
+| Gate A（Q2a 対 terminal_close_market） | **FAIL**（Δ −0.000015、CI[−0.000239, +0.000207]、年 2/5、seed 3/5、placebo 未超過） |
+| Gate B（Q3a 対 historical_pre_snapshot） | **NOT_APPLICABLE**（凍結 spec の run_if 未充足。参考計算値 PASS-PRACTICAL は Gate として扱わない） |
+| economic checks | 実施しない |
+| secondary finding | Q2b−Q2a = −0.0036（5/5 年・5/5 seed・placebo 超過）だが **実務床 0.005 未満** → EXP16B として追試しない |
+| EXP16 候補生成 | 現行確率源（R0-clean / Q1 ＋ 事前固定 8 残差特徴）を使う経路は**終了** |
+| 2024/2025 | **未開封**。ROI 評価・候補生成・配分最適化・production 変更も未実施 |
+
+正式な最終結論と、機構解釈・recovery_ratio の読み方・一般化してはいけない範囲は
+[REPORT.md](REPORT.md) §9-§15 と `spec.json` の `final_status` を参照する。
+
 ## 1. 凍結記録（FREEZE RECORD）
 
 | 項目 | 値 |
@@ -30,6 +44,7 @@
 | 2026-09-24 21:2x | Stage 1-1: rolling OOF 40 fit と検査を追加（`build_oof.py` / `oof_tests.py`、`race_population.py` に official race artifact の保存を追加） | なし（母集団規則・基準値は不変） |
 | 2026-09-24 21:4x | Stage 1-2: 実方向 `log(Q1/π)` の検出力監査を追加（`power_audit_q1.py`） | なし（判定規則・実務床・等級は spec v0.4 のまま） |
 | 2026-09-24 21:5x | Stage 1-3: 2019-2023 評価と REPORT を追加（`evaluate.py` / `REPORT.md`） | なし（Gate 判定は `gate_grade.grade_gate` のみ） |
+| 2026-09-25 | 最終文書化: REPORT に機構解釈・secondary finding・EXP16 終了範囲・最終結論を追記。`spec.json` は **`final_status` 領域のみ**追加（凍結 Gate 本体・閾値・母集団・arm・placebo・seed 規約は未変更、git diff で検証済み） | なし |
 
 ---
 

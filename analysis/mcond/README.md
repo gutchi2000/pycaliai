@@ -50,6 +50,33 @@ python -m analysis.mcond.serve_gap_diagnosis --regen-prec1
 ```
 中間データは `data/_research/mcond/` (gitignore)。
 
+## 実験インデックス（EXP01〜EXP16A、2026-09-25 現在）
+
+各実験の結論は**その実験の範囲に限定**される。一般化の可否は各 `spec.json` / REPORT / memory を参照。
+
+| 実験 | 仮説 | 状態 |
+|---|---|---|
+| EXP01 `exp01_choice_dev` | 陣営選択の逸脱 | 終了（固有価値なし・経済価値なし） |
+| EXP02 | 動的対戦能力 | 終了（市場込みで主判定 PASS だが利益差なし。効果の多くは出走回数・休養日数） |
+| EXP03 | 恒常能力/短期状態の分離 | 終了（Gate2 主判定 FAIL） |
+| EXP04 | 環境不変情報での選別 | 終了（フィルタが有害） |
+| EXP05 | 市場残差（判断時点） | 終了（logloss 改善は頑健に実在、ROI 非有意）／EXP05-F は前向き観測を継続 |
+| EXP06 | Jev / direct decision | 終了（3 分類すべて FAIL） |
+| EXP07 | ロバストポートフォリオ | 終了（Gate1 FAIL） |
+| EXP08 | 同日トラック状態 | 終了（Gate2A/2B FAIL） |
+| EXP09 | Conformal abstention | 終了（abstention 固有の価値なし） |
+| EXP10 | downside risk | 終了（結論範囲を厳密限定） |
+| EXP11 | 階層ベイズ | 終了（母集団選択バイアスで仮説撤回） |
+| EXP12 | 対戦相手ネットワーク | 終了（placebo 決定的 FAIL） |
+| EXP13 | 出走後の中止・非完走リスク | 終了（Gate0 でデータ不足。性能 FAIL ではない） |
+| EXP14 `exp14_*` | レジーム分離 / MoE | Stage 0 完了・Stage 1 未着手 |
+| EXP15 `exp15_race_as_set_dev` | Race-as-a-Set（同一レース内 interaction） | 終了（Context Gate FAIL） |
+| **EXP16A** `exp16a_close_market_residual_dev` | 締切市場に対する表特徴の残差情報 | **Stage 1 完了。Gate A FAIL / Gate B NOT_APPLICABLE**（[REPORT](exp16a_close_market_residual_dev/REPORT.md)） |
+| EXP16 | Ticket Candidate Generation | **現行確率源を使う経路は終了**（EXP16A §11。他券種・共同分布・新規情報源・局所的市場非効率へは一般化しない） |
+
+EXP16A の副次結果: 事前固定 8 残差特徴に terminal close 市場に対する再現性のある subfloor signal
+（Δ −0.0036、5/5 年・5/5 seed、placebo 超過）が残ったが**実務床 0.005 未満**のため EXP16B として追試しない。
+
 ## 次の実験を足すとき
 1. `analysis/mcond/expNN_*/` を作り、`spec.json` に仮説・split・特徴・モデル・合否条件を書いて**評価前にコミット**
 2. 特徴は `rid16, ban` で `base.parquet` に結合できる形で出す
