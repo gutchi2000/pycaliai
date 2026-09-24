@@ -1,0 +1,222 @@
+{
+  "experiment_id": "EXP17",
+  "slug": "dynamic_common_opponent_hodge_pl",
+  "title": "Dynamic Common-Opponent Hodge-Plackett-Luce",
+  "version": "0.1-draft",
+  "date": "2026-09-24",
+  "status": "review_required_not_frozen",
+  "production_impact": "none",
+  "primary_hypothesis": "For current-race horse pairs that have never met, shared-opponent paths contain pair-specific time-safe information beyond scalar dynamic PL, R0-clean, and the terminal close win market.",
+  "prior_art_boundary": {
+    "already_tested_do_not_repeat": [
+      "static and sequential ELO",
+      "Glicko-2 pair decomposition",
+      "EXP02 scalar dynamic Bayesian Plackett-Luce",
+      "EXP12 one-hop opponent identity summaries",
+      "field-strength scalar averages"
+    ],
+    "equivalence_warning": "A single scalar theta per horse with logistic pair probabilities is already implicit in EXP02 and is not a new experiment.",
+    "new_component": "Keep common-opponent-derived d_ij as a target-pair-specific antisymmetric matrix until weighted Hodge projection at prediction time.",
+    "unverified_not_failed": [
+      "PageRank",
+      "paths longer than two hops",
+      "graph embedding",
+      "GNN",
+      "non-JRA history",
+      "other betting pools"
+    ]
+  },
+  "population": {
+    "horse_key": "血統登録番号 as string",
+    "horse_name_join": "forbidden",
+    "race_rules": [
+      "JRA flat only",
+      "exclude JV track code 51-59",
+      "one unique official winner",
+      "at least 5 valid starters",
+      "exclude scratches and pre-start exclusions",
+      "exclude DNF-containing races from formal race-level Gates",
+      "omit tied pairs from pairwise labels"
+    ],
+    "dnf_caveat": "Result-conditioned DNF exclusion is temporary until a full-starter scoring contract exists."
+  },
+  "time_safety": {
+    "snapshot": "start_of_calendar_day",
+    "history_cutoff": "strictly before target day",
+    "same_day_results": "not used",
+    "update": "batch after final race of the day",
+    "primary_history_scope": "JRA flat races",
+    "required_invariants": [
+      "future deletion bitwise invariance",
+      "target result mutation invariance",
+      "common opponent post-target results excluded",
+      "same-day snapshot identity",
+      "horse-ID collision fail closed",
+      "no name recovery",
+      "pair antisymmetry within 1e-12",
+      "row and horse ordering invariance",
+      "race probability sum within 1e-12"
+    ]
+  },
+  "pair_model": {
+    "primary_sample": "never-met current-race pairs with at least one eligible shared opponent",
+    "historical_probability": "p_hc=(W_hc+alpha)/(W_hc+L_hc+2*alpha)",
+    "pair_log_odds": "ell_hc=logit(clip(p_hc,eps,1-eps))",
+    "common_opponent_contribution": "d_ij_c=ell_ic-ell_jc",
+    "aggregate": "weighted mean over shared opponents using frozen reliability, recency, and condition-similarity weights",
+    "missing_rule": "missing evidence remains missing and is not a zero observation",
+    "direct_meetings": "reported separately and excluded from the primary mechanism sample"
+  },
+  "projection": {
+    "method": "weighted Hodge least squares",
+    "objective": "sum w_ij*(s_i-s_j-d_ij)^2 + lambda*sum s_i^2",
+    "constraint": "sum scores equals zero within each connected component",
+    "uncovered_horse": "score zero plus graph_uncovered flag",
+    "race_probability": "softmax(s/tau)",
+    "audit": "retain full pair matrix"
+  },
+  "stage0": {
+    "outcomes_must_remain_closed": true,
+    "equivalence_hard_stop": [
+      "algebraically reduces to one scalar rating per horse",
+      "label-free 2022 race scores are an affine transform of EXP02 ability within frozen tolerance",
+      "no target-pair-specific state survives projection"
+    ],
+    "coverage_metrics": [
+      "unordered current-race pairs",
+      "directly met pairs",
+      "never-met pairs",
+      "never-met pairs with shared opponents",
+      "effective shared-opponent count",
+      "covered horses and races",
+      "component counts and largest-component share",
+      "edge age and condition-match distribution",
+      "debut and low-history coverage"
+    ],
+    "provisional_coverage_floors_for_review": {
+      "never_met_pair_common_opponent_rate": 0.5,
+      "race_rate_with_half_pairs_covered": 0.8,
+      "non_debut_starter_graph_membership": 0.9,
+      "major_band_relative_coverage_floor": 0.5
+    },
+    "power": {
+      "inference_unit": "meeting day",
+      "method": "effect injection on label-free historical race structures",
+      "minimum_power": 0.8,
+      "report": [
+        "simulation count",
+        "seeds",
+        "success count",
+        "power",
+        "Wilson interval"
+      ],
+      "race_level_practical_floor_nats": 0.005,
+      "mechanism_floor": "must be fixed after Stage 0 power audit and before 2019-2023 outcome evaluation"
+    }
+  },
+  "rolling_protocol": {
+    "development": [2019, 2020, 2021, 2022, 2023],
+    "sealed": [2024, 2025],
+    "year_y_rules": [
+      "graph uses races strictly before each target day",
+      "all learned parameters use years before Y",
+      "no 2022 learned value is applied retrospectively to 2019-2021"
+    ],
+    "inference": "year-stratified meeting-day bootstrap",
+    "seeds": 5,
+    "primary_seed_summary": "median",
+    "seed_direction_requirement": "4 of 5",
+    "holdout_caveat": "retrospective crossfit, not a pristine external holdout"
+  },
+  "arms": {
+    "M0_CLOSE": "de-vig terminal close win market",
+    "M1_DYNPL": "existing EXP02-style scalar dynamic PL",
+    "M2_R0": "rolling OOF R0-clean 111-column model",
+    "M3_BASE": "close offset plus M1, M2, and graph structural/confound controls without path value",
+    "M4_PATH": "close offset plus projected common-opponent path score only",
+    "M5_FULL": "M3 plus projected path score and preregistered path uncertainty terms",
+    "P_PLACEBO": "M5 with degree-age-experience-preserving graph rewiring",
+    "PRE_FULL": "historical_pre_snapshot offset plus M5 non-market terms"
+  },
+  "baseline_controls": [
+    "career starts",
+    "days since last start",
+    "horse graph degree",
+    "pair and common-opponent coverage",
+    "component size",
+    "missingness flags",
+    "EXP02 ability mean and uncertainty",
+    "R0-clean probability",
+    "market entropy",
+    "field size"
+  ],
+  "placebos": {
+    "draws_minimum": 200,
+    "primary": "degree-preserving opponent-identity rewiring within frozen age, career-start, surface, calendar, and field-size cells",
+    "direction_null": "randomly reverse eligible edge directions while preserving endpoints",
+    "identity_free": "replace path values with degree, experience, recency, and component-size functions only",
+    "pass_rule": "real improvement must exceed each preregistered placebo 97.5th percentile"
+  },
+  "gates": {
+    "G1_mechanism": {
+      "comparison": "PATH pair probability minus M1_DYNPL pair probability on never-met pairs with common opponents",
+      "metric": "binary pairwise logloss aggregated within race then meeting day",
+      "requirements": [
+        "CI95 upper below zero",
+        "4 of 5 years improve",
+        "4 of 5 seeds improve",
+        "all leave-one-year-out CI95 upper below zero",
+        "real effect beats all placebo 97.5th percentiles",
+        "effect meets frozen Stage 0 mechanism floor"
+      ],
+      "fail_action": "stop without PageRank, longer paths, embedding, or GNN rescue"
+    },
+    "G2_terminal_close_residual": {
+      "run_if": "G1 passes",
+      "comparison": "M5_FULL minus M3_BASE",
+      "metric": "race-level categorical winner logloss",
+      "practical_floor_nats": 0.005,
+      "grades": {
+        "PASS-PRACTICAL": "CI95 upper below -0.005 plus all stability and placebo rules",
+        "PASS-SIGNAL": "CI95 upper below zero but not below -0.005 plus all stability and placebo rules",
+        "FAIL": "CI includes zero or any stability/placebo rule fails"
+      },
+      "progression": "only PASS-PRACTICAL may request a separately reviewed practical stage"
+    },
+    "G3_time_of_information": {
+      "arm": "PRE_FULL",
+      "cannot_override_G2": true,
+      "interpretation": "pre-market improvement without terminal-close residual is timing information, not demonstrated tradable value"
+    }
+  },
+  "stop_rules": [
+    "equivalence to EXP02 scalar ability",
+    "coverage below frozen floors",
+    "future-information or deletion-invariance violation",
+    "mechanism power below 80 percent",
+    "G1 fails",
+    "G2 is FAIL or PASS-SIGNAL",
+    "placebo explains improvement",
+    "degree, career starts, rest days, or missingness explains improvement",
+    "result depends on one year or one small subgroup"
+  ],
+  "prohibitions": [
+    "2024/2025 outcome evaluation",
+    "ROI or payout evaluation before practical terminal-close pass and new review",
+    "ticket candidate generation",
+    "stake optimization",
+    "production integration",
+    "post-result rescue with PageRank, longer paths, embedding, GNN, new lookbacks, or new populations"
+  ],
+  "required_stage0_artifacts": [
+    "PRIOR_ART_EQUIVALENCE_AUDIT.md",
+    "GRAPH_DATA_AUDIT.md",
+    "GRAPH_COVERAGE.json",
+    "POWER_AUDIT.md",
+    "machine-readable power output",
+    "COMPUTE_DRY_RUN.json",
+    "synthetic invariant tests",
+    "final numbered spec.json"
+  ],
+  "freeze_policy": "After review, record version and commit. Any later change requires a new version and pre-result commit with reason and affected fields."
+}
