@@ -1,0 +1,207 @@
+{
+ "role": "実方向 log(Q1/π) での検出力監査 (Stage 1-2)。判定規則・実務床・等級は spec v0.4 のまま",
+ "created": "2026-09-24 21:34:24 +0900",
+ "data": {
+  "races": 22310,
+  "horses": 312489,
+  "years": [
+   2016,
+   2017,
+   2018,
+   2019,
+   2020,
+   2021,
+   2022
+  ],
+  "note": "2022 以前の正式 race set のみ。2023 は読まない"
+ },
+ "direction_source": {
+  "artifact": "data/_research/mcond/exp16a/q1_official.npz",
+  "definition": "log(Q1_seed / π) をレース内標準化",
+  "truth_direction": "5 seed の標準化方向の平均を再標準化した consensus",
+  "seed_fits": "各 seed は自分の実測方向で fit する (合成 jitter を使わない)"
+ },
+ "measured_seed_spread_close": {
+  "seeds": [
+   20260923,
+   20260924,
+   20260925,
+   20260926,
+   20260927
+  ],
+  "mean_per_horse_sd_across_seeds": 0.17513895629377402,
+  "median_per_horse_sd_across_seeds": 0.1606038222793996,
+  "mean_pairwise_correlation": 0.9613685411756435,
+  "mean_corr_seed_vs_consensus": 0.9843657454932098,
+  "note": "seed_jitter の合成値ではなく実測の seed 間ばらつき"
+ },
+ "measured_seed_spread_pre": {
+  "seeds": [
+   20260923,
+   20260924,
+   20260925,
+   20260926,
+   20260927
+  ],
+  "mean_per_horse_sd_across_seeds": 0.1801985084911627,
+  "median_per_horse_sd_across_seeds": 0.16442533324948583,
+  "mean_pairwise_correlation": 0.9593158864659366,
+  "mean_corr_seed_vs_consensus": 0.9835252534551098,
+  "note": "seed_jitter の合成値ではなく実測の seed 間ばらつき"
+ },
+ "grading_implementation": "gate_grade.grade_gate (spec v0.4 と同一)",
+ "runs": {
+  "terminal_close_market__q1_log_ratio__true_0.005": {
+   "base_market": "terminal_close_market",
+   "direction": "q1_log_ratio (real 5 seeds)",
+   "gate": "A",
+   "target_nats": 0.005,
+   "practical_floor_used": 0.005,
+   "injected_delta": 0.1222441324069313,
+   "realized_true_improvement_nats": 0.004999999999999998,
+   "reps": 400,
+   "rng_seed": 20260924,
+   "seeds": 5,
+   "n_races": 22310,
+   "eval_years": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022
+   ],
+   "counts": {
+    "PASS-PRACTICAL": 3,
+    "PASS-SIGNAL": 397,
+    "FAIL": 0
+   },
+   "successes_pass_practical": 3,
+   "successes_pass_practical_or_signal": 400,
+   "power_pass_practical": 0.0075,
+   "power_pass_practical_or_signal": 1.0,
+   "wilson95_pass_practical": [
+    0.00255388917540412,
+    0.021815720890284482
+   ],
+   "wilson95_pass_practical_or_signal": [
+    0.9904877055170676,
+    1.0
+   ],
+   "fail_reason_counts": {},
+   "median_point_estimate": -0.004630715473227725,
+   "median_ci95": [
+    -0.006167562221573928,
+    -0.0031646512326534903
+   ],
+   "median_worst_loo_ci_upper": -0.0024738345350368623,
+   "share_point_estimate_beyond_floor": 0.3125,
+   "attenuation_vs_injected": 0.926143094645545,
+   "placebo_in_simulation": "満たされたものとして扱う (placebo は合成できない)"
+  },
+  "terminal_close_market__q1_log_ratio__true_0.008": {
+   "base_market": "terminal_close_market",
+   "direction": "q1_log_ratio (real 5 seeds)",
+   "gate": "A",
+   "target_nats": 0.008,
+   "practical_floor_used": 0.005,
+   "injected_delta": 0.15428375620592266,
+   "realized_true_improvement_nats": 0.008,
+   "reps": 400,
+   "rng_seed": 20260924,
+   "seeds": 5,
+   "n_races": 22310,
+   "eval_years": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022
+   ],
+   "counts": {
+    "PASS-PRACTICAL": 293,
+    "PASS-SIGNAL": 107,
+    "FAIL": 0
+   },
+   "successes_pass_practical": 293,
+   "successes_pass_practical_or_signal": 400,
+   "power_pass_practical": 0.7325,
+   "power_pass_practical_or_signal": 1.0,
+   "wilson95_pass_practical": [
+    0.6870591668796819,
+    0.7735176161857544
+   ],
+   "wilson95_pass_practical_or_signal": [
+    0.9904877055170676,
+    1.0
+   ],
+   "fail_reason_counts": {},
+   "median_point_estimate": -0.007475511681853142,
+   "median_ci95": [
+    -0.009412024543590452,
+    -0.005589075953852312
+   ],
+   "median_worst_loo_ci_upper": -0.004747365408690322,
+   "share_point_estimate_beyond_floor": 1.0,
+   "attenuation_vs_injected": 0.9344389602316427,
+   "placebo_in_simulation": "満たされたものとして扱う (placebo は合成できない)"
+  },
+  "historical_pre_snapshot__q1_log_ratio__true_0.005": {
+   "base_market": "historical_pre_snapshot",
+   "direction": "q1_log_ratio (real 5 seeds)",
+   "gate": "B",
+   "target_nats": 0.005,
+   "practical_floor_used": 0.005,
+   "injected_delta": 0.10916074995283837,
+   "realized_true_improvement_nats": 0.005,
+   "reps": 400,
+   "rng_seed": 20260924,
+   "seeds": 5,
+   "n_races": 22310,
+   "eval_years": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022
+   ],
+   "counts": {
+    "PASS-PRACTICAL": 2,
+    "PASS-SIGNAL": 398,
+    "FAIL": 0
+   },
+   "successes_pass_practical": 2,
+   "successes_pass_practical_or_signal": 400,
+   "power_pass_practical": 0.005,
+   "power_pass_practical_or_signal": 1.0,
+   "wilson95_pass_practical": [
+    0.0013722529423762734,
+    0.01804491859572699
+   ],
+   "wilson95_pass_practical_or_signal": [
+    0.9904877055170676,
+    1.0
+   ],
+   "fail_reason_counts": {},
+   "median_point_estimate": -0.004727727918250189,
+   "median_ci95": [
+    -0.006233100800905357,
+    -0.003207923777456206
+   ],
+   "median_worst_loo_ci_upper": -0.0025816043842337086,
+   "share_point_estimate_beyond_floor": 0.38,
+   "attenuation_vs_injected": 0.9455455836500377,
+   "placebo_in_simulation": "Gate B の等級条件に placebo は含めない"
+  }
+ },
+ "verdict": {
+  "progression_rule": "真の効果 0.005 で PASS-PRACTICAL ∪ PASS-SIGNAL の検出確率 >= 80% (PASS-PRACTICAL 単独の 80% は要求しない)",
+  "power_pass_practical_or_signal_at_floor": 1.0,
+  "wilson95_lower_at_floor": 0.9904877055170676,
+  "power_pass_practical_at_floor": 0.0075,
+  "reps": 400,
+  "rng_seed": 20260924,
+  "result": "proceed_to_2019_2023_evaluation",
+  "note": "停止時も閾値・期間・Gate は変更しない"
+ },
+ "elapsed_sec": 388.3
+}
