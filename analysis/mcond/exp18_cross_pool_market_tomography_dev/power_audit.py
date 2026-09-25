@@ -38,8 +38,13 @@ SEED = 20260925                    # 実行前に固定
 TAKEOUT = 0.225
 ENTRY = 1.0 / (1.0 - TAKEOUT)
 GROWTH_THRESHOLD = 1e-4
-DELTA_GRID = [0.0005, 0.001, 0.002, 0.003, 0.005, 0.0075, 0.01, 0.015, 0.02, 0.03, 0.05, 0.075,
-              0.1, 0.15, 0.2]
+DELTA_GRID_INITIAL = [0.0005, 0.001, 0.002, 0.003, 0.005, 0.0075, 0.01, 0.015, 0.02, 0.03, 0.05, 0.075,
+                      0.1, 0.15, 0.2]
+# 延長 (2026-09-25): 初期格子 (上限 0.2) では成長が全点で負となり floor が定まらなかった
+# (out/power_diagnostics.json D2: Δ=1.0 で正転)。floor の定義 (成長 >= 1e-4 となる最小 Δ) は変えず、
+# 探索範囲だけを広げる。結果ラベルは使っていない。初期格子の点の乱数消費を変えないよう末尾に追加する
+DELTA_GRID_EXTENSION = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.25, 1.5]
+DELTA_GRID = DELTA_GRID_INITIAL + DELTA_GRID_EXTENSION
 NOISE_DRAWS = 3
 REPS_POWER = 400
 REPS_CURVE = 200
@@ -249,6 +254,11 @@ def power_at(delta, logm, logq, s, year, day, off, rng, reps):
 
 
 def main():
+    import sys
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except Exception:
+        pass
     t0 = time.time()
     anc = json.loads((OUT / "anchor_le2018.json").read_text(encoding="utf-8"))
     gamma = anc["dryrun_fits_terminal_le2018"]["gamma_powerlaw_devig"]
@@ -296,6 +306,10 @@ def main():
                    "inference_unit": "暦日 (YYYYMMDD) cluster、年層化 bootstrap",
                    "bootstrap_reps": BOOT},
         "growth_curve": {str(k): v for k, v in curve.items()},
+        "delta_grid_initial": DELTA_GRID_INITIAL,
+        "delta_grid_extension": DELTA_GRID_EXTENSION,
+        "floor_within_initial_grid": floor_from_curve({k: v for k, v in curve.items()
+                                                       if k in DELTA_GRID_INITIAL}),
         "practical_floor_nats": floor,
         "power": power,
         "required_power": REQUIRED_POWER,

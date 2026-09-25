@@ -1,0 +1,107 @@
+{
+ "role": "power_audit の補助診断 (記述用)。floor・Gate・生成構造の定義は変えない。結果ラベル不使用",
+ "seed": 20260926,
+ "seed_fixed_before_run": true,
+ "D1_noise_free_kelly_control": {
+  "0.001": {
+   "eps": 0.07302912295873284,
+   "noise_sd": 0.0,
+   "mean_growth_per_race": 4.198566515960697e-09,
+   "min_over_draws": 4.198566515960697e-09,
+   "share_races_entered": 0.005647680845950492
+  },
+  "0.005": {
+   "eps": 0.16363381332228405,
+   "noise_sd": 0.0,
+   "mean_growth_per_race": 3.623391016101267e-05,
+   "min_over_draws": 3.623391016101267e-05,
+   "share_races_entered": 0.6737563085796684
+  },
+  "0.02": {
+   "eps": 0.32779572052515926,
+   "noise_sd": 0.0,
+   "mean_growth_per_race": 0.0016929059672686497,
+   "min_over_draws": 0.0016929059672686497,
+   "share_races_entered": 0.97380437394857
+  },
+  "0.05": {
+   "eps": 0.5177751818318861,
+   "noise_sd": 0.0,
+   "mean_growth_per_race": 0.010514978450922778,
+   "min_over_draws": 0.010514978450922778,
+   "share_races_entered": 0.9966354241768806
+  },
+  "0.1": {
+   "eps": 0.7293011277994905,
+   "noise_sd": 0.0,
+   "mean_growth_per_race": 0.03411515770687647,
+   "min_over_draws": 0.03411515770687647,
+   "share_races_entered": 0.9993991828887286
+  },
+  "0.2": {
+   "eps": 1.021816380547798,
+   "noise_sd": 0.0,
+   "mean_growth_per_race": 0.0977612217156361,
+   "min_over_draws": 0.0977612217156361,
+   "share_races_entered": 0.9999399182888729
+  }
+ },
+ "D1_all_nonnegative": true,
+ "D2_declared_convention_extended_grid": {
+  "0.3": {
+   "eps": 1.240613283379505,
+   "noise_sd": 0.7745966692414834,
+   "mean_growth_per_race": -0.04234779642639707,
+   "min_over_draws": -0.04264398139173212,
+   "share_races_entered": 0.9999799727629576
+  },
+  "0.5": {
+   "eps": 1.5797094935543825,
+   "noise_sd": 1.0,
+   "mean_growth_per_race": -0.0410677811608333,
+   "min_over_draws": -0.041833221785602004,
+   "share_races_entered": 1.0
+  },
+  "1.0": {
+   "eps": 2.2036234123643794,
+   "noise_sd": 1.4142135623730951,
+   "mean_growth_per_race": 0.019982414027578638,
+   "min_over_draws": 0.016549384968979983,
+   "share_races_entered": 0.9999799727629576
+  }
+ },
+ "D2_all_negative": false,
+ "D3_expected_logloss_gain_of_estimate": {
+  "0.001": {
+   "KL_p_m": 0.0010000000000000002,
+   "KL_p_qest": 0.0009290285226028115,
+   "expected_LL_gain_of_qest_over_m": 7.09714773971887e-05
+  },
+  "0.005": {
+   "KL_p_m": 0.004999999999999999,
+   "KL_p_qest": 0.004680761315044372,
+   "expected_LL_gain_of_qest_over_m": 0.0003192386849556273
+  },
+  "0.02": {
+   "KL_p_m": 0.02,
+   "KL_p_qest": 0.01856468101095025,
+   "expected_LL_gain_of_qest_over_m": 0.0014353189890497497
+  },
+  "0.05": {
+   "KL_p_m": 0.050000000000000024,
+   "KL_p_qest": 0.04632699025676358,
+   "expected_LL_gain_of_qest_over_m": 0.0036730097432364425
+  },
+  "0.1": {
+   "KL_p_m": 0.09999999999999998,
+   "KL_p_qest": 0.09246844540268875,
+   "expected_LL_gain_of_qest_over_m": 0.007531554597311224
+  },
+  "0.2": {
+   "KL_p_m": 0.2,
+   "KL_p_qest": 0.18336190705579494,
+   "expected_LL_gain_of_qest_over_m": 0.01663809294420507
+  }
+ },
+ "elapsed_sec": 136.2
+}
