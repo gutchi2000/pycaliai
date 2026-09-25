@@ -184,14 +184,45 @@ def load_outcomes(max_year: int = RESULT_MAX_YEAR) -> pd.DataFrame:
     return m[["rid16", "year", "ban", "jyun"]]
 
 
+STAGE1_MAX_YEAR = 2023
+STAGE1_REQUIRED_VERSION = "0.5-final"
+
+
+def load_outcomes_stage1() -> pd.DataFrame:
+    """Stage 1 専用の結果 loader (2013-2023)。spec.json が v0.5-final に凍結済みでなければ拒否する。
+    2024/2025 は読み込み直後に破棄し、残っていないことを assert する"""
+    import json
+    spec = json.loads((HERE / "spec.json").read_text(encoding="utf-8"))
+    assert spec.get("version") == STAGE1_REQUIRED_VERSION, \
+        f"Stage 1 結果 loader は spec v{STAGE1_REQUIRED_VERSION} 凍結後だけ (現在 {spec.get('version')})"
+    fl = spec["stage0"]["power"]["practical_floor_nats"]
+    assert isinstance(fl, (int, float)) and fl > 0, "practical_floor_nats が数値でない"
+    parts = []
+    for ch in pd.read_csv(MASTER, encoding="utf-8-sig", dtype=str,
+                          usecols=["日付", "レースID(新/馬番無)", "馬番", "着順"], chunksize=200_000):
+        d = pd.to_numeric(ch["日付"], errors="coerce")
+        ch = ch[(d // 10000 < SEALED_FROM_YEAR) & (d // 10000 <= STAGE1_MAX_YEAR) & (d // 10000 >= 2013)]
+        if len(ch):
+            parts.append(ch)
+    m = pd.concat(parts, ignore_index=True)
+    m["rid16"] = rid16_of(m["レースID(新/馬番無)"])
+    m["year"] = pd.to_numeric(m["日付"], errors="coerce").astype(int) // 10000
+    assert int(m["year"].max()) <= STAGE1_MAX_YEAR < SEALED_FROM_YEAR, "2024/2025 が混入"
+    m["ban"] = pd.to_numeric(m["馬番"], errors="coerce").astype(int)
+    m["jyun"] = pd.to_numeric(m["着順"], errors="coerce")
+    return m[["rid16", "year", "ban", "jyun"]]
+
+
 def dnf_horses(starters, finishers) -> list[int]:
     """DNF = terminal starter (単勝 > 1.0) のうち finisher 行が無い馬 (EXP16A と同定義)"""
     return sorted(set(int(x) for x in starters) - set(int(x) for x in finishers))
 
 
-def realized_top2(outc: pd.DataFrame) -> pd.DataFrame:
-    """race ごとの realized 順不同 top2・finisher 集合・同着フラグ。<= 2018 のみ"""
-    assert int(outc["year"].max()) <= RESULT_MAX_YEAR
+def realized_top2(outc: pd.DataFrame, max_year: int = RESULT_MAX_YEAR) -> pd.DataFrame:
+    """race ごとの realized 順不同 top2・finisher 集合・同着フラグ。既定は <= 2018 のみ
+    (Stage 1 は load_outcomes_stage1 の出力に max_year=STAGE1_MAX_YEAR で使う)"""
+    assert max_year in (RESULT_MAX_YEAR, STAGE1_MAX_YEAR)
+    assert int(outc["year"].max()) <= max_year
     rows = []
     for rid, g in outc.groupby("rid16", sort=False):
         j = g["jyun"]

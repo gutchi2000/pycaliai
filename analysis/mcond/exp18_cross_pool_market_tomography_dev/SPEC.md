@@ -1,6 +1,6 @@
 # EXP18 仕様案 — 複数プール市場トモグラフィー
 
-**版**: v0.5-rc（v0.4-frozen-stage0 を §14 の 5 点だけ改訂）
+**版**: v0.5-final（v0.4-frozen-stage0 を §14 の 5 点だけ改訂。Stage 1 前に凍結）
 **状態**: Fable条件付き承認の軽微5件を反映・Stage 0専用として凍結。**2026-09-25 Stage 0完了・Stage 1前で停止**（結果は§13。§0〜§12の定義は変更していない。凍結項目の変更は`practical_floor_nats`のnull→数値のみ）
 **主対象**: 馬連（順不同の1着・2着組）  
 **禁止**: Stage 0承認前の学習・成績評価、T2/offsetでの2024/2025開封、ROI、候補生成、資金配分、production変更
@@ -288,3 +288,11 @@ Stage 0成果物をコミット後に停止し、Fableの凍結判断を待つ�
 
 v0.4 が定めていなかった Stage 1 の実装細目（fit 窓 2013..Y−1、γ・λ の fit、bootstrap B=10,000、P1/P2 の手順、seed 条件の扱い、
 PASS-PRACTICAL 時は M2 が未凍結のため停止）は `spec.json.stage1_protocol_v05` に固定した。いずれも v0.4 の規則を変えない。
+
+### 14.1 v0.5 final（Stage 1 の 2019〜2023 結果開封前に凍結）
+
+- 主 floor **0.009332614 nats / race**（commit `bbe129cd`）、ρ=0.5 参考値 0.09514。旧 0.8843 は `superseded_invalid_economic_floor`。
+- 床での SIGNAL 検出力 **1.000**（400 rep、Wilson [0.990, 1.000]）→ 進行条件 PASS。PASS-PRACTICAL 検出力は 0.0225（別報告）。
+- Stage 1 のコード（`evaluate_stage1.py`、`gate_grade.grade_m1`、`loaders.load_outcomes_stage1`）はこの凍結 commit に含め、
+  結果 loader は spec v0.5-final でなければ動かない。開封前に `v05_checks.py` を全 PASS させる。
+

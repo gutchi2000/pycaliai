@@ -1,0 +1,79 @@
+{
+ "n_tests": 14,
+ "n_pass": 14,
+ "all_passed": true,
+ "tests": [
+  {
+   "test": "vectorized_T1_equals_stern_top2",
+   "pass": true,
+   "detail": "1.8e-15"
+  },
+  {
+   "test": "vectorized_devig_equals_devig_power",
+   "pass": true,
+   "detail": "3.6e-15"
+  },
+  {
+   "test": "P1_within_race_permutation_keeps_multiset",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "P2_donor_same_cell_not_self",
+   "pass": true,
+   "detail": "singletons=12"
+  },
+  {
+   "test": "year_delta_deterministic_bitwise",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "P5_uniform_source_collinear",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "synthetic_T1_source_detected_direction",
+   "pass": true,
+   "detail": "mean Δ=-0.00438 β=1.180 (winners drawn from T1)"
+  },
+  {
+   "test": "fit_gamma_recovers_truth",
+   "pass": true,
+   "detail": "γ̂=1.1123 (真 1.12)"
+  },
+  {
+   "test": "fit_lambda_recovers_truth",
+   "pass": true,
+   "detail": "λ̂=0.8279 (真 0.8)"
+  },
+  {
+   "test": "crosscheck_match_with_declared_D",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "crosscheck_detects_missing_race",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "crosscheck_detects_exp16a_exp17_disagreement",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "stage1_outcome_loader_refuses_before_final",
+   "pass": true,
+   "detail": "Stage 1 結果 loader は spec v0.5-final 凍結後だけ (現在 0.5-rc)"
+  },
+  {
+   "test": "stage1_build_refuses_before_final",
+   "pass": true,
+   "detail": "spec v0.5-final 凍結前は Stage 1 を実行しない"
+  }
+ ],
+ "elapsed_sec": 9.1,
+ "note": "合成データのみ。実 outcome は読まない"
+}

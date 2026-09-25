@@ -1,7 +1,7 @@
 {
   "experiment": "EXP18_cross_pool_market_tomography",
-  "version": "0.5-rc",
-  "status": "v0.5_rc_floor_committed_before_power_and_stage1",
+  "version": "0.5-final",
+  "status": "v0.5_final_frozen_before_stage1_outcomes",
   "primary_target_pool": "UMAREN_unordered_top2",
   "purpose": "Test whether non-target pools add information beyond a freely temperature-calibrated terminal UMAREN market; direct market replacement is secondary.",
   "prior_art_equivalence": {
@@ -200,7 +200,41 @@
         "rho_0_5_reference_floor_nats": 0.09514218508162525,
         "rho_0_5_note": "reference only; not mixed with the primary floor",
         "monotone_primary_curve": true
-      }
+      },
+      "power_v05_result": {
+        "source": "out/power_v05.json (floor_v05.py power, seed 20260927, B=1000 in simulation, 2294 s)",
+        "at_floor": {
+          "reps": 400,
+          "signal_power": 1.0,
+          "signal_wilson95": [
+            0.9904877055170676,
+            1.0
+          ],
+          "practical_power": 0.0225,
+          "practical_wilson95": [
+            0.011881583472389982,
+            0.042202657758810644
+          ],
+          "recovery_median": 0.9818164580689204
+        },
+        "at_0.5x_floor": {
+          "reps": 200,
+          "signal_power": 1.0,
+          "practical_power": 0.0
+        },
+        "at_2x_floor": {
+          "reps": 200,
+          "signal_power": 1.0,
+          "practical_power": 1.0
+        },
+        "at_zero_effect": {
+          "reps": 200,
+          "signal_rate": 0.0,
+          "ci_upper_lt_0_rate": 0.015
+        },
+        "note": "PASS-PRACTICAL power at the floor is low by design (strict 95%-confidence grade); progression uses SIGNAL power"
+      },
+      "signal_power_gate_pass_v05": true
     },
     "outcome_loader_max_year": 2018,
     "outcome_loader_fields": "finish,payout,realized_top2",
@@ -442,5 +476,20 @@
     "material_sensitivity": "only relevant if not FAIL: leave-one-venue-out CI95 uppers reported; under PASS-PRACTICAL any leave-one-venue-out CI upper >= 0 triggers stop rule 8",
     "on_pass_practical": "M2 and economic-check specifics were not frozen before M1 (v0.4 requires freezing before M1 results), so EXP18 stops and reports; no M2, ROI or candidate generation in this run",
     "sealed": "2024/2025 not opened"
+  },
+  "v05_freeze": {
+    "rc_commit": "d5ab6d46",
+    "floor_commit": "bbe129cd",
+    "stage1_code": [
+      "evaluate_stage1.py",
+      "gate_grade.py",
+      "loaders.load_outcomes_stage1"
+    ],
+    "pre_open_checks": "v05_checks.py must pass (all) before evaluate_stage1.py is run",
+    "synthetic_tests": {
+      "floor_v05": "20/20",
+      "stage1_machinery": "14/14 (run before freeze; the two freeze-guard tests expect version != final)",
+      "stage0_invariants": "33/33"
+    }
   }
 }

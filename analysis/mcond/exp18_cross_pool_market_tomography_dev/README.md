@@ -5,6 +5,9 @@
 `q_cross`, real terminal odds, no declared noise) is pre-registered in `SPEC.md` §14 and
 `POWER_AUDIT.md` §6 before any computation. Gate arm: UB2 only.
 
+**v0.5-final (frozen before Stage 1 outcomes)**: primary floor 0.009333 nats/race
+(rho=0.5 reference 0.0951); SIGNAL power at the floor 1.000, PASS-PRACTICAL power 0.0225.
+
 Status: **Stage 0 complete — stopped before Stage 1, awaiting Fable review**
 (spec v0.4-frozen-stage0, commit `67b874ec`; the only change to frozen fields is
 `stage0.power.practical_floor_nats` going from null to a number, commit `ee5b585a`)

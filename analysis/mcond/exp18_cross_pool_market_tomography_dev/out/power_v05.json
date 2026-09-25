@@ -1,0 +1,84 @@
+{
+ "role": "v0.5 検出力。主 floor の真の効果で Stage 1 と同じ rolling fit・年層化暦日 bootstrap・年方向・LOO・grade_m1 を合成 outcome で回す。placebo 条件は通過と仮定 (計算量のため、宣言)。結果ラベル不使用",
+ "seed": 20260927,
+ "boot": 1000,
+ "floor": 0.009332614441180855,
+ "results": {
+  "floor": {
+   "delta_true": 0.00933261444117933,
+   "eps": 0.567862638238694,
+   "reps": 400,
+   "signal_power": 1.0,
+   "signal_wilson95": [
+    0.9904877055170676,
+    1.0
+   ],
+   "practical_power": 0.0225,
+   "practical_wilson95": [
+    0.011881583472389982,
+    0.042202657758810644
+   ],
+   "ci_upper_lt_0_rate": 1.0,
+   "median_point": -0.009162914455161547,
+   "recovery_median_point_over_minus_delta": 0.9818164580689204
+  },
+  "0.5x": {
+   "delta_true": 0.004666307220589477,
+   "eps": 0.40061219516446733,
+   "reps": 200,
+   "signal_power": 1.0,
+   "signal_wilson95": [
+    0.9811546733310369,
+    0.9999999999999999
+   ],
+   "practical_power": 0.0,
+   "practical_wilson95": [
+    0.0,
+    0.018845326668962936
+   ],
+   "ci_upper_lt_0_rate": 1.0,
+   "median_point": -0.004607049973655782,
+   "recovery_median_point_over_minus_delta": 0.9873010403875189
+  },
+  "2.0x": {
+   "delta_true": 0.018665228882374596,
+   "eps": 0.8050508573953266,
+   "reps": 200,
+   "signal_power": 1.0,
+   "signal_wilson95": [
+    0.9811546733310369,
+    0.9999999999999999
+   ],
+   "practical_power": 1.0,
+   "practical_wilson95": [
+    0.9811546733310369,
+    0.9999999999999999
+   ],
+   "ci_upper_lt_0_rate": 1.0,
+   "median_point": -0.01864613149371653,
+   "recovery_median_point_over_minus_delta": 0.9989768468000894
+  },
+  "zero": {
+   "delta_true": 0.0,
+   "eps": 0.0,
+   "reps": 200,
+   "signal_power": 0.0,
+   "signal_wilson95": [
+    0.0,
+    0.018845326668962936
+   ],
+   "practical_power": 0.0,
+   "practical_wilson95": [
+    0.0,
+    0.018845326668962936
+   ],
+   "ci_upper_lt_0_rate": 0.015,
+   "median_point": 1.3368571887912743e-05,
+   "recovery_median_point_over_minus_delta": null
+  }
+ },
+ "required_signal_power": 0.8,
+ "signal_power_gate_pass": true,
+ "practical_power_note": "CI95上限 < −floor は床ちょうどの効果に対して高確率で通る検出条件ではなく、実務床を95%信頼水準で上回ったと主張するための厳格な等級。floor ちょうどでの PASS-PRACTICAL power は低い",
+ "elapsed_sec": 2293.5
+}
