@@ -1,12 +1,12 @@
 # EXP18 — Cross-Pool Market Tomography
 
-Status: **v0.2 draft / first Fable review incorporated / re-review required / not frozen**
+Status: **v0.3 draft / second Fable review incorporated / difference re-review required / not frozen**
 
-The primary question is now an **incremental residual test**, not direct replacement
-of the UMAREN market. For year Y, a power-law calibrated terminal UMAREN market is
-fitted using Y-1 and earlier. A leave-one-pool-out tomography score is added through
-an offset conditional-logit. The Gate asks whether this score improves race-level
-categorical logloss beyond the calibrated target market.
+The primary question is an **incremental residual test**, not direct replacement
+of the UMAREN market. For year Y, the null freely fits the terminal market's
+temperature using Y-1 and earlier. The nested alternative adds a separate cross-pool
+coefficient. The Gate compares this alternative with the temperature-only null, so
+market sharpness drift cannot be mistaken for cross-pool information.
 
 T0 Harville and T1 Stern head-to-head comparisons are not novel: `crux_joint.py`
 already evaluated the 9h version on 2024-2025 and found the market better

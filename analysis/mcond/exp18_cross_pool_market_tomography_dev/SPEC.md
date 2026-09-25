@@ -1,7 +1,7 @@
 # EXP18 仕様案 — 複数プール市場トモグラフィー
 
-**版**: v0.2-draft
-**状態**: Fable初回レビュー反映済み・再レビュー前・未凍結
+**版**: v0.3-draft
+**状態**: Fable再レビュー反映済み・差分再確認前・未凍結
 **主対象**: 馬連（順不同の1着・2着組）  
 **禁止**: Stage 0承認前の学習・成績評価、T2/offsetでの2024/2025開封、ROI、候補生成、資金配分、production変更
 
@@ -28,7 +28,7 @@ EXP18の主仮説は「馬の表特徴が市場に勝つ」ではなく、「他
 
 ### H2: terminal residual
 
-対象UMARENを入力に使わない `q_LOPO` のlog-ratio残差が、較正済みterminal UMAREN marketをoffsetとする条件付きモデルへ追加情報を与える。主比較は市場置換ではなく、`β=0` の市場nullに対する上乗せである。
+対象UMARENを入力に使わない `q_LOPO` が、較正済みterminal UMAREN marketの温度補正だけでは説明できない追加情報を与える。主比較は市場温度だけのnested nullに対するcross-pool係数βの上乗せである。
 
 ### H3: actionability
 
@@ -60,7 +60,7 @@ EXP16Aと同じ母集団を初期候補とし、Stage 0で馬連固有の決済�
 - JRA平地。`トラックコード(JV) 51..59`の障害を除外。
 - `race_id`は正規化済み16桁、馬番は整数。馬名joinは禁止。
 - starter 5頭以上。
-- 対象時点で全starterに必要オッズがある。
+- TANPUK側で全starterに単勝・複勝オッズがある。UMAREN格子欠損は母集団定義に使わず、後段で「対象市場で決済不能」として年別件数を報告して除外する。
 - DNFを含むレースは主評価から除外し、結果条件付き除外であることを明記する。
 - 1着・2着の同着など複数の馬連的中組が生じるレースは主評価から除外し、settlement感度分析へ分離する。
 - 取消・除外・返還・不成立を券種ごとにfail-closedで処理し、件数を年別に報告する。
@@ -76,7 +76,9 @@ EXP16Aと同じ母集団を初期候補とし、Stage 0で馬連固有の決済�
 
 である。ticket行を独立標本として検定しない。差分はrace内で一つに集約し、推論単位はmeeting-dayとする。
 
-対象UMAREN市場の主基準は、年YについてY-1以前だけでfitしたpower-law較正de-vig `m_cal(i,j) ∝ (1/o_ij)^γ` とする。`γ=1` の比例正規化はsecondaryとする。主比較は `s_ij=log(q_LOPO/m_cal)` と `q_blend ∝ m_cal*exp(β*s)` で定義し、βはY-1以前だけでfitする。β=0は市場null、β=1はq_LOPOへの置換である。`q_LOPO=m_cal`ならs=0で市場とbit一致する。主差分は `Δ_r=LL_r(q_blend)-LL_r(m_cal)`。比例市場だけに勝ち較正済みnullに勝てない場合はFAILとする。
+対象UMAREN市場の主基準は、年YについてY-1以前だけでfitしたpower-law較正de-vig `m_cal(i,j) ∝ (1/o_ij)^γ` とする。`γ=1` の比例正規化はsecondaryとする。
+
+温度nullは `q_temp(i,j) ∝ m_cal(i,j)^a0`、cross-pool代替は `q_cross(i,j) ∝ m_cal(i,j)^a * q_LOPO(i,j)^β` とし、`a0`・`a`・`β`はY-1以前だけでfitする。主差分は `Δ_r=LL_r(q_cross)-LL_r(q_temp)`。これにより市場の年内温度ずれとcross-pool情報を分離する。`q_LOPO=m_cal`で説明変数が完全共線になる場合は重複列を落として`q_cross=q_temp`をbit一致で返し、係数値を解釈しない。比例市場だけに勝ちrolling較正済み温度nullに勝てない場合はFAILとする。
 
 ## 4. tomographyモデル
 
@@ -88,7 +90,7 @@ UMARENを評価対象とするとき、`q_LOPO`のfit、特徴、制約、較正
 
 1. **T0_HARVILLE**: terminal TANSHOからPL/Harvilleで順不同top-two確率へ写像する既存再現アンカー。
 2. **T1_STERN**: TANSHOだけを入力とするrolling依存補正。頭対頭は既実施で、主用途はoffset残差score。
-3. **T2_SOFT_FUKUSHO_MAXENT**: MaxEnt事前と複勝由来soft制約。観測だけで真の共同分布が識別されるとは呼ばない。`w_fuku∈[0,1]`はY-1以前でfitし、w=0でT1とbit一致させる。
+3. **T2_SOFT_FUKUSHO_MAXENT**: MaxEnt事前と複勝由来soft制約。単勝marginalは等式制約、複勝は `w_fuku*Σ_i(P_q(i∈top-k)-τ_i)^2` の単一ペナルティ形、`k=places(n)`とする。`w_fuku∈[0,1]`はY-1以前だけでfitする。観測だけで真の共同分布が識別されるとは呼ばず、w=0でT1とbit一致させる。他の関数形へ結果後に変更しない。
 4. **T3_NULL_CALIBRATED**: rolling power-law較正済みterminal UMAREN市場。
 5. **T3_NULL_PROPORTIONAL**: 比例de-vig感度。これだけに勝ってもPASSしない。
 
@@ -108,12 +110,12 @@ UMARENを評価対象とするとき、`q_LOPO`のfit、特徴、制約、較正
 
 ## 5. Stage 0 — 実装前監査
 
-Stage 0は結果性能を開封しない。以下を完了し、Fable再レビューを受ける。
+Stage 0は2019〜2023の結果性能を開封しない。γ・λ・w・anchorのdry-run fitは2018年以前だけで許可し、全Stage 0 loaderで`max(year)<=2018`をassertする。以下を完了し、Fable再レビューを受ける。
 
 ### S0-A 先行研究・等価性
 
 - `build_joint_substrate.py`、`plan_exotics_real_ev.md`、deep bet search、Harville/Stern/Dr.Z、EXP07、EXP16Aを全件監査。
-- `crux_joint.py`の既知結果（9時、λ fit≤2023、2024/25評価、market LL 3.343 < Harville 3.380）をT0/T1頭対頭の既実施結果として扱う。terminalで同方向・同桁を再現できなければprovenance不一致として停止する。
+- `crux_joint.py`の既知結果（9時、λ fit≤2023、2024/25評価、market LL 3.343 < Harville 3.380）をT0/T1頭対頭の既実施結果として扱う。Stage 0 anchorは2018年以前だけを使い、9時snapshotで市場優位の方向一致かつ`|Δ|`が0.037の0.5〜2倍であることを要求する。2019〜2023 anchorはStage 1でGateと同時にのみ算出する。
 - T0/T1頭対頭を新規研究として再実施しない。新規性はT2 soft制約と較正済みUMAREN市場へのoffset残差に限定する。
 - offset残差またはT2まで同値に実施済みなら終了。単なるEV選別、配分、PL jointの再実行でも終了する。
 
@@ -130,7 +132,7 @@ Stage 0は結果性能を開封しない。以下を完了し、Fable再レビ�
 - synthetic coherent marketではTANSHO由来とUMAREN市場が一致する。
 - 意図的に一つのプールだけ歪めた合成市場で、そのプールを正しく検出する。
 - `U_SELF`: UMAREN自身を検算入力にした経路が同じde-vig市場確率をbit一致で再現する。
-- 複勝Lo/Hi逆算を使う場合、再生成Lo/Hiの相対誤差2%未満、place確率のrace内和が`places(n)±1e-6`。失敗時はT2未実装で停止する。
+- 複勝Lo/Hi逆算を使う場合、使用するJRA払戻式（純プール、的中票控除、places(n)による分配、10円breakage）を実行前に監査文書へ固定する。許容は馬行ごとに `|再生成−表示|<=max(0.05,0.02*表示)`、年別99%以上。未達ならT2未実装で停止する。place確率のrace内和`places(n)±1e-6`は構成assertとして記録する。
 - `w_fuku=0`でT2がT1とbit一致する。
 
 ### S0-D coverage
@@ -149,7 +151,7 @@ Stage 0は結果性能を開封しない。以下を完了し、Fable再レビ�
 
 ### S0-E power
 
-暦日単位のmeeting-day clusterで効果注入とMDEを測る。SIGNALは`CI95上限(Δ)<0`で数値floorを置かない。PRACTICAL floorは控除22.5%、参加条件`max(q_est/m_cal)>1/(1-0.225)`、推定ノイズを含むC2c型選択的参加シミュレーションで、期待対数成長`1e-4/race`以上になる最小の真のΔとしてStage 0で固定する。EXP16Aの0.005を流用しない。`-log(1-0.225)=0.255 nats`は全額比例投入の参考条件でhard gateにしない。宣言効果で検出力80%以上を進行条件とする。
+暦日単位のmeeting-day clusterで効果注入とMDEを測る。SIGNALは`CI95上限(Δ)<0`で数値floorを置かない。PRACTICAL floorは、生成構造`q_est=m_cal*exp(ε*s_true+noise)`、`SD(noise)=sqrt(2Δ)`、控除22.5%、参加条件`max(q_est/m_cal)>1/0.775`、成長閾値`1e-4/race`、seedを結果開封前に固定して算出する。算出値を`spec.json.practical_floor_nats`へ数値でcommitし、以後の変更は新版番号を要求する。EXP16Aの0.005を流用しない。`-log(0.775)=0.255 nats`は全額比例投入の参考条件でhard gateにしない。宣言効果で検出力80%以上を進行条件とする。
 
 ### S0-F compute dry run
 
@@ -165,9 +167,9 @@ Stage 0承認時だけ実施する。developmentは2019〜2023。2024/2025はT2�
 
 ### Gate M1: terminal market residual
 
-比較: 事前固定した階層順のoffset arm `q_blend` minus rolling較正済みterminal UMAREN market。頭対頭は副指標でGateに使わない。`T1−T0`と`T2−T1`を必須decompositionとして報告する。
+主armは`UB2_OFFSET_U2`。`UB3_OFFSET_U3`は複勝往復Gate通過時だけ追加し、`UB1_OFFSET_U1`はanchor専用でGateに使わない。Gate対象armは1本または2本で、その数に応じBonferroni補正する。各offset armは温度nullとの差で判定し、`UB2−UB1`と`UB3−UB2`を必須decompositionとして報告する。頭対頭`T1−T0`と`T2−T1`は副指標とする。
 
-- **PASS-PRACTICAL**: CI95上限<0、pooled点推定がStage 0実務床以上、4/5年、4/5 seed、全LOOでCI上限<0、placebo超過。
+- **PASS-PRACTICAL**: CI95上限<0、pooled点推定がStage 0実務床以上、4/5年、4/5 seed、全LOOでCI上限<0、P1/P2/P5超過。
 - **PASS-SIGNAL**: 同じ統計条件を満たすが実務床未満。
 - **FAIL**: CI、方向、LOO、placeboのいずれかを満たさない。
 
@@ -186,20 +188,21 @@ M2の具体的なforecast target、fit窓、損失、floorはM1結果を見る�
 - `U1_HARVILLE_TAN`: terminal TANSHO由来の再現アンカー。
 - `U2_STERN_TAN`: 過去年fit依存補正アンカー。
 - `U3_SOFT_FUKUSHO_MAXENT`: MaxEnt事前とsoft複勝制約。
-- `UB1/2/3_OFFSET`: `U0 + β log(Uk/U0)`。
+- `UB1/2/3_OFFSET`: `q_temp∝U0^a0`に対する`q_cross∝U0^a*Uk^β`。UB1はanchor、UB2が主arm、UB3はT2 Gate通過時のみ。
 - `U_SELF`: 対象市場を検算入力にしたbit一致テスト。評価armではない。
-- `U_ANCHOR`: crux_joint 9時版の同桁再現。
+- `U_ANCHOR`: 2018年以前だけでcrux_joint 9時版の方向・同桁を再現。
 - `U4_PRE_UMAREN`: historical_pre_snapshot UMAREN。M2基準候補。
 - `P1_IDENTITY_PERMUTE`: 同一race内でsource-poolの馬identityを置換し、オッズmultiset・頭数・target marketを保持。
 - `P2_TIME_SHIFT`: 同競馬場×頭数帯×人気集中帯でsource snapshotを別raceへ置換。
 - `P3_SYNTHETIC_COHERENT`: 同一潜在PLから全プールを生成した負対照。
-- `P4_TARGET_NULL_RESAMPLE`: 実outcomeの単純shuffleではなく、rolling較正済みUMAREN nullからraceごとに勝ち組を再標本化し、offset βと改善が消えることを確認する。
+- `P4_TARGET_NULL_RESAMPLE`: pipeline sanity専用。γ・a・βはrealのY-1以前fit値に固定し、Yのoutcomeだけをm_calから200回再標本化する。Gate証拠には使わない。
+- `P5_UNIFORM_SCORE`: q_LOPOをrace内一様分布へ置換し、市場温度補正だけで生じる改善を測る。real ΔがP5改善側97.5 percentileを超えることをM1必須条件にする。
 
 最良armを結果で選ばない。Stage 0で固定した階層順に検定し、複数比較補正を行う。U3が識別不能ならU1/U2だけで判定する。
 
 ## 8. placeboと漏洩防止
 
-- placeboは最低200 draw、real improvementが改善側97.5 percentileを超えること。P2 matchingの人気集中帯はTANPUK entropyで定義する。
+- P1/P2/P5は最低200 draw、real improvementが改善側97.5 percentileを超えること。P2 matchingの人気集中帯はTANPUK entropyで定義する。P4はsanity controlでGate証拠に数えない。
 - source poolとtarget poolの同一時点行をrace_idで厳密に結合し、日付ずれ・馬番ずれ・取消集合差をfail-closed。
 - target UMAREN列をdropした入力からモデル行列を構築し、列名・hashをmanifest化。
 - target outcomeを変更しても、fit前の市場確率・race set・tomography出力がbit一致すること。
