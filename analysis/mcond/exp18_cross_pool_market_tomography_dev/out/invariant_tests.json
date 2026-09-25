@@ -1,0 +1,175 @@
+{
+ "n_tests": 33,
+ "n_pass": 33,
+ "all_passed": true,
+ "tests": [
+  {
+   "test": "oracle_harville_unordered_top2_n<=8",
+   "pass": true,
+   "detail": "max err 2.03e-14"
+  },
+  {
+   "test": "oracle_stern_unordered_top2_n<=8",
+   "pass": true,
+   "detail": "max err 2.03e-14"
+  },
+  {
+   "test": "oracle_place_topk_n<=8",
+   "pass": true,
+   "detail": "max err 5.55e-14"
+  },
+  {
+   "test": "race_sum_one",
+   "pass": true,
+   "detail": "max |Σ−1| 4.44e-16 (place は Σ/k)"
+  },
+  {
+   "test": "horse_order_invariance",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "row_order_invariance_fit",
+   "pass": true,
+   "detail": "Δa=3.6e-12 Δβ=4.0e-12"
+  },
+  {
+   "test": "devig_power_gamma1_equals_proportional",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "devig_power_monotone_and_sharpens",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "cross_alt_recovers_generating_params",
+   "pass": true,
+   "detail": "a=0.866 (0.9) β=0.415 (0.35)"
+  },
+  {
+   "test": "temp_null_a0_1_is_identity",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "coherent_market_tansho_equals_umaren",
+   "pass": true,
+   "detail": "max diff 1.4e-17"
+  },
+  {
+   "test": "coherent_market_collinear_q_cross_equals_q_temp",
+   "pass": true,
+   "detail": "rank=1 cond=inf"
+  },
+  {
+   "test": "distorted_target_pool_detected",
+   "pass": true,
+   "detail": "UMAREN 歪み: Δ=-0.00438 z=-4.9 β=1.006"
+  },
+  {
+   "test": "distorted_source_pool_not_detected_as_target_gain",
+   "pass": true,
+   "detail": "TANSHO 歪み: Δ=-0.00002 z=-0.3 β=-0.021"
+  },
+  {
+   "test": "U_SELF_devig_bitwise",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "U_SELF_offset_collinear_q_cross_equals_q_temp_bitwise",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "collinearity_cond_gt_1e12_drops_duplicate",
+   "pass": true,
+   "detail": "cond=1.56e+16"
+  },
+  {
+   "test": "P5_uniform_qlopo_delta_le_1e-12",
+   "pass": true,
+   "detail": "|Δ_P5|=0.0e+00"
+  },
+  {
+   "test": "T2_w0_equals_T1_bitwise",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "T2_win_marginal_equality",
+   "pass": true,
+   "detail": "max |win−π|=3.3e-16"
+  },
+  {
+   "test": "T2_place_moves_toward_tau_and_sum_is_k",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "T2_analytic_optimum_matches_derivative_free",
+   "pass": true,
+   "detail": "J_analytic=0.3845510208 J_nm=0.3845510208"
+  },
+  {
+   "test": "kelly_closed_form_equals_slsqp",
+   "pass": true,
+   "detail": "max |Δgrowth|=1.3e-13"
+  },
+  {
+   "test": "place_formula_synthetic_roundtrip",
+   "pass": true,
+   "detail": "合成往復 一致率 1.0000"
+  },
+  {
+   "test": "place_tau_sum_is_places_n",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "sealed_2024_2025_dropped_on_read",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "result_loader_rejects_2019",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "structure_loader_forbidden_column_assert",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "future_year_deletion_invariance_2018",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "outcome_modification_invariance",
+   "pass": true,
+   "detail": "結果を改変しても市場確率・race set・T1 出力の hash は不変 (改変は実際に top2 を変えている)"
+  },
+  {
+   "test": "target_umaren_columns_absent_from_source_input",
+   "pass": true,
+   "detail": "q_LOPO の入力 (TANPUK 行列) に UMAREN の組合せ列・票数列が無い"
+  },
+  {
+   "test": "result_loader_max_year_le_2018",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "structure_loader_no_outcome_columns",
+   "pass": true,
+   "detail": ""
+  }
+ ],
+ "rng_seed": 20260925,
+ "elapsed_sec": 47.8,
+ "note": "合成検査は結果性能と独立。実データ検査は 2017-2019 の市場構造と <=2018 の結果だけを使う"
+}
