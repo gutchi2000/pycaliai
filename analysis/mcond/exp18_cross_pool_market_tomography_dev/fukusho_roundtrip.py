@@ -28,6 +28,9 @@ GATE_RATE = 0.99
 def run_snapshot(which, idx, W, LO, HI, U, info):
     per_year = {}
     band = {}
+    diag = {"lo_regen_lt_display": 0, "lo_regen_gt_display": 0, "hi_regen_lt_display": 0,
+            "hi_regen_gt_display": 0, "rows": 0, "spread_ratio_display": [], "spread_ratio_regen": [],
+            "rel_err_lo": [], "rel_err_hi": []}
     k_split = {2: [0, 0], 3: [0, 0]}
     tie_races = 0
     for rid, row in idx.iterrows():
@@ -63,6 +66,16 @@ def run_snapshot(which, idx, W, LO, HI, U, info):
         d["races_all_ok"] += int(ok.all())
         d["max_abs_err_lo"] = max(d["max_abs_err_lo"], float(np.abs(lo2 - lo).max()))
         d["max_abs_err_hi"] = max(d["max_abs_err_hi"], float(np.abs(hi2 - hi).max()))
+        diag["rows"] += n
+        diag["lo_regen_lt_display"] += int((lo2 < lo).sum())
+        diag["lo_regen_gt_display"] += int((lo2 > lo).sum())
+        diag["hi_regen_lt_display"] += int((hi2 < hi).sum())
+        diag["hi_regen_gt_display"] += int((hi2 > hi).sum())
+        if len(diag["rel_err_lo"]) < 400000:
+            diag["spread_ratio_display"].extend((hi / lo).tolist())
+            diag["spread_ratio_regen"].extend((hi2 / lo2).tolist())
+            diag["rel_err_lo"].extend(((lo2 - lo) / lo).tolist())
+            diag["rel_err_hi"].extend(((hi2 - hi) / hi).tolist())
         k_split[k][0] += n
         k_split[k][1] += int(ok.sum())
         for x, o in zip(lo, ok):
@@ -77,10 +90,26 @@ def run_snapshot(which, idx, W, LO, HI, U, info):
             "by_place_lo_band": {b: {"rows": v[0], "pass_rate": v[1] / v[0]} for b, v in band.items()},
             "by_k": {str(k): {"rows": v[0], "pass_rate": (v[1] / v[0] if v[0] else None)}
                      for k, v in k_split.items()},
-            "races_with_display_ties": tie_races}
+            "races_with_display_ties": tie_races,
+            "mismatch_diagnostics": {
+                "note": "記述統計のみ。固定した式・Gate は変えず、別の関数形は試していない",
+                "rows": diag["rows"],
+                "share_lo_regen_below_display": diag["lo_regen_lt_display"] / max(diag["rows"], 1),
+                "share_lo_regen_above_display": diag["lo_regen_gt_display"] / max(diag["rows"], 1),
+                "share_hi_regen_below_display": diag["hi_regen_lt_display"] / max(diag["rows"], 1),
+                "share_hi_regen_above_display": diag["hi_regen_gt_display"] / max(diag["rows"], 1),
+                "median_spread_ratio_hi_over_lo_display": float(np.median(diag["spread_ratio_display"])) if diag["rows"] else None,
+                "median_spread_ratio_hi_over_lo_regen": float(np.median(diag["spread_ratio_regen"])) if diag["rows"] else None,
+                "median_rel_err_lo": float(np.median(diag["rel_err_lo"])) if diag["rows"] else None,
+                "median_rel_err_hi": float(np.median(diag["rel_err_hi"])) if diag["rows"] else None}}
 
 
 def main():
+    import sys
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except Exception:
+        pass
     t0 = time.time()
     st = load_structure(YEARS)
     tan, um, info = st["tan"], st["um"], st["info"]

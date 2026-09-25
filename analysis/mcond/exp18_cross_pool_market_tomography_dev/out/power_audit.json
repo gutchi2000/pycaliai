@@ -1,0 +1,296 @@
+{
+ "role": "実務床の算出と検出力監査。結果ラベルを使わず、2019-2023 の市場構造と合成 winner だけを使う",
+ "seed": 20260925,
+ "seed_fixed_before_run": true,
+ "generation": {
+  "true": "p ∝ m_cal · exp(ε s_true)、s_true = race 内標準化した log q_T1 − log m_cal、ε は平均 KL = Δ に較正",
+  "estimate": "q_est ∝ m_cal · exp(ε s_true + noise)、noise ~ N(0, 2Δ) 組ごと独立",
+  "noise_sd_note": "SD(noise)=sqrt(2Δ) は label-free の宣言慣習であり導出ではない",
+  "odds": "o = 0.775 / m_cal (控除率 22.5%)",
+  "entry": "max(q_est/m_cal) > 1/0.775",
+  "staking": "現金込み Kelly (排反事象の閉形式)",
+  "growth_threshold_per_race": 0.0001,
+  "noise_draws": 3
+ },
+ "inputs": {
+  "gamma_devig_le2018": 1.0523656074590757,
+  "lambda_T1_le2018": 0.8769143346936742,
+  "races_total": 26627,
+  "races_eval_2019_2023": 16644,
+  "pairs_total": 2525787,
+  "fit_years_start": 2016,
+  "inference_unit": "暦日 (YYYYMMDD) cluster、年層化 bootstrap",
+  "bootstrap_reps": 1000
+ },
+ "growth_curve": {
+  "0.0005": {
+   "eps": 0.05160733179877035,
+   "mean_growth_per_race": -6.761745082769072e-10,
+   "growth_sd_over_noise_draws": 2.9142192357279933e-10,
+   "share_races_entered": 0.0005207081631018184,
+   "mean_stake_fraction_when_entered": 2.0002356243579005e-05
+  },
+  "0.001": {
+   "eps": 0.07302912295873284,
+   "mean_growth_per_race": -2.6902914803414295e-07,
+   "growth_sd_over_noise_draws": 2.1910527852309028e-08,
+   "share_races_entered": 0.056296563326123525,
+   "mean_stake_fraction_when_entered": 6.72960519802047e-05
+  },
+  "0.002": {
+   "eps": 0.10336023278074322,
+   "mean_growth_per_race": -1.0693882525983474e-05,
+   "growth_sd_over_noise_draws": 4.786951854583209e-07,
+   "share_races_entered": 0.43026516061844106,
+   "mean_stake_fraction_when_entered": 0.0003265283983745618
+  },
+  "0.003": {
+   "eps": 0.1266577316450644,
+   "mean_growth_per_race": -4.796981946605635e-05,
+   "growth_sd_over_noise_draws": 5.62126643530083e-07,
+   "share_races_entered": 0.699831771208844,
+   "mean_stake_fraction_when_entered": 0.0008695303776241626
+  },
+  "0.005": {
+   "eps": 0.16363381332228405,
+   "mean_growth_per_race": -0.00022494111676322172,
+   "growth_sd_over_noise_draws": 2.5603254685105317e-06,
+   "share_races_entered": 0.8974805735800689,
+   "mean_stake_fraction_when_entered": 0.0029925550412745407
+  },
+  "0.0075": {
+   "eps": 0.20052735637383912,
+   "mean_growth_per_race": -0.0006013123329539962,
+   "growth_sd_over_noise_draws": 8.964903073820627e-06,
+   "share_races_entered": 0.9592445726187615,
+   "mean_stake_fraction_when_entered": 0.007193666193562715
+  },
+  "0.01": {
+   "eps": 0.23163936560554715,
+   "mean_growth_per_race": -0.0011102402557206857,
+   "growth_sd_over_noise_draws": 1.0099390972766495e-05,
+   "share_races_entered": 0.9803132259873428,
+   "mean_stake_fraction_when_entered": 0.01263806111099607
+  },
+  "0.015": {
+   "eps": 0.28382633175540173,
+   "mean_growth_per_race": -0.0022702140281739593,
+   "growth_sd_over_noise_draws": 2.203307418119533e-05,
+   "share_races_entered": 0.9934711207241849,
+   "mean_stake_fraction_when_entered": 0.025243749664990968
+  },
+  "0.02": {
+   "eps": 0.32779572052515926,
+   "mean_growth_per_race": -0.003539040786222669,
+   "growth_sd_over_noise_draws": 2.120163300019999e-05,
+   "share_races_entered": 0.9962949611471601,
+   "mean_stake_fraction_when_entered": 0.03908043120375894
+  },
+  "0.03": {
+   "eps": 0.4014447770469116,
+   "mean_growth_per_race": -0.006312600811869448,
+   "growth_sd_over_noise_draws": 1.0156062696727232e-05,
+   "share_races_entered": 0.9987182568292878,
+   "mean_stake_fraction_when_entered": 0.0689532384398395
+  },
+  "0.05": {
+   "eps": 0.5177751818318861,
+   "mean_growth_per_race": -0.011515747226954275,
+   "growth_sd_over_noise_draws": 4.809608016525946e-05,
+   "share_races_entered": 0.999679564207322,
+   "mean_stake_fraction_when_entered": 0.12667272738713276
+  },
+  "0.075": {
+   "eps": 0.6329666164204886,
+   "mean_growth_per_race": -0.01723156727511665,
+   "growth_sd_over_noise_draws": 0.00014593527680975142,
+   "share_races_entered": 0.9997997276295763,
+   "mean_stake_fraction_when_entered": 0.19305324438841798
+  },
+  "0.1": {
+   "eps": 0.7293011277994905,
+   "mean_growth_per_race": -0.022315881256199623,
+   "growth_sd_over_noise_draws": 0.00012230913471296056,
+   "share_races_entered": 0.9998197548666186,
+   "mean_stake_fraction_when_entered": 0.25327867635903284
+  },
+  "0.15": {
+   "eps": 0.8890599130779968,
+   "mean_growth_per_race": -0.030461810091801208,
+   "growth_sd_over_noise_draws": 0.0005071763920052205,
+   "share_races_entered": 0.9999198910518304,
+   "mean_stake_fraction_when_entered": 0.3550542083059765
+  },
+  "0.2": {
+   "eps": 1.021816380547798,
+   "mean_growth_per_race": -0.03629113098671332,
+   "growth_sd_over_noise_draws": 0.000507401530684935,
+   "share_races_entered": 1.0,
+   "mean_stake_fraction_when_entered": 0.4385575516775485
+  },
+  "0.3": {
+   "eps": 1.240613283379505,
+   "mean_growth_per_race": -0.04278656087774063,
+   "growth_sd_over_noise_draws": 0.0009618727952296974,
+   "share_races_entered": 1.0,
+   "mean_stake_fraction_when_entered": 0.5660045485209811
+  },
+  "0.4": {
+   "eps": 1.4217939842226692,
+   "mean_growth_per_race": -0.04436578628283371,
+   "growth_sd_over_noise_draws": 0.00042211366651462144,
+   "share_races_entered": 0.9999799727629576,
+   "mean_stake_fraction_when_entered": 0.6580368058733574
+  },
+  "0.5": {
+   "eps": 1.5797094935543825,
+   "mean_growth_per_race": -0.040945433526449526,
+   "growth_sd_over_noise_draws": 0.0007316353615257058,
+   "share_races_entered": 1.0,
+   "mean_stake_fraction_when_entered": 0.7260489709864172
+  },
+  "0.6": {
+   "eps": 1.7218616734184775,
+   "mean_growth_per_race": -0.034525223391708916,
+   "growth_sd_over_noise_draws": 0.002673564285731154,
+   "share_races_entered": 1.0,
+   "mean_stake_fraction_when_entered": 0.777636061005355
+  },
+  "0.7": {
+   "eps": 1.852768508347546,
+   "mean_growth_per_race": -0.024075427616722146,
+   "growth_sd_over_noise_draws": 0.002007341771836126,
+   "share_races_entered": 0.9999799727629576,
+   "mean_stake_fraction_when_entered": 0.8171304237078323
+  },
+  "0.8": {
+   "eps": 1.9754033196356784,
+   "mean_growth_per_race": -0.012714974552684445,
+   "growth_sd_over_noise_draws": 0.0017988700423759586,
+   "share_races_entered": 1.0,
+   "mean_stake_fraction_when_entered": 0.8494267278708426
+  },
+  "0.9": {
+   "eps": 2.0918468096086036,
+   "mean_growth_per_race": 0.0024843995164532955,
+   "growth_sd_over_noise_draws": 0.0006501717264546591,
+   "share_races_entered": 1.0,
+   "mean_stake_fraction_when_entered": 0.8740092074562646
+  },
+  "1.0": {
+   "eps": 2.2036234123643794,
+   "mean_growth_per_race": 0.02086660538613347,
+   "growth_sd_over_noise_draws": 0.003588407939420679,
+   "share_races_entered": 1.0,
+   "mean_stake_fraction_when_entered": 0.8951681711199403
+  },
+  "1.25": {
+   "eps": 2.469658672371752,
+   "mean_growth_per_race": 0.07629713589725402,
+   "growth_sd_over_noise_draws": 0.0012062874908631606,
+   "share_races_entered": 1.0,
+   "mean_stake_fraction_when_entered": 0.9312598971253164
+  },
+  "1.5": {
+   "eps": 2.7257506240731644,
+   "mean_growth_per_race": 0.15535838019026038,
+   "growth_sd_over_noise_draws": 0.0054683004342501685,
+   "share_races_entered": 1.0,
+   "mean_stake_fraction_when_entered": 0.9533235628145603
+  }
+ },
+ "delta_grid_initial": [
+  0.0005,
+  0.001,
+  0.002,
+  0.003,
+  0.005,
+  0.0075,
+  0.01,
+  0.015,
+  0.02,
+  0.03,
+  0.05,
+  0.075,
+  0.1,
+  0.15,
+  0.2
+ ],
+ "delta_grid_extension": [
+  0.3,
+  0.4,
+  0.5,
+  0.6,
+  0.7,
+  0.8,
+  0.9,
+  1.0,
+  1.25,
+  1.5
+ ],
+ "floor_within_initial_grid": null,
+ "practical_floor_nats": 0.8843125150706383,
+ "power": {
+  "at_floor": {
+   "delta": 0.8843125150706383,
+   "eps": 2.052280858066151,
+   "reps": 400,
+   "signal_successes": 400,
+   "signal_power": 1.0,
+   "signal_wilson95": [
+    0.9904877055170676,
+    1.0
+   ],
+   "full_statistical_conditions_successes": 400,
+   "full_statistical_conditions_power": 1.0,
+   "median_estimate": -0.7423846981469988,
+   "median_ci95": [
+    -0.7617892421982921,
+    -0.7233379296671376
+   ],
+   "attenuation": 0.8395049097407579
+  },
+  "at_0.5x_floor": {
+   "delta": 0.4421562575353192,
+   "eps": 1.4834897424103488,
+   "reps": 200,
+   "signal_successes": 200,
+   "signal_power": 1.0,
+   "signal_wilson95": [
+    0.9811546733310369,
+    0.9999999999999999
+   ],
+   "full_statistical_conditions_successes": 200,
+   "full_statistical_conditions_power": 1.0,
+   "median_estimate": -0.3915900703120584,
+   "median_ci95": [
+    -0.4052153366234802,
+    -0.378264996430498
+   ],
+   "attenuation": 0.8856372914292148
+  },
+  "at_2.0x_floor": {
+   "delta": 1.7686250301412767,
+   "eps": 2.945589452577808,
+   "reps": 200,
+   "signal_successes": 200,
+   "signal_power": 1.0,
+   "signal_wilson95": [
+    0.9811546733310369,
+    0.9999999999999999
+   ],
+   "full_statistical_conditions_successes": 200,
+   "full_statistical_conditions_power": 1.0,
+   "median_estimate": -1.3943463120310282,
+   "median_ci95": [
+    -1.421001071142975,
+    -1.3691196223716644
+   ],
+   "attenuation": 0.7883787056432469
+  }
+ },
+ "required_power": 0.8,
+ "power_gate_pass": true,
+ "reference_full_investment_bound": "-log(0.775) = 0.2549 nats は全額比例投入の参考条件で hard gate にしない",
+ "elapsed_sec": 6324.8
+}

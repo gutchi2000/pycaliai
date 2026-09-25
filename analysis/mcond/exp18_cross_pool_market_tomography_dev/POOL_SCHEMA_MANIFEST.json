@@ -1,0 +1,303 @@
+{
+ "role": "EXP18 Stage 0 の市場データ provenance と schema。2024/2025 の行は読み込み直後に破棄し中身を見ない",
+ "files": {
+  "20110105-20151227.csv": {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\20110105-20151227.csv",
+   "size_bytes": 451285123,
+   "sha256": "26e6e95bc3748118a1a7664ff943961610befd79814675820417169c30fe9399",
+   "encoding": "cp932",
+   "header": false,
+   "n_columns": 227,
+   "rows_total_lines": 249429,
+   "key_format_example": "615581101",
+   "decision": "EXP18 では使わない。ヘッダ無し、race key が 16 桁 race_id と別体系 (例 0620581201)、区分・記録時刻の列が同定できないため、列・券種・時点の監査を 通すまで入力にしない (spec §2.1)"
+  },
+  "20160105-20201227.csv": {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\20160105-20201227.csv",
+   "size_bytes": 441172929,
+   "sha256": "a27b8d6c7b17aa4652099d951d7fc4beae032bd9d4a694aaedabb8b08dea86b0",
+   "encoding": "cp932",
+   "header": false,
+   "n_columns": 227,
+   "rows_total_lines": 243849,
+   "key_format_example": "620581201",
+   "decision": "EXP18 では使わない。ヘッダ無し、race key が 16 桁 race_id と別体系 (例 0620581201)、区分・記録時刻の列が同定できないため、列・券種・時点の監査を 通すまで入力にしない (spec §2.1)"
+  },
+  "20210105-20251228.csv": {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\20210105-20251228.csv",
+   "size_bytes": 430193914,
+   "sha256": "94b77ff3a43b97b19ea2b3438f1127c4db8bf99b548f8b1f0f72ff4541601d97",
+   "encoding": "cp932",
+   "header": false,
+   "n_columns": 227,
+   "rows_total_lines": 237778,
+   "key_format_example": "625581201",
+   "decision": "EXP18 では使わない。ヘッダ無し、race key が 16 桁 race_id と別体系 (例 0620581201)、区分・記録時刻の列が同定できないため、列・券種・時点の監査を 通すまで入力にしない (spec §2.1)"
+  },
+  "TANPUK_20110105-20151227.csv": {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\TANPUK_20110105-20151227.csv",
+   "size_bytes": 14853386,
+   "sha256": "b6c5bbee52a358661b1a08f5440d2dbed8ec74409b6e9d508edb3ccf4d8a5b13",
+   "encoding": "cp932",
+   "header": true,
+   "n_columns": 60,
+   "columns_head": [
+    "レースID",
+    "区分",
+    "月日時分",
+    "頭数",
+    "単勝票数",
+    "複勝票数",
+    "1単",
+    "1複Lo"
+   ],
+   "columns_tail": [
+    "18単",
+    "18複Lo",
+    "18複Hi"
+   ],
+   "rows_total": 41175,
+   "rows_2024_2025_discarded_uninspected": 0,
+   "years_kept": [
+    2013,
+    2015
+   ],
+   "rows_by_year_kept": {
+    "2013": 13780,
+    "2014": 13627,
+    "2015": 13768
+   },
+   "kubun_counts_kept": {
+    "1": 30816,
+    "4": 10359
+   },
+   "time_column": "月日時分 = MMDDHHMM (8 桁、前日 23 時台の行を含む)",
+   "pool_kinds": "単勝 (n単) / 複勝 Lo・Hi (n複Lo, n複Hi)、n=1..18",
+   "vote_columns": {
+    "単勝票数": "単勝プール全体の票数 (馬別ではない)",
+    "複勝票数": "複勝プール全体の票数 (馬別ではない)"
+   }
+  },
+  "TANPUK_20160105-20201227.csv": {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\TANPUK_20160105-20201227.csv",
+   "size_bytes": 24217343,
+   "sha256": "5a7da2cd050cd633c693979768691aca5c3f8a5f15ba2d550f5082dadd856862",
+   "encoding": "cp932",
+   "header": true,
+   "n_columns": 60,
+   "columns_head": [
+    "レースID",
+    "区分",
+    "月日時分",
+    "頭数",
+    "単勝票数",
+    "複勝票数",
+    "1単",
+    "1複Lo"
+   ],
+   "columns_tail": [
+    "18単",
+    "18複Lo",
+    "18複Hi"
+   ],
+   "rows_total": 68711,
+   "rows_2024_2025_discarded_uninspected": 0,
+   "years_kept": [
+    2016,
+    2020
+   ],
+   "rows_by_year_kept": {
+    "2016": 13780,
+    "2017": 13688,
+    "2018": 13721,
+    "2019": 13736,
+    "2020": 13786
+   },
+   "kubun_counts_kept": {
+    "1": 51440,
+    "4": 17271
+   },
+   "time_column": "月日時分 = MMDDHHMM (8 桁、前日 23 時台の行を含む)",
+   "pool_kinds": "単勝 (n単) / 複勝 Lo・Hi (n複Lo, n複Hi)、n=1..18",
+   "vote_columns": {
+    "単勝票数": "単勝プール全体の票数 (馬別ではない)",
+    "複勝票数": "複勝プール全体の票数 (馬別ではない)"
+   }
+  },
+  "TANPUK_20210105-20251228.csv": {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\TANPUK_20210105-20251228.csv",
+   "size_bytes": 23720272,
+   "sha256": "3517585d0040cff27b7d18a43a86a99b6e60c2add9969ab83c487f877880597e",
+   "encoding": "cp932",
+   "header": true,
+   "n_columns": 60,
+   "columns_head": [
+    "レースID",
+    "区分",
+    "月日時分",
+    "頭数",
+    "単勝票数",
+    "複勝票数",
+    "1単",
+    "1複Lo"
+   ],
+   "columns_tail": [
+    "18単",
+    "18複Lo",
+    "18複Hi"
+   ],
+   "rows_total": 68772,
+   "rows_2024_2025_discarded_uninspected": 27492,
+   "years_kept": [
+    2021,
+    2023
+   ],
+   "rows_by_year_kept": {
+    "2021": 13764,
+    "2022": 13776,
+    "2023": 13740
+   },
+   "kubun_counts_kept": {
+    "1": 30912,
+    "4": 10368
+   },
+   "time_column": "月日時分 = MMDDHHMM (8 桁、前日 23 時台の行を含む)",
+   "pool_kinds": "単勝 (n単) / 複勝 Lo・Hi (n複Lo, n複Hi)、n=1..18",
+   "vote_columns": {
+    "単勝票数": "単勝プール全体の票数 (馬別ではない)",
+    "複勝票数": "複勝プール全体の票数 (馬別ではない)"
+   }
+  },
+  "UMAREN_20110105-20151227.csv": {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\UMAREN_20110105-20151227.csv",
+   "size_bytes": 45915808,
+   "sha256": "4a96f108537891ec38b799fc0b3df308a64e0b832cd4cfe54baa9cd43f6f5fcf",
+   "encoding": "cp932",
+   "header": true,
+   "n_columns": 158,
+   "columns_head": [
+    "レースID",
+    "区分",
+    "月日時分",
+    "頭数",
+    "馬連票数",
+    "馬01-02",
+    "馬01-03",
+    "馬01-04"
+   ],
+   "columns_tail": [
+    "馬16-17",
+    "馬16-18",
+    "馬17-18"
+   ],
+   "rows_total": 41175,
+   "rows_2024_2025_discarded_uninspected": 0,
+   "years_kept": [
+    2013,
+    2015
+   ],
+   "rows_by_year_kept": {
+    "2013": 13780,
+    "2014": 13627,
+    "2015": 13768
+   },
+   "kubun_counts_kept": {
+    "1": 30816,
+    "4": 10359
+   },
+   "time_column": "月日時分 = MMDDHHMM (8 桁、前日 23 時台の行を含む)",
+   "pool_kinds": "馬連 全 153 組 (馬ii-jj, i<j<=18)",
+   "vote_columns": {
+    "馬連票数": "馬連プール全体の票数 (組合せ別ではない)"
+   }
+  },
+  "UMAREN_20160105-20201227.csv": {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\UMAREN_20160105-20201227.csv",
+   "size_bytes": 76619764,
+   "sha256": "af040ef16489d1cd2da7c40cd1de528ecc2a70df96c6c641c9b361b5681c22b3",
+   "encoding": "cp932",
+   "header": true,
+   "n_columns": 158,
+   "columns_head": [
+    "レースID",
+    "区分",
+    "月日時分",
+    "頭数",
+    "馬連票数",
+    "馬01-02",
+    "馬01-03",
+    "馬01-04"
+   ],
+   "columns_tail": [
+    "馬16-17",
+    "馬16-18",
+    "馬17-18"
+   ],
+   "rows_total": 68711,
+   "rows_2024_2025_discarded_uninspected": 0,
+   "years_kept": [
+    2016,
+    2020
+   ],
+   "rows_by_year_kept": {
+    "2016": 13780,
+    "2017": 13688,
+    "2018": 13721,
+    "2019": 13736,
+    "2020": 13786
+   },
+   "kubun_counts_kept": {
+    "1": 51440,
+    "4": 17271
+   },
+   "time_column": "月日時分 = MMDDHHMM (8 桁、前日 23 時台の行を含む)",
+   "pool_kinds": "馬連 全 153 組 (馬ii-jj, i<j<=18)",
+   "vote_columns": {
+    "馬連票数": "馬連プール全体の票数 (組合せ別ではない)"
+   }
+  },
+  "UMAREN_20210105-20251228.csv": {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\UMAREN_20210105-20251228.csv",
+   "size_bytes": 76684090,
+   "sha256": "ff037e86b76620a6a7523ed8d6f60954b1997857c58eb7481aaa003bff448bf9",
+   "encoding": "cp932",
+   "header": true,
+   "n_columns": 158,
+   "columns_head": [
+    "レースID",
+    "区分",
+    "月日時分",
+    "頭数",
+    "馬連票数",
+    "馬01-02",
+    "馬01-03",
+    "馬01-04"
+   ],
+   "columns_tail": [
+    "馬16-17",
+    "馬16-18",
+    "馬17-18"
+   ],
+   "rows_total": 68772,
+   "rows_2024_2025_discarded_uninspected": 27492,
+   "years_kept": [
+    2021,
+    2023
+   ],
+   "rows_by_year_kept": {
+    "2021": 13764,
+    "2022": 13776,
+    "2023": 13740
+   },
+   "kubun_counts_kept": {
+    "1": 30912,
+    "4": 10368
+   },
+   "time_column": "月日時分 = MMDDHHMM (8 桁、前日 23 時台の行を含む)",
+   "pool_kinds": "馬連 全 153 組 (馬ii-jj, i<j<=18)",
+   "vote_columns": {
+    "馬連票数": "馬連プール全体の票数 (組合せ別ではない)"
+   }
+  }
+ }
+}

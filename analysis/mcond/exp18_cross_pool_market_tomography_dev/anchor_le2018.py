@@ -32,7 +32,7 @@ import numpy as np
 from scipy.optimize import minimize_scalar
 
 from . import tomography as T
-from .loaders import OUT, RESULT_MAX_YEAR, load_outcomes, load_structure, realized_top2
+from .loaders import OUT, RESULT_MAX_YEAR, dnf_horses, load_outcomes, load_structure, realized_top2
 from .market_build import (PAIR_POS, base_race_status, pool_matrices, race_arrays, snapshot_index,
                            umaren_grid_complete)
 
@@ -64,7 +64,7 @@ def build_anchor_races(st, outc_top):
         if rid not in top.index:
             bump("no_outcome"); continue
         o = top.loc[rid]
-        if o["dnf"] > 0:
+        if dnf_horses(at["bans"], o["finishers"]):
             bump("excl_dnf"); continue
         if o["dead_heat_top2"] or o["top2"] is None:
             bump("excl_dead_heat_top2"); continue
@@ -115,6 +115,11 @@ def ll_market(races, gamma=1.0):
 
 
 def main():
+    import sys
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except Exception:
+        pass
     t0 = time.time()
     st = load_structure(YEARS)
     outc = load_outcomes(RESULT_MAX_YEAR)

@@ -24,7 +24,7 @@ import time
 import numpy as np
 import pandas as pd
 
-from .loaders import (HERE, ODIR, OUT, RESULT_MAX_YEAR, SEALED_FROM_YEAR, load_outcomes,
+from .loaders import (HERE, ODIR, OUT, RESULT_MAX_YEAR, SEALED_FROM_YEAR, dnf_horses, load_outcomes,
                       load_structure, realized_top2, sha256)
 from .market_build import (base_race_status, classify_zero_cells, pool_matrices, race_arrays,
                            snapshot_index, tan_entropy, umaren_grid_complete)
@@ -85,6 +85,11 @@ def band_of(n):
 
 
 def main():
+    import sys
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except Exception:
+        pass
     t0 = time.time()
     manifest = {"role": "EXP18 Stage 0 の市場データ provenance と schema。2024/2025 の行は読み込み直後に破棄し中身を見ない",
                 "files": file_manifest()}
@@ -208,12 +213,19 @@ def main():
     outc = load_outcomes(RESULT_MAX_YEAR)
     top = realized_top2(outc).set_index("rid16")
     le18 = R[(R["year"] <= RESULT_MAX_YEAR) & R["eligible"]]
+    starters_of = {}
+    for rid, r in idx.iterrows():
+        if int(rid[:4]) <= RESULT_MAX_YEAR and r.get("term_tan") == r.get("term_tan"):
+            starters_of[rid] = race_arrays(W, LO, HI, U, int(r["term_tan"]), -1)["bans"]
     oc = {}
     for y, g in le18.groupby("year"):
         t_ = top.reindex(g["rid16"])
-        oc[str(y)] = {"eligible": int(len(g)), "dnf_races": int((t_["dnf"] > 0).sum()),
+        dnf_r = sum(1 for rid, fin in zip(g["rid16"], t_["finishers"])
+                    if isinstance(fin, tuple) and dnf_horses(starters_of[rid], fin))
+        oc[str(y)] = {"eligible": int(len(g)), "dnf_races": int(dnf_r),
                       "top2_dead_heat_races": int(t_["dead_heat_top2"].fillna(False).sum()),
-                      "no_outcome_row": int(t_["dnf"].isna().sum())}
+                      "no_outcome_row": int(t_["finishers"].isna().sum()),
+                      "dnf_definition": "terminal starter (単勝>1.0) のうち master に finisher 行が無い馬がいる race"}
 
     coverage = {
         "role": "結果ラベルを使わない coverage (2019-2023 は市場構造 loader のみ)。DNF/同着は ≤2018 だけ別集計",

@@ -1,0 +1,95 @@
+{
+ "role": "≤2018 だけで crux_joint の T0 頭対頭の方向と桁を再現する anchor + dry-run fit。新規成果ではない",
+ "known_prior_result": "crux_joint.py: 9h, λ fit<=2023, eval 2024-25, market LL 3.343 < Harville 3.380 (|Δ|=0.037)",
+ "result_loader_max_year": 2018,
+ "funnel": {
+  "anchor_eligible": 18678,
+  "excl_dnf": 871,
+  "excl_jump": 763,
+  "anchor_am9_grid_incomplete": 305,
+  "excl_dead_heat_top2": 61,
+  "anchor_top2_outside_am9_starters": 27,
+  "anchor_no_am9_both_pools": 17
+ },
+ "anchor": {
+  "rule": "λ を 2013-2016 で格子 fit、2017-2018 で評価。Δ = LL(Harville) − LL(市場)",
+  "lambda_grid_curve_fit": {
+   "0.5": 3.633738121308186,
+   "0.6": 3.6015284269232373,
+   "0.7": 3.57652570767643,
+   "0.8": 3.558169574012981,
+   "0.9": 3.545863805635359,
+   "1.0": 3.5389976978925537,
+   "1.1": 3.5369691099434424,
+   "1.2": 3.53920561036379
+  },
+  "lambda_star": 1.1,
+  "n_fit_races": 12389,
+  "n_eval_races": 6289,
+  "ll_harville_eval": 3.4280493352878936,
+  "ll_market_eval": 3.3864097012155012,
+  "delta_H_minus_M": 0.04163963407239235,
+  "required_direction": "Δ > 0 (市場優位)",
+  "required_abs_delta_range": [
+   0.0185,
+   0.074
+  ],
+  "direction_ok": true,
+  "magnitude_ok": true,
+  "anchor_pass": true
+ },
+ "reference_in_sample_le2018": {
+  "lambda_star": 1.1,
+  "delta_H_minus_M": 0.050520137491436135,
+  "n_races": 18678
+ },
+ "per_year_eval_lambda_star": {
+  "2013": {
+   "races": 3043,
+   "ll_harville": 3.560725318307108,
+   "ll_market": 3.498161862196177,
+   "delta_H_minus_M": 0.06256345611093073
+  },
+  "2014": {
+   "races": 3071,
+   "ll_harville": 3.551097973413203,
+   "ll_market": 3.5060623857130317,
+   "delta_H_minus_M": 0.04503558770017113
+  },
+  "2015": {
+   "races": 3139,
+   "ll_harville": 3.5474736713866935,
+   "ll_market": 3.4840013372744383,
+   "delta_H_minus_M": 0.06347233411225517
+  },
+  "2016": {
+   "races": 3136,
+   "ll_harville": 3.4895667820937484,
+   "ll_market": 3.440517379723656,
+   "delta_H_minus_M": 0.049049402370092476
+  },
+  "2017": {
+   "races": 3143,
+   "ll_harville": 3.482087516390124,
+   "ll_market": 3.4280356683840294,
+   "delta_H_minus_M": 0.05405184800609453
+  },
+  "2018": {
+   "races": 3146,
+   "ll_harville": 3.3740626845554362,
+   "ll_market": 3.344823428230541,
+   "delta_H_minus_M": 0.029239256324895102
+  }
+ },
+ "dryrun_fits_terminal_le2018": {
+  "n_races": 19027,
+  "gamma_powerlaw_devig": 1.0523656074590757,
+  "ll_at_gamma": 3.3948807040720044,
+  "ll_at_gamma_1_proportional": 3.3969164373412983,
+  "lambda_T1": 0.8769143346936742,
+  "ll_at_lambda_T1": 3.407843902731423,
+  "ll_T0_harville": 3.412603418032049,
+  "note": "Stage 1 では年 Y ごとに ≤Y−1 で refit する。ここでの値は Stage 0 の検出力監査・計算量見積りにだけ使う"
+ },
+ "elapsed_sec": 98.1
+}

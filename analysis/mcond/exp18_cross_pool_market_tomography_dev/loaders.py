@@ -184,8 +184,13 @@ def load_outcomes(max_year: int = RESULT_MAX_YEAR) -> pd.DataFrame:
     return m[["rid16", "year", "ban", "jyun"]]
 
 
+def dnf_horses(starters, finishers) -> list[int]:
+    """DNF = terminal starter (単勝 > 1.0) のうち finisher 行が無い馬 (EXP16A と同定義)"""
+    return sorted(set(int(x) for x in starters) - set(int(x) for x in finishers))
+
+
 def realized_top2(outc: pd.DataFrame) -> pd.DataFrame:
-    """race ごとの realized 順不同 top2 と除外理由 (同着・DNF)。<= 2018 のみ"""
+    """race ごとの realized 順不同 top2・finisher 集合・同着フラグ。<= 2018 のみ"""
     assert int(outc["year"].max()) <= RESULT_MAX_YEAR
     rows = []
     for rid, g in outc.groupby("rid16", sort=False):
@@ -196,7 +201,10 @@ def realized_top2(outc: pd.DataFrame) -> pd.DataFrame:
         # 1着・2着のどちらかに同着がある race は複数の馬連的中組 (または組の曖昧さ) を生むので
         # 主評価から除外する (保守的に「1着1頭・2着1頭」の race だけ top2 を持つ)
         single = len(first) == 1 and len(second) == 1
-        rows.append({"rid16": rid, "year": int(g["year"].iloc[0]), "n_rows": len(g), "dnf": dnf,
+        # 注意: master_v2 は dropna 後で DNF 馬の行を持たない。DNF は「terminal starter なのに
+        # finisher 行が無い馬」として呼び出し側で判定する (EXP16A と同定義)。nan_jyun_rows は参考値
+        rows.append({"rid16": rid, "year": int(g["year"].iloc[0]), "n_rows": len(g), "nan_jyun_rows": dnf,
+                     "finishers": tuple(sorted(g.loc[j.notna(), "ban"].tolist())),
                      "n_first": len(first), "n_second": len(second),
                      "dead_heat_top2": not single,
                      "top2": (tuple(sorted(first + second)) if single else None),

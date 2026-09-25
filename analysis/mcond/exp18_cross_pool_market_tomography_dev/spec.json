@@ -1,7 +1,7 @@
 {
   "experiment": "EXP18_cross_pool_market_tomography",
   "version": "0.4-frozen-stage0",
-  "status": "frozen_for_stage0_implementation",
+  "status": "stage0_complete_stopped_before_stage1_awaiting_review",
   "primary_target_pool": "UMAREN_unordered_top2",
   "purpose": "Test whether non-target pools add information beyond a freely temperature-calibrated terminal UMAREN market; direct market replacement is secondary.",
   "prior_art_equivalence": {
@@ -209,5 +209,58 @@
     "synthetic_oracle_and_invariant_tests",
     "revised_SPEC_spec_README"
   ],
-  "placebo_threshold": 0.975
+  "placebo_threshold": 0.975,
+  "stage0_results": {
+    "date": "2026-09-25",
+    "floor_commit": "ee5b585a",
+    "no_2019_2023_outcomes_read": true,
+    "prior_art": {
+      "equivalent_prior_found": false,
+      "stop_rule_1_triggered": false,
+      "note": "T0/T1 head-to-head already done (crux_joint) -> anchor only"
+    },
+    "anchor": {
+      "lambda_star": 1.1,
+      "delta_H_minus_M": 0.04163963407239235,
+      "n_eval_races": 6289,
+      "anchor_pass": true
+    },
+    "provenance": {
+      "pass": true,
+      "unprefixed_227col_files": "not_used"
+    },
+    "invariant_tests": {
+      "n_tests": 33,
+      "n_pass": 33,
+      "all_passed": true
+    },
+    "t2_roundtrip": {
+      "gate_pass": false,
+      "decision": "T2_unimplemented_stop",
+      "min_yearly_pass_rate": 0.00018636241277203736,
+      "max_yearly_pass_rate": 0.0027075030324033964,
+      "required": 0.99,
+      "consequence": "T2未実装で停止。UB3はStage 1のGate armから除外し、Gate armはUB2の1本(Bonferroni係数1)"
+    },
+    "coverage": {
+      "eligible_races_2019_2023": 16644,
+      "terminal_race_coverage": 1.0,
+      "complete_pair_grid": 1.0,
+      "pre_terminal_joint": 1.0,
+      "all_floors_pass": true
+    },
+    "power": {
+      "practical_floor_nats": 0.8843125150706383,
+      "floor_within_initial_grid": null,
+      "signal_power_at_floor": 1.0,
+      "signal_wilson95_at_floor": [
+        0.9904877055170676,
+        1.0
+      ],
+      "attenuation_at_floor": 0.8395049097407579,
+      "power_gate_pass": true,
+      "review_item": "宣言慣習SD(noise)=sqrt(2Δ)により床が0.884 nats(全額投入参考0.255の約3.5倍、anchor差0.042の約21倍)となりPASS-PRACTICALは実質到達不能。変更は新版で"
+    },
+    "stage1_started": false
+  }
 }

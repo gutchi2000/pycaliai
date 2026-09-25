@@ -1,0 +1,24 @@
+{
+ "role": "EXP18 Stage 0 の計算量 dry run。合成 winner を使い、結果ラベルは読まない",
+ "one_year_build": {
+  "year": 2022,
+  "races_eligible": 3330,
+  "pairs": 303145,
+  "seconds": 11.6
+ },
+ "peak_rss_mb": 498.2,
+ "peak_rss_mb_after_one_year": 498.2,
+ "full_period_build_estimate_seconds": 92.4,
+ "fit_one_year_seconds": 0.18,
+ "rolling_fit_per_draw_estimate_seconds": 4.4,
+ "bootstrap_3000_one_year_seconds": 0.004,
+ "bootstrap_3000_five_years_estimate_seconds": 0.02,
+ "P1_one_draw_one_year_seconds": 0.24,
+ "P1_200_draws_estimate_seconds": 1215.0,
+ "P2_one_draw_one_year_seconds": 0.3,
+ "P2_200_draws_estimate_seconds": 1524.0,
+ "T2_maxent": "計測しない (往復 Gate 未達で T2 未実装)",
+ "approximation": "近似法は使わない。T1 は閉形式、T2 は順序付き top-k の厳密計算。n<=8 oracle 誤差は out/invariant_tests.json (<= 5.6e-14)",
+ "power_audit_elapsed_reference": "out/power_audit.json の elapsed_sec",
+ "elapsed_sec": 12.3
+}

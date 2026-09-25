@@ -1,0 +1,333 @@
+{
+ "role": "複勝 Lo/Hi 表示の往復 Gate (T2 の前提)。表示オッズだけを使い、着順・払戻は読まない",
+ "formula": "TOMOGRAPHY_IDENTIFIABILITY_AUDIT.md §2 (実行前に固定)",
+ "tolerance": "Lo と Hi の両方が |再生成 − 表示| <= max(0.05, 0.02×表示)",
+ "gate_rule": "terminal・base race set・2013-2023 の各年で馬行合格率 >= 0.99",
+ "terminal": {
+  "per_year": {
+   "2013": {
+    "races": 3324,
+    "horse_rows": 48293,
+    "horse_rows_ok": 9,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 128.6,
+    "max_abs_err_hi": 137.8,
+    "horse_row_pass_rate": 0.00018636241277203736,
+    "race_all_ok_rate": 0.0
+   },
+   "2014": {
+    "races": 3326,
+    "horse_rows": 48560,
+    "horse_rows_ok": 52,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 95.6,
+    "max_abs_err_hi": 129.80000000000007,
+    "horse_row_pass_rate": 0.001070840197693575,
+    "race_all_ok_rate": 0.0
+   },
+   "2015": {
+    "races": 3326,
+    "horse_rows": 48240,
+    "horse_rows_ok": 110,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 74.5,
+    "max_abs_err_hi": 134.49999999999994,
+    "horse_row_pass_rate": 0.0022802653399668325,
+    "race_all_ok_rate": 0.0
+   },
+   "2016": {
+    "races": 3326,
+    "horse_rows": 48331,
+    "horse_rows_ok": 100,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 73.5,
+    "max_abs_err_hi": 140.3,
+    "horse_row_pass_rate": 0.002069065403157394,
+    "race_all_ok_rate": 0.0
+   },
+   "2017": {
+    "races": 3329,
+    "horse_rows": 47585,
+    "horse_rows_ok": 88,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 66.5,
+    "max_abs_err_hi": 112.00000000000006,
+    "horse_row_pass_rate": 0.0018493222654197752,
+    "race_all_ok_rate": 0.0
+   },
+   "2018": {
+    "races": 3328,
+    "horse_rows": 46869,
+    "horse_rows_ok": 106,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 91.69999999999999,
+    "max_abs_err_hi": 161.3,
+    "horse_row_pass_rate": 0.0022616228210544285,
+    "race_all_ok_rate": 0.0
+   },
+   "2019": {
+    "races": 3325,
+    "horse_rows": 45777,
+    "horse_rows_ok": 118,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 73.7,
+    "max_abs_err_hi": 125.59999999999997,
+    "horse_row_pass_rate": 0.0025777136990191582,
+    "race_all_ok_rate": 0.0
+   },
+   "2020": {
+    "races": 3331,
+    "horse_rows": 46564,
+    "horse_rows_ok": 111,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 71.9,
+    "max_abs_err_hi": 147.40000000000003,
+    "horse_row_pass_rate": 0.002383815823382871,
+    "race_all_ok_rate": 0.0
+   },
+   "2021": {
+    "races": 3329,
+    "horse_rows": 46168,
+    "horse_rows_ok": 125,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 72.0,
+    "max_abs_err_hi": 123.39999999999998,
+    "horse_row_pass_rate": 0.0027075030324033964,
+    "race_all_ok_rate": 0.0
+   },
+   "2022": {
+    "races": 3330,
+    "horse_rows": 45645,
+    "horse_rows_ok": 118,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 76.8,
+    "max_abs_err_hi": 149.79999999999995,
+    "horse_row_pass_rate": 0.0025851681454704786,
+    "race_all_ok_rate": 0.0
+   },
+   "2023": {
+    "races": 3329,
+    "horse_rows": 46039,
+    "horse_rows_ok": 115,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 77.39999999999999,
+    "max_abs_err_hi": 182.80000000000007,
+    "horse_row_pass_rate": 0.002497882230283021,
+    "race_all_ok_rate": 0.0
+   }
+  },
+  "by_place_lo_band": {
+   "5-20": {
+    "rows": 160835,
+    "pass_rate": 0.0
+   },
+   ">=20": {
+    "rows": 71989,
+    "pass_rate": 0.0
+   },
+   "<2": {
+    "rows": 126419,
+    "pass_rate": 0.008076317642126579
+   },
+   "2-5": {
+    "rows": 158828,
+    "pass_rate": 0.0001951796912383207
+   }
+  },
+  "by_k": {
+   "2": {
+    "rows": 3239,
+    "pass_rate": 0.013275702377276937
+   },
+   "3": {
+    "rows": 514832,
+    "pass_rate": 0.0019598626348012555
+   }
+  },
+  "races_with_display_ties": 10870,
+  "mismatch_diagnostics": {
+   "note": "記述統計のみ。固定した式・Gate は変えず、別の関数形は試していない",
+   "rows": 518071,
+   "share_lo_regen_below_display": 0.891275520150713,
+   "share_lo_regen_above_display": 0.014127407247269196,
+   "share_hi_regen_below_display": 0.16303749872121776,
+   "share_hi_regen_above_display": 0.7640960408901483,
+   "median_spread_ratio_hi_over_lo_display": 1.5949063936180239,
+   "median_spread_ratio_hi_over_lo_regen": 1.8627450980392157,
+   "median_rel_err_lo": -0.10344827586206891,
+   "median_rel_err_hi": 0.05555555555555548
+  }
+ },
+ "historical_pre_snapshot_reference": {
+  "per_year": {
+   "2013": {
+    "races": 3324,
+    "horse_rows": 48354,
+    "horse_rows_ok": 57,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 83.7,
+    "max_abs_err_hi": 184.19999999999993,
+    "horse_row_pass_rate": 0.001178806303511602,
+    "race_all_ok_rate": 0.0
+   },
+   "2014": {
+    "races": 3326,
+    "horse_rows": 48629,
+    "horse_rows_ok": 94,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 59.4,
+    "max_abs_err_hi": 152.3,
+    "horse_row_pass_rate": 0.001933002940632133,
+    "race_all_ok_rate": 0.0
+   },
+   "2015": {
+    "races": 3326,
+    "horse_rows": 48309,
+    "horse_rows_ok": 98,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 53.599999999999994,
+    "max_abs_err_hi": 88.19999999999999,
+    "horse_row_pass_rate": 0.0020286075058477716,
+    "race_all_ok_rate": 0.0
+   },
+   "2016": {
+    "races": 3326,
+    "horse_rows": 48413,
+    "horse_rows_ok": 121,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 41.3,
+    "max_abs_err_hi": 96.40000000000003,
+    "horse_row_pass_rate": 0.0024993286927065044,
+    "race_all_ok_rate": 0.0
+   },
+   "2017": {
+    "races": 3329,
+    "horse_rows": 47651,
+    "horse_rows_ok": 92,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 32.5,
+    "max_abs_err_hi": 68.69999999999999,
+    "horse_row_pass_rate": 0.0019307044972823235,
+    "race_all_ok_rate": 0.0
+   },
+   "2018": {
+    "races": 3328,
+    "horse_rows": 46969,
+    "horse_rows_ok": 111,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 46.699999999999996,
+    "max_abs_err_hi": 102.70000000000005,
+    "horse_row_pass_rate": 0.002363260874193617,
+    "race_all_ok_rate": 0.0
+   },
+   "2019": {
+    "races": 3325,
+    "horse_rows": 45854,
+    "horse_rows_ok": 121,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 40.5,
+    "max_abs_err_hi": 68.4,
+    "horse_row_pass_rate": 0.00263881013652026,
+    "race_all_ok_rate": 0.0
+   },
+   "2020": {
+    "races": 3331,
+    "horse_rows": 46632,
+    "horse_rows_ok": 112,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 33.8,
+    "max_abs_err_hi": 57.400000000000006,
+    "horse_row_pass_rate": 0.002401784182535598,
+    "race_all_ok_rate": 0.0
+   },
+   "2021": {
+    "races": 3329,
+    "horse_rows": 46243,
+    "horse_rows_ok": 126,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 33.4,
+    "max_abs_err_hi": 79.1,
+    "horse_row_pass_rate": 0.002724736716908505,
+    "race_all_ok_rate": 0.0
+   },
+   "2022": {
+    "races": 3331,
+    "horse_rows": 45747,
+    "horse_rows_ok": 123,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 33.5,
+    "max_abs_err_hi": 61.0,
+    "horse_row_pass_rate": 0.0026887008984195684,
+    "race_all_ok_rate": 0.0
+   },
+   "2023": {
+    "races": 3329,
+    "horse_rows": 46134,
+    "horse_rows_ok": 142,
+    "races_all_ok": 0,
+    "max_abs_err_lo": 39.5,
+    "max_abs_err_hi": 87.30000000000001,
+    "horse_row_pass_rate": 0.003077990202453722,
+    "race_all_ok_rate": 0.0
+   }
+  },
+  "by_place_lo_band": {
+   "5-20": {
+    "rows": 181217,
+    "pass_rate": 4.966421472599149e-05
+   },
+   "2-5": {
+    "rows": 211266,
+    "pass_rate": 0.0007762725663381709
+   },
+   "<2": {
+    "rows": 100704,
+    "pass_rate": 0.010168414362885288
+   },
+   ">=20": {
+    "rows": 25748,
+    "pass_rate": 0.0
+   }
+  },
+  "by_k": {
+   "2": {
+    "rows": 3185,
+    "pass_rate": 0.013814756671899528
+   },
+   "3": {
+    "rows": 515750,
+    "pass_rate": 0.0022355792535142995
+   }
+  },
+  "races_with_display_ties": 12763,
+  "mismatch_diagnostics": {
+   "note": "記述統計のみ。固定した式・Gate は変えず、別の関数形は試していない",
+   "rows": 518935,
+   "share_lo_regen_below_display": 0.8883328355188993,
+   "share_lo_regen_above_display": 0.0182913081599815,
+   "share_hi_regen_below_display": 0.16298187634289457,
+   "share_hi_regen_above_display": 0.7466387890583599,
+   "median_spread_ratio_hi_over_lo_display": 1.5121951219512197,
+   "median_spread_ratio_hi_over_lo_regen": 1.7272727272727273,
+   "median_rel_err_lo": -0.09090909090909098,
+   "median_rel_err_hi": 0.04347826086956526
+  }
+ },
+ "terminal_yearly_pass_rates": {
+  "2013": 0.00018636241277203736,
+  "2014": 0.001070840197693575,
+  "2015": 0.0022802653399668325,
+  "2016": 0.002069065403157394,
+  "2017": 0.0018493222654197752,
+  "2018": 0.0022616228210544285,
+  "2019": 0.0025777136990191582,
+  "2020": 0.002383815823382871,
+  "2021": 0.0027075030324033964,
+  "2022": 0.0025851681454704786,
+  "2023": 0.002497882230283021
+ },
+ "min_yearly_pass_rate": 0.00018636241277203736,
+ "gate_pass": false,
+ "decision": "T2_unimplemented_stop",
+ "elapsed_sec": 319.1
+}

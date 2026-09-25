@@ -1,0 +1,628 @@
+{
+ "role": "結果ラベルを使わない coverage (2019-2023 は市場構造 loader のみ)。DNF/同着は ≤2018 だけ別集計",
+ "definitions": {
+  "scheduled": "master レース情報で平地・出走頭数>=5 (市場ファイルに無い race も数える)",
+  "base": "TANPUK terminal あり・starter(単勝>1.0)>=5・全 starter が複勝 Lo/Hi を持つ・平地",
+  "eligible": "base ∩ UMAREN terminal あり ∩ 格子が C(starter,2) で完全 (odds>=1.0)",
+  "terminal_race_coverage": "eligible / scheduled",
+  "complete_pair_grid": "格子完全 / (base ∩ UMAREN terminal あり)",
+  "pre_terminal_joint": "(eligible ∩ 両プールの pre snapshot が同一時刻で存在) / eligible",
+  "entropy_band": "terminal 単勝 entropy の三分位 (2019-2023 eligible で算出: [np.float64(1.8725536666656892), np.float64(2.1040185597643424)]). UMAREN は使わない"
+ },
+ "floors_provisional": {
+  "terminal_race_coverage": 0.95,
+  "complete_pair_grid": 0.99,
+  "pre_terminal_joint": 0.9
+ },
+ "pooled_2019_2023": {
+  "scheduled": 16644,
+  "base": 16644,
+  "base_with_umaren_terminal": 16644,
+  "grid_complete": 16644,
+  "eligible": 16644,
+  "excluded_umaren_settlement_unavailable": 0,
+  "terminal_race_coverage": 1.0,
+  "complete_pair_grid": 1.0,
+  "pre_terminal_joint": 1.0,
+  "pool_total_vote_coverage": 1.0
+ },
+ "floor_check_pooled_2019_2023": {
+  "terminal_race_coverage": {
+   "value": 1.0,
+   "floor": 0.95,
+   "pass": true
+  },
+  "complete_pair_grid": {
+   "value": 1.0,
+   "floor": 0.99,
+   "pass": true
+  },
+  "pre_terminal_joint": {
+   "value": 1.0,
+   "floor": 0.9,
+   "pass": true
+  }
+ },
+ "floor_check_by_year": {
+  "2019": {
+   "terminal_race_coverage": true,
+   "complete_pair_grid": true,
+   "pre_terminal_joint": true
+  },
+  "2020": {
+   "terminal_race_coverage": true,
+   "complete_pair_grid": true,
+   "pre_terminal_joint": true
+  },
+  "2021": {
+   "terminal_race_coverage": true,
+   "complete_pair_grid": true,
+   "pre_terminal_joint": true
+  },
+  "2022": {
+   "terminal_race_coverage": true,
+   "complete_pair_grid": true,
+   "pre_terminal_joint": true
+  },
+  "2023": {
+   "terminal_race_coverage": true,
+   "complete_pair_grid": true,
+   "pre_terminal_joint": true
+  }
+ },
+ "all_floors_pass_pooled": true,
+ "per_year": {
+  "2013": {
+   "scheduled": 3324,
+   "base": 3324,
+   "base_with_umaren_terminal": 3324,
+   "grid_complete": 3324,
+   "eligible": 3324,
+   "excluded_umaren_settlement_unavailable": 0,
+   "terminal_race_coverage": 1.0,
+   "complete_pair_grid": 1.0,
+   "pre_terminal_joint": 1.0,
+   "pool_total_vote_coverage": 1.0,
+   "scheduled_missing_from_market_files": 0,
+   "status_counts": {
+    "base": 3324,
+    "excl_jump": 130
+   }
+  },
+  "2014": {
+   "scheduled": 3326,
+   "base": 3326,
+   "base_with_umaren_terminal": 3326,
+   "grid_complete": 3326,
+   "eligible": 3326,
+   "excluded_umaren_settlement_unavailable": 0,
+   "terminal_race_coverage": 1.0,
+   "complete_pair_grid": 1.0,
+   "pre_terminal_joint": 1.0,
+   "pool_total_vote_coverage": 1.0,
+   "scheduled_missing_from_market_files": 0,
+   "status_counts": {
+    "base": 3326,
+    "excl_jump": 125
+   }
+  },
+  "2015": {
+   "scheduled": 3326,
+   "base": 3326,
+   "base_with_umaren_terminal": 3326,
+   "grid_complete": 3326,
+   "eligible": 3326,
+   "excluded_umaren_settlement_unavailable": 0,
+   "terminal_race_coverage": 1.0,
+   "complete_pair_grid": 1.0,
+   "pre_terminal_joint": 1.0,
+   "pool_total_vote_coverage": 1.0,
+   "scheduled_missing_from_market_files": 0,
+   "status_counts": {
+    "base": 3326,
+    "excl_jump": 128
+   }
+  },
+  "2016": {
+   "scheduled": 3326,
+   "base": 3326,
+   "base_with_umaren_terminal": 3326,
+   "grid_complete": 3326,
+   "eligible": 3326,
+   "excluded_umaren_settlement_unavailable": 0,
+   "terminal_race_coverage": 1.0,
+   "complete_pair_grid": 1.0,
+   "pre_terminal_joint": 1.0,
+   "pool_total_vote_coverage": 1.0,
+   "scheduled_missing_from_market_files": 0,
+   "status_counts": {
+    "base": 3326,
+    "excl_jump": 128
+   }
+  },
+  "2017": {
+   "scheduled": 3329,
+   "base": 3329,
+   "base_with_umaren_terminal": 3329,
+   "grid_complete": 3329,
+   "eligible": 3329,
+   "excluded_umaren_settlement_unavailable": 0,
+   "terminal_race_coverage": 1.0,
+   "complete_pair_grid": 1.0,
+   "pre_terminal_joint": 1.0,
+   "pool_total_vote_coverage": 1.0,
+   "scheduled_missing_from_market_files": 0,
+   "status_counts": {
+    "base": 3329,
+    "excl_jump": 126
+   }
+  },
+  "2018": {
+   "scheduled": 3328,
+   "base": 3328,
+   "base_with_umaren_terminal": 3328,
+   "grid_complete": 3328,
+   "eligible": 3328,
+   "excluded_umaren_settlement_unavailable": 0,
+   "terminal_race_coverage": 1.0,
+   "complete_pair_grid": 1.0,
+   "pre_terminal_joint": 1.0,
+   "pool_total_vote_coverage": 1.0,
+   "scheduled_missing_from_market_files": 0,
+   "status_counts": {
+    "base": 3328,
+    "excl_jump": 126
+   }
+  },
+  "2019": {
+   "scheduled": 3325,
+   "base": 3325,
+   "base_with_umaren_terminal": 3325,
+   "grid_complete": 3325,
+   "eligible": 3325,
+   "excluded_umaren_settlement_unavailable": 0,
+   "terminal_race_coverage": 1.0,
+   "complete_pair_grid": 1.0,
+   "pre_terminal_joint": 1.0,
+   "pool_total_vote_coverage": 1.0,
+   "scheduled_missing_from_market_files": 0,
+   "status_counts": {
+    "base": 3325,
+    "excl_jump": 127
+   }
+  },
+  "2020": {
+   "scheduled": 3331,
+   "base": 3331,
+   "base_with_umaren_terminal": 3331,
+   "grid_complete": 3331,
+   "eligible": 3331,
+   "excluded_umaren_settlement_unavailable": 0,
+   "terminal_race_coverage": 1.0,
+   "complete_pair_grid": 1.0,
+   "pre_terminal_joint": 1.0,
+   "pool_total_vote_coverage": 1.0,
+   "scheduled_missing_from_market_files": 0,
+   "status_counts": {
+    "base": 3331,
+    "excl_jump": 125
+   }
+  },
+  "2021": {
+   "scheduled": 3329,
+   "base": 3329,
+   "base_with_umaren_terminal": 3329,
+   "grid_complete": 3329,
+   "eligible": 3329,
+   "excluded_umaren_settlement_unavailable": 0,
+   "terminal_race_coverage": 1.0,
+   "complete_pair_grid": 1.0,
+   "pre_terminal_joint": 1.0,
+   "pool_total_vote_coverage": 1.0,
+   "scheduled_missing_from_market_files": 0,
+   "status_counts": {
+    "base": 3329,
+    "excl_jump": 127
+   }
+  },
+  "2022": {
+   "scheduled": 3330,
+   "base": 3330,
+   "base_with_umaren_terminal": 3330,
+   "grid_complete": 3330,
+   "eligible": 3330,
+   "excluded_umaren_settlement_unavailable": 0,
+   "terminal_race_coverage": 1.0,
+   "complete_pair_grid": 1.0,
+   "pre_terminal_joint": 1.0,
+   "pool_total_vote_coverage": 1.0,
+   "scheduled_missing_from_market_files": 0,
+   "status_counts": {
+    "base": 3330,
+    "excl_jump": 125,
+    "excl_small_field": 1
+   }
+  },
+  "2023": {
+   "scheduled": 3329,
+   "base": 3329,
+   "base_with_umaren_terminal": 3329,
+   "grid_complete": 3329,
+   "eligible": 3329,
+   "excluded_umaren_settlement_unavailable": 0,
+   "terminal_race_coverage": 1.0,
+   "complete_pair_grid": 1.0,
+   "pre_terminal_joint": 1.0,
+   "pool_total_vote_coverage": 1.0,
+   "scheduled_missing_from_market_files": 0,
+   "status_counts": {
+    "base": 3329,
+    "excl_jump": 127
+   }
+  }
+ },
+ "breakdowns_2019_2023": {
+  "venue": {
+   "中京": {
+    "scheduled": 1993,
+    "base": 1993,
+    "base_with_umaren_terminal": 1993,
+    "grid_complete": 1993,
+    "eligible": 1993,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "中山": {
+    "scheduled": 2439,
+    "base": 2439,
+    "base_with_umaren_terminal": 2439,
+    "grid_complete": 2439,
+    "eligible": 2439,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "京都": {
+    "scheduled": 1289,
+    "base": 1289,
+    "base_with_umaren_terminal": 1289,
+    "grid_complete": 1289,
+    "eligible": 1289,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "函館": {
+    "scheduled": 720,
+    "base": 720,
+    "base_with_umaren_terminal": 720,
+    "grid_complete": 720,
+    "eligible": 720,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "小倉": {
+    "scheduled": 1360,
+    "base": 1360,
+    "base_with_umaren_terminal": 1360,
+    "grid_complete": 1360,
+    "eligible": 1360,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "新潟": {
+    "scheduled": 1552,
+    "base": 1552,
+    "base_with_umaren_terminal": 1552,
+    "grid_complete": 1552,
+    "eligible": 1552,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "札幌": {
+    "scheduled": 816,
+    "base": 816,
+    "base_with_umaren_terminal": 816,
+    "grid_complete": 816,
+    "eligible": 816,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "東京": {
+    "scheduled": 2640,
+    "base": 2640,
+    "base_with_umaren_terminal": 2640,
+    "grid_complete": 2640,
+    "eligible": 2640,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "福島": {
+    "scheduled": 1005,
+    "base": 1005,
+    "base_with_umaren_terminal": 1005,
+    "grid_complete": 1005,
+    "eligible": 1005,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "阪神": {
+    "scheduled": 2830,
+    "base": 2830,
+    "base_with_umaren_terminal": 2830,
+    "grid_complete": 2830,
+    "eligible": 2830,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   }
+  },
+  "field_band": {
+   "13-15": {
+    "scheduled": 4988,
+    "base": 4988,
+    "base_with_umaren_terminal": 4988,
+    "grid_complete": 4988,
+    "eligible": 4988,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "16-18": {
+    "scheduled": 6617,
+    "base": 6617,
+    "base_with_umaren_terminal": 6617,
+    "grid_complete": 6617,
+    "eligible": 6617,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "5-8": {
+    "scheduled": 838,
+    "base": 838,
+    "base_with_umaren_terminal": 838,
+    "grid_complete": 838,
+    "eligible": 838,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "9-12": {
+    "scheduled": 4201,
+    "base": 4201,
+    "base_with_umaren_terminal": 4201,
+    "grid_complete": 4201,
+    "eligible": 4201,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "other": {
+    "scheduled": 0,
+    "base": 0,
+    "base_with_umaren_terminal": 0,
+    "grid_complete": 0,
+    "eligible": 0,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": null,
+    "complete_pair_grid": null,
+    "pre_terminal_joint": null,
+    "pool_total_vote_coverage": null
+   }
+  },
+  "entropy_band": {
+   "high": {
+    "scheduled": 5548,
+    "base": 5548,
+    "base_with_umaren_terminal": 5548,
+    "grid_complete": 5548,
+    "eligible": 5548,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "low": {
+    "scheduled": 5548,
+    "base": 5548,
+    "base_with_umaren_terminal": 5548,
+    "grid_complete": 5548,
+    "eligible": 5548,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   },
+   "mid": {
+    "scheduled": 5548,
+    "base": 5548,
+    "base_with_umaren_terminal": 5548,
+    "grid_complete": 5548,
+    "eligible": 5548,
+    "excluded_umaren_settlement_unavailable": 0,
+    "terminal_race_coverage": 1.0,
+    "complete_pair_grid": 1.0,
+    "pre_terminal_joint": 1.0,
+    "pool_total_vote_coverage": 1.0
+   }
+  }
+ },
+ "zero_cell_classification_terminal_by_year": {
+  "2015": {
+   "zero_out_of_field": 181053,
+   "zero_scratched_or_refund": 2411,
+   "zero_within_starters": 0,
+   "valid_within_starters": 344998,
+   "eq_1_0_within_starters": 0
+  },
+  "2014": {
+   "zero_out_of_field": 176124,
+   "zero_scratched_or_refund": 2203,
+   "zero_within_starters": 0,
+   "valid_within_starters": 349676,
+   "eq_1_0_within_starters": 0
+  },
+  "2013": {
+   "zero_out_of_field": 180068,
+   "zero_scratched_or_refund": 1936,
+   "zero_within_starters": 0,
+   "valid_within_starters": 346458,
+   "eq_1_0_within_starters": 0
+  },
+  "2020": {
+   "zero_out_of_field": 202596,
+   "zero_scratched_or_refund": 2127,
+   "zero_within_starters": 0,
+   "valid_within_starters": 324045,
+   "eq_1_0_within_starters": 0
+  },
+  "2019": {
+   "zero_out_of_field": 210559,
+   "zero_scratched_or_refund": 2916,
+   "zero_within_starters": 0,
+   "valid_within_starters": 314681,
+   "eq_1_0_within_starters": 0
+  },
+  "2018": {
+   "zero_out_of_field": 197703,
+   "zero_scratched_or_refund": 2468,
+   "zero_within_starters": 0,
+   "valid_within_starters": 328291,
+   "eq_1_0_within_starters": 0
+  },
+  "2017": {
+   "zero_out_of_field": 189597,
+   "zero_scratched_or_refund": 2069,
+   "zero_within_starters": 0,
+   "valid_within_starters": 336949,
+   "eq_1_0_within_starters": 0
+  },
+  "2016": {
+   "zero_out_of_field": 179868,
+   "zero_scratched_or_refund": 2348,
+   "zero_within_starters": 0,
+   "valid_within_starters": 346246,
+   "eq_1_0_within_starters": 0
+  },
+  "2023": {
+   "zero_out_of_field": 210126,
+   "zero_scratched_or_refund": 2345,
+   "zero_within_starters": 0,
+   "valid_within_starters": 316297,
+   "eq_1_0_within_starters": 0
+  },
+  "2022": {
+   "zero_out_of_field": 215870,
+   "zero_scratched_or_refund": 2246,
+   "zero_within_starters": 0,
+   "valid_within_starters": 310652,
+   "eq_1_0_within_starters": 0
+  },
+  "2021": {
+   "zero_out_of_field": 208361,
+   "zero_scratched_or_refund": 2187,
+   "zero_within_starters": 0,
+   "valid_within_starters": 318220,
+   "eq_1_0_within_starters": 0
+  }
+ },
+ "same_time_join": {
+  "terminal_tan_rows": 37998,
+  "terminal_um_matched": 37998,
+  "pre_tan_rows": 37998,
+  "pre_um_matched": 37998,
+  "am9_tan_rows": 37998,
+  "am9_um_matched": 37974
+ },
+ "pool_total_votes_monotone_pre_to_terminal": {
+  "races": 37998,
+  "win_total_increases": 37998,
+  "umaren_total_increases": 37998
+ },
+ "outcome_conditioned_exclusions": {
+  "le2018_measured": {
+   "2013": {
+    "eligible": 3324,
+    "dnf_races": 168,
+    "top2_dead_heat_races": 6,
+    "no_outcome_row": 0,
+    "dnf_definition": "terminal starter (単勝>1.0) のうち master に finisher 行が無い馬がいる race"
+   },
+   "2014": {
+    "eligible": 3326,
+    "dnf_races": 150,
+    "top2_dead_heat_races": 12,
+    "no_outcome_row": 0,
+    "dnf_definition": "terminal starter (単勝>1.0) のうち master に finisher 行が無い馬がいる race"
+   },
+   "2015": {
+    "eligible": 3326,
+    "dnf_races": 134,
+    "top2_dead_heat_races": 13,
+    "no_outcome_row": 0,
+    "dnf_definition": "terminal starter (単勝>1.0) のうち master に finisher 行が無い馬がいる race"
+   },
+   "2016": {
+    "eligible": 3326,
+    "dnf_races": 132,
+    "top2_dead_heat_races": 15,
+    "no_outcome_row": 0,
+    "dnf_definition": "terminal starter (単勝>1.0) のうち master に finisher 行が無い馬がいる race"
+   },
+   "2017": {
+    "eligible": 3329,
+    "dnf_races": 149,
+    "top2_dead_heat_races": 10,
+    "no_outcome_row": 0,
+    "dnf_definition": "terminal starter (単勝>1.0) のうち master に finisher 行が無い馬がいる race"
+   },
+   "2018": {
+    "eligible": 3328,
+    "dnf_races": 138,
+    "top2_dead_heat_races": 15,
+    "no_outcome_row": 0,
+    "dnf_definition": "terminal starter (単勝>1.0) のうち master に finisher 行が無い馬がいる race"
+   }
+  },
+  "2019_2023": "DNF・1着2着同着の除外は結果条件付きなので Stage 1 で結果 loader により適用する (Stage 0 では未計測)"
+ },
+ "post_close_refund": "締切後の取消・返還は市場表示に現れない。EXP16A の監査では締切後除外の痕跡 0 件"
+}
