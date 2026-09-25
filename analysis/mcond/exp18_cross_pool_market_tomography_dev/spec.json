@@ -1,0 +1,131 @@
+{
+  "experiment": "EXP18_cross_pool_market_tomography",
+  "version": "0.1-draft",
+  "status": "review_required_not_frozen",
+  "primary_target_pool": "UMAREN_unordered_top2",
+  "purpose": "Test whether a coherent ranking distribution inferred without the target pool predicts the realized target-pool outcome better than the terminal target market.",
+  "hard_prohibitions": [
+    "no_training_before_stage0_review",
+    "no_outcome_performance_during_stage0",
+    "no_2024_2025_opening",
+    "no_roi",
+    "no_ticket_generation",
+    "no_stake_optimization",
+    "no_production_change"
+  ],
+  "data": {
+    "known": {
+      "TANPUK": "win/place odds time series plus pool-total vote counts",
+      "UMAREN": "all unordered-pair odds time series plus pool-total vote counts"
+    },
+    "new_vote_export": "unavailable_due_to_integer_overflow",
+    "vote_count_rule": "pool totals are optional liquidity metadata, never combination-level actual votes",
+    "time_labels": [
+      "historical_pre_snapshot",
+      "terminal_close_market",
+      "result_file_odds"
+    ]
+  },
+  "official_race_set_candidate": {
+    "jra_flat_only": true,
+    "exclude_jv_track_codes": "51..59",
+    "min_starters": 5,
+    "exclude_dnf_primary": true,
+    "exclude_top2_affecting_dead_heats_primary": true,
+    "horse_join_key": "race_id16_plus_umaban",
+    "horse_name_join_forbidden": true,
+    "same_race_and_ticket_set_all_arms": true
+  },
+  "sample_space": "all unordered starter pairs C(n,2), normalized to sum one within race",
+  "primary_loss": "race_level_categorical_logloss_of_realized_unordered_top2_pair",
+  "inference_unit": "meeting_day",
+  "target_market_devig": {
+    "primary": "proportional_inverse_odds",
+    "sensitivity": "freeze_label_free_in_stage0",
+    "disagreement_rule": "FAIL_or_INCONCLUSIVE_not_best_method_selection"
+  },
+  "leave_one_pool_out": {
+    "target_pool_removed_from_inputs": true,
+    "forbidden_target_fields": [
+      "UMAREN_odds",
+      "UMAREN_pool_total_votes",
+      "UMAREN_popularity",
+      "UMAREN_payout"
+    ]
+  },
+  "candidate_families": [
+    "T0_HARVILLE_from_terminal_TANSHO",
+    "T1_STERN_low_dimensional_rolling_fit_from_TANSHO",
+    "T2_MAXENT_from_identifiable_non_target_pool_constraints",
+    "T3_NULL_terminal_UMAREN_market"
+  ],
+  "stage0": {
+    "performance_labels_forbidden": true,
+    "audits": [
+      "prior_art_and_equivalence",
+      "pool_provenance_and_schema",
+      "exactness_and_settlement",
+      "coverage",
+      "meeting_day_power",
+      "compute_dry_run"
+    ],
+    "provisional_coverage_floors": {
+      "terminal_formal_race_coverage": 0.95,
+      "complete_pair_grid_race_fraction": 0.99,
+      "pre_and_terminal_joint_coverage": 0.90
+    },
+    "power_rule": "freeze scientific and practical floors before outcome performance; require >=0.80 power at the declared floor"
+  },
+  "development": {
+    "years": "2019..2023",
+    "rolling_rule": "year Y fitted only with Y-1 and earlier",
+    "holdout_sealed": [2024, 2025],
+    "bootstrap": "year_stratified_meeting_day",
+    "year_direction": "4_of_5",
+    "seed_direction_if_applicable": "4_of_5",
+    "leave_one_year_out": true
+  },
+  "gates": {
+    "M1_terminal_market_residual": {
+      "comparison": "best_predeclared_tomography_minus_terminal_UMAREN",
+      "PASS_PRACTICAL": "CI95_upper<0 and pooled improvement meets Stage0 practical floor and 4/5 years and 4/5 seeds if applicable and all LOO CI95_upper<0 and placebo pass",
+      "PASS_SIGNAL": "same statistical conditions but below practical floor",
+      "FAIL": "any required statistical or placebo condition fails",
+      "progression": "only_PASS_PRACTICAL_to_M2"
+    },
+    "M2_historical_pre_snapshot_actionability": {
+      "run_if": "M1_PASS_PRACTICAL",
+      "rule": "freeze terminal-price forecast target, fit window, loss, and floor before M1 results",
+      "progression": "only_PASS_PRACTICAL_can_propose_separate_ticket_experiment"
+    }
+  },
+  "placebos": [
+    "within_race_source_pool_identity_permutation",
+    "matched_race_source_snapshot_time_shift",
+    "synthetic_coherent_multi_pool_negative_control"
+  ],
+  "placebo_draws_min": 200,
+  "placebo_threshold": 0.975,
+  "stop_rules": [
+    "prior_art_equivalence",
+    "target_pool_input_leakage",
+    "unresolved_provenance_or_pair_columns",
+    "coverage_floor_failure",
+    "power_failure",
+    "M1_FAIL_or_PASS_SIGNAL",
+    "M2_FAIL_or_PASS_SIGNAL",
+    "material_sensitivity_to_devig_year_venue_or_few_races"
+  ],
+  "stage0_deliverables": [
+    "PRIOR_ART_EQUIVALENCE_AUDIT.md",
+    "MARKET_POOL_PROVENANCE.md",
+    "POOL_SCHEMA_MANIFEST.json",
+    "RACE_AND_TICKET_COVERAGE.json",
+    "TOMOGRAPHY_IDENTIFIABILITY_AUDIT.md",
+    "POWER_AUDIT.md",
+    "out/power_audit.json",
+    "COMPUTE_DRY_RUN.json",
+    "synthetic_oracle_and_invariant_tests",
+    "revised_SPEC_spec_README"
+  ]
+}
