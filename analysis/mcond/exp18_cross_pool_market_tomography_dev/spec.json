@@ -1,7 +1,7 @@
 {
   "experiment": "EXP18_cross_pool_market_tomography",
   "version": "0.5-rc",
-  "status": "v0.5_rc_method_committed_before_floor_computation",
+  "status": "v0.5_rc_floor_committed_before_power_and_stage1",
   "primary_target_pool": "UMAREN_unordered_top2",
   "purpose": "Test whether non-target pools add information beyond a freely temperature-calibrated terminal UMAREN market; direct market replacement is secondary.",
   "prior_art_equivalence": {
@@ -135,7 +135,7 @@
       "entry_threshold": "cash-inclusive Kelly on real terminal UMAREN odds (bets only where q*o exceeds the Kelly reserve); v0.4 used max(q_est/m_cal)>1/0.775 with o=0.775/m_cal",
       "growth_threshold_per_race": 0.0001,
       "seed": "freeze before run",
-      "practical_floor_nats": null,
+      "practical_floor_nats": 0.009332614441180855,
       "freeze_rule": "commit numeric value to spec.json before any 2019-2023 performance; later change requires new version",
       "required_power": 0.8,
       "superseded_invalid_economic_floor": {
@@ -146,7 +146,7 @@
         "status": "superseded_invalid_economic_floor (kept for provenance; not used for any gate)"
       },
       "takeout_note": "reference only in v0.5; real terminal odds embed the actual takeout and breakage",
-      "sensitivity_floor_rho_0_5_nats": null,
+      "sensitivity_floor_rho_0_5_nats": 0.09514218508162525,
       "growth_threshold_note": "1e-4/race is unchanged. With ~3,300 races/year it equals log-growth ~0.33/year, i.e. about +39%/year by simple conversion: a high bar.",
       "method_v05": {
         "implementation": "floor_v05.py (cache / floor / power phases); tests test_floor_v05.py -> out/floor_v05_tests.json (20/20 before floor search)",
@@ -191,6 +191,15 @@
         "interpolation": "linear between the first grid point whose rep-mean growth >= 1e-4 and the previous grid point; null if never reached",
         "power": "at the primary floor: 400 reps; at 0.5x, 2x floor and Delta=0: 200 reps each; same rolling fits, year-stratified calendar-day bootstrap (B=1000 in simulation), year direction, LOO and grade_m1 as Stage 1; placebo conditions assumed passed (declared, compute); estimator deterministic so the seed condition follows the pooled sign",
         "progression_rule": "Stage 1 may start only if SIGNAL power at the primary floor >= 0.80 (frozen v0.4 rule). PASS-PRACTICAL power at the floor is reported separately and is expected to be low."
+      },
+      "floor_v05_result": {
+        "source": "out/floor_v05.json (floor_v05.py floor, seed 20260927, 24 reps x 18 grid points x 2 rho, 1705 s)",
+        "primary_floor_nats": 0.009332614441180855,
+        "primary_bracket": "growth 4.29e-5 at Delta=0.0075 and 1.208e-4 at Delta=0.01 (MC SE <= 1e-6); linear interpolation",
+        "primary_fit_vs_oracle_at_0.01": "fitted-estimator growth 1.208e-4 vs oracle (q=p) 1.26e-4",
+        "rho_0_5_reference_floor_nats": 0.09514218508162525,
+        "rho_0_5_note": "reference only; not mixed with the primary floor",
+        "monotone_primary_curve": true
       }
     },
     "outcome_loader_max_year": 2018,
