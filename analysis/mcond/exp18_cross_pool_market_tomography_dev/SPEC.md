@@ -1,6 +1,6 @@
 # EXP18 仕様案 — 複数プール市場トモグラフィー
 
-**版**: v0.4-frozen-stage0
+**版**: v0.5-rc（v0.4-frozen-stage0 を §14 の 5 点だけ改訂）
 **状態**: Fable条件付き承認の軽微5件を反映・Stage 0専用として凍結。**2026-09-25 Stage 0完了・Stage 1前で停止**（結果は§13。§0〜§12の定義は変更していない。凍結項目の変更は`practical_floor_nats`のnull→数値のみ）
 **主対象**: 馬連（順不同の1着・2着組）  
 **禁止**: Stage 0承認前の学習・成績評価、T2/offsetでの2024/2025開封、ROI、候補生成、資金配分、production変更
@@ -266,3 +266,25 @@ Stage 0成果物をコミット後に停止し、Fableの凍結判断を待つ�
 | S0-F 計算量 | 1年構築11.6秒、最大RSS 498MB、P1/P2 200 drawは各20〜25分 |
 
 **Fableレビュー事項（本版では変更しない）**: 宣言慣習`SD(noise)=sqrt(2Δ)`の下では推定の期待logloss利得がΔの約8%に潰れ（`out/power_diagnostics.json`）、期待Kelly成長はΔ≈0.88まで負のままとなる。実務床0.8843は全額比例投入の参考値0.255の約3.5倍、anchorのHarville−市場差全体（0.042）の約21倍であり、この凍結仕様のままではStage 1のPASS-PRACTICALは実質的に到達不能である。慣習を改めるなら新版番号で行う。
+
+## 14. v0.5 改訂（2026-09-25、Fable レビュー採用。結果開封前に事前登録）
+
+変更したのは次の 5 点だけである。UB2 の定義、SIGNAL Gate、母集団の基本定義、階層順、placebo、成長閾値 `1e-4/race`、
+2019〜2023 の評価方法、2024/2025 の封印、T2/UB3 の中止は変更していない。
+
+1. **S0-E の推定ノイズモデル**: v0.4 の「per-pair log 確率へ SD = sqrt(2Δ) の独立ノイズ」を廃止。凍結済み `q_cross` を
+   `n_fit(Y)` 件の合成 outcome から実際に fit し、実 terminal 馬連オッズで決済したときの期待 Kelly 成長が `1e-4/race` に達する
+   最小の真の Δ を主 floor とする（`POWER_AUDIT.md` §6、`floor_v05.py`）。ρ=0.5 の感度値は参考で、主 floor と混ぜない。
+   旧 floor 0.8843 は `superseded_invalid_economic_floor` として由来と廃止理由を残す。
+2. **PASS-PRACTICAL の判定形式**: `PASS-SIGNAL` に加えて `CI95 上限 < −practical_floor_nats`（符号 Δ = LL(q_cross) − LL(q_temp)、
+   改善が負）。点推定は条件にしない。この条件は床ちょうどの効果を高確率で通す検出条件ではなく、実務床を 95% 信頼水準で上回ったと
+   主張するための厳格な等級であり、床での PASS-PRACTICAL 検出力は別に報告する。Stage 1 の進行可否は SIGNAL 検出力で決める。
+   判定は `gate_grade.grade_m1` だけを通す。
+3. **大会 1 位コードの prior-art 追記**（`PRIOR_ART_EQUIVALENCE_AUDIT.md` §5）。新 arm なし、UB1 の β を参考報告。
+4. **Stage 1 正式 race set の cross-check**: 結果を初めて読む時点で障害・DNF（starter − finisher）・top2 同着を除外し、
+   EXP16A / EXP17 の正式 set（15,951R）から宣言済みの定義差（2 着同着の race）を除いた race_id 集合と年別に完全一致することを
+   hard check とする。一致しなければ Δ を計算する前に評価を止め、差分 race_id を報告する。
+5. **DNF 修正前後の記録**（`spec.json.dnf_fix_record`、`PRIOR_ART_EQUIVALENCE_AUDIT.md` §4）。
+
+v0.4 が定めていなかった Stage 1 の実装細目（fit 窓 2013..Y−1、γ・λ の fit、bootstrap B=10,000、P1/P2 の手順、seed 条件の扱い、
+PASS-PRACTICAL 時は M2 が未凍結のため停止）は `spec.json.stage1_protocol_v05` に固定した。いずれも v0.4 の規則を変えない。

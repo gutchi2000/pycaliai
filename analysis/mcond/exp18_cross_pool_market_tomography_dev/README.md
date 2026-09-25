@@ -1,5 +1,10 @@
 # EXP18 — Cross-Pool Market Tomography
 
+**v0.5-rc (2026-09-25)**: Fable review adopted. The v0.4 floor 0.8843 is superseded as
+`superseded_invalid_economic_floor`; the new floor method (finite-sample fit of the frozen
+`q_cross`, real terminal odds, no declared noise) is pre-registered in `SPEC.md` §14 and
+`POWER_AUDIT.md` §6 before any computation. Gate arm: UB2 only.
+
 Status: **Stage 0 complete — stopped before Stage 1, awaiting Fable review**
 (spec v0.4-frozen-stage0, commit `67b874ec`; the only change to frozen fields is
 `stage0.power.practical_floor_nats` going from null to a number, commit `ee5b585a`)

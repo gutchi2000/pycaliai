@@ -1,0 +1,109 @@
+{
+ "n_tests": 20,
+ "n_pass": 20,
+ "all_passed": true,
+ "tests": [
+  {
+   "test": "truth_primary_in_q_cross_family",
+   "pass": true,
+   "detail": "max|Δlog|=3.6e-15"
+  },
+  {
+   "test": "eps0_truth_is_market_and_delta_zero",
+   "pass": true,
+   "detail": "Δ=0.0e+00 a0*=1.000000000000"
+  },
+  {
+   "test": "eps_calibration_hits_target",
+   "pass": true,
+   "detail": "ε=0.587960 Δ_true=0.010000000000"
+  },
+  {
+   "test": "a0_star_matches_derivative_free",
+   "pass": true,
+   "detail": "Newton 0.999016625 vs bounded 0.999016640"
+  },
+  {
+   "test": "rho_direction_orthogonal_and_scaled",
+   "pass": true,
+   "detail": "max|<v,x>|=1.2e-11 max rel ‖v‖−‖c‖=5.2e-16"
+  },
+  {
+   "test": "rho1_direction_is_primary_bitwise",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "rho05_direction_mix",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "well_specified_recovery_large_n",
+   "pass": true,
+   "detail": "ε=1.3210 â=-0.2874 β̂=1.2969 z=(1.43,-1.00) n=31721"
+  },
+  {
+   "test": "rho05_partial_recovery",
+   "pass": true,
+   "detail": "ε=0.8368 β̂=0.4135 β̂/ε=0.494 (期待 ≈ 0.5)"
+  },
+  {
+   "test": "null_market_no_positive_ev_pair_and_growth_le_0",
+   "pass": true,
+   "detail": "max p·o=0.9071 growth=0.00e+00"
+  },
+  {
+   "test": "oracle_kelly_growth_nonnegative_each_race",
+   "pass": true,
+   "detail": "min=0.00e+00 mean=0.00797"
+  },
+  {
+   "test": "true_params_reproduce_truth",
+   "pass": true,
+   "detail": "3.6e-15"
+  },
+  {
+   "test": "no_declared_independent_noise_in_estimator_path",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "growth_rep_deterministic_given_seed",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "settlement_odds_are_terminal_umaren_bitwise",
+   "pass": true,
+   "detail": "2019 先頭 50 race"
+  },
+  {
+   "test": "n_fit_matches_real_formal_counts",
+   "pass": true,
+   "detail": "{\"2019\": 19027, \"2020\": 22197, \"2021\": 25372, \"2022\": 28546, \"2023\": 31721}"
+  },
+  {
+   "test": "fit_year_uses_exactly_n_fit_races",
+   "pass": true,
+   "detail": "19027 vs 19027"
+  },
+  {
+   "test": "no_sealed_years_in_cache",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "floor_interpolation_rule",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "gate_grade_boundary_tests",
+   "pass": true,
+   "detail": ""
+  }
+ ],
+ "elapsed_sec": 94.2,
+ "note": "floor 探索 (floor_v05.py floor) の前に実行。結果ラベル不使用"
+}

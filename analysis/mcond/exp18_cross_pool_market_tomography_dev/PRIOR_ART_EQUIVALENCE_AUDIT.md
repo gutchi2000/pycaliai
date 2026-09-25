@@ -72,3 +72,35 @@ top2 が 9 時 starter 外 27、9 時に両プール無し 17。DNF は「termin
 無い馬がいる race」（EXP16A と同定義、`loaders.dnf_horses`）。
 
 2019〜2023 の着順・払戻・realized top2 はこの監査で一度も読んでいない。
+
+### DNF 修正前後の anchor（v0.5 で追記）
+
+| | 修正前（DNF を着順 NaN で判定 = 常に 0） | 修正後（DNF = starter − finisher） |
+|---|---|---|
+| λ* | 1.1 | 1.1 |
+| fit / 評価 race | 12,955 / 6,569 | 12,389 / 6,289 |
+| 評価 LL: Harville / 市場 | 3.43807 / 3.39522 | 3.42805 / 3.38641 |
+| Δ | +0.04285（PASS） | +0.04164（PASS） |
+| 出典 | Stage 0 セッションの実行ログ（transcript `39ff8c26-…jsonl` のツール出力）。commit されていない | `out/anchor_le2018.json`（commit `3c1deb28`） |
+
+修正前の dry-run γ・λ、anchor の funnel 件数、停止した修正前の検出力計算は**未保存**。推定・再現はしない。
+
+## 5. 大会 1 位コード（keiba-masters-kit、v0.5 で追記）
+
+`https://github.com/sol12378/keiba-masters-kit`、commit `b942a4d3442b65c5d244a672815c9a77e657bff6`、Apache-2.0。
+
+| 事実 | 内容 | 確認 |
+|---|---|---|
+| モデル | 三連単市場確率 ＋ 単勝 Harville 順序確率の対数線形モデル | README で確認 |
+| 係数 | `[0.9265476143601139, 0.0]`（Harville の重みは下限 0） | submission README で確認（再現値 0.9265475951474501、差 1.92e-8） |
+| 分割 | train 155 race / 時系列 holdout 46 race | 読んだ頁では未確認（Fable レビュー提供値として記録） |
+| holdout NLL | 5.8987667 → 5.8957164 | submission README で 5.8988 → 5.8957 を確認 |
+| 実運用 | 市場確率へ 5% blend | README で確認 |
+| 成績 | 204 race で 4 的中、公式最終残高 5,504,260pt | submission README で確認 |
+| 作者の注記 | 較正・positive edge の証拠ではなく、運の寄与が大きい | README で確認 |
+| 学習済みモデルの使用 | 最終日の 14 race だけ | README で確認 |
+
+**位置づけ**: EXP18 と同値ではない（別プール・小標本・比例 de-vig・rolling なし・placebo なし・terminal 評価なし）。
+構造上は、別プールで行われた UB1 相当の外部小標本例である。新しい arm は追加しない。Stage 1 では UB1 の β を参考値として報告する。
+Harville 係数 0 は UB2 の停止理由にしない。市場の温度 null を置く設計を弱く支持する先行例として扱う。大会用の到達確率最大化方策は
+PyCaLiAI の長期成長目的へ移植しない。
