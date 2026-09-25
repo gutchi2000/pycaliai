@@ -1,13 +1,16 @@
 {
   "experiment": "EXP18_cross_pool_market_tomography",
-  "version": "0.1-draft",
-  "status": "review_required_not_frozen",
+  "version": "0.2-draft",
+  "status": "re_review_required_not_frozen",
   "primary_target_pool": "UMAREN_unordered_top2",
-  "purpose": "Test whether a coherent ranking distribution inferred without the target pool predicts the realized target-pool outcome better than the terminal target market.",
+  "purpose": "Test whether non-target pools add residual information to a rolling-calibrated terminal UMAREN market through an offset conditional-logit; direct market replacement is secondary.",
+  "prior_art_equivalence": {
+    "crux_joint_T0_T1_head_to_head": "done: 9h snapshot, lambda fit <=2023, eval 2024-25, market LL 3.343 < Harville 3.380",
+    "rule": "T0/T1 are reproduction anchors only; novelty is T2 soft-fukusho and calibrated offset residual"
+  },
   "hard_prohibitions": [
-    "no_training_before_stage0_review",
     "no_outcome_performance_during_stage0",
-    "no_2024_2025_opening",
+    "no_T2_or_offset_2024_2025_opening",
     "no_roi",
     "no_ticket_generation",
     "no_stake_optimization",
@@ -15,106 +18,144 @@
   ],
   "data": {
     "known": {
-      "TANPUK": "win/place odds time series plus pool-total vote counts",
-      "UMAREN": "all unordered-pair odds time series plus pool-total vote counts"
+      "TANPUK": "win/place odds time series plus pool-total votes",
+      "UMAREN": "all unordered-pair odds time series plus pool-total votes"
     },
     "new_vote_export": "unavailable_due_to_integer_overflow",
-    "vote_count_rule": "pool totals are optional liquidity metadata, never combination-level actual votes",
+    "vote_rule": "pool totals are optional liquidity metadata, never combination-level votes",
     "time_labels": [
       "historical_pre_snapshot",
       "terminal_close_market",
       "result_file_odds"
     ]
   },
-  "official_race_set_candidate": {
+  "sealed_caveat": "2024/2025 already opened for T0/T1 head-to-head by crux_joint; sealed only for T2 and offset test",
+  "population": {
+    "base_defined_without_target_pool": true,
     "jra_flat_only": true,
     "exclude_jv_track_codes": "51..59",
     "min_starters": 5,
     "exclude_dnf_primary": true,
-    "exclude_top2_affecting_dead_heats_primary": true,
-    "horse_join_key": "race_id16_plus_umaban",
+    "exclude_top2_dead_heats_primary": true,
+    "join_key": "race_id16_plus_umaban",
     "horse_name_join_forbidden": true,
-    "same_race_and_ticket_set_all_arms": true
+    "target_grid_missingness": "settlement_unavailable exclusion reported after base population is fixed"
   },
-  "sample_space": "all unordered starter pairs C(n,2), normalized to sum one within race",
-  "primary_loss": "race_level_categorical_logloss_of_realized_unordered_top2_pair",
-  "inference_unit": "meeting_day",
-  "target_market_devig": {
-    "primary": "proportional_inverse_odds",
-    "sensitivity": "freeze_label_free_in_stage0",
-    "disagreement_rule": "FAIL_or_INCONCLUSIVE_not_best_method_selection"
+  "sample_space": "all unordered starter pairs C(n,2), positive and normalized within race",
+  "primary_loss": "race-level categorical logloss of realized unordered top2 pair",
+  "inference_unit": "calendar_meeting_day",
+  "null_market": {
+    "primary": "power-law calibrated devig m proportional to (1/odds)^gamma, gamma fit on <=Y-1",
+    "secondary": "proportional gamma=1",
+    "rule": "PASS only if calibrated primary null is beaten"
   },
-  "leave_one_pool_out": {
-    "target_pool_removed_from_inputs": true,
-    "forbidden_target_fields": [
-      "UMAREN_odds",
-      "UMAREN_pool_total_votes",
-      "UMAREN_popularity",
-      "UMAREN_payout"
-    ]
+  "primary_comparison": {
+    "score": "s=log(q_LOPO/m_cal)",
+    "model": "q_blend proportional to m_cal*exp(beta*s)",
+    "fit": "beta on <=Y-1",
+    "delta": "LL(q_blend)-LL(m_cal)",
+    "self_identity": "q_LOPO=m_cal implies bit-identical null"
   },
   "candidate_families": [
-    "T0_HARVILLE_from_terminal_TANSHO",
-    "T1_STERN_low_dimensional_rolling_fit_from_TANSHO",
-    "T2_MAXENT_from_identifiable_non_target_pool_constraints",
-    "T3_NULL_terminal_UMAREN_market"
+    "T0_HARVILLE reproduction anchor",
+    "T1_STERN rolling dependence anchor",
+    "T2_SOFT_FUKUSHO_MAXENT with w_fuku in [0,1] fit <=Y-1",
+    "T3_NULL_CALIBRATED",
+    "T3_NULL_PROPORTIONAL secondary"
   ],
+  "t2_rules": {
+    "claim": "unique only under the declared MaxEnt prior, not identified by observed marginals",
+    "equivalence": "w_fuku=0 reproduces T1 bitwise",
+    "required_decomposition": [
+      "T1-T0",
+      "T2-T1"
+    ],
+    "inversion_roundtrip": {
+      "relative_odds_error_max": 0.02,
+      "place_probability_sum_tolerance": 0.000001,
+      "fail_action": "T2_unimplemented_stop"
+    }
+  },
   "stage0": {
     "performance_labels_forbidden": true,
     "audits": [
       "prior_art_and_equivalence",
       "pool_provenance_and_schema",
-      "exactness_and_settlement",
+      "exactness_settlement_and_U_SELF",
       "coverage",
-      "meeting_day_power",
+      "calendar_day_power",
       "compute_dry_run"
     ],
-    "provisional_coverage_floors": {
+    "coverage_floors_provisional": {
       "terminal_formal_race_coverage": 0.95,
       "complete_pair_grid_race_fraction": 0.99,
-      "pre_and_terminal_joint_coverage": 0.90
+      "pre_terminal_joint_coverage": 0.9
     },
-    "power_rule": "freeze scientific and practical floors before outcome performance; require >=0.80 power at the declared floor"
+    "popularity_cell_source": "TANPUK entropy only",
+    "power": {
+      "signal": "CI95 upper(delta)<0",
+      "practical": "minimum true delta with expected log-growth >=1e-4/race in noise-aware selective-participation simulation, takeout 0.225, entry max(q_est/m_cal)>1/0.775",
+      "full_investment_reference_nats": 0.255,
+      "required_power": 0.8
+    }
   },
   "development": {
     "years": "2019..2023",
     "rolling_rule": "year Y fitted only with Y-1 and earlier",
-    "holdout_sealed": [2024, 2025],
-    "bootstrap": "year_stratified_meeting_day",
+    "sealed_for": [
+      "T2",
+      "offset_residual"
+    ],
+    "bootstrap": "year-stratified calendar-meeting-day",
     "year_direction": "4_of_5",
     "seed_direction_if_applicable": "4_of_5",
     "leave_one_year_out": true
   },
-  "gates": {
-    "M1_terminal_market_residual": {
-      "comparison": "best_predeclared_tomography_minus_terminal_UMAREN",
-      "PASS_PRACTICAL": "CI95_upper<0 and pooled improvement meets Stage0 practical floor and 4/5 years and 4/5 seeds if applicable and all LOO CI95_upper<0 and placebo pass",
-      "PASS_SIGNAL": "same statistical conditions but below practical floor",
-      "FAIL": "any required statistical or placebo condition fails",
-      "progression": "only_PASS_PRACTICAL_to_M2"
-    },
-    "M2_historical_pre_snapshot_actionability": {
-      "run_if": "M1_PASS_PRACTICAL",
-      "rule": "freeze terminal-price forecast target, fit window, loss, and floor before M1 results",
-      "progression": "only_PASS_PRACTICAL_can_propose_separate_ticket_experiment"
-    }
-  },
+  "arms": [
+    "U0_TERMINAL_UMAREN_CAL",
+    "U0P_TERMINAL_UMAREN_PROP",
+    "U1_HARVILLE_TAN_ANCHOR",
+    "U2_STERN_TAN_ANCHOR",
+    "U3_SOFT_FUKUSHO_MAXENT",
+    "UB1_OFFSET_U1",
+    "UB2_OFFSET_U2",
+    "UB3_OFFSET_U3",
+    "U_SELF_BITCHECK",
+    "U_ANCHOR_CRUX_9H",
+    "U4_PRE_UMAREN"
+  ],
   "placebos": [
-    "within_race_source_pool_identity_permutation",
-    "matched_race_source_snapshot_time_shift",
-    "synthetic_coherent_multi_pool_negative_control"
+    "within-race source identity permutation",
+    "matched-race source time shift using TANSHO entropy cells",
+    "synthetic coherent multi-pool negative control",
+    "target-null resample from rolling calibrated UMAREN"
   ],
   "placebo_draws_min": 200,
   "placebo_threshold": 0.975,
+  "gates": {
+    "M1": {
+      "comparison": "predeclared offset arm minus calibrated terminal UMAREN",
+      "PASS_PRACTICAL": "CI95 upper<0, practical floor met, 4/5 years, 4/5 seeds if applicable, all LOO CI upper<0, placebo pass",
+      "PASS_SIGNAL": "same statistical conditions but below practical floor",
+      "FAIL": "any required condition fails",
+      "progression": "only PASS_PRACTICAL to M2"
+    },
+    "M2": {
+      "run_if": "M1_PASS_PRACTICAL",
+      "input": "pre non-target pools plus UMAREN pre-to-terminal drift fit <=Y-1",
+      "rule": "freeze target, fit, loss and floor before M1 results",
+      "progression": "only PASS_PRACTICAL can propose separate ticket experiment"
+    }
+  },
   "stop_rules": [
-    "prior_art_equivalence",
-    "target_pool_input_leakage",
-    "unresolved_provenance_or_pair_columns",
-    "coverage_floor_failure",
-    "power_failure",
-    "M1_FAIL_or_PASS_SIGNAL",
-    "M2_FAIL_or_PASS_SIGNAL",
-    "material_sensitivity_to_devig_year_venue_or_few_races"
+    "prior_art equivalence",
+    "target-pool leakage",
+    "unresolved provenance or pair columns",
+    "coverage failure",
+    "power failure",
+    "M1 FAIL or PASS_SIGNAL",
+    "M2 FAIL or PASS_SIGNAL",
+    "material devig/year/venue/few-race sensitivity"
   ],
   "stage0_deliverables": [
     "PRIOR_ART_EQUIVALENCE_AUDIT.md",
