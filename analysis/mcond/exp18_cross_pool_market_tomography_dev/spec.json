@@ -1,7 +1,7 @@
 {
   "experiment": "EXP18_cross_pool_market_tomography",
   "version": "0.5-final",
-  "status": "v0.5_final_frozen_before_stage1_outcomes",
+  "status": "terminated_after_stage1_M1_FAIL",
   "primary_target_pool": "UMAREN_unordered_top2",
   "purpose": "Test whether non-target pools add information beyond a freely temperature-calibrated terminal UMAREN market; direct market replacement is secondary.",
   "prior_art_equivalence": {
@@ -491,5 +491,64 @@
       "stage1_machinery": "14/14 (run before freeze; the two freeze-guard tests expect version != final)",
       "stage0_invariants": "33/33"
     }
+  },
+  "stage1_results": {
+    "date": "2026-09-26",
+    "spec_version": "0.5-final",
+    "freeze_commit": "6f07bad6",
+    "race_set": {
+      "exp18": 15927,
+      "reference_exp16a_exp17": 15951,
+      "declared_D_second_place_dead_heat": 24,
+      "exact_match": true
+    },
+    "grade": "FAIL",
+    "fail_reasons": [
+      "leave_one_year_out CI95 上限 < 0 を満たさない結果がある"
+    ],
+    "statement": "較正済み terminal 馬連市場に対する単勝由来 T1 の offset 残差情報を、2019-2023 rolling 評価で検出できなかった。全券種・全プール・JRA 全市場へ一般化しない",
+    "UB2": {
+      "point": -0.0014451687190382481,
+      "ci95": [
+        -0.002359252576597143,
+        -0.0005324611616576591
+      ],
+      "year_means": {
+        "2019": -0.0007312251422884514,
+        "2020": -0.0006779362722547372,
+        "2021": -0.003644502251663075,
+        "2022": -0.0033338427818653564,
+        "2023": 0.001182115928686072
+      },
+      "years_improved": 4,
+      "loo_ci_uppers": {
+        "2019": -0.0006087705988043824,
+        "2020": -0.0005982799169084299,
+        "2021": 0.00010164310291410236,
+        "2022": 6.317295615079076e-05,
+        "2023": -0.0011139421730333551
+      }
+    },
+    "placebo": {
+      "P1_exceeded": true,
+      "P2_exceeded": true
+    },
+    "UB1_beta_by_year_reference": {
+      "2019": 0.2554474052088935,
+      "2020": 0.243011696842106,
+      "2021": 0.23258186572405448,
+      "2022": 0.24708413172101984,
+      "2023": 0.2550326381400968
+    },
+    "UB2_minus_UB1": {
+      "point": -2.5727565575450323e-05,
+      "ci95": [
+        -6.26102485778758e-05,
+        1.1473675827291867e-05
+      ]
+    },
+    "practical_floor_nats": 0.009332614441180855,
+    "consequence": "EXP18 terminated (stop rule 6). No 2024/2025, M2, ROI, candidates, allocation or production change. No rescue.",
+    "report": "REPORT.md"
   }
 }

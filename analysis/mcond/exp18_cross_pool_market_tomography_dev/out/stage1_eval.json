@@ -1,0 +1,479 @@
+{
+ "role": "EXP18 Stage 1 (spec v0.5-final)。UB2 vs 較正温度 null、2019-2023 rolling。2024/2025 未開封",
+ "spec_version": "0.5-final",
+ "practical_floor_nats": 0.009332614441180855,
+ "race_set_crosscheck": {
+  "exp16a_equals_exp17": true,
+  "total_exp18": 15927,
+  "total_reference": 15951,
+  "total_D": 24,
+  "match_all": true,
+  "funnel": {
+   "2015": {
+    "eligible": 3326,
+    "no_outcome": 0,
+    "excl_dnf": 134,
+    "excl_top2_dead_heat": 12,
+    "excl_top2_outside_starters": 0,
+    "formal": 3180
+   },
+   "2014": {
+    "eligible": 3326,
+    "no_outcome": 0,
+    "excl_dnf": 150,
+    "excl_top2_dead_heat": 9,
+    "excl_top2_outside_starters": 0,
+    "formal": 3167
+   },
+   "2013": {
+    "eligible": 3324,
+    "no_outcome": 0,
+    "excl_dnf": 168,
+    "excl_top2_dead_heat": 5,
+    "excl_top2_outside_starters": 0,
+    "formal": 3151
+   },
+   "2020": {
+    "eligible": 3331,
+    "no_outcome": 0,
+    "excl_dnf": 153,
+    "excl_top2_dead_heat": 16,
+    "excl_top2_outside_starters": 0,
+    "formal": 3162
+   },
+   "2019": {
+    "eligible": 3325,
+    "no_outcome": 0,
+    "excl_dnf": 135,
+    "excl_top2_dead_heat": 9,
+    "excl_top2_outside_starters": 0,
+    "formal": 3181
+   },
+   "2018": {
+    "eligible": 3328,
+    "no_outcome": 0,
+    "excl_dnf": 138,
+    "excl_top2_dead_heat": 14,
+    "excl_top2_outside_starters": 0,
+    "formal": 3176
+   },
+   "2017": {
+    "eligible": 3329,
+    "no_outcome": 0,
+    "excl_dnf": 149,
+    "excl_top2_dead_heat": 7,
+    "excl_top2_outside_starters": 0,
+    "formal": 3173
+   },
+   "2016": {
+    "eligible": 3326,
+    "no_outcome": 0,
+    "excl_dnf": 132,
+    "excl_top2_dead_heat": 14,
+    "excl_top2_outside_starters": 0,
+    "formal": 3180
+   },
+   "2023": {
+    "eligible": 3329,
+    "no_outcome": 0,
+    "excl_dnf": 135,
+    "excl_top2_dead_heat": 6,
+    "excl_top2_outside_starters": 0,
+    "formal": 3188
+   },
+   "2022": {
+    "eligible": 3330,
+    "no_outcome": 0,
+    "excl_dnf": 120,
+    "excl_top2_dead_heat": 10,
+    "excl_top2_outside_starters": 0,
+    "formal": 3200
+   },
+   "2021": {
+    "eligible": 3329,
+    "no_outcome": 0,
+    "excl_dnf": 121,
+    "excl_top2_dead_heat": 12,
+    "excl_top2_outside_starters": 0,
+    "formal": 3196
+   }
+  },
+  "per_year": {
+   "2019": {
+    "exp18": 3181,
+    "exp16a": 3185,
+    "exp17": 3185,
+    "D_second_place_dead_heat": 4,
+    "expected": 3181,
+    "match": true
+   },
+   "2020": {
+    "exp18": 3162,
+    "exp16a": 3169,
+    "exp17": 3169,
+    "D_second_place_dead_heat": 7,
+    "expected": 3162,
+    "match": true
+   },
+   "2021": {
+    "exp18": 3196,
+    "exp16a": 3200,
+    "exp17": 3200,
+    "D_second_place_dead_heat": 4,
+    "expected": 3196,
+    "match": true
+   },
+   "2022": {
+    "exp18": 3200,
+    "exp16a": 3206,
+    "exp17": 3206,
+    "D_second_place_dead_heat": 6,
+    "expected": 3200,
+    "match": true
+   },
+   "2023": {
+    "exp18": 3188,
+    "exp16a": 3191,
+    "exp17": 3191,
+    "D_second_place_dead_heat": 3,
+    "expected": 3188,
+    "match": true
+   }
+  }
+ },
+ "n_eval_races": 15927,
+ "n_meeting_days": 540,
+ "fits": {
+  "2019": {
+   "gamma": 1.052365607454655,
+   "lambda": 0.8769142884224309,
+   "a0": 0.9999999825797216,
+   "n_fit_races": 19027,
+   "UB2": {
+    "a": 0.7306934719302499,
+    "beta": 0.2709043060625318,
+    "collinear": false,
+    "rank": 2,
+    "cond": 78.83411539346106
+   },
+   "UB1": {
+    "a": 0.7268929620284462,
+    "beta": 0.2554474052088935,
+    "collinear": false,
+    "rank": 2,
+    "cond": 83.3415599662881
+   },
+   "deterministic_refit_bitwise": true,
+   "P5_collinear": true,
+   "P5_max_abs_delta": 0.0
+  },
+  "2020": {
+   "gamma": 1.051414962130275,
+   "lambda": 0.8737510380712444,
+   "a0": 0.9999999815023368,
+   "n_fit_races": 22208,
+   "UB2": {
+    "a": 0.7430631052363509,
+    "beta": 0.2584875168800722,
+    "collinear": false,
+    "rank": 2,
+    "cond": 78.79570448404935
+   },
+   "UB1": {
+    "a": 0.7396961522447847,
+    "beta": 0.243011696842106,
+    "collinear": false,
+    "rank": 2,
+    "cond": 83.50736085751623
+   },
+   "deterministic_refit_bitwise": true,
+   "P5_collinear": true,
+   "P5_max_abs_delta": 0.0
+  },
+  "2021": {
+   "gamma": 1.0516000337400735,
+   "lambda": 0.8721450221170309,
+   "a0": 0.9999999819062451,
+   "n_fit_races": 25370,
+   "UB2": {
+    "a": 0.7540201756923263,
+    "beta": 0.24751851644493508,
+    "collinear": false,
+    "rank": 2,
+    "cond": 78.65630188235492
+   },
+   "UB1": {
+    "a": 0.7506768826829184,
+    "beta": 0.23258186572405448,
+    "collinear": false,
+    "rank": 2,
+    "cond": 83.47347092125166
+   },
+   "deterministic_refit_bitwise": true,
+   "P5_collinear": true,
+   "P5_max_abs_delta": 0.0
+  },
+  "2022": {
+   "gamma": 1.0525740076351398,
+   "lambda": 0.8737767805491831,
+   "a0": 0.9999999830783116,
+   "n_fit_races": 28566,
+   "UB2": {
+    "a": 0.7392094632638341,
+    "beta": 0.2623656998994889,
+    "collinear": false,
+    "rank": 2,
+    "cond": 78.65038404675846
+   },
+   "UB1": {
+    "a": 0.7353450369570871,
+    "beta": 0.24708413172101984,
+    "collinear": false,
+    "rank": 2,
+    "cond": 83.40384549944689
+   },
+   "deterministic_refit_bitwise": true,
+   "P5_collinear": true,
+   "P5_max_abs_delta": 0.0
+  },
+  "2023": {
+   "gamma": 1.0534347881438804,
+   "lambda": 0.8729201437931091,
+   "a0": 0.9999999837500848,
+   "n_fit_races": 31766,
+   "UB2": {
+    "a": 0.7304481199076763,
+    "beta": 0.27121241124292933,
+    "collinear": false,
+    "rank": 2,
+    "cond": 78.3911455280654
+   },
+   "UB1": {
+    "a": 0.726703165508949,
+    "beta": 0.2550326381400968,
+    "collinear": false,
+    "rank": 2,
+    "cond": 83.23221480826203
+   },
+   "deterministic_refit_bitwise": true,
+   "P5_collinear": true,
+   "P5_max_abs_delta": 0.0
+  }
+ },
+ "UB2_gate": {
+  "delta_definition": "LL(q_cross) - LL(q_temp), improvement negative",
+  "point": -0.0014451687190382481,
+  "ci95": [
+   -0.002359252576597143,
+   -0.0005324611616576591
+  ],
+  "year_means": {
+   "2019": -0.0007312251422884514,
+   "2020": -0.0006779362722547372,
+   "2021": -0.003644502251663075,
+   "2022": -0.0033338427818653564,
+   "2023": 0.001182115928686072
+  },
+  "years_improved": 4,
+  "loo_ci_uppers": {
+   "2019": -0.0006087705988043824,
+   "2020": -0.0005982799169084299,
+   "2021": 0.00010164310291410236,
+   "2022": 6.317295615079076e-05,
+   "2023": -0.0011139421730333551
+  }
+ },
+ "placebo": {
+  "P1": {
+   "draws": 200,
+   "q025": -6.22785179748981e-05,
+   "median": 1.9317885829623458e-05,
+   "exceeded": true
+  },
+  "P2": {
+   "draws": 200,
+   "q025": -5.806009892615129e-05,
+   "median": 1.3047193199139642e-05,
+   "exceeded": true,
+   "singleton_cells_races": 5
+  },
+  "P4_sanity": {
+   "draws": 200,
+   "mean_delta": 0.0020272854017578386,
+   "ci_upper_lt_0_rate": 0.0,
+   "note": "sanity only, not gate evidence"
+  },
+  "P5_assert": "all years collinear path and |Δ| <= 1e-12"
+ },
+ "seeds": {
+  "deterministic": true,
+  "seeds_improved": 5
+ },
+ "grade": {
+  "grade": "FAIL",
+  "statement": "較正済み terminal 馬連市場に対する単勝由来 T1 の offset 残差情報を、2019-2023 rolling 評価で検出できなかった。全券種・全プール・JRA 全市場へ一般化しない",
+  "consequences": [
+   "EXP18 を終了する",
+   "結果後の救済探索 (券種・人気帯・de-vig・T2 復活) をしない"
+  ],
+  "fail_reasons": [
+   "leave_one_year_out CI95 上限 < 0 を満たさない結果がある"
+  ],
+  "reported": {
+   "pooled_point_estimate": -0.0014451687190382481,
+   "ci95": [
+    -0.002359252576597143,
+    -0.0005324611616576591
+   ],
+   "ci_upper_below_zero": true,
+   "ci_upper_below_minus_floor": false,
+   "point_estimate_beyond_floor": false,
+   "years_improved": "4/5",
+   "seeds_improved": "5/5",
+   "loo_ci_uppers": [
+    -0.0006087705988043824,
+    -0.0005982799169084299,
+    0.00010164310291410236,
+    6.317295615079076e-05,
+    -0.0011139421730333551
+   ],
+   "p1_exceeded": true,
+   "p2_exceeded": true,
+   "floor": 0.009332614441180855,
+   "n_gate_arms": 1
+  },
+  "note": "点推定は報告値であり等級条件ではない"
+ },
+ "secondary": {
+  "UB1_reference": {
+   "point": -0.0014194411534627978,
+   "ci95": [
+    -0.0023399656785927734,
+    -0.000489574078676976
+   ],
+   "year_means": {
+    "2019": -0.0006846905874318438,
+    "2020": -0.000681230086576815,
+    "2021": -0.003700995272566851,
+    "2022": -0.003299674272454861,
+    "2023": 0.0012898210803493776
+   },
+   "years_improved": 4,
+   "loo_ci_uppers": {
+    "2019": -0.0005744200391791165,
+    "2020": -0.0005407895722025768,
+    "2021": 0.0001541763494048365,
+    "2022": 9.079832162306536e-05,
+    "2023": -0.001079292298947889
+   }
+  },
+  "UB1_beta_by_year": {
+   "2019": 0.2554474052088935,
+   "2020": 0.243011696842106,
+   "2021": 0.23258186572405448,
+   "2022": 0.24708413172101984,
+   "2023": 0.2550326381400968
+  },
+  "UB2_minus_UB1": {
+   "point": -2.5727565575450323e-05,
+   "ci95": [
+    -6.26102485778758e-05,
+    1.1473675827291867e-05
+   ],
+   "year_means": {
+    "2019": -4.6534554856607646e-05,
+    "2020": 3.2938143220776367e-06,
+    "2021": 5.649302090377534e-05,
+    "2022": -3.416850941049529e-05,
+    "2023": -0.00010770515166330583
+   },
+   "years_improved": 3,
+   "loo_ci_uppers": {
+    "2019": 2.0577469897251202e-05,
+    "2020": 7.967511827768407e-06,
+    "2021": -4.2387523657764335e-06,
+    "2022": 1.8058615257024343e-05,
+    "2023": 3.57545685557392e-05
+   }
+  },
+  "T1_minus_T0_head_to_head": {
+   "point": -0.005809783642586957,
+   "ci95": [
+    -0.0072370631884178535,
+    -0.004432112062307531
+   ],
+   "year_means": {
+    "2019": -0.006547259628492134,
+    "2020": -0.006031898500293012,
+    "2021": -0.003828465482258607,
+    "2022": -0.00564027825163987,
+    "2023": -0.007010057105638765
+   },
+   "years_improved": 5,
+   "loo_ci_uppers": {
+    "2019": -0.004101969019637041,
+    "2020": -0.004174355661231294,
+    "2021": -0.00473599525996505,
+    "2022": -0.0043400285816387095,
+    "2023": -0.003981869919940031
+   }
+  },
+  "U0P_proportional_devig": "gate models identical by construction (power of power absorbed by a, a0)",
+  "per_venue": {
+   "中京": {
+    "races": 1922,
+    "mean_delta": -0.0023784892754757604
+   },
+   "中山": {
+    "races": 2326,
+    "mean_delta": -0.001641912884207484
+   },
+   "京都": {
+    "races": 1232,
+    "mean_delta": -0.0011503359256489123
+   },
+   "函館": {
+    "races": 698,
+    "mean_delta": -0.001535975808500934
+   },
+   "小倉": {
+    "races": 1290,
+    "mean_delta": 0.0004651882178509163
+   },
+   "新潟": {
+    "races": 1487,
+    "mean_delta": -0.0027275038298822385
+   },
+   "札幌": {
+    "races": 768,
+    "mean_delta": -0.0012571308512292993
+   },
+   "東京": {
+    "races": 2539,
+    "mean_delta": -0.001462107882824554
+   },
+   "福島": {
+    "races": 947,
+    "mean_delta": 0.0028654973678307327
+   },
+   "阪神": {
+    "races": 2718,
+    "mean_delta": -0.002471480376140875
+   }
+  },
+  "leave_one_venue_out_ci_upper": {
+   "中京": -0.0003199540214157584,
+   "中山": -0.0004258944016986919,
+   "京都": -0.0005351965274802544,
+   "函館": -0.0005263291106388369,
+   "小倉": -0.000653517594988334,
+   "新潟": -0.00034142573282732044,
+   "札幌": -0.000493548051547656,
+   "東京": -0.00044858401710625877,
+   "福島": -0.0007590948108077597,
+   "阪神": -0.00024129638762686702
+  },
+  "stop_rule_8_material_sensitivity": false
+ },
+ "elapsed_sec": 887.1
+}

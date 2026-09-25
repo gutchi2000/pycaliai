@@ -5,6 +5,10 @@
 `q_cross`, real terminal odds, no declared noise) is pre-registered in `SPEC.md` §14 and
 `POWER_AUDIT.md` §6 before any computation. Gate arm: UB2 only.
 
+**Stage 1 (2026-09-26): Gate M1 = FAIL -> EXP18 terminated.** UB2 pooled Δ −0.001445,
+CI95 [−0.00236, −0.00053], 4/5 years, P1/P2 exceeded, but leave-one-year-out fails when 2021
+or 2022 is dropped. See `REPORT.md`.
+
 **v0.5-final (frozen before Stage 1 outcomes)**: primary floor 0.009333 nats/race
 (rho=0.5 reference 0.0951); SIGNAL power at the floor 1.000, PASS-PRACTICAL power 0.0225.
 

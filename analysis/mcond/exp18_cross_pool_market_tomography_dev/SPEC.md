@@ -296,3 +296,9 @@ PASS-PRACTICAL 時は M2 が未凍結のため停止）は `spec.json.stage1_pro
 - Stage 1 のコード（`evaluate_stage1.py`、`gate_grade.grade_m1`、`loaders.load_outcomes_stage1`）はこの凍結 commit に含め、
   結果 loader は spec v0.5-final でなければ動かない。開封前に `v05_checks.py` を全 PASS させる。
 
+## 15. Stage 1 結果（2026-09-26、定義は変更せず追記のみ）
+
+**Gate M1 = FAIL** → EXP18 終了（停止規律 6）。正式 race set 15,927R（EXP16A = EXP17 の 15,951R − 2 着同着 24R と race_id で完全一致）。
+UB2 の pooled Δ = −0.001445、CI95 [−0.002359, −0.000532]、4/5 年で負、P1・P2 超過。ただし 2021 年または 2022 年を除く LOO で
+CI95 上限が 0 を超え（+0.00010 / +0.00006）、SIGNAL 条件を満たさない。実務床 0.009333 にも遠い。詳細は `REPORT.md`。
+
