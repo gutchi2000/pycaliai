@@ -1,7 +1,7 @@
 # EXP18 仕様案 — 複数プール市場トモグラフィー
 
-**版**: v0.3-draft
-**状態**: Fable再レビュー反映済み・差分再確認前・未凍結
+**版**: v0.4-frozen-stage0
+**状態**: Fable条件付き承認の軽微5件を反映・Stage 0専用として凍結
 **主対象**: 馬連（順不同の1着・2着組）  
 **禁止**: Stage 0承認前の学習・成績評価、T2/offsetでの2024/2025開封、ROI、候補生成、資金配分、production変更
 
@@ -78,7 +78,7 @@ EXP16Aと同じ母集団を初期候補とし、Stage 0で馬連固有の決済�
 
 対象UMAREN市場の主基準は、年YについてY-1以前だけでfitしたpower-law較正de-vig `m_cal(i,j) ∝ (1/o_ij)^γ` とする。`γ=1` の比例正規化はsecondaryとする。
 
-温度nullは `q_temp(i,j) ∝ m_cal(i,j)^a0`、cross-pool代替は `q_cross(i,j) ∝ m_cal(i,j)^a * q_LOPO(i,j)^β` とし、`a0`・`a`・`β`はY-1以前だけでfitする。主差分は `Δ_r=LL_r(q_cross)-LL_r(q_temp)`。これにより市場の年内温度ずれとcross-pool情報を分離する。`q_LOPO=m_cal`で説明変数が完全共線になる場合は重複列を落として`q_cross=q_temp`をbit一致で返し、係数値を解釈しない。比例市場だけに勝ちrolling較正済み温度nullに勝てない場合はFAILとする。
+温度nullは `q_temp(i,j) ∝ m_cal(i,j)^a0`、cross-pool代替は `q_cross(i,j) ∝ m_cal(i,j)^a * q_LOPO(i,j)^β` とし、`a0`・`a`・`β`はY-1以前だけでfitする。主差分は `Δ_r=LL_r(q_cross)-LL_r(q_temp)`。これにより市場の年内温度ずれとcross-pool情報を分離する。γとa0は同一の冪なので、実装は単一冪`c0=γ*a0`をfitしてよい。分けて報告する場合はγをT3 de-vigとして固定しa0だけを再fitする。代替側も`c=γ*a`とする。race内中心化した`log q_LOPO`と`log m_cal`の設計行列がrank落ち（条件数>1e12）なら重複列を落とし、同一コードパスで`q_cross=q_temp`をbit一致で返して係数値を解釈しない。比例市場だけに勝ちrolling較正済み温度nullに勝てない場合はFAILとする。
 
 ## 4. tomographyモデル
 
@@ -110,7 +110,7 @@ UMARENを評価対象とするとき、`q_LOPO`のfit、特徴、制約、較正
 
 ## 5. Stage 0 — 実装前監査
 
-Stage 0は2019〜2023の結果性能を開封しない。γ・λ・w・anchorのdry-run fitは2018年以前だけで許可し、全Stage 0 loaderで`max(year)<=2018`をassertする。以下を完了し、Fable再レビューを受ける。
+Stage 0は2019〜2023の結果性能を開封しない。結果loader（着順・払戻・realized top2）は`max(year)<=2018`をassertする。市場構造loader（TANPUK/UMARENオッズ・頭数・日付）は2019〜2023を読めるが、結果列をjoinせず、禁止列不存在をassertする。γ・λ・w・anchorのfitは結果loader経由で2018年以前だけに閉じる。以下を完了後に停止する。
 
 ### S0-A 先行研究・等価性
 
@@ -151,7 +151,7 @@ Stage 0は2019〜2023の結果性能を開封しない。γ・λ・w・anchorの
 
 ### S0-E power
 
-暦日単位のmeeting-day clusterで効果注入とMDEを測る。SIGNALは`CI95上限(Δ)<0`で数値floorを置かない。PRACTICAL floorは、生成構造`q_est=m_cal*exp(ε*s_true+noise)`、`SD(noise)=sqrt(2Δ)`、控除22.5%、参加条件`max(q_est/m_cal)>1/0.775`、成長閾値`1e-4/race`、seedを結果開封前に固定して算出する。算出値を`spec.json.practical_floor_nats`へ数値でcommitし、以後の変更は新版番号を要求する。EXP16Aの0.005を流用しない。`-log(0.775)=0.255 nats`は全額比例投入の参考条件でhard gateにしない。宣言効果で検出力80%以上を進行条件とする。
+暦日単位のmeeting-day clusterで効果注入とMDEを測る。SIGNALは`CI95上限(Δ)<0`で数値floorを置かない。PRACTICAL floorは、生成構造`q_est=m_cal*exp(ε*s_true+noise)`、label-freeの宣言慣習として`SD(noise)=sqrt(2Δ)`（導出ではない）、控除22.5%、参加条件`max(q_est/m_cal)>1/0.775`、成長閾値`1e-4/race`、seedを結果開封前に固定して算出する。算出値を`spec.json.practical_floor_nats`へ数値でcommitし、以後の変更は新版番号を要求する。EXP16Aの0.005を流用しない。`-log(0.775)=0.255 nats`は全額比例投入の参考条件でhard gateにしない。宣言効果で検出力80%以上を進行条件とする。
 
 ### S0-F compute dry run
 
@@ -159,7 +159,7 @@ Stage 0は2019〜2023の結果性能を開封しない。γ・λ・w・anchorの
 
 ## 6. Stage 1 — rolling retrospective evaluation
 
-Stage 0承認時だけ実施する。developmentは2019〜2023。2024/2025はT2とoffset残差について封印する。T0/T1頭対頭は既存`crux_joint.py`で開封済みのため再利用しない。
+Stage 0承認時だけ実施する。`spec.json.practical_floor_nats`がnullではなく数値として事前commitされていない限りStage 1を開始しない。developmentは2019〜2023。2024/2025はT2とoffset残差について封印する。T0/T1頭対頭は既存`crux_joint.py`で開封済みのため再利用しない。
 
 - 年Yのfit、依存補正、較正、de-vig感度パラメータはY-1以前だけを使用。
 - 5 seedが必要な学習要素は独立fitし、主判定はmedian seed、4/5 seed方向一致。
@@ -169,7 +169,7 @@ Stage 0承認時だけ実施する。developmentは2019〜2023。2024/2025はT2�
 
 主armは`UB2_OFFSET_U2`。`UB3_OFFSET_U3`は複勝往復Gate通過時だけ追加し、`UB1_OFFSET_U1`はanchor専用でGateに使わない。Gate対象armは1本または2本で、その数に応じBonferroni補正する。各offset armは温度nullとの差で判定し、`UB2−UB1`と`UB3−UB2`を必須decompositionとして報告する。頭対頭`T1−T0`と`T2−T1`は副指標とする。
 
-- **PASS-PRACTICAL**: CI95上限<0、pooled点推定がStage 0実務床以上、4/5年、4/5 seed、全LOOでCI上限<0、P1/P2/P5超過。
+- **PASS-PRACTICAL**: CI95上限<0、pooled点推定がStage 0実務床以上、4/5年、4/5 seed、全LOOでCI上限<0、P1/P2超過。
 - **PASS-SIGNAL**: 同じ統計条件を満たすが実務床未満。
 - **FAIL**: CI、方向、LOO、placeboのいずれかを満たさない。
 
@@ -196,13 +196,13 @@ M2の具体的なforecast target、fit窓、損失、floorはM1結果を見る�
 - `P2_TIME_SHIFT`: 同競馬場×頭数帯×人気集中帯でsource snapshotを別raceへ置換。
 - `P3_SYNTHETIC_COHERENT`: 同一潜在PLから全プールを生成した負対照。
 - `P4_TARGET_NULL_RESAMPLE`: pipeline sanity専用。γ・a・βはrealのY-1以前fit値に固定し、Yのoutcomeだけをm_calから200回再標本化する。Gate証拠には使わない。
-- `P5_UNIFORM_SCORE`: q_LOPOをrace内一様分布へ置換し、市場温度補正だけで生じる改善を測る。real ΔがP5改善側97.5 percentileを超えることをM1必須条件にする。
+- `P5_UNIFORM_SCORE_ASSERT`: q_LOPOをrace内一様分布へ置換し、共線規則の同一コードパスで`|Δ_P5|<=1e-12`となることを記録する構成assert。drawもGate証拠も持たない。
 
 最良armを結果で選ばない。Stage 0で固定した階層順に検定し、複数比較補正を行う。U3が識別不能ならU1/U2だけで判定する。
 
 ## 8. placeboと漏洩防止
 
-- P1/P2/P5は最低200 draw、real improvementが改善側97.5 percentileを超えること。P2 matchingの人気集中帯はTANPUK entropyで定義する。P4はsanity controlでGate証拠に数えない。
+- P1/P2は最低200 draw、real improvementが改善側97.5 percentileを超えること。P2 matchingの人気集中帯はTANPUK entropyで定義する。P4はsanity control、P5は構成assertであり、Gate証拠に数えない。
 - source poolとtarget poolの同一時点行をrace_idで厳密に結合し、日付ずれ・馬番ずれ・取消集合差をfail-closed。
 - target UMAREN列をdropした入力からモデル行列を構築し、列名・hashをmanifest化。
 - target outcomeを変更しても、fit前の市場確率・race set・tomography出力がbit一致すること。

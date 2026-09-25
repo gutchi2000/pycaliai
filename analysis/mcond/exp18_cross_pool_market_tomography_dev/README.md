@@ -1,6 +1,6 @@
 # EXP18 — Cross-Pool Market Tomography
 
-Status: **v0.3 draft / second Fable review incorporated / difference re-review required / not frozen**
+Status: **v0.4 frozen for Stage 0 / Fable conditional approval incorporated**
 
 The primary question is an **incremental residual test**, not direct replacement
 of the UMAREN market. For year Y, the null freely fits the terminal market's

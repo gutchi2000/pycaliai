@@ -1,7 +1,7 @@
 {
   "experiment": "EXP18_cross_pool_market_tomography",
-  "version": "0.3-draft",
-  "status": "difference_re_review_required_not_frozen",
+  "version": "0.4-frozen-stage0",
+  "status": "frozen_for_stage0_implementation",
   "primary_target_pool": "UMAREN_unordered_top2",
   "purpose": "Test whether non-target pools add information beyond a freely temperature-calibrated terminal UMAREN market; direct market replacement is secondary.",
   "prior_art_equivalence": {
@@ -50,14 +50,15 @@
     "base": "power-law devig m_cal proportional to (1/odds)^gamma, gamma fit <=Y-1",
     "temperature_null": "q_temp proportional to m_cal^a0, a0 fit <=Y-1",
     "secondary": "proportional gamma=1",
-    "pass_rule": "must beat rolling calibrated temperature null"
+    "pass_rule": "must beat rolling calibrated temperature null",
+    "parameterization": "gamma and a0 are the same exponent; fit c0=gamma*a0 directly, or fix gamma and refit only a0; alternative c=gamma*a"
   },
   "primary_comparison": {
     "alternative": "q_cross proportional to m_cal^a * q_LOPO^beta; a,beta fit <=Y-1",
     "null": "q_temp proportional to m_cal^a0",
     "delta": "LL(q_cross)-LL(q_temp)",
     "temperature_control": true,
-    "collinearity_rule": "if q_LOPO equals m_cal, drop duplicate regressor and return q_cross=q_temp bitwise; do not interpret coefficients"
+    "collinearity_rule": "center log q_LOPO and log m_cal within race; if design rank deficient or condition number>1e12, drop duplicate regressor and return q_cross=q_temp bitwise through the same code path"
   },
   "candidate_families": [
     "T0_HARVILLE anchor",
@@ -80,9 +81,7 @@
     }
   },
   "stage0": {
-    "max_year": 2018,
-    "loader_assert": "max(year)<=2018",
-    "allowed_fit": "gamma,lambda,w,anchor on <=2018 only",
+    "allowed_fit": "gamma,lambda,w,anchor through outcome loader <=2018 only",
     "forbidden": "all 2019-2023 realized-outcome performance",
     "anchor": {
       "snapshot": "9h",
@@ -109,7 +108,7 @@
     "power": {
       "signal": "CI95 upper(delta)<0",
       "practical_generation": "q_est=m_cal*exp(epsilon*s_true+noise)",
-      "noise_sd": "sqrt(2*delta)",
+      "noise_sd": "sqrt(2*delta), label-free declared convention, not a derivation",
       "takeout": 0.225,
       "entry_threshold": "1/0.775",
       "growth_threshold_per_race": 0.0001,
@@ -117,7 +116,12 @@
       "practical_floor_nats": null,
       "freeze_rule": "commit numeric value to spec.json before any 2019-2023 performance; later change requires new version",
       "required_power": 0.8
-    }
+    },
+    "outcome_loader_max_year": 2018,
+    "outcome_loader_fields": "finish,payout,realized_top2",
+    "structure_loader_years": "2019..2023 allowed for odds, field size, date, entropy",
+    "structure_loader_no_outcome_join": true,
+    "structure_loader_assert": "no finish/payout/realized_top2 columns"
   },
   "development": {
     "years": "2019..2023",
@@ -129,7 +133,8 @@
     "bootstrap": "year-stratified calendar-meeting-day",
     "year_direction": "4_of_5",
     "seed_direction": "4_of_5_if_applicable",
-    "leave_one_year_out": true
+    "leave_one_year_out": true,
+    "stage1_entry_condition": "practical_floor_nats must be numeric and committed before any Stage1 run"
   },
   "hierarchy": {
     "primary": "UB2_OFFSET_U2",
@@ -164,13 +169,13 @@
     "P2": "matched-race source time shift using TANSHO entropy cells",
     "P3": "synthetic coherent pools",
     "P4": "sanity only; keep real <=Y-1 gamma,a,beta, resample Y outcomes from m_cal 200 draws",
-    "P5": "uniform q_LOPO score; real delta must beat improvement-side 97.5 percentile"
+    "P5": "constructive assert only: uniform q_LOPO must give abs(delta)<=1e-12 via collinearity code path; no draws and not Gate evidence"
   },
   "placebo_draws_min": 200,
   "gates": {
     "M1": {
       "comparison": "nested cross-pool alternative minus calibrated temperature null",
-      "PASS_PRACTICAL": "CI95 upper<0, practical floor, 4/5 years, 4/5 seeds, all LOO CI upper<0, P1/P2/P5 pass, multiplicity adjusted",
+      "PASS_PRACTICAL": "CI95 upper<0, practical floor, 4/5 years, 4/5 seeds, all LOO CI upper<0, P1/P2 pass, multiplicity adjusted",
       "PASS_SIGNAL": "same statistical conditions below practical floor",
       "FAIL": "any required condition fails",
       "progression": "only PASS_PRACTICAL to M2"
@@ -203,5 +208,6 @@
     "COMPUTE_DRY_RUN.json",
     "synthetic_oracle_and_invariant_tests",
     "revised_SPEC_spec_README"
-  ]
+  ],
+  "placebo_threshold": 0.975
 }
