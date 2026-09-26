@@ -1,0 +1,88 @@
+{
+  "experiment": "EXP19_bodyweight_track_condition",
+  "version": "0.1-draft",
+  "status": "awaiting_fable_spec_review",
+  "purpose": "Test whether current-race bodyweight state and its interaction with official JRA physical track measurements add proper-score information after decision-time and terminal markets.",
+  "scope": {
+    "population": "JRA_flat_starters_5plus",
+    "development": [2019, 2020, 2021, 2022, 2023],
+    "cushion_interaction_years": [2021, 2022, 2023],
+    "sealed": [2024, 2025],
+    "target": "race_winner_categorical",
+    "inference_unit": "meeting_day"
+  },
+  "data": {
+    "historical_bodyweight": "data/torch_20130105-20251228.csv",
+    "forward_bodyweight": "data/forward_bodyweight/",
+    "historical_track": "data/baba_feats.parquet",
+    "live_track": "data/baba_today.json",
+    "decision_market": "historical_pre_snapshot_approximately_Tminus28",
+    "terminal_market": "terminal_close_market",
+    "join_key": ["race_id16", "umaban"],
+    "horse_key": "pedigree_registration_id",
+    "forbid_name_join": true,
+    "forbid_zero_imputation": true
+  },
+  "measured_stage0_inputs": {
+    "bodyweight_2019_2023_flat_rows": 231068,
+    "bodyweight_2019_2023_flat_races": 16645,
+    "valid_current_kg_rate": 0.998069832257171,
+    "pedigree_id_missing": 0,
+    "baba_venue_days": 3164,
+    "baba_period": [20180727, 20251228],
+    "cushion_coverage": 0.7190265486725663,
+    "shiba_gp_coverage": 0.9984197218710493,
+    "dirt_gp_coverage": 0.9984197218710493
+  },
+  "prior_art": {
+    "official_track_only": "done_and_negative: reports/baba_feats_eval.json delta_auc=-0.000304 delta_logloss=+0.000278",
+    "online_same_day_track_state": "EXP08 terminated",
+    "novelty": "within-horse current bodyweight state and bodyweight-by-official-physical-track interactions"
+  },
+  "arms": [
+    "N0_PRE_MARKET",
+    "N1_CLEAN",
+    "C_TRACK_ONLY_NEGATIVE_CONTROL",
+    "W_BODY",
+    "WP_BODY_TRACK",
+    "T0_CLOSE_MARKET",
+    "TW_CLOSE_BODY",
+    "TWP_CLOSE_INTERACTION"
+  ],
+  "gates": {
+    "stage0_entry": "Fable approval and frozen spec required",
+    "A": "W_BODY versus N1_CLEAN at historical_pre_snapshot",
+    "B": "bodyweight increment beyond calibrated terminal close market and clean score",
+    "C": "WP interaction block beyond W_BODY; only after B PASS_PRACTICAL",
+    "grade": ["PASS_PRACTICAL", "PASS_SUBFLOOR", "FAIL"],
+    "hard_statistics": [
+      "meeting_day_bootstrap_CI95_upper_below_zero",
+      "four_of_five_years_same_direction",
+      "all_leave_one_year_out_CI95_upper_below_zero",
+      "placebo_improvement_side_97_5_percentile"
+    ],
+    "practical_floor_nats_per_race": null,
+    "floor_rule": "compute label-free MDE and commit numeric floor before Stage 1"
+  },
+  "stage0_floors": {
+    "historical_forward_value_match": 0.995,
+    "forward_race_coverage": 0.99,
+    "minimum_parity_days": 2,
+    "minimum_parity_horse_rows": 200,
+    "complete_by_Tminus28_race_rate": 0.95,
+    "interaction_joint_coverage_each_year": 0.90,
+    "power_for_declared_floor": 0.80
+  },
+  "prohibitions": [
+    "no_training_or_result_evaluation_before_stage0_review",
+    "no_2024_2025",
+    "no_ROI_ticket_generation_or_stake_allocation",
+    "no_production_changes",
+    "no_TM_DM_or_other_proprietary_external_indices",
+    "no_raw_bodyweight_publication",
+    "no_result_selected_weight_thresholds",
+    "no_rescue_of_prior_track_only_hypotheses"
+  ],
+  "next_reviewer": "Fable",
+  "implementation_after_approval": "Opus"
+}
