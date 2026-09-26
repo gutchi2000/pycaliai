@@ -1,15 +1,35 @@
 {
   "experiment": "EXP19_bodyweight_track_condition",
-  "version": "0.1-draft",
-  "status": "awaiting_fable_spec_review",
+  "version": "0.2-review-candidate",
+  "status": "awaiting_fable_delta_review",
   "purpose": "Test whether current-race bodyweight state and its interaction with official JRA physical track measurements add proper-score information after decision-time and terminal markets.",
   "scope": {
-    "population": "JRA_flat_starters_5plus",
-    "development": [2019, 2020, 2021, 2022, 2023],
-    "cushion_interaction_years": [2021, 2022, 2023],
-    "sealed": [2024, 2025],
+    "population": "JRA_flat_5plus_exclude_DNF_containing_races",
+    "development": [
+      2019,
+      2020,
+      2021,
+      2022,
+      2023
+    ],
+    "cushion_interaction_years": [
+      2021,
+      2022,
+      2023
+    ],
+    "sealed": [
+      2024,
+      2025
+    ],
     "target": "race_winner_categorical",
-    "inference_unit": "meeting_day"
+    "inference_unit": "meeting_day",
+    "main_population": "EXP16A_17_18_compatible_exclude_DNF_containing_races",
+    "dnf_full_starter": "sensitivity_only_no_zero_imputation",
+    "interaction_development": [
+      2021,
+      2022,
+      2023
+    ]
   },
   "data": {
     "historical_bodyweight": "data/torch_20130105-20251228.csv",
@@ -18,7 +38,10 @@
     "live_track": "data/baba_today.json",
     "decision_market": "historical_pre_snapshot_approximately_Tminus28",
     "terminal_market": "terminal_close_market",
-    "join_key": ["race_id16", "umaban"],
+    "join_key": [
+      "race_id16",
+      "umaban"
+    ],
     "horse_key": "pedigree_registration_id",
     "forbid_name_join": true,
     "forbid_zero_imputation": true
@@ -29,10 +52,14 @@
     "valid_current_kg_rate": 0.998069832257171,
     "pedigree_id_missing": 0,
     "baba_venue_days": 3164,
-    "baba_period": [20180727, 20251228],
+    "baba_period": [
+      20180727,
+      20251228
+    ],
     "cushion_coverage": 0.7190265486725663,
     "shiba_gp_coverage": 0.9984197218710493,
-    "dirt_gp_coverage": 0.9984197218710493
+    "dirt_gp_coverage": 0.9984197218710493,
+    "bodyweight_counts_note": "label-free base before DNF-containing race exclusion"
   },
   "prior_art": {
     "official_track_only": "done_and_negative: reports/baba_feats_eval.json delta_auc=-0.000304 delta_logloss=+0.000278",
@@ -41,7 +68,7 @@
   },
   "arms": [
     "N0_PRE_MARKET",
-    "N1_CLEAN",
+    "N1_CLEAN_NOBW",
     "C_TRACK_ONLY_NEGATIVE_CONTROL",
     "W_BODY",
     "WP_BODY_TRACK",
@@ -50,28 +77,31 @@
     "TWP_CLOSE_INTERACTION"
   ],
   "gates": {
-    "stage0_entry": "Fable approval and frozen spec required",
-    "A": "W_BODY versus N1_CLEAN at historical_pre_snapshot",
-    "B": "bodyweight increment beyond calibrated terminal close market and clean score",
-    "C": "WP interaction block beyond W_BODY; only after B PASS_PRACTICAL",
-    "grade": ["PASS_PRACTICAL", "PASS_SUBFLOOR", "FAIL"],
-    "hard_statistics": [
-      "meeting_day_bootstrap_CI95_upper_below_zero",
-      "four_of_five_years_same_direction",
-      "all_leave_one_year_out_CI95_upper_below_zero",
-      "placebo_improvement_side_97_5_percentile"
+    "A1": "W_BODY minus N1_CLEAN_NOBW; 2019-2023; independent pre-market test",
+    "A2": "WP_BODY_TRACK minus W_BODY; 2021-2023; independent pre-market test",
+    "multiplicity": "Holm across A1 and A2",
+    "B1": "run only if A1 PASS_SUBFLOOR or PASS_PRACTICAL; terminal close residual",
+    "B2": "run only if A2 PASS_SUBFLOOR or PASS_PRACTICAL; terminal close residual",
+    "grades": [
+      "PASS_PRACTICAL",
+      "PASS_SUBFLOOR",
+      "FAIL"
     ],
+    "signal": "bootstrap_CI95_upper_below_0",
+    "practical": "bootstrap_CI95_upper_below_negative_floor",
+    "placebo": "real_delta_below_placebo_0.025_quantile",
     "practical_floor_nats_per_race": null,
-    "floor_rule": "compute label-free MDE and commit numeric floor before Stage 1"
+    "floor_method": "EXP18_v0.5 finite-sample offset fit on synthetic outcomes; real terminal win odds cash-inclusive Kelly; takeout 0.20; growth threshold 1e-4 per race; no independent declared noise"
   },
   "stage0_floors": {
     "historical_forward_value_match": 0.995,
     "forward_race_coverage": 0.99,
-    "minimum_parity_days": 2,
-    "minimum_parity_horse_rows": 200,
+    "minimum_parity_days": 4,
+    "minimum_parity_horse_rows": 400,
     "complete_by_Tminus28_race_rate": 0.95,
-    "interaction_joint_coverage_each_year": 0.90,
-    "power_for_declared_floor": 0.80
+    "interaction_joint_coverage_each_year": 0.9,
+    "status_match": 0.995,
+    "power_for_declared_floor": 0.8
   },
   "prohibitions": [
     "no_training_or_result_evaluation_before_stage0_review",
@@ -84,5 +114,81 @@
     "no_rescue_of_prior_track_only_hypotheses"
   ],
   "next_reviewer": "Fable",
-  "implementation_after_approval": "Opus"
+  "implementation_after_approval": "Opus",
+  "baseline_contract": {
+    "name": "R0-clean-nobw",
+    "feature_count": 110,
+    "remove": [
+      "斤量体重比"
+    ],
+    "retain": [
+      "前走馬体重",
+      "前走馬体重増減",
+      "斤量",
+      "馬齢斤量差"
+    ],
+    "rolling_oof": "rebuild_required_40_fit_no_reuse_EXP16A_scores",
+    "manifest": [
+      "feature_list_sha256",
+      "input_sha256",
+      "loader_sha256",
+      "model_hashes",
+      "row_hashes"
+    ]
+  },
+  "loader_contract": {
+    "whitelist_only": true,
+    "forbidden_exact": [
+      "人気",
+      "単勝オッズ",
+      "複勝オッズ下限",
+      "複勝オッズ上限",
+      "複勝シェア",
+      "補正"
+    ],
+    "forbidden_prefix": [
+      "指時系"
+    ],
+    "forbidden_categories": [
+      "results",
+      "payouts"
+    ],
+    "timed_odds_from_torch_forbidden": true,
+    "loader_sha256_required": true
+  },
+  "review_history": {
+    "v0.1": "Fable: revise then freeze; mandatory 6 recommended 5",
+    "v0.2": "all review items incorporated; awaiting delta review"
+  },
+  "feature_contract": {
+    "W_primary": [
+      "bw_log_kg",
+      "bw_sex_age_z",
+      "bw_robust_z5",
+      "bw_abs_robust_z5",
+      "bw_change_x_layoff",
+      "bw_status_onehot",
+      "bw_history_n"
+    ],
+    "W_descriptive_only": [
+      "bw_change_kg",
+      "bw_change_pct",
+      "bw_dev_med5_pct"
+    ],
+    "WP_count": 6,
+    "WP_primary_period": [
+      2021,
+      2022,
+      2023
+    ],
+    "measurement_age_minutes": "interaction reliability only; no standalone race-constant term"
+  },
+  "inference": {
+    "cluster": "calendar_day_YYYYMMDD",
+    "bootstrap_B": 10000,
+    "A1_year_rule": "4_of_5 and all 5 LOO CI upper below 0",
+    "A2_year_rule": "3_of_3 and all 3 LOO CI upper below 0",
+    "multiplicity": "Holm A1/A2",
+    "placebo_rule": "real_delta < q0.025(placebo_delta)"
+  }
 }

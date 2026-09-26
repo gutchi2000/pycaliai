@@ -1,7 +1,7 @@
 # EXP19 — 当日馬体重 × 公式馬場物理値
 
-**状態**: Stage 0前・仕様レビュー待ち  
-**次に渡す相手**: **Fable（仕様レビュー）**  
+**状態**: v0.2修正済み・Fable差分再レビュー待ち（Stage 0未着手）
+**次に渡す相手**: **Fable（仕様レビュー）**
 **実装担当**: Fable承認後に Opus
 
 ## 目的
@@ -31,11 +31,14 @@ TM/DMなどJRA-VAN独自指数は使用しない。使用する外部情報は�
 ## 実験の順序
 
 1. Stage 0: provenance、時点、forward/historical parity、母集団、被覆、検出力を結果開封前に固定。
-2. Gate A: T−28前後の判断時点市場に対する当日馬体重の増分。
-3. Gate B: Gate A通過時だけ、締切市場に対しても残るかを検定。
-4. Gate C: Gate B通過時だけ、馬体重×公式馬場物理値の増分を検定。
-5. 全Gate通過後にだけ、別番号で同一ハイパーパラメータのvNext比較を提案できる。
+2. Gate A1/A2: T−28前後の判断時点市場で、馬体重単独と馬体重×馬場を独立検定（Holm補正）。
+3. Gate B1/B2: A1/A2でSUBFLOOR以上の経路だけ、締切市場に残るかを検定。
+4. terminalでPRACTICALを通った経路だけ、別番号で同一ハイパーパラメータのvNext比較を提案できる。
 
 2024/2025、ROI、候補生成、賭金配分、production接続は本番号では行わない。
 
 詳細は [SPEC.md](SPEC.md) と [PRIOR_ART_AND_DATA_AUDIT.md](PRIOR_ART_AND_DATA_AUDIT.md) を参照。
+
+## v0.2の重要訂正
+
+EXP15のR0-clean 111列に、今走馬体重から作られた`斤量体重比`が含まれていた。EXP19では同列を除いた`R0-clean-nobw`（110列）のrolling OOFを新規構築する。既存OOFは使わない。主母集団はN1被覆を揃えるためDNF含有レースを除外し、full-starterは感度分析とする。

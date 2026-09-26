@@ -1,8 +1,8 @@
 # EXP19 仕様案 — 当日馬体重状態 × JRA公式馬場物理値
 
-**版**: v0.1-draft  
-**状態**: Fable仕様レビュー前。Stage 0未着手  
-**対象**: JRA平地、馬体重発表後のlate-decision予測  
+**版**: v0.2-review-candidate（Fable必須6件・推奨5件を反映）
+**状態**: 再レビュー待ち。Stage 0未着手・結果未開封
+**対象**: JRA平地、馬体重発表後のlate-decision予測
 **禁止**: 承認前の学習・結果評価、2024/2025開封、ROI、候補生成、賭金配分、production変更
 
 ## 0. 目的と結論範囲
@@ -11,9 +11,9 @@
 
 主問いは三段階である。
 
-1. 馬体重発表後の判断時点市場に対し、当日馬体重状態は追加情報を持つか。
-2. その情報はterminal close市場にも残るか。
-3. 馬体重状態×公式馬場物理値は、馬体重単独を超えるか。
+1. 馬体重発表後の判断時点市場に対し、当日馬体重状態は追加情報を持つか（A1）。
+2. 同じ判断時点で、馬体重状態×公式馬場物理値は馬体重単独を超えるか（A2）。A1の成否に依存させない。
+3. A1/A2で検出した情報はterminal close市場にも残るか（B1/B2）。
 
 本実験は「重い馬が強い」「増減±Xkgが良い」といった全体則を探索しない。馬体重は成長、休養、個体差で意味が異なるため、as-ofの馬内基準からの偏差を使う。
 
@@ -21,8 +21,8 @@
 
 - `baba_eval.py`: 公式クッション/含水率と既存の馬場適性・脚質相互作用は実施済みでOOS悪化。再実施しない。
 - EXP08: 同日先行レース結果から推定するオンライン馬場状態は終了。再実施しない。
-- EXP15/EXP16A: clean tabular baselineと市場残差の検定基盤を再利用する。
-- EXP13/P0 DNF監査: `master_v2`のfinishers-only母集団を使わない。DNFはstarterの損失として分母に残す。
+- EXP15/EXP16A: 市場残差の検定基盤は再利用する。ただしR0-cleanの`斤量体重比`が今走馬体重由来と判明したため、EXP19では同列を除く`R0-clean-nobw`（110列）のrolling OOFを新規構築する。既存OOFは再利用しない。
+- EXP13/P0 DNF監査: 市場分母ではDNFをstarterに残すのが正しい。ただし主解析はfinisher-only N1 OOFとの整合のためDNF含有raceを除外し、full-starter版を感度分析に分ける。
 
 新規性は「今走馬体重のas-of状態」と「その状態×公式物理馬場」に限定する。
 
@@ -64,11 +64,12 @@
 
 - JRA平地。`トラックコード(JV) 51..59`の障害を除外。
 - starter 5頭以上。
-- starterは時点安全な出走情報と単勝オッズ>1.0を用いて確定し、取消・除外を除く。
-- DNFはstarterとして残し、勝者でなければloss。DNFを理由にraceを除外しない。
+- 主母集団はEXP16A/17/18と同じく、DNFを含むraceを除外する。`starter − finisher`または既存proxyで判定し、既存15,951R基盤とのrace ID差分を報告する。
+- この除外は結果条件付きであり、N1 OOFのfinisher-only被覆と既存実験との比較可能性を優先する暫定措置と明記する。
+- DNFをstarterとして残す版は感度分析とし、N1欠損を0埋めしない。market-onlyおよびW-onlyで実行可能な範囲だけ報告する。
 - winnerが一意に定まらないrace、race ID/馬番衝突、必要な市場格子不備はfail-closedで別集計。
 - 全armは同じrace setとstarter setを使う。
-- 開発期間は2019〜2023。クッションinteractionの主期間は通年被覆の2021〜2023。
+- A1/B1の開発期間は2019〜2023。A2/B2のWP主blockはクッション通年被覆に合わせ2021〜2023。
 - 2024/2025はEXP19仮説について未使用holdoutとして封印する。
 
 ## 4. 特徴契約
@@ -77,18 +78,19 @@
 
 ### 4.1 W — 当日馬体重状態（主block）
 
+共線を避け、主blockは次の6種＋履歴数に縮約する。
+
 1. `bw_log_kg`: log(current kg)。
 2. `bw_sex_age_z`: 性別×年齢×時期の基準を過去年だけで作ったz。
-3. `bw_change_kg`: current−previous measured kg。
-4. `bw_change_pct`: `(current−previous)/previous`。
-5. `bw_dev_med5_pct`: currentと直近最大5走のas-of中央値との差率。
-6. `bw_robust_z5`: 直近最大5走のmedian/MADによるz。履歴2走未満はmissing。
-7. `bw_abs_robust_z5`: 上記絶対値。
-8. `bw_change_x_layoff`: change_pct×log1p(休養日数)。
-9. `bw_history_n`: 使用できた過去体重数。
-10. status/missing flags。欠損そのものと値を分ける。
+3. `bw_robust_z5`: 直近最大5走のmedian/MADによるz。履歴2走未満はmissing。
+4. `bw_abs_robust_z5`: 上記絶対値。
+5. `bw_change_x_layoff`: `(current−previous)/previous × log1p(休養日数)`。
+6. `bw_status`: measured/unmeasurable/not-yet-published/missing-sourceを明示したone-hot。取消は母集団外。
+7. `bw_history_n`: 使用できた過去体重数。
 
-体重閾値は結果を見て選ばない。winsorize幅、MAD floor、履歴必要数はStage 0で分布だけを見て固定する。
+`bw_change_kg`、`bw_change_pct`、`bw_dev_med5_pct`は説明用に計算できるが主modelへ同時投入しない。体重閾値は結果を見て選ばない。winsorize幅、MAD floor、履歴必要数はStage 0で分布だけを見て固定する。ridge等の追加正則化を結果後に導入しない。
+
+`斤量体重比`は今走馬体重由来なので`R0-clean-nobw`から除く。`前走馬体重`、`前走馬体重増減`、`斤量`、`馬齢斤量差`は前日までに確定するため残す。
 
 ### 4.2 P — 公式物理馬場
 
@@ -99,7 +101,7 @@
 5. `measurement_age_minutes`: 発走時刻−測定時刻。
 6. physical missing flags。
 
-Pはrace内定数であり、P単独がsoftmax順位を変えないことを構成assertする。
+`measurement_age_minutes`はrace内定数の単独項にせず、WPの信頼度/重み側にのみ使う。Pはrace内定数であり、P単独がsoftmax順位を変えないことを構成assertする。
 
 ### 4.3 WP — 事前固定interaction（主仮説）
 
@@ -112,38 +114,39 @@ Pはrace内定数であり、P単独がsoftmax順位を変えないことを構�
 5. `bw_change_pct × moisture_gradient_z`。
 6. `bw_change_x_layoff × track_extreme_z`。`track_extreme_z`は芝ではcushion/moisture、ダートではmoistureからStage 0で結果を使わず一意に定義する。
 
-方向は固定しない。interactionの符号は学習するが、結果を見て項を追加・削除しない。
+方向は固定しない。interactionの符号は学習するが、結果を見て項を追加・削除しない。WPは6本を1 blockとして2021〜2023で検定する。2019〜2020へcushion欠損を0投入しない。moisture-onlyの2019〜2023結果はsecondaryでGateに使わない。事前期待はA2で小さい正、B2でゼロ寄りと記録し、結果後に期待を変更しない。
 
 ## 5. armと比較
 
-勝者に対するrace-level categorical loglossを主損失とする。各年Yの係数・較正・標準化はY−1以前だけでfitする。推論単位はmeeting-day。
+勝者に対するrace-level categorical loglossを主損失とする。各年Yの係数・較正・標準化はY−1以前だけでfitする。推論単位は暦日（YYYYMMDD）のmeeting-day。
 
 - `N0_PRE_MARKET`: rolling temperature-calibrated historical_pre_snapshot単勝市場。
-- `N1_CLEAN`: N0 + EXP15/16AのR0-clean OOF score。現在の表特徴を統制する主null。
-- `C_TRACK_ONLY`: N1 + 既存 `baba_eval` 相当block。負対照でGate対象外。
+- `N1_CLEAN_NOBW`: N0 + `R0-clean-nobw`（110列）の新規rolling OOF score。`斤量体重比`を除外し、manifestにfeature list/model/input/loader sha256を保存する主null。
+- `C_TRACK_ONLY`: N1 + 既存`baba_eval` block。負対照でGate対象外。
 - `W_BODY`: N1 + W。
 - `WP_BODY_TRACK`: W_BODY + WP。
 - `T0_CLOSE_MARKET`: rolling temperature-calibrated terminal close市場。
-- `TW_CLOSE_BODY`: T0 + N1のclean score + W。
+- `TW_CLOSE_BODY`: T0 + clean-nobw score + W。
 - `TWP_CLOSE_INTERACTION`: TW + WP。
 
-offset conditional-logitで市場の温度を自由にし、追加blockの係数を過去年だけでfitする。marketを固定offsetにして温度ずれを新情報と誤認しない。
+主比較はA1=`W_BODY−N1_CLEAN_NOBW`、A2=`WP_BODY_TRACK−W_BODY`。両方をpre市場で独立に実行しHolm補正する。副報告として`WP_BODY_TRACK−C_TRACK_ONLY`を出し、既存baba blockの救済でないことを確認する。
 
-同容量対照とするため、W/WPと同数の履歴安全な無関係候補を足すplaceboではなく、下記identity-preserving placeboを使う。
+B1/B2は、対応するA1/A2が`PASS-SUBFLOOR`以上の場合だけterminal closeで実行する。offset conditional-logitでは市場温度を自由にし、追加blockの係数を過去年だけでfitする。marketを固定offsetにして温度ずれを新情報と誤認しない。
 
 ## 6. Stage 0 — 結果性能を見ない監査
 
 ### S0-A provenance・parity
 
 - 歴史torchとforward WHの同一race ID+馬番で、kgと増減の一致率を測る。
-- 2開催日以上、200 horse rows以上、一致率99.5%以上、race coverage99%以上を暫定floorとする。
+- 4開催日以上、400 horse rows以上、kg/増減の一致率99.5%以上、race coverage99%以上をfloorとする。`000`/`999`/not-yet-publishedのstatus一致率も99.5%以上を要求する。
 - 不一致を丸め・未計測・取消・更新snapshotに分解する。
-- earliest complete WH snapshotのpost時刻差をrace別に測る。主判断時点T−28までに全starterが揃うraceが95%未満なら、historical_preをactionable基準にする設計を停止または判断時点を後ろへ変更し、新版specを要求する。
+- earliest complete WH snapshotのpost時刻差をrace別・開催日別に分布として保存する。主判断時点T−28までに全starterが揃うraceが95%未満なら、historical_preをactionable基準にする設計を停止または判断時点を後ろへ変更し、新版specを要求する。
+- historical_pre_snapshotは通常馬体重公表後なので、Gate Aは「市場の初期反応の過不足」を測ると明記する。
 - `baba_today` と同日の公式保存値について、値・venue・測定日・測定時刻のparityを確認する。
 
 ### S0-B population・coverage
 
-- 構造loaderは歴史torchを明示的なusecols whitelistで読み、`人気`、全オッズ、指数、補正、結果、払戻を保持しない。市場loader・結果loaderと別artifactにし、禁止列不存在をassertする。
+- 構造loaderは歴史torchを明示的なusecols whitelistで読む。読み込み後に`人気`、`単勝オッズ`、`複勝オッズ下限`、`複勝オッズ上限`、`複勝シェア`、`補正`、`指時系1〜4・単勝/人気/複下/複上/複人気`、結果、払戻が存在しないことを具体名とprefixでassertする。`指時系*`はprovenance不明のため市場源にも使わない。市場loader・結果loaderと別artifactにし、loaderコードsha256をmanifestへ保存する。
 - 2019〜2023の年別race/horse行数、体重status、過去履歴数、馬場値被覆を結果列なしで集計。
 - 既知の構造値として、平地231,068行/16,645R、current kg有効率99.807%、血統登録番号欠損0を再現する。
 - WP主評価で、Wと必要なPが同時に利用可能なraceが各年90%以上。未達の場合はmissingを0にせず、そのinteractionを未検証として停止する。
@@ -161,9 +164,17 @@ offset conditional-logitで市場の温度を自由にし、追加blockの係数
 
 ### S0-D power・floor
 
-2019〜2023の構造、meeting-day cluster、実際のmissing patternだけを使うlabel-free注入で、Gate A/B/CそれぞれのMDEを算出する。practical floorはMDEを確認後、結果開封前に数値として `spec.json`へcommitする。floorを結果後に変更しない。
+EXP18 v0.5と同じ方式を結果開封前に固定する。
 
-進行条件は、事前floorの効果に対する `PASS ∪ PASS-SUBFLOOR` 検出力80%以上。検出力不足ならStage 1を開かず終了する。
+- 生成: `log p = a*log(m_pre) + epsilon*c - log Z`。`c`はrace内中心化したWまたはWP blockを、構造データだけで凍結したfit方向。
+- 推定器: 実際に使うoffset conditional-logitを、年Yの`n_fit(Y)`と同数の合成outcomeでfitする。独立な宣言ノイズは足さない。
+- 決済: 実terminal単勝オッズ上の現金込みKelly、控除20%。
+- 成長閾値: `1e-4/race`。年間約3,300Rならlog成長0.33、複利約+39%相当の厳しい基準である。
+- bootstrap: 暦日cluster、B=10,000。seedはStage 0実装前に固定してmanifestへ保存する。
+- SIGNAL: CI95上限<0。
+- PASS-PRACTICAL: CI95上限<`-practical_floor_nats`。
+
+A1/A2/B1/B2それぞれのMDEとfloorを算出し、数値を結果開封前に`spec.json`へcommitする。進行条件は宣言効果に対する`PASS-PRACTICAL ∪ PASS-SUBFLOOR`検出力80%以上。数値または方式を結果後に変更しない。
 
 ### S0-E compute
 
@@ -171,59 +182,64 @@ offset conditional-logitで市場の温度を自由にし、追加blockの係数
 
 ## 7. Stage 1 Gate
 
-Stage 0の仕様レビューとfloor commit後だけ実施する。
+Stage 0の再レビュー承認、`R0-clean-nobw` OOF manifest、数値floor commit後だけ実施する。判定関数以外から等級を付けない。
 
-### Gate A — 判断時点の馬体重情報
+### Gate A1 — 判断時点の馬体重情報
 
-主比較は `W_BODY − N1_CLEAN`。
+`W_BODY − N1_CLEAN_NOBW`を2019〜2023で検定する。
 
-解釈のため、`bw_log_kg`と`bw_sex_age_z`だけの安定した体格blockを`W_SIZE`として副分解し、`W_BODY − W_SIZE`（当日の状態情報）も必須報告する。Gateは事前固定した主比較だけで判定し、副分解を理由に救済しない。
-
-- pooled meeting-day bootstrap CI95上限<0。
+- pooled暦日bootstrapのCI95上限<0。
 - 4/5年で改善方向。
-- leave-one-year-out全てでCI上限<0。
-- P1/P2 placeboの改善側97.5 percentileを超える。
+- leave-one-year-out 5通り全てでCI95上限<0。
+- 実ΔがP1/P2分布の2.5%分位より小さい（改善側97.5 percentileを超える）。
 
-floor以上なら `PASS-PRACTICAL`、有意だがfloor未満なら `PASS-SUBFLOOR`、それ以外はFAIL。FAILならGate B/Cを行わず終了。
+### Gate A2 — 判断時点の馬体重×馬場interaction
 
-### Gate B — terminal close残差
+A1の結果に依存せず、`WP_BODY_TRACK − W_BODY`を2021〜2023で検定する。
 
-Gate A通過時だけ、`TW_CLOSE_BODY − (T0_CLOSE_MARKET + N1 clean score)`を同じ規則で検定する。
+- pooled暦日bootstrapのCI95上限<0。
+- 3/3年で改善方向。
+- leave-one-year-out 3通り全てでCI95上限<0。
+- 実ΔがP1/P2/P3分布の2.5%分位より小さい。
 
-- FAIL: 馬体重は判断時点から締切までの価格変動を先読みしたが、決済価格には残らない。市場吸収研究として記録し、ROIへ進まない。
-- PASS-SUBFLOOR: 科学的残差のみ。ROIへ進まない。
-- PASS-PRACTICAL: Gate Cを許可。
+A1/A2のp値はHolm補正する。各GateはCI上限<`-floor`なら`PASS-PRACTICAL`、CI上限<0だがfloor未達なら`PASS-SUBFLOOR`、その他はFAIL。副分解やtrack-only結果を理由に救済しない。
 
-### Gate C — 馬体重×物理馬場
+### Gate B1/B2 — terminal close残差
 
-Gate B PASS-PRACTICAL時だけ `TWP_CLOSE_INTERACTION − TW_CLOSE_BODY` を検定する。6 interactionを1 blockとして主検定し、個別係数は説明用でGateに使わない。芝cushion subsetと全surface moisture subsetの2本はHolm補正する。
+- A1が`PASS-SUBFLOOR`以上ならB1=`TW_CLOSE_BODY − terminal clean-nobw null`を2019〜2023で検定する。
+- A2が`PASS-SUBFLOOR`以上ならB2=`TWP_CLOSE_INTERACTION − TW_CLOSE_BODY`を2021〜2023で検定する。
+- B1は4/5年・LOO 5通り、B2は3/3年・LOO 3通りを要求する。対応するplaceboとfloor規則はAと同じ。
 
-Gate C PASS-PRACTICALでも本番号ではproduction化・ROI評価をしない。同一ハイパーパラメータのclean vNext retrainを別番号で事前登録できるだけである。
+B FAILは「pre時点で見えた情報が締切までに市場へ吸収された」と整合するが、唯一原因とは断定しない。B PASS-SUBFLOORは科学的残差のみでROIへ進まない。B PASS-PRACTICALでも本番号ではproduction化・ROI評価をしない。同一ハイパーパラメータのclean vNext比較を別番号で事前登録できるだけである。
+
+### 記述診断（Gate外）
+
+pre→terminal単勝オッズ変化と`bw_robust_z5`の相関を年別に報告する。選択・救済・Gate判定には使わない。
 
 ## 8. placebo
 
 - `P1_IDENTITY_WITHIN_RACE`: 同一race内でW blockを馬identity間で置換。体重値multiset、市場、馬場、頭数を保持。200 draw。
 - `P2_TIME_SHIFT`: 同競馬場×surface×年齢構成帯×頭数帯で、W blockを別raceへ置換。自身除外。200 draw。
-- `P3_TRACK_SHIFT`: WPだけについて、同競馬場×surface×月でPを別開催日へ置換。W、市場、結果を保持。200 draw。
+- `P3_TRACK_SHIFT`: WPだけについて、同競馬場×surface×月の**別開催回**からPを置換する。同一開催回の日は借用しない。W、市場、結果を保持。200 draw。
 - `P4_MISSINGNESS_ONLY`: 値を消しstatus/missing flagsだけ残す。値の情報と取得成否を分ける。
 
-real improvementは各placebo分布の改善側97.5 percentileを超えること。符号は実装テストで固定する。
+判定式は`real_delta < quantile(placebo_delta, 0.025)`。実Δがplacebo分布の2.5%分位より小さいとき、改善側97.5 percentileを超えたとする。境界を合成テストで固定する。
 
 ## 9. 停止規律
 
-次のいずれかで終了する。
+次のいずれかで該当経路を終了する。
 
 1. 歴史/forward馬体重parity未達。
 2. T−28までのforward complete coverage未達。
-3. 正式母集団またはWP被覆未達。
+3. 正式母集団またはW/WP被覆未達。
 4. 検出力未達。
-5. Gate A FAIL。
-6. Gate B FAILまたはSUBFLOOR。
-7. placebo未超過。
+5. A1 FAILならB1を行わない。A2 FAILならB2を行わない。A1とA2は互いを停止させない。
+6. B1/B2がFAILまたはSUBFLOORなら、その経路はROI・vNextへ進まない。
+7. 対応placebo未超過。
 8. track-only負対照だけが改善し、W/WPが改善しない。
 9. 同値の先行実験が見つかる。
 
-停止文は対象期間・母集団・特徴定義・市場時点に限定し、「馬体重は無価値」「JRA市場は完全効率的」と一般化しない。
+全A経路がFAIL、または全terminal経路がFAIL/SUBFLOORならEXP19を終了する。停止文は対象期間・母集団・特徴定義・市場時点に限定し、「馬体重は無価値」「JRA市場は完全効率的」と一般化しない。
 
 ## 10. productionと外部公開
 
@@ -235,11 +251,11 @@ real improvementは各placebo分布の改善側97.5 percentileを超えること
 
 ## 11. 凍結と再開
 
-Fable承認後にv0.2-frozenを作り、Stage 0を実装する。凍結後の変更は版番号、理由、結果開封前commitを必須とする。Fableへのレビュー依頼では、特に次を確認する。
+Fable差分再レビュー承認後にv0.2-frozenを作り、Stage 0を実装する。凍結後の変更は版番号、理由、結果開封前commitを必須とする。Fableへのレビュー依頼では、特に次を確認する。
 
 1. T−28市場とterminal closeの二段Gateが長期収益の問いに十分か。
 2. W/WP特徴が多すぎず、既存baba検定の救済になっていないか。
-3. historical torchとforward WH parity floorが十分か。
-4. DNFをstarterに残す母集団が市場分母と一致するか。
-5. Gate CをGate B PASS-PRACTICAL後に限定する順序が妥当か。
+3. historical torchとforward WHの4日/400行、値・status一致99.5%、race coverage99%、T−28 complete 95%が十分か。
+4. 主解析でDNF含有raceを除外し、full-starterを感度分析に分ける扱いがN1被覆と市場分母の双方に対して妥当か。
+5. A1/A2を独立にpreで検定し、対応するSUBFLOOR以上の経路だけB1/B2へ進める順序が妥当か。
 

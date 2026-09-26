@@ -703,5 +703,15 @@
   "ＪＧ２": "OP以上",
   "ＪＧ３": "OP以上",
   "ｵｰﾌﾟﾝ": "OP以上"
+ },
+ "errata_20260926_current_bodyweight": {
+  "finding": "斤量体重比 is derived from current-race bodyweight in the training master",
+  "historical_contract_unchanged": true,
+  "exp19_contract": "R0-clean-nobw",
+  "exp19_remove": [
+   "斤量体重比"
+  ],
+  "exp19_n_clean": 110,
+  "impact_scope": "EXP15/16A/17 results are not rerun; future clean contracts must declare inclusion or exclusion"
  }
 }
