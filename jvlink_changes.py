@@ -93,24 +93,83 @@ def parse_tc(rec: str) -> dict | None:
     return {"new": new, "old": old}
 
 
-def parse_wh(rec: str) -> dict:
-    """WH(馬体重) → {umaban: [kg, '+4'/'-2'/'±0']}。
-    pos35 起点 stride45 = 馬番2+馬名36+体重3+増減符号1+増減差3 TENTATIVE。"""
-    out = {}
+def _wh_bytes(rec: str) -> bytes:
+    """Reconstruct the original fixed-width JV bytes.
+
+    On this JV-Link/pywin32 combination, COM exposes legacy bytes through a
+    CP1252-like one-byte Unicode mapping (for example 0x83 becomes U+0192),
+    including undefined CP1252 controls such as U+0081.  Fixtures and some
+    saved files may instead contain normal Japanese Unicode, so support both
+    representations without replacement decoding.
+    """
+    text = rec.rstrip("\r\n")
+    looks_com_mapped = any(ord(c) in range(0x80, 0xA0) or c in "ƒŒŠŽ‘“”•–—" for c in text)
+    if not looks_com_mapped:
+        return text.encode("cp932", errors="strict")
+    out = bytearray()
+    for c in text:
+        try:
+            out.extend(c.encode("cp1252"))
+        except UnicodeEncodeError:
+            code = ord(c)
+            if code > 255:
+                raise
+            out.append(code)
+    return bytes(out)
+
+
+def parse_wh_detail(rec: str) -> list[dict]:
+    """Parse WH without collapsing JV special values into numeric zero."""
+    raw = _wh_bytes(rec)
+    out: list[dict] = []
     W0, STRIDE, N = 35, 45, 18
     for i in range(N):
         s = W0 + i * STRIDE
-        if s + 45 > len(rec) + 3:
+        if s + STRIDE > len(raw):
             break
-        ban = _digits(rec[s:s + 2])
-        kg = _digits(rec[s + 38:s + 41])
-        if not ban or not (1 <= ban <= 28) or not kg or not (300 <= kg <= 700):
+        slot = raw[s:s + STRIDE]
+        ban = _digits(slot[0:2].decode("ascii", errors="replace"))
+        if not ban or not (1 <= ban <= 28):
             continue
-        sign, diff = rec[s + 41:s + 42], _digits(rec[s + 42:s + 45])
-        dstr = ""
-        if diff is not None and sign in ("+", "-", " ", "0"):
-            dstr = "±0" if diff == 0 else f"{'-' if sign == '-' else '+'}{diff}"
-        out[str(ban)] = [kg, dstr]
+        name = _text(slot[2:38].decode("cp932", errors="replace"))
+        kg_raw = slot[38:41].decode("ascii", errors="replace")
+        sign_raw = slot[41:42].decode("ascii", errors="replace")
+        diff_raw = slot[42:45].decode("ascii", errors="replace")
+        if kg_raw == "000":
+            weight_kg, weight_status = None, "scratched"
+        elif kg_raw == "999":
+            weight_kg, weight_status = None, "measurement_unavailable"
+        else:
+            kg = _digits(kg_raw)
+            weight_kg = kg if kg is not None and 300 <= kg <= 700 else None
+            weight_status = "normal" if weight_kg is not None else "invalid"
+        diff = _digits(diff_raw)
+        if diff_raw == "999":
+            change_kg, change_status = None, "measurement_unavailable"
+        elif diff is None:
+            change_kg, change_status = None, "not_reported"
+        elif sign_raw == "-":
+            change_kg, change_status = -diff, "normal"
+        elif sign_raw in ("+", " ", "0"):
+            change_kg, change_status = diff, "normal"
+        else:
+            change_kg, change_status = None, "invalid"
+        out.append({"umaban": ban, "name": name,
+                    "weight_kg": weight_kg, "weight_status": weight_status,
+                    "change_kg": change_kg, "change_status": change_status,
+                    "raw": {"weight": kg_raw, "sign": sign_raw, "change": diff_raw}})
+    return out
+
+
+def parse_wh(rec: str) -> dict:
+    """WH legacy view for the existing internal changes JSON."""
+    out = {}
+    for row in parse_wh_detail(rec):
+        if row["weight_status"] != "normal":
+            continue
+        diff = row["change_kg"]
+        dstr = "" if diff is None else ("±0" if diff == 0 else f"{diff:+d}")
+        out[str(row["umaban"])] = [row["weight_kg"], dstr]
     return out
 
 
