@@ -1,6 +1,10 @@
 # EXP19 — 当日馬体重 × 公式馬場物理値
 
 **状態**: v0.2-frozen・Fable最終承認済み（Stage 0実装可、結果未開封）
+**v0.3 追補（2026-09-27）**: 縮約 WP（2 列）の一回限り再監査で B2 の検出力 0.4675 < 0.80 → **WP 経路を閉鎖**
+（A2・B2・C_TRACK_ONLY・nested control は未検証で閉鎖）。残る Gate は A1（SIGNAL/FAIL）と B1（floor 0.006474、検出力 0.925）。
+歴史 Stage 1 は T−28 完全性の観測が 4 開催日そろうまで待つ（現在 1 日、残り 3 日）。**Stage 1 は未開始**。
+
 **Stage 0（2026-09-26）**: 完了・**Stage 1 は開始不可**（結果未開封）。詳細は [STAGE0_REPORT.md](STAGE0_REPORT.md)。
 S0-B 母集団・被覆 PASS / S0-C invariant 30/30 PASS / N1 OOF 40 fit PASS / B1 floor 0.006474・検出力 0.925 PASS。
 未達: S0-A forward parity は収集中（1 日・99 行・歴史対 0 件）、A1/A2 の floor は凍結式で定義不能（v0.3 が必要）、

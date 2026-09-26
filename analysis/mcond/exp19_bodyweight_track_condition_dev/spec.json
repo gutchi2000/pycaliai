@@ -1,7 +1,7 @@
 {
   "experiment": "EXP19_bodyweight_track_condition",
   "version": "0.3-frozen",
-  "status": "stage0_history_complete_forward_tminus28_collecting_wp_one_shot_repower_pending",
+  "status": "stage0_v03_complete_wp_closed_stage1_waiting_Tminus28_days",
   "purpose": "Test whether current-race bodyweight state and its interaction with official JRA physical track measurements add proper-score information after decision-time and terminal markets.",
   "scope": {
     "population": "JRA_flat_5plus_exclude_DNF_containing_races",
@@ -309,7 +309,8 @@
       "B2 power 0.165 < 0.80 (stop rule 4); A2 reference power also low"
     ],
     "v0.3_proposal": "STAGE0_REPORT.md section 6 (not applied)",
-    "note": "gates.practical_floor_nats_per_race (frozen field) left unchanged; per-gate floors recorded here because A1/A2 have no defined floor"
+    "note": "gates.practical_floor_nats_per_race (frozen field) left unchanged; per-gate floors recorded here because A1/A2 have no defined floor",
+    "superseded_by": "stage0_v03_results (v0.3-frozen, 2026-09-27); v0.2 values kept for provenance"
   },
   "v03_override": {
     "authority": "This block supersedes conflicting v0.2 fields; frozen before outcome opening after Fable Stage0 review",
@@ -331,7 +332,7 @@
       ],
       "B1_floor_nats": 0.006474307618072295,
       "B2_floor_nats": null,
-      "B2_status": "pending one-shot reduced-WP power audit; old 8-column floor is superseded"
+      "B2_status": "CLOSED 2026-09-27: one-shot reduced-WP (2 columns) re-power gave SIGNAL power 0.4675 (Wilson [0.419, 0.516]) < 0.80 at the audited floor 0.003135923227025777; WP route closed under stop rule 4. No further reduction, term swap or threshold change. A2, B2, C_TRACK_ONLY and nested control are unverified and closed."
     },
     "WP": {
       "columns": [
@@ -361,5 +362,89 @@
     "conditional_nested_control": "Implement C_TRACK_ONLY and WP-(W+existing baba block) before Stage1 only if reduced-WP power passes",
     "actionable_growth_terminal_truth": "diagnostic only; never grades A",
     "future_change_control": "new version and pre-result commit required"
+  },
+  "stage0_v03_results": {
+    "date": "2026-09-27",
+    "stage1_started": false,
+    "outcomes_opened": false,
+    "wp_route": "closed",
+    "wp_repower": {
+      "columns": [
+        "wp1_z5_x_cushion_turf",
+        "wp3_z5_x_moistgp_shared"
+      ],
+      "seed": 20260926,
+      "delta_grid": [
+        0.0,
+        0.0005,
+        0.001,
+        0.002,
+        0.003,
+        0.004,
+        0.005,
+        0.0075,
+        0.01,
+        0.015,
+        0.02,
+        0.03,
+        0.05,
+        0.075,
+        0.1
+      ],
+      "boot": 10000,
+      "reps_growth": 24,
+      "fit_windows_same_as_v02": true,
+      "B2_audited_floor_nats": 0.003135923227025777,
+      "B2_signal_power_at_floor": 0.4675,
+      "B2_signal_wilson95": [
+        0.4191457975165817,
+        0.5164725016248091
+      ],
+      "B2_power_0.5x_2x_zero": [
+        0.11,
+        0.83,
+        0.0
+      ],
+      "required_power": 0.8,
+      "decision": "closed (stop rule 4); B2_floor_nats stays null",
+      "A2_reference_mde_signal_power": {
+        "mde_0.0005": 0.0,
+        "mde_0.001": 0.01,
+        "mde_0.002": 0.13,
+        "mde_0.004": 0.55,
+        "mde_0.008": 0.82
+      },
+      "source": "out/power_floor_v03.json"
+    },
+    "closed_unverified": [
+      "A2",
+      "B2",
+      "C_TRACK_ONLY",
+      "nested control WP-(W+existing baba block)"
+    ],
+    "active_gates": {
+      "A1": "SIGNAL/FAIL information test, no economic floor (reference MDE ~0.003)",
+      "B1": "floor 0.006474307618072295, SIGNAL power at floor 0.925 (v0.2 audit, W block unchanged)"
+    },
+    "measurement_age_minutes": "removed from historical model and power; forward audit only",
+    "forbidden_columns": "loader FORBIDDEN_EXACT equals spec loader_contract (14 exact incl. 複上1-4/複人気1-4) + prefix 指時系; test v03_forbidden_list_equals_spec",
+    "forward_gates": {
+      "historical_stage1_entry": {
+        "meeting_days_observed": 1,
+        "races_observable": 16,
+        "complete_by_Tminus28": 16,
+        "remaining_days": 3,
+        "pass": false
+      },
+      "forward_serve_entry": {
+        "paired_rows": 0,
+        "pass": false,
+        "blocks_historical_stage1": false
+      }
+    },
+    "tests": {
+      "invariant": "33/33"
+    },
+    "stage1_entry_blocker": "T-28 completeness >= 0.95 over 4 meeting days (currently 1 day, 16/16; 3 days remaining)"
   }
 }

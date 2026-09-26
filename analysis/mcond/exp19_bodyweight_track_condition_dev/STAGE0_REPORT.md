@@ -143,3 +143,26 @@
 - WPがpowerを通過した場合だけ、Stage 1前に`C_TRACK_ONLY`と`WP − (W + 既存baba block)`を実装する。
 - v0.3実装、WP再監査、T−28追加3開催日が揃うまでStage 1を開始しない。
 
+---
+
+## 9. v0.3 追補の実装結果（2026-09-27、結果未開封。v0.2 の実測は上に superseded として残す）
+
+| 項目 | 結果 |
+|---|---|
+| WP 縮約 | `wp1 = bw_robust_z5 × cushion_z`（芝のみ）と `wp3 = bw_robust_z5 × moist_gp_z`（芝ダ共通係数）の 2 列。W 10 列は不変。旧 8 列は説明用 |
+| 一回限りの再監査 | seed 20260926・同じ fit 窓（WP 利用可能 race の定義も v0.2 と同一、n_fit 3,537 / 6,522 / 9,714）・B=10,000・同じ格子と補間 |
+| B2 監査 floor | 0.003136 nats/race（0.002 で −0.000121、0.003 で +0.000085 の線形補間。MC SE ≈ 1e-4） |
+| **B2 床での SIGNAL 検出力** | **0.4675**（400 rep、Wilson [0.419, 0.516]）→ **0.80 未満** |
+| B2 の 0.5 倍 / 2 倍 / Δ=0 | 0.11 / 0.83 / 0.00 |
+| A2 参考 MDE（SIGNAL/FAIL、経済 floor なし） | Δ = 0.002 → 0.13、0.004 → 0.55、0.008 → 0.82 |
+| **判定** | **WP 経路を閉じる（停止規律 4）**。B2 floor は固定しない（`B2_floor_nats = null`）。再縮約・項交換・閾値変更はしない |
+| 閉鎖・未検証 | A2、B2、C_TRACK_ONLY、nested control（WP − (W + 既存 baba block)）。WP が閉じたので実装しない |
+| 残る Gate | A1（SIGNAL/FAIL の情報検定、経済 floor なし、参考 MDE ≈ 0.003）、B1（floor 0.006474307618072295、床での検出力 0.925） |
+| Gate 判定関数 | `gate_grade.grade_a`（A: SIGNAL/FAIL、有効な A の Holm）と `grade`（B: 3 等級）に分離。境界テスト更新 |
+| `measurement_age_minutes` | 歴史 model・power から外した（テストで確認）。forward 監査で当日値の測定経過時間だけを記録 |
+| 禁止列 | loader の禁止リストが spec の `loader_contract` と一致（14 具体名 + `指時系` prefix。テストで確認） |
+| forward Gate の分離 | 歴史 Stage 1 の入口 = T−28 完全性 ≥ 95% を 4 開催日: 現在 **1 開催日・16/16 race**、残り **3 開催日**。TARGET 対 WH の値 / status parity（4 日 / 400 対）は forward / serve 条件で歴史 Stage 1 を止めない（現在 0 対） |
+| テスト | 合成 invariant **33/33** |
+
+**Stage 1 は開始していない**。歴史 Stage 1 は、T−28 完全性の観測が 4 開催日そろうまで開始しない（残り 3 開催日）。
+

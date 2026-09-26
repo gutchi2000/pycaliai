@@ -35,7 +35,7 @@ import numpy as np
 from ..exp18_cross_pool_market_tomography_dev import tomography as T18
 from ..exp18_cross_pool_market_tomography_dev.floor_v05 import Mk, sub_mk
 from . import models as M
-from .gate_grade import grade
+from .gate_grade import grade, grade_a
 from .loaders import OUT, RESEARCH
 
 SEED = 20260926
@@ -276,10 +276,15 @@ def power_rep(g, eps, floor, seed, holm_alpha=None):
     up0 = float(np.quantile(boot, 1 - alpha))
     ym = [float(dv[yrs == y].mean()) for y in spec["years"]]
     loo = [float(np.quantile(day_boot(dv, yrs, days, spec["years"], rng, drop=y), 1 - alpha)) for y in spec["years"]]
-    fl = floor if floor else 1e9
-    gr = grade(gate=g, point=float(dv.mean()), signal_ok=up0 < 0, practical_ok=up0 < -fl,
-               years_improved=int(sum(v < 0 for v in ym)), n_years=len(spec["years"]), min_years=spec["min_years"],
-               loo_ci_uppers=loo, placebo={k: True for k in spec["placebos"]}, floor=fl)
+    if g.startswith("A"):          # v0.3: A は SIGNAL / FAIL だけ (経済 floor なし)
+        gr = grade_a(gate=g, point=float(dv.mean()), signal_ok=up0 < 0,
+                     years_improved=int(sum(v < 0 for v in ym)), n_years=len(spec["years"]),
+                     min_years=spec["min_years"], loo_ci_uppers=loo, placebo={k: True for k in spec["placebos"]})
+    else:
+        fl = floor if floor else 1e9
+        gr = grade(gate=g, point=float(dv.mean()), signal_ok=up0 < 0, practical_ok=up0 < -fl,
+                   years_improved=int(sum(v < 0 for v in ym)), n_years=len(spec["years"]), min_years=spec["min_years"],
+                   loo_ci_uppers=loo, placebo={k: True for k in spec["placebos"]}, floor=fl)
     return {"grade": gr["grade"], "point": float(dv.mean()), "upper": up0, "fallbacks": nfb}
 
 
@@ -315,33 +320,50 @@ def wilson(k, n, z=1.959964):
     return [max(0.0, c - h), min(1.0, c + h)]
 
 
-def main():
+def run_map(ex, fn, items, label, chunksize=2):
+    """進捗を 5% ごとに表示しながら map する (結果順は入力順)"""
+    out, n = [], len(items)
+    step = max(1, n // 20)
+    t0 = time.time()
+    for k, r in enumerate(ex.map(fn, items, chunksize=chunksize), 1):
+        out.append(r)
+        if k % step == 0 or k == n:
+            el = time.time() - t0
+            print(f"[{label}] {k}/{n} ({el:.0f}s, remaining ~{el / k * (n - k):.0f}s)", flush=True)
+    return out
+
+
+def main(run_gates=tuple(M.GATES), out_name="power_floor.json", v03=False):
+    """v03=True: A は経済 floor を持たず MDE だけを出す。seed は gate の M.GATES 内の位置 i から作るので、
+    部分集合で回しても v0.2 と同じ seed になる"""
     try:
         sys.stdout.reconfigure(errors="replace")
     except Exception:
         pass
     t0 = time.time()
     world()
+    run = [g for g in M.GATES if g in run_gates]
     res = {"seed": SEED, "seed_fixed_before_run": True, "delta_grid": DELTA_GRID, "reps_growth": REPS_GROWTH,
-           "boot": BOOT, "fit_start": FIT_START, "gates": {}}
+           "boot": BOOT, "fit_start": FIT_START, "gates_run": run, "v03": v03,
+           "wp_columns": [str(c) for c in world()["wp_cols"]], "gates": {}}
     with ProcessPoolExecutor(WORKERS) as ex:
-        # ---- Δ=0 健全性と較正 (全 gate)
-        cal = list(ex.map(task_cal, [(g, d) for g in M.GATES for d in DELTA_GRID]))
+        cal = run_map(ex, task_cal, [(g, d) for g in run for d in DELTA_GRID], "calibrate", chunksize=1)
         calm = {(g, d): (e, dt, og) for g, d, e, dt, og in cal}
-        sane = {g: calm[(g, 0.0)][2] < ZERO_GROWTH_TOL for g in M.GATES}
-        print(f"[Δ=0 oracle growth] " + json.dumps({g: calm[(g, 0.0)][2] for g in M.GATES}), flush=True)
-        # ---- 成長曲線 (Δ=0 健全な gate だけ)
+        sane = {g: calm[(g, 0.0)][2] < ZERO_GROWTH_TOL for g in run}
+        econ = {g: sane[g] and not (v03 and g.startswith("A")) for g in run}
+        print("[Delta=0 oracle growth] " + json.dumps({g: calm[(g, 0.0)][2] for g in run}), flush=True)
         tasks = [("growth", g, (d,), calm[(g, d)][0], SEED + 1000 * i + 17 * j + r)
-                 for i, g in enumerate(M.GATES) if sane[g] for j, d in enumerate(DELTA_GRID) for r in range(REPS_GROWTH)]
+                 for i, g in enumerate(M.GATES) if g in run and econ[g]
+                 for j, d in enumerate(DELTA_GRID) for r in range(REPS_GROWTH)]
         tasks = [(k, g, e, x, s) for (k, g, x, e, s) in tasks]
-        gro = list(ex.map(task, tasks, chunksize=2))
+        gro = run_map(ex, task, tasks, "growth") if tasks else []
         floors = {}
-        for g in M.GATES:
+        for g in run:
             n_fit = {Y: int(len(fr)) for Y, fr in gate_races(g)[0].items()}
             info = {"market": M.GATES[g]["market"], "block": M.GATES[g]["alt"], "n_fit": n_fit,
                     "n_eval_races": int(len(gate_races(g)[1])),
                     "delta0_oracle_growth": calm[(g, 0.0)][2], "delta0_sane": bool(sane[g])}
-            if sane[g]:
+            if econ[g]:
                 curve = {d: float(np.mean([r[3][0] for r in gro if r[1] == g and r[2][0] == d])) for d in DELTA_GRID}
                 se = {d: float(np.std([r[3][0] for r in gro if r[1] == g and r[2][0] == d], ddof=1) / np.sqrt(REPS_GROWTH))
                       for d in DELTA_GRID}
@@ -355,33 +377,36 @@ def main():
             else:
                 floors[g] = None
                 info["practical_floor_nats"] = None
-                info["floor_status"] = ("undefined_under_frozen_spec: truth anchored at pre market but settled at "
+                info["floor_status"] = ("v0.3: A is signal-only; no economic floor (MDE reported only)"
+                                        if (v03 and g.startswith("A")) else
+                                        "undefined_under_frozen_spec: truth anchored at pre market but settled at "
                                         "terminal odds gives positive expected growth at Delta=0")
             res["gates"][g] = info
             print(f"[{g}] floor={floors[g]} sane={sane[g]}", flush=True)
-        # ---- 検出力 (較正も pool で並列)
         LAB = {"floor": 1, "0.5x": 2, "2x": 3, "zero": 4}
         plan = []
         for i, g in enumerate(M.GATES):
+            if g not in run:
+                continue
             if floors[g] is not None:
                 for lab, mult, reps in (("floor", 1.0, REPS_POWER_FLOOR), ("0.5x", 0.5, REPS_POWER_OTHER),
                                         ("2x", 2.0, REPS_POWER_OTHER), ("zero", 0.0, REPS_POWER_OTHER)):
                     plan.append((g, floors[g] * mult, lab, floors[g], reps, SEED + 500000 + 100000 * i + 10000 * LAB[lab]))
-            else:
+            elif g.startswith("A"):
                 for k, d in enumerate(A_MDE_GRID):
                     plan.append((g, d, f"mde_{d}", None, REPS_A_MDE, SEED + 900000 + 100000 * i + 1000 * k))
-        pcal = list(ex.map(task_cal, [(g, d) for g, d, *_ in plan]))
+        pcal = run_map(ex, task_cal, [(g, d) for g, d, *_ in plan], "calibrate_power", chunksize=1)
         ptasks = []
         for (g, d, lab, fl, reps, s0), (_, _, eps, dt, _) in zip(plan, pcal):
             ptasks += [("power", g, eps, (lab, fl), s0 + r) for r in range(reps)]
-        pw = list(ex.map(task, ptasks, chunksize=2))
-    for g in M.GATES:
+        pw = run_map(ex, task, ptasks, "power")
+    for g in run:
         out = {}
         labs = sorted({r[2][0] for r in pw if r[1] == g})
         for lab in labs:
             rr = [r[3] for r in pw if r[1] == g and r[2][0] == lab]
             n = len(rr)
-            sig = sum(x["grade"] in ("PASS_SUBFLOOR", "PASS_PRACTICAL") for x in rr)
+            sig = sum(x["grade"] in ("PASS_SUBFLOOR", "PASS_PRACTICAL", "SIGNAL") for x in rr)
             pra = sum(x["grade"] == "PASS_PRACTICAL" for x in rr)
             out[lab] = {"reps": n, "signal_power": sig / n, "signal_wilson95": wilson(sig, n),
                         "practical_power": pra / n, "practical_wilson95": wilson(pra, n),
@@ -391,12 +416,16 @@ def main():
         if floors[g] is not None:
             res["gates"][g]["progression_power_pass"] = bool(out["floor"]["signal_power"] >= 0.80)
     res["elapsed_sec"] = round(time.time() - t0, 1)
-    (OUT / "power_floor.json").write_text(json.dumps(res, ensure_ascii=False, indent=1, default=float), encoding="utf-8")
+    (OUT / out_name).write_text(json.dumps(res, ensure_ascii=False, indent=1, default=float), encoding="utf-8")
     print(json.dumps({g: {"floor": res["gates"][g]["practical_floor_nats"],
                           "power": {k: v["signal_power"] for k, v in res["gates"][g]["power"].items()}}
-                      for g in M.GATES}, ensure_ascii=False))
-    print(f"[saved] out/power_floor.json ({res['elapsed_sec']}s)")
+                      for g in run}, ensure_ascii=False))
+    print(f"[saved] out/{out_name} ({res['elapsed_sec']}s)")
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == "v03":
+        # v0.3 一回限りの縮約 WP 再監査: A2 (MDE のみ) と B2 (floor・検出力)。seed・fit 窓・bootstrap・補間は v0.2 と同一
+        main(run_gates=("A2", "B2"), out_name="power_floor_v03.json", v03=True)
+    else:
+        main()

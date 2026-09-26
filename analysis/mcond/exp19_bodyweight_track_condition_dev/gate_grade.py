@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-gate_grade.py — EXP19 Gate A1/A2/B1/B2 を 3 等級で判定する唯一の実装 (SPEC §7)
-==============================================================================
-符号: Δ = LL(alt) − LL(null)、改善は負。等級:
-  PASS_PRACTICAL : SIGNAL 条件すべて + 上限 < −floor
-  PASS_SUBFLOOR  : SIGNAL 条件すべてだが floor 未達
-  FAIL           : SIGNAL 条件のいずれかが不成立
-SIGNAL 条件: (多重補正後) 上限 < 0、年方向 (A1/B1 4/5、A2/B2 3/3)、LOO 全通り上限 < 0、対応 placebo すべて超過
-Holm (A1/A2): 片側 bootstrap p 値 p0 = P*(Δ* >= 0)、pf = P*(Δ* >= −floor) を A1/A2 で Holm 補正し、
-  補正後 p < 0.025 を「上限 < 0」「上限 < −floor」とみなす (1 本だけの検定なら percentile CI95 上限と同値)。
-  B1/B2 は Holm の対象外で、percentile CI95 上限を直接使う。
+gate_grade.py — EXP19 Gate の判定を行う唯一の実装 (spec v0.3 v03_override)
+===========================================================================
+符号: Δ = LL(alt) − LL(null)、改善は負。
+A1/A2 (情報検定、経済 floor なし): 等級は SIGNAL / FAIL だけ  → grade_a()
+  SIGNAL = (Holm 補正後) 上限 < 0 かつ 年方向 (A1 4/5、A2 3/3) かつ LOO 全通り上限 < 0 かつ 対応 placebo すべて超過
+  Holm: 有効な A1/A2 の片側 bootstrap p 値 p0 = P*(Δ* >= 0) を Holm 補正し、補正後 p < 0.025 を「上限 < 0」とする
+        (有効な検定が 1 本だけなら percentile CI95 上限 < 0 と同値)。MDE は報告のみ
+B1/B2 (経済評価): PASS_PRACTICAL / PASS_SUBFLOOR / FAIL  → grade() (grade_b)
+  B は Holm の対象外で percentile CI95 上限を使う。B1 floor = 0.006474307618072295、B2 floor は縮約 WP の再監査で決まる
 placebo: real Δ < quantile(placebo Δ, 0.025)、最低 200 draw。
+v0.2 の「A も 3 等級」は superseded (grade() は B にだけ使う)。
 """
 from __future__ import annotations
 
@@ -66,6 +66,36 @@ def grade(*, gate: str, point: float, signal_ok: bool, practical_ok: bool, years
             "years_improved": f"{years_improved}/{n_years}", "loo_ci_uppers": loo, "placebo": placebo}
 
 
+def grade_a(*, gate: str, point: float, signal_ok: bool, years_improved: int, n_years: int, min_years: int,
+            loo_ci_uppers, placebo: dict) -> dict:
+    """A1/A2 の情報検定。SIGNAL / FAIL だけ (経済 floor を持たない)"""
+    if gate not in ("A1", "A2"):
+        raise ValueError("grade_a は A1/A2 専用")
+    if any(v is None for v in placebo.values()):
+        raise ValueError("placebo 判定が欠けている")
+    fails = []
+    if not signal_ok:
+        fails.append("上限 < 0 (Holm 補正後) を満たさない")
+    if years_improved < min_years:
+        fails.append(f"year_direction {years_improved}/{n_years} < {min_years}")
+    loo = list(loo_ci_uppers)
+    if len(loo) != n_years or not all(u < 0 for u in loo):
+        fails.append("LOO 全通りで上限 < 0 を満たさない")
+    for k, v in placebo.items():
+        if not v:
+            fails.append(f"{k} placebo 未超過")
+    return {"gate": gate, "grade": "FAIL" if fails else "SIGNAL", "fail_reasons": fails, "point": point,
+            "years_improved": f"{years_improved}/{n_years}", "loo_ci_uppers": loo, "placebo": placebo,
+            "economic_floor": None}
+
+
+def holm_signal_a(boots: dict) -> dict:
+    """有効な A1/A2 の bootstrap 配列 → Holm 補正後の signal_ok と p0"""
+    p0 = {g: boot_p(b, 0.0) for g, b in boots.items()}
+    r = holm(p0)
+    return {g: {"signal_ok": r[g], "p0": p0[g]} for g in boots}
+
+
 def signal_practical_from_boot(boots: dict, floor: dict, holm_gates: list) -> dict:
     """boots: gate → bootstrap 平均の配列。Holm 対象 gate は Holm、それ以外は CI95 上限"""
     out = {}
@@ -118,6 +148,28 @@ def boundary_tests() -> list[str]:
         bad.append("placebo < 200 を受理")
     except ValueError:
         pass
+    # A は SIGNAL / FAIL だけ
+    oka = dict(point=-0.01, years_improved=5, n_years=5, min_years=4, loo_ci_uppers=[-1e-3] * 5,
+               placebo={"P1": True, "P2": True})
+    if grade_a(gate="A1", signal_ok=True, **oka)["grade"] != "SIGNAL":
+        bad.append("grade_a SIGNAL")
+    for kw in ({"signal_ok": False}, {"signal_ok": True, "years_improved": 3},
+               {"signal_ok": True, "loo_ci_uppers": [-1e-3, 0.0, -1e-3, -1e-3, -1e-3]},
+               {"signal_ok": True, "placebo": {"P1": True, "P2": False}}):
+        if grade_a(gate="A1", **{**oka, **kw})["grade"] != "FAIL":
+            bad.append(f"grade_a FAIL {kw}")
+    if "PASS_PRACTICAL" in str(grade_a(gate="A2", signal_ok=True, **{**oka, "n_years": 3, "min_years": 3,
+                                                                    "loo_ci_uppers": [-1e-3] * 3,
+                                                                    "placebo": {"P1": True, "P2": True, "P3": True}})):
+        bad.append("grade_a must not emit economic grades")
+    try:
+        grade_a(gate="B1", signal_ok=True, **oka)
+        bad.append("grade_a accepted B gate")
+    except ValueError:
+        pass
+    hs = holm_signal_a({"A1": np.linspace(-0.02, 0.0001, 1000), "A2": np.linspace(-0.02, 0.02, 1000)})   # p0 ≈ 0.005 / 0.5
+    if not (hs["A1"]["signal_ok"] and not hs["A2"]["signal_ok"]):
+        bad.append("holm_signal_a")
     # Holm なし (B): CI95 上限
     b = np.linspace(-0.03, -0.001, 10001)
     r = signal_practical_from_boot({"B1": b}, {"B1": 0.01}, holm_gates=[])

@@ -85,6 +85,11 @@ def main():
             pass
     rec("forbidden_column_assert_exact_prefix_result", bad_ok)
     rec("sealed_2024_2025_dropped_on_read", int(t["date"].max()) < 20240101, t["date"].max())
+    from .loaders import FORBIDDEN_PREFIX, HERE
+    spec = json.loads((HERE / "spec.json").read_text(encoding="utf-8"))
+    lc = spec["loader_contract"]
+    rec("v03_forbidden_list_equals_spec", set(FORBIDDEN_EXACT) == set(lc["forbidden_exact"])
+        and set(FORBIDDEN_PREFIX) == set(lc["forbidden_prefix"]), f"{len(FORBIDDEN_EXACT)} exact")
     rec("loader_sha256_recorded", len(loader_sha256()) == 64)
 
     # ---- W の時点安全性 (実データの一部の馬)
@@ -266,6 +271,16 @@ def main():
     th1, _ = T18._clogit_newton(Xd, off, win, [1.0, 0.0, 0.0])
     th2, _ = M.damped_newton(Xd, off, win, np.array([1.0, 0.0, 0.0]))
     rec("damped_newton_fallback_same_mle", np.max(np.abs(th1 - th2)) < 1e-6, f"max|Δθ|={np.max(np.abs(th1 - th2)):.1e}")
+
+    # ---- v0.3: 縮約 WP 2 列 (wp1 芝のみ / wp3 芝ダ共通係数) と measurement_age の排除
+    wpv2 = [str(c) for c in z["wp_cols_v02"]]
+    Wv2 = z["WP_v02"]
+    shared = Wv2[:, wpv2.index("wp3_z5_x_moistgp_turf")] + Wv2[:, wpv2.index("wp3_z5_x_moistgp_dirt")]
+    rec("v03_wp_two_columns_and_shared_equals_turf_plus_dirt",
+        [str(c) for c in z["wp_cols"]] == F.WP_V03_COLS and np.array_equal(z["WP"][:, 1], shared)
+        and np.array_equal(z["WP"][:, 0], Wv2[:, wpv2.index("wp1_z5_x_cushion_turf")]))
+    model_cols = F.W_MAIN + F.W_MISS + F.WP_V03_COLS + [str(c) for c in z["w_cols"]] + list(z.files)
+    rec("v03_measurement_age_not_in_historical_model", all("measurement_age" not in c for c in model_cols))
 
     # ---- Gate 判定の境界
     bad = G.boundary_tests()

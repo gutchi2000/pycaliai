@@ -45,9 +45,13 @@ W_MAIN = ["bw_log_kg", "bw_sex_age_z", "bw_robust_z5", "bw_abs_robust_z5", "bw_c
 # bw_log_kg の欠損 = bw_status_not_measured と同一なので指示子は持たない (重複列を作らない)
 W_MISS = ["miss_bw_sex_age_z", "miss_bw_robust_z5", "miss_bw_change_x_layoff"]
 W_DESCRIPTIVE = ["bw_change_kg", "bw_change_pct", "bw_dev_med5_pct"]
+# v0.2 の 8 列 (superseded。v0.3 では説明用のみ。v0.2 の検出力監査の再現のために残す)
 WP_COLS = ["wp1_z5_x_cushion_turf", "wp2_absz5_x_abscushion_turf", "wp3_z5_x_moistgp_turf",
            "wp3_z5_x_moistgp_dirt", "wp4_absz5_x_absmoistgp_turf", "wp4_absz5_x_absmoistgp_dirt",
            "wp5_z5_x_moistgrad", "wp6_chglay_x_trackextreme"]
+# v0.3 (spec v03_override.WP、2026-09-27 に一度だけ縮約): 芝のみの wp1 と芝ダ共通係数の wp3 の 2 列だけ
+WP_V03_COLS = ["wp1_z5_x_cushion_turf", "wp3_z5_x_moistgp_shared"]
+# measurement_age_minutes は forward 監査専用 (歴史 model・歴史 interaction の重みに使わない。v03_override)
 
 
 def set_params(mad_floor_kg: float, winsor_z: float):
@@ -217,6 +221,7 @@ def build_wp(w: pd.DataFrame, rp: pd.DataFrame) -> pd.DataFrame:
     o["wp4_absz5_x_absmoistgp_dirt"] = np.where(~turf, az5 * np.abs(np.nan_to_num(mg)), 0.0)
     o["wp5_z5_x_moistgrad"] = z5 * np.nan_to_num(gr)
     o["wp6_chglay_x_trackextreme"] = cl * np.nan_to_num(te)
+    o["wp3_z5_x_moistgp_shared"] = z5 * np.nan_to_num(mg)          # v0.3: 芝ダ共通係数
     return o
 
 

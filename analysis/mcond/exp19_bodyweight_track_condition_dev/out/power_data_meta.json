@@ -39,7 +39,11 @@
   "miss_bw_robust_z5",
   "miss_bw_change_x_layoff"
  ],
- "wp_cols": [
+ "wp_cols_v03": [
+  "wp1_z5_x_cushion_turf",
+  "wp3_z5_x_moistgp_shared"
+ ],
+ "wp_cols_v02_superseded": [
   "wp1_z5_x_cushion_turf",
   "wp2_absz5_x_abscushion_turf",
   "wp3_z5_x_moistgp_turf",
@@ -49,8 +53,9 @@
   "wp5_z5_x_moistgrad",
   "wp6_chglay_x_trackextreme"
  ],
+ "wp_ok_definition": "unchanged from v0.2 (same fit windows): P available (turf cushion+gp+gradient / dirt gp+gradient) and all starters measured",
  "s_clean": "mean of 5 seed OOF scores (R0-clean-nobw)",
- "arrays_sha256": "16830d962befdd3351636fd5cdd6ddfa0ea293b66beee550ae5b2da0bff679c8",
+ "arrays_sha256": "70bc06773bf6aa90a3132ae6dc82b6253051b8e88754d2e8c084d881d27f56e0",
  "no_outcome_columns": true,
- "elapsed_sec": 33.9
+ "elapsed_sec": 33.7
 }

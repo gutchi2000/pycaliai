@@ -124,6 +124,53 @@ def main():
         "gate_S0A_pass": False,
         "elapsed_sec": round(time.time() - t0, 1),
     }
+    # ---- v0.3: forward Gate を分離 (spec v03_override)
+    obs_days = [d for d, v in per_day.items() if v["races_Tminus28_observable"] > 0]
+    n_obs = sum(per_day[d]["races_Tminus28_observable"] for d in obs_days)
+    n_cmp = sum(per_day[d]["complete_by_Tminus28"] for d in obs_days)
+    rate = (n_cmp / n_obs) if n_obs else None
+    res["historical_stage1_entry_v03"] = {
+        "rule": "T-28 complete rate >= 0.95 over >= 4 meeting days (forward observation). Blocks historical Stage 1",
+        "meeting_days_observed": len(obs_days), "races_observable": n_obs, "complete_by_Tminus28": n_cmp,
+        "pooled_rate": rate, "per_day_rate": {d: per_day[d]["complete_by_Tminus28"] / per_day[d]["races_Tminus28_observable"]
+                                              for d in obs_days},
+        "remaining_days": max(0, 4 - len(obs_days)),
+        "pass": bool(len(obs_days) >= 4 and rate is not None and rate >= 0.95)}
+    res["forward_serve_entry_v03"] = {
+        "rule": "TARGET vs WH value/status match >= 0.995 over >= 4 meeting days and >= 400 paired rows. "
+                "Forward/serve condition only; does NOT block historical Stage 1",
+        "paired_rows": parity_pairs, "paired_days": len(overlap_days),
+        "remaining_days": max(0, 4 - len(overlap_days)), "remaining_rows": max(0, 400 - parity_pairs),
+        "pass": False, "blocks_historical_stage1": False}
+    # measurement_age_minutes は forward 監査専用 (歴史 model には入れない)
+    ages = []
+    if bt:
+        cal = load_calendar(str(bt_date)) if bt_date else {}
+        vmap = {v["venue"]: v for v in bt.get("venues", [])}
+        vcode = {"06": "中山", "09": "阪神", "05": "東京", "08": "京都", "07": "中京", "04": "新潟", "03": "福島",
+                 "10": "小倉", "01": "札幌", "02": "函館"}
+
+        def parse_jp(label):
+            import re
+            m = re.search(r"(\d+)時(\d+)分", str(label or ""))
+            return int(m.group(1)) * 60 + int(m.group(2)) if m else None
+        for rid, post in cal.items():
+            v = vmap.get(vcode.get(rid[8:10], ""))
+            if not v:
+                continue
+            pm = post.hour * 60 + post.minute
+            c, mo = parse_jp(v.get("cushion_time")), parse_jp(v.get("moist_time"))
+            ages.append({"race_id": rid, "venue": v["venue"],
+                         "cushion_age_min": (pm - c) if c is not None else None,
+                         "moisture_age_min": (pm - mo) if mo is not None else None})
+    res["measurement_age_forward_only"] = {
+        "baba_today_date": bt_date, "races": len(ages),
+        "cushion_age_min_range": [min((a["cushion_age_min"] for a in ages if a["cushion_age_min"] is not None), default=None),
+                                  max((a["cushion_age_min"] for a in ages if a["cushion_age_min"] is not None), default=None)],
+        "moisture_age_min_range": [min((a["moisture_age_min"] for a in ages if a["moisture_age_min"] is not None), default=None),
+                                   max((a["moisture_age_min"] for a in ages if a["moisture_age_min"] is not None), default=None)],
+        "note": "v0.3: forward timing/parity audit only; forbidden in historical model and interaction weights"}
+    res["status"] = "収集中 (歴史 Stage 1 入口: T-28 観測 {}/4 開催日)".format(len(obs_days))
     (OUT / "forward_parity.json").write_text(json.dumps(res, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
     print(json.dumps({k: res[k] for k in ("n_days", "horse_rows_in_complete_snapshots", "per_day", "Tminus28",
                                           "remaining_to_floor", "status")}, ensure_ascii=False, default=str))

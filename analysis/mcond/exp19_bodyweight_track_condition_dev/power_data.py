@@ -112,16 +112,19 @@ def main():
     np.savez_compressed(
         ARR, off=off, log_m_pre=norm_log(inv_pre), log_m_term=norm_log(inv_term),
         odds_term=np.concatenate([x[4] for x in recs]), s_clean=np.array([sc[k] for k in keys]),
-        W=wd.loc[keys].to_numpy(dtype=float), WP=sub[F.WP_COLS].to_numpy(dtype=float),
+        W=wd.loc[keys].to_numpy(dtype=float), WP=sub[F.WP_V03_COLS].to_numpy(dtype=float),
+        WP_v02=sub[F.WP_COLS].to_numpy(dtype=float),
         cushion_z=sub["cushion_z"].to_numpy(dtype=float), moist_gp_z=sub["moist_gp_z"].to_numpy(dtype=float),
         year=A["year"].to_numpy(), day=A["day"].to_numpy(), rid=A["rid"].to_numpy(), venue=A["venue"].to_numpy(),
         kaisai=A["kaisai"].to_numpy(), month=A["month"].to_numpy(), surface=A["surface"].to_numpy(),
         n=A["n"].to_numpy(), age_band=A["age_band"].to_numpy(), field_band=A["field_band"].to_numpy(),
-        wp_ok=A["wp_ok"].to_numpy(), w_cols=np.array(wcols), wp_cols=np.array(F.WP_COLS),
+        wp_ok=A["wp_ok"].to_numpy(), w_cols=np.array(wcols), wp_cols=np.array(F.WP_V03_COLS),
+        wp_cols_v02=np.array(F.WP_COLS),
         ban=np.concatenate([x[2] for x in recs]))
     meta = {"races": len(recs), "rows": int(off[-1]), "by_year": A.groupby("year").size().to_dict(),
             "wp_ok_by_year": A.groupby("year")["wp_ok"].mean().round(4).to_dict(), "excluded": miss,
-            "w_cols": wcols, "wp_cols": F.WP_COLS, "s_clean": "mean of 5 seed OOF scores (R0-clean-nobw)",
+            "w_cols": wcols, "wp_cols_v03": F.WP_V03_COLS, "wp_cols_v02_superseded": F.WP_COLS,
+            "wp_ok_definition": "unchanged from v0.2 (same fit windows): P available (turf cushion+gp+gradient / dirt gp+gradient) and all starters measured", "s_clean": "mean of 5 seed OOF scores (R0-clean-nobw)",
             "arrays_sha256": sha256_file(ARR), "no_outcome_columns": True, "elapsed_sec": round(time.time() - t0, 1)}
     (OUT / "power_data_meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1, default=str),
                                               encoding="utf-8")

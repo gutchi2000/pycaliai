@@ -1,6 +1,6 @@
 {
- "n_tests": 30,
- "n_pass": 30,
+ "n_tests": 33,
+ "n_pass": 33,
  "all_passed": true,
  "tests": [
   {
@@ -17,6 +17,11 @@
    "test": "sealed_2024_2025_dropped_on_read",
    "pass": true,
    "detail": "20231228"
+  },
+  {
+   "test": "v03_forbidden_list_equals_spec",
+   "pass": true,
+   "detail": "14 exact"
   },
   {
    "test": "loader_sha256_recorded",
@@ -129,6 +134,16 @@
    "detail": "max|Δθ|=1.5e-09"
   },
   {
+   "test": "v03_wp_two_columns_and_shared_equals_turf_plus_dirt",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "v03_measurement_age_not_in_historical_model",
+   "pass": true,
+   "detail": ""
+  },
+  {
    "test": "gate_grade_boundaries_holm_placebo",
    "pass": true,
    "detail": ""
@@ -154,5 +169,5 @@
    "detail": "-1.86e-19"
   }
  ],
- "elapsed_sec": 20.5
+ "elapsed_sec": 19.2
 }
