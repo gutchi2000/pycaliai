@@ -129,3 +129,17 @@
 `loaders.py` `features.py` `fix_w_params.py` `build_oof_nobw.py` `population.py` `power_data.py` `models.py` `gate_grade.py` `placebos.py` `power_floor.py` `forward_audit.py` `compute_dry_run.py` `test_invariants.py` `stage0_checks.py`、
 `out/`（`oof_nobw_manifest.json` `oof_nobw_checks.json` `w_param_fixing.json` `population_coverage.json` `stage0_manifest.json` `power_data_meta.json` `power_floor.json` `forward_parity.json` `invariant_tests.json` `compute_dry_run.json`）。
 大きな中間生成物（OOF score、特徴 parquet、power 配列）は `data/_research/mcond/exp19/`（git 管理外）。
+
+## 9. Fableレビュー後のv0.3確定事項（2026-09-27、結果未開封）
+
+本節はFableのStage 0レビューを反映し、v0.2の矛盾する規則を置き換える。仮説、母集団、期間、封印範囲は変えない。
+
+- A1/A2は`SIGNAL`/`FAIL`の情報検定とし、経済floorを置かない。CI95上限<0、年方向、全LOO、placeboを要求し、有効なA1/A2へHolmを適用する。
+- B1/B2だけが3等級の経済評価を担う。B1 floorは**0.006474307618072295**。旧8列B2 floorは進行に使わない。
+- WPは`bw_robust_z5×cushion_z`（芝のみ）と`bw_robust_z5×moist_gp_z`（芝ダ共通係数）の2列へ一度だけ縮約する。再監査で必要power 0.80未満なら閉じ、再縮約しない。
+- `measurement_age_minutes`はforward監査専用。
+- 歴史Stage 1の入口はT−28完全性95%以上を4開催日。現在1開催日・7/7 raceで残り3開催日。
+- TARGET対WHの値/status一致99.5%、4開催日・400 paired rowsはforward/serve条件で、歴史Stage 1を止めない。
+- WPがpowerを通過した場合だけ、Stage 1前に`C_TRACK_ONLY`と`WP − (W + 既存baba block)`を実装する。
+- v0.3実装、WP再監査、T−28追加3開催日が揃うまでStage 1を開始しない。
+

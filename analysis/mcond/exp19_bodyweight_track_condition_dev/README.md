@@ -50,3 +50,17 @@ EXP15のR0-clean 111列に、今走馬体重から作られた`斤量体重比`�
 ## v0.2-frozen最終修正
 
 WP #5を`bw_robust_z5 × moisture_gradient_z`へ変更し、Wに無い主効果をinteractionで回収する経路を閉じた。馬場標準化は対象日前日までのexpanding window、既存baba blockとの比較はnested control、歴史に存在しない`not_yet_published` statusはfitから除外、N1/Wの結合式はEXP18 `fit_cross`系へ固定した。
+
+## v0.3-frozen（2026-09-27、結果未開封）
+
+本節はFableのStage 0レビューを反映し、v0.2の矛盾する規則を置き換える。仮説、母集団、期間、封印範囲は変えない。
+
+- A1/A2は`SIGNAL`/`FAIL`の情報検定とし、経済floorを置かない。CI95上限<0、年方向、全LOO、placeboを要求し、有効なA1/A2へHolmを適用する。
+- B1/B2だけが3等級の経済評価を担う。B1 floorは**0.006474307618072295**。旧8列B2 floorは進行に使わない。
+- WPは`bw_robust_z5×cushion_z`（芝のみ）と`bw_robust_z5×moist_gp_z`（芝ダ共通係数）の2列へ一度だけ縮約する。再監査で必要power 0.80未満なら閉じ、再縮約しない。
+- `measurement_age_minutes`はforward監査専用。
+- 歴史Stage 1の入口はT−28完全性95%以上を4開催日。現在1開催日・7/7 raceで残り3開催日。
+- TARGET対WHの値/status一致99.5%、4開催日・400 paired rowsはforward/serve条件で、歴史Stage 1を止めない。
+- WPがpowerを通過した場合だけ、Stage 1前に`C_TRACK_ONLY`と`WP − (W + 既存baba block)`を実装する。
+- v0.3実装、WP再監査、T−28追加3開催日が揃うまでStage 1を開始しない。
+

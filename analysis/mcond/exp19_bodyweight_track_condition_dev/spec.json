@@ -1,7 +1,7 @@
 {
   "experiment": "EXP19_bodyweight_track_condition",
-  "version": "0.2-frozen",
-  "status": "stage0_complete_stage1_blocked_pending_v0.3_and_forward_parity",
+  "version": "0.3-frozen",
+  "status": "stage0_history_complete_forward_tminus28_collecting_wp_one_shot_repower_pending",
   "purpose": "Test whether current-race bodyweight state and its interaction with official JRA physical track measurements add proper-score information after decision-time and terminal markets.",
   "scope": {
     "population": "JRA_flat_5plus_exclude_DNF_containing_races",
@@ -144,7 +144,15 @@
       "複勝オッズ下限",
       "複勝オッズ上限",
       "複勝シェア",
-      "補正"
+      "補正",
+      "複上1",
+      "複上2",
+      "複上3",
+      "複上4",
+      "複人気1",
+      "複人気2",
+      "複人気3",
+      "複人気4"
     ],
     "forbidden_prefix": [
       "指時系"
@@ -159,7 +167,8 @@
   "review_history": {
     "v0.1": "Fable: revise then freeze; mandatory 6 recommended 5",
     "v0.2": "all review items incorporated; awaiting delta review",
-    "v0.2-final": "Fable: freeze after replacing WP#5 with bw_robust_z5*moisture_gradient_z; recommendations incorporated"
+    "v0.2-final": "Fable: freeze after replacing WP#5 with bw_robust_z5*moisture_gradient_z; recommendations incorporated",
+    "v0.3": "Fable Stage0 review accepted: signal-only A; B1 floor fixed; one-shot WP reduction; forward parity split"
   },
   "feature_contract": {
     "W_primary": [
@@ -203,7 +212,7 @@
     "multiplicity": "Holm A1/A2",
     "placebo_rule": "real_delta < q0.025(placebo_delta)"
   },
-  "frozen_at": "2026-09-26",
+  "frozen_at": "2026-09-27",
   "frozen_review": "Fable final approval after mandatory WP interaction correction; no further review required",
   "model_equations": {
     "N1": "log q = a*log(m_pre) + b*s_clean - logZ",
@@ -301,5 +310,56 @@
     ],
     "v0.3_proposal": "STAGE0_REPORT.md section 6 (not applied)",
     "note": "gates.practical_floor_nats_per_race (frozen field) left unchanged; per-gate floors recorded here because A1/A2 have no defined floor"
+  },
+  "v03_override": {
+    "authority": "This block supersedes conflicting v0.2 fields; frozen before outcome opening after Fable Stage0 review",
+    "outcomes_opened": false,
+    "A_gates": {
+      "grades": [
+        "SIGNAL",
+        "FAIL"
+      ],
+      "rule": "CI95 upper < 0 AND year direction AND all LOO CI95 upper < 0 AND placebo; Holm over active A1/A2 p-values",
+      "economic_floor": null,
+      "MDE": "report only"
+    },
+    "B_gates": {
+      "grades": [
+        "PASS_PRACTICAL",
+        "PASS_SUBFLOOR",
+        "FAIL"
+      ],
+      "B1_floor_nats": 0.006474307618072295,
+      "B2_floor_nats": null,
+      "B2_status": "pending one-shot reduced-WP power audit; old 8-column floor is superseded"
+    },
+    "WP": {
+      "columns": [
+        "wp1=bw_robust_z5*cushion_z (turf only)",
+        "wp3=bw_robust_z5*moist_gp_z (shared coefficient across turf/dirt)"
+      ],
+      "one_shot_reduction_date": "2026-09-27",
+      "reason": "old B2 power 0.165 < 0.80",
+      "repower_rule": "run once label-free; if required power <0.80 close WP under stop rule 4; no further reduction or rescue",
+      "W_design_columns_unchanged": 10
+    },
+    "measurement_age_minutes": "forward timing/parity audit only; forbidden in historical model and historical interaction weights",
+    "historical_stage1_entry": {
+      "Tminus28_complete_rate": 0.95,
+      "minimum_meeting_days": 4,
+      "current_days": 1,
+      "current_complete_races": "7/7",
+      "remaining_days": 3
+    },
+    "forward_serve_entry": {
+      "value_match": 0.995,
+      "status_match": 0.995,
+      "minimum_meeting_days": 4,
+      "minimum_paired_rows": 400,
+      "blocks_historical_stage1": false
+    },
+    "conditional_nested_control": "Implement C_TRACK_ONLY and WP-(W+existing baba block) before Stage1 only if reduced-WP power passes",
+    "actionable_growth_terminal_truth": "diagnostic only; never grades A",
+    "future_change_control": "new version and pre-result commit required"
   }
 }

@@ -1,6 +1,6 @@
 # EXP19 仕様案 — 当日馬体重状態 × JRA公式馬場物理値
 
-**版**: v0.2-frozen（Fable最終承認。2026-09-26凍結）
+**版**: v0.3-frozen（Fable Stage 0レビュー反映。2026-09-27、結果未開封で凍結）
 **状態**: Stage 0実装可。結果未開封
 **対象**: JRA平地、馬体重発表後のlate-decision予測
 **禁止**: 承認前の学習・結果評価、2024/2025開封、ROI、候補生成、賭金配分、production変更
@@ -260,4 +260,17 @@ pre→terminal単勝オッズ変化と`bw_robust_z5`の相関を年別に報告�
 3. historical torchとforward WHの4日/400行、値・status一致99.5%、race coverage99%、T−28 complete 95%が十分か。
 4. 主解析でDNF含有raceを除外し、full-starterを感度分析に分ける扱いがN1被覆と市場分母の双方に対して妥当か。
 5. A1/A2を独立にpreで検定し、対応するSUBFLOOR以上の経路だけB1/B2へ進める順序が妥当か。
+
+## 12. v0.3-frozen 追補（2026-09-27、結果未開封）
+
+本節はFableのStage 0レビューを反映し、v0.2の矛盾する規則を置き換える。仮説、母集団、期間、封印範囲は変えない。
+
+- A1/A2は`SIGNAL`/`FAIL`の情報検定とし、経済floorを置かない。CI95上限<0、年方向、全LOO、placeboを要求し、有効なA1/A2へHolmを適用する。
+- B1/B2だけが3等級の経済評価を担う。B1 floorは**0.006474307618072295**。旧8列B2 floorは進行に使わない。
+- WPは`bw_robust_z5×cushion_z`（芝のみ）と`bw_robust_z5×moist_gp_z`（芝ダ共通係数）の2列へ一度だけ縮約する。再監査で必要power 0.80未満なら閉じ、再縮約しない。
+- `measurement_age_minutes`はforward監査専用。
+- 歴史Stage 1の入口はT−28完全性95%以上を4開催日。現在1開催日・7/7 raceで残り3開催日。
+- TARGET対WHの値/status一致99.5%、4開催日・400 paired rowsはforward/serve条件で、歴史Stage 1を止めない。
+- WPがpowerを通過した場合だけ、Stage 1前に`C_TRACK_ONLY`と`WP − (W + 既存baba block)`を実装する。
+- v0.3実装、WP再監査、T−28追加3開催日が揃うまでStage 1を開始しない。
 

@@ -1,32 +1,11 @@
-# Opus宛て — EXP19 v0.2-frozen Stage 0実装依頼
+# 宛先: 実装担当 Opus — EXP19 v0.3 Stage 0追補
 
-EXP19「当日馬体重状態 × JRA公式馬場物理値」のStage 0だけを実装してください。Fableはv0.2-frozenを最終承認済みです。
+`spec.json`の`v03_override`を実装してください。Stage 1、2019〜2023のoutcome評価、2024/2025、ROI、production変更は開始しないでください。
 
-必読:
-
-1. `analysis/mcond/exp19_bodyweight_track_condition_dev/SPEC.md`
-2. `analysis/mcond/exp19_bodyweight_track_condition_dev/spec.json`
-3. `analysis/mcond/exp19_bodyweight_track_condition_dev/PRIOR_ART_AND_DATA_AUDIT.md`
-4. `analysis/mcond/exp15_race_as_set_dev/ERRATUM_CURRENT_BODYWEIGHT_20260926.md`
-5. `analysis/mcond/exp15_race_as_set_dev/out/feature_contract.json`末尾ERRATUM
-6. `analysis/bodyweight_forward/README.md`
-
-Stage 0で実施すること:
-
-- 歴史torch専用whitelist loaderを作り、禁止列の具体名/prefix assertとloader sha256を実装。
-- `R0-clean-nobw` 110列のrolling OOF基盤を構築する。ただし結果評価はまだ開封せず、再現性・未来行違反・manifestを確認。
-- forward WHと歴史/当日保存値のparity、status、最初の完全snapshot時刻を監査。4開催日/400行に未達なら「収集中」と報告し、値を推測しない。
-- 馬場値は対象日前日までのexpanding as-of標準化。race内定数softmax不変をテスト。
-- W/WP特徴、DNF主母集団、full-starter感度母集団、A1/A2/B1/B2の構造を実装し、合成invariantを作る。
-- EXP18 v0.5方式でlabel-free powerと実務floorを算出。数値を結果開封前にspecへcommitする。
-- 実行時間・最大RSSを測る。
-
-停止条件:
-
-- 2019〜2023の実着順を使ったA1/A2性能、2024/2025、ROI、候補生成、賭金、production変更は行わない。
-- forward parity 4日/400行が未達でも、取得済み件数と残数を正直に報告し、floorを緩めない。
-- `斤量体重比`をN1へ戻さない。`bw_change_pct`をW/WPへ戻さない。
-- TM/DM等の独自指数を追加しない。
-- 仕様変更が必要なら結果を開けず停止し、版番号を上げる提案だけを出す。
-
-完了時はStage 0成果物、全Gateの進行可否、未達条件、テスト数、commit hashを報告してください。Stage 1は開始しないでください。
+1. WPを`wp1=bw_robust_z5*cushion_z`（芝のみ）と`wp3=bw_robust_z5*moist_gp_z`（芝ダ共通係数）の2列へ置換。W10列は維持。絶対値、gradient、extreme項は説明用へ降格。
+2. 同じseed・fit窓・bootstrap・補間規則でA2/B2のlabel-free powerを一度だけ再計算。必要power<0.80ならWPを永久に閉じ、再縮約・項交換・閾値変更を禁止。通ればB2 floorを結果開封前に固定。
+3. A1/A2はSIGNAL/FAILのみ。Aに経済floorを使わず、MDEは報告のみ。B1 floorは0.006474307618072295。旧B2 floorは使わない。判定pure functionと境界テストを更新。
+4. `measurement_age_minutes`を歴史model/powerから外してforward監査だけに残す。`複上1〜4`・`複人気1〜4`禁止assertをspecと一致させる。
+5. forward Gateを分離。歴史Stage 1はT−28完全性95%以上・4開催日（現在1日、残り3日）のみ待つ。TARGET対WHの値/status parity 99.5%、4日/400 paired rowsはforward/serve条件で、歴史評価を止めない。
+6. WPが通った場合だけStage 1前にC_TRACK_ONLYとnested controlを実装。閉じた場合は両者とA2/B2を未検証・閉鎖と記録。
+7. v0.2実測値を消さずsupersededとして残し、更新したspec/report/output、テスト数、commit hash、Stage 1未開始を報告。
