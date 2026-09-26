@@ -1,7 +1,7 @@
 {
   "experiment": "EXP19_bodyweight_track_condition",
-  "version": "0.2-review-candidate",
-  "status": "awaiting_fable_delta_review",
+  "version": "0.2-frozen",
+  "status": "frozen_stage0_authorized",
   "purpose": "Test whether current-race bodyweight state and its interaction with official JRA physical track measurements add proper-score information after decision-time and terminal markets.",
   "scope": {
     "population": "JRA_flat_5plus_exclude_DNF_containing_races",
@@ -158,7 +158,8 @@
   },
   "review_history": {
     "v0.1": "Fable: revise then freeze; mandatory 6 recommended 5",
-    "v0.2": "all review items incorporated; awaiting delta review"
+    "v0.2": "all review items incorporated; awaiting delta review",
+    "v0.2-final": "Fable: freeze after replacing WP#5 with bw_robust_z5*moisture_gradient_z; recommendations incorporated"
   },
   "feature_contract": {
     "W_primary": [
@@ -167,13 +168,14 @@
       "bw_robust_z5",
       "bw_abs_robust_z5",
       "bw_change_x_layoff",
-      "bw_status_onehot",
+      "bw_status_historical_identifiable_onehot",
       "bw_history_n"
     ],
     "W_descriptive_only": [
       "bw_change_kg",
       "bw_change_pct",
-      "bw_dev_med5_pct"
+      "bw_dev_med5_pct",
+      "not_yet_published_rate_forward_only"
     ],
     "WP_count": 6,
     "WP_primary_period": [
@@ -181,7 +183,17 @@
       2022,
       2023
     ],
-    "measurement_age_minutes": "interaction reliability only; no standalone race-constant term"
+    "measurement_age_minutes": "interaction reliability only; no standalone race-constant term",
+    "WP": [
+      "bw_robust_z5*cushion_z",
+      "bw_abs_robust_z5*abs(cushion_z)",
+      "bw_robust_z5*moisture_gp_z",
+      "bw_abs_robust_z5*abs(moisture_gp_z)",
+      "bw_robust_z5*moisture_gradient_z",
+      "bw_change_x_layoff*track_extreme_z"
+    ],
+    "track_standardization": "expanding as-of through target_date_minus_1; place for cushion; place_surface for moisture",
+    "not_yet_published": "drop from historical fit because empty; audit forward occurrence rate only"
   },
   "inference": {
     "cluster": "calendar_day_YYYYMMDD",
@@ -190,5 +202,21 @@
     "A2_year_rule": "3_of_3 and all 3 LOO CI upper below 0",
     "multiplicity": "Holm A1/A2",
     "placebo_rule": "real_delta < q0.025(placebo_delta)"
-  }
+  },
+  "frozen_at": "2026-09-26",
+  "frozen_review": "Fable final approval after mandatory WP interaction correction; no further review required",
+  "model_equations": {
+    "N1": "log q = a*log(m_pre) + b*s_clean - logZ",
+    "W": "log q = a*log(m_pre) + b*s_clean + theta^T W - logZ",
+    "WP": "log q = a*log(m_pre) + b*s_clean + theta^T W + phi^T WP - logZ",
+    "fit_window": "Y-1 and earlier only",
+    "implementation": "reuse EXP18 fit_cross family"
+  },
+  "nested_track_control": "WP_BODY_TRACK minus (W_BODY + existing_baba_block)",
+  "stage0_entry_conditions": [
+    "forward parity floor",
+    "Tminus28 complete coverage",
+    "R0-clean-nobw OOF manifest",
+    "numeric practical floors committed before result opening"
+  ]
 }

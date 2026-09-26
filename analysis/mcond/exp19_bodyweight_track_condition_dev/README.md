@@ -1,6 +1,6 @@
 # EXP19 — 当日馬体重 × 公式馬場物理値
 
-**状態**: v0.2修正済み・Fable差分再レビュー待ち（Stage 0未着手）
+**状態**: v0.2-frozen・Fable最終承認済み（Stage 0実装可、結果未開封）
 **次に渡す相手**: **Fable（仕様レビュー）**
 **実装担当**: Fable承認後に Opus
 
@@ -42,3 +42,7 @@ TM/DMなどJRA-VAN独自指数は使用しない。使用する外部情報は�
 ## v0.2の重要訂正
 
 EXP15のR0-clean 111列に、今走馬体重から作られた`斤量体重比`が含まれていた。EXP19では同列を除いた`R0-clean-nobw`（110列）のrolling OOFを新規構築する。既存OOFは使わない。主母集団はN1被覆を揃えるためDNF含有レースを除外し、full-starterは感度分析とする。
+
+## v0.2-frozen最終修正
+
+WP #5を`bw_robust_z5 × moisture_gradient_z`へ変更し、Wに無い主効果をinteractionで回収する経路を閉じた。馬場標準化は対象日前日までのexpanding window、既存baba blockとの比較はnested control、歴史に存在しない`not_yet_published` statusはfitから除外、N1/Wの結合式はEXP18 `fit_cross`系へ固定した。

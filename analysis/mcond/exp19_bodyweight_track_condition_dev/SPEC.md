@@ -1,7 +1,7 @@
 # EXP19 仕様案 — 当日馬体重状態 × JRA公式馬場物理値
 
-**版**: v0.2-review-candidate（Fable必須6件・推奨5件を反映）
-**状態**: 再レビュー待ち。Stage 0未着手・結果未開封
+**版**: v0.2-frozen（Fable最終承認。2026-09-26凍結）
+**状態**: Stage 0実装可。結果未開封
 **対象**: JRA平地、馬体重発表後のlate-decision予測
 **禁止**: 承認前の学習・結果評価、2024/2025開封、ROI、候補生成、賭金配分、production変更
 
@@ -85,18 +85,18 @@
 3. `bw_robust_z5`: 直近最大5走のmedian/MADによるz。履歴2走未満はmissing。
 4. `bw_abs_robust_z5`: 上記絶対値。
 5. `bw_change_x_layoff`: `(current−previous)/previous × log1p(休養日数)`。
-6. `bw_status`: measured/unmeasurable/not-yet-published/missing-sourceを明示したone-hot。取消は母集団外。
+6. `bw_status`: measured/unmeasurable/missing-sourceを明示したone-hot。取消は母集団外。歴史fitで出現しない`not_yet_published`は設計行列から落とし、forward parityで出現率だけを監査する。
 7. `bw_history_n`: 使用できた過去体重数。
 
-`bw_change_kg`、`bw_change_pct`、`bw_dev_med5_pct`は説明用に計算できるが主modelへ同時投入しない。体重閾値は結果を見て選ばない。winsorize幅、MAD floor、履歴必要数はStage 0で分布だけを見て固定する。ridge等の追加正則化を結果後に導入しない。
+`bw_change_kg`、`bw_change_pct`、`bw_dev_med5_pct`は説明用に計算できるが主modelへ投入しない。WPにも使わない。体重閾値は結果を見て選ばない。winsorize幅、MAD floor、履歴必要数はStage 0で分布だけを見て固定する。ridge等の追加正則化を結果後に導入しない。
 
 `斤量体重比`は今走馬体重由来なので`R0-clean-nobw`から除く。`前走馬体重`、`前走馬体重増減`、`斤量`、`馬齢斤量差`は前日までに確定するため残す。
 
 ### 4.2 P — 公式物理馬場
 
-1. `cushion_z_place_asof`: 競馬場別、過去年だけで標準化。
-2. `moist_gp_z_place_surface_asof`。
-3. `moist_4c_z_place_surface_asof`。
+1. `cushion_z_place_asof`: 競馬場別、対象日の前日までのexpanding windowで標準化。
+2. `moist_gp_z_place_surface_asof`: 競馬場×surface別、対象日の前日までのexpanding windowで標準化。
+3. `moist_4c_z_place_surface_asof`: 同上。
 4. `moist_gradient_z`: GP−4C。
 5. `measurement_age_minutes`: 発走時刻−測定時刻。
 6. physical missing flags。
@@ -111,7 +111,7 @@
 2. `bw_abs_robust_z5 × abs(cushion_z)`（芝、2021〜2023）。
 3. `bw_robust_z5 × moisture_gp_z`（surface別、2019〜2023）。
 4. `bw_abs_robust_z5 × abs(moisture_gp_z)`（surface別、2019〜2023）。
-5. `bw_change_pct × moisture_gradient_z`。
+5. `bw_robust_z5 × moisture_gradient_z`。
 6. `bw_change_x_layoff × track_extreme_z`。`track_extreme_z`は芝ではcushion/moisture、ダートではmoistureからStage 0で結果を使わず一意に定義する。
 
 方向は固定しない。interactionの符号は学習するが、結果を見て項を追加・削除しない。WPは6本を1 blockとして2021〜2023で検定する。2019〜2020へcushion欠損を0投入しない。moisture-onlyの2019〜2023結果はsecondaryでGateに使わない。事前期待はA2で小さい正、B2でゼロ寄りと記録し、結果後に期待を変更しない。
@@ -129,9 +129,11 @@
 - `TW_CLOSE_BODY`: T0 + clean-nobw score + W。
 - `TWP_CLOSE_INTERACTION`: TW + WP。
 
-主比較はA1=`W_BODY−N1_CLEAN_NOBW`、A2=`WP_BODY_TRACK−W_BODY`。両方をpre市場で独立に実行しHolm補正する。副報告として`WP_BODY_TRACK−C_TRACK_ONLY`を出し、既存baba blockの救済でないことを確認する。
+主比較はA1=`W_BODY−N1_CLEAN_NOBW`、A2=`WP_BODY_TRACK−W_BODY`。両方をpre市場で独立に実行しHolm補正する。副報告では`W_BODY + 既存baba block`をnested controlとして構築し、`WP_BODY_TRACK − (W_BODY + 既存baba block)`を出す。片側だけWを持つ非nested比較は使わない。
 
 B1/B2は、対応するA1/A2が`PASS-SUBFLOOR`以上の場合だけterminal closeで実行する。offset conditional-logitでは市場温度を自由にし、追加blockの係数を過去年だけでfitする。marketを固定offsetにして温度ずれを新情報と誤認しない。
+
+結合式を固定する。`log q_N1 = a*log(m_pre) + b*s_clean - log Z`、`log q_W = a*log(m_pre) + b*s_clean + theta^T*W - log Z`。A2はさらに`phi^T*WP`を加える。全係数はY−1以前だけでfitする。EXP18の温度項と追加項を同時fitする`fit_cross`系実装を再利用し、独自の別fit経路を作らない。
 
 ## 6. Stage 0 — 結果性能を見ない監査
 
@@ -251,7 +253,7 @@ pre→terminal単勝オッズ変化と`bw_robust_z5`の相関を年別に報告�
 
 ## 11. 凍結と再開
 
-Fable差分再レビュー承認後にv0.2-frozenを作り、Stage 0を実装する。凍結後の変更は版番号、理由、結果開封前commitを必須とする。Fableへのレビュー依頼では、特に次を確認する。
+本v0.2-frozenをStage 0契約とする。凍結後の変更は版番号、理由、結果開封前commitを必須とする。Fableレビューは完了した。Stage 0実装では次を不変条件として確認する。
 
 1. T−28市場とterminal closeの二段Gateが長期収益の問いに十分か。
 2. W/WP特徴が多すぎず、既存baba検定の救済になっていないか。
