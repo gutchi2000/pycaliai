@@ -26,7 +26,7 @@
         "author_caveat": "author states this is not evidence of calibration or positive edge; luck contributed heavily",
         "trained_model_used_only_on": "final day, 14 races"
       },
-      "verification": "README and submission README at that commit checked 2026-09-25: Apache-2.0, log-linear model, 5% blend, 4/204 hits, luck caveat, final-day 14 races, coefficient 0.9265476143601139 (reproduced 0.9265475951474501, diff 1.92e-8), Harville weight at lower bound 0, NLL 5.8988->5.8957, final balance 5,504,260pt confirmed. The 155/46 split was not located in the pages read (recorded as supplied by the Fable review).",
+      "verification": "README and submission README at that commit checked 2026-09-25: Apache-2.0, log-linear model, 5% blend, 4/204 hits, luck caveat, final-day 14 races, coefficient 0.9265476143601139 (reproduced 0.9265475951474501, diff 1.92e-8), Harville weight at lower bound 0, NLL 5.8988->5.8957, final balance 5,504,260pt confirmed. The 155/46 split is stated in the source submission/phase2/model.json (training_races: 155, holdout_races: 46); confirmed against the source on 2026-09-26.",
       "position": "not equivalent to EXP18: different pools, small sample, proportional de-vig, no rolling, no placebo, no terminal evaluation. Structurally an external small-sample UB1-like example on other pools. No new arm. UB1 beta is reported in Stage 1 as a reference. Its Harville coefficient 0 is not a stop reason for UB2. Weak prior-art support for placing a market temperature null. The contest reach-probability maximising policy is not transplanted to PyCaLiAI long-run growth objectives."
     }
   },
@@ -550,5 +550,37 @@
     "practical_floor_nats": 0.009332614441180855,
     "consequence": "EXP18 terminated (stop rule 6). No 2024/2025, M2, ROI, candidates, allocation or production change. No rescue.",
     "report": "REPORT.md"
+  },
+  "final_status": {
+    "date": "2026-09-26",
+    "fable_final_verdict": "approved after wording corrections",
+    "official_conclusion": "EXP18は、較正済みterminal馬連市場に対する単勝由来T1のoffset残差について、2019〜2023 pooled評価では改善を検出したが、その改善は2021・2022年に依存し、2023年は逆符号となった。事前固定したleave-one-year-out年安定性条件を満たさなかったため、Gate M1をFAILと判定した。効果量約0.0014 nats/raceは、仮に年安定性条件を満たしても、凍結した実務床0.0093の約1/6であり、長期的な正の資金成長を支持する経済的証拠にはならない。複勝Lo/Hi制約は固定式の往復再現に失敗したため未検証である。本結論を全券種・全時点・JRA全市場・他の共同分布モデルへ一般化しない。",
+    "placebo_wording": "実 Δ はP1/P2のnull分布の2.5%分位より小さく、改善側97.5 percentileを超えた。",
+    "placebo_numbers": {
+      "real_delta": -0.001445,
+      "P1_q025": -6.2e-05,
+      "P2_q025": -5.8e-05
+    },
+    "secondary": [
+      "UB2−UB1 ≈ 0、CI95 [-0.000063, +0.000011]",
+      "Stern λ割引はoffset形ではHarvilleへ残差情報を追加しなかった",
+      "T1−T0 の頭対頭は約 −0.0058",
+      "UB2 の β は 5 年間 0.25〜0.27 付近",
+      "2023 年に OOS 利得が消えたことは市場効率化と整合するが、原因として断定しない"
+    ],
+    "end_state": {
+      "EXP18": "complete / Gate M1 FAIL",
+      "T2_UB3": "unverified; not implemented because the fixed-formula roundtrip Gate failed",
+      "2024_2025": "unopened (kept sealed)",
+      "not_started": [
+        "M2",
+        "ROI",
+        "candidate generation",
+        "stake allocation",
+        "T2 rescue"
+      ],
+      "production_change": false,
+      "auto_start_new_experiment": false
+    }
   }
 }

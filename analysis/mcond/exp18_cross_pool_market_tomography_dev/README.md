@@ -5,9 +5,31 @@
 `q_cross`, real terminal odds, no declared noise) is pre-registered in `SPEC.md` §14 and
 `POWER_AUDIT.md` §6 before any computation. Gate arm: UB2 only.
 
-**Stage 1 (2026-09-26): Gate M1 = FAIL -> EXP18 terminated.** UB2 pooled Δ −0.001445,
-CI95 [−0.00236, −0.00053], 4/5 years, P1/P2 exceeded, but leave-one-year-out fails when 2021
-or 2022 is dropped. See `REPORT.md`.
+**Stage 1 (2026-09-26): Gate M1 = FAIL -> EXP18 complete.** UB2 pooled Δ −0.001445,
+CI95 [−0.00236, −0.00053], 4/5 years; leave-one-year-out fails when 2021 or 2022 is dropped.
+Placebo: 実 Δ はP1/P2のnull分布の2.5%分位より小さく、改善側97.5 percentileを超えた。
+(real Δ = -0.001445 / P1 q025 = -0.000062 / P2 q025 = -0.000058). See `REPORT.md`.
+
+### 正式結論
+
+EXP18は、較正済みterminal馬連市場に対する単勝由来T1のoffset残差について、2019〜2023 pooled評価では改善を検出したが、その改善は2021・2022年に依存し、2023年は逆符号となった。事前固定したleave-one-year-out年安定性条件を満たさなかったため、Gate M1をFAILと判定した。効果量約0.0014 nats/raceは、仮に年安定性条件を満たしても、凍結した実務床0.0093の約1/6であり、長期的な正の資金成長を支持する経済的証拠にはならない。複勝Lo/Hi制約は固定式の往復再現に失敗したため未検証である。本結論を全券種・全時点・JRA全市場・他の共同分布モデルへ一般化しない。
+
+副次結果:
+
+- UB2−UB1 ≈ 0、CI95 [-0.000063, +0.000011]
+- Stern λ割引はoffset形ではHarvilleへ残差情報を追加しなかった
+- T1−T0 の頭対頭は約 −0.0058
+- UB2 の β は 5 年間 0.25〜0.27 付近
+- 2023 年に OOS 利得が消えたことは市場効率化と整合するが、原因として断定しない
+
+終了状態:
+
+- EXP18 = complete / Gate M1 FAIL
+- T2 / UB3 = unverified（固定式の往復 Gate FAIL により未実装）
+- 2024/2025 = 未開封のまま維持
+- M2、ROI、候補生成、資金配分、T2 救済 = 開始しない
+- production 変更なし
+- 新しい実験を自動開始しない
 
 **v0.5-final (frozen before Stage 1 outcomes)**: primary floor 0.009333 nats/race
 (rho=0.5 reference 0.0951); SIGNAL power at the floor 1.000, PASS-PRACTICAL power 0.0225.

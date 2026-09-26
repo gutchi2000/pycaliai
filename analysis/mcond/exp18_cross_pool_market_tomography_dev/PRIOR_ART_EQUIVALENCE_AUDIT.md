@@ -93,7 +93,7 @@ top2 が 9 時 starter 外 27、9 時に両プール無し 17。DNF は「termin
 |---|---|---|
 | モデル | 三連単市場確率 ＋ 単勝 Harville 順序確率の対数線形モデル | README で確認 |
 | 係数 | `[0.9265476143601139, 0.0]`（Harville の重みは下限 0） | submission README で確認（再現値 0.9265475951474501、差 1.92e-8） |
-| 分割 | train 155 race / 時系列 holdout 46 race | 読んだ頁では未確認（Fable レビュー提供値として記録） |
+| 分割 | train 155 race / 時系列 holdout 46 race | 原典 `submission/phase2/model.json` に `training_races: 155`、`holdout_races: 46` と明記されている。2026-09-26 に原典確認済み（https://github.com/sol12378/keiba-masters-kit/blob/b942a4d3442b65c5d244a672815c9a77e657bff6/submission/phase2/model.json） |
 | holdout NLL | 5.8987667 → 5.8957164 | submission README で 5.8988 → 5.8957 を確認 |
 | 実運用 | 市場確率へ 5% blend | README で確認 |
 | 成績 | 204 race で 4 的中、公式最終残高 5,504,260pt | submission README で確認 |
