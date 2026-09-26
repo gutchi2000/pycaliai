@@ -19,10 +19,15 @@
 param(
     [string]$Date = "",
     [string]$Once = "",        # rid16: 1 レースだけ処理
+    [string]$Vote = "",        # rid16: 学生大会 API へ 1 レース投票 (締切=発走3分前)
     [double]$LeadMin = 10,
+    [double]$VoteLeadMin = 4.5, # 大会投票: 発走4分30秒前に起動→3分前の締切までに送信
+                               # (大会サーバが JRA-VAN からオッズを取るのも T-4:30)
     [double]$MaxAgeMin = 20,
     [switch]$Dry,
     [switch]$Schedule,         # レース毎タスクを登録
+    [switch]$WithVote,         # 学生大会 投票タスク (PyCaLiAI_VOTE_*) も登録する
+                               # 2026-09-26 大会終了につき既定 OFF (Discord 投票通知停止)
     [switch]$Routine,          # = -Schedule (9:00 タスクが渡す旧名・後方互換)
     [switch]$Loop              # 旧方式: 1 本ループで一日中回す
 )
@@ -35,6 +40,44 @@ $pyFull = (Resolve-Path $py).Path
 
 # -Routine は -Schedule の別名 (登録済み 9:00 タスクとの後方互換)
 if ($Routine) { $Schedule = $true }
+
+# ---------------------------------------------------------------
+# -Vote: 学生大会 API へ 1 レース投票 (レース毎タスクの実体 + 手動テスト)
+#   公式ルール: 投票は枠番発表後〜**発走 3 分前**まで。再投票は上書き。
+#   T-4 に JV-Link 価格を取り、3 分前までに POST → 1 分後に check → logout。
+# ---------------------------------------------------------------
+if ($Vote -ne "") {
+    # 大会終了 (2026-09-26)。残存タスクが起動しても投票・Discord 通知はしない。
+    if (-not $WithVote) {
+        Write-Host "[vote] 大会終了につき投票停止 (再開は -WithVote): $Vote"
+        exit 0
+    }
+    if ($Date -eq "") { $Date = Get-Date -Format 'yyyyMMdd' }
+    New-Item -ItemType Directory -Force logs | Out-Null
+    try { Start-Transcript -Path ("logs\masters_vote_{0}.log" -f $Date) -Append | Out-Null } catch {}
+    $argv = @('masters_vote.py', '--race', $Vote, '--date', $Date)
+    if ($Dry) { $argv += '--dry' }
+    $line = (& $pyFull 't10_runner.py' $Date '--list-schedule' |
+             Where-Object { $_ -like "$Vote*" } | Select-Object -First 1)
+    if ($line) {
+        $post = ($line -split "`t")[1]
+        if ($post) { $argv += @('--post', $post) }
+    }
+    & $pyFull @argv
+    $code = $LASTEXITCODE
+    # 大会側の最終判断 (投票 or 見送り/失敗) が台帳に書かれた直後にサイトを更新する。
+    # T-20 速報 (t20_site_bets.py) はこのレースの最終状態を build_site.py 側で見て
+    # 「もう推奨として出さない」に切り替わるが、次にどこかの publish が走るまで
+    # 反映されない (このレースが当日最後の処理なら、それが来ないことがある) ので
+    # ここで明示的に反映する。voted=False (見送り) でも exit code に関わらず実行
+    # する (台帳自体は masters_vote.py が正常時に必ず書くため)。-Dry はサイトを
+    # 変えないのでスキップ。
+    if (-not $Dry) {
+        & powershell -NoProfile -ExecutionPolicy Bypass -File .\sync-hf-umami.ps1 -Date $Date
+    }
+    try { Stop-Transcript | Out-Null } catch {}
+    exit $code
+}
 
 # ---------------------------------------------------------------
 # -Once: 1 レース処理 (レース毎タスクの実体 + 手動テスト)
@@ -91,6 +134,8 @@ if ($Schedule) {
         Unregister-ScheduledTask -Confirm:$false
     Get-ScheduledTask -TaskName 'PyCaLiAI_T15R_*' -ErrorAction SilentlyContinue |
         Unregister-ScheduledTask -Confirm:$false
+    Get-ScheduledTask -TaskName 'PyCaLiAI_VOTE_*' -ErrorAction SilentlyContinue |
+        Unregister-ScheduledTask -Confirm:$false
 
     $lines = & $pyFull 't10_runner.py' $Date '--list-schedule' --lead-min $LeadMin
     $n = 0
@@ -118,6 +163,25 @@ if ($Schedule) {
             -Settings $set -Description "PyCaLiAI T-10 レース $rid ($post 発走)" -Force | Out-Null
         $n++
         Write-Host ("  登録 {0}  {1:HH:mm} 処理 → {2} 発走  ({3})" -f $taskName, $runAt, $post, $rid)
+
+        # --- 学生大会 自動投票 (発走 VoteLeadMin 分前。締切=発走3分前) ---
+        $voteAt = (Get-Date -Hour ([int]$ph) -Minute ([int]$pm) -Second 0).AddMinutes(-$VoteLeadMin)
+        if ($WithVote -and $voteAt -ge (Get-Date)) {
+            $voteName = "PyCaLiAI_VOTE_$rid"
+            $vAct = New-ScheduledTaskAction -Execute 'powershell.exe' `
+                -Argument ("-NoProfile -ExecutionPolicy Bypass -File E:\PyCaLiAI\t10.ps1 " +
+                           "-Vote $rid -Date $Date -VoteLeadMin $VoteLeadMin -WithVote") `
+                -WorkingDirectory 'E:\PyCaLiAI'
+            $vTrg = New-ScheduledTaskTrigger -Once -At $voteAt
+            $vTrg.EndBoundary = $voteAt.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss")
+            $vSet = New-ScheduledTaskSettingsSet -StartWhenAvailable -WakeToRun `
+                -ExecutionTimeLimit (New-TimeSpan -Minutes 10) `
+                -MultipleInstances IgnoreNew `
+                -DeleteExpiredTaskAfter (New-TimeSpan -Hours 6)
+            Register-ScheduledTask -TaskName $voteName -Action $vAct -Trigger $vTrg `
+                -Settings $vSet -Description "学生大会 投票 $rid ($post 発走)" -Force | Out-Null
+            Write-Host ("  登録 {0}  {1:HH:mm:ss} 投票 → {2} 発走" -f $voteName, $voteAt, $post)
+        }
 
         # T-15 補正印タスクは登録停止 (2026-07-31): 投稿ガイドライン「JV-Linkから取得した
         # データは投稿できません」対応。posting-support 照会で許可が出たら t15.ps1 登録を復活。
