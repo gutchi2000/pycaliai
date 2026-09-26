@@ -1,0 +1,250 @@
+{
+ "role": "EXP19 Stage 0 S0-B 母集団・被覆 (結果性能は計算しない)",
+ "known_structure_reproduction": {
+  "rows": 231068,
+  "races": 16645,
+  "valid_kg_rate": 0.998069832257171,
+  "pid_missing": 0,
+  "reproduced": true
+ },
+ "starter_filter": {
+  "torch_rows_2013_2023": 536900,
+  "non_starter_rows_dropped": 1863,
+  "rows_in_races_without_market": 0
+ },
+ "main_population": {
+  "per_year": {
+   "2019": {
+    "base_exp16a": 3185,
+    "main": 3185,
+    "excluded": {}
+   },
+   "2020": {
+    "base_exp16a": 3169,
+    "main": 3169,
+    "excluded": {}
+   },
+   "2021": {
+    "base_exp16a": 3200,
+    "main": 3200,
+    "excluded": {}
+   },
+   "2022": {
+    "base_exp16a": 3206,
+    "main": 3206,
+    "excluded": {}
+   },
+   "2023": {
+    "base_exp16a": 3191,
+    "main": 3191,
+    "excluded": {}
+   }
+  },
+  "total": 15951,
+  "base_exp16a_total": 15951,
+  "excluded_rids": {
+   "2019": {},
+   "2020": {},
+   "2021": {},
+   "2022": {},
+   "2023": {}
+  }
+ },
+ "full_starter_sensitivity": {
+  "2019": {
+   "races": 3318,
+   "races_with_dnf": 133,
+   "dnf_horses_without_N1": 144,
+   "N1_rule": "DNF 馬は master 行が無く N1 score を持たない。0 埋めしない。感度分析は market-only と W-only の比較だけ実行可能"
+  },
+  "2020": {
+   "races": 3318,
+   "races_with_dnf": 149,
+   "dnf_horses_without_N1": 166,
+   "N1_rule": "DNF 馬は master 行が無く N1 score を持たない。0 埋めしない。感度分析は market-only と W-only の比較だけ実行可能"
+  },
+  "2021": {
+   "races": 3320,
+   "races_with_dnf": 120,
+   "dnf_horses_without_N1": 122,
+   "N1_rule": "DNF 馬は master 行が無く N1 score を持たない。0 埋めしない。感度分析は market-only と W-only の比較だけ実行可能"
+  },
+  "2022": {
+   "races": 3325,
+   "races_with_dnf": 119,
+   "dnf_horses_without_N1": 130,
+   "N1_rule": "DNF 馬は master 行が無く N1 score を持たない。0 埋めしない。感度分析は market-only と W-only の比較だけ実行可能"
+  },
+  "2023": {
+   "races": 3326,
+   "races_with_dnf": 135,
+   "dnf_horses_without_N1": 137,
+   "N1_rule": "DNF 馬は master 行が無く N1 score を持たない。0 埋めしない。感度分析は market-only と W-only の比較だけ実行可能"
+  }
+ },
+ "per_year_main": {
+  "2019": {
+   "races": 3185,
+   "horse_rows": 43726,
+   "status_measured": 43726,
+   "status_not_measured": 0,
+   "history_n_distribution": {
+    "0.0": 4554,
+    "1.0": 4314,
+    "2.0": 3869,
+    "3.0": 3273,
+    "4.0": 2785,
+    "5.0": 24931
+   },
+   "robust_z5_available_rate": 0.7971916022503773,
+   "change_x_layoff_available_rate": 0.8958514385034075,
+   "sex_age_z_available_rate": 0.9993825184100993,
+   "race_p_available_rate": 0.4703296703296703,
+   "race_cushion_available_rate_turf": 0.0,
+   "race_all_starters_measured_rate": 1.0,
+   "wp_joint_available_rate": 0.4703296703296703,
+   "chg_check": {
+    "match": 38095,
+    "no_asof_previous": 4554,
+    "mismatch": 944,
+    "source_missing": 133
+   }
+  },
+  "2020": {
+   "races": 3169,
+   "horse_rows": 44203,
+   "status_measured": 44203,
+   "status_not_measured": 0,
+   "history_n_distribution": {
+    "0.0": 4567,
+    "1.0": 4303,
+    "2.0": 3799,
+    "3.0": 3308,
+    "4.0": 2877,
+    "5.0": 25349
+   },
+   "robust_z5_available_rate": 0.7993348867723911,
+   "change_x_layoff_available_rate": 0.8966812207316246,
+   "sex_age_z_available_rate": 0.9993891817297469,
+   "race_p_available_rate": 0.5689491953297571,
+   "race_cushion_available_rate_turf": 0.14249843063402384,
+   "race_all_starters_measured_rate": 1.0,
+   "wp_joint_available_rate": 0.5689491953297571,
+   "chg_check": {
+    "match": 38830,
+    "no_asof_previous": 4567,
+    "mismatch": 732,
+    "source_missing": 74
+   }
+  },
+  "2021": {
+   "races": 3200,
+   "horse_rows": 44329,
+   "status_measured": 44329,
+   "status_not_measured": 0,
+   "history_n_distribution": {
+    "0.0": 4421,
+    "1.0": 4285,
+    "2.0": 3906,
+    "3.0": 3406,
+    "4.0": 2906,
+    "5.0": 25405
+   },
+   "robust_z5_available_rate": 0.8036048636332874,
+   "change_x_layoff_available_rate": 0.9002684472918405,
+   "sex_age_z_available_rate": 0.9996165038687992,
+   "race_p_available_rate": 0.9328125,
+   "race_cushion_available_rate_turf": 0.8982074263764405,
+   "race_all_starters_measured_rate": 1.0,
+   "wp_joint_available_rate": 0.9328125,
+   "chg_check": {
+    "match": 39007,
+    "no_asof_previous": 4421,
+    "mismatch": 839,
+    "source_missing": 62
+   }
+  },
+  "2022": {
+   "races": 3206,
+   "horse_rows": 43859,
+   "status_measured": 43859,
+   "status_not_measured": 0,
+   "history_n_distribution": {
+    "0.0": 4511,
+    "1.0": 4254,
+    "2.0": 3809,
+    "3.0": 3272,
+    "4.0": 2819,
+    "5.0": 25194
+   },
+   "robust_z5_available_rate": 0.800155042294626,
+   "change_x_layoff_available_rate": 0.8971476777856312,
+   "sex_age_z_available_rate": 0.9993159898766502,
+   "race_p_available_rate": 0.9956331877729258,
+   "race_cushion_available_rate_turf": 1.0,
+   "race_all_starters_measured_rate": 1.0,
+   "wp_joint_available_rate": 0.9956331877729258,
+   "chg_check": {
+    "match": 38331,
+    "no_asof_previous": 4511,
+    "mismatch": 944,
+    "source_missing": 73
+   }
+  },
+  "2023": {
+   "races": 3191,
+   "horse_rows": 44104,
+   "status_measured": 44104,
+   "status_not_measured": 0,
+   "history_n_distribution": {
+    "0.0": 4567,
+    "1.0": 4338,
+    "2.0": 3840,
+    "3.0": 3353,
+    "4.0": 2895,
+    "5.0": 25111
+   },
+   "robust_z5_available_rate": 0.7980908761110104,
+   "change_x_layoff_available_rate": 0.896449301650644,
+   "sex_age_z_available_rate": 0.9994331579902049,
+   "race_p_available_rate": 1.0,
+   "race_cushion_available_rate_turf": 1.0,
+   "race_all_starters_measured_rate": 1.0,
+   "wp_joint_available_rate": 1.0,
+   "chg_check": {
+    "match": 38517,
+    "no_asof_previous": 4567,
+    "mismatch": 939,
+    "source_missing": 81
+   }
+  }
+ },
+ "wp_joint_floor_0.90_each_year": {
+  "2021": true,
+  "2022": true,
+  "2023": true
+ },
+ "wp_joint_floor_pass": true,
+ "entropy_cuts_pre_market": [
+  1.9877808531323515,
+  2.243315517101397
+ ],
+ "layer_coverage": {
+  "measured": {
+   "overall": 1.0,
+   "layers_below_0.8x": {}
+  },
+  "robust_z5": {
+   "overall": 0.799683045667761,
+   "layers_below_0.8x": {
+    "age_band=2": 0.3278,
+    "layoff_band=first_run": 0.0
+   }
+  },
+  "wp_joint_2021_2023": {
+   "overall": 0.9753121881897621,
+   "layers_below_0.8x": {}
+  }
+ },
+ "elapsed_sec": 81.5
+}

@@ -1,7 +1,7 @@
 {
   "experiment": "EXP19_bodyweight_track_condition",
   "version": "0.2-frozen",
-  "status": "frozen_stage0_authorized",
+  "status": "stage0_complete_stage1_blocked_pending_v0.3_and_forward_parity",
   "purpose": "Test whether current-race bodyweight state and its interaction with official JRA physical track measurements add proper-score information after decision-time and terminal markets.",
   "scope": {
     "population": "JRA_flat_5plus_exclude_DNF_containing_races",
@@ -218,5 +218,88 @@
     "Tminus28 complete coverage",
     "R0-clean-nobw OOF manifest",
     "numeric practical floors committed before result opening"
-  ]
+  ],
+  "stage0_results": {
+    "date": "2026-09-26",
+    "report": "STAGE0_REPORT.md",
+    "stage1_started": false,
+    "outcomes_2019_2023_performance_opened": false,
+    "S0A_forward_parity": {
+      "status": "collecting",
+      "days": 1,
+      "complete_snapshot_rows": 99,
+      "historical_pairs": 0,
+      "pass": false,
+      "needed": "TARGET torch-format export (馬体重/馬体重増減) for forward collection days; 4 days / 400 rows"
+    },
+    "S0B_population": {
+      "known_structure_reproduced": true,
+      "main_population": 15951,
+      "diff_vs_exp16a_base": 0,
+      "wp_joint_rate": {
+        "2021": 0.9328,
+        "2022": 0.9956,
+        "2023": 1.0
+      },
+      "pass": true
+    },
+    "S0C_invariants": {
+      "tests": "30/30",
+      "pass": true
+    },
+    "N1_oof": {
+      "fits": 40,
+      "features": 110,
+      "reproducible_bitwise": true,
+      "future_rows_ok": true,
+      "pass": true
+    },
+    "fixed_w_params": {
+      "MAD_FLOOR_KG": 2.0,
+      "WINSOR_Z": 7.5
+    },
+    "floors_nats": {
+      "A1": null,
+      "A2": null,
+      "B1": 0.006474307618072295,
+      "B2": 0.005154134304748174
+    },
+    "floor_status": {
+      "A1": "undefined_under_frozen_spec (Delta=0 oracle growth 0.01355/race: pre-anchored truth settled at terminal odds)",
+      "A2": "undefined_under_frozen_spec (Delta=0 oracle growth 0.01443/race)",
+      "B1": "numeric",
+      "B2": "numeric"
+    },
+    "power_signal_at_floor": {
+      "B1": 0.925,
+      "B2": 0.165
+    },
+    "progression_power_pass": {
+      "B1": true,
+      "B2": false
+    },
+    "A_reference_mde_signal_power": {
+      "A1": {
+        "mde_0.0005": 0.0,
+        "mde_0.001": 0.04,
+        "mde_0.002": 0.45,
+        "mde_0.004": 0.95,
+        "mde_0.008": 0.93
+      },
+      "A2": {
+        "mde_0.0005": 0.0,
+        "mde_0.001": 0.0,
+        "mde_0.002": 0.0,
+        "mde_0.004": 0.06,
+        "mde_0.008": 0.37
+      }
+    },
+    "stop_reasons": [
+      "S0-A forward parity / T-28 coverage not yet reached (collecting)",
+      "A1/A2 practical floor undefined under v0.2 generation/settlement (needs v0.3)",
+      "B2 power 0.165 < 0.80 (stop rule 4); A2 reference power also low"
+    ],
+    "v0.3_proposal": "STAGE0_REPORT.md section 6 (not applied)",
+    "note": "gates.practical_floor_nats_per_race (frozen field) left unchanged; per-gate floors recorded here because A1/A2 have no defined floor"
+  }
 }

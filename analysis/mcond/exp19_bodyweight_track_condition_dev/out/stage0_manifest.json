@@ -1,0 +1,63 @@
+{
+ "raw_input_sha256": {
+  "torch": "cd8858d0850db74b3e48cbe5dfa43d721f75636629089f838210a2b36b37e94b",
+  "baba_feats": "67f456fdf6504985d7619b7995b2107e9a96f9fd8b0924f7a5c793b743337a4b",
+  "master_v2": "b8032d1bd78176a939b615921fa4fd25faadbf493f685e44a06e7f2e9e780a76",
+  "TANPUK_20110105-20151227.csv": "b6c5bbee52a358661b1a08f5440d2dbed8ec74409b6e9d508edb3ccf4d8a5b13",
+  "TANPUK_20160105-20201227.csv": "5a7da2cd050cd633c693979768691aca5c3f8a5f15ba2d550f5082dadd856862",
+  "TANPUK_20210105-20251228.csv": "3517585d0040cff27b7d18a43a86a99b6e60c2add9969ab83c487f877880597e"
+ },
+ "loader_sha256": "9c25ef4544adcb18465b69e7ccef9e33c9452c4b71ed6706a3cd33c1ab12007d",
+ "features_py_sha256": "5d50758e00d56df1ed0e15105fa25c78f6b0062b26b17e71272cb19f7a1ad17a",
+ "feature_manifest": {
+  "W_main": [
+   "bw_log_kg",
+   "bw_sex_age_z",
+   "bw_robust_z5",
+   "bw_abs_robust_z5",
+   "bw_change_x_layoff",
+   "bw_status_not_measured",
+   "bw_history_n"
+  ],
+  "W_missing_indicators": [
+   "miss_bw_sex_age_z",
+   "miss_bw_robust_z5",
+   "miss_bw_change_x_layoff"
+  ],
+  "W_descriptive_only": [
+   "bw_change_kg",
+   "bw_change_pct",
+   "bw_dev_med5_pct"
+  ],
+  "WP_columns": [
+   "wp1_z5_x_cushion_turf",
+   "wp2_absz5_x_abscushion_turf",
+   "wp3_z5_x_moistgp_turf",
+   "wp3_z5_x_moistgp_dirt",
+   "wp4_absz5_x_absmoistgp_turf",
+   "wp4_absz5_x_absmoistgp_dirt",
+   "wp5_z5_x_moistgrad",
+   "wp6_chglay_x_trackextreme"
+  ],
+  "params": {
+   "MAD_FLOOR_KG": 2.0,
+   "WINSOR_Z": 7.5,
+   "MIN_HIST": 2,
+   "P_MIN_HIST": 10,
+   "SEX_AGE_MIN_N": 30,
+   "FILL": 0.0
+  },
+  "feature_list_sha256": "a730030b033342fcbb22e56889eb71ca2f0a65ced99bc46f4562acdaa7e16417"
+ },
+ "race_set": {
+  "main_2019_2023_sha256": "7027c87c3e9b161840b661545bceda3e5c7b01d19961effa2a4f0681c4f3385d",
+  "n": 15951,
+  "main_2019_sha256": "ebf0492f5b91a883fd326633822ad91b66272d2a1e2effe2f62fd3a4847a78c3",
+  "main_2020_sha256": "217b3442a35ccc4bf639671c904d03410bd3c997d4a679277ad5c2813f1d76af",
+  "main_2021_sha256": "e170d6c4d587fabbbd9d63312fa1ce4910ef9a266f774e92b03a8bb5e8286c30",
+  "main_2022_sha256": "e99a617ea4ba0a4fbf3a57a29ac82e997aec64ebbf70d3804564822ae82814a6",
+  "main_2023_sha256": "9caa03d8e1e0fc4e94079e846498efec3e7f4282d755430d6be27738320f6610"
+ },
+ "features_parquet": "data\\_research\\mcond\\exp19\\features_2013_2023.parquet",
+ "features_parquet_sha256": "c3d3561b6f3547ad711911d2334f07db7039ecf9b7362916dbf19824e5a7e4bb"
+}

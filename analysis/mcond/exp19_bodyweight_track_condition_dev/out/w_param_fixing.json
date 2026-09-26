@@ -1,0 +1,39 @@
+{
+ "role": "MAD floor と winsorize 幅を分布だけで固定 (結果列不使用、2013-2018 のみ)",
+ "rules": {
+  "mad_floor": "max(2.0 kg granularity, p10 of raw MAD)",
+  "winsor": "ceil(p99.5 of |z| / 0.5) * 0.5",
+  "min_history": 2,
+  "max_history": 5,
+  "mad_scale": 1.4826
+ },
+ "n_rows_used": 232046,
+ "years_used": [
+  2013,
+  2018
+ ],
+ "raw_mad_quantiles_kg": {
+  "1": 0.0,
+  "5": 0.0,
+  "10": 0.0,
+  "25": 2.0,
+  "50": 2.0,
+  "75": 4.0,
+  "90": 6.0,
+  "99": 10.0
+ },
+ "share_raw_mad_zero": 0.1674452479249804,
+ "share_raw_mad_below_floor": 0.21908587090490678,
+ "abs_z_quantiles": {
+  "50": 1.1241512657943253,
+  "90": 3.3724537973829762,
+  "99": 6.7449075947659525,
+  "99.5": 7.4193983542425475,
+  "99.9": 9.442870632672333
+ },
+ "MAD_FLOOR_KG": 2.0,
+ "WINSOR_Z": 7.5,
+ "share_clipped_at_winsor": 0.0038699223429837187,
+ "loader_sha256": "9c25ef4544adcb18465b69e7ccef9e33c9452c4b71ed6706a3cd33c1ab12007d",
+ "elapsed_sec": 76.1
+}

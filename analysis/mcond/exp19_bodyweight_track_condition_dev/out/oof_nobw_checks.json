@@ -1,0 +1,106 @@
+{
+ "n_rows": 532525,
+ "n_races": 37998,
+ "date_range": [
+  20130105,
+  20231228
+ ],
+ "duplicate_rid_ban_rows": 0,
+ "future_row_checks": {
+  "2016": {
+   "train_max_year": 2014,
+   "es_years": [
+    2015
+   ],
+   "predict_years": [
+    2016
+   ],
+   "train_max_date": 20141228,
+   "ok": true
+  },
+  "2017": {
+   "train_max_year": 2015,
+   "es_years": [
+    2016
+   ],
+   "predict_years": [
+    2017
+   ],
+   "train_max_date": 20151227,
+   "ok": true
+  },
+  "2018": {
+   "train_max_year": 2016,
+   "es_years": [
+    2017
+   ],
+   "predict_years": [
+    2018
+   ],
+   "train_max_date": 20161225,
+   "ok": true
+  },
+  "2019": {
+   "train_max_year": 2017,
+   "es_years": [
+    2018
+   ],
+   "predict_years": [
+    2019
+   ],
+   "train_max_date": 20171228,
+   "ok": true
+  },
+  "2020": {
+   "train_max_year": 2018,
+   "es_years": [
+    2019
+   ],
+   "predict_years": [
+    2020
+   ],
+   "train_max_date": 20181228,
+   "ok": true
+  },
+  "2021": {
+   "train_max_year": 2019,
+   "es_years": [
+    2020
+   ],
+   "predict_years": [
+    2021
+   ],
+   "train_max_date": 20191228,
+   "ok": true
+  },
+  "2022": {
+   "train_max_year": 2020,
+   "es_years": [
+    2021
+   ],
+   "predict_years": [
+    2022
+   ],
+   "train_max_date": 20201227,
+   "ok": true
+  },
+  "2023": {
+   "train_max_year": 2021,
+   "es_years": [
+    2022
+   ],
+   "predict_years": [
+    2023
+   ],
+   "train_max_date": 20211228,
+   "ok": true
+  }
+ },
+ "reproducibility": {
+  "fit": "Y2019_s20260923",
+  "predictions_bitwise_equal": true,
+  "model_string_equal": true
+ },
+ "fits": 40,
+ "elapsed_sec": 595.3
+}

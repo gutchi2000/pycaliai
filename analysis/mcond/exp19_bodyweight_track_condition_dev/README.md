@@ -1,6 +1,10 @@
 # EXP19 — 当日馬体重 × 公式馬場物理値
 
 **状態**: v0.2-frozen・Fable最終承認済み（Stage 0実装可、結果未開封）
+**Stage 0（2026-09-26）**: 完了・**Stage 1 は開始不可**（結果未開封）。詳細は [STAGE0_REPORT.md](STAGE0_REPORT.md)。
+S0-B 母集団・被覆 PASS / S0-C invariant 30/30 PASS / N1 OOF 40 fit PASS / B1 floor 0.006474・検出力 0.925 PASS。
+未達: S0-A forward parity は収集中（1 日・99 行・歴史対 0 件）、A1/A2 の floor は凍結式で定義不能（v0.3 が必要）、
+B2 は検出力 0.165 で未達（停止規律 4）。
 **次に渡す相手**: **Fable（仕様レビュー）**
 **実装担当**: Fable承認後に Opus
 

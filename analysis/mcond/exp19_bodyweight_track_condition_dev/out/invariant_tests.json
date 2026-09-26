@@ -1,0 +1,158 @@
+{
+ "n_tests": 30,
+ "n_pass": 30,
+ "all_passed": true,
+ "tests": [
+  {
+   "test": "torch_file_contains_forbidden_but_loader_excludes",
+   "pass": true,
+   "detail": "file has 26 forbidden cols"
+  },
+  {
+   "test": "forbidden_column_assert_exact_prefix_result",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "sealed_2024_2025_dropped_on_read",
+   "pass": true,
+   "detail": "20231228"
+  },
+  {
+   "test": "loader_sha256_recorded",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "future_deletion_invariance_W",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "same_day_other_rows_do_not_leak",
+   "pass": true,
+   "detail": "date 20180624"
+  },
+  {
+   "test": "future_value_modification_invariance",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "row_order_permutation_invariance",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "features_do_not_touch_outcomes",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "bw_change_pct_not_in_W_or_WP",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "scratched_row_not_a_history_slot",
+   "pass": true,
+   "detail": "with=2 scratched_removed=1"
+  },
+  {
+   "test": "dnf_starter_with_weight_is_a_slot",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "missing_fill_constant_does_not_change_fit",
+   "pass": true,
+   "detail": "ll spread 5.6e-15"
+  },
+  {
+   "test": "race_constant_P_dropped_and_softmax_bitwise",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "P_alone_with_common_coefficient_leaves_softmax_unchanged",
+   "pass": true,
+   "detail": "max|Δlog q|=1.8e-15"
+  },
+  {
+   "test": "P_future_deletion_invariance",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "P_same_day_value_not_in_own_standardization",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "duplicate_column_dropped_and_recovery",
+   "pass": true,
+   "detail": "theta=[0.964, 0.486, 0.0]"
+  },
+  {
+   "test": "P1_keeps_within_race_multiset",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "P2_donor_same_cell_not_self",
+   "pass": true,
+   "detail": "kept_self=24"
+  },
+  {
+   "test": "P3_donor_other_kaisai_same_venue_surface_month",
+   "pass": true,
+   "detail": "moved=24736 kept=765"
+  },
+  {
+   "test": "P4_values_removed_status_and_flags_kept",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "kelly_equals_exp18_and_degenerate_finite",
+   "pass": true,
+   "detail": "max diff 0.0e+00 deg=1.609"
+  },
+  {
+   "test": "gram_column_selection_equals_svd_rule",
+   "pass": true,
+   "detail": "collinear col 3 and race-constant col 5 dropped"
+  },
+  {
+   "test": "damped_newton_fallback_same_mle",
+   "pass": true,
+   "detail": "max|Δθ|=1.5e-09"
+  },
+  {
+   "test": "gate_grade_boundaries_holm_placebo",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "floor_truth_eps0_is_terminal_market",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "floor_truth_inside_alt_family",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "floor_no_declared_independent_noise",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "floor_delta_true_zero_at_eps0",
+   "pass": true,
+   "detail": "-1.86e-19"
+  }
+ ],
+ "elapsed_sec": 20.5
+}

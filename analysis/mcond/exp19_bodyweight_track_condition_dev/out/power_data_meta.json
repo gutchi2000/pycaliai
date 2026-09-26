@@ -1,0 +1,56 @@
+{
+ "races": 25501,
+ "rows": 356593,
+ "by_year": {
+  "2016": 3189,
+  "2017": 3177,
+  "2018": 3184,
+  "2019": 3185,
+  "2020": 3169,
+  "2021": 3200,
+  "2022": 3206,
+  "2023": 3191
+ },
+ "wp_ok_by_year": {
+  "2016": 0.0,
+  "2017": 0.0,
+  "2018": 0.0741,
+  "2019": 0.4703,
+  "2020": 0.5689,
+  "2021": 0.9328,
+  "2022": 0.9956,
+  "2023": 1.0
+ },
+ "excluded": {
+  "no_market": 0,
+  "pre_incomplete": 0,
+  "missing_feature_row": 0,
+  "missing_s_clean": 0
+ },
+ "w_cols": [
+  "bw_log_kg",
+  "bw_sex_age_z",
+  "bw_robust_z5",
+  "bw_abs_robust_z5",
+  "bw_change_x_layoff",
+  "bw_status_not_measured",
+  "bw_history_n",
+  "miss_bw_sex_age_z",
+  "miss_bw_robust_z5",
+  "miss_bw_change_x_layoff"
+ ],
+ "wp_cols": [
+  "wp1_z5_x_cushion_turf",
+  "wp2_absz5_x_abscushion_turf",
+  "wp3_z5_x_moistgp_turf",
+  "wp3_z5_x_moistgp_dirt",
+  "wp4_absz5_x_absmoistgp_turf",
+  "wp4_absz5_x_absmoistgp_dirt",
+  "wp5_z5_x_moistgrad",
+  "wp6_chglay_x_trackextreme"
+ ],
+ "s_clean": "mean of 5 seed OOF scores (R0-clean-nobw)",
+ "arrays_sha256": "16830d962befdd3351636fd5cdd6ddfa0ea293b66beee550ae5b2da0bff679c8",
+ "no_outcome_columns": true,
+ "elapsed_sec": 33.9
+}
