@@ -1,7 +1,8 @@
 {
   "_doc": "AI競馬予想マスターズ2026 学生大会 自動投票の運用設定 (masters_vote.py)",
   "_deadline": "公式: 投票は枠番発表後〜発走3分前まで。2分前オッズは使えない。",
-  "enabled": true,
+  "enabled": false,
+  "_enabled_note": "2026-09-27 大会終了につき API 投票を停止 (t10.ps1 a59cef67 の -WithVote 既定OFF と二重ロック)。T-10 予告/サイト表示(大会仕様ロジック)には影響しない。",
   "arm": "aite_switch",
   "arm_before": "residual",
   "arm_effective_from": "20260906",
