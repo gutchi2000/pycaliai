@@ -1,6 +1,13 @@
 # EXP21 — Equal-information odds-band market audit
 
-Status: **v0.2-frozen after Fable review; implementation not started**
+Status: **Stage 0 complete (2026-09-27); G1/G2 not started, no band ROI computed**
+
+Stage 0 (see `STAGE0_DATA_AUDIT.md`): G0 PASS for tansho, fukusho, umaren (full terminal and ~T-28 coverage
+2013-2023), wakuren, wide, umatan (2023 91-column identified as terminal; layout reverse-mapped against official
+payouts) and sanrenpuku (2026 terminal days only, 179 races). **Sanrentan G0 FAIL (no price source).**
+**Premise correction needed**: the 2026 OD 227-column files are not T-10 (5 terminal days, 36 pre-race exports,
+4 without payouts), so D1 forward for the other five types is unavailable. G1 MDE (80% power): tansho ~10pt,
+fukusho ~6pt, umaren ~12pt favorite-minus-longshot ROI spread; false pass at delta=0 <= 0.6%.
 
 EXP21 is a model-independent description of favorite-longshot-bias shapes across eight
 single-race JRA bet types. It does not search for a betting policy.

@@ -121,6 +121,11 @@ def raw_at_percentile(q: float, key: str = "field_chaos_score") -> float:
     return vals[lo] + (vals[hi] - vals[lo]) * (pos - lo)
 
 
+def real_money_enabled() -> bool:
+    """topdown 買い目を実弾で買う運用かどうか。False = 表示・コンテンツ専用。"""
+    return bool((load_policy().get("real_money") or {}).get("enabled", True))
+
+
 def find_hon(horses: list[dict]) -> dict | None:
     return next((h for h in horses if h.get("mark") == "◎"), None)
 
@@ -186,7 +191,13 @@ def policy_stamp() -> dict:
         "chaos_skip_percentile": float(p["chaos_reference"]["skip_percentile"]),
         "chaos_skip_raw_equivalent": round(raw_at_percentile(
             float(p["chaos_reference"]["skip_percentile"])), 6),
+        # 実弾停止フラグ (2026-08-27)。買い目生成は続けるが購入対象ではない。
+        # bets.json に刻んでおかないと、後から「この券は買ったのか」が判別できない。
+        "real_money_enabled": bool((p.get("real_money") or {}).get("enabled", True)),
     }
+    rm = p.get("real_money") or {}
+    if not rm.get("enabled", True):
+        stamp["real_money_stopped_on"] = rm.get("stopped_on")
     hashes = {}
     for name, rel in (p.get("artifacts") or {}).items():
         hashes[name] = sha256_file(BASE / str(rel))

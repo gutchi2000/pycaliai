@@ -17,11 +17,13 @@ def archive_compute_decisions(
     races: list[dict], primary: list[dict], shadow: list[dict],
     live_dir: Path, *, mode: str, stamp: dict,
     pair_probability_fn: Callable[[list[dict]], tuple[dict, dict]],
+    residual_shadow: list[dict] | None = None,
 ) -> list[Path]:
     """本番apply前に全decisionを保存する。1件でも失敗すれば例外でfail-closed。"""
     race_by_id = {_rid16(r.get("race_id") or r.get("race_meta", {}).get("race_id")): r
                   for r in races}
     shadow_by_id = {_rid16(e.get("race_id")): e for e in shadow}
+    residual_by_id = {_rid16(e.get("race_id")): e for e in (residual_shadow or [])}
     archived: list[Path] = []
     for decision in primary:
         rid = _rid16(decision.get("race_id"))
@@ -38,6 +40,7 @@ def archive_compute_decisions(
         umaren, wide = pair_probability_fn(race.get("horses", []))
         record = build_decision_record(
             race, market, decision, shadow_by_id.get(rid), mode=mode,
+            residual_shadow=residual_by_id.get(rid),
             model_umaren=umaren, model_wide=wide, stamp=stamp)
         archived.append(archive_decision_record(record))
     return archived

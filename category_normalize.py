@@ -103,9 +103,24 @@ def normalize_categorical(df: pd.DataFrame, normalizers: dict | None = None) -> 
     for col, fn in normalizers.items():
         if col not in df.columns:
             continue
-        s = df[col].astype(str)
-        mask = ~s.isin(_MISSING_TOKENS)
-        df.loc[mask, col] = s[mask].map(fn)
+        raw = df[col]
+        s = raw.astype(str)
+        # 実欠損 (NaN/None) を isna() で直接判定する。s.isin(_MISSING_TOKENS) だけに
+        # 頼ると pandas 3 の string dtype で NA が "nan" 文字列へ暗黙変換されず、
+        # 欠損行を「正規化対象」と誤判定することがある
+        # (2026-09-22発覚: 芝(内・外) が全行NaNの週に unknown_rate=100%誤検知)。
+        missing = raw.isna() | s.isin(_MISSING_TOKENS)
+        if missing.all():
+            continue
+        # 列全体を object dtype に退避してから代入する。既存dtype (中央値補完で
+        # 定数int化した列等) へ正規化後の文字列を直接代入すると型強制で
+        # TypeError になることがある (2026-09-22発覚: 前走競走種別が全行同一値だと
+        # pandas が int64 列にする週がある)。欠損行は元の値のまま (NaNならNaNのまま)
+        # 一切触らない。
+        vals = raw.astype(object).to_numpy(copy=True)
+        keep_mask = (~missing).to_numpy()
+        vals[keep_mask] = s[~missing].map(fn).to_numpy()
+        df[col] = pd.Series(vals, index=df.index, dtype=object)
     return df
 
 

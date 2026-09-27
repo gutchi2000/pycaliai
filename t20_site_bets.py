@@ -293,7 +293,8 @@ def process_race(date_str: str, rid: str, label: str, dry: bool,
         return
 
     try:
-        tickets, why = mv.aite_switch_tickets(race, market)
+        cfg = mv.load_config()
+        tickets, why = mv.aite_switch_tickets(race, market, cfg)
         computed_ok = True
     except Exception as exc:
         print(f"  [2/2] 買い目計算失敗: {exc}")

@@ -1,4 +1,4 @@
-yaru# Cowork (Anthropic Desktop App) 投入プロンプト — narrative 専用版
+# Cowork (Anthropic Desktop App) 投入プロンプト — narrative 専用版
 
 > **2026-06-12 全面改訂**。馬券構築 (bets/EV/金額/見送り) は Cowork から分離され、
 > 当日 T-10 にローカル `compute_bets.py` が JV-Link 生オッズで生成する

@@ -10,6 +10,12 @@
     "reference_id": "serve34-forward-policy-20260825",
     "skip_percentile": 0.667
   },
+  "real_money": {
+    "enabled": false,
+    "stopped_on": "2026-08-27",
+    "reason": "2026-04-18〜08-16 実績 18週 2,389券 ROI 71.9% / 収支 -1,067,376円 (週平均 -59,299円)。控除率を有意に超える券種がゼロのため実弾を停止し、買い目は表示・コンテンツ専用とする。前向き P1-TOPDOWN-SERVE34-P667-2026 は紙(shadow)判定へ降格。",
+    "note": "再開する場合はこのフィールドを true にし、根拠を hypothesis_registry へ事前登録すること。"
+  },
   "hard_skip": {
     "field_size_max": 7,
     "hon_p_win_min": 0.05,

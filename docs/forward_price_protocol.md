@@ -11,12 +11,13 @@ policyが変わった場合は継ぎ足さず、別cohortとして数える。
 
 ## 1レースの必須記録
 
-1. T-10にJV-Linkから単勝・複勝・馬連・ワイドを取得する。
+1. T-10にJV-Linkから単勝・複勝・ワイド・馬単を取得する。馬連と三連複は
+   有効なactual T-10価格がまだ0件なので、正式な券種比較へ混ぜない。
 2. 取得payloadをlatest viewへ書くと同時に、
    `data/forward_prices/YYYYMMDD/*_t10_*.json.gz`へ追記専用で保存する。
-3. 同じpayloadから本番topdownとshape shadowを同時生成する。
+3. 同じpayloadから本番topdown、shape shadow、事前登録済みwide residual shadowを同時生成する。
 4. apply前にdecision snapshotを保存する。ここにはmodel確率、de-vig単勝市場確率、
-   市場残差、pair確率、実判断、shadow、policy/artifact hashを含める。
+   市場残差、pair確率、実判断、各shadow、production/shadow policyとartifact hashを含める。
 5. 発走予定時刻+60秒にJV-Linkを再取得し、`stage=close`として保存する。
 6. 日曜夜に確定着順・払戻を結合する。結果情報は判断生成には一切使わない。
 
@@ -51,6 +52,7 @@ policyが変わった場合は継ぎ足さず、別cohortとして数える。
 - `p_model - p_market_t10`の残差帯別実勝率
 - 選択馬がT-10からcloseにかけて市場で支持された比率
 - 見送り率と買いレース率
+- `python -m analysis.evaluate_wide_residual_forward`によるArm A/M1/M2の同一発火レース比較
 
 JRAはパリミュチュエル方式なので、T-10表示オッズは固定約定価格ではない。
 closeとの差は「最終市場への価格ドリフト」であり、取引所型のCLVや確定購入価格とは呼ばない。

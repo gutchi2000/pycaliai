@@ -797,24 +797,81 @@ def advisor_block(r: dict) -> str:
 def load_tact(date: str) -> dict:
     """レース前の買い目を bundle から直接組む (2026-08-08)。
 
-    site/data/{date}.json は scrub_public() 済みで、結果が出るまで cowork/tact の
-    bets が落ちている (買い目はサイト非公開 = note 専売の仕様)。記事はレース前に
-    売るものなので、公開ペイロードではなく bundle から TACT (topdown エンジン) を
-    その場で組み直す。理由文のオッズ除去は build_tact 側で済み、最終 md は
-    audit_markdown() が再検査する。
+    2026-09-07: build_site.build_tact() は topdown (compute_bets) シミュレーション
+    から masters_vote (大会仕様) の実投票ログ参照に置き換わった。masters_vote の
+    投票は発走 T-4 分に行われるため、朝に売る note 記事の生成時点ではまだ存在せず、
+    pre-race の買い目を供給できない (旧 topdown はいつでもその場で計算できたが、
+    実投票ログは未来のイベント)。当面この関数は空を返す — note の「推奨買い目」欄
+    をどう埋めるか (印/確率だけの記事にする、大会仕様を結果記事のみにする等) は
+    ユーザー判断待ち。詳細は 2026-09-07 の会話 (topdown 撤去) 参照。
     """
-    p = ROOT / "reports" / "cowork_input" / f"{date}_bundle.json"
-    if not p.exists():
-        return {}
-    b = json.load(open(p, encoding="utf-8"))
-    races = b.get("races") if isinstance(b, dict) else b
-    out = {}
-    for race in races or []:
-        rid = str(race.get("race_id") or "")
-        t = build_site.build_tact(race)
-        if rid and t and t.get("bets"):
-            out[rid] = {"version": t.get("version", ""), "bets": t["bets"]}
-    return out
+    return {}
+
+
+def wide_residual_block(day: dict, place: str, show_result: bool) -> str:
+    """ワイド残差2点 (v3 shadow・実弾0円) のその日の記録を会場単位で出す。
+
+    この腕は T-10 のワイド価格が要るので、朝の記事時点では shadow ファイルが
+    まだ無く、セクションごと省略される (=レース前記事には載らない)。
+    結果記事でだけ「何を出して、どうなったか」を出す。
+    """
+    date = day["date"]
+    path = ROOT / "reports" / "wide_residual_shadow" / f"{date}_shadow.json"
+    try:
+        doc = json.load(open(path, encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    meta = {str(r.get("race_id") or ""): r for r in day["races"] if r["place"] == place}
+    rows = [x for x in (doc.get("races") or [])
+            if str(x.get("race_id") or "") in meta and x.get("triggered")]
+    if not rows:
+        return ""
+
+    res = {}
+    if show_result:
+        try:
+            res = build_site.parse_kekka(date, build_site.parse_wide_kekka()) or {}
+        except Exception:
+            res = {}
+
+    # JRA-VAN 投稿ガイドライン: オッズ生値・払戻金は載せない (audit_markdown が機械検査)。
+    # 出すのは AI 確率・市場評価・その差(残差)・的中したかどうかだけ。
+    L = ["### ワイド残差2点（検証中・実弾0円）", "",
+         "AI のワイド確率が **市場評価とほぼ一致していて、わずかにだけ上回る**（残差 0〜+0.05）"
+         "組だけを、1 レース最大 2 点だけ拾う実験ラインです。",
+         "発走 10 分前の市場評価で判定するため、朝の記事には載せられません。", ""]
+    head = "| R | 買い目 | AI | 市場 | 残差 |"
+    sep = "|---|---|---|---|---|"
+    if show_result:
+        head += " 結果 |"; sep += "---|"
+    L += [head, sep]
+    n = hit = 0
+    for x in sorted(rows, key=lambda v: meta[str(v["race_id"])]["rno"]):
+        rno = meta[str(x["race_id"])]["rno"]
+        for t in x["arm_a"]:
+            n += 1
+            cells = [str(rno), f"`{t['selection']}`",
+                     f"{t['p_model']*100:.1f}%", f"{t['p_market_fair']*100:.1f}%",
+                     f"{t['residual']:+.3f}"]
+            if show_result:
+                s = build_site.settle_bet("ワイド", t["selection"], 100,
+                                          res.get(str(x["race_id"])) or {})
+                if not s.get("settled"):
+                    cells.append("—")
+                elif s.get("is_win"):
+                    hit += 1
+                    cells.append("**的中**")
+                else:
+                    cells.append("外れ")
+            L.append("| " + " | ".join(cells) + " |")
+    L.append("")
+    if show_result:
+        L.append(f"この会場は {n} 点中 {hit} 点的中。")
+    L += ["", "> このラインはまだ**勝ちが証明されていません**。過去 129 点で回収率 109.2% "
+          "ですが、95% 信頼区間の下限は 83.8% で、100% を下回っています。"
+          "そのため私自身も 1 円も賭けていません（記録だけ取っています）。"
+          "正式な判定は 2,000 点到達後に 1 回だけ行う予定です。", ""]
+    return "\n".join(L)
 
 
 def bets_block(r: dict, settle: dict) -> str:
@@ -1021,6 +1078,9 @@ def build_venue(day, place, ms, settle, price, show_result):
             L.append(grade_section(r, settle, show_result))
         else:
             L.append(race_section(r, settle, show_result))
+    wr = wide_residual_block(day, place, show_result)
+    if wr:
+        L.append(wr)
     L.append(day_wrap(day, place, settle))
     L.append(FOOTER)
     return "\n".join(L)

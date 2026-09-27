@@ -13,6 +13,8 @@ place_weekly.py — 週次 TARGET エクスポートを data/_inbox/ から各�
   ファイル名 T<日付>.csv ................. data/tyaku/{日付}.csv    (★着度数 = T プレフィクス)
   中身 15列・「確定着順」系 ............... data/kekka/{日付}.csv    (結果・払戻 通常版)
   中身 174列・払戻成績 ................... data/bias/{日付}.csv     (★土曜結果 → 実現バイアス自動生成)
+  中身 ワイド払戻(組-配当が並ぶ列) ....... data/kekka/wide_kekka.csv へ **追記** (★2026-08-25 追加)
+  ファイル名「出走馬分析<日付>.csv」....... data/bunseki/{日付}.csv  (★serve回収用 新形式、2026-09追加)
 
   ※ 出走表/過去5走/着度数 はレースヘッダが同型 (19列) だが、馬行の列数が違う
      (出走表=46 or 99 / 着度数=53-60 / 過去5走=72)。プレフィクス無しでも
@@ -20,17 +22,27 @@ place_weekly.py — 週次 TARGET エクスポートを data/_inbox/ から各�
      着度数は serve の horse_fuku_* 特徴 (predict_weekly.parse_csv) の供給源 = 必須ファイル。
   ※ 174列の払戻成績を置くと build_realized_bias.py を自動実行し data/realized_bias.json を更新
      (=翌開催日の出走表タブに「実現バイアス」カードが出る)。
+  ※ 出走馬分析 (2026-09 発見) はヘッダ行あり(先頭列 "No.")・列数は可変(TARGET側で
+     項目を増減できる)。中身判定は "馬齢斤量差"/"前場所" 列の有無で行う。
+     馬齢斤量差・前走馬体重(増減)・前走出走頭数・前走場所・母馬・毛色・生産者・馬主・
+     騎手/調教師年齢・トラックコード(JV) 等、serve 側で長らく死んでいた特徴の
+     TARGET ネイティブな供給源。parse_bunseki.py がパースする。まだ本番 parse_csv には
+     未配線 (2026-09-05 時点、枠確定後データでの検証待ち)。
 
 実行: PYTHONUTF8=1 ./venv311/Scripts/python.exe place_weekly.py [--dry]
    --dry: 移動せず、どこへ振り分けるかだけ表示。
 """
 from __future__ import annotations
-import csv, json, re, shutil, sys
+import csv, io, json, re, shutil, sys
 from pathlib import Path
 
 BASE = Path(__file__).parent
 INBOX = BASE / "data" / "_inbox"
+WIDE_KEKKA = BASE / "data" / "kekka" / "wide_kekka.csv"
 DRY = "--dry" in sys.argv
+
+# ワイド払戻の1セル: "05-07 \250 (3)" のような 組-配当(-人気) の並び。
+WIDE_PAIR_RE = re.compile(r"\d+\s*[-―]\s*\d+\s*[\\¥￥]\s*\d+")
 
 DATE_RE = re.compile(r"(20\d{6})")
 RID16_RE = re.compile(r"^(20\d{6})\d{8}$")
@@ -64,7 +76,8 @@ def extract_date(name: str, path: Path) -> str | None:
 
 
 def detect_content(path: Path) -> str | None:
-    """中身(ヘッダ)から種類を判定。'bias'(174列払戻) / 'kekka'(15列結果) / 'racelist'(19列) / None。"""
+    """中身(ヘッダ)から種類を判定。'bias'(174列払戻) / 'kekka'(15列結果) /
+    'bunseki'(出走馬分析, ヘッダ行あり) / 'racelist'(19列) / None。"""
     try:
         with open(path, encoding="cp932", errors="replace") as f:
             header = next(csv.reader(f))
@@ -76,6 +89,11 @@ def detect_content(path: Path) -> str | None:
         return "bias"
     if "確定着順" in h:
         return "kekka"
+    # 出走馬分析 (2026-09 発見): 1行目が本物のヘッダで先頭列 "No."、
+    # "馬齢斤量差"/"前場所" 等 serve 回収対象の特徴を含む。列数は
+    # ユーザーがTARGET側で項目を増減するため固定せず、識別列の有無で判定する。
+    if header and header[0].strip() == "No." and "馬齢斤量差" in h and "前場所" in h:
+        return "bunseki"
     if n < 30 and "レースID(新)" in h and "クラス名" in h:
         return "racelist"        # 出走表/過去5走/着度数 — 馬行列数で二次判定
     return None
@@ -108,8 +126,90 @@ def detect_racelist_kind(path: Path) -> str | None:
     return None
 
 
+def _decode(raw: bytes) -> tuple[str, str]:
+    """(text, encoding)。TARGET は cp932、稀に utf-8(BOM付) で出る。"""
+    for enc in ("cp932", "utf-8-sig", "utf-8"):
+        try:
+            return raw.decode(enc), enc
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("cp932", errors="replace"), "cp932"
+
+
+def _wide_rows(text: str) -> list[list[str]]:
+    """ワイド払戻CSVの行を返す。組-配当セルを持つ行だけ拾う。"""
+    out = []
+    for row in csv.reader(io.StringIO(text)):
+        if len(row) < 10:
+            continue
+        if any(WIDE_PAIR_RE.search(c or "") for c in row[5:]):
+            out.append(row)
+    return out
+
+
+def detect_wide(path: Path) -> bool:
+    """ワイド払戻エクスポートか。ヘッダ無しなので中身のパターンで判定する。"""
+    try:
+        text, _ = _decode(path.read_bytes())
+    except OSError:
+        return False
+    rows = _wide_rows(text)
+    total = sum(1 for _ in csv.reader(io.StringIO(text)))
+    # 大半の行が組-配当を持っていれば ワイド払戻ファイル。
+    return bool(rows) and total and len(rows) >= max(3, total * 0.5)
+
+
+def _wide_key(row: list[str]) -> tuple:
+    """(年, 月, 日, 場所, R) を照合キーにする。ゼロ埋め揺れを吸収。"""
+    def n(v):
+        v = str(v).strip()
+        return str(int(v)) if v.lstrip("-").isdigit() else v
+    return tuple(n(row[i]) for i in range(5))
+
+
+def ingest_wide_kekka(path: Path) -> tuple[int, int, list[str]]:
+    """ワイド払戻を data/kekka/wide_kekka.csv へ重複なく追記。
+    戻り値: (追記行数, 重複スキップ数, 追記された日付 YYYYMMDD)。"""
+    src_text, _ = _decode(path.read_bytes())
+    new_rows = _wide_rows(src_text)
+    if not new_rows:
+        return 0, 0, []
+
+    if WIDE_KEKKA.exists():
+        cur_text, enc = _decode(WIDE_KEKKA.read_bytes())
+    else:
+        cur_text, enc = "", "cp932"
+    have = {_wide_key(r) for r in _wide_rows(cur_text)}
+
+    add, dup, dates = [], 0, set()
+    for row in new_rows:
+        key = _wide_key(row)
+        if key in have:
+            dup += 1
+            continue
+        have.add(key)
+        add.append(row)
+        try:
+            dates.add(f"{int(row[0]):04d}{int(row[1]):02d}{int(row[2]):02d}")
+        except (TypeError, ValueError):
+            pass
+    if not add or DRY:
+        return len(add), dup, sorted(dates)
+
+    buf = io.StringIO()
+    csv.writer(buf, lineterminator="\n").writerows(add)
+    WIDE_KEKKA.parent.mkdir(parents=True, exist_ok=True)
+    tail = buf.getvalue()
+    if cur_text and not cur_text.endswith("\n"):
+        tail = "\n" + tail
+    with open(WIDE_KEKKA, "ab") as f:
+        f.write(tail.encode(enc, errors="replace"))
+    return len(add), dup, sorted(dates)
+
+
 def route(path: Path):
-    """(行き先Path, run_realized, 注記) を返す。行き先 None = 仕分け不能。"""
+    """(行き先Path, run_realized, 注記) を返す。行き先 None = 仕分け不能。
+    行き先が WIDE_KEKKA のときは移動でなく追記 (main が特別扱い)。"""
     name = path.name
     low = name.lower()
     if re.match(r"^[HW]-", name):
@@ -126,12 +226,17 @@ def route(path: Path):
         d = extract_date(name[1:], path)
         return (BASE / "data" / "tyaku" / f"{d}.csv") if d else None, False, "着度数(T)"
     t = detect_content(path)
+    if t is None and detect_wide(path):     # ★ワイド払戻 (ヘッダ無し = 既知形式の後に判定)
+        return WIDE_KEKKA, False, "ワイド払戻→wide_kekka.csv 追記"
     if t == "bias":
         d = extract_date(name, path)
         return (BASE / "data" / "bias" / f"{d}.csv") if d else None, True, "払戻成績→実現バイアス"
     if t == "kekka":
         d = extract_date(name, path)
         return (BASE / "data" / "kekka" / f"{d}.csv") if d else None, False, "結果(kekka)"
+    if t == "bunseki":
+        d = extract_date(name, path)
+        return (BASE / "data" / "bunseki" / f"{d}.csv") if d else None, False, "出走馬分析"
     if t == "racelist":
         kind = detect_racelist_kind(path)
         d = extract_date(name, path)
@@ -166,6 +271,19 @@ def main():
             skipped.append(p.name)
             continue
         rel = dest.relative_to(BASE)
+        if dest == WIDE_KEKKA:                              # ★追記型 (移動しない)
+            n_add, n_dup, dates = ingest_wide_kekka(p)
+            log(f"  → {p.name:28s} → {rel} [追記]   "
+                f"[{note}] +{n_add}行 / 重複{n_dup} {dates or ''}")
+            if not DRY:
+                if n_add:
+                    done_dir = INBOX / "_ingested"
+                    done_dir.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(p), str(done_dir / p.name))
+                else:
+                    log(f"     ⚠ 新規行なし。{p.name} は data/_inbox/ に残置")
+                    skipped.append(p.name)
+            continue
         over = " (上書き)" if dest.exists() else ""
         log(f"  → {p.name:28s} → {rel}{over}   [{note}]")
         if DRY:

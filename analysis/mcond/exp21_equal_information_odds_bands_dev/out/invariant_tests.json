@@ -1,0 +1,108 @@
+{
+ "n_tests": 20,
+ "n_pass": 20,
+ "all_passed": true,
+ "tests": [
+  {
+   "test": "parse_key_hex_nichi",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "split_vals_block_sizes",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "trio_anchor_layout_136_and_each_triple_three_times",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "layout_verifier_passes_consistent_synthetic",
+   "pass": true,
+   "detail": "{'wakuren': 1.0, 'umatan': 1.0, 'sanrenpuku': 1.0}"
+  },
+  {
+   "test": "layout_verifier_rejects_scrambled_umatan",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "key_checks_pass_on_consistent_synthetic",
+   "pass": true,
+   "detail": "{'races': 60, 'umaren_asym': 0, 'wide_asym': 0, 'self_nonzero': 0, 'waku_row_inconsistent': 0, 'trio_cross_row_inconsistent': 0, 'umaren_zero_within_starters': 0, 'umaren_ticket_count_mismatch': 0, 'dup_rows': 0, 'rows': 739, 'scratched_rows_tan_zero': 0, 'refundable_tickets_involving_scratched_umaren': 0, 'pass': True}"
+  },
+  {
+   "test": "key_checks_detect_asymmetry",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "mass_bands_equal_mass",
+   "pass": true,
+   "detail": "[0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]"
+  },
+  {
+   "test": "mass_bands_monotone_in_odds",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "count_bands_equal_count",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "fixed_bands_right_closed",
+   "pass": true,
+   "detail": "[0, 0, 1, 1, 3, 4, 5, 11, 14]"
+  },
+  {
+   "test": "bands_take_no_outcome_argument",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "bands_module_reads_no_payouts",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "insufficient_rule_applies",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "g1_pass_on_replicated_shape",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "g1_fail_when_3_signs_flip",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "fukusho_null_roi_equals_baseline",
+   "pass": true,
+   "detail": "[0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8]"
+  },
+  {
+   "test": "stage1_bootstrap_frozen",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "kekka_master_2024_2025_dropped",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "wide_payouts_2024_2025_dropped",
+   "pass": true,
+   "detail": ""
+  }
+ ],
+ "elapsed_sec": 0.8
+}

@@ -1,0 +1,971 @@
+{
+ "rules": {
+  "match_floor": 0.99
+ },
+ "raw2023_timing": {
+  "rows": 47672,
+  "races": 3456,
+  "unmapped_rows": 0,
+  "export_hhmm": [
+   "0150",
+   "0151"
+  ],
+  "code_col2": [
+   "4"
+  ],
+  "match": {
+   "tan": {
+    "terminal": {
+     "rate": 0.9999578885309414,
+     "n": 47493
+    },
+    "pre_Tminus28": {
+     "rate": 0.016086581180384477,
+     "n": 47493
+    },
+    "am9": {
+     "rate": 0.01158065399111448,
+     "n": 47493
+    }
+   },
+   "umaren": {
+    "terminal": {
+     "rate": 0.9920075119270811,
+     "n": 632594
+    },
+    "pre_Tminus28": {
+     "rate": 0.0028738811939411375,
+     "n": 632594
+    },
+    "am9": {
+     "rate": 0.0022613796654949287,
+     "n": 625282
+    }
+   }
+  },
+  "identified": "terminal"
+ },
+ "raw2023_layout": {
+  "tansho": {
+   "hyp": {
+    "match": 3442,
+    "n": 3442,
+    "rate": 1.0
+   },
+   "layout_pass": true
+  },
+  "fukusho": {
+   "hyp": {
+    "match": 3441,
+    "n": 3442,
+    "rate": 0.9997094712376525
+   },
+   "layout_pass": true
+  },
+  "wakuren": {
+   "hyp": {
+    "match": 3244,
+    "n": 3268,
+    "rate": 0.99265605875153
+   },
+   "frame_shift_+1": {
+    "match": "6",
+    "n": 3268,
+    "rate": 0.0018359853121175031
+   },
+   "layout_pass": true
+  },
+  "umaren": {
+   "hyp": {
+    "match": 3418,
+    "n": 3442,
+    "rate": 0.9930273097036607
+   },
+   "slot_shift_+1": {
+    "match": "3",
+    "n": 3442,
+    "rate": 0.0008715862870424172
+   },
+   "layout_pass": true
+  },
+  "wide": {
+   "hyp": {
+    "match": "3430",
+    "n": 3442,
+    "rate": 0.9965136548518303
+   },
+   "hi_block_then_lo": {
+    "match": "15",
+    "n": 3442,
+    "rate": 0.004357931435212086
+   },
+   "layout_pass": true
+  },
+  "umatan": {
+   "hyp": {
+    "match": 3418,
+    "n": 3442,
+    "rate": 0.9930273097036607
+   },
+   "transposed": {
+    "match": 14,
+    "n": 3442,
+    "rate": 0.004067402672864613
+   },
+   "slot_shift_+1": {
+    "match": "6",
+    "n": 3442,
+    "rate": 0.0017431725740848344
+   },
+   "layout_pass": true
+  },
+  "sanrenpuku": {
+   "hyp": {
+    "match": 0,
+    "n": 0,
+    "rate": null
+   },
+   "pairs_including_self_order": {
+    "match": 0,
+    "n": 0,
+    "rate": null
+   },
+   "layout_pass": false
+  },
+  "_dead_heat_races_excluded": 14
+ },
+ "raw2023_keys": {
+  "races": 3456,
+  "umaren_asym": 0,
+  "wide_asym": 0,
+  "self_nonzero": 0,
+  "waku_row_inconsistent": 0,
+  "trio_cross_row_inconsistent": 0,
+  "umaren_zero_within_starters": 0,
+  "umaren_ticket_count_mismatch": 0,
+  "dup_rows": 0,
+  "rows": 47672,
+  "scratched_rows_tan_zero": 179,
+  "refundable_tickets_involving_scratched_umaren": 2345,
+  "pass": true
+ },
+ "od2026_files": {
+  "20260418": {
+   "rows": 483,
+   "races": 36,
+   "export_hhmm": [
+    "1840"
+   ],
+   "code_col2": [
+    "4"
+   ],
+   "tan_payout_exact_rate": 1.0,
+   "n_compared": 36,
+   "identified": "terminal"
+  },
+  "20260419": {
+   "rows": 490,
+   "races": 36,
+   "export_hhmm": [
+    "1840"
+   ],
+   "code_col2": [
+    "4"
+   ],
+   "tan_payout_exact_rate": 1.0,
+   "n_compared": 36,
+   "identified": "terminal"
+  },
+  "20260425": {
+   "rows": 509,
+   "races": 36,
+   "export_hhmm": [
+    "1841"
+   ],
+   "code_col2": [
+    "4"
+   ],
+   "tan_payout_exact_rate": 1.0,
+   "n_compared": 36,
+   "identified": "terminal"
+  },
+  "20260426": {
+   "rows": 527,
+   "races": 36,
+   "export_hhmm": [
+    "1359"
+   ],
+   "code_col2": [
+    "4"
+   ],
+   "tan_payout_exact_rate": 1.0,
+   "n_compared": 35,
+   "identified": "terminal"
+  },
+  "20260502": {
+   "rows": 492,
+   "races": 36,
+   "export_hhmm": [
+    "2103"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.027777777777777776,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260503": {
+   "rows": 512,
+   "races": 36,
+   "export_hhmm": [
+    "2129"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.0,
+   "n_compared": 35,
+   "identified": "not_terminal"
+  },
+  "20260509": {
+   "rows": 495,
+   "races": 36,
+   "export_hhmm": [
+    "0134"
+   ],
+   "code_col2": [
+    "4"
+   ],
+   "tan_payout_exact_rate": 1.0,
+   "n_compared": 36,
+   "identified": "terminal"
+  },
+  "20260510": {
+   "rows": 503,
+   "races": 36,
+   "export_hhmm": [
+    "2225"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.029411764705882353,
+   "n_compared": 34,
+   "identified": "not_terminal"
+  },
+  "20260516": {
+   "rows": 493,
+   "races": 36,
+   "export_hhmm": [
+    "0143"
+   ],
+   "code_col2": [
+    "0"
+   ],
+   "tan_payout_exact_rate": 0.027777777777777776,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260517": {
+   "rows": 484,
+   "races": 36,
+   "export_hhmm": [
+    "2037"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.0,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260523": {
+   "rows": 549,
+   "races": 36,
+   "export_hhmm": [
+    "0032"
+   ],
+   "code_col2": [
+    "0"
+   ],
+   "tan_payout_exact_rate": 0.0,
+   "n_compared": 35,
+   "identified": "not_terminal"
+  },
+  "20260524": {
+   "rows": 526,
+   "races": 36,
+   "export_hhmm": [
+    "2342"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.05555555555555555,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260530": {
+   "rows": 361,
+   "races": 24,
+   "export_hhmm": [
+    "2345"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.041666666666666664,
+   "n_compared": 24,
+   "identified": "not_terminal"
+  },
+  "20260531": {
+   "rows": 348,
+   "races": 24,
+   "export_hhmm": [
+    "2332"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.0,
+   "n_compared": 24,
+   "identified": "not_terminal"
+  },
+  "20260606": {
+   "rows": 332,
+   "races": 24,
+   "export_hhmm": [
+    "1052"
+   ],
+   "code_col2": [
+    "0",
+    "4"
+   ],
+   "tan_payout_exact_rate": 0.16666666666666666,
+   "n_compared": 24,
+   "identified": "not_terminal"
+  },
+  "20260607": {
+   "rows": 357,
+   "races": 24,
+   "export_hhmm": [
+    "1220"
+   ],
+   "code_col2": [
+    "0",
+    "4"
+   ],
+   "tan_payout_exact_rate": 0.43478260869565216,
+   "n_compared": 23,
+   "identified": "not_terminal"
+  },
+  "20260613": {
+   "rows": 498,
+   "races": 36,
+   "export_hhmm": [
+    "2206"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.027777777777777776,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260614": {
+   "rows": 485,
+   "races": 36,
+   "export_hhmm": [
+    "2331"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.027777777777777776,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260620": {
+   "rows": 505,
+   "races": 36,
+   "export_hhmm": [
+    "0244"
+   ],
+   "code_col2": [
+    "0"
+   ],
+   "tan_payout_exact_rate": 0.027777777777777776,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260621": {
+   "rows": 503,
+   "races": 36,
+   "export_hhmm": [
+    "2150"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.027777777777777776,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260627": {
+   "rows": 448,
+   "races": 36,
+   "export_hhmm": [
+    "0102"
+   ],
+   "code_col2": [
+    "0"
+   ],
+   "tan_payout_exact_rate": 0.027777777777777776,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260704": {
+   "rows": 466,
+   "races": 36,
+   "export_hhmm": [
+    "0109"
+   ],
+   "code_col2": [
+    "0"
+   ],
+   "tan_payout_exact_rate": 0.05714285714285714,
+   "n_compared": 35,
+   "identified": "not_terminal"
+  },
+  "20260711": {
+   "rows": 476,
+   "races": 36,
+   "export_hhmm": [
+    "0322"
+   ],
+   "code_col2": [
+    "0"
+   ],
+   "tan_payout_exact_rate": 0.0,
+   "n_compared": 35,
+   "identified": "not_terminal"
+  },
+  "20260712": {
+   "rows": 470,
+   "races": 36,
+   "export_hhmm": [
+    "2253"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.027777777777777776,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260718": {
+   "rows": 468,
+   "races": 36,
+   "export_hhmm": [
+    "1141"
+   ],
+   "code_col2": [
+    "0",
+    "4"
+   ],
+   "tan_payout_exact_rate": 0.34285714285714286,
+   "n_compared": 35,
+   "identified": "not_terminal"
+  },
+  "20260719": {
+   "rows": 492,
+   "races": 36,
+   "export_hhmm": [
+    "2009"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.05555555555555555,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260725": {
+   "rows": 449,
+   "races": 36,
+   "export_hhmm": [
+    "0120"
+   ],
+   "code_col2": [
+    "0"
+   ],
+   "tan_payout_exact_rate": 0.027777777777777776,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260726": {
+   "rows": 449,
+   "races": 36,
+   "export_hhmm": [
+    "2257"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.0,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260801": {
+   "rows": 463,
+   "races": 36,
+   "export_hhmm": [
+    "2218"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.0,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260802": {
+   "rows": 464,
+   "races": 36,
+   "export_hhmm": [
+    "2224"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.05555555555555555,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260808": {
+   "rows": 462,
+   "races": 36,
+   "export_hhmm": [
+    "2345"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.027777777777777776,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260809": {
+   "rows": 495,
+   "races": 36,
+   "export_hhmm": [
+    "2247"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.027777777777777776,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260815": {
+   "rows": 487,
+   "races": 36,
+   "export_hhmm": [
+    "0104"
+   ],
+   "code_col2": [
+    "0"
+   ],
+   "tan_payout_exact_rate": 0.05555555555555555,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260816": {
+   "rows": 490,
+   "races": 36,
+   "export_hhmm": [
+    "2310"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.05714285714285714,
+   "n_compared": 35,
+   "identified": "not_terminal"
+  },
+  "20260829": {
+   "rows": 494,
+   "races": 36,
+   "export_hhmm": [
+    "0023"
+   ],
+   "code_col2": [
+    "0"
+   ],
+   "tan_payout_exact_rate": 0.027777777777777776,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260830": {
+   "rows": 479,
+   "races": 36,
+   "export_hhmm": [
+    "2244"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.0,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260905": {
+   "rows": 455,
+   "races": 36,
+   "export_hhmm": [
+    "2228"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.027777777777777776,
+   "n_compared": 36,
+   "identified": "not_terminal"
+  },
+  "20260912": {
+   "rows": 316,
+   "races": 24,
+   "export_hhmm": [
+    "2240"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": null,
+   "n_compared": 0,
+   "identified": "no_payout_yet"
+  },
+  "20260913": {
+   "rows": 314,
+   "races": 24,
+   "export_hhmm": [
+    "2331"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": null,
+   "n_compared": 0,
+   "identified": "no_payout_yet"
+  },
+  "20260919": {
+   "rows": 287,
+   "races": 24,
+   "export_hhmm": [
+    "2159"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.041666666666666664,
+   "n_compared": 24,
+   "identified": "not_terminal"
+  },
+  "20260920": {
+   "rows": 334,
+   "races": 24,
+   "export_hhmm": [
+    "2249"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.0,
+   "n_compared": 24,
+   "identified": "not_terminal"
+  },
+  "20260921": {
+   "rows": 159,
+   "races": 12,
+   "export_hhmm": [
+    "0008"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.08333333333333333,
+   "n_compared": 12,
+   "identified": "not_terminal"
+  },
+  "20260922": {
+   "rows": 161,
+   "races": 12,
+   "export_hhmm": [
+    "2302"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": 0.0,
+   "n_compared": 12,
+   "identified": "not_terminal"
+  },
+  "20260926": {
+   "rows": 313,
+   "races": 24,
+   "export_hhmm": [
+    "2300"
+   ],
+   "code_col2": [
+    "6"
+   ],
+   "tan_payout_exact_rate": null,
+   "n_compared": 0,
+   "identified": "no_payout_yet"
+  },
+  "20260927": {
+   "rows": 307,
+   "races": 24,
+   "export_hhmm": [
+    "0047"
+   ],
+   "code_col2": [
+    "0"
+   ],
+   "tan_payout_exact_rate": null,
+   "n_compared": 0,
+   "identified": "no_payout_yet"
+  }
+ },
+ "od2026_terminal_layout": {
+  "tansho": {
+   "hyp": {
+    "match": 179,
+    "n": 179,
+    "rate": 1.0
+   },
+   "layout_pass": true
+  },
+  "fukusho": {
+   "hyp": {
+    "match": 179,
+    "n": 179,
+    "rate": 1.0
+   },
+   "layout_pass": true
+  },
+  "wakuren": {
+   "hyp": {
+    "match": 168,
+    "n": 168,
+    "rate": 1.0
+   },
+   "frame_shift_+1": {
+    "match": "0",
+    "n": 168,
+    "rate": 0.0
+   },
+   "layout_pass": true
+  },
+  "umaren": {
+   "hyp": {
+    "match": 179,
+    "n": 179,
+    "rate": 1.0
+   },
+   "slot_shift_+1": {
+    "match": "0",
+    "n": 179,
+    "rate": 0.0
+   },
+   "layout_pass": true
+  },
+  "wide": {
+   "hyp": {
+    "match": "179",
+    "n": 179,
+    "rate": 1.0
+   },
+   "hi_block_then_lo": {
+    "match": "0",
+    "n": 179,
+    "rate": 0.0
+   },
+   "layout_pass": true
+  },
+  "umatan": {
+   "hyp": {
+    "match": 179,
+    "n": 179,
+    "rate": 1.0
+   },
+   "transposed": {
+    "match": 1,
+    "n": 179,
+    "rate": 0.00558659217877095
+   },
+   "slot_shift_+1": {
+    "match": "0",
+    "n": 179,
+    "rate": 0.0
+   },
+   "layout_pass": true
+  },
+  "sanrenpuku": {
+   "hyp": {
+    "match": 179,
+    "n": 179,
+    "rate": 1.0
+   },
+   "pairs_including_self_order": {
+    "match": "9",
+    "n": 179,
+    "rate": 0.05027932960893855
+   },
+   "layout_pass": true
+  },
+  "_dead_heat_races_excluded": 1
+ },
+ "od2026_terminal_keys": {
+  "races": 180,
+  "umaren_asym": 0,
+  "wide_asym": 0,
+  "self_nonzero": 0,
+  "waku_row_inconsistent": 0,
+  "trio_cross_row_inconsistent": 0,
+  "umaren_zero_within_starters": 0,
+  "umaren_ticket_count_mismatch": 0,
+  "dup_rows": 0,
+  "rows": 2504,
+  "scratched_rows_tan_zero": 9,
+  "refundable_tickets_involving_scratched_umaren": 114,
+  "pass": true
+ },
+ "g0": {
+  "tansho": {
+   "sources": [
+    "TANPUK/UMAREN 2013-2023 (terminal + historical_pre_snapshot)",
+    "raw 2023 91-col (terminal)",
+    "OD 2026 terminal days"
+   ],
+   "pass": true,
+   "note": "history coverage in label_free_band_coverage.json; 91/OD layouts verified"
+  },
+  "fukusho": {
+   "sources": [
+    "TANPUK/UMAREN 2013-2023 (terminal + historical_pre_snapshot)",
+    "raw 2023 91-col (terminal)",
+    "OD 2026 terminal days"
+   ],
+   "pass": true,
+   "note": "history coverage in label_free_band_coverage.json; 91/OD layouts verified"
+  },
+  "wakuren": {
+   "sources": [
+    "raw 2023 91-col (terminal)",
+    "OD 2026 terminal days"
+   ],
+   "raw2023_layout_pass": true,
+   "od2026_layout_pass": true,
+   "pass": true,
+   "reach": "D0 descriptive only (2023 terminal + OD 2026 terminal days); no D1 (no verified T-10); no G1/G2"
+  },
+  "umaren": {
+   "sources": [
+    "TANPUK/UMAREN 2013-2023 (terminal + historical_pre_snapshot)",
+    "raw 2023 91-col (terminal)",
+    "OD 2026 terminal days"
+   ],
+   "pass": true,
+   "note": "history coverage in label_free_band_coverage.json; 91/OD layouts verified"
+  },
+  "wide": {
+   "sources": [
+    "raw 2023 91-col (terminal)",
+    "OD 2026 terminal days"
+   ],
+   "raw2023_layout_pass": true,
+   "od2026_layout_pass": true,
+   "pass": true,
+   "reach": "D0 descriptive only (2023 terminal + OD 2026 terminal days); no D1 (no verified T-10); no G1/G2"
+  },
+  "umatan": {
+   "sources": [
+    "raw 2023 91-col (terminal)",
+    "OD 2026 terminal days"
+   ],
+   "raw2023_layout_pass": true,
+   "od2026_layout_pass": true,
+   "pass": true,
+   "reach": "D0 descriptive only (2023 terminal + OD 2026 terminal days); no D1 (no verified T-10); no G1/G2"
+  },
+  "sanrenpuku": {
+   "sources": [
+    "OD 2026 terminal days only (2023 91-col has no trio block)"
+   ],
+   "od2026_layout_pass": true,
+   "pass": true,
+   "terminal_races": 180,
+   "reach": "D0 descriptive only on OD 2026 terminal days; no D1 (no verified T-10); no G1/G2"
+  },
+  "sanrentan": {
+   "sources": [],
+   "pass": false,
+   "reason": "no full-ticket price source: raw 2023 91-col has no trifecta block; OD 227-col extra 136 columns are trio (sanrenpuku) per anchor horse, verified by payout reverse-mapping"
+  }
+ },
+ "t10_premise": {
+  "spec_claim": "2026 OD 227-col = true T-10 about 49 days",
+  "finding": {
+   "20260418": "terminal",
+   "20260419": "terminal",
+   "20260425": "terminal",
+   "20260426": "terminal",
+   "20260502": "not_terminal",
+   "20260503": "not_terminal",
+   "20260509": "terminal",
+   "20260510": "not_terminal",
+   "20260516": "not_terminal",
+   "20260517": "not_terminal",
+   "20260523": "not_terminal",
+   "20260524": "not_terminal",
+   "20260530": "not_terminal",
+   "20260531": "not_terminal",
+   "20260606": "not_terminal",
+   "20260607": "not_terminal",
+   "20260613": "not_terminal",
+   "20260614": "not_terminal",
+   "20260620": "not_terminal",
+   "20260621": "not_terminal",
+   "20260627": "not_terminal",
+   "20260704": "not_terminal",
+   "20260711": "not_terminal",
+   "20260712": "not_terminal",
+   "20260718": "not_terminal",
+   "20260719": "not_terminal",
+   "20260725": "not_terminal",
+   "20260726": "not_terminal",
+   "20260801": "not_terminal",
+   "20260802": "not_terminal",
+   "20260808": "not_terminal",
+   "20260809": "not_terminal",
+   "20260815": "not_terminal",
+   "20260816": "not_terminal",
+   "20260829": "not_terminal",
+   "20260830": "not_terminal",
+   "20260905": "not_terminal",
+   "20260912": "no_payout_yet",
+   "20260913": "no_payout_yet",
+   "20260919": "not_terminal",
+   "20260920": "not_terminal",
+   "20260921": "not_terminal",
+   "20260922": "not_terminal",
+   "20260926": "no_payout_yet",
+   "20260927": "no_payout_yet"
+  },
+  "note": "OD files are TARGET exports (col 36 = export time HHMM). Days exported after racing match official payouts exactly -> terminal, not T-10. No OD day is identified as T-10; D1 forward (T-10) is not available from these files"
+ },
+ "elapsed_sec": 32.2
+}

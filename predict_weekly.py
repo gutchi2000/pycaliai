@@ -156,6 +156,19 @@ HORSE_COLS_49 = [
     "マイニング順位","前走通過1","前走通過2","前走通過3","前走通過4","前走Ave3F",
     "前走上り3F","前走上り3F順位","前走1_2着馬",
 ]
+# 46列版から「人気_今走」「単勝」(今走オッズ/人気) の2列を欠いた版。
+# 2026-09-21 発見: TARGET が開催によってこの2列を出力しないケースがある
+# (該当開催の今走オッズ/人気が export 時点で未確定?)。旧コードは幅不一致で
+# 該当レースを丸ごと無言破棄しており、開催が1つだけ残るせいで
+# export_weekly_marks.py の 場所/開催 定数カナリアが誤発火していた。
+HORSE_COLS_44 = [
+    "枠番","B","馬番","馬名S","性別","年齢","ZI印","ZI","ZI順",
+    "斤量","減M","替","騎手","所属","調教師","父","母父","父タイプ","母父タイプ",
+    "前走月","前走日","前走開催","前走間隔","前走レース名","前走TD","前走距離","前走馬場状態",
+    "前走B","前走騎手","前走斤量","前走減","前走人気","前走単勝オッズ","前走着順","前走着差",
+    "マイニング順位","前走通過1","前走通過2","前走通過3","前走通過4","前走Ave3F",
+    "前走上り3F","前走上り3F順位","前走1_2着馬",
+]
 HORSE_COLS_99 = [
     "枠番","B","馬番","馬名S","性別","年齢","馬体重","馬体重増減_raw","馬体重増減",
     "人気_今走","単勝","ZI印","ZI","ZI順","斤量","減M","替","騎手","所属","調教師",
@@ -430,6 +443,7 @@ def parse_csv(path: Path) -> pd.DataFrame:
 
     races: list[dict] = []
     current_race: dict | None = None
+    _unmatched_widths: dict[int, int] = {}
 
     for line in text.splitlines():
         cols = line.split(",")
@@ -439,6 +453,10 @@ def parse_csv(path: Path) -> pd.DataFrame:
             current_race = dict(zip(RACE_COLS, cols))
         elif len(cols) == 33 and current_race:
             horse = dict(zip(HORSE_COLS_33, cols))
+            horse.update(current_race)
+            races.append(horse)
+        elif len(cols) == 44 and current_race:
+            horse = dict(zip(HORSE_COLS_44, cols))
             horse.update(current_race)
             races.append(horse)
         elif len(cols) == 46 and current_race:
@@ -457,6 +475,13 @@ def parse_csv(path: Path) -> pd.DataFrame:
             horse = dict(zip(HORSE_COLS_99, cols))
             horse.update(current_race)
             races.append(horse)
+        elif current_race and len(cols) > 1:
+            _unmatched_widths[len(cols)] = _unmatched_widths.get(len(cols), 0) + 1
+
+    if _unmatched_widths:
+        logger.warning(
+            f"parse_csv: 未対応の列幅で無言破棄した行あり: {_unmatched_widths} "
+            f"({path.name}) → HORSE_COLS_* に新schema追加が必要な可能性")
 
     df = pd.DataFrame(races).rename(columns=COLUMN_MAP)
     df["レースID(新/馬番無)"] = df["レースID(新)"].astype(str).str[:16]
@@ -678,10 +703,25 @@ def parse_csv(path: Path) -> pd.DataFrame:
                     "trn_wc_days"]:
             df[col] = float("nan")
 
-    df = df[~df["距離"].astype(str).str.contains("障", na=False)].copy()
+    # 障害レース除外: 距離列に"障"接頭辞が付く旧形式に加え、2026-09-22発覚の
+    # 新形式(距離は素の数値、"障害"は芝・ダ列側="障害(直線ダ)"等)にも対応。
+    # 学習データ(master_v2)に障害カテゴリが存在せず encoder が全欠損化するため、
+    # 距離側だけの判定では新形式の障害レースが無言でモデルに混入していた。
+    _is_hurdle = df["距離"].astype(str).str.contains("障", na=False)
+    if "芝・ダ" in df.columns:
+        _is_hurdle = _is_hurdle | df["芝・ダ"].astype(str).str.contains("障害", na=False)
+    df = df[~_is_hurdle].copy()
 
     if "前走単勝オッズ" not in df.columns:
         df["前走単勝オッズ"] = float("nan")
+
+    # ── 出走馬分析（bunseki, 2026-09〜）があれば serve 死んでいた特徴を回収 ──
+    # data/bunseki/{date_str}.csv が無い週は fail-open で何も変わらない。
+    try:
+        from parse_bunseki import apply_bunseki
+        df = apply_bunseki(df, date_str)
+    except Exception as e:
+        logger.warning(f"bunseki 適用失敗（スキップ、既存フォールバックのまま）: {e}")
 
     logger.info(f"パース完了（障害除外済）: {len(df)}頭 / {df['レースID(新/馬番無)'].nunique()}レース")
     return df

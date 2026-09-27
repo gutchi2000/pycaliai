@@ -1,0 +1,468 @@
+{
+ "sources": [
+  {
+   "path": "E:\\競馬過去走データ\\test_v1.csv",
+   "role": "2023 91-col TARGET odds export",
+   "period": "2023",
+   "sha256": "b4e56bfe3d37f86c9a2aa69946431542d52c8e21c8caec46328a3347ef93c973",
+   "bytes": 34371633
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260418.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260418",
+   "sha256": "61d4792932c13699c97added92863551bbebdc5fad1b46183fe61df3b61b160b",
+   "bytes": 874062
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260419.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260419",
+   "sha256": "7d0932b2f07692674b8d09c3ffd457f87397bb88b8fce48cf93746601803a3f1",
+   "bytes": 886580
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260425.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260425",
+   "sha256": "c8a21f6266006262dec8b646165ba3b413756e534b3a524369f208d021f58a0f",
+   "bytes": 921200
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260426.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260426",
+   "sha256": "0f02fa9dbe564f4f7b940a31a7706dd768615991339bbaef5d3585928f1b1dc0",
+   "bytes": 953568
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260502.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260502",
+   "sha256": "a45f0139043a800f3e3ccf5cd0e4ab8557ee1e2210aa961de0b063bebb780b6f",
+   "bytes": 890028
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260503.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260503",
+   "sha256": "c7bc8614c55d7f592f633755d02ae7af4b6b2162f3d23ff9314579d1735d5dfd",
+   "bytes": 926208
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260509.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260509",
+   "sha256": "7a8bbb53766123dc881a21c25388ad5fd5b864246b0620c7b08f146b4ef11401",
+   "bytes": 895824
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260510.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260510",
+   "sha256": "1e85ef7f26ca6bed8710b611a760b1852d86d658f3eb6bc816a1c70770b0c81a",
+   "bytes": 909927
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260516.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260516",
+   "sha256": "3fe06050abd5410abe309d44667979c3d6f8012d896aa002b7ce812ea9c00853",
+   "bytes": 891837
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260517.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260517",
+   "sha256": "956122df4f8bd3e0f78699770dfc15e1d3a704b48f0ce9cc294bdf8c803e4b70",
+   "bytes": 875556
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260523.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260523",
+   "sha256": "292ddce47adaa4b6ea35c7973f4c1c5286f99fbf50db9dd2aea1cb48132e48ff",
+   "bytes": 993141
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260524.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260524",
+   "sha256": "cf61fe94da4784145ac74747a82bd3b0a26b36f461ed910230f5d538927263de",
+   "bytes": 951534
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260530.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260530",
+   "sha256": "eadc2088a52976880f0e11d05397c82723e9cb747b7e346259aaf866620939c0",
+   "bytes": 653049
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260531.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260531",
+   "sha256": "51844b43524f400792ebafd9507f2e50bbb4e64ad9eb0711edefa6580dbf3fe2",
+   "bytes": 629532
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260606.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260606",
+   "sha256": "60ff216468a0a2848fbd47e525caff188e128a5301204b67b0313da0d17faeed",
+   "bytes": 600588
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260607.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260607",
+   "sha256": "e769221825b8758f9ec3a7cdedb37317a15137e559e45c5fc4e518723b9ad0a7",
+   "bytes": 645813
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260613.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260613",
+   "sha256": "8f26ade900c6061200e34febf13f7d00ddc6594763c74edaf6a494492fbae704",
+   "bytes": 900882
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260614.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260614",
+   "sha256": "47cafb832d730b21d5147c1a9c9c35e7039177aece4604079b986ca200fc8242",
+   "bytes": 877365
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260620.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260620",
+   "sha256": "9f2b6d19c07fb4d773be75648b2dd244a67acd416d77d9ac2bec842d2f6ea39b",
+   "bytes": 913545
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260621.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260621",
+   "sha256": "2064eff20d114e9ce2e8ebb2a514be3761a5464adcfb0eac12ea1556bf9b4054",
+   "bytes": 909927
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260627.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260627",
+   "sha256": "2620c17c15b3db959f9ee7d552825855bdf044b1735f9ffbda3b2fb15ad16600",
+   "bytes": 810432
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260704.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260704",
+   "sha256": "da4ea17b8cbe193248ada297f890e9e1aa2f566ea1983afc7000e1985eb4edd2",
+   "bytes": 842994
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260711.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260711",
+   "sha256": "79e0e12020c5f0d0af999ab2007af794aa0550fa2ed7892625ac518d236b2951",
+   "bytes": 861084
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260712.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260712",
+   "sha256": "1e07c4a8d5b81499bbe908cfb79c138fc9c6f3941832d0cfd5f0ba0e6afc5fd8",
+   "bytes": 850230
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260718.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260718",
+   "sha256": "cebf4de2826d25da6f1889e3a328fd46c1fc57dbc7ffb8286d229959debee771",
+   "bytes": 846612
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260719.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260719",
+   "sha256": "08eddac8ab5ac8f3875f8b8d637136939ab5ce75797529c98a41bec8df128411",
+   "bytes": 890028
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260725.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260725",
+   "sha256": "0d6412dfa9a146356595fe21e9a075f94f4d4d03b5463286e9e4160b3290c9a1",
+   "bytes": 812241
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260726.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260726",
+   "sha256": "2719981e602951a15e2ff3d7b858ad37d98010d36bdf0282cd925a67efdc2c81",
+   "bytes": 812241
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260801.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260801",
+   "sha256": "209559aa6d767207d691efd4288c377f2ccd715762ed2abb0bce288e626c92d3",
+   "bytes": 837567
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260802.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260802",
+   "sha256": "7967a64b843b69a412858e07944c622e7836c8d23de7d96bdfd6a30a1a3f531c",
+   "bytes": 839376
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260808.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260808",
+   "sha256": "8fedb828b67926b876ce5b645235cb57f0cdaeb89efd5d22f366f2cc2e47e917",
+   "bytes": 835758
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260809.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260809",
+   "sha256": "500394727bd11278dad5f4ded9fedabad236fc5749c6b59185b552fffde8f838",
+   "bytes": 895455
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260815.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260815",
+   "sha256": "84d629e8a0df0874ef6fb14da077e1b0fd08d99f6d1cf6c1935913204e0a1008",
+   "bytes": 880983
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260816.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260816",
+   "sha256": "06ca73b98afe4600269a6f57e1b3053f87b859ab0baabe3d236cbcd6dc5b61f2",
+   "bytes": 886410
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260829.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260829",
+   "sha256": "0ef24cb927ffd828b6f66d6c17b72048b10c6b6ce05c577d2a065b5d9af29863",
+   "bytes": 893646
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260830.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260830",
+   "sha256": "780cef889a4fd3815e75dc29a68d89a4e6e89b336aa07999e17d2ca3dd7b3635",
+   "bytes": 866511
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260905.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260905",
+   "sha256": "b2a750c2a89e6dfe75d903ab1296a24aadbac0f389a4f491b8e086e85ee14904",
+   "bytes": 823095
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260912.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260912",
+   "sha256": "de484ac11cf7591a6cdb00621a1be2b7913ca7fa49c2466dd2c0576c92c6a0be",
+   "bytes": 571644
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260913.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260913",
+   "sha256": "e035be70e83f40bff0f33d41c744f1330f478eeb572fa062c36f1bc16c7ca738",
+   "bytes": 568026
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260919.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260919",
+   "sha256": "783e03c8f94d243013eccc899ebe34824988e0421b031c99a98ec18d5e5768d8",
+   "bytes": 519183
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260920.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260920",
+   "sha256": "bf1bf575a90ae4ec8c2f937d5ea629963a46fe89347fda21523df6e62614aa13",
+   "bytes": 604206
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260921.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260921",
+   "sha256": "4b401e958ebae74650eaba40a44aabf77664a99aead2fd33687c5f9dbd0a0b95",
+   "bytes": 287631
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260922.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260922",
+   "sha256": "5968f42f4e53a47aa28b538248e9433267ef7c4046f0711dc19f6dd3c807a057",
+   "bytes": 291249
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260926.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260926",
+   "sha256": "533c2b2dd7573d14ebc6ef3be8f9eefd5ba99fe7eeeecf94b279de2d4a9dc55c",
+   "bytes": 566217
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\odds\\OD260927.CSV",
+   "role": "2026 OD 227-col TARGET odds export",
+   "period": "260927",
+   "sha256": "c61ff2eea682108383184594d9987f27bc235a98064f35047d1ce8e299907d5a",
+   "bytes": 555363
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\kekka_20130105-20251228.csv",
+   "role": "official payouts top-3 rows (2013-2023 used; 2024/2025 dropped on read)",
+   "period": "2013-2025 file",
+   "sha256": "61dc6652973bb74dadaf042067cd6464e4f499073511030af183137f9118dfd0",
+   "bytes": 9026572
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\wide_payouts_2016-2025.parquet",
+   "role": "official wide payouts (2016-2023 used)",
+   "period": "2016-2025 file",
+   "sha256": "76f8bb1de068249c407d577a7053d756862a6cf041800d339c3bdb34a01893d5",
+   "bytes": 548781
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\kekka\\wide_kekka.csv",
+   "role": "2026 wide payouts text",
+   "period": "2026",
+   "sha256": "6ce7eab1cfdca41d454829986543a1477160f0e67beca9008807cb462644277f",
+   "bytes": 238893
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\TANPUK_20110105-20151227.csv",
+   "role": "TANPUK/UMAREN time series (<=2023 used)",
+   "period": "20110105-20151227",
+   "sha256": "b6c5bbee52a358661b1a08f5440d2dbed8ec74409b6e9d508edb3ccf4d8a5b13",
+   "bytes": 14853386
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\TANPUK_20160105-20201227.csv",
+   "role": "TANPUK/UMAREN time series (<=2023 used)",
+   "period": "20160105-20201227",
+   "sha256": "5a7da2cd050cd633c693979768691aca5c3f8a5f15ba2d550f5082dadd856862",
+   "bytes": 24217343
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\TANPUK_20210105-20251228.csv",
+   "role": "TANPUK/UMAREN time series (<=2023 used)",
+   "period": "20210105-20251228",
+   "sha256": "3517585d0040cff27b7d18a43a86a99b6e60c2add9969ab83c487f877880597e",
+   "bytes": 23720272
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\UMAREN_20110105-20151227.csv",
+   "role": "TANPUK/UMAREN time series (<=2023 used)",
+   "period": "20110105-20151227",
+   "sha256": "4a96f108537891ec38b799fc0b3df308a64e0b832cd4cfe54baa9cd43f6f5fcf",
+   "bytes": 45915808
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\UMAREN_20160105-20201227.csv",
+   "role": "TANPUK/UMAREN time series (<=2023 used)",
+   "period": "20160105-20201227",
+   "sha256": "af040ef16489d1cd2da7c40cd1de528ecc2a70df96c6c641c9b361b5681c22b3",
+   "bytes": 76619764
+  },
+  {
+   "path": "E:\\PyCaLiAI\\data\\Time _series_odds\\UMAREN_20210105-20251228.csv",
+   "role": "TANPUK/UMAREN time series (<=2023 used)",
+   "period": "20210105-20251228",
+   "sha256": "ff037e86b76620a6a7523ed8d6f60954b1997857c58eb7481aaa003bff448bf9",
+   "bytes": 76684090
+  }
+ ],
+ "units": {
+  "price": "decimal odds per 1 JPY (0.1 resolution); fukusho/wide as [Lo, Hi]",
+  "payout": "JPY per 100 JPY stake (official)",
+  "record_code_col2": "TARGET export code ('4' on terminal exports; '0'/'6' on pre-race exports observed)",
+  "tanpuk_umaren_kubun": "1 = interim snapshots, 4 = terminal"
+ },
+ "per_type": {
+  "tansho": {
+   "sources": [
+    "TANPUK/UMAREN 2013-2023 (terminal + historical_pre_snapshot)",
+    "raw 2023 91-col (terminal)",
+    "OD 2026 terminal days"
+   ],
+   "pass": true,
+   "note": "history coverage in label_free_band_coverage.json; 91/OD layouts verified"
+  },
+  "fukusho": {
+   "sources": [
+    "TANPUK/UMAREN 2013-2023 (terminal + historical_pre_snapshot)",
+    "raw 2023 91-col (terminal)",
+    "OD 2026 terminal days"
+   ],
+   "pass": true,
+   "note": "history coverage in label_free_band_coverage.json; 91/OD layouts verified"
+  },
+  "wakuren": {
+   "sources": [
+    "raw 2023 91-col (terminal)",
+    "OD 2026 terminal days"
+   ],
+   "raw2023_layout_pass": true,
+   "od2026_layout_pass": true,
+   "pass": true,
+   "reach": "D0 descriptive only (2023 terminal + OD 2026 terminal days); no D1 (no verified T-10); no G1/G2"
+  },
+  "umaren": {
+   "sources": [
+    "TANPUK/UMAREN 2013-2023 (terminal + historical_pre_snapshot)",
+    "raw 2023 91-col (terminal)",
+    "OD 2026 terminal days"
+   ],
+   "pass": true,
+   "note": "history coverage in label_free_band_coverage.json; 91/OD layouts verified"
+  },
+  "wide": {
+   "sources": [
+    "raw 2023 91-col (terminal)",
+    "OD 2026 terminal days"
+   ],
+   "raw2023_layout_pass": true,
+   "od2026_layout_pass": true,
+   "pass": true,
+   "reach": "D0 descriptive only (2023 terminal + OD 2026 terminal days); no D1 (no verified T-10); no G1/G2"
+  },
+  "umatan": {
+   "sources": [
+    "raw 2023 91-col (terminal)",
+    "OD 2026 terminal days"
+   ],
+   "raw2023_layout_pass": true,
+   "od2026_layout_pass": true,
+   "pass": true,
+   "reach": "D0 descriptive only (2023 terminal + OD 2026 terminal days); no D1 (no verified T-10); no G1/G2"
+  },
+  "sanrenpuku": {
+   "sources": [
+    "OD 2026 terminal days only (2023 91-col has no trio block)"
+   ],
+   "od2026_layout_pass": true,
+   "pass": true,
+   "terminal_races": 180,
+   "reach": "D0 descriptive only on OD 2026 terminal days; no D1 (no verified T-10); no G1/G2"
+  },
+  "sanrentan": {
+   "sources": [],
+   "pass": false,
+   "reason": "no full-ticket price source: raw 2023 91-col has no trifecta block; OD 227-col extra 136 columns are trio (sanrenpuku) per anchor horse, verified by payout reverse-mapping"
+  }
+ }
+}
