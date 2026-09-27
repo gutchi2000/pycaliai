@@ -188,6 +188,15 @@ def main():
     yr = bt1.udays // 10000
     rec("v03_dayboot_deterministic_and_year_stratified", np.array_equal(bt1.W, bt2.W)
         and all(np.all(bt1.W[:, yr == y].sum(1) == (yr == y).sum()) for y in np.unique(yr)))
+    missing_day_rejected = []
+    for bad in (20190107, 20200113, 20181231):  # 中間・末尾超過・先頭未満の欠けた日
+        try:
+            bt1.ratio_ci(np.array([20190105, bad]), np.ones(2), np.ones(2))
+            missing_day_rejected.append(False)
+        except AssertionError:
+            missing_day_rejected.append(True)
+    rec("v03_dayboot_rejects_missing_day", all(missing_day_rejected)
+        and np.isfinite(bt1.ratio_ci(days, np.ones(len(days)), np.ones(len(days)))).all())
     rec("v03_stage1_refuses_before_freeze_or_is_frozen",
         json.loads((L.HERE / "spec.json").read_text(encoding="utf-8"))["version"] in ("0.2-frozen", "0.3-frozen"))
 

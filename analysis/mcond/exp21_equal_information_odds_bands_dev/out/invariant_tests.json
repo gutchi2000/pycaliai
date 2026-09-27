@@ -1,6 +1,6 @@
 {
- "n_tests": 29,
- "n_pass": 29,
+ "n_tests": 30,
+ "n_pass": 30,
  "all_passed": true,
  "tests": [
   {
@@ -130,6 +130,11 @@
   },
   {
    "test": "v03_dayboot_deterministic_and_year_stratified",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "v03_dayboot_rejects_missing_day",
    "pass": true,
    "detail": ""
   },

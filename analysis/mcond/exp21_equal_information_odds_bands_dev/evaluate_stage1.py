@@ -137,6 +137,8 @@ class DayBoot:
 
     def ratio_ci(self, days, num, den):
         di = np.searchsorted(self.udays, days)
+        # 欠けた日を隣の日へ無言で対応させない (searchsorted は非一致でも位置を返す)
+        assert np.array_equal(self.udays[np.minimum(di, len(self.udays) - 1)], days), "DayBoot に無い暦日がある"
         sn = np.bincount(di, weights=num, minlength=len(self.udays))
         sd = np.bincount(di, weights=den, minlength=len(self.udays))
         t = (self.W @ sn) / np.maximum(self.W @ sd, 1e-300)
@@ -210,6 +212,8 @@ def main():
                 if pk not in boots:
                     boots[pk] = DayBoot(d["day"], d["year"])
                 bt = boots[pk]
+                # 券種・価格層間で暦日集合が完全一致すること (共通再標本の前提)
+                assert np.array_equal(np.unique(d["day"]), bt.udays), f"{t} {pk} {lay}: 暦日集合が他券種と不一致"
                 pool_point = float(pay.mean())
                 pool_boot = bt.ratio_ci(d["day"], pay, np.ones(len(pay)))
                 bands = {"primary_mass10": (B.mass_bands(d["key"], d["q"], 10), 10),

@@ -45,8 +45,16 @@ def main():
     check("v03_T10_zero_days", "0 days" in v.get("price_layers", {}).get("T10", ""))
     check("v03_boot", v.get("inference", {}).get("B") == 10000 and v.get("inference", {}).get("seed") == 20260928)
     check("v03_prior_expectations_5", len(v.get("prior_expectations", [])) == 5)
-    for f in ("stage1_results.json",):
-        check(f"stage1_not_opened:{f}", not (OUT / f).exists())
+    if "final_status" not in spec:
+        for f in ("stage1_results.json",):
+            check(f"stage1_not_opened:{f}", not (OUT / f).exists())
+    else:
+        # Stage 1 後: 結果は v0.3 凍結 commit の後で初めて commit されたこと
+        added = git("log", "--diff-filter=A", "--format=%H", "--", f"{REL}/out/stage1_results.json").split()
+        check("stage1_results_first_added_after_v03_freeze", len(added) == 1 and added[0].startswith("7cd7d452")
+              and subprocess.run(["git", "-c", f"safe.directory={BASE.as_posix()}", "merge-base", "--is-ancestor", "e36ed2ca",
+                                  added[0]], cwd=BASE).returncode == 0, str(added))
+        check("stage1_results_record_freeze_commit", spec.get("stage1_results", {}).get("freeze_commit") == "e36ed2ca")
     inv = json.loads((OUT / "invariant_tests.json").read_text(encoding="utf-8"))
     check("invariant_tests_all_passed", inv["all_passed"], f"{inv['n_pass']}/{inv['n_tests']}")
     r = subprocess.run([sys.executable, "-m", f"{REL.replace('/', '.')}.stage0_checks"], capture_output=True, text=True,

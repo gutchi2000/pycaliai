@@ -41,11 +41,30 @@ def main():
     frozen = json.loads(subprocess.run(["git", "-c", f"safe.directory={BASE.as_posix()}", "show", f"{FROZEN}:{REL}/spec.json"], capture_output=True, text=True,
                                        encoding="utf-8", cwd=BASE).stdout)
     allowed = {"status", "stage0_started", "stage0_results", "version", "v03", "stage1_results"}      # v0.3-frozen で追加・変更が許される項目
+    closed = "final_status" in spec   # Stage 1 後の最終文書化 (Fable 最終レビュー承認)
+    # 最終文書化で許される変更は、v0.2 の撤回表現に superseded 注記を付けることと、開封記録だけ
+    amended = {"price_layers", "scope_matrix", "outcomes_opened_by_exp21"} if closed else set()
+    if closed:
+        allowed |= {"final_status", "outcomes_opening_record"}
     for k in frozen:
-        if k not in allowed:
+        if k not in allowed and k not in amended:
             check(f"spec_frozen_unchanged:{k}", frozen[k] == spec.get(k))
     check("spec_no_unexpected_keys", set(spec) - set(frozen) <= allowed, str(set(spec) - set(frozen)))
-    check("outcomes_not_opened_for_roi", spec["outcomes_opened_by_exp21"] is False)
+    if not closed:
+        check("outcomes_not_opened_for_roi", spec["outcomes_opened_by_exp21"] is False)
+    else:
+        rec_ = spec.get("outcomes_opening_record", {})
+        check("closed_outcomes_opening_recorded", spec["outcomes_opened_by_exp21"] is True and "7cd7d452" in rec_.get("stage1", "")
+              and "2019-2023" in rec_.get("stage1", "") and "layout" in rec_.get("stage0", "") and rec_.get("sealed_untouched") == ["2024", "2025"])
+        fp, sp = frozen["price_layers"], spec["price_layers"]
+        check("closed_price_layers_only_D1_forward_superseded",
+              {k: v for k, v in sp.items() if k not in ("D1_forward", "D1_forward_superseded")} == {k: v for k, v in fp.items() if k != "D1_forward"}
+              and sp["D1_forward"].startswith("SUPERSEDED by v0.3") and fp["D1_forward"] in sp["D1_forward"] and sp.get("D1_forward_superseded") is True)
+        fs, ss = frozen["scope_matrix"], spec["scope_matrix"]
+        check("closed_scope_matrix_only_other_five_superseded",
+              {k: v for k, v in ss.items() if k != "other_five"} == {k: v for k, v in fs.items() if k != "other_five"}
+              and ss["other_five"]["history_superseded_v02"] == fs["other_five"]["history"]
+              and ss["other_five"]["history"].startswith("SUPERSEDED by v0.3") and ss["other_five"]["g1_g2"] == fs["other_five"]["g1_g2"])
 
     g = load("g0_audit.json")
     man = load("data_manifest.json")

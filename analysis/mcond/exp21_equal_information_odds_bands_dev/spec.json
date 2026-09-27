@@ -35,12 +35,12 @@
       ]
     },
     "other_five": {
-      "history": "2023 91-column timing-unverified plus 2026 OD T-10 about 49 days",
+      "history": "SUPERSEDED by v0.3: 2023 91-column (identified as terminal) plus 2026 OD terminal 5 days for D0 description only; 2026 OD is not T-10 and D1 description is unavailable",
       "reachable": [
-        "D0_descriptive",
-        "D1_descriptive"
+        "D0_descriptive"
       ],
-      "g1_g2": "not permitted"
+      "g1_g2": "not permitted",
+      "history_superseded_v02": "2023 91-column timing-unverified plus 2026 OD T-10 about 49 days"
     }
   },
   "takeout_baseline_roi": {
@@ -106,9 +106,10 @@
   "price_layers": {
     "D0": "terminal diagnostic only",
     "D1_history": "historical_pre_snapshot about T-28",
-    "D1_forward": "2026 true T-10",
+    "D1_forward": "SUPERSEDED by v0.3 (v03.price_layers). v0.2 text was \"2026 true T-10\"; 2026 OD is not T-10 (T-10 acquired 0 days). The only valid D1 is D1_history (historical_pre_snapshot about T-28)",
     "mixing_forbidden": true,
-    "transition_matrix_required": true
+    "transition_matrix_required": true,
+    "D1_forward_superseded": true
   },
   "inference": {
     "estimand": "100 JPY on every eligible ticket in a band",
@@ -145,7 +146,7 @@
     "no actionable claim from terminal-price bands"
   ],
   "stage0_started": true,
-  "outcomes_opened_by_exp21": false,
+  "outcomes_opened_by_exp21": true,
   "stage0_results": {
     "date": "2026-09-27",
     "report": "STAGE0_DATA_AUDIT.md",
@@ -328,5 +329,26 @@
       "2024",
       "2025"
     ]
+  },
+  "outcomes_opening_record": {
+    "stage0": "2023 official payouts were used only to identify the price-column layout (G0 reverse-mapping of winning ticket columns) and to classify dead heats/scratches; no band ROI was computed",
+    "stage1": "Stage 1 results commit 7cd7d452 opened finishes and payouts for evaluation 2019-2023 (together with discovery 2013-2018 used for the discovery D0 tables and the G2 selection) for tansho, fukusho and umaren",
+    "sealed_untouched": [
+      "2024",
+      "2025"
+    ]
+  },
+  "final_status": {
+    "date": "2026-09-27",
+    "status": "closed_after_stage1",
+    "approved_by": "Fable final review",
+    "conclusion_ja": "単勝・馬連の等期待的中質量10帯では、最大穴の1帯だけに較正null比−0.13〜−0.27の崖が再現し、残る9帯はおおむね±0.03前後で平坦だった（例外は馬連の帯1 +0.046〜+0.064 と、期間で位置が変わる単勝の帯8または帯9 +0.068〜+0.069。D0）。複勝は帯順位が再現したが、最大穴帯を除いたROIも0.784で、法定参考値0.80と損益分岐1.0の双方に届かなかった。全券種・期間・価格層でROI 1.0超の帯は存在しなかった。",
+    "out_of_scope_ja": "射程外: 枠連・ワイド・馬単はD0記述のみ、三連複は標本不足、三連単は価格源なし、T−10・2024/2025は未検証。",
+    "conclusion_en": "In the 10 equal expected-hit-mass bands for tansho and umaren, only the single longest-odds band replicated a cliff of -0.13 to -0.27 versus the calibrated null; the other nine bands were broadly flat around +/-0.03 (exceptions in D0: umaren band 1 +0.046 to +0.064, and tansho band 8 or 9, whose position differs by period, +0.068 to +0.069).Fukusho replicated the band ranking, but ROI excluding the longest-odds band was 0.784, below both the 0.80 statutory reference and 1.0 break-even. No band in any type, period or price layer exceeded ROI 1.0.",
+    "out_of_scope_en": "wakuren, wide, umatan: D0 description only; sanrenpuku: insufficient sample; sanrentan: no price source; T-10 and 2024/2025: not tested",
+    "commits": {
+      "v03_freeze": "e36ed2ca",
+      "stage1_results": "7cd7d452"
+    }
   }
 }
