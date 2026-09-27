@@ -1,24 +1,23 @@
-# EXP21 — Equal-information odds-band audit
+# EXP21 — Equal-information odds-band market audit
 
-Status: **draft for Fable review; no aggregation has been run**
+Status: **v0.2-frozen after Fable review; implementation not started**
 
-This experiment audits whether the apparently favorable return bands shown in the
-AI Keiba Masters 2026 winner's presentation survive finer, statistically comparable
-odds bands across all standard single-race JRA bet types.
+EXP21 is a model-independent description of favorite-longshot-bias shapes across eight
+single-race JRA bet types. It does not search for a betting policy.
 
-The primary table does **not** use fixed-width odds bands.  It allocates equal market-
-implied expected-hit mass to every band.  Two secondary tables use equal ticket counts
-and human-readable fixed bands (`1.0-5.0`, `5.1-15.0`, ...).
+Formal G1/G2 replication is possible only for tansho, fukusho and umaren. Wakuren,
+wide, umatan, sanrenpuku and sanrentan are limited to a 2023 terminal description and
+a 2026 T-10 forward description because multi-year pre/terminal full-ticket prices are
+not available.
 
-The first gate is data provenance and parser correctness.  No ROI table may be produced
-until every ticket type passes its own price/payout contract.  Diagnostic terminal-price
-tables and actionable decision-time tables must never be mixed.
+Primary bins equalize market-implied expected-hit mass. Equal ticket-count and fixed
+human-readable bands are secondary. Terminal diagnostic and decision-time analysis are
+strictly separated.
 
-Files:
+- SPEC.md — frozen human-readable contract
+- spec.json — frozen machine-readable contract
+- FABLE_REVIEW_REQUEST.md — completed review request
+- OPUS_IMPLEMENTATION_REQUEST.md — next handoff
 
-- `SPEC.md` — frozen-design candidate
-- `spec.json` — machine-readable contract
-- `FABLE_REVIEW_REQUEST.md` — reviewer handoff
-
-No production, model, staking, candidate-generation, or 2024/2025 holdout change is in
-scope.
+No result aggregation, parser extension, 2024/2025 opening, production change, model
+training, candidate generation, staking or ROI-policy change has been performed.
