@@ -91,7 +91,8 @@
     "practical": "bootstrap_CI95_upper_below_negative_floor",
     "placebo": "real_delta_below_placebo_0.025_quantile",
     "practical_floor_nats_per_race": null,
-    "floor_method": "EXP18_v0.5 finite-sample offset fit on synthetic outcomes; real terminal win odds cash-inclusive Kelly; takeout 0.20; growth threshold 1e-4 per race; no independent declared noise"
+    "floor_method": "EXP18_v0.5 finite-sample offset fit on synthetic outcomes; real terminal win odds cash-inclusive Kelly; takeout 0.20; growth threshold 1e-4 per race; no independent declared noise",
+    "superseded_by": "v03_override; do not execute A2/B2 or apply v0.2 A grading"
   },
   "stage0_floors": {
     "historical_forward_value_match": 0.995,
@@ -202,7 +203,8 @@
       "bw_change_x_layoff*track_extreme_z"
     ],
     "track_standardization": "expanding as-of through target_date_minus_1; place for cushion; place_surface for moisture",
-    "not_yet_published": "drop from historical fit because empty; audit forward occurrence rate only"
+    "not_yet_published": "drop from historical fit because empty; audit forward occurrence rate only",
+    "WP_superseded_by": "v03_override.WP 2-column route; WP path permanently closed after power=0.4675 < 0.80"
   },
   "inference": {
     "cluster": "calendar_day_YYYYMMDD",
