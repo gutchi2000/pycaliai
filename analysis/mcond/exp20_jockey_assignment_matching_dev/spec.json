@@ -1,0 +1,153 @@
+{
+  "experiment": "EXP20",
+  "title": "Jockey Assignment Matching Residual",
+  "spec_version": "0.1-review-draft",
+  "created": "2026-09-27",
+  "status": "unfrozen_review_required",
+  "hypothesis": "Within the observed same-race jockey roster, the realized horse-jockey matching contains residual information beyond known horse/jockey ability, jockey continuity, trainer-jockey history, weight feasibility and EXP01 raw-choice controls, and that residual remains against terminal_close_market.",
+  "conclusion_scope": "conditional assignment within the observed same-race roster; no claim about unobserved offers, refusals, contracts, agents or intent",
+  "hard_prohibitions": [
+    "no implementation or training before Fable review and freeze",
+    "no 2024 or 2025 outcome opening",
+    "no ROI, ticket generation or stake allocation",
+    "no production change",
+    "no horse-name or jockey-name join",
+    "no pair-ID embedding or raw identity memorization",
+    "no rescue by changing candidate-set definitions after outcomes"
+  ],
+  "prior_art_boundary": {
+    "EXP01": "horse-row raw choice and team-deviation model; residual deviation had no unique value",
+    "EXP11": "sparse jockey-trainer pair selection; do not repeat pair-ID mining",
+    "EXP15": "race-as-set prediction; not an assignment model",
+    "EXP16A_EXP18": "terminal-close residual must be the first performance gate",
+    "novelty": "one-to-one horse-jockey assignment over the observed race roster with an explicit constrained-matching null"
+  },
+  "population": {
+    "stage0_structure_years": [2013, 2023],
+    "development_years": [2019, 2023],
+    "sealed_years": [2024, 2025],
+    "rules": [
+      "JRA flat only; exclude track_code_jv 51..59",
+      "exclude maiden races from the primary analysis",
+      "at least 5 starters",
+      "valid horse, jockey and trainer IDs",
+      "one observed jockey per starter and no within-race jockey duplication",
+      "exclude DNF-containing races from Stage 1 primary set for existing OOF compatibility; report as outcome-conditioned exclusion",
+      "all arms use identical race and starter sets"
+    ],
+    "crosscheck": "report race-id differences against the EXP16A/EXP17 official flat DNF-excluded set"
+  },
+  "candidate_sets": {
+    "interpretation": "swap-feasible set conditional on the observed same-race jockey roster; not the true offer set",
+    "C0_primary": "horse x observed-race-jockey roster, constrained by jockey minimum carried weight over the prior 365 days",
+    "C1_sensitivity": "same with 730-day minimum carried weight",
+    "C2_sensitivity": "complete observed-roster bipartite graph without weight constraint",
+    "unknown_history": "unknown, never coerced to feasible",
+    "stability_gate": {
+      "median_within_race_spearman_min": 0.8,
+      "sign_agreement_min": 0.8
+    }
+  },
+  "edge_features": [
+    "horse_jockey_same_prev",
+    "horse_jockey_n_365",
+    "horse_jockey_days_since",
+    "trainer_jockey_n_365",
+    "trainer_jockey_share_365",
+    "jockey_quality_365_asof",
+    "jockey_weight_margin",
+    "jockey_card_load",
+    "adjacent_race_load",
+    "horse/jockey/trainer marginal controls"
+  ],
+  "assignment_models": {
+    "B0": "uniform feasible matching",
+    "A0_B1": "independent-edge conditional-logit null using raw and marginal controls",
+    "A1_B2": "entropy-regularized one-to-one Sinkhorn matching",
+    "fit_rule": "year Y uses Y-1 and earlier only; regularization fixed with <=2018 assignment labels",
+    "forbidden": [
+      "raw pair identity",
+      "future jockey performance",
+      "race outcomes for model selection"
+    ]
+  },
+  "residual_block": [
+    "assign_logp",
+    "assign_surprise",
+    "assign_gain_vs_A0",
+    "assigned_jockey_rank",
+    "scarcity",
+    "centered_dual_horse_and_jockey"
+  ],
+  "stage0": {
+    "outcomes_forbidden": true,
+    "structure_loader_forbidden_columns": [
+      "着順",
+      "払戻",
+      "走破タイム",
+      "着差"
+    ],
+    "coverage_floors": {
+      "valid_matching_race_rate_each_year": 0.95,
+      "observed_edge_feasible_rate": 0.999,
+      "non_maiden_starters_with_at_least_5_candidates": 0.9,
+      "major_stratum_relative_coverage": 0.8
+    },
+    "equivalence_gates": {
+      "assignment_nll_B2_minus_B1_ci95_upper_lt": 0.0,
+      "residual_crossfit_r2_from_EXP01_and_raw_controls_lt": 0.8,
+      "candidate_set_stability_required": true
+    },
+    "time_safety": "future deletion, target/same-day outcome mutation, day-start snapshot, order permutation, doubly-stochastic, infeasible-edge, ID-relabel, reproducibility and loader-separation tests must all pass",
+    "power": {
+      "metric": "race winner categorical logloss against terminal-close offset null",
+      "cluster": "calendar meeting-day",
+      "bootstrap_B": 10000,
+      "placebo_draws": 200,
+      "economic_floor": "EXP18 v0.5 finite-sample estimator with terminal odds, cash-inclusive Kelly, 20% takeout and 1e-4 expected log growth per race",
+      "minimum_detection_power": 0.8,
+      "must_be_numeric_and_committed_before_stage1": true
+    }
+  },
+  "stage1_arms": {
+    "M0_CLOSE": "rolling temperature-calibrated terminal close win market",
+    "M1_CLEAN": "M0_CLOSE + EXP16A R0-clean rolling OOF score",
+    "M2_RAW_ASSIGN": "M1_CLEAN + EXP01 raw jockey/choice controls + A0 edge controls",
+    "M3_MATCH_RESIDUAL": "M2_RAW_ASSIGN + frozen residual block",
+    "primary_comparison": "M3_MATCH_RESIDUAL minus M2_RAW_ASSIGN"
+  },
+  "gate_M": {
+    "all_required": [
+      "pooled meeting-day bootstrap CI95 upper < 0",
+      "improvement direction in at least 4 of 5 years",
+      "all 5 leave-one-year-out CI95 upper < 0",
+      "real delta below the 2.5th percentile of P1, P2 and P3",
+      "deterministic bit reproducibility or improvement in at least 4 of 5 non-identical predeclared refits"
+    ],
+    "PASS_PRACTICAL": "all requirements and CI95 upper < -practical_floor_nats",
+    "PASS_SIGNAL": "all requirements but practical floor not reached; record and stop",
+    "FAIL": "otherwise; stop",
+    "pre_market": "diagnostic only; cannot rescue a terminal-close failure"
+  },
+  "placebos": {
+    "threshold": 0.025,
+    "P1_JOCKEY_ID_REWIRE": "degree-preserving rewire within venue-day and race-size band, preserving jockey card load",
+    "P2_EDGE_DIRECTION_NULL": "within-race sign reversal or horse permutation preserving the residual multiset",
+    "P3_ROSTER_SWAP": "borrow a jockey roster from another race in the same venue, month and field-size band, then rebuild candidates and matching",
+    "P4_IDENTITY_FREE": "remove jockey/trainer identity history and retain only weight, card-load and marginal-quality controls",
+    "fit_rule": "rerun rolling fitting for each evidential placebo"
+  },
+  "stop_rules": [
+    "candidate-set coverage or observed-edge feasibility floor fails",
+    "candidate-set sensitivity stability fails",
+    "assignment model B2 does not improve B1",
+    "residual can be reconstructed from EXP01/raw controls with cross-fit R2 >= 0.80",
+    "any time-safety or matching invariant fails",
+    "Stage 1 detection power < 0.80",
+    "Gate M FAIL or PASS_SIGNAL",
+    "evidential placebo not exceeded"
+  ],
+  "stage1_started": false,
+  "outcomes_opened": false
+}
+
