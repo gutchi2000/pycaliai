@@ -356,7 +356,12 @@ def main():
     manifest["units"] = {"price": "decimal odds per 1 JPY (0.1 resolution); fukusho/wide as [Lo, Hi]",
                          "payout": "JPY per 100 JPY stake (official)", "record_code_col2": "TARGET export code "
                          "('4' on terminal exports; '0'/'6' on pre-race exports observed)",
-                         "tanpuk_umaren_kubun": "1 = interim snapshots, 4 = terminal"}
+                         "tanpuk_umaren_kubun": "1 = interim snapshots, 4 = terminal",
+                         "takeout_change_2014_06_07": "JRA takeout changed on 2014-06-07 for umaren, wakuren and wide "
+                                                      "(22.5%). The discovery period 2013-2018 straddles this date; the "
+                                                      "statutory takeout is shown for reference only, and v0.3 compares "
+                                                      "tansho/umaren bands with the label-free calibrated null (1/overround "
+                                                      "from each race's terminal prices) instead"}
     manifest["per_type"] = {t: g0[t] for t in TYPES}
     (L.OUT / "data_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps({"g0": {t: g0[t]["pass"] for t in TYPES}}, ensure_ascii=False))

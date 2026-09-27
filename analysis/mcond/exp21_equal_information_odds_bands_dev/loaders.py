@@ -18,6 +18,7 @@ loaders.py — EXP21 Stage 0: 価格 loader と払戻 loader を分離する
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 from itertools import combinations
 from pathlib import Path
@@ -28,14 +29,21 @@ import pandas as pd
 HERE = Path(__file__).resolve().parent
 BASE = HERE.parents[2]
 OUT = HERE / "out"
-RESEARCH = BASE / "data" / "_research" / "mcond" / "exp21"
-ODIR = BASE / "data" / "Time _series_odds"
+RESEARCH = BASE / "data" / "_research" / "mcond" / "exp21"          # 中間生成物は常に実行中の checkout 内
+# 大容量の生データ (git 管理外) の読み取り元。隔離 worktree では EXP21_DATA_ROOT=E:/PyCaLiAI/data を指定して読み取り専用で参照する
+DATA = Path(os.environ.get("EXP21_DATA_ROOT", str(BASE / "data")))
+ODIR = DATA / "Time _series_odds"
 RAW2023 = Path("E:/競馬過去走データ/test_v1.csv")
-OD_DIR = BASE / "data" / "odds"
-KEKKA_MASTER = BASE / "data" / "kekka_20130105-20251228.csv"
-WIDE_PARQUET = BASE / "data" / "wide_payouts_2016-2025.parquet"
-KEKKA_2026_DIR = BASE / "data" / "kekka"
-WIDE_2026 = BASE / "data" / "kekka" / "wide_kekka.csv"
+OD_DIR = DATA / "odds"
+KEKKA_MASTER = DATA / "kekka_20130105-20251228.csv"
+WIDE_PARQUET = DATA / "wide_payouts_2016-2025.parquet"
+KEKKA_2026_DIR = DATA / "kekka"
+WIDE_2026 = DATA / "kekka" / "wide_kekka.csv"
+# EXP18 の構造 loader (TANPUK/UMAREN・master のレース情報列) も同じ読み取り元を使う
+from ..exp18_cross_pool_market_tomography_dev import loaders as _L18  # noqa: E402
+_L18.ODIR = ODIR
+_L18.MASTER = DATA / "master_v2_20130105-20251228.csv"
+_L18.KEKKA = KEKKA_MASTER
 SEALED_FROM = 20240101
 NMAX = 18
 TRIO_PAIRS = {}          # 自馬 i → 136 slot の (j,k)

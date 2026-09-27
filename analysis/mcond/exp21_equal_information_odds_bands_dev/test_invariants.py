@@ -158,6 +158,39 @@ def main():
     rec("fukusho_null_roi_equals_baseline", np.allclose(m[np.isfinite(m)], 0.8, atol=1e-9), np.round(m, 4).tolist())
     rec("stage1_bootstrap_frozen", P.STAGE1_BOOT_B == 10000 and P.SEED == 20260927 and P.STAGE1_BOOT_SEED == 20260928)
 
+    # ---- v0.3 Stage 1 の判定関数・払戻 join・bootstrap (合成)
+    from . import evaluate_stage1 as E
+    nul = np.full(10, 0.79)
+    rd1 = np.array([0.86, 0.84, 0.82, 0.80, 0.795, 0.78, 0.76, 0.74, 0.72, 0.70])
+    rec("v03_g1_tansho_pass_vs_null", E.g1_decide("tansho", rd1, rd1 - 0.002, nul, nul)["grade"] == "PASS")
+    rd2 = rd1.copy()
+    rd2[[0, 1, 2]] = [0.78, 0.785, 0.775]
+    rec("v03_g1_tansho_fail_3_signs", E.g1_decide("tansho", rd1, rd2, nul, nul)["grade"] == "FAIL")
+    rec("v03_g1_fukusho_spearman_primary_only",
+        E.g1_decide("fukusho", rd1, rd1 - 0.2, np.full(10, 0.78), np.full(10, 0.78))["grade"] == "PASS"
+        and E.g1_decide("fukusho", rd1, rd1[::-1], np.full(10, 0.78), np.full(10, 0.78))["grade"] == "FAIL")
+    rec("v03_g2_select_rule", E.g2_select([0.02, 0.01, -0.01], [0.001, -0.001, -0.02]) == [0])
+    rec("v03_g2_decide_boundaries",
+        E.g2_decide([0], 0.02, 0.0101, 0.001)["grade"] == "PASS" and E.g2_decide([0], 0.02, 0.0099, 0.001)["grade"] == "FAIL"
+        and E.g2_decide([0], 0.02, 0.03, 0.0)["grade"] == "FAIL" and E.g2_decide([], 0, 0, 0)["grade"] == "NOT_APPLICABLE")
+    rl = np.array(["2019010106010101", "2019010106010102", "2019010106010103"])
+    dd = {"key": np.ones(9), "race": np.repeat([0, 1, 2], 3), "a": np.tile([1, 2, 3], 3), "b": np.tile([2, 3, 3], 3)}
+    tb = {rl[0]: {"first": [2], "second": [3], "tan": {2: 350.0}, "fuku": {}, "umaren": 1230.0},
+          rl[1]: {"first": [1, 2], "second": [], "tan": {1: 200.0, 2: 210.0}, "fuku": {}, "umaren": np.nan}}
+    pay, keep, reason = E.ticket_payouts("tansho", rl, dd, tb)
+    rec("v03_payout_join_tansho_and_dead_heat_excluded",
+        pay[:3].tolist() == [0.0, 3.5, 0.0] and keep.tolist() == [True] * 3 + [False] * 6
+        and reason == {"no_result": 1, "dead_heat_or_irregular": 1})
+    pay_u, keep_u, _ = E.ticket_payouts("umaren", rl, dd, tb)
+    rec("v03_payout_join_umaren_pair", pay_u[:3].tolist() == [0.0, 12.3, 0.0] and keep_u[:3].all())
+    days = np.repeat(np.array([20190105, 20190106, 20200105, 20200106, 20200112]), 4)
+    bt1, bt2 = E.DayBoot(days, days // 10000, seed=5, b=200), E.DayBoot(days, days // 10000, seed=5, b=200)
+    yr = bt1.udays // 10000
+    rec("v03_dayboot_deterministic_and_year_stratified", np.array_equal(bt1.W, bt2.W)
+        and all(np.all(bt1.W[:, yr == y].sum(1) == (yr == y).sum()) for y in np.unique(yr)))
+    rec("v03_stage1_refuses_before_freeze_or_is_frozen",
+        json.loads((L.HERE / "spec.json").read_text(encoding="utf-8"))["version"] in ("0.2-frozen", "0.3-frozen"))
+
     # ---- 封印
     k = L.load_kekka_master()
     rec("kekka_master_2024_2025_dropped", int(k["date"].max()) < 20240101)

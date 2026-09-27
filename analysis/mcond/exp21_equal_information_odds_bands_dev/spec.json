@@ -1,7 +1,7 @@
 {
   "experiment": "EXP21_equal_information_odds_bands",
-  "version": "0.2-frozen",
-  "status": "stage0_complete_g1g2_not_started_v0.3_premise_fix_needed",
+  "version": "0.3-frozen",
+  "status": "v0.3_frozen_before_stage1_outcomes",
   "character": "model-independent market-structure audit; not a betting-policy search",
   "ticket_types": [
     "tansho",
@@ -213,8 +213,74 @@
         "cluster": "calendar day (YYYYMMDD)"
       }
     },
-    "winner_claim": "WINNER_CLAIM_UNCERTAINTY.md (published values only; n-bar parameterized because the original table is not available)",
+    "winner_claim": "WINNER_CLAIM_UNCERTAINTY.md (published values only). Appendix A3 publishes combination counts (組合せ数, not votes) for all 9 trifecta bands; n-bar 127.6 (600-1200x) and 194.4 (1200-2500x) per race. Best-band Bonferroni: 600-1200x significant only at design effect 1.0, fails at 1.5-2.0; 1200-2500x fails even at 1.0. Combinations within a race are not independent samples. Corrected 2026-09-27 (first version wrongly said the table was unavailable).",
     "tests": "20/20",
     "v0.3_proposals": "STAGE0_DATA_AUDIT.md section 9 (not applied)"
+  },
+  "v03": {
+    "frozen_at": "2026-09-27",
+    "basis": "Fable review approved Stage 1 for tansho/fukusho/umaren after v0.3 pre-registration",
+    "authority": "this block supersedes conflicting v0.2 fields; v0.2 fields are kept for provenance",
+    "stage1_types": [
+      "tansho",
+      "fukusho",
+      "umaren"
+    ],
+    "other_types": {
+      "wakuren": "D0 diagnostic only",
+      "wide": "D0 diagnostic only",
+      "umatan": "D0 diagnostic only",
+      "sanrenpuku": "insufficient (2026 terminal 5 days, 179 races)",
+      "sanrentan": "G0 FAIL (no price source)",
+      "winner_trifecta_claim": "prior claim that EXP21 can neither replicate nor refute"
+    },
+    "baselines": {
+      "tansho_umaren": "each primary band is compared with its label-free calibrated null: the ticket-weighted mean of 1/overround of each ticket's race, computed from terminal prices only (null_roi_expectation). Statutory takeout is shown for reference only",
+      "takeout_change": "JRA takeout for umaren, wakuren and wide changed on 2014-06-07 (recorded in data_manifest); the calibrated null absorbs the change race by race",
+      "fukusho": "sqrt(Lo*Hi) is a band-assignment key only and never a payout; settlement uses official payouts; the Stage 1 baseline is the all-ticket pool ROI of the same period and price layer. The Stage 0 power null used synthetic_pay = baseline / q_null (implementation). EXP18 showed that the fixed JRA place formula does not reproduce displayed Lo/Hi (roundtrip Gate FAIL), so Lo/Hi are not inverted to shares or probabilities here"
+    },
+    "price_layers": {
+      "D0": "terminal band assignment, terminal settlement",
+      "D1_history": "historical_pre_snapshot (about T-28) band assignment, terminal settlement",
+      "T10": "acquired 0 days; 2026 OD is never called T-10",
+      "od2026_terminal_5_days": "D0 description only",
+      "od2026_night_before_or_early_morning_36_days": "price layer with undefined timing; held, not used"
+    },
+    "G1": {
+      "tansho_umaren": "discovery D0 vs evaluation D0 primary 10 bands: sign agreement of uplift vs calibrated null >= 8/10 AND Spearman(band ROI) >= 0.70",
+      "fukusho": "Spearman(band ROI) >= 0.70 is the primary rule; sign agreement vs pool ROI is secondary and does not grade",
+      "sensitivity": "20 bins reported, not graded"
+    },
+    "G2": {
+      "selection": "once, in discovery D0: primary bands with uplift > 0 and bootstrap CI95 lower > 0; union S",
+      "test": "once, in evaluation D1: uplift(S) >= 50% of discovery D0 uplift(S) AND CI95 lower of evaluation D1 uplift > 0; S empty -> NOT_APPLICABLE",
+      "discipline": "the discovery D0 table is not reused as formal evaluation; equal ticket-count and fixed bands are secondary and never used for rescue; ROI > 1.0 reported separately; G2 PASS is not a profit edge"
+    },
+    "dead_heats": "excluded per type and counted: tansho 1st-place tie; umaren tie at 1st or 2nd; fukusho number of paid places != places(n); scratched-horse tickets are refunds and not eligible",
+    "inference": {
+      "cluster": "calendar day, year-stratified",
+      "B": 10000,
+      "seed": 20260928,
+      "common_resamples": "the same resamples are used for all types and both layers within a period"
+    },
+    "power_positioning": "Stage 0 power used a band-independent normal approximation that ignores the correlation created when one race contributes to several bands; it may be optimistic. Power is a design aid only and is never used as Stage 1 significance",
+    "prior_expectations": [
+      "tansho and umaren: the FLB shape (favorite-band ROI > longshot-band ROI) replicates",
+      "fukusho: same direction but flattening in the lowest-odds bands",
+      "even where bands exceed the calibrated null, only the favorite-side 1-2 bands, and none reach break-even 1.0",
+      "D1: the gradient shrinks because of pre-to-terminal price moves",
+      "G1 PASS is not interpreted as a profit edge"
+    ],
+    "provenance": "PROVENANCE.md: Stage 0 commit aec789bb also contains 28 unrelated pre-existing files (legitimate work, already pushed; not modified). v0.3 is developed in an isolated worktree/branch exp21-v03-stage1 created from origin/master 30704408; the original working tree was not touched",
+    "sealed": [
+      "2024",
+      "2025"
+    ],
+    "no": [
+      "ROI optimisation",
+      "model selection",
+      "staking or allocation",
+      "production changes"
+    ]
   }
 }

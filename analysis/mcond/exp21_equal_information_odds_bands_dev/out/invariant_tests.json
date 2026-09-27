@@ -1,6 +1,6 @@
 {
- "n_tests": 20,
- "n_pass": 20,
+ "n_tests": 29,
+ "n_pass": 29,
  "all_passed": true,
  "tests": [
   {
@@ -90,6 +90,51 @@
   },
   {
    "test": "stage1_bootstrap_frozen",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "v03_g1_tansho_pass_vs_null",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "v03_g1_tansho_fail_3_signs",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "v03_g1_fukusho_spearman_primary_only",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "v03_g2_select_rule",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "v03_g2_decide_boundaries",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "v03_payout_join_tansho_and_dead_heat_excluded",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "v03_payout_join_umaren_pair",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "v03_dayboot_deterministic_and_year_stratified",
+   "pass": true,
+   "detail": ""
+  },
+  {
+   "test": "v03_stage1_refuses_before_freeze_or_is_frozen",
    "pass": true,
    "detail": ""
   },

@@ -1,6 +1,11 @@
 # EXP21 — Equal-information odds-band market audit
 
-Status: **Stage 0 complete (2026-09-27); G1/G2 not started, no band ROI computed**
+Status: **v0.3-frozen (2026-09-27, before Stage 1 outcomes)**; Stage 1 limited to tansho, fukusho and umaren.
+Tansho/umaren bands are compared with the label-free calibrated null (1/overround from terminal prices); fukusho
+uses Spearman of band ROI (primary) and the pool ROI as baseline. 2026 OD is never called T-10. See `SPEC.md` §13
+and `PROVENANCE.md`.
+
+Previous status: **Stage 0 complete (2026-09-27); G1/G2 not started, no band ROI computed**
 
 Stage 0 (see `STAGE0_DATA_AUDIT.md`): G0 PASS for tansho, fukusho, umaren (full terminal and ~T-28 coverage
 2013-2023), wakuren, wide, umatan (2023 91-column identified as terminal; layout reverse-mapped against official

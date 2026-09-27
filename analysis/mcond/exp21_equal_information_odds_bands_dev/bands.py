@@ -104,7 +104,7 @@ def history_tickets():
     st = load_structure(range(2013, 2024))
     W, LO, HI, U = pool_matrices(st["tan"], st["um"])
     idx = snapshot_index(st["tan"], st["um"], st["info"])
-    T = {(t, lay): {"key": [], "q": [], "race": [], "day": [], "pay": [], "year": []}
+    T = {(t, lay): {"key": [], "q": [], "race": [], "day": [], "pay": [], "year": [], "a": [], "b": [], "null": []}
          for t in ("tansho", "fukusho", "umaren") for lay in ("D0", "D1")}
     cov = {}
     rid_list = sorted(idx.index)
@@ -143,30 +143,37 @@ def history_tickets():
             c["fuku_pre_complete"] += fk > 0 and bool(np.all(np.isfinite(lop) & (lop > 0) & np.isfinite(hip)))
             c["umaren_pre_complete"] += bool(np.all(np.isfinite(up) & (up >= 1.0)))
 
-        def add(t, lay, key, q, pay):
+        bans = at["bans"].astype(int)
+        ia2, ib2 = np.triu_indices(n, 1)
+
+        def add(t, lay, key, q, pay, a, b, null):
             d = T[(t, lay)]
             d["key"].append(key); d["q"].append(q); d["race"].append(np.full(len(key), ri))
             d["day"].append(np.full(len(key), day)); d["pay"].append(pay); d["year"].append(np.full(len(key), y))
+            d["a"].append(a); d["b"].append(b); d["null"].append(null)
+        # null = race の terminal 価格だけから作る較正 null の ticket 期待値 1/overround (単勝・馬連)。複勝は定義しない (nan)
         if tan_ok:
             inv = 1 / at["win"]
-            add("tansho", "D0", at["win"], inv / inv.sum(), at["win"])
+            nul = np.full(n, 1.0 / inv.sum())
+            add("tansho", "D0", at["win"], inv / inv.sum(), at["win"], bans, np.zeros(n, int), nul)
             if pre is not None and np.all(np.isfinite(pre["win"]) & (pre["win"] > 1.0)):
                 iv = 1 / pre["win"]
-                add("tansho", "D1", pre["win"], iv / iv.sum(), at["win"])
+                add("tansho", "D1", pre["win"], iv / iv.sum(), at["win"], bans, np.zeros(n, int), nul)
         if fuku_ok:
             kk = np.sqrt(at["place_lo"] * at["place_hi"])
-            add("fukusho", "D0", kk, fk * (1 / kk) / (1 / kk).sum(), kk)
+            add("fukusho", "D0", kk, fk * (1 / kk) / (1 / kk).sum(), kk, bans, np.zeros(n, int), np.full(n, np.nan))
             if pre is not None and np.all(np.isfinite(pre["lo"]) & (pre["lo"] > 0) & np.isfinite(pre["hi"])):
                 kp = np.sqrt(pre["lo"] * pre["hi"])
-                add("fukusho", "D1", kp, fk * (1 / kp) / (1 / kp).sum(), kk)
+                add("fukusho", "D1", kp, fk * (1 / kp) / (1 / kp).sum(), kk, bans, np.zeros(n, int), np.full(n, np.nan))
         if um_ok:
             inv = 1 / at["umaren"]
-            add("umaren", "D0", at["umaren"], inv / inv.sum(), at["umaren"])
+            nul = np.full(len(inv), 1.0 / inv.sum())
+            add("umaren", "D0", at["umaren"], inv / inv.sum(), at["umaren"], bans[ia2], bans[ib2], nul)
             if pre is not None and np.all(np.isfinite(pre["um"]) & (pre["um"] >= 1.0)):
                 iv = 1 / pre["um"]
-                add("umaren", "D1", pre["um"], iv / iv.sum(), at["umaren"])
+                add("umaren", "D1", pre["um"], iv / iv.sum(), at["umaren"], bans[ia2], bans[ib2], nul)
     out = {k: {kk: np.concatenate(vv) for kk, vv in v.items()} for k, v in T.items()}
-    return out, cov
+    return out, cov, np.array(rid_list)
 
 
 # ---------------------------------------------------------------- 91 列 / OD terminal
@@ -228,7 +235,8 @@ def main():
                      "fixed_edges": [str(x) for x in FIXED_EDGES],
                      "D1_history": "historical_pre_snapshot (about T-28); never called T-10",
                      "no_outcome_columns_read": True}, "history": {}, "other_types": {}}
-    H, cov = history_tickets()
+    H, cov, rid_list = history_tickets()
+    np.save(L.RESEARCH / "rid_list.npy", rid_list)
     res["history_coverage_by_year"] = {str(y): v for y, v in sorted(cov.items())}
     for (t, lay), d in H.items():
         for pname, (y0, y1) in PERIODS.items():
@@ -238,7 +246,7 @@ def main():
                 "tickets": int(m.sum()), "races": int(len(np.unique(race))), "days": int(len(np.unique(day))),
                 "bands": all_bands(key, q, race, day, pay, twenty=True)}
             np.savez_compressed(L.RESEARCH / f"tickets_{t}_{lay}_{pname}.npz", key=key, q=q, race=race, day=day,
-                                pay=pay, year=d["year"][m])
+                                pay=pay, year=d["year"][m], a=d["a"][m], b=d["b"][m], null=d["null"][m])
         print(f"[{t} {lay}] done ({time.time()-t0:.0f}s)", flush=True)
     # 他券種 D0 (2023 terminal、OD 2026 terminal 日)
     df = L.read_target_odds(L.RAW2023, 91)

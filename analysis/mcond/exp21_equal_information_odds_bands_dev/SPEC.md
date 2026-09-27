@@ -1,4 +1,4 @@
-# EXP21 — 全券種・等情報量オッズ帯監査 仕様書 v0.2-frozen
+# EXP21 — 全券種・等情報量オッズ帯監査 仕様書 v0.3-frozen（§13 で v0.2 を部分改訂）
 
 ## 0. 目的と研究境界
 
@@ -173,3 +173,32 @@ Stage 0で優勝者資料の公表値・組合せ数から概算SEと多重比�
 
 全券種横断表には最良ROIではなく、G0/G1/G2、期間、race数、日数、価格時点、
 shape再現性だけを載せる。
+
+## 13. v0.3-frozen（2026-09-27、Stage 1 の結果開封前に凍結）
+
+Fable レビューで、単勝・複勝・馬連だけ Stage 1 へ進むことが承認された。本節は v0.2 の矛盾する規則を置き換える（v0.2 の記述は履歴として残す）。
+
+- **基準**: 単勝・馬連は、各帯の label-free 較正 null（帯内 ticket の race の 1/overround を terminal 価格だけから作り、ticket 重みで平均）と比べる。
+  法定控除率は参考値。馬連・枠連・ワイドの控除率が 2014-06-07 に変わったことを manifest に記録する（較正 null は race ごとに吸収する）。
+- **複勝**: Lo/Hi の幾何平均は帯割当キーとしてだけ使い、払戻値にしない。Stage 1 の基準は同じ期間・価格層の全 ticket プール ROI。
+  G1 は帯順位の Spearman ≥ 0.70 が主、プール ROI との差の符号一致は副。Stage 0 の power で使った合成 null は `synthetic_pay = baseline / q_null`。
+  EXP18 で固定した JRA 複勝式が表示 Lo/Hi を再現できなかった（往復 Gate FAIL）ので、Lo/Hi を票シェアや確率へ逆算しない。
+- **価格層**: 2026 OD を T−10 と呼ばない。terminal 5 日は D0 記述専用。前夜・未明の 36 日は時点未定義の価格層として保留。
+  歴史 D1 は historical_pre_snapshot（約 T−28）だけ。T−10 は取得 0 日。
+- **対象券種**: Stage 1 は単勝・複勝・馬連だけ。枠連・ワイド・馬単は D0 診断だけ。三連複は insufficient。三連単は G0 FAIL。
+  優勝者の三連単高倍率帯主張は、EXP21 では再現も否定もできない先行主張とする。
+- **G1**（単勝・馬連）: discovery D0 と evaluation D0 の primary 10 帯で、較正 null との差の符号一致 ≥ 8/10 かつ帯 ROI の Spearman ≥ 0.70。
+  20 帯は感度（等級に使わない）。
+- **G2**（G1 PASS 券種だけ）: discovery D0 で「uplift > 0 かつ bootstrap CI95 下限 > 0」の帯順位を**一度だけ**選び、その和集合を
+  evaluation D1 で**一度だけ**検定する。evaluation D1 の uplift が discovery D0 の 50% 以上残り、CI95 下限 > 0 なら PASS。選択が空なら NOT_APPLICABLE。
+  discovery D0 表を正式評価に再利用しない。等 ticket-count 帯と固定可読帯は副解析で、救済判定に使わない。ROI > 1.0 は別に報告する。
+- **同着**: 券種ごとに除外して件数を報告（単勝: 1 着同着、馬連: 1・2 着の同着、複勝: 払戻対象数 ≠ places(n)）。取消馬の ticket は返還で eligible 外。
+- **推論**: 年層化・暦日 cluster bootstrap、B = 10,000、seed 20260928。同じ期間の全券種・両価格層で同じ再標本を使う。
+- **検出力の位置づけ**: Stage 0 の power は帯間独立の正規近似で、同じ race が複数帯へ寄与する相関を無視しているため楽観的な可能性がある。
+  power は設計判断専用で、Stage 1 の有意性に使わない。
+- **事前期待**（結果開封前に固定）: 単勝・馬連は本命帯 ROI > 穴帯 ROI の FLB 形状が再現する。複勝は同方向だが低倍率帯で頭打ち。
+  較正 null を上回るとしても本命側 1〜2 帯に限られ、損益分岐 1.0 には届かない。D1 では pre → terminal の移動で勾配が縮む。
+  G1 PASS を利益 edge と解釈しない。
+- **provenance**: `PROVENANCE.md`（Stage 0 commit `aec789bb` に無関係 28 ファイルが混入した事実。過去 commit は修正しない）。
+- ROI 最適化、モデル選択、賭け方・資金配分、production 変更は行わない。2024/2025 は封印を維持する。
+
