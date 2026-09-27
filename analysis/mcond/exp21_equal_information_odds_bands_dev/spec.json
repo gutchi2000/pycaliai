@@ -1,0 +1,84 @@
+{
+  "experiment": "EXP21_equal_information_odds_bands",
+  "version": "0.1-draft",
+  "status": "fable_review_required",
+  "objective": "Audit odds-band return shapes across all standard single-race JRA bet types without optimizing betting policy.",
+  "ticket_types": [
+    "tansho",
+    "fukusho",
+    "wakuren",
+    "umaren",
+    "wide",
+    "umatan",
+    "sanrenpuku",
+    "sanrentan"
+  ],
+  "excluded": {
+    "win5": "different five-race event unit"
+  },
+  "bands": {
+    "primary": {
+      "method": "equal_market_implied_expected_hit_mass",
+      "n_bins": 10,
+      "sensitivity_n_bins": 20,
+      "outcome_columns_forbidden": true
+    },
+    "secondary": {
+      "method": "equal_ticket_count",
+      "n_bins": 10
+    },
+    "descriptive": {
+      "method": "fixed",
+      "edges": [1.0, 2.0, 3.0, 5.0, 10.0, 15.0, 25.0, 50.0, 100.0, 300.0, 600.0, 1200.0, 2500.0, 5000.0, 15000.0, "inf"],
+      "preregistered_interest": "wide 5.1-15.0; no special Gate treatment"
+    }
+  },
+  "price_layers": {
+    "D0_terminal_diagnostic": "terminal quote selects band; settled payout evaluates; non-actionable",
+    "D1_actionable": "decision-time quote selects band; terminal payout evaluates",
+    "mixing_forbidden": true,
+    "transition_matrix_required": true
+  },
+  "inference": {
+    "estimand": "100 JPY on every eligible ticket in a band",
+    "independent_cluster": "calendar_meeting_day",
+    "bootstrap_B": 10000,
+    "report": [
+      "tickets",
+      "races",
+      "days",
+      "expected_hit_mass",
+      "hits",
+      "stake",
+      "return",
+      "roi",
+      "ci95",
+      "difference_from_takeout_baseline",
+      "difference_from_break_even"
+    ],
+    "concentration_sensitivity": ["drop_top_1_3_10_tickets", "drop_top_1_3_days"]
+  },
+  "gates": {
+    "G0": "ticket-type-specific provenance, parser, key, payout and timing contract passes",
+    "G1": "primary shape same direction across discovery/evaluation and Spearman >= 0.70",
+    "G2": "decision-time effect retains >=50% of terminal diagnostic uplift and CI95 lower exceeds takeout baseline"
+  },
+  "known_data_constraints": {
+    "umaren": "2013-2025 9am and terminal substrate exists",
+    "all_ticket_2023": "raw layout and timestamp require revalidation",
+    "forward_2026": "227-column and T-10 coverage differs by ticket type",
+    "parser": "wide, umatan and triple-race ticket layouts are not fully verified"
+  },
+  "hard_prohibitions": [
+    "no inferred or proxy odds for missing ticket types",
+    "no result-driven bin boundaries",
+    "no venue/month/class/field-size interaction search",
+    "no model probability or Harville ranking",
+    "no staking or Kelly optimization",
+    "no production changes",
+    "no opening sealed 2024/2025 data for this audit",
+    "no actionable claim from terminal-price bands"
+  ],
+  "stage1_started": false,
+  "outcomes_opened_by_exp21": false
+}
