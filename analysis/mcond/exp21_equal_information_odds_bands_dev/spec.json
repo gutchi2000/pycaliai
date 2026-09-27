@@ -1,7 +1,7 @@
 {
   "experiment": "EXP21_equal_information_odds_bands",
   "version": "0.3-frozen",
-  "status": "v0.3_frozen_before_stage1_outcomes",
+  "status": "stage1_complete_tansho_umaren_G1_FAIL_fukusho_G1_G2_PASS",
   "character": "model-independent market-structure audit; not a betting-policy search",
   "ticket_types": [
     "tansho",
@@ -281,6 +281,52 @@
       "model selection",
       "staking or allocation",
       "production changes"
+    ]
+  },
+  "stage1_results": {
+    "date": "2026-09-27",
+    "freeze_commit": "e36ed2ca",
+    "report": "STAGE1_REPORT.md",
+    "tables": "STAGE1_TABLES.md",
+    "grades": {
+      "tansho": {
+        "G1": "FAIL",
+        "G1_spearman": 0.49090909090909085,
+        "G2": "NOT_RUN"
+      },
+      "fukusho": {
+        "G1": "PASS",
+        "G1_spearman": 0.8545454545454544,
+        "G2": "PASS"
+      },
+      "umaren": {
+        "G1": "FAIL",
+        "G1_spearman": 0.34545454545454546,
+        "G2": "NOT_RUN"
+      }
+    },
+    "fukusho_G2": {
+      "selected_bands": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "uplift_discovery_D0": 0.06094237387826307,
+      "uplift_evaluation_D1": 0.05117792904570628,
+      "retention": 0.8397757715828073,
+      "uplift_evaluation_D1_ci95_lower": 0.04153019249620986,
+      "evaluation_D1_roi_S": 0.7841777603262866
+    },
+    "interpretation": "tansho/umaren: longshot-band cliff replicates but bands 1-9 are flat around the calibrated null, so 10-band rank replication fails; fukusho: rank shape replicates and excluding the top longshot band beats the all-ticket pool at ~T-28, with ROI 0.784 (< 0.80 statutory, < 1.0); no band in any type/period/layer exceeds ROI 1.0; not a profit edge",
+    "sealed_untouched": [
+      "2024",
+      "2025"
     ]
   }
 }

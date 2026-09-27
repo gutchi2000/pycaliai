@@ -40,7 +40,7 @@ def main():
     spec = json.loads((HERE / "spec.json").read_text(encoding="utf-8"))
     frozen = json.loads(subprocess.run(["git", "-c", f"safe.directory={BASE.as_posix()}", "show", f"{FROZEN}:{REL}/spec.json"], capture_output=True, text=True,
                                        encoding="utf-8", cwd=BASE).stdout)
-    allowed = {"status", "stage0_started", "stage0_results", "version", "v03"}      # v0.3-frozen で追加・変更が許される項目
+    allowed = {"status", "stage0_started", "stage0_results", "version", "v03", "stage1_results"}      # v0.3-frozen で追加・変更が許される項目
     for k in frozen:
         if k not in allowed:
             check(f"spec_frozen_unchanged:{k}", frozen[k] == spec.get(k))
