@@ -3,7 +3,8 @@
 stage0_checks.py — EXP19 Stage 0 (v0.3 追補を含む) 成果物の整合検査 (読み取りだけ)
 ==================================================================================
 v0.3-frozen (commit 23e417ec) から変えてよいのは: status、stage0_results (v0.2 実測、superseded 表示の追加)、
-stage0_v03_results (新規)、v03_override.B_gates の B2_floor_nats / B2_status (一回限り再監査の結果記入) だけ。
+stage0_v03_results (新規)、v03_override.B_gates の B2_floor_nats / B2_status (一回限り再監査の結果記入)、
+およびFable承認後の非規範注記 gates.superseded_by / feature_contract.WP_superseded_by だけ。
 実行: python -m analysis.mcond.exp19_bodyweight_track_condition_dev.stage0_checks
 """
 from __future__ import annotations
@@ -48,7 +49,12 @@ def main():
     allowed = {"status", "stage0_results", "stage0_v03_results", "v03_override"}
     for k in frozen:
         if k not in allowed:
-            check(f"spec_v03_frozen_unchanged:{k}", frozen[k] == spec.get(k))
+            fv, sv = json.loads(json.dumps(frozen[k])), json.loads(json.dumps(spec.get(k)))
+            if k == "gates" and isinstance(sv, dict):
+                sv.pop("superseded_by", None)
+            if k == "feature_contract" and isinstance(sv, dict):
+                sv.pop("WP_superseded_by", None)
+            check(f"spec_v03_frozen_unchanged:{k}", fv == sv)
     fo, so = json.loads(json.dumps(frozen["v03_override"])), json.loads(json.dumps(spec["v03_override"]))
     for d in (fo, so):
         d["B_gates"].pop("B2_floor_nats", None)
