@@ -20,8 +20,22 @@ from production_policy import policy_stamp
 
 BASE = Path(__file__).resolve().parent
 FORWARD_ROOT = BASE / "data" / "forward_prices"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 _JST = timezone(timedelta(hours=9))
+
+# 観測計画 v2.1 §2.1 の stage。旧 `close` は確定価格ではないため `close_late` へ改名し、
+# 書込時・読込時とも別名解決する (v1 録のファイル名は改名しない)。
+# final_rt_candidate / final_stock_candidate は stream 別の `final` 候補 raw であり、
+# `final` の認定 (§2.3 の 3 条件) はこのモジュールでは行わない。
+STAGES = frozenset({"t10", "t20", "vote", "close_late", "manual", "exp05fs_t35",
+                    "t2_candidate", "trio_t10", "final_rt_candidate", "final_stock_candidate"})
+STAGE_ALIASES = {"close": "close_late"}
+
+
+def canonical_stage(stage: Any) -> str:
+    """v1 の `close` を `close_late` へ解決する。読込側は必ずこれを通して stage を比較する。"""
+    text = str(stage)
+    return STAGE_ALIASES.get(text, text)
 
 # 粗い正常性チェック専用 (2026-09-21、T-10の-5,228分異常の再発防止で追加)。
 # 「明らかにおかしい (別日の再取得等)」だけを標準エラーへ警告するためのゆるい
@@ -29,8 +43,9 @@ _JST = timezone(timedelta(hours=9))
 # 冪等再書込判定を壊さないため)。厳密なwindow判定・除外は
 # analysis/forward_price_timing_canary.py が別途、読み取り専用で行う。
 _TIMING_SANITY_WINDOWS_MIN = {
-    "t10": (-30.0, 60.0), "close": (-30.0, 30.0), "t20": (-30.0, 90.0),
+    "t10": (-30.0, 60.0), "close_late": (-30.0, 30.0), "t20": (-30.0, 90.0),
     "vote": (-30.0, 60.0), "exp05fs_t35": (-30.0, 90.0),
+    "t2_candidate": (-30.0, 30.0), "trio_t10": (-30.0, 60.0),
 }
 
 
@@ -101,7 +116,9 @@ def read_snapshot(path: Path) -> dict:
 def archive_market_snapshot(market: dict, stage: str, *,
                             scheduled_post: str | None = None,
                             stamp: dict | None = None,
-                            root: Path = FORWARD_ROOT) -> Path:
+                            root: Path = FORWARD_ROOT,
+                            captures: list[dict] | None = None,
+                            capture_error: str | None = None) -> Path:
     """JV-Link観測を不変スナップショットとして保存する。
 
     stage は `t10` / `t20` / `vote` / `close` / `manual` / `exp05fs_t35`。`vote` は学生大会の投票時点
@@ -112,9 +129,16 @@ def archive_market_snapshot(market: dict, stage: str, *,
     混ぜない (2026-09-19 追加)。
     同一秒・同一内容の再実行は同じファイルへ
     冪等書込、内容が違えばhash suffixが変わり履歴を失わない。
+
+    schema v2 (観測計画 v2.1 §2.2、2026-09-29): `close` は `close_late` として保存し
+    `stage_requested` に元の名前を残す。`captures` は jv_records.capture() の出力 (spec ごとの
+    raw 録・区分・発表月日時分・取得時刻・発売フラグ・票数計・parse 済み全組) で、
+    `market` (本番 latest view と同一 payload) とは別キーに置く。
     """
-    if stage not in {"t10", "t20", "vote", "close", "manual", "exp05fs_t35"}:
-        raise ValueError(f"未知のprice stage: {stage}")
+    requested = str(stage)
+    stage = canonical_stage(stage)
+    if stage not in STAGES:
+        raise ValueError(f"未知のprice stage: {requested}")
     rid = _rid16(market.get("race_id"))
     if len(rid) != 16:
         raise ValueError(f"race_id不正: {market.get('race_id')!r}")
@@ -126,10 +150,17 @@ def archive_market_snapshot(market: dict, stage: str, *,
         "race_id": rid,
         "observed_at": observed,
         "scheduled_post": scheduled_post,
-        "source": "JV-Link:0B31/0B33/0B34",
+        "source": ("JV-Link:" + "/".join(c.get("spec", "?") for c in captures)
+                   if captures else "JV-Link:0B31/0B33/0B34"),
         "policy": stamp or policy_stamp(),
         "market": market,
     }
+    if requested != stage:
+        body["stage_requested"] = requested
+    if captures is not None:
+        body["jv_captures"] = captures
+    if capture_error:
+        body["capture_error"] = capture_error
     body["market_sha256"] = payload_sha256(market)
     body["record_sha256"] = payload_sha256(body)
     name = (f"{rid}_{stage}_{_slug_time(observed)}_"

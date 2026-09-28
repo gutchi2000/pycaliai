@@ -20,7 +20,7 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BASE))
 
-from forward_prices import FORWARD_ROOT, fair_win_probabilities, read_snapshot  # noqa: E402
+from forward_prices import FORWARD_ROOT, canonical_stage, fair_win_probabilities, read_snapshot  # noqa: E402
 from generate_results import get_race_kk, get_winner, load_kekka_all, parse_race_id_16  # noqa: E402
 from production_policy import load_policy  # noqa: E402
 
@@ -105,7 +105,7 @@ def evaluate(root: Path, start: int, expected_policy_id: str) -> tuple[dict, lis
         if record.get("record_type") == "decision_snapshot":
             decisions[rid].append(record)
         elif record.get("record_type") == "market_snapshot":
-            markets[rid][str(record.get("stage"))].append(record)
+            markets[rid][canonical_stage(record.get("stage"))].append(record)   # v1 close → close_late
 
     kekka = load_kekka_all()
     horse_rows: list[dict] = []
@@ -118,7 +118,7 @@ def evaluate(root: Path, start: int, expected_policy_id: str) -> tuple[dict, lis
     for rid, versions in sorted(decisions.items()):
         decision = max(versions, key=_observed)
         t10s = markets[rid].get("t10", [])
-        closes = markets[rid].get("close", [])
+        closes = markets[rid].get("close_late", [])
         counts["t10_races"] += int(bool(t10s))
         counts["close_races"] += int(bool(closes))
         exact_t10 = next((x for x in t10s

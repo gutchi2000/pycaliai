@@ -54,7 +54,7 @@ SNAP_DIR = OUT_DIR / "snapshots"
 STOCK_DIR = OUT_DIR / "raw_stock"
 MANIFEST = OUT_DIR / "manifest.jsonl"
 
-COLLECTOR_VERSION = "trio-collector-2026-08-18.1"
+COLLECTOR_VERSION = "trio-collector-2026-09-29.2"   # .2: 取得時刻・票数計・journal・forward v2 ミラー
 SPEC_RT = "0B35"          # 速報オッズ(三連複)
 SPEC_RT_TAN = "0B31"      # 速報オッズ(単複枠) — blend 用の同時点単勝
 REC_ID = "O5"
@@ -233,6 +233,40 @@ def fetch_stock_o5(from_ts: str, timeout_s: int = 600) -> list[str]:
     return out
 
 
+def fetch_records_timed(race_key: str, spec: str) -> tuple[list[str], dict]:
+    """取得時刻 (ms) と rc を添えた取得。jvlink_odds.fetch_records_timed があればそれを使う
+    (journal も同時に書かれる)。無ければ従来の fetch_records に時刻だけ添える。"""
+    try:
+        from jvlink_odds import fetch_records_timed as _t
+        return _t(race_key, spec, max_rec=400)
+    except ImportError:
+        pass
+    started = datetime.now().astimezone().isoformat(timespec="milliseconds")
+    recs = fetch_records(race_key, spec)
+    return recs, {"fetch_started_at": started, "stream": "rt", "rc_init": None, "rc_open": None,
+                  "error": None, "n_records_returned": len(recs),
+                  "fetch_finished_at": datetime.now().astimezone().isoformat(timespec="milliseconds")}
+
+
+def mirror_forward_v2(rid16: str, snap: dict, raw: dict, dry: bool) -> str | None:
+    """観測計画 v2.1: 三連複 T−10 断面も forward_prices (schema v2, stage=trio_t10) へ raw 付きで
+    追記する。本 collector の既存出力とは独立の複製で、失敗しても collect_race は続行する。"""
+    try:
+        import jv_records as JR
+        from forward_prices import FORWARD_ROOT, archive_market_snapshot
+        caps = [JR.capture(spec, rid16, recs, meta) for spec, (recs, meta) in raw.items()]
+        market = {"race_id": rid16, "fetched": snap["fetched_ms"], "ok": snap["ok"],
+                  "reason": snap.get("reason", ""), "trio": snap.get("trio", {}),
+                  "tansho": snap.get("tansho", {})}
+        root = FORWARD_ROOT.parent / "forward_prices_dry" if dry else FORWARD_ROOT
+        post = snap.get("post_time")
+        sp = f"{snap['date'][:4]}-{snap['date'][4:6]}-{snap['date'][6:8]}T{post}:00" if post else None
+        return str(archive_market_snapshot(market, "trio_t10", scheduled_post=sp, root=root,
+                                           captures=caps))
+    except Exception as exc:
+        return f"ERROR {type(exc).__name__}: {exc}"[:300]
+
+
 # ============================================================
 # 追記専用ストレージ（P9: raw 不変）
 # ============================================================
@@ -349,21 +383,30 @@ def bundle_race(date_str: str, rid16: str) -> dict | None:
 # T-10 断面取得（§5.1 データ契約）
 # ============================================================
 def collect_race(rid16: str, date_str: str | None = None,
-                 window=(8.0, 12.0), subdir: str | None = None) -> dict:
+                 window=(8.0, 12.0), subdir: str | None = None, dry: bool = False) -> dict:
     """1 レースの T-10 断面を取る。subdir を渡すと保存先フォルダ名を差し替える
-    （疎通テスト用。Phase 0 の集計に混ざらないようにする）。"""
+    （疎通テスト用。Phase 0 の集計に混ざらないようにする）。dry は _dry/{date} へ書き、
+    forward_prices ミラーも forward_prices_dry へ分ける（観測計画 v2.1 §5.1 の登録前 -Dry 1 開催日）。"""
     now = datetime.now()
     date_str = date_str or rid16[:8]
-    folder = subdir or date_str
+    folder = subdir or (f"_dry/{date_str}" if dry else date_str)
     ts = now.strftime("%Y%m%dT%H%M%S")
     post = load_post_times(date_str).get(rid16, "")
     lead = lead_minutes(now, date_str, post)
 
-    recs5 = [r for r in fetch_records(rid16, SPEC_RT) if r.startswith(REC_ID)]
-    recs1 = [r for r in fetch_records(rid16, SPEC_RT_TAN) if r.startswith("O1")]
+    try:
+        from jv_journal import set_context
+        set_context(process="trio_shadow", stage="trio_t10", race_id=rid16, dry=dry)
+    except Exception:
+        pass
+    all5, meta5 = fetch_records_timed(rid16, SPEC_RT)
+    all1, meta1 = fetch_records_timed(rid16, SPEC_RT_TAN)
+    recs5 = [r for r in all5 if r.startswith(REC_ID)]
+    recs1 = [r for r in all1 if r.startswith("O1")]
 
     rawdir = RAW_DIR / folder / rid16
     raw_paths, dup = {}, False
+    metas = {SPEC_RT: meta5, SPEC_RT_TAN: meta1}
     for spec, recs in ((SPEC_RT, recs5), (SPEC_RT_TAN, recs1)):
         if not recs:
             continue
@@ -373,12 +416,17 @@ def collect_race(rid16: str, date_str: str | None = None,
         dup = dup or d
         log_manifest({"kind": "raw", "spec": spec, "race_id": rid16,
                       "fetched": now.isoformat(timespec="seconds"),
+                      "fetch_started_at": metas[spec].get("fetch_started_at"),
+                      "fetch_finished_at": metas[spec].get("fetch_finished_at"),
+                      "announce": recs[-1][27:35], "kubun": recs[-1][2:3],
                       "path": raw_paths[spec], "sha256": _sha(body),
                       "n_records": len(recs), "collector": COLLECTOR_VERSION,
                       "dup_collision": d})
 
     snap = {"race_id": rid16, "date": date_str,
             "fetched": now.isoformat(timespec="seconds"),
+            "fetched_ms": meta5.get("fetch_started_at"),
+            "fetch": {SPEC_RT: meta5, SPEC_RT_TAN: meta1},
             "collector_version": COLLECTOR_VERSION,
             "post_time": post or None, "lead_min": None if lead is None else round(lead, 2),
             "lead_window": list(window),
@@ -397,7 +445,8 @@ def collect_race(rid16: str, date_str: str | None = None,
                      "toroku": o5["toroku"], "shusso": o5["shusso"],
                      "hatsubai_flag": o5["hatsubai_flag"],
                      "announce": o5["announce"], "kubun": o5["kubun"],
-                     "race_key_match": key_ok})
+                     "race_key_match": key_ok,
+                     "votes_total": _digits(recs5[-1].rstrip("\r\n")[-11:])})
         exp = n_combos(o5["shusso"] or 0, 3)
         exp_slots = n_combos(o5["toroku"] or 0, 3)
         snap["expected_combos"] = exp
@@ -431,6 +480,8 @@ def collect_race(rid16: str, date_str: str | None = None,
     b = bundle_race(date_str, rid16)
     if b:
         snap["bundle"] = b
+    snap["forward_v2"] = mirror_forward_v2(
+        rid16, snap, {SPEC_RT: (all5, meta5), SPEC_RT_TAN: (all1, meta1)}, dry)
     p, d = write_append_only(SNAP_DIR / folder / f"{rid16}_{ts}.json",
                              json.dumps(snap, ensure_ascii=False, indent=1))
     snap["_snapshot_path"] = str(p.relative_to(BASE))
@@ -483,7 +534,7 @@ def build_schedule(date_str: str) -> list:
     return out
 
 
-def watch(date_str: str, lead_min: float = 10.0, window=(8.0, 12.0)) -> int:
+def watch(date_str: str, lead_min: float = 10.0, window=(8.0, 12.0), dry: bool = False) -> int:
     """開催日に並走させる shadow collector。各レースの T-lead で 1 断面だけ取る。
 
     本番 t10_runner とは別プロセス・別ロック・別出力。本番には触れない。
@@ -514,7 +565,7 @@ def watch(date_str: str, lead_min: float = 10.0, window=(8.0, 12.0)) -> int:
                         done.add(rid)
                     continue
                 if lm <= lead_min:
-                    s = collect_race(rid, date_str, window)
+                    s = collect_race(rid, date_str, window, dry=dry)
                     done.add(rid)
                     print(f"[watch] {rid} lead={s.get('lead_min')}分 ok={s['ok']} "
                           f"組={s.get('n_trio')}/{s.get('expected_combos')}")
@@ -537,10 +588,13 @@ def main() -> int:
                     help="疎通テスト。snapshots/_smoke/ に書き Phase 0 集計に混ぜない")
     ap.add_argument("--stock-dump", help="YYYYMMDDHHMMSS: 蓄積系 O5 を dump (parser 検証専用)")
     ap.add_argument("--tag", default="", help="--stock-dump の保存タグ")
+    ap.add_argument("--dry", action="store_true",
+                    help="登録前の Dry 開催日用。raw/snapshots を _dry/{date} に、forward ミラーを "
+                         "forward_prices_dry に書き、500R 集計に混ぜない")
     args = ap.parse_args()
 
     if args.watch:
-        return watch(args.watch, args.lead_min)
+        return watch(args.watch, args.lead_min, dry=args.dry)
 
     if args.stock_dump:
         r = stock_dump(args.stock_dump, args.tag or args.stock_dump[:8])
@@ -558,7 +612,7 @@ def main() -> int:
         ap.error("--race / --all-races / --stock-dump のいずれかが必要")
 
     for rid in rids:
-        s = collect_race(rid, args.date, subdir="_smoke" if args.smoke else None)
+        s = collect_race(rid, args.date, subdir="_smoke" if args.smoke else None, dry=args.dry)
         print(f"[trio] {rid} ok={s['ok']} lead={s.get('lead_min')}分 "
               f"(発表={s.get('announce_dt')} lead={s.get('announce_lead_min')}分) "
               f"in_window={s['in_window']} 組={s.get('n_trio')}/"

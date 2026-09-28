@@ -55,6 +55,14 @@ STAGE_WINDOWS_MIN: dict[str, tuple[float, float]] = {
     "vote": (0.0, 20.0),
     "exp05fs_t35": (15.0, 55.0),
     "manual": (float("-inf"), float("inf")),  # 手動実行は目標窓を定義しない
+    # 観測計画 v2.1 (2026-09-29): close_late は旧 close の改名 (同じ窓)。t2_candidate は発走 2 分前の
+    # 取得 (0B31〜0B35 連続取得の開始時刻が observed_at)。trio_t10 は三連複 shadow の T-10。
+    # final_* は確定後の候補 raw で、当日夜 (RT) と翌日夜まで (蓄積系) を許容する。
+    "close_late": (-15.0, 2.0),
+    "t2_candidate": (0.0, 6.0),
+    "trio_t10": (0.0, 25.0),
+    "final_rt_candidate": (-1440.0, 0.0),
+    "final_stock_candidate": (-4320.0, 0.0),
 }
 
 
