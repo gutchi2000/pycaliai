@@ -41,3 +41,19 @@ base = 事故直前 HEAD `1ed4c7a1`、REC = `refs/recovery/autostash-20260927`�
 ## 教訓（既存メモリと同じ）
 
 本番に効くファイル（コード・policy json・baseline・pkl）は変更したら即コミット。weekly ps1 は毎回 autostash するため、未コミット運用は失敗 1 回で全損する。
+
+## 後続確認（2026-09-29）: `data/masters_vote.json` の安全設定を復元
+
+上の照合表では `data/masters_vote.json` を「enabled=true のまま不活性」と記録した。その後の確認で、この `enabled=true` は意図した状態ではなく、事故後の広範囲な復旧で偶発的に戻ったものと分かったため、`c4c3f298` の安全設定を復元した。
+
+| 時刻（9/27） | commit | `enabled` | 内容 |
+|---|---|---|---|
+| 00:59 | autostash `1dfd7a72` | true | 事故時点の作業ツリー（9/22 大会最終日設定: 馬連 28,500 / ワイド 9,500、`aite_force_both`） |
+| 10:52 | `c4c3f298` | **false** | 大会終了につき意図的に停止。`_enabled_note` で `t10.ps1` の `-WithVote` 既定 OFF との二重ロックと明記 |
+| 12:10 | `aec789bb` | true | 退避内容の一括復旧が REF 版で上書きし、`c4c3f298` の停止を偶発的に取り消した |
+
+- 判断: `-WithVote` による停止だけに依存せず、設定側でも停止する（二重ロックを戻す）。
+- 反映方法: base `1ed4c7a1`、ours = REF（= HEAD の 9/22 設定）、theirs = `c4c3f298`（CRLF を LF に正規化）の 3-way merge。衝突なし。REF との差は `enabled: false` と `_enabled_note` の 2 行だけで、その他の設定（stake、`aite_force_both`、`race_days` 等）は REF のまま。
+- blob hash: `a796e90598ed`（HEAD = REF、enabled=true）→ `ea1c7be2f561`（enabled=false）。
+- SHA256: `632577216d89…` → `b561548b401a…`。
+- 本表の `data/masters_vote.json` 行は本節で置き換える。表そのものは記録として残す。
