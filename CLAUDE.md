@@ -22,8 +22,10 @@
 | [Vol. IV](docs/SPEC/VOL4_CODE_REFERENCE.md) | 関数レベルのコードリファレンス |
 | [結合版](docs/SPEC/ALL_IN_ONE.md) | 外部 AI への一括投入用 |
 
-**新発見（要対応）**: 本番 v6 は学習 gain の **28.15%** を serve で失っている。
-うち **約 20.8% は回収可能**（Vol. III §5.2）。詳細は Vol. III の P0-1〜P0-4。
+**新発見（要対応、2026-09-10更新）**: 本番 v6 は学習 gain の **28.15%** を serve で失っていた（2026-06時点）。
+P0-1（騎手/調教師stats）・P0-2（着度数CSV列数）・P0-4（Ｒ全角）は **2026-09-10 実データ再検証で解消確認済み**
+（Vol. III §5.1a、2026-07-29コミット済みの修正が本番経路に既に乗っていた）。旧見積りの「約20.8%回収可能」は
+その前の baseline を基準にした値のため要再計算。次の実作業は baseline 再生成 → P0-3（較正器マスク同期）。
 
 ---
 
@@ -477,6 +479,20 @@ v6 + cowork_prompt 改修（節 11）でこの弱点改善を狙う。
 # 補正印(オッズblend, 2026-07-03): T-10 で log(p_win)+λ·log(市場π) 再ランクの印を表示。
 #   OOS実証 ◎top3 61.7%→65.1% (test2024-25, Δ+3.41pt CI[+2.5,+4.3])。表示専用・買い目不干渉。
 #   λ再fit: python -m analysis.fit_t10_blend → data/t10_blend.json
+
+# サイト公開用 T-20 買い目プレビュー（2026-09-10新設、2026-09-11 堅牢化）: 各レース
+#   発走20分前に大会仕様ロジック(masters_vote.aite_switch_tickets)で計算しTACTへ
+#   反映(オッズ非公開)。実投票(masters_vote, T-4)が入ればそちらに自動置換、大会側が
+#   最終的に見送り/投票失敗と決めた後はT-20速報も出さない(load_masters_vote_final_rids)。
+#   validate_market()がok/race_id一致/鮮度(10分)/現存馬全頭の単勝オッズ充足を検査、
+#   不備があれば判定自体をスキップし取得失敗として扱う(bundleの朝オッズが黙って
+#   混ざる経路を遮断)。判定結果はレース単位ファイル reports/masters_vote_site/{date}/{rid}.json
+#   (同時刻帯の複数レース処理が競合しないよう分離)。公開はsync-hf-umami.ps1のみを
+#   呼ぶ(内部にファイルロックreports/.locks/を追加、同スクリプトを呼ぶ全経路
+#   [t20/baba_daily/weekly_nicegui]を直列化)。T-10/T-4の実ラインには一切干渉しない
+#   (専用dir reports/site_odds、forward_prices stage="t20"でT-10履歴と分離)。
+# ★土日 9:00 はタスクスケジューラ「PyCaLiAI_T20_Site」が自動起動 — 手動起動は不要。
+#   テスト: .\t20_site.ps1 -Once <rid16> -Dry
 
 # 週次 Phase C（日曜夜、kekka 配置後）
 .\weekly_nicegui.ps1 -Post
