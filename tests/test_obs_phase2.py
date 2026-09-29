@@ -601,8 +601,8 @@ def test_stage0_audit_source_reads_no_outcome():
 def test_performance_guard_blocks_before_500(tmp_path):
     from analysis import obs_guard as G
     with pytest.raises(PermissionError):
-        G.assert_performance_allowed("trio", tmp_path, n=499)
-    assert G.assert_performance_allowed("trio", tmp_path, n=500) == 500
+        G._require(499, "trio")
+    assert G._require(500, "trio") == 500
     cap = JR.capture("0B35", RID, [build("O5")], {})
     for st in ("trio_t10", "final_stock_candidate"):
         FP.archive_market_snapshot({"race_id": RID, "fetched": f"2026-10-03T{15 if st == 'trio_t10' else 18}:00:00"},
@@ -610,6 +610,63 @@ def test_performance_guard_blocks_before_500(tmp_path):
     assert G.count_label_free_valid_races("trio", tmp_path) == 1
     with pytest.raises(PermissionError):
         G.assert_performance_allowed("trio", tmp_path)
+
+
+def test_guard_has_no_count_override_argument():
+    import inspect
+    from analysis import obs_guard as G
+    assert list(inspect.signature(G.assert_performance_allowed).parameters) == ["stream", "root"]
+
+
+def test_repository_has_no_unguarded_performance_path():
+    """追跡 .py 全件で、観測 stage × 結果・払戻系を扱いながら guard を呼ばない module が 0 件。"""
+    from analysis import obs_guard as G
+    files = G.tracked_python_files()
+    assert len(files) > 100
+    assert G.find_unguarded_modules(files=files) == []
+
+
+GUARD_CASES = {
+    "unguarded_import": ('from generate_results import load_kekka_all\nSTAGE = "trio_t10"\n', True),
+    "unguarded_name_import": ('from build_site import parse_wide_kekka\nS = ["t2_candidate"]\n', True),
+    "unguarded_string": ('p = "data/kekka/20261003.csv"\nstage = "final_stock_candidate"\n', True),
+    "unguarded_japanese": ('col = "確定着順"\nstage = "final_rt_candidate"\n', True),
+    "unguarded_dynamic": ('import importlib\nm = importlib.import_module("generate_results")\ns = "trio_t10"\n', True),
+    "guarded": ('from analysis.obs_guard import assert_performance_allowed\n'
+                'from generate_results import load_kekka_all\n'
+                'def main():\n    assert_performance_allowed("trio")\n    return "trio_t10"\n', False),
+    "guard_root_override": ('from analysis.obs_guard import assert_performance_allowed\n'
+                            'import generate_results\n'
+                            'assert_performance_allowed("trio", root="elsewhere")\ns = "trio_t10"\n', True),
+    "stage_only_label_free": ('STAGES = ("t2_candidate", "trio_t10")\n', False),
+    "outcome_only_no_obs_stage": ('from generate_results import load_kekka_all\nstage = "t10"\n', False),
+    "docstring_and_blocklist_ignored": ('"""payout や 着順 は読まない。"""\nFORBIDDEN_MARKERS = ("kekka", "payout")\n'
+                                        'STAGE = "t2_candidate"\n', False),
+    "prose_mention_not_counted": ('ROLE = "label-free: no outcome, payout or ROI is read"\nS = "trio_t10"\n', False),
+    "path_with_space_still_counted": ('P = "E:/data dir/kekka/x.csv"\nS = "trio_t10"\n', True),
+}
+
+
+@pytest.mark.parametrize("name", sorted(GUARD_CASES))
+def test_guard_static_check_cases(tmp_path, name):
+    from analysis import obs_guard as G
+    src, bad = GUARD_CASES[name]
+    p = tmp_path / "analysis" / f"{name}.py"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(src, encoding="utf-8")
+    found = G.find_unguarded_modules(base=tmp_path, files=[p])
+    assert bool(found) is bad, (name, found)
+
+
+def test_guard_check_cli_fails_on_violation(tmp_path, monkeypatch):
+    from analysis import obs_guard as G
+    p = tmp_path / "analysis" / "bad.py"
+    p.parent.mkdir(parents=True)
+    p.write_text('import generate_results\nx = "trio_t10"\n', encoding="utf-8")
+    monkeypatch.setattr(G, "BASE", tmp_path)
+    monkeypatch.setattr(G, "tracked_python_files", lambda base=tmp_path: [p])
+    monkeypatch.setattr(sys, "argv", ["obs_guard", "--check"])
+    assert G.main() == 1
 
 
 # ---------------------------------------------------------------- dry-day start condition
