@@ -49,15 +49,58 @@ def _digits(s):
     return int(s) if s.isdigit() else None
 
 
+# この process で行った取得 (spec, 録, meta)。forward_prices へ raw 録を残すためだけに使う
+# (観測計画 v2.1 §2.2)。本番の parse 結果・latest view・終了コードには関与しない。
+_CAPTURE_LOG: list[tuple[str, list[str], dict]] = []
+
+
+def _now_ms() -> str:
+    from datetime import datetime
+    return datetime.now().astimezone().isoformat(timespec="milliseconds")
+
+
+def fetch_records_timed(race_key: str, spec: str, max_rec: int = 200) -> tuple[list[str], dict]:
+    """fetch_records と同一の取得に、実取得時刻 (ms, JST)・rc・返却録数を添える。
+    取得挙動 (JVInit/JVRTOpen/JVRead の呼び方・失敗時の空返し・例外の伝播) は変えない。
+    取得ごとに jv_journal へ 1 ファイル書く (fail-open)。"""
+    meta = {"fetch_started_at": _now_ms(), "rc_init": None, "rc_open": None, "error": None,
+            "stream": "rt"}
+    recs: list[str] = []
+    try:
+        recs = _fetch_records_raw(race_key, spec, max_rec, meta)
+    except Exception as exc:
+        meta["error"] = f"{type(exc).__name__}: {exc}"[:300]
+        raise
+    finally:
+        meta["fetch_finished_at"] = _now_ms()
+        meta["n_records_returned"] = len(recs)
+        try:
+            from jv_journal import write_event
+            write_event(race_key, spec, meta)
+        except Exception:
+            pass
+    return recs, meta
+
+
 def fetch_records(race_key: str, spec: str, max_rec: int = 200) -> list[str]:
     """JVRTOpen→JVRead で spec の録を集める。32-bit COM。"""
+    recs, meta = fetch_records_timed(race_key, spec, max_rec)
+    _CAPTURE_LOG.append((spec, recs, meta))
+    return recs
+
+
+def _fetch_records_raw(race_key: str, spec: str, max_rec: int, meta: dict) -> list[str]:
     import win32com.client as w
     jv = w.Dispatch("JVDTLab.JVLink")
-    if jv.JVInit(SID) != 0:
+    rc = jv.JVInit(SID)
+    meta["rc_init"] = rc
+    if rc != 0:
         return []
     recs = []
     try:
-        if jv.JVRTOpen(spec, race_key) != 0:
+        rc = jv.JVRTOpen(spec, race_key)
+        meta["rc_open"] = rc
+        if rc != 0:
             return []
         for _ in range(max_rec):
             r = jv.JVRead(" " * 120000, 120000, " " * 256)
@@ -201,8 +244,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--race", required=True, help="16桁 race_key（例 2026060705030211）")
     ap.add_argument("--validate", help="bundle.json パスを渡すと単勝を照合表示")
-    ap.add_argument("--stage", choices=("t10", "t20", "vote", "close", "manual", "exp05fs_t35"),
-                    default="manual", help="前向き価格ログの観測時点")
+    ap.add_argument("--stage", choices=("t10", "t20", "vote", "close", "close_late", "manual",
+                                        "exp05fs_t35"),
+                    default="manual", help="前向き価格ログの観測時点 (close は close_late として保存)")
     ap.add_argument("--out-dir", default=None,
                     help="{race}.json の出力先 (既定 reports/live_odds)。学生大会の "
                          "T-4 取得は本番 T-10 スナップを上書きしないよう別 dir を使う")
@@ -212,6 +256,11 @@ def main():
                     help="0B31/0B32/0B33/0B34 の生レコードを reports/live_odds/raw/ に保存"
                          " (ワイド/馬単パーサ確定用。土曜に1回でOK)")
     args = ap.parse_args()
+    try:
+        from jv_journal import set_context
+        set_context(process="jvlink_odds", stage=args.stage, race_id=args.race)
+    except Exception:
+        pass
     if args.dump_raw:
         dump_raw(args.race)
     res = fetch_race(args.race)
@@ -219,10 +268,26 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"{args.race}.json").write_text(
         json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
+    # raw 録・区分・発表時刻・取得時刻・票数計・全組を schema v2 で追記保存 (観測計画 v2.1 §2.2)。
+    # 構造化や raw 付き保存が失敗しても、従来の保存 (market のみ) の成否だけで終了コードを決める。
+    captures, cap_err = None, None
+    try:
+        from jv_records import capture
+        captures = [capture(spec, args.race, recs, meta) for spec, recs, meta in _CAPTURE_LOG]
+    except Exception as exc:
+        captures, cap_err = None, f"{type(exc).__name__}: {exc}"[:300]
     try:
         from forward_prices import archive_market_snapshot
-        archived = archive_market_snapshot(
-            res, args.stage, scheduled_post=args.scheduled_post)
+        try:
+            archived = archive_market_snapshot(
+                res, args.stage, scheduled_post=args.scheduled_post,
+                captures=captures, capture_error=cap_err)
+        except Exception as exc:
+            if captures is None:
+                raise
+            archived = archive_market_snapshot(
+                res, args.stage, scheduled_post=args.scheduled_post,
+                capture_error=f"raw付き保存失敗 {type(exc).__name__}: {exc}"[:300])
     except Exception as exc:
         print(f"[jvlink_odds][ERROR] forward price保存失敗: {exc}")
         return 2

@@ -249,6 +249,11 @@ def main():
     ap.add_argument("--dump-raw", action="store_true",
                     help="生レコードを reports/live_changes/raw/ に保存（オフセット確定用）")
     args = ap.parse_args()
+    try:   # 取得ジャーナル (観測計画 v2.1) に明示名で載せる。失敗しても本処理は続行
+        from jv_journal import set_context
+        set_context(process="jvlink_changes", stage="changes", race_id=None)
+    except Exception:
+        pass
 
     rids = args.races.split(",") if args.races else race_ids_from_bundle(args.date)
     if not rids:
