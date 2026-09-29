@@ -3,7 +3,10 @@
 obs_guard.py — 観測計画 v2.1: 500R 到達前に性能・ROI・帯選択を実行させないための入口 guard と静的検査
 ==================================================================================================
 1. guard: §5.3 / §6 / §7 の性能・回収率・帯選択・候補選択の集計は、計算の最初に
-   `assert_performance_allowed(stream)` を呼ぶ。有効 race が 500 未満なら PermissionError で止まる。
+   `assert_performance_allowed(stream)` を呼ぶ。次のどちらかで PermissionError で止まる。
+   - Stage 0 ledger（data/obs_stage0_ledger.jsonl）の最新の本番判定が通過（CONCURRENCY_OK）でない
+     （CONTRACT_NOT_MET 等の後は、修正後の開催日から Stage 0 の 2 日を数え直して通過するまで進めない）
+   - その通過窓の初日以降の有効 race が 500 未満
    件数は forward store から数える（呼出側が件数を渡して通す経路は無い）。
 
    有効 race の数え方は label-free な部分だけ（§5.3 の有効 race 定義のうち、発売中・全組完全・
@@ -14,7 +17,7 @@ obs_guard.py — 観測計画 v2.1: 500R 到達前に性能・ROI・帯選択を
    (a) 観測 stage（trio_t10 / t2_candidate / final_rt_candidate / final_stock_candidate）を参照し、かつ
    (b) 結果・払戻・着順系を import する（generate_results 等）か、それらの path/列名の文字列を持つ
    module が、`assert_performance_allowed(...)` を呼んでいなければ違反。guard の呼出で `root=` を
-   差し替えるのも違反（本番 store 以外を数えて通す経路を塞ぐ）。docstring と、FORBIDDEN/MARKER/BLOCK を
+   / `ledger=` で差し替える（位置引数を含む）のも違反（本番 store・ledger 以外で通す経路を塞ぐ）。docstring と、FORBIDDEN/MARKER/BLOCK を
    名に含む遮断リスト定数の中の文字列は数えない。tests/ と本 module は対象外。
 
 python -m analysis.obs_guard --check      違反があれば一覧を出して exit 1
@@ -23,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import json
 import re
 import subprocess
 import sys
@@ -35,6 +39,8 @@ sys.path.insert(0, str(BASE))
 from forward_prices import FORWARD_ROOT, canonical_stage, read_snapshot  # noqa: E402
 
 MIN_RACES_FOR_PERFORMANCE = 500
+STAGE0_LEDGER = BASE / "data" / "obs_stage0_ledger.jsonl"     # analysis/obs_stage0_audit.py が追記
+STAGE0_PASS = "CONCURRENCY_OK"
 DECISION_STAGE = {"trio": "trio_t10", "umatan": "t10", "stake": "t10"}
 SPEC = {"trio": "0B35", "umatan": "0B34", "stake": None}
 FINAL_STAGES = {"final_rt_candidate", "final_stock_candidate"}
@@ -59,12 +65,13 @@ def _ok_capture(rec: dict, spec: str | None) -> bool:
     return any(c.get("spec") == spec and c.get("ok") for c in caps)
 
 
-def count_label_free_valid_races(stream: str, root: Path = FORWARD_ROOT) -> int:
+def count_label_free_valid_races(stream: str, root: Path = FORWARD_ROOT, since: str | None = None) -> int:
+    """since（YYYYMMDD）以降の日付フォルダだけを数える。"""
     if stream not in DECISION_STAGE:
         raise ValueError(f"unknown stream {stream!r}")
     dec, fin = set(), set()
     for p in Path(root).glob("*/*.json.gz"):
-        if p.parent.name.startswith("_"):
+        if p.parent.name.startswith("_") or (since and p.parent.name < since):
             continue
         rec = read_snapshot(p)
         st = canonical_stage(rec.get("stage"))
@@ -83,9 +90,37 @@ def _require(n: int, stream: str) -> int:
     return n
 
 
-def assert_performance_allowed(stream: str, root: Path = FORWARD_ROOT) -> int:
-    """性能・ROI・帯選択の集計の入口。件数は store から数える（外から件数を渡す引数は無い）。"""
-    return _require(count_label_free_valid_races(stream, root), stream)
+def latest_stage0(ledger: Path = STAGE0_LEDGER) -> dict | None:
+    """ledger の最新の本番（dry でない）Stage 0 判定。無ければ None。"""
+    rows = []
+    try:
+        for line in Path(ledger).read_text(encoding="utf-8").splitlines():
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if not row.get("dry"):
+                rows.append(row)
+    except FileNotFoundError:
+        return None
+    return rows[-1] if rows else None
+
+
+def assert_performance_allowed(stream: str, root: Path = FORWARD_ROOT, ledger: Path = STAGE0_LEDGER) -> int:
+    """性能・ROI・帯選択の集計の入口。
+    (1) 最新の本番 Stage 0 判定が通過（CONCURRENCY_OK）でなければ拒否（CONTRACT_NOT_MET 等の後は、修正後の
+        開催日から Stage 0 の 2 日を数え直して通過するまで進めない）。
+    (2) 件数はその通過窓の初日以降の store から数え、500 未満なら拒否。外から件数を渡す引数は無い。"""
+    st0 = latest_stage0(ledger)
+    if st0 is None:
+        raise PermissionError("observation plan v2.1: no real Stage 0 audit in the ledger; "
+                              "performance, ROI and band selection are not allowed.")
+    if st0.get("decision") != STAGE0_PASS:
+        raise PermissionError(
+            f"observation plan v2.1: latest Stage 0 {st0.get('dates')} = {st0.get('decision')}; "
+            "restart Stage 0 on the race days after the fix before any performance, ROI or band selection.")
+    since = min(st0.get("dates") or ["00000000"])
+    return _require(count_label_free_valid_races(stream, root, since=since), stream)
 
 
 # ---------------------------------------------------------------- 2. static check
@@ -142,7 +177,8 @@ def analyze_source(src: str) -> dict:
             "outcome_import": outcome_import,
             "outcome_strings": sorted({s[:40] for s in strings if OUTCOME_STRING_RE.search(s) and _data_like(s)})[:5],
             "guard_calls": len(calls),
-            "guard_root_override": any(k.arg == "root" for c in calls for k in c.keywords)}
+            "guard_root_override": any(k.arg in ("root", "ledger") or k.arg is None
+                                       for c in calls for k in c.keywords) or any(len(c.args) > 1 for c in calls)}
 
 
 def violation(info: dict) -> str | None:
@@ -151,7 +187,7 @@ def violation(info: dict) -> str | None:
     if info["guard_calls"] == 0:
         return "references observation stages and outcome/payout sources without assert_performance_allowed()"
     if info["guard_root_override"]:
-        return "assert_performance_allowed() called with root= (store override is not allowed)"
+        return "assert_performance_allowed() called with a store/ledger override (only the stream may be passed)"
     return None
 
 

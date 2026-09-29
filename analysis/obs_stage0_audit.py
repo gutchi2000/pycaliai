@@ -18,12 +18,31 @@ obs_stage0_audit.py — 観測計画 v2.1 Phase 2 Stage 0（最初の 2 開催�
   +  00:00 型破損  RT 録の発表時分 00:00、または発走予定 00:00
 
 判定と終了コード（契約 → 並走の順）:
-  CONTRACT_NOT_MET (4)              必須 stage/spec の欠損率 > 1%、被覆不一致率 > 1%（枠連を含む）、
+  CONTRACT_NOT_MET (4)              必須 stage/spec の欠損数 > max(1% × 予定レース数, 1 race)（2 開催日合計）、
+                                    原因を帰属できない欠損が 1 件以上、被覆不一致率 > 1%（枠連を含む）、
                                     raw/parser 不一致が 1 件以上、または process 名が識別できない取得がある
   QUEUE_SERIALIZATION_REQUIRED (3)  契約は満たすが、重なり時の成功率 < 95%、または 00:00 型破損が 1 件以上
   INSUFFICIENT_OVERLAP_OBSERVED (5) 契約は満たすが、重なった価格取得が 1 件も観測されない
-  CONCURRENCY_OK (0)                上記以外
+  CONCURRENCY_OK (0)                上記以外（Stage 0 通過）
 契約と並走の判定は両方とも常に計算して報告する（先に当たった方が decision になる）。
+
+欠損 race の原因帰属（全件。原因不明のまま集計しない）:
+  task_not_fired         その race・stage・spec の取得ジャーナルも録も無い（タスクが起動しなかったか、
+                         最初の JV-Link 呼出の前に落ちた）
+  fetch_rc               取得の rc_init / rc_open が 0 でない、または例外
+  race_key_mismatch      録はあるが、最新録のレースキーが要求 race と一致しない
+  no_records             取得は rc 0 だが、その種別の録が 0 件
+  record_not_stored      取得ジャーナルでは録ありだが、forward store に録が無い（保存失敗）
+  spec_capture_absent    その stage の録はあるが、その spec の capture が無い
+  record_without_raw_v1  その stage の録が schema v1（raw なし）
+  stock_session_failed   蓄積系セッション（STOCK）が失敗
+  stock_race_absent      蓄積系セッションは成功したが、その race の O1〜O5 録が無い
+  unattributed           上記のどれにも当たらない → それ自体で CONTRACT_NOT_MET
+
+CONTRACT_NOT_MET（および Stage 0 通過以外の判定）の扱い: 収集処理は止めない（本監査は collector を操作しない）。
+性能・ROI・帯選択へは進まない（analysis.obs_guard が ledger を見て拒否する）。修正後の開催日から
+Stage 0 の 2 日を数え直す。本監査は判定・理由・欠損 race・原因を report と ledger
+（data/obs_stage0_ledger.jsonl、追記専用）へ書く。
 
 python -m analysis.obs_stage0_audit --dates 20261003 20261004 [--dry]
 """
@@ -46,6 +65,11 @@ import jv_records as JR  # noqa: E402
 from forward_prices import FORWARD_ROOT, canonical_stage, read_snapshot  # noqa: E402
 
 JOURNAL_ROOT = BASE / "data" / "jvlink_fetch_journal"
+STAGE0_LEDGER = BASE / "data" / "obs_stage0_ledger.jsonl"
+STAGE0_PASS = "CONCURRENCY_OK"
+MISSING_CAUSES = ("task_not_fired", "fetch_rc", "race_key_mismatch", "no_records", "record_not_stored",
+                  "spec_capture_absent", "record_without_raw_v1", "stock_session_failed", "stock_race_absent",
+                  "unattributed")
 OVERLAP_SEC = 30.0
 MIN_OVERLAP_SUCCESS = 0.95
 MAX_COVERAGE_MISMATCH = 0.01
@@ -201,6 +225,70 @@ def concurrency(events: list[dict], capture_index: dict) -> dict:
             "assumes_schedule_non_overlap": False}
 
 
+def missing_threshold(n_scheduled: int) -> float:
+    """許容欠損数 = max(1% × 予定レース数, 1 race)。欠損数がこれを超えたら契約未達。"""
+    return max(MAX_MISSING_RATE * n_scheduled, 1.0)
+
+
+def _rc_bad(x: dict) -> bool:
+    return x.get("rc_init") not in (0, None) or x.get("rc_open") not in (0, None) or bool(x.get("error"))
+
+
+def attribute_missing(st: str, spec: str, rid: str, cap_by: dict, rec_by: dict, jidx: dict,
+                      stock_sessions: list[dict]) -> tuple[str, str]:
+    """欠損 1 件の原因 (cause, detail)。どれにも当たらなければ 'unattributed'。"""
+    caps = cap_by.get((st, spec, rid), [])
+    if caps:
+        last = max(caps, key=lambda c: str(c.get("fetch_started_at")))
+        recs = last.get("records") or []
+        if recs and not recs[-1].get("race_key_ok"):
+            return "race_key_mismatch", f"record race_key {recs[-1].get('race_key')!r}"
+        if _rc_bad(last):
+            return "fetch_rc", f"rc_init={last.get('rc_init')} rc_open={last.get('rc_open')} error={last.get('error')}"
+        if not recs:
+            return "no_records", f"rc 0, {last.get('n_records_returned')} records returned, 0 of kind"
+        return "unattributed", "capture with matching records exists but was not counted"
+    if (st, rid) in rec_by:
+        return (("record_without_raw_v1", "schema v1 record without jv_captures") if rec_by[(st, rid)] == "v1"
+                else ("spec_capture_absent", f"record for {st} has no {spec} capture"))
+    evs = jidx.get((st, rid, spec), [])
+    if evs:
+        e = max(evs, key=lambda x: str(x.get("fetch_started_at")))
+        if _rc_bad(e):
+            return "fetch_rc", f"journal rc_init={e.get('rc_init')} rc_open={e.get('rc_open')} error={e.get('error')}"
+        if not (e.get("n_records_returned") or 0):
+            return "no_records", "journal: rc 0 and 0 records"
+        return "record_not_stored", f"journal: {e.get('n_records_returned')} records fetched, no stored record"
+    if st == "final_stock_candidate":
+        sess = [s for s in stock_sessions if str(s.get("fetch_started_at", ""))[:10].replace("-", "") >= rid[:8]]
+        if not sess:
+            return "task_not_fired", "no STOCK session on/after the race date"
+        s = max(sess, key=lambda x: str(x.get("fetch_started_at")))
+        if _rc_bad(s):
+            return "stock_session_failed", f"STOCK rc_init={s.get('rc_init')} rc_open={s.get('rc_open')} error={s.get('error')}"
+        return "stock_race_absent", "STOCK session ok but no O1-O5 record for the race"
+    return "task_not_fired", "no journal event and no record for this race/stage/spec"
+
+
+def record_ledger(rep: dict, ledger: Path, *, dry: bool, report_path: str) -> dict:
+    """Stage 0 判定を追記専用 ledger へ 1 行書く（性能 guard が読む）。"""
+    head = None
+    try:
+        import subprocess
+        head = subprocess.run(["git", "-c", "safe.directory=*", "rev-parse", "HEAD"], cwd=BASE,
+                              capture_output=True, text=True).stdout.strip() or None
+    except Exception:
+        pass
+    row = {"generated_at": datetime.now().astimezone().isoformat(timespec="seconds"), "dates": rep["dates"],
+           "dry": bool(dry), "decision": rep["decision"], "exit_code": rep["exit_code"],
+           "contract_met": rep["contract"]["met"], "reasons": rep["contract"]["reasons"] + rep["concurrency_reasons"],
+           "missing_cause_summary": rep.get("missing_cause_summary"), "code_head": head, "report": report_path}
+    ledger.parent.mkdir(parents=True, exist_ok=True)
+    with open(ledger, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+    return row
+
+
 def audit(dates: list[str], forward_root: Path = FORWARD_ROOT, journal_root: Path = JOURNAL_ROOT,
           schedule: dict[str, dict[str, str]] | None = None, required: dict | None = None) -> dict:
     schedule = schedule if schedule is not None else {d: scheduled_races(d) for d in dates}
@@ -219,12 +307,16 @@ def audit(dates: list[str], forward_root: Path = FORWARD_ROOT, journal_root: Pat
     to_post = defaultdict(lambda: defaultdict(list))
     corruption: list[dict] = []
     capture_index: dict[tuple, dict] = {}
+    cap_by: dict[tuple, list] = defaultdict(list)
+    rec_by: dict[tuple, str] = {}
     for path, rec in recs:
         st, rid = rec["_stage"], rec.get("race_id")
         caps = rec.get("jv_captures")
         if not caps:
             v1_only[st].add(rid)
+            rec_by.setdefault((st, rid), "v1")
             continue
+        rec_by[(st, rid)] = "v2"
         sp = _ts(rec.get("scheduled_post"))
         if rec.get("scheduled_post") and str(rec["scheduled_post"])[11:16] == "00:00":
             corruption.append({"race_id": rid, "stage": st, "what": "scheduled_post 00:00"})
@@ -232,8 +324,9 @@ def audit(dates: list[str], forward_root: Path = FORWARD_ROOT, journal_root: Pat
         for cap in caps:
             spec = cap.get("spec")
             key = (st, spec)
-            if cap.get("records"):
-                have[key].add(rid)
+            cap_by[(st, spec, rid)].append(cap)
+            if cap.get("records") and cap["records"][-1].get("race_key_ok"):
+                have[key].add(rid)                      # 有効 = その種別の録があり、最新録のレースキーが一致
             t0, t1 = _ts(cap.get("fetch_started_at")), _ts(cap.get("fetch_finished_at"))
             if t0 and t1:
                 dur[key].append((t1 - t0).total_seconds())
@@ -273,15 +366,36 @@ def audit(dates: list[str], forward_root: Path = FORWARD_ROOT, journal_root: Pat
             span[st].append((max(ends) - min(starts)).total_seconds())
 
     n_sched = len(sched_all)
-    missing, missing_fail = {}, []
+    jidx: dict[tuple, list] = defaultdict(list)
+    stock_sessions = []
+    for e in events:
+        if "_unreadable" in e:
+            continue
+        if e.get("process") == "jvlink_obs" and e.get("spec") == "RACE":
+            stock_sessions.append(e)
+        elif e.get("stage"):
+            jidx[(canonical_stage(e.get("stage")), e.get("race_id"), e.get("spec"))].append(e)
+    threshold = missing_threshold(n_sched)
+    missing, missing_fail, unattributed = {}, [], []
+    cause_summary: Counter = Counter()
     for st, specs in required.items():
         for spec in specs:
             got = have[(st, spec)] & set(sched_all)
-            rate_m = round(1 - len(got) / n_sched, 4) if n_sched else None
-            missing[f"{st}/{spec}"] = {"scheduled": n_sched, "with_capture": len(got), "missing_rate": rate_m,
-                                       "missing_races": sorted(set(sched_all) - got)[:30], "required": True}
-            if rate_m is None or rate_m > MAX_MISSING_RATE:
-                missing_fail.append(f"{st}/{spec}")
+            races = []
+            for rid in sorted(set(sched_all) - got):
+                cause, detail = attribute_missing(st, spec, rid, cap_by, rec_by, jidx, stock_sessions)
+                races.append({"race_id": rid, "cause": cause, "detail": detail})
+                cause_summary[cause] += 1
+                if cause == "unattributed":
+                    unattributed.append(f"{st}/{spec}/{rid}")
+            n_miss = len(races)
+            over = (n_sched == 0) or (n_miss > threshold)
+            missing[f"{st}/{spec}"] = {"scheduled": n_sched, "with_capture": len(got), "missing_count": n_miss,
+                                       "threshold": threshold, "over_threshold": over,
+                                       "missing_rate": round(n_miss / n_sched, 4) if n_sched else None,
+                                       "races": races, "required": True}
+            if over:
+                missing_fail.append(f"{st}/{spec} ({n_miss} > {threshold:g})" if n_sched else f"{st}/{spec} (no schedule)")
     for st in DESCRIPTIVE_STAGES:
         for spec in PROD4:
             got = have[(st, spec)] & set(sched_all)
@@ -299,7 +413,9 @@ def audit(dates: list[str], forward_root: Path = FORWARD_ROOT, journal_root: Pat
 
     contract_reasons = []
     if missing_fail:
-        contract_reasons.append(f"required stage/spec missing > {MAX_MISSING_RATE:.0%}: {missing_fail}")
+        contract_reasons.append(f"required stage/spec missing count > max(1%, 1 race): {missing_fail}")
+    if unattributed:
+        contract_reasons.append(f"missing races without an attributed cause: {unattributed[:20]}")
     if coverage_fail:
         contract_reasons.append(f"coverage mismatch > {MAX_COVERAGE_MISMATCH:.0%}: {coverage_fail}")
     if parse_fail:
@@ -323,6 +439,7 @@ def audit(dates: list[str], forward_root: Path = FORWARD_ROOT, journal_root: Pat
         "role": "observation plan v2.1 Phase 2 Stage 0 (label-free). No outcome, payout, ROI, performance "
                 "or band selection is read or computed.",
         "dates": dates, "scheduled_races": n_sched, "records": len(recs), "journal_events": len(events),
+        "missing_threshold_races": threshold, "missing_cause_summary": dict(cause_summary),
         "missing": missing,
         "timing": {"fetch_duration_sec": {f"{k[0]}/{k[1]}": _q(v) for k, v in dur.items()},
                    "t2_candidate_5spec_span_sec": five_spec,
@@ -336,6 +453,11 @@ def audit(dates: list[str], forward_root: Path = FORWARD_ROOT, journal_root: Pat
         "contract": {"met": not contract_reasons, "reasons": contract_reasons},
         "concurrency_verdict": concurrency_verdict, "concurrency_reasons": queue_reasons,
         "decision": decision, "exit_code": DECISION_EXIT[decision],
+        "stage0_passed": decision == STAGE0_PASS,
+        "collection_continues": True,
+        "performance_blocked_by_stage0": decision != STAGE0_PASS,
+        "stage0_restart": (None if decision == STAGE0_PASS else
+                           "修正を入れた後の開催日から Stage 0 の 2 開催日を数え直す（それまで性能・ROI・帯選択へ進まない）"),
         "files_opened_outcome_like": result_like,
     }
 
@@ -357,9 +479,14 @@ def main() -> int:
     out = Path(args.out) if args.out else BASE / "reports" / f"obs_stage0_{'_'.join(args.dates)}{'_dry' if args.dry else ''}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(rep, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(json.dumps({k: rep[k] for k in ("dates", "scheduled_races", "records", "decision", "contract",
-                                          "concurrency_verdict", "concurrency_reasons")}, ensure_ascii=False))
-    print(f"[obs_stage0] -> {out}")
+    record_ledger(rep, STAGE0_LEDGER, dry=args.dry, report_path=str(out))
+    print(json.dumps({k: rep[k] for k in ("dates", "scheduled_races", "records", "decision", "exit_code", "contract",
+                                          "concurrency_verdict", "concurrency_reasons", "missing_cause_summary",
+                                          "stage0_restart")}, ensure_ascii=False))
+    for key, m in rep["missing"].items():
+        for r in m.get("races", []):
+            print(f"[obs_stage0] missing {key} {r['race_id']} cause={r['cause']} ({r['detail']})")
+    print(f"[obs_stage0] -> {out}  (ledger: {STAGE0_LEDGER})")
     return rep["exit_code"]
 
 

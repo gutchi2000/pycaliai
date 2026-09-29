@@ -428,31 +428,32 @@ def _event(jroot, name, **ev):
     (jroot / f"{name}.json").write_text(json.dumps(ev), encoding="utf-8")
 
 
-def _full_day(tmp_path, *, overlap=True, drop=(), bad_t2=False, announce="10031530", coverage_bad=False):
+def _full_day(tmp_path, *, overlap=True, drop=(), bad_t2=False, announce="10031530", coverage_bad=False,
+              drop_races=(), stock_error=None):
     """2 レース × 必須 6 stage。overlap=True なら本番 t10 と三連複 shadow が同時刻（別プロセス）。"""
     root, jroot = tmp_path / "fwd", tmp_path / "journal" / "20261003"
     for k, rid in enumerate((RID, R2)):
         base_m = 20 + 20 * k                     # 15:20 / 15:40
         t10 = f"15:{base_m:02d}:00"
         trio = t10 if overlap else f"15:{base_m + 3:02d}:00"
-        if "t10" not in drop:
+        if "t10" not in drop and ("t10", rid) not in drop_races:
             _put(root, jroot, rid, "t10", ALL5[:4], t10, 200 + k, "jvlink_odds", announce=announce)
-        if "trio_t10" not in drop:
+        if "trio_t10" not in drop and ("trio_t10", rid) not in drop_races:
             _put(root, jroot, rid, "trio_t10", ["0B35", "0B31"], trio, 300 + k, "trio_shadow", announce=announce)
-        if "t2_candidate" not in drop:
+        if "t2_candidate" not in drop and ("t2_candidate", rid) not in drop_races:
             _put(root, jroot, rid, "t2_candidate", ALL5, f"15:{base_m + 8:02d}:00", 400 + k, "jvlink_obs",
                  announce=announce, bad=bad_t2, n_run_override=(12 if coverage_bad and k == 0 else None))
-        if "close_late" not in drop:
+        if "close_late" not in drop and ("close_late", rid) not in drop_races:
             _put(root, jroot, rid, "close_late", ALL5[:4], f"15:{base_m + 11:02d}:00", 500 + k, "jvlink_odds",
                  journal_stage="close", announce=announce)
-        if "final_rt_candidate" not in drop:
+        if "final_rt_candidate" not in drop and ("final_rt_candidate", rid) not in drop_races:
             _put(root, jroot, rid, "final_rt_candidate", ALL5, f"18:{30 + k:02d}:00", 600, "jvlink_obs")
-        if "final_stock_candidate" not in drop:
+        if "final_stock_candidate" not in drop and ("final_stock_candidate", rid) not in drop_races:
             _put(root, jroot, rid, "final_stock_candidate", ALL5, "18:40:00", 700, "jvlink_obs", stream="stock",
                  journal=False, announce="00000000")
     if "final_stock_candidate" not in drop:
         _event(jroot, "184000_700_STOCK", process="jvlink_obs", stage="final_stock_candidate", race_id="STOCK",
-               spec="RACE", pid=700, rc_init=0, rc_open=0, n_records_returned=10,
+               spec="RACE", pid=700, rc_init=0, rc_open=0, n_records_returned=10, error=stock_error,
                fetch_started_at="2026-10-03T18:40:00.000+09:00", fetch_finished_at="2026-10-03T18:44:00.000+09:00")
     return root, tmp_path / "journal", {"20261003": {RID: "2026-10-03T15:30:00", R2: "2026-10-03T15:50:00"}}
 
@@ -609,13 +610,13 @@ def test_performance_guard_blocks_before_500(tmp_path):
                                    st, stamp=STAMP, root=tmp_path, captures=[cap])
     assert G.count_label_free_valid_races("trio", tmp_path) == 1
     with pytest.raises(PermissionError):
-        G.assert_performance_allowed("trio", tmp_path)
+        G.assert_performance_allowed("trio", tmp_path, tmp_path / "no_ledger.jsonl")
 
 
 def test_guard_has_no_count_override_argument():
     import inspect
     from analysis import obs_guard as G
-    assert list(inspect.signature(G.assert_performance_allowed).parameters) == ["stream", "root"]
+    assert list(inspect.signature(G.assert_performance_allowed).parameters) == ["stream", "root", "ledger"]
 
 
 def test_repository_has_no_unguarded_performance_path():
@@ -638,6 +639,12 @@ GUARD_CASES = {
     "guard_root_override": ('from analysis.obs_guard import assert_performance_allowed\n'
                             'import generate_results\n'
                             'assert_performance_allowed("trio", root="elsewhere")\ns = "trio_t10"\n', True),
+    "guard_ledger_override": ('from analysis.obs_guard import assert_performance_allowed\n'
+                              'import generate_results\n'
+                              'assert_performance_allowed("trio", ledger="fake.jsonl")\ns = "trio_t10"\n', True),
+    "guard_positional_override": ('from analysis.obs_guard import assert_performance_allowed\n'
+                                  'import generate_results\n'
+                                  'assert_performance_allowed("trio", "elsewhere")\ns = "trio_t10"\n', True),
     "stage_only_label_free": ('STAGES = ("t2_candidate", "trio_t10")\n', False),
     "outcome_only_no_obs_stage": ('from generate_results import load_kekka_all\nstage = "t10"\n', False),
     "docstring_and_blocklist_ignored": ('"""payout や 着順 は読まない。"""\nFORBIDDEN_MARKERS = ("kekka", "payout")\n'
@@ -667,6 +674,147 @@ def test_guard_check_cli_fails_on_violation(tmp_path, monkeypatch):
     monkeypatch.setattr(G, "tracked_python_files", lambda base=tmp_path: [p])
     monkeypatch.setattr(sys, "argv", ["obs_guard", "--check"])
     assert G.main() == 1
+
+
+# ---------------------------------------------------------------- Stage 0 missing threshold, attribution, ledger
+def test_missing_threshold_is_max_of_1pct_and_one_race():
+    from analysis import obs_stage0_audit as A
+    assert A.missing_threshold(2) == 1.0 and A.missing_threshold(50) == 1.0
+    assert A.missing_threshold(150) == pytest.approx(1.5) and A.missing_threshold(300) == pytest.approx(3.0)
+
+
+def test_one_missing_race_over_two_days_is_tolerated_and_attributed(tmp_path):
+    rep = _run_audit(*_full_day(tmp_path, drop_races={("final_stock_candidate", R2)}))
+    m = rep["missing"]["final_stock_candidate/0B35"]
+    assert m["missing_count"] == 1 and m["threshold"] == 1.0 and m["over_threshold"] is False
+    assert m["races"] == [{"race_id": R2, "cause": "stock_race_absent",
+                           "detail": "STOCK session ok but no O1-O5 record for the race"}]
+    assert rep["contract"]["met"] and rep["decision"] == "CONCURRENCY_OK"
+    assert rep["missing_cause_summary"] == {"stock_race_absent": 5}
+
+
+def test_two_missing_races_exceed_threshold_with_causes_and_restart(tmp_path):
+    rep = _run_audit(*_full_day(tmp_path, drop_races={("t2_candidate", RID), ("t2_candidate", R2)}))
+    m = rep["missing"]["t2_candidate/0B33"]
+    assert m["missing_count"] == 2 and m["over_threshold"] is True
+    assert {r["cause"] for r in m["races"]} == {"task_not_fired"}
+    assert rep["decision"] == "CONTRACT_NOT_MET" and rep["exit_code"] == 4
+    assert any("t2_candidate/0B33 (2 > 1)" in r for r in rep["contract"]["reasons"])
+    assert rep["collection_continues"] is True and rep["performance_blocked_by_stage0"] is True
+    assert rep["stage0_restart"] and rep["stage0_passed"] is False
+
+
+def test_race_key_mismatch_is_attributed(tmp_path):
+    rep = _run_audit(*_full_day(tmp_path, bad_t2=True))
+    races = rep["missing"]["t2_candidate/0B35"]["races"]
+    assert {r["cause"] for r in races} == {"race_key_mismatch"} and len(races) == 2
+    assert rep["decision"] == "CONTRACT_NOT_MET"
+
+
+def test_stock_session_failure_is_attributed(tmp_path):
+    rep = _run_audit(*_full_day(tmp_path, stock_error="JVOpen rc=-1",
+                                drop_races={("final_stock_candidate", RID), ("final_stock_candidate", R2)}))
+    assert {r["cause"] for r in rep["missing"]["final_stock_candidate/0B31"]["races"]} == {"stock_session_failed"}
+
+
+def _cap(records, **meta):
+    return {"records": records, "fetch_started_at": meta.pop("started", "2026-10-03T15:28:00.100+09:00"), **meta}
+
+
+@pytest.mark.parametrize("case,expected", [
+    ("capture_rc", "fetch_rc"), ("capture_empty", "no_records"), ("capture_wrong_key", "race_key_mismatch"),
+    ("capture_ok_but_missing", "unattributed"), ("record_v1", "record_without_raw_v1"),
+    ("record_v2_no_spec", "spec_capture_absent"), ("journal_rc", "fetch_rc"), ("journal_empty", "no_records"),
+    ("journal_records_not_stored", "record_not_stored"), ("nothing", "task_not_fired"),
+    ("stock_no_session", "task_not_fired"), ("stock_failed", "stock_session_failed"),
+    ("stock_absent", "stock_race_absent"),
+])
+def test_attribute_missing_every_cause(case, expected):
+    from analysis import obs_stage0_audit as A
+    st, spec, rid = ("final_stock_candidate" if case.startswith("stock") else "t2_candidate"), "0B35", RID
+    cap_by, rec_by, jidx, sess = {}, {}, {}, []
+    good = {"race_key_ok": True}
+    if case == "capture_rc":
+        cap_by[(st, spec, rid)] = [_cap([], rc_init=0, rc_open=-1)]
+    elif case == "capture_empty":
+        cap_by[(st, spec, rid)] = [_cap([], rc_init=0, rc_open=0, n_records_returned=2)]
+    elif case == "capture_wrong_key":
+        cap_by[(st, spec, rid)] = [_cap([{"race_key_ok": False, "race_key": "x"}], rc_init=0, rc_open=0)]
+    elif case == "capture_ok_but_missing":
+        cap_by[(st, spec, rid)] = [_cap([good], rc_init=0, rc_open=0)]
+    elif case == "record_v1":
+        rec_by[(st, rid)] = "v1"
+    elif case == "record_v2_no_spec":
+        rec_by[(st, rid)] = "v2"
+    elif case.startswith("journal"):
+        ev = {"rc_init": 0, "rc_open": -1 if case == "journal_rc" else 0,
+              "n_records_returned": 0 if case == "journal_empty" else 3, "fetch_started_at": "2026-10-03T15:28"}
+        jidx[(st, rid, spec)] = [ev]
+    elif case == "stock_failed":
+        sess = [{"fetch_started_at": "2026-10-03T18:30:00", "rc_init": 0, "rc_open": -1, "error": "x"}]
+    elif case == "stock_absent":
+        sess = [{"fetch_started_at": "2026-10-03T18:30:00", "rc_init": 0, "rc_open": 0}]
+    elif case == "stock_no_session":
+        sess = [{"fetch_started_at": "2026-10-02T18:30:00", "rc_init": 0, "rc_open": 0}]   # 前日のセッションは対象外
+    cause, detail = A.attribute_missing(st, spec, rid, cap_by, rec_by, jidx, sess)
+    assert cause == expected and cause in A.MISSING_CAUSES and detail
+
+
+def test_unattributed_missing_is_contract_not_met(tmp_path, monkeypatch):
+    from analysis import obs_stage0_audit as A
+    monkeypatch.setattr(A, "attribute_missing", lambda *a, **k: ("unattributed", "forced"))
+    rep = _run_audit(*_full_day(tmp_path, drop_races={("close_late", R2)}))
+    assert rep["missing"]["close_late/0B31"]["missing_count"] == 1                   # 閾値内でも
+    assert rep["decision"] == "CONTRACT_NOT_MET"
+    assert any("without an attributed cause" in r for r in rep["contract"]["reasons"])
+
+
+def test_ledger_and_guard_block_after_contract_not_met_and_count_from_pass_window(tmp_path, monkeypatch):
+    from analysis import obs_guard as G
+    from analysis import obs_stage0_audit as A
+    ledger = tmp_path / "ledger.jsonl"
+    with pytest.raises(PermissionError, match="no real Stage 0"):
+        G.assert_performance_allowed("trio", tmp_path / "fwd", ledger)
+    rep = _run_audit(*_full_day(tmp_path / "d1", drop_races={("t2_candidate", RID), ("t2_candidate", R2)}))
+    A.record_ledger(rep, ledger, dry=False, report_path="r1.json")
+    row = json.loads(ledger.read_text(encoding="utf-8").splitlines()[-1])
+    assert row["decision"] == "CONTRACT_NOT_MET" and row["missing_cause_summary"] == {"task_not_fired": 10}
+    with pytest.raises(PermissionError, match="restart Stage 0"):
+        G.assert_performance_allowed("trio", tmp_path / "fwd", ledger)
+    ok = _run_audit(*_full_day(tmp_path / "d2"))
+    A.record_ledger(ok, ledger, dry=False, report_path="r2.json")
+    A.record_ledger(rep, ledger, dry=True, report_path="dry.json")                   # dry は guard が無視
+    assert G.latest_stage0(ledger)["decision"] == "CONCURRENCY_OK"
+    fwd = tmp_path / "fwd"
+    cap = JR.capture("0B35", RID, [build("O5")], {})
+    for day, rid in (("20261003", RID), ("20260927", "2026092706040911")):
+        for st, hh in (("trio_t10", 15), ("final_stock_candidate", 18)):
+            FP.archive_market_snapshot({"race_id": rid, "fetched": f"{day[:4]}-{day[4:6]}-{day[6:]}T{hh}:00:00"}, st,
+                                       stamp=STAMP, root=fwd, captures=[JR.capture("0B35", rid, [build("O5", rid=rid)], {})])
+    assert G.count_label_free_valid_races("trio", fwd) == 2
+    assert G.count_label_free_valid_races("trio", fwd, since="20261003") == 1          # 通過窓より前は数えない
+    monkeypatch.setattr(G, "MIN_RACES_FOR_PERFORMANCE", 1)
+    assert G.assert_performance_allowed("trio", fwd, ledger) == 1
+    A.record_ledger(rep, ledger, dry=False, report_path="r3.json")                   # 後で再び契約未達
+    with pytest.raises(PermissionError):
+        G.assert_performance_allowed("trio", fwd, ledger)
+
+
+def test_audit_and_guard_share_ledger_path_and_pass_code():
+    from analysis import obs_guard as G
+    from analysis import obs_stage0_audit as A
+    assert G.STAGE0_LEDGER == A.STAGE0_LEDGER and G.STAGE0_PASS == A.STAGE0_PASS == "CONCURRENCY_OK"
+
+
+def test_observation_plan_v211_hash_and_probe_rule():
+    import hashlib
+    doc = BASE / "docs" / "research" / "OBSERVATION_PLAN_20260928.md"
+    rec = (BASE / "docs" / "research" / "OBSERVATION_PLAN_20260928.sha256").read_text(encoding="utf-8").split()
+    assert rec[0] == hashlib.sha256(doc.read_bytes()).hexdigest() and rec[2] == "v2.1.1"
+    text = doc.read_text(encoding="utf-8")
+    for probe in ("jvlink_probe.py", "jvlink_race_day_probe.py", "jvlink_shadow_probe.py"):
+        assert probe in text.split("## 12.")[1]
+    assert "a23ef19352b73ecdeab2ba1c68de2da12e54b5bb5e8a4ad7925900f621185d8c" in text        # v2.1 の hash を保持
 
 
 # ---------------------------------------------------------------- dry-day start condition
