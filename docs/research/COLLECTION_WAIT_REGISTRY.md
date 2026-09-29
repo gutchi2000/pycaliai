@@ -1,6 +1,6 @@
 # PyCaLiAI 収集待ち台帳
 
-**最終更新**: 2026-09-27 10:40 JST  
+**最終更新**: 2026-09-29 JST（CW-07〜CW-09 追加: 観測計画 v2.1.1 Phase 2 の Dry 登録）  
 **目的**: 研究・検証・forward運用のうち、「データが増えるまで結論を出せないもの」を一か所で管理する。
 
 ## 更新規則
@@ -21,6 +21,9 @@
 | CW-04 | `DEPLOYMENT_ONLY` | **馬体重 WH対TARGET値/status parity** | 4開催日・400 paired horse rows、値/status一致99.5%以上 | paired 0 | 対象日のTARGET torch形式exportが必要。forward/serve接続だけを止め、EXP19歴史Stage 1は止めない | EXP19 `forward_parity.json` |
 | CW-05 | `ACCUMULATING` | **T−10/T−20/close価格・timing canary** | 現在は固定の到達Gateなし | append-onlyで継続中。2026-08-29〜09-27の保存日あり | 将来の価格形成仮説、timing異常、新しい収集障害が生じたときに用途を事前登録する | `data/forward_prices/`, `reports/exp05fs_odds/` |
 | CW-06 | `ACCUMULATING` | **JRA公式馬場物理値** | 現在は固定の到達Gateなし | `PyCaLiAI_Baba`稼働、9/27 10:00成功 | EXP19 WPは検出力不足で閉鎖済み。新仮説が生じるまで保存のみ | `data/baba_today.json`, `data/baba_feats.parquet` |
+| CW-07 | `ACTIVE_SHORT` | **観測計画 v2.1.1 登録前 Dry 開催日**（T−2 候補 0B31〜0B35・三連複 T−10 0B35+0B31。同じ `-Schedule` が FINAL 18:30／翌日 REFETCH 20:00 も Dry で登録） | §5.1 開始条件: 全予定レースで 0B35 と同時点 0B31 の raw、manifest の sha256 と発表時刻、`forward_prices_dry` の trio_t10・t2_candidate | 2026-09-29 に `PyCaLiAI_OBS_Schedule`（土日 09:05、`obs_schedule.ps1 -Schedule -Dry`、user gutch）を登録。収集 0。最初の Dry 日は 2026-10-03 | 10/03 夜に `python -m analysis.obs_dry_check --date 20261003` と `python -m analysis.obs_stage0_audit --dates 20261003 --dry`（別工程）。通過後に本番記録へ切替えるか判断（`obs_register_tasks.ps1 -Apply`、承認が必要）。切替えまでは週末ごとに Dry を続け、Stage 0・500R に数えない | `reports/trio_portfolio_shadow_v2/raw/_dry/`, `data/forward_prices_dry/`, `data/jvlink_fetch_journal_dry/` |
+| CW-08 | `ACTIVE_SHORT` | **観測 Stage 0**（T−2 候補・`close_late`/`final` 候補・並走成功率） | 本番記録の最初の 2 開催日で `obs_stage0_audit` が `CONCURRENCY_OK`。契約: 必須 stage×spec の欠損 ≤ max(1%, 1 race) で全欠損の原因を帰属、組被覆不一致 ≤ 1%、raw/parser 一致、取得の process を識別。並走: 重なり時成功率 ≥ 95%、00:00 型破損 0 | 未開始（Dry 中） | 本番記録切替後の 2 開催日で監査する。`CONTRACT_NOT_MET` などで未通過なら、収集は止めずに修正し、修正後の開催日から 2 日を数え直す。判定は ledger に追記 | `reports/obs_stage0_*.json`, `data/obs_stage0_ledger.jsonl` |
+| CW-09 | `ACTIVE_LONG` | **三連複 0B35 500R**（§5.3 初回棄却専用） | 有効 race 500（label-free 上限は `analysis.obs_guard` が Stage 0 通過窓の初日以降だけで数える） | 0（Dry は数えない） | 500 到達まで性能・ROI・候補選択・配分を開かない（`assert_performance_allowed` が拒否し、`python -m analysis.obs_guard --check` が guard 無しの経路を検出）。週 66R 想定で約 8 週 | `data/forward_prices/*_trio_t10_*`, `analysis/obs_guard.py` |
 
 ## 収集待ちではあるが、現在の主研究を止めないもの
 
@@ -34,3 +37,5 @@
 2. **2026-09-27開催終了後**: CW-01 馬体重の2日目を確定。合格なら残り2開催日。
 3. **以後の開催ごと**: CW-01の4日到達を確認。到達した時点でEXP19 Stage 1開始可否をユーザーへ提示。
 4. **CW-03**: 6,600到達前は中間性能評価を行わず、収集失敗・schema/hash異常だけを扱う。
+5. **2026-10-03（土）**: CW-07 Dry 日。夜に `obs_dry_check` と `obs_stage0_audit --dry` を実行する。本番記録への切替えは結果を見て判断する（承認が必要）。
+6. **CW-08**: 本番記録の最初の 2 開催日の後に Stage 0 監査。通過するまで CW-09 の 500R を数え始めない。
