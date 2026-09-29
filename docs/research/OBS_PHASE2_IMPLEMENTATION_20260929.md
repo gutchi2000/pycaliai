@@ -117,3 +117,32 @@ Dry は現在、T−2 と三連複の両方にかかる。§5.1 の Dry 要件�
 5. **枠連の期待 slot 数**：登録頭数からの仮定式で、実録 4 件（smoke を含む）と一致した。契約の被覆判定に含めたので、式が誤っていれば `CONTRACT_NOT_MET` として現れる。
 6. **キュー直列化**：未実装。計画 §3 (6) どおり、判定が出た時点で実装する。
 7. **Dry と登録**：Dry は T−2 と三連複の両方にかかる（`obs_register_tasks.ps1 -Dry`）。登録・`-Apply` は承認後。
+
+## 8. Fable 指定の追加修正（merge 前、2026-09-29）
+
+| commit | 内容 |
+|---|---|
+| `b43fbd8e` | 観測計画 v2.1.1。§12 に「診断用 JV-Link probe 3 本は開催時間中（Dry 日・Stage 0 開催日を含む）に手動実行しない。実行は非開催時間に限る」を追記した。`.sha256` を `f711b36d…` に更新し、v2.1 の hash は版表に残した |
+| `05cf3831` | Stage 0 の欠損判定を改めた（下記） |
+
+**欠損判定（`05cf3831`）**
+- **閾値**：欠損数が `max(1% × 予定レース数, 1 race)`（2 開催日合計）を超えたら `CONTRACT_NOT_MET`。被覆不一致の閾値 1% は変えていない。
+- **原因の帰属**：欠損 race ごとに原因を付ける。帰属できない欠損が 1 件でもあれば `CONTRACT_NOT_MET`。原因は次の 9 種。
+  - `task_not_fired`
+  - `fetch_rc`
+  - `race_key_mismatch`
+  - `no_records`
+  - `record_not_stored`
+  - `spec_capture_absent`
+  - `record_without_raw_v1`
+  - `stock_session_failed`
+  - `stock_race_absent`
+- **`CONTRACT_NOT_MET` のとき**：
+  - 収集は止めない（`collection_continues=True`）。
+  - 決定コード・理由・欠損 race・原因を report と標準出力に出す。
+  - 判定を `data/obs_stage0_ledger.jsonl` に追記する（追記専用。Dry は `dry=True` で記録）。
+- **guard との連動**：`analysis.obs_guard.assert_performance_allowed()` は次の 2 段で判定する。
+  - ledger の最新の本番判定が `CONCURRENCY_OK` でなければ拒否する。つまり修正後の開催日から Stage 0 の 2 日を数え直し、通過するまで性能・ROI・帯選択へは進めない。
+  - 500R は、その通過窓の初日以降の race だけで数える。
+- **静的検査**：guard に `root=` / `ledger=` / 位置引数を渡して差し替えることも違反とする。
+- **テスト**：`tests/test_obs_phase2.py` 105 本が pass。全 suite は 347 passed / 17 failed（jump gate の既知事象）。
