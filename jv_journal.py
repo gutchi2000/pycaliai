@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -38,6 +39,21 @@ def journal_root() -> Path:
     return DRY_JOURNAL_ROOT if _CONTEXT.get("dry") else JOURNAL_ROOT
 
 
+def default_process() -> str:
+    """set_context で名前が付いていない取得の process 名 = 実行中スクリプトの repo 相対パス（拡張子なし）。
+    例: analysis/bodyweight_forward/collector。`unknown` のまま記録しないための fallback。"""
+    try:
+        argv0 = Path(sys.argv[0]).resolve() if sys.argv and sys.argv[0] not in ("", "-c", "-") else None
+        if argv0 is None:
+            return "python"
+        try:
+            return argv0.relative_to(BASE).with_suffix("").as_posix()
+        except ValueError:
+            return argv0.stem or "python"
+    except Exception:
+        return "python"
+
+
 def write_event(race_key: str, spec: str, meta: dict) -> Path | None:
     try:
         started = str(meta.get("fetch_started_at") or now_iso())
@@ -47,9 +63,14 @@ def write_event(race_key: str, spec: str, meta: dict) -> Path | None:
                  "pid": os.getpid(), **{k: meta.get(k) for k in (
                      "fetch_started_at", "fetch_finished_at", "rc_init", "rc_open",
                      "n_records_returned", "error", "stream")}}
+        if event.get("process") in (None, "", "unknown"):
+            event["process"], event["process_source"] = default_process(), "argv"
+        else:
+            event["process_source"] = "context"
         root = journal_root() / day
         root.mkdir(parents=True, exist_ok=True)
-        name = f"{compact}_{os.getpid()}_{event.get('process')}_{spec}_{race_key}.json"
+        safe_proc = str(event.get("process")).replace("/", ".")
+        name = f"{compact}_{os.getpid()}_{safe_proc}_{spec}_{race_key}.json"
         path = root / name
         n = 1
         while path.exists():

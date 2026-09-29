@@ -393,58 +393,196 @@ def test_trio_collect_race_adds_timing_votes_manifest_and_forward_mirror(tmp_pat
 
 
 # ---------------------------------------------------------------- Stage 0 audit
-def _store_day(root, jroot, specs_ok=True, announce="10031530", overlap_fail=False):
-    """2 レース: 各レースの t2_candidate（5 spec）と本番 t10（4 spec）、journal は同時刻帯で重ねる。"""
-    import os
-    rids = [RID, "2026100309040911"]
-    t = {RID: "15:28:00", rids[1]: "15:28:10"}
-    for k, rid in enumerate(rids):
-        for stage, specs, pid in (("t2_candidate", SPEC_OF.values(), 100 + k), ("t10", list(SPEC_OF.values())[:4], 200 + k)):
-            caps = []
-            for m, spec in enumerate(specs):
-                kind = next(x for x, s in SPEC_OF.items() if s == spec)
-                started = f"2026-10-03T{t[rid]}.{m:03d}+09:00"
-                meta = {"fetch_started_at": started, "fetch_finished_at": started.replace(".", ".9", 1)[:-6][:23] + "+09:00",
-                        "rc_init": 0, "rc_open": 0, "error": None, "stream": "rt"}
-                bad = overlap_fail and stage == "t2_candidate" and m < 3
-                recs = [build(kind, rid=rid, announce=announce)] if not bad else [build(kind, rid="2026100306040999")]
-                caps.append(JR.capture(spec, rid, recs, meta))
-                jroot.mkdir(parents=True, exist_ok=True)
-                proc = "jvlink_obs" if stage == "t2_candidate" else "jvlink_odds"
-                (jroot / f"{started[:10].replace('-', '')}_{pid}_{spec}_{stage}.json").write_text(json.dumps(
-                    {"process": proc, "stage": stage, "race_id": rid, "spec": spec, "pid": pid,
-                     "n_records_returned": 1, **meta}), encoding="utf-8")
-            FP.archive_market_snapshot({"race_id": rid, "fetched": caps[0]["fetch_started_at"]}, stage, stamp=STAMP,
-                                       root=root, captures=caps, scheduled_post="2026-10-03T15:30:00")
-    return {"20261003": {r: "2026-10-03T15:30:00" for r in rids}}
+R2 = "2026100309040911"
+ALL5 = list(SPEC_OF.values())
 
 
-def _audit(tmp_path, **kw):
-    from analysis import obs_stage0_audit as A
+def _put(root, jroot, rid, stage, specs, hms, pid, proc, *, journal_stage=None, announce="10031530",
+         bad=False, stream="rt", journal=True, n_run_override=None):
+    """1 stage 分の capture 付き録を forward store に、spec ごとの取得を journal に書く。"""
+    caps = []
+    for m, spec in enumerate(specs):
+        kind = next(x for x, s in SPEC_OF.items() if s == spec)
+        started = f"2026-10-03T{hms}.{100 + m:03d}+09:00"
+        finished = f"2026-10-03T{hms}.{600 + m:03d}+09:00"
+        meta = {"fetch_started_at": started, "fetch_finished_at": finished, "rc_init": 0, "rc_open": 0,
+                "error": None, "stream": stream}
+        if bad:
+            recs = [build(kind, rid="2026100306040999", announce=announce)]
+        elif n_run_override is not None:
+            recs = [build(kind, rid=rid, n_reg=12, scratched=(3,), n_run=n_run_override, announce=announce)]
+        else:
+            recs = [build(kind, rid=rid, announce=announce)]
+        caps.append(JR.capture(spec, rid, recs, meta, stream=stream))
+        if journal:
+            jroot.mkdir(parents=True, exist_ok=True)
+            (jroot / f"{started[11:19].replace(':', '')}{100 + m}_{pid}_{spec}_{stage}.json").write_text(json.dumps(
+                {"process": proc, "stage": journal_stage or stage, "race_id": rid, "spec": spec, "pid": pid,
+                 "n_records_returned": 1, **meta}), encoding="utf-8")
+    FP.archive_market_snapshot({"race_id": rid, "fetched": caps[0]["fetch_started_at"]}, stage, stamp=STAMP,
+                               root=root, captures=caps, scheduled_post="2026-10-03T15:30:00")
+
+
+def _event(jroot, name, **ev):
+    jroot.mkdir(parents=True, exist_ok=True)
+    (jroot / f"{name}.json").write_text(json.dumps(ev), encoding="utf-8")
+
+
+def _full_day(tmp_path, *, overlap=True, drop=(), bad_t2=False, announce="10031530", coverage_bad=False):
+    """2 レース × 必須 6 stage。overlap=True なら本番 t10 と三連複 shadow が同時刻（別プロセス）。"""
     root, jroot = tmp_path / "fwd", tmp_path / "journal" / "20261003"
-    sched = _store_day(root, jroot, **kw)
-    return A.audit(["20261003"], root, tmp_path / "journal", schedule=sched)
+    for k, rid in enumerate((RID, R2)):
+        base_m = 20 + 20 * k                     # 15:20 / 15:40
+        t10 = f"15:{base_m:02d}:00"
+        trio = t10 if overlap else f"15:{base_m + 3:02d}:00"
+        if "t10" not in drop:
+            _put(root, jroot, rid, "t10", ALL5[:4], t10, 200 + k, "jvlink_odds", announce=announce)
+        if "trio_t10" not in drop:
+            _put(root, jroot, rid, "trio_t10", ["0B35", "0B31"], trio, 300 + k, "trio_shadow", announce=announce)
+        if "t2_candidate" not in drop:
+            _put(root, jroot, rid, "t2_candidate", ALL5, f"15:{base_m + 8:02d}:00", 400 + k, "jvlink_obs",
+                 announce=announce, bad=bad_t2, n_run_override=(12 if coverage_bad and k == 0 else None))
+        if "close_late" not in drop:
+            _put(root, jroot, rid, "close_late", ALL5[:4], f"15:{base_m + 11:02d}:00", 500 + k, "jvlink_odds",
+                 journal_stage="close", announce=announce)
+        if "final_rt_candidate" not in drop:
+            _put(root, jroot, rid, "final_rt_candidate", ALL5, f"18:{30 + k:02d}:00", 600, "jvlink_obs")
+        if "final_stock_candidate" not in drop:
+            _put(root, jroot, rid, "final_stock_candidate", ALL5, "18:40:00", 700, "jvlink_obs", stream="stock",
+                 journal=False, announce="00000000")
+    if "final_stock_candidate" not in drop:
+        _event(jroot, "184000_700_STOCK", process="jvlink_obs", stage="final_stock_candidate", race_id="STOCK",
+               spec="RACE", pid=700, rc_init=0, rc_open=0, n_records_returned=10,
+               fetch_started_at="2026-10-03T18:40:00.000+09:00", fetch_finished_at="2026-10-03T18:44:00.000+09:00")
+    return root, tmp_path / "journal", {"20261003": {RID: "2026-10-03T15:30:00", R2: "2026-10-03T15:50:00"}}
 
 
-def test_stage0_audit_clean_day(tmp_path):
-    rep = _audit(tmp_path)
-    assert rep["decision"] == "CONCURRENCY_OK" and rep["concurrency"]["overlapped"]["n"] > 0
-    assert rep["concurrency"]["overlapped"]["rate"] == 1.0 and rep["concurrency"]["joined_to_capture"] == 18
-    assert rep["missing"]["t2_candidate/0B35"]["missing_rate"] == 0.0
+def _run_audit(root, jroot, sched):
+    from analysis import obs_stage0_audit as A
+    return A.audit(["20261003"], root, jroot, schedule=sched)
+
+
+def test_stage0_audit_clean_day_contract_met_and_concurrency_ok(tmp_path):
+    rep = _run_audit(*_full_day(tmp_path))
+    assert rep["contract"]["met"], rep["contract"]
+    assert rep["decision"] == "CONCURRENCY_OK" and rep["exit_code"] == 0
+    c = rep["concurrency"]
+    assert c["overlapped"]["n"] > 0 and c["overlapped"]["rate"] == 1.0 and c["unidentified_events"] == 0
+    assert c["assumes_schedule_non_overlap"] is False
+    assert "trio_t10" in c["by_kind"]["t10"]["partner_kinds"]          # 同一レースでも別プロセスなら重なり
+    assert all(v["missing_rate"] == 0.0 for v in rep["missing"].values() if v.get("required"))
     assert all(v["fail"] == 0 for v in rep["raw_parser"].values())
-    assert rep["coverage_fail_over_1pct"] == [] and rep["corruption_0000"] == []
     assert rep["files_opened_outcome_like"] == []
 
 
-def test_stage0_audit_requires_queue_on_overlap_failures(tmp_path):
-    rep = _audit(tmp_path, overlap_fail=True)
-    assert rep["decision"] == "QUEUE_SERIALIZATION_REQUIRED"
-    assert rep["concurrency"]["overlapped"]["rate"] < 0.95
+def test_stage0_audit_missing_required_stage_is_contract_not_met(tmp_path):
+    rep = _run_audit(*_full_day(tmp_path, drop=("final_stock_candidate",)))
+    assert rep["decision"] == "CONTRACT_NOT_MET" and rep["exit_code"] == 4
+    assert any("final_stock_candidate/0B35" in r for r in rep["contract"]["reasons"])
 
 
-def test_stage0_audit_requires_queue_on_any_0000_corruption(tmp_path):
-    rep = _audit(tmp_path, announce="10030000")
-    assert rep["decision"] == "QUEUE_SERIALIZATION_REQUIRED" and rep["corruption_0000"]
+def test_stage0_audit_coverage_mismatch_over_1pct_is_contract_not_met(tmp_path):
+    rep = _run_audit(*_full_day(tmp_path, coverage_bad=True))
+    assert rep["decision"] == "CONTRACT_NOT_MET" and rep["exit_code"] == 4
+    assert rep["coverage_fail_over_1pct"] and any("coverage" in r for r in rep["contract"]["reasons"])
+
+
+def test_stage0_audit_unidentified_process_is_contract_not_met(tmp_path):
+    root, jroot, sched = _full_day(tmp_path)
+    _event(jroot / "20261003", "x_unknown", process="unknown", stage=None, race_id=RID, spec="0B31", pid=999,
+           rc_init=0, rc_open=0, n_records_returned=1,
+           fetch_started_at="2026-10-03T12:00:00.000+09:00", fetch_finished_at="2026-10-03T12:00:01.000+09:00")
+    rep = _run_audit(root, jroot, sched)
+    assert rep["decision"] == "CONTRACT_NOT_MET" and rep["concurrency"]["unidentified_events"] == 1
+
+
+def test_stage0_audit_overlap_failures_report_queue_verdict_even_when_contract_fails(tmp_path):
+    root, jroot, sched = _full_day(tmp_path, bad_t2=True)
+    for k, rid in enumerate((RID, R2)):                    # jvlink_changes の取得を T−2 と同時刻に重ねる
+        hms = f"15{28 + 20 * k:02d}00"
+        _event(jroot / "20261003", f"{hms}_changes_{k}", process="jvlink_changes", stage="changes",
+               race_id=rid, spec="0B15", pid=800 + k, rc_init=0, rc_open=-1, n_records_returned=0,
+               fetch_started_at=f"2026-10-03T15:{28 + 20 * k:02d}:00.200+09:00",
+               fetch_finished_at=f"2026-10-03T15:{28 + 20 * k:02d}:00.400+09:00")
+    rep = _run_audit(root, jroot, sched)
+    assert rep["decision"] == "CONTRACT_NOT_MET"                   # 失敗は契約 (race_key) も壊す
+    assert rep["concurrency_verdict"] == "QUEUE_SERIALIZATION_REQUIRED"
+    t2 = rep["concurrency"]["by_kind"]["t2_candidate"]
+    assert t2["over_n"] == 10 and t2["over_rate"] == 0.0
+    assert "jvlink_changes" in t2["partner_kinds"]
+    assert "jvlink_changes" in rep["concurrency"]["by_kind"]         # changes は重なり相手として識別される
+
+
+def test_stage0_audit_0000_corruption_requires_queue(tmp_path):
+    rep = _run_audit(*_full_day(tmp_path, announce="10030000"))
+    assert rep["contract"]["met"] and rep["corruption_0000"]
+    assert rep["decision"] == "QUEUE_SERIALIZATION_REQUIRED" and rep["exit_code"] == 3
+
+
+def test_stage0_audit_insufficient_overlap_is_its_own_exit(tmp_path):
+    rep = _run_audit(*_full_day(tmp_path, overlap=False))
+    assert rep["contract"]["met"] and rep["concurrency"]["overlapped"]["n"] == 0
+    assert rep["decision"] == "INSUFFICIENT_OVERLAP_OBSERVED" and rep["exit_code"] == 5
+
+
+def test_decision_exit_codes_are_distinct():
+    from analysis import obs_stage0_audit as A
+    assert A.DECISION_EXIT == {"CONCURRENCY_OK": 0, "QUEUE_SERIALIZATION_REQUIRED": 3, "CONTRACT_NOT_MET": 4,
+                               "INSUFFICIENT_OVERLAP_OBSERVED": 5}
+
+
+@pytest.mark.parametrize("ev,kind", [
+    ({"process": "jvlink_odds", "stage": "t10"}, "t10"),
+    ({"process": "jvlink_odds", "stage": "close"}, "close_late"),
+    ({"process": "jvlink_odds", "stage": "close_late"}, "close_late"),
+    ({"process": "jvlink_odds", "stage": "t20"}, "t20"),
+    ({"process": "jvlink_odds", "stage": "vote"}, "vote"),
+    ({"process": "jvlink_odds", "stage": "exp05fs_t35"}, "exp05fs_t35"),
+    ({"process": "exp05fs_calendar", "stage": "calendar"}, "exp05fs_calendar"),
+    ({"process": "jvlink_changes", "stage": "changes"}, "jvlink_changes"),
+    ({"process": "jvlink_obs", "stage": "t2_candidate"}, "t2_candidate"),
+    ({"process": "jvlink_obs", "stage": "final_rt_candidate"}, "final_rt_candidate"),
+    ({"process": "jvlink_obs", "stage": "final_stock_candidate", "spec": "RACE"}, "final_stock_candidate(STOCK)"),
+    ({"process": "trio_shadow", "stage": "trio_t10"}, "trio_t10"),
+    ({"process": "analysis/bodyweight_forward/collector", "stage": None}, "analysis/bodyweight_forward/collector"),
+    ({"process": "unknown", "stage": None}, "UNIDENTIFIED:unknown"),
+])
+def test_every_jvlink_fetch_kind_is_identifiable(ev, kind):
+    from analysis import obs_stage0_audit as A
+    assert A.event_kind(ev) == kind
+
+
+def test_journal_never_records_unknown_process(tmp_path, monkeypatch):
+    monkeypatch.setenv("PYCALIAI_JV_JOURNAL_ROOT", str(tmp_path))
+    monkeypatch.setattr(jv_journal, "_CONTEXT", {"process": "unknown", "stage": None, "race_id": None, "dry": False})
+    monkeypatch.setattr(sys, "argv", [str(BASE / "analysis" / "bodyweight_forward" / "collector.py")])
+    p = jv_journal.write_event(RID, "0B11", {"fetch_started_at": "2026-10-03T09:00:00.000+09:00"})
+    ev = json.loads(p.read_text(encoding="utf-8"))
+    assert ev["process"] == "analysis/bodyweight_forward/collector" and ev["process_source"] == "argv"
+    monkeypatch.setattr(sys, "argv", ["-c"])
+    ev = json.loads(jv_journal.write_event(RID, "0B11", {"fetch_started_at": "2026-10-03T09:00:01.000+09:00"})
+                    .read_text(encoding="utf-8"))
+    assert ev["process"] == "python"                                  # 監査では UNIDENTIFIED → 契約未達
+
+
+def test_jvlink_changes_sets_explicit_process_name():
+    import ast
+    tree = ast.parse((BASE / "jvlink_changes.py").read_text(encoding="utf-8"))
+    main = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "main")
+    calls = [n for n in ast.walk(main) if isinstance(n, ast.Call) and getattr(n.func, "id", "") == "set_context"]
+    assert any(k.arg == "process" and getattr(k.value, "value", None) == "jvlink_changes"
+               for c in calls for k in c.keywords)
+
+
+def test_exp05fs_calendar_session_is_journaled_even_on_failure(tmp_path, monkeypatch):
+    from analysis.mcond.exp05_forward_shadow import jvlink_race_calendar as cal
+    monkeypatch.setenv("PYCALIAI_JV_JOURNAL_ROOT", str(tmp_path))
+    monkeypatch.setattr(cal, "_fetch_races_jv", lambda *a, **k: ([], "JVOpen失敗 rc=-1"))
+    assert cal.fetch_races("20261003") == ([], "JVOpen失敗 rc=-1")         # 戻り値は不変
+    ev = json.loads(next(tmp_path.rglob("*.json")).read_text(encoding="utf-8"))
+    assert ev["process"] == "exp05fs_calendar" and ev["spec"] == "RACE" and ev["error"] == "JVOpen失敗 rc=-1"
+    from analysis import obs_stage0_audit as A
+    assert A.event_kind(ev) == "exp05fs_calendar"
 
 
 def test_stage0_audit_source_reads_no_outcome():
@@ -453,7 +591,8 @@ def test_stage0_audit_source_reads_no_outcome():
     tree = ast.parse((BASE / "analysis" / "obs_stage0_audit.py").read_text(encoding="utf-8"))
     mods = {a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names}
     mods |= {n.module or "" for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)}
-    names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)} |             {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)} | \
+            {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
     assert not mods & {"generate_results", "update_live_results", "settle_masters_vote", "backtest_pl_ev"}
     assert not names & {"load_kekka_all", "get_winner", "get_race_kk", "read_payouts", "payout_table"}
 

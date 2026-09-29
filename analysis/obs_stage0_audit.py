@@ -2,19 +2,28 @@
 """
 obs_stage0_audit.py — 観測計画 v2.1 Phase 2 Stage 0（最初の 2 開催日）label-free 監査
 ====================================================================================
-監査するのは次だけ（実行部への指示どおり）。outcome・払戻・ROI・性能・帯選択は読まない / 計算しない。
+監査するのは次だけ。outcome・払戻・ROI・性能・帯選択は読まない / 計算しない。
 
-  1. 欠損率        stage × spec ごとに、予定レースのうち録（capture）が無い割合
+  1. 欠損率        必須 stage × spec ごとに、予定レースのうち録（capture）が無い割合
   2. 時刻          取得所要（spec 別・5 spec 合計）、発表遅延（取得完了 − 発表月日時分）、発走までの秒
-  3. 全組被覆      発売中の組数 = 出走頭数から決まる期待値、非空白 slot = 登録頭数からの期待値
+  3. 全組被覆      発売中の組数 = 出走頭数からの期待値、非空白 slot = 登録頭数からの期待値（枠連を含む）
   4. raw/parser 一致 保存 raw の再構造化 = 保存済み構造化、slot parser = 本番の実録突合済み parser
-  5. 並走成功率    T−2 / 本番 T−10 / 三連複 shadow の取得が別プロセス同士で ±30 秒以内に重なった
-                   取得の成功率を単独取得と比べる（成功 = rc 0・録あり・race_key 一致・全組被覆）。
-                   同一レースの本番 T−10 と三連複 shadow の同時取得も別プロセスなので重なりに数える
+  5. 並走成功率    取得ジャーナルの全 JV-Link 取得（本番 t10/t20/close_late/vote/exp05fs_t35、T−2、三連複、
+                   final RT、蓄積系 STOCK、jvlink_changes、EXP05-F calendar、その他）を重なり相手にする。
+                   別プロセスの取得と ±30 秒以内に重なった取得の成功率を、単独取得の成功率と比べる。
+                   スケジュールが重ならないことは仮定しない（実際の開始・終了時刻だけで判定する）。
+                   成功率を測るのは forward store の capture と突き合わせられる価格取得
+                   （成功 = rc 0・録あり・race_key 一致・全組被覆）。それ以外（changes・calendar・STOCK 等）は
+                   重なり相手としてだけ数え、rc の分布を記述する。
   +  00:00 型破損  RT 録の発表時分 00:00、または発走予定 00:00
 
-判定（§3 (6)）: 重なり時の成功率 < 95%、または 00:00 型破損が 1 件でもあれば
-QUEUE_SERIALIZATION_REQUIRED（性能評価へ進まず、単一プロセスのキュー直列化を先に行う）。
+判定と終了コード（契約 → 並走の順）:
+  CONTRACT_NOT_MET (4)              必須 stage/spec の欠損率 > 1%、被覆不一致率 > 1%（枠連を含む）、
+                                    raw/parser 不一致が 1 件以上、または process 名が識別できない取得がある
+  QUEUE_SERIALIZATION_REQUIRED (3)  契約は満たすが、重なり時の成功率 < 95%、または 00:00 型破損が 1 件以上
+  INSUFFICIENT_OVERLAP_OBSERVED (5) 契約は満たすが、重なった価格取得が 1 件も観測されない
+  CONCURRENCY_OK (0)                上記以外
+契約と並走の判定は両方とも常に計算して報告する（先に当たった方が decision になる）。
 
 python -m analysis.obs_stage0_audit --dates 20261003 20261004 [--dry]
 """
@@ -25,7 +34,7 @@ import hashlib
 import json
 import os
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 from statistics import median
@@ -40,11 +49,17 @@ JOURNAL_ROOT = BASE / "data" / "jvlink_fetch_journal"
 OVERLAP_SEC = 30.0
 MIN_OVERLAP_SUCCESS = 0.95
 MAX_COVERAGE_MISMATCH = 0.01
+MAX_MISSING_RATE = 0.01
 FIVE_SPEC_P95_SEC = 60.0
-STAGES = ("t10", "t20", "close_late", "t2_candidate", "trio_t10", "final_rt_candidate",
-          "final_stock_candidate")
-CONCURRENCY_KINDS = {("jvlink_odds", "t10"): "t10", ("jvlink_obs", "t2_candidate"): "t2_candidate",
-                     ("trio_shadow", "trio_t10"): "trio_t10"}
+ALL5 = ("0B31", "0B32", "0B33", "0B34", "0B35")
+PROD4 = ("0B31", "0B32", "0B33", "0B34")
+# Phase 2 の必須 stage × spec（予定レース全件に録が要る）。t20 / vote / exp05fs_t35 は他系統の契約なので記述のみ。
+REQUIRED_STAGE_SPECS = {"t10": PROD4, "close_late": PROD4, "t2_candidate": ALL5, "trio_t10": ("0B35", "0B31"),
+                        "final_rt_candidate": ALL5, "final_stock_candidate": ALL5}
+DESCRIPTIVE_STAGES = ("t20", "vote", "exp05fs_t35")
+DECISION_EXIT = {"CONCURRENCY_OK": 0, "QUEUE_SERIALIZATION_REQUIRED": 3, "CONTRACT_NOT_MET": 4,
+                 "INSUFFICIENT_OVERLAP_OBSERVED": 5}
+UNIDENTIFIED_PROCESSES = {"", "unknown", "python", "pythonw", "-c", "None"}
 FORBIDDEN_MARKERS = ("kekka", "payout", "haraimodoshi", "wide_payouts", "live_results", "results.json",
                      "rows_2013_2023")
 
@@ -74,6 +89,25 @@ def _q(xs: list[float]) -> dict:
     return {"n": len(xs), "p50": round(median(xs), 3), "p95": round(p95, 3), "max": round(xs[-1], 3)}
 
 
+def event_kind(e: dict) -> str:
+    """取得ジャーナルの 1 件を識別名にする。process 名が無い・不明な取得は 'UNIDENTIFIED:...'。"""
+    proc = str(e.get("process") or "")
+    st = canonical_stage(e.get("stage")) if e.get("stage") else ""
+    if proc in UNIDENTIFIED_PROCESSES:
+        return f"UNIDENTIFIED:{proc or '-'}"
+    if proc == "jvlink_odds":
+        return st or "jvlink_odds"
+    if proc == "jvlink_obs":
+        return "final_stock_candidate(STOCK)" if e.get("spec") == "RACE" else (st or "jvlink_obs")
+    if proc == "trio_shadow":
+        return "trio_t10"
+    if proc == "jvlink_changes":
+        return "jvlink_changes"
+    if proc == "exp05fs_calendar":
+        return "exp05fs_calendar"
+    return f"{proc}:{st}" if st else proc
+
+
 def scheduled_races(date: str) -> dict[str, str]:
     from jvlink_trio_odds import build_schedule
     return {rid: pt.isoformat() for pt, rid in build_schedule(date)}
@@ -101,18 +135,84 @@ def load_journal(root: Path, dates: list[str]) -> list[dict]:
     return ev
 
 
+def concurrency(events: list[dict], capture_index: dict) -> dict:
+    """全取得を重なり相手にした並走成功率。スケジュールの非重複は仮定しない。"""
+    evs = [e for e in events if "_unreadable" not in e]
+    spans = []
+    for e in evs:
+        t0 = _ts(e.get("fetch_started_at"))
+        t1 = _ts(e.get("fetch_finished_at")) or t0
+        spans.append((t0, t1))
+    kinds = [event_kind(e) for e in evs]
+
+    def measured(e) -> tuple[bool | None, bool]:
+        """(success or None when not measurable, joined_to_capture)"""
+        cap = capture_index.get((canonical_stage(e.get("stage")) if e.get("stage") else None, e.get("race_id"),
+                                 e.get("spec"), str(e.get("fetch_started_at"))))
+        if cap is None:
+            return None, False
+        base_ok = e.get("rc_init") == 0 and e.get("rc_open") == 0 and (e.get("n_records_returned") or 0) > 0
+        return bool(base_ok and cap.get("ok")), True
+
+    per_kind = defaultdict(lambda: {"events": 0, "solo_ok": 0, "solo_n": 0, "over_ok": 0, "over_n": 0,
+                                    "partner_kinds": Counter(), "rc_nonzero": 0, "errors": 0})
+    solo, over = [0, 0], [0, 0]
+    failures = []
+    for i, e in enumerate(evs):
+        k = kinds[i]
+        pk = per_kind[k]
+        pk["events"] += 1
+        pk["rc_nonzero"] += int(e.get("rc_init") not in (0, None) or e.get("rc_open") not in (0, None))
+        pk["errors"] += int(bool(e.get("error")))
+        s0, s1 = spans[i]
+        partners = []
+        if s0 is not None:
+            for j, f in enumerate(evs):
+                if i == j or f.get("pid") == e.get("pid"):        # 同一プロセス内の逐次取得は並走ではない
+                    continue
+                f0, f1 = spans[j]
+                if f0 is None:
+                    continue
+                if (f0 - s1).total_seconds() <= OVERLAP_SEC and (s0 - f1).total_seconds() <= OVERLAP_SEC:
+                    partners.append(kinds[j])
+        pk["partner_kinds"].update(set(partners))
+        ok, joined = measured(e)
+        if ok is None:
+            continue
+        if partners:
+            over[0] += int(ok); over[1] += 1
+            pk["over_ok"] += int(ok); pk["over_n"] += 1
+            if not ok:
+                failures.append({"kind": k, "race_id": e.get("race_id"), "spec": e.get("spec"),
+                                 "started": e.get("fetch_started_at"), "partners": sorted(set(partners))})
+        else:
+            solo[0] += int(ok); solo[1] += 1
+            pk["solo_ok"] += int(ok); pk["solo_n"] += 1
+    rate = lambda a, n: round(a / n, 4) if n else None
+    table = {k: {**{x: v[x] for x in ("events", "solo_n", "over_n", "rc_nonzero", "errors")},
+                 "solo_rate": rate(v["solo_ok"], v["solo_n"]), "over_rate": rate(v["over_ok"], v["over_n"]),
+                 "partner_kinds": dict(v["partner_kinds"])} for k, v in sorted(per_kind.items())}
+    return {"window_sec": OVERLAP_SEC, "events": len(evs), "unreadable": len(events) - len(evs),
+            "measured": solo[1] + over[1],
+            "solo": {"ok": solo[0], "n": solo[1], "rate": rate(*solo)},
+            "overlapped": {"ok": over[0], "n": over[1], "rate": rate(*over)},
+            "overlapped_failures": failures[:50], "by_kind": table,
+            "unidentified_events": sum(1 for k in kinds if k.startswith("UNIDENTIFIED")),
+            "assumes_schedule_non_overlap": False}
+
+
 def audit(dates: list[str], forward_root: Path = FORWARD_ROOT, journal_root: Path = JOURNAL_ROOT,
-          schedule: dict[str, dict[str, str]] | None = None) -> dict:
+          schedule: dict[str, dict[str, str]] | None = None, required: dict | None = None) -> dict:
     schedule = schedule if schedule is not None else {d: scheduled_races(d) for d in dates}
+    required = REQUIRED_STAGE_SPECS if required is None else required
     sched_all = {rid: post for d in dates for rid, post in schedule.get(d, {}).items()}
     recs = load_records(forward_root, dates)
     events = load_journal(journal_root, dates)
 
-    # ---- 1. 欠損率 / 3. 全組被覆 / 4. raw・parser 一致 / 2. 時刻（capture 単位）
-    have = defaultdict(set)                      # (stage, spec) -> rids with a capture holding >=1 record
-    v1_only = defaultdict(set)                   # stage -> rids with records lacking jv_captures
-    cov = defaultdict(lambda: defaultdict(lambda: [0, 0]))   # (stage,spec) -> block -> [mismatch, n]
-    parse_checks = defaultdict(lambda: [0, 0])  # check -> [fail, n]
+    have = defaultdict(set)
+    v1_only = defaultdict(set)
+    cov = defaultdict(lambda: defaultdict(lambda: [0, 0]))
+    parse_checks = defaultdict(lambda: [0, 0])
     dur = defaultdict(list)
     span = defaultdict(list)
     ann_delay = defaultdict(list)
@@ -172,92 +272,57 @@ def audit(dates: list[str], forward_root: Path = FORWARD_ROOT, journal_root: Pat
         if starts:
             span[st].append((max(ends) - min(starts)).total_seconds())
 
-    missing = {}
-    specs_by_stage = defaultdict(set)
-    for st, spec in have:
-        specs_by_stage[st].add(spec)
-    for st in STAGES:
-        for spec in sorted(specs_by_stage.get(st, set())):
-            n = len(sched_all)
-            got = len(have[(st, spec)] & set(sched_all))
-            missing[f"{st}/{spec}"] = {"scheduled": n, "with_capture": got,
-                                       "missing_rate": round(1 - got / n, 4) if n else None}
-        if v1_only.get(st):
-            missing[f"{st}/v1_without_raw"] = {"races": len(v1_only[st])}
+    n_sched = len(sched_all)
+    missing, missing_fail = {}, []
+    for st, specs in required.items():
+        for spec in specs:
+            got = have[(st, spec)] & set(sched_all)
+            rate_m = round(1 - len(got) / n_sched, 4) if n_sched else None
+            missing[f"{st}/{spec}"] = {"scheduled": n_sched, "with_capture": len(got), "missing_rate": rate_m,
+                                       "missing_races": sorted(set(sched_all) - got)[:30], "required": True}
+            if rate_m is None or rate_m > MAX_MISSING_RATE:
+                missing_fail.append(f"{st}/{spec}")
+    for st in DESCRIPTIVE_STAGES:
+        for spec in PROD4:
+            got = have[(st, spec)] & set(sched_all)
+            if got:
+                missing[f"{st}/{spec}"] = {"scheduled": n_sched, "with_capture": len(got), "required": False}
+    for st, rids in v1_only.items():
+        missing[f"{st}/v1_without_raw"] = {"races": len(rids), "required": False}
     coverage = {f"{st}/{spec}": {b: {"mismatch": m, "n": n, "rate": round(m / n, 4) if n else None}
                                  for b, (m, n) in blocks.items()}
                 for (st, spec), blocks in cov.items()}
     coverage_fail = sorted(f"{k}/{b}" for k, blocks in coverage.items() for b, v in blocks.items()
-                           if v["rate"] is not None and v["rate"] > MAX_COVERAGE_MISMATCH and b != "wakuren")
-    wakuren_fail = sorted(k for k, blocks in coverage.items()
-                          if (blocks.get("wakuren") or {}).get("rate") not in (None, 0.0)
-                          and blocks["wakuren"]["rate"] > MAX_COVERAGE_MISMATCH)
+                           if v["rate"] is not None and v["rate"] > MAX_COVERAGE_MISMATCH)
+    parse_fail = sorted(k for k, (f, n) in parse_checks.items() if f > 0)
+    conc = concurrency(events, capture_index)
 
-    # ---- 5. 並走成功率（journal）
-    def kind(e):
-        return CONCURRENCY_KINDS.get((e.get("process"), e.get("stage")))
-
-    def success(e) -> tuple[bool, bool]:
-        base_ok = e.get("rc_init") == 0 and e.get("rc_open") == 0 and (e.get("n_records_returned") or 0) > 0
-        cap = capture_index.get((canonical_stage(e.get("stage")), e.get("race_id"), e.get("spec"),
-                                 str(e.get("fetch_started_at"))))
-        if cap is None:
-            return base_ok, False
-        return base_ok and bool(cap.get("ok")), True
-
-    evs = [e for e in events if kind(e)]
-    spans = [(_ts(e.get("fetch_started_at")), _ts(e.get("fetch_finished_at")) or _ts(e.get("fetch_started_at")))
-             for e in evs]
-    solo, over = [0, 0], [0, 0]
-    joined = 0
-    overlap_rows = []
-    for i, e in enumerate(evs):
-        s0, s1 = spans[i]
-        if s0 is None:
-            continue
-        partners = []
-        for j, f in enumerate(evs):
-            if i == j or f.get("pid") == e.get("pid"):      # 同一プロセス内の逐次取得は並走ではない
-                continue
-            f0, f1 = spans[j]
-            if f0 is None:
-                continue
-            if (f0 - s1).total_seconds() <= OVERLAP_SEC and (s0 - f1).total_seconds() <= OVERLAP_SEC:
-                partners.append(kind(f))
-        ok, has_cap = success(e)
-        joined += int(has_cap)
-        bucket = over if partners else solo
-        bucket[0] += int(ok)
-        bucket[1] += 1
-        if partners:
-            overlap_rows.append({"kind": kind(e), "race_id": e.get("race_id"), "spec": e.get("spec"),
-                                 "started": e.get("fetch_started_at"), "ok": ok,
-                                 "partners": sorted(set(partners))})
-    rate = lambda b: round(b[0] / b[1], 4) if b[1] else None
-    conc = {"window_sec": OVERLAP_SEC, "events": len(evs), "joined_to_capture": joined,
-            "solo": {"ok": solo[0], "n": solo[1], "rate": rate(solo)},
-            "overlapped": {"ok": over[0], "n": over[1], "rate": rate(over)},
-            "overlapped_failures": [r for r in overlap_rows if not r["ok"]][:50],
-            "by_kind": {k: {"events": sum(1 for e in evs if kind(e) == k)} for k in set(CONCURRENCY_KINDS.values())}}
+    contract_reasons = []
+    if missing_fail:
+        contract_reasons.append(f"required stage/spec missing > {MAX_MISSING_RATE:.0%}: {missing_fail}")
+    if coverage_fail:
+        contract_reasons.append(f"coverage mismatch > {MAX_COVERAGE_MISMATCH:.0%}: {coverage_fail}")
+    if parse_fail:
+        contract_reasons.append(f"raw/parser check failures: {parse_fail}")
+    if conc["unidentified_events"]:
+        contract_reasons.append(f"journal events without an identifiable process: {conc['unidentified_events']}")
+    queue_reasons = []
+    ov = conc["overlapped"]
+    if ov["n"] and ov["ok"] / ov["n"] < MIN_OVERLAP_SUCCESS:
+        queue_reasons.append(f"overlapped success {ov['ok']}/{ov['n']} < {MIN_OVERLAP_SUCCESS}")
+    if corruption:
+        queue_reasons.append(f"00:00-type corruption x{len(corruption)}")
+    concurrency_verdict = ("QUEUE_SERIALIZATION_REQUIRED" if queue_reasons
+                           else "INSUFFICIENT_OVERLAP_OBSERVED" if not ov["n"] else "CONCURRENCY_OK")
+    decision = "CONTRACT_NOT_MET" if contract_reasons else concurrency_verdict
 
     five_spec = _q(span.get("t2_candidate", []))
-    decision_reasons = []
-    if over[1] and over[0] / over[1] < MIN_OVERLAP_SUCCESS:
-        decision_reasons.append(f"overlapped success {over[0]}/{over[1]} < {MIN_OVERLAP_SUCCESS}")
-    if corruption:
-        decision_reasons.append(f"00:00-type corruption x{len(corruption)}")
-    if decision_reasons:
-        decision = "QUEUE_SERIALIZATION_REQUIRED"
-    elif not over[1]:
-        decision = "INSUFFICIENT_OVERLAP_OBSERVED"
-    else:
-        decision = "CONCURRENCY_OK"
     result_like = sorted(p for p in _OPENED if any(m in p.lower() for m in FORBIDDEN_MARKERS))
     assert not result_like, f"outcome-like file opened: {result_like}"
     return {
         "role": "observation plan v2.1 Phase 2 Stage 0 (label-free). No outcome, payout, ROI, performance "
                 "or band selection is read or computed.",
-        "dates": dates, "scheduled_races": len(sched_all), "records": len(recs), "journal_events": len(events),
+        "dates": dates, "scheduled_races": n_sched, "records": len(recs), "journal_events": len(events),
         "missing": missing,
         "timing": {"fetch_duration_sec": {f"{k[0]}/{k[1]}": _q(v) for k, v in dur.items()},
                    "t2_candidate_5spec_span_sec": five_spec,
@@ -266,10 +331,11 @@ def audit(dates: list[str], forward_root: Path = FORWARD_ROOT, journal_root: Pat
                    "seconds_to_post": {f"{k[0]}/{k[1]}": {b: _q(v) for b, v in d.items()}
                                        for k, d in to_post.items()}},
         "coverage": coverage, "coverage_fail_over_1pct": coverage_fail,
-        "wakuren_rule_mismatch_over_1pct": wakuren_fail,
         "raw_parser": {k: {"fail": f, "n": n} for k, (f, n) in parse_checks.items()},
         "concurrency": conc, "corruption_0000": corruption,
-        "decision": decision, "decision_reasons": decision_reasons,
+        "contract": {"met": not contract_reasons, "reasons": contract_reasons},
+        "concurrency_verdict": concurrency_verdict, "concurrency_reasons": queue_reasons,
+        "decision": decision, "exit_code": DECISION_EXIT[decision],
         "files_opened_outcome_like": result_like,
     }
 
@@ -291,10 +357,10 @@ def main() -> int:
     out = Path(args.out) if args.out else BASE / "reports" / f"obs_stage0_{'_'.join(args.dates)}{'_dry' if args.dry else ''}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(rep, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(json.dumps({k: rep[k] for k in ("dates", "scheduled_races", "records", "decision", "decision_reasons",
-                                          "coverage_fail_over_1pct")}, ensure_ascii=False))
+    print(json.dumps({k: rep[k] for k in ("dates", "scheduled_races", "records", "decision", "contract",
+                                          "concurrency_verdict", "concurrency_reasons")}, ensure_ascii=False))
     print(f"[obs_stage0] -> {out}")
-    return 0 if rep["decision"] != "QUEUE_SERIALIZATION_REQUIRED" else 3
+    return rep["exit_code"]
 
 
 if __name__ == "__main__":

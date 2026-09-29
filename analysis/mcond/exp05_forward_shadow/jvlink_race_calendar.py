@@ -114,7 +114,29 @@ DEFAULT_ERRLOG = Path(__file__).resolve().parents[3] / "logs" / "jvlink_calendar
 
 def fetch_races(target_date: str, lookback_days: int = 14, timeout_s: float = 90.0) -> tuple[list[dict], str]:
     """(races, error) を返す。races は成功時 [{"rid16":..,"post":"HH:MM","venue":..}]、
-    失敗時は空リスト+errorに理由。例外は投げない(呼び出し側で非干渉に扱えるように)。"""
+    失敗時は空リスト+errorに理由。例外は投げない(呼び出し側で非干渉に扱えるように)。
+
+    観測計画 v2.1 (2026-09-29): JV-Link セッション 1 回を取得ジャーナルへ process=exp05fs_calendar で
+    1 件記録する (並走成功率の重なり相手として識別するため)。記録は fail-open で、戻り値は変えない。"""
+    started = datetime.now().astimezone().isoformat(timespec="milliseconds")
+    races, err = [], "not run"
+    try:
+        races, err = _fetch_races_jv(target_date, lookback_days, timeout_s)
+        return races, err
+    finally:
+        try:
+            import jv_journal
+            jv_journal.set_context(process="exp05fs_calendar", stage="calendar", race_id=None)
+            jv_journal.write_event("CALENDAR", "RACE", {
+                "fetch_started_at": started,
+                "fetch_finished_at": datetime.now().astimezone().isoformat(timespec="milliseconds"),
+                "rc_init": None, "rc_open": None, "error": err or None,
+                "n_records_returned": len(races), "stream": "stock"})
+        except Exception:
+            pass
+
+
+def _fetch_races_jv(target_date: str, lookback_days: int = 14, timeout_s: float = 90.0) -> tuple[list[dict], str]:
     try:
         import win32com.client as w
     except Exception as exc:
