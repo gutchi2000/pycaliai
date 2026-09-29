@@ -66,3 +66,54 @@ Dry は現在、T−2 と三連複の両方にかかる。§5.1 の Dry 要件�
 6. **本番 tree の別件**（Phase 1 関連、今回は触らない）：
    - `data/masters_vote.json` の作業ツリーに、実行部が Phase 1 指示の到着前に入れた `enabled=false` の未 commit 変更がある。HEAD は `enabled=true` で、復旧報告の記録と食い違う。扱いは判断を仰ぐ。
    - local master は origin に対して 29 ahead / 1 behind。
+
+## 6. Fable 実装レビュー必須 4 点の反映（2026-09-29）
+
+`09143ba6` は変更していない。後続 commit で次のとおり対応した。いずれも未 merge・未 push で、タスク登録・`-Apply`・実データ収集もしていない。
+
+| # | commit | 内容 |
+|---|---|---|
+| 1 | `dec0281d` | 本番で未追跡だった `analysis/evaluate_wide_residual_forward.py` と、その依存先 `canonical_settlement.py`、それぞれのテストを byte 一致のまま追跡対象にした（sha256 は commit message に記載）。依存先を追跡しないと branch 上で import も検証もできないため |
+| 1 | `4fe9776e` | `load_price_lineage` の stage 比較を `canonical_stage()` 経由にし、`close_late` と v1 の `close` の両方を締切録として数える。テスト 4 本を追加（v1 close / close 要求→close_late / close_late 直書き / 他 stage は非該当） |
+| 2 | `a1964c7a` | 観測用 3 行を一時的に外し、`bf952d3f` と byte 一致の `.gitignore` に戻す |
+| 2 | `c3147123` | UTF-16/NUL のゴミ行（`path/to/pred.csv`、NUL 18 byte）を空行 1 行に置き換える。`git check-ignore -v -n --no-index -z` を 82,282 path で比較し、ignored 71,475 → 71,475、変化 0 |
+| 2 | `db150e04` | 観測用 3 行を text diff として再追加。変化は想定した 3 path だけ（ignored 71,475 → 71,478） |
+| 3 | `fd8c2a08` | Stage 0 監査の重なり相手を journal 内の全 JV-Link 取得へ広げ、`CONTRACT_NOT_MET` を独立判定にした。詳細は下記 |
+| 4 | `b9516e8c` | 500R guard を静的検査で強制し、件数を上書きする引数を削除した。詳細は下記 |
+
+**必須 3 の中身**
+- **重なり相手**：journal 内の全取得。本番の t10 / t20 / close_late / vote / exp05fs_t35、T−2、三連複、final RT、蓄積系 STOCK、`jvlink_changes`、EXP05-F calendar、その他すべてを含む。
+- **判定の前提**：スケジュールが重ならないことは仮定しない。実際の開始・終了時刻で ±30 秒の重なりを判定し、同一レースでも別プロセスなら重なりとして数える。
+- **識別名**：
+  - `event_kind()` がすべての取得に識別名を付ける。
+  - `jvlink_changes.py` は `set_context(process="jvlink_changes")` で名乗る。
+  - EXP05-F calendar は JV-Link セッション 1 回を `process=exp05fs_calendar` として記録する（fail-open、戻り値は不変）。
+  - 名前の付いていない取得は、実行スクリプトの repo 相対パス（例：`analysis/bodyweight_forward/collector`）で記録し、`unknown` を残さない。
+- **判定と終了コード**：
+  - `CONTRACT_NOT_MET`（exit 4）：必須 stage × spec の欠損率 > 1%、被覆不一致率 > 1%（枠連を含む）、raw/parser 不一致、識別できない process のいずれか。
+  - 並走側の判定は常に別途計算して報告する：`QUEUE_SERIALIZATION_REQUIRED` 3 / `INSUFFICIENT_OVERLAP_OBSERVED` 5 / `CONCURRENCY_OK` 0。
+
+**必須 4 の中身**
+- **静的検査** `analysis/obs_guard.py` の `find_unguarded_modules()`：
+  - 対象は追跡 .py 全件の AST。
+  - 違反になるのは、観測 stage を参照し、かつ次のいずれかに当たるのに `assert_performance_allowed()` を呼ばない module。
+    - 結果・払戻・着順系の import（名前 import・動的 import を含む）
+    - path や列名の文字列
+  - guard に `root=` を渡して store を差し替えるのも違反。
+  - 検査コマンド：`python -m analysis.obs_guard --check`（違反があれば exit 1）。
+- **件数上書きの除去**：`assert_performance_allowed(stream, root)` から件数上書き引数を削除した。
+- **現状**：追跡 .py 701 本で違反 0。観測 stage を参照する 7 本は、いずれも結果系を扱わない。
+
+**テスト**
+- `tests/test_obs_phase2.py` 81 本、stage alias 4 本、評価器・settlement 23 本、既存の forward_prices 系 37 本がすべて pass。
+- 全 suite は 312 passed / 17 failed / 1 skipped。17 failed は `bf952d3f` と同じ `test_jump_race_p0_gate.py` の既存事象。
+
+## 7. merge 時の注意と未解決事項
+
+1. **merge 前の未追跡ファイル衝突**：本番 tree には、今回追跡対象にした 4 本が未追跡のまま残っている。そのままでは merge が「untracked working tree files would be overwritten」で止まる。merge 前に本番側 4 本の sha256 を `dec0281d` の記録と照合し、一致すれば退避してから merge する。不一致なら、差分を先に取り込むかを判断する。
+2. **本番が未追跡ファイルに依存している（範囲外の所見）**：`compute_bets.py` は live モードで `wide_residual_shadow.py` を import するが、このファイルは本番で未追跡（`bf952d3f` に無い）。バージョン管理外の本番依存で、9/27 と同じく失えば復旧できない。
+3. **ジャーナル化していない JV-Link 利用**：`jvlink_results.py`・`jvlink_probe.py`・`jvlink_race_day_probe.py`・`jvlink_shadow_probe.py`（いずれも手動実行で、scheduler 経路には無い）。レース時間帯に手動で実行すると、重なり相手として見えない。
+4. **契約の閾値**：欠損率・被覆不一致率 > 1% は 1 開催日 23〜36 レースでは 1 件で超える。Stage 0 では 1 件の欠損でも `CONTRACT_NOT_MET` になる（意図どおりの厳しさ）。
+5. **枠連の期待 slot 数**：登録頭数からの仮定式で、実録 4 件（smoke を含む）と一致した。契約の被覆判定に含めたので、式が誤っていれば `CONTRACT_NOT_MET` として現れる。
+6. **キュー直列化**：未実装。計画 §3 (6) どおり、判定が出た時点で実装する。
+7. **Dry と登録**：Dry は T−2 と三連複の両方にかかる（`obs_register_tasks.ps1 -Dry`）。登録・`-Apply` は承認後。
