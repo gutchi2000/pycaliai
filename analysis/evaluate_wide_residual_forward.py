@@ -39,6 +39,7 @@ from canonical_settlement import (  # noqa: E402
     normalize_result,
     settle_bets,
 )
+from forward_prices import canonical_stage  # noqa: E402
 
 
 DEFAULT_POLICY = BASE / "data" / "shadow_policies" / "wide_residual_shadow_v3.json"
@@ -287,9 +288,12 @@ def load_price_lineage(date: str, forward_root: Path = DEFAULT_FORWARD_ROOT) -> 
                 "policy": record.get("policy"),
             })
         elif record.get("record_type") == "market_snapshot":
-            if record.get("stage") == "t10" and market_hash:
+            # schema v2 (観測計画 v2.1): 旧 `close` は `close_late` として保存される。v1 の `close` 録も
+            # canonical_stage() で同じ `close_late` に解決して読む。
+            stage = canonical_stage(record.get("stage"))
+            if stage == "t10" and market_hash:
                 by_race[rid]["t10_hashes"].add(market_hash)
-            elif record.get("stage") == "close":
+            elif stage == "close_late":
                 by_race[rid]["has_close"] = True
     return dict(by_race)
 
