@@ -112,7 +112,7 @@ Dry は現在、T−2 と三連複の両方にかかる。§5.1 の Dry 要件�
 
 1. **merge 前の未追跡ファイル衝突**：本番 tree には、今回追跡対象にした 4 本が未追跡のまま残っている。そのままでは merge が「untracked working tree files would be overwritten」で止まる。merge 前に本番側 4 本の sha256 を `dec0281d` の記録と照合し、一致すれば退避してから merge する。不一致なら、差分を先に取り込むかを判断する。
 2. **本番が未追跡ファイルに依存している（範囲外の所見）**：`compute_bets.py` は live モードで `wide_residual_shadow.py` を import するが、このファイルは本番で未追跡（`bf952d3f` に無い）。バージョン管理外の本番依存で、9/27 と同じく失えば復旧できない。
-3. **ジャーナル化していない JV-Link 利用**：`jvlink_results.py`・`jvlink_probe.py`・`jvlink_race_day_probe.py`・`jvlink_shadow_probe.py`（いずれも手動実行で、scheduler 経路には無い）。レース時間帯に手動で実行すると、重なり相手として見えない。
+3. **ジャーナル化していない JV-Link 利用**（→ §9 で訂正。`jvlink_results.py` は `jvlink_odds.fetch_records` 経由でジャーナルに載る）：`jvlink_results.py`・`jvlink_probe.py`・`jvlink_race_day_probe.py`・`jvlink_shadow_probe.py`（いずれも手動実行で、scheduler 経路には無い）。レース時間帯に手動で実行すると、重なり相手として見えない。
 4. **契約の閾値**：欠損率・被覆不一致率 > 1% は 1 開催日 23〜36 レースでは 1 件で超える。Stage 0 では 1 件の欠損でも `CONTRACT_NOT_MET` になる（意図どおりの厳しさ）。
 5. **枠連の期待 slot 数**：登録頭数からの仮定式で、実録 4 件（smoke を含む）と一致した。契約の被覆判定に含めたので、式が誤っていれば `CONTRACT_NOT_MET` として現れる。
 6. **キュー直列化**：未実装。計画 §3 (6) どおり、判定が出た時点で実装する。
@@ -146,3 +146,27 @@ Dry は現在、T−2 と三連複の両方にかかる。§5.1 の Dry 要件�
   - 500R は、その通過窓の初日以降の race だけで数える。
 - **静的検査**：guard に `root=` / `ledger=` / 位置引数を渡して差し替えることも違反とする。
 - **テスト**：`tests/test_obs_phase2.py` 105 本が pass。全 suite は 347 passed / 17 failed（jump gate の既知事象）。
+
+## 9. 訂正：§7-3「ジャーナル化していない JV-Link 利用」（2026-09-29）
+
+**誤り**：§7-3 で `jvlink_results.py` を「JV-Link を直接呼び、取得ジャーナルに載らない」利用に含めた。これは誤りである。コード変更は無い（記述の訂正のみ）。
+
+**正しい経路**：`jvlink_results.py` は COM を直接呼ばない。
+- `jvlink_odds` から `fetch_records` を import して呼ぶ（31 行・64 行・86 行、spec `0B30`）。
+- `fetch_records` → `fetch_records_timed` → `_fetch_records_raw`（JVInit/JVRTOpen/JVRead）の順で呼ばれる。`fetch_records_timed` の `finally` で `jv_journal.write_event` が取得ごとに 1 件ジャーナルへ書く。
+- `set_context` は呼ばないので、process 名は argv からの補完になる（`process="jvlink_results"`、`process_source="argv"`）。Stage 0 監査では識別済み process として扱われ、未識別にはならない。
+- import に失敗したとき（単体テストなど）は、空を返す代替 `fetch_records` になり、COM も呼ばない。
+
+**直接 COM でジャーナルに載らない JV-Link 利用（本番 tree の追跡 .py を再走査した結果）**：
+- Fable の指示は「直接 COM は `jvlink_probe.py` だけ」だった。コードを確認すると、残り 2 本の probe も COM を直接呼んでいる。いずれもジャーナルに書かない。
+
+| ファイル | 呼び方 | 種別 |
+|---|---|---|
+| `jvlink_probe.py` | `Dispatch` → `JVInit` → `JVRTOpen` | 速報系（観測 collector と同じ系統） |
+| `analysis/mcond/exp05_forward_shadow/jvlink_race_day_probe.py` | `Dispatch` → `JVInit` → `JVOpen("RACE", …, 2)` → `JVRead` | 蓄積系 |
+| `analysis/mcond/p0_dnf_history_parity_audit/jvlink_shadow_probe.py` | `Dispatch` → `JVInit` → `JVOpen(spec, …, 4)` → `JVRead` | 蓄積系 |
+
+- 速報系 `JVRTOpen` を直接呼ぶのは `jvlink_probe.py` だけである。「直接 COM は `jvlink_probe.py` だけ」が速報系に限った意味なら、コードと一致する。
+- 3 本とも観測計画 v2.1.1 §12 の probe 3 本と同じもので、開催時間中（Dry 日・Stage 0 開催日を含む）には手動で実行しない。実行は非開催時間に限る。§12 の本文はこのとおりなので、計画書は変更しない。
+- ジャーナルに載る JV-Link 利用：`jvlink_odds.py`、`jvlink_trio_odds.py`、`jvlink_obs.py`、`jvlink_results.py`（`jvlink_odds` 経由）、`analysis/mcond/exp05_forward_shadow/jvlink_race_calendar.py`。
+- `.claude/worktrees/` 配下の未追跡コピー（`jvlink_odds.py` / `jvlink_probe.py` の古い版）も直接 COM を含むが、本番の scheduler 経路ではない。
