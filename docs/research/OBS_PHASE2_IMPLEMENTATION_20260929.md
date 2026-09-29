@@ -106,7 +106,7 @@ Dry は現在、T−2 と三連複の両方にかかる。§5.1 の Dry 要件�
 
 **テスト**
 - `tests/test_obs_phase2.py` 81 本、stage alias 4 本、評価器・settlement 23 本、既存の forward_prices 系 37 本がすべて pass。
-- 全 suite は 312 passed / 17 failed / 1 skipped。17 failed は `bf952d3f` と同じ `test_jump_race_p0_gate.py` の既存事象。
+- 全 suite は 323 passed / 17 failed / 1 skipped。17 failed は `bf952d3f` と同じ `test_jump_race_p0_gate.py` の既存事象。
 
 ## 7. merge 時の注意と未解決事項
 
