@@ -14,7 +14,7 @@ a95_engine.py — a95_equal 方策の買い目生成 (単一ソース)
 from __future__ import annotations
 import math
 
-from shadow_a95 import band_of, equal_stakes, load_policy, waku_of
+from shadow_a95 import band_of, equal_stakes, load_policy, sellable_kinds, waku_of
 
 KIND_JP = dict(tan="単勝", fuku="複勝", umaren="馬連", umatan="馬単", wide="ワイド",
                wakuren="枠連", sanpuku="三連複", sanrentan="三連単")
@@ -71,7 +71,7 @@ def build(horses: list[dict], budget: int | None = None, policy: dict | None = N
     cap = int(budget) if budget else int(pol["cap_per_race_yen"])
     unit = int(pol["unit_yen"])
     cap = cap // unit * unit
-    kinds = list(pol["plan"][band])
+    kinds = sellable_kinds(list(pol["plan"][band]), n)   # 8 頭以下は枠連の発売なし
     while kinds and cap // len(kinds) < unit:      # 低予算: 後ろの券種から落とす
         kinds.pop()
     if not kinds:

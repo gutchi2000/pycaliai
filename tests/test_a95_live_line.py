@@ -183,3 +183,16 @@ def test_jump_race_has_no_would_have_tickets(monkeypatch):
     monkeypatch.setattr(re_, "verify_metadata", lambda meta, rid: ng)
     monkeypatch.setattr(re_, "log_exclusions", lambda *a, **k: None)
     assert "a95_all" not in cb.compute_race_bets(_race(), budget=10000, engine="a95")
+
+
+def test_wakuren_not_bought_when_not_sold():
+    """枠連は 9 頭以上でのみ発売。8 頭以下では落として残りへ均等配分する。"""
+    eight = a95_engine.build(_horses(6.0, n=8))
+    assert [t["kind_jp"] for t in eight["tickets"]] == ["馬単", "ワイド", "三連複", "三連単"]
+    assert [t["stake"] for t in eight["tickets"]] == [2500, 2500, 2500, 2500]
+    nine = a95_engine.build(_horses(6.0, n=9))
+    assert "枠連" in [t["kind_jp"] for t in nine["tickets"]]
+    import shadow_a95 as sa
+    pol = sa.load_policy()
+    d = sa.build_decisions({"races": [{"race_id": "2026100305040101", "horses": _horses(6.0, n=8)}]}, pol)[0]
+    assert "wakuren" not in d["tickets"] and sum(d["tickets"].values()) == 10000

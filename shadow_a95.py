@@ -74,6 +74,12 @@ def equal_stakes(kinds: list[str], cap: int, unit: int) -> dict[str, int]:
     return st
 
 
+def sellable_kinds(kinds: list[str], n_entries: int) -> list[str]:
+    """発売されない券種を落とす。枠連は出走 9 頭以上でのみ発売 (8 頭以下は馬連と同一のため無い)。
+    方策の帯×券種は変えず、買えない券種だけ除いて残りへ均等配分する (2026-09-30、起算前の訂正)。"""
+    return [k for k in kinds if not (k == "wakuren" and n_entries <= 8)]
+
+
 def waku_of(umaban: int, n: int) -> int:
     """JRA の枠番割当 (出馬表確定時の頭数 n)。"""
     if n <= 8:
@@ -119,7 +125,7 @@ def build_decisions(bundle: dict, pol: dict) -> list[dict]:
         if o[0] is None:
             rec.update(valid=False, reason="no_odds"); out.append(rec); continue
         band = band_of(o[0], pol)
-        kinds = pol["plan"][band]
+        kinds = sellable_kinds(pol["plan"][band], len(hs))
         rec.update(valid=True, band=band,
                    band_o2=(band_of(o[1], pol) if o[1] else None),   # 記述列 (設計には使わない)
                    band_o3=(band_of(o[2], pol) if o[2] else None),
