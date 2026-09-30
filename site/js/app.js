@@ -781,6 +781,7 @@ function biasFitBlock(r, rb) {
 const BET_COLOR = {
   "単勝": "#f5b942", "複勝": "#2dd4a8", "ワイド": "#5ba0f5",
   "馬連": "#b78cf2", "馬単": "#e4549a", "三連複": "#f0a132",
+  "枠連": "#8fb0c9", "三連単": "#f2555a",
 };
 function tagCls(tag) {
   if (!tag) return "t-etc";
@@ -2258,6 +2259,7 @@ function renderRace() {
 const BTYPE_COLOR = {
   "単勝": "#f5b942", "複勝": "#2dd4a8", "ワイド": "#5ba0f5",
   "馬連": "#b78cf2", "馬単": "#e4549a", "三連複": "#f0a132", "三連単": "#f2555a",
+  "枠連": "#8fb0c9",
 };
 function rsDate(d8) {
   return `${+d8.slice(4, 6)}/${+d8.slice(6, 8)}`;

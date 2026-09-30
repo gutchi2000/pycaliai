@@ -125,20 +125,41 @@ class TestContentIssues:
         assert content_issues({"馬券種": "ワイド", "買い目": "3-7", "購入額": 500},
                               self.VALID) == []
 
-    def test_sanrentan_rejected(self):
+    # 以下 3 本は「a95 以外の engine では従来どおり拒否する」ことの固定。
+    # 本番 policy の engine が a95 のときだけ許可される (tests/test_a95_live_line.py)。
+    @staticmethod
+    def _legacy_kinds(monkeypatch):
+        import validate_cowork_bets as v
+        monkeypatch.setattr(v, "kind_sets",
+                            lambda: (set(v.ALLOWED_KINDS), set(v.REJECTED_KINDS)))
+
+    def test_sanrentan_rejected(self, monkeypatch):
+        self._legacy_kinds(monkeypatch)
         iss = content_issues({"馬券種": "三連単", "買い目": "1-2-3", "購入額": 1000},
                              self.VALID)
         assert any("廃止券種" in s for s in iss)
 
-    def test_umatan_rejected(self):
+    def test_umatan_rejected(self, monkeypatch):
+        self._legacy_kinds(monkeypatch)
         iss = content_issues({"馬券種": "馬単", "買い目": "1-2", "購入額": 1000},
                              self.VALID)
         assert any("廃止券種" in s for s in iss)
 
-    def test_unknown_kind(self):
+    def test_unknown_kind(self, monkeypatch):
+        self._legacy_kinds(monkeypatch)
         iss = content_issues({"馬券種": "枠連", "買い目": "1-2", "購入額": 1000},
                              self.VALID)
         assert any("未知券種" in s for s in iss)
+
+    def test_kinds_fail_closed_when_policy_unreadable(self, monkeypatch):
+        import production_policy as pp
+        import validate_cowork_bets as v
+
+        def boom():
+            raise pp.PolicyError("x")
+        monkeypatch.setattr(pp, "bet_engine", boom)
+        allowed, rejected = v.kind_sets()
+        assert "馬単" in rejected and "枠連" not in allowed
 
     def test_nonexistent_umaban(self):
         iss = content_issues({"馬券種": "ワイド", "買い目": "7-18", "購入額": 1000},

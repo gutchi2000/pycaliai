@@ -359,8 +359,9 @@ def show_race_bets(date_str: str, rid16: str, scheduled_post: datetime | None = 
     has_bets = bool(e.get("bets"))
     if has_bets:
         tot = sum(b["購入額"] for b in e["bets"])
+        line_name = "a95均等" if e.get("race_nature") == "a95" else "prob-first"
         head = (f"🎫 {e.get('race_label','')} [{e.get('race_nature','')}] "
-                f"prob-first {len(e['bets'])}点 ¥{tot:,}{tag}")
+                f"{line_name} {len(e['bets'])}点 ¥{tot:,}{tag}")
         print(f"  {head}")
         for b in e["bets"]:
             print(f"     {b['馬券種']:3s} {b['買い目']:8s} ¥{b['購入額']:>5,}  {b.get('理由','')}")
@@ -384,18 +385,50 @@ def show_race_bets(date_str: str, rid16: str, scheduled_post: datetime | None = 
     post_str = f"　発走{scheduled_post:%H:%M}" if scheduled_post else ""
     SEP = "──────────"
     discord = [f"{e.get('race_label','')}{post_str}", SEP]
-    discord.extend(wr if wr else ["（ワイド残差 対象外）"])
-    discord.append(SEP)
+    # a95_equal 本線 (2026-09-30 ユーザー指示で Discord へ配線)。T-10 オッズで帯を決めた
+    # 確定買い目をそのまま出す。見送りも理由つきで出す (無言だと死活が分からないため)。
+    is_a95 = _bet_engine() == "a95"
+    if is_a95:
+        if has_bets:
+            tot = sum(int(b["購入額"]) for b in e["bets"])
+            band = (e.get("a95") or {}).get("band_code", "")
+            discord.append(f"🎯 **a95 均等 {len(e['bets'])}点 ¥{tot:,}**"
+                           f"{'（帯' + band + '）' if band else ''}{tag}")
+            for b in e["bets"]:
+                discord.append(f"{b['馬券種']} `{b['買い目']}` **¥{int(b['購入額']):,}**")
+        else:
+            discord.append(f"🎯 a95: **見送り** — {e.get('race_reason','')}")
+        if hosei_line:
+            discord.append(hosei_line)
+        discord.append(SEP)
+    if wr:
+        discord.extend(wr)
+        discord.append(SEP)
+    elif not is_a95:
+        # a95 本線では wide residual v3 の cohort は閉じているので「対象外」行は出さない
+        discord.extend(["（ワイド残差 対象外）", SEP])
     notify("\n".join(discord))
     # 実弾を止めている間は topdown の点数でビープしない。
-    # 鳴らす価値があるのは「今から買う対象」だけ。
-    if (has_bets and live_money) or any("ワイド残差2点 " in x for x in wr):
+    # 鳴らす価値があるのは「今から買う対象」だけ。a95 本線は買い目が出たら鳴らす。
+    if (has_bets and (live_money or is_a95)) or any("ワイド残差2点 " in x for x in wr):
         beep()
+
+
+def _bet_engine() -> str:
+    """本番の買い目エンジン名 (production_policy.json)。読めなければ従来の topdown 扱い。"""
+    try:
+        from production_policy import bet_engine
+        return bet_engine()
+    except Exception:
+        return "topdown"
 
 
 def ensure_plan(date_str: str) -> None:
     """枠プラン(reports/bet_plan/{date}.json)が無ければ build_bet_plan.py で生成。
     失敗しても続行(compute_bets は --plan 無しの従来挙動にフォールバック)。"""
+    if _bet_engine() == "a95":
+        print("[plan] engine=a95 → 枠プランは使わない (参戦レースに 1R 固定予算)")
+        return
     plan = BASE / "reports" / "bet_plan" / f"{date_str}.json"
     if plan.exists():
         print(f"[plan] 既存 {plan.name} を使用")
@@ -474,7 +507,9 @@ def process_race(date_str: str, bundle: Path, rid16: str, label: str,
             force_skip(date_str, rid16, label, "T-10価格取得失敗", notify)
         return True
 
-    if not dry:
+    a95_live = _bet_engine() == "a95"
+    if not dry and not a95_live:
+        # 大会投票の T-10 予告は大会仕様 (aite_switch) 運用時だけ。a95 本線では出さない。
         masters_vote_t10_preview(date_str, rid16, scheduled_post)
 
     # 2. compute_bets (当該レースのみ、ライブ必須モード)
@@ -483,7 +518,7 @@ def process_race(date_str: str, bundle: Path, rid16: str, label: str,
            "--race", rid16]
     if budget:
         cmd += ["--budget", str(int(budget))]    # Discord 手動再計算: 枠予算を上書き
-    else:
+    elif not a95_live:
         _plan = BASE / "reports" / "bet_plan" / f"{date_str}.json"
         if _plan.exists():
             cmd += ["--plan", str(_plan)]         # 枠プラン: per-race予算 + プロ条件floor(force_floor)

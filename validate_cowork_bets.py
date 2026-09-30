@@ -80,7 +80,22 @@ def skip_reasons(race_meta: dict, race_conf: dict, hon: dict | None) -> list[str
 # --- content バリデーション (馬番実在・券種・金額。LLM/人為ミスの購入指示化を防ぐ) ---
 ALLOWED_KINDS = {"単勝", "複勝", "ワイド", "馬連", "三連複"}
 REJECTED_KINDS = {"馬単", "三連単"}  # 方向系券種は本番運用で廃止済み
+# a95_equal 方策 (production_policy.json engine="a95", 2026-09-30 ユーザー指示で本線化) は
+# 馬単・枠連・三連単を含む。engine が a95 のときだけ、その方策が使う券種を許可する。
+# それ以外の engine では従来どおり廃止券種として拒否する。
+A95_KINDS = {"単勝", "複勝", "ワイド", "馬連", "馬単", "枠連", "三連複", "三連単"}
 BET_UNIT = 100
+
+
+def kind_sets() -> tuple[set[str], set[str]]:
+    """(許可券種, 廃止券種)。本番 policy の engine で決まる。"""
+    try:
+        from production_policy import bet_engine
+        if bet_engine() == "a95":
+            return set(A95_KINDS), set()
+    except Exception:
+        pass   # policy を読めないときは従来の厳しい側 (fail-closed)
+    return set(ALLOWED_KINDS), set(REJECTED_KINDS)
 MAX_BET_PER = 10000             # 1 点あたり上限 (Cowork 手動なので compute_bets の 7000 より緩め)
 
 
@@ -96,18 +111,26 @@ def content_issues(bet: dict, valid_umaban: set[int]) -> list[str]:
     sel = bet.get("買い目", "")
     amt = bet.get("購入額", 0)
 
-    if kind in REJECTED_KINDS:
+    allowed, rejected = kind_sets()
+    if kind in rejected:
         issues.append(f"廃止券種({kind})")
-    elif kind not in ALLOWED_KINDS:
+    elif kind not in allowed:
         issues.append(f"未知券種('{kind}')")
 
     bans = _parse_umaban(sel)
     if not bans:
         issues.append(f"買い目から馬番抽出不可('{sel}')")
+    elif kind == "枠連":
+        # 枠連の買い目は馬番ではなく枠番 (1〜8) の 2 つ
+        if len(bans) != 2 or any(not 1 <= b <= 8 for b in bans):
+            issues.append(f"枠番不正('{sel}')")
     else:
         bad = [b for b in bans if b not in valid_umaban]
         if bad:
             issues.append(f"存在しない馬番{bad}")
+        need = {"単勝": 1, "複勝": 1, "馬連": 2, "ワイド": 2, "馬単": 2, "三連複": 3, "三連単": 3}.get(kind)
+        if kind in ("馬単", "三連単") and need and (len(bans) != need or len(set(bans)) != need):
+            issues.append(f"{kind}の馬番数/重複不正('{sel}')")
 
     try:
         a = int(amt)

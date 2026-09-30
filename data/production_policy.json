@@ -1,10 +1,11 @@
 {
   "schema_version": 1,
-  "policy_id": "topdown-serve34-p667-20260825",
-  "effective_from": "2026-08-29",
+  "policy_id": "a95-equal-v1-serve34-p667-20260930",
+  "effective_from": "2026-10-03",
   "model": "v6",
-  "engine": "topdown",
-  "engine_version": "2026-08-25",
+  "engine": "a95",
+  "engine_version": "2026-09-30",
+  "engine_note": "2026-09-30 ユーザー指示で本線を topdown から a95_equal_v1 へ切替。生の p_win 順の上位馬で、AI1位の単勝オッズ帯ごとの採用券種を1点ずつ、1R 1万円を均等配分(100円格子)。方策の正本は artifacts.bet_policy。参戦ガード(hard_skip: 混戦度 percentile・頭数・◎p_win・◎オッズ、障害 P0 gate)は topdown 期と同一で変更なし。旧 policy: topdown-serve34-p667-20260825。",
   "chaos_reference": {
     "path": "data/chaos_quantiles.json",
     "reference_id": "serve34-forward-policy-20260825",
@@ -14,7 +15,7 @@
     "enabled": false,
     "stopped_on": "2026-08-27",
     "reason": "2026-04-18〜08-16 実績 18週 2,389券 ROI 71.9% / 収支 -1,067,376円 (週平均 -59,299円)。控除率を有意に超える券種がゼロのため実弾を停止し、買い目は表示・コンテンツ専用とする。前向き P1-TOPDOWN-SERVE34-P667-2026 は紙(shadow)判定へ降格。",
-    "note": "再開する場合はこのフィールドを true にし、根拠を hypothesis_registry へ事前登録すること。"
+    "note": "再開する場合はこのフィールドを true にし、根拠を hypothesis_registry へ事前登録すること。2026-09-30 の a95 本線化ではこのフィールドを変更していない (Discord・サイトへ出る買い目は引き続き表示専用の扱い)。"
   },
   "hard_skip": {
     "field_size_max": 7,
@@ -25,11 +26,12 @@
   "artifacts": {
     "rank_model": "models/unified_rank_v6.pkl",
     "serve_calibrator": "models/pl_calibrators_v6_serve.pkl",
-    "serve_feature_baseline": "data/serve_feature_baseline.json"
+    "serve_feature_baseline": "data/serve_feature_baseline.json",
+    "bet_policy": "data/shadow_policies/a95_equal_v1.json"
   },
   "prospective": {
-    "experiment_id": "P1-TOPDOWN-SERVE34-P667-2026",
-    "start_date": 20260829,
-    "minimum_bets": 300
+    "experiment_id": "P2-A95-EQUAL-LIVE-2026",
+    "start_date": 20261003,
+    "minimum_bets": 500
   }
 }

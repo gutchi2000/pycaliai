@@ -66,6 +66,21 @@ def load_shadow_policy(path: Path = POLICY_PATH) -> dict:
     return value
 
 
+def cohort_open(path: Path = POLICY_PATH) -> bool:
+    """事前登録した親 production policy が現行と一致する間だけ前向き cohort を続ける。
+
+    親 policy が切り替わった後 (例: 2026-10-03〜 a95 本線) は v3 の cohort は閉じており、
+    新しい T-10 観測を v3 へ混ぜない。呼び出し側は False のとき shadow 計算を行わない
+    (失敗扱いにもしない)。policy を読めない場合は True を返し、従来どおり
+    compute_shadow / load_shadow_policy 側で fail-closed させる。
+    """
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        return value.get("parent_production_policy") == load_policy()["policy_id"]
+    except Exception:
+        return True
+
+
 def shadow_policy_stamp(path: Path = POLICY_PATH) -> dict:
     policy = load_shadow_policy(path)
     return {

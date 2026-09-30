@@ -570,6 +570,37 @@ def match_cowork_bet(bet: dict, race_kk: pd.DataFrame,
         # 点数で割って per-100 円配当として返す (match_cowork_bet の他種と同じ流儀)
         return True, total_payout / len(pairs), rr
 
+    if btype == "枠連":
+        # a95 本線 (2026-10-03〜)。買い目は枠番 2 つ (同枠ゾロ目 "3-3" もあり得る)。
+        # 取消馬は枠単位の返還規則が別 (同枠に他馬がいれば返還なし) のため返還比率は 0 とする。
+        pairs = []
+        for c in sel.split(","):
+            parts = c.strip().split("-")
+            if len(parts) == 2:
+                try:
+                    pairs.append(tuple(sorted((int(parts[0]), int(parts[1])))))
+                except ValueError:
+                    continue
+        if not pairs or len(top3_ordered) < 2:
+            return False, 0.0, 0.0
+        wk = {}
+        for _, row in race_kk.iterrows():
+            u, w = to_int(row.iloc[4]), to_int(row.iloc[3])
+            if u is not None and w is not None:
+                wk[u] = w
+        w1, w2 = wk.get(top3_ordered[0]), wk.get(top3_ordered[1])
+        if w1 is None or w2 is None:
+            return False, 0.0, 0.0
+        target = tuple(sorted((w1, w2)))
+        hits = sum(1 for p in pairs if p == target)
+        if hits:
+            col = "枠連"
+            vals = race_kk[col].dropna() if col in race_kk.columns else []
+            vals = vals[~vals.astype(str).str.startswith("(")] if len(vals) else vals
+            pay = parse_haitou(vals.iloc[0]) if len(vals) > 0 else 0.0
+            return True, pay / len(pairs), 0.0
+        return False, 0.0, 0.0
+
     if btype == "三連複":
         trios = _split_trios(unordered=True)
         if not trios or len(top3) < 3:

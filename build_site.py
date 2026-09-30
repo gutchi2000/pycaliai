@@ -39,6 +39,9 @@ BUNDLE_DIR = ROOT / "reports" / "cowork_input"
 COWORK_OUT_DIR = ROOT / "reports" / "cowork_output"
 MASTERS_VOTE_DIR = ROOT / "reports" / "masters_vote"
 SITE_PREVIEW_DIR = ROOT / "reports" / "masters_vote_site"
+# a95_equal 本線の開始日 (production_policy.json engine="a95")。この日付以降は cowork_output の
+# bets (compute_bets T-10 確定) を実ラインとして表示・決済し、馬単も通常集計に含める。
+A95_LIVE_FROM = "20261003"
 WEEKLY_DIR = ROOT / "data" / "weekly"
 KEKKA_DIR = ROOT / "data" / "kekka"
 TRAINING_DIR = ROOT / "data" / "training"
@@ -263,11 +266,13 @@ def parse_kekka(date_str: str, wide_data: dict) -> dict[str, dict]:
             continue
         r = races.setdefault(rid16, {
             "place": str(row[1]).strip(), "rno": _int(row[2]),
-            "order": {}, "fuku": {},
+            "order": {}, "fuku": {}, "waku": {},
             "pays": {"wakuren": None, "umaren": None, "umatan": None,
                      "sanrenpuku": None, "sanrentan": None},
         })
         r["order"][str(uma)] = pos
+        if _int(row[3]) is not None:
+            r["waku"][str(uma)] = _int(row[3])      # 枠連の決済用 (上位馬の枠番)
         tan_raw = str(row[8]).strip()
         if pos == 1 and tan_raw and not tan_raw.startswith("("):
             r["pays"]["tan"] = _int(tan_raw)
@@ -755,7 +760,9 @@ def settle_bet(btype: str, selection: str, cost: float, res: dict) -> dict:
     """1 bet を決済。返り値 {is_win, payout(配当/100円), received, profit, settled}。
     settled=False は決済不能 (ワイド払戻未取込等) で集計外。compute_bet_pl と同ロジック。"""
     btype = (btype or "").strip()
-    selection = str(selection or "").strip()
+    # 馬単/三連単は "7→3" / "7→3→1" と書かれる (a95 本線)。_combos は "-" 区切り前提。
+    selection = (str(selection or "").strip()
+                 .replace("→", "-").replace("＞", "-").replace(">", "-").replace("－", "-"))
     pays = res.get("pays") or {}
     top3 = res.get("top3") or []
     miss = {"is_win": False, "payout": 0, "received": 0.0, "profit": -cost, "settled": True}
@@ -808,6 +815,18 @@ def settle_bet(btype: str, selection: str, cost: float, res: dict) -> dict:
         if nhit:
             return {"is_win": True, "payout": best, "received": recv,
                     "profit": recv - cost, "settled": True}
+        return miss
+    if btype == "枠連":
+        # 買い目は枠番 2 つ (同枠ゾロ目 "3-3" もあり得る)。1・2 着馬の枠番と照合。
+        combos = _combos(selection, 2, False)
+        waku = res.get("waku") or {}
+        if not combos or len(top3) < 2:
+            return miss
+        w1, w2 = waku.get(str(top3[0])), waku.get(str(top3[1]))
+        if w1 is None or w2 is None:      # 枠番未取込 → 決済不能 (集計外)
+            return {"is_win": False, "payout": 0, "received": 0.0, "profit": None, "settled": False}
+        if tuple(sorted((w1, w2))) in combos:
+            return win(pays.get("wakuren"), cost / len(combos))
         return miss
     if btype in ("三連複", "三連単"):
         ordered = btype == "三連単"
@@ -1063,7 +1082,20 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
         # で上書きする。大会開始より前の日付は当時の実運用そのものなので変更しない。
         mv = masters_vote.get(rid)
         cw = cowork.get(rid)
-        if date_str >= "20260829":
+        if date_str >= A95_LIVE_FROM:
+            # 2026-10-03〜: 本線は compute_bets の a95 エンジン (T-10 確定)。cowork_output の
+            # bets をそのまま実ラインとして扱い、TACT も T-10 確定 > T-20 速報 の順で出す。
+            # (大会は終了。masters_vote 台帳はこの日付以降には無い)
+            if cw and cw.get("bets"):
+                races_out[-1]["tact"] = build_tact({"bets": [
+                    {"type": b["type"], "selection": b["selection"],
+                     "reason": "a95（T-10確定）"} for b in cw["bets"]]})
+            elif cw and cw.get("race_nature") == "見送り":
+                races_out[-1]["tact"] = build_tact(
+                    {"skip": True, "skip_reason": "参加条件を満たさず見送り"})
+            else:
+                races_out[-1]["tact"] = build_tact(site_preview.get(rid))
+        elif date_str >= "20260829":
             if cw:
                 cw = dict(cw)
                 cw["bets"] = mv["bets"] if mv else []
@@ -1160,7 +1192,9 @@ def build_results_json() -> dict:
                     unset_cost += cost
                     continue
                 profit = st.get("profit") or 0.0
-                if t in DISCONTINUED:        # 撤廃券種は累計/by_type から除外(別枠で記録)
+                # 撤廃券種は累計/by_type から除外(別枠で記録)。ただし a95 本線 (2026-10-03〜) は
+                # 馬単を方策の一部として買うので、その日付以降の馬単は通常どおり集計する。
+                if t in DISCONTINUED and str(date) < A95_LIVE_FROM:
                     ex_n += 1; ex_cost += cost; ex_profit += profit
                     continue
                 n_bets += 1

@@ -186,6 +186,59 @@ def tickets_to_bets(tickets: list[dict]) -> list[dict]:
     return out
 
 
+def _bet_engine() -> str:
+    try:
+        from production_policy import bet_engine
+        return bet_engine()
+    except Exception:
+        return "topdown"
+
+
+def a95_site_tickets(race: dict, market: dict, rid: str) -> tuple[list[dict], str, bool]:
+    """a95_equal 本線の T-20 速報 (2026-09-30 配線)。戻り値 (公開用 bets, 公開用理由, 判定完了か)。
+
+    T-10 本線 (compute_bets の a95 エンジン) と同じ参戦ガード・同じ買い目生成を、T-20 の
+    単勝オッズで先出しするだけ。帯は T-10 で変わり得るので、確定は T-10 側。
+    公開用 bets は {type, selection, reason} のみ (金額・オッズ・帯は出さない)。
+    bets が空で 判定完了=True なら「見送り」、False なら技術的失敗 (非公開)。
+    """
+    import a95_engine
+    from production_policy import find_hon, hard_skip_reasons
+    from race_eligibility import EligibilityMetadataError, evaluate_race, verify_metadata
+
+    try:
+        el = verify_metadata(race.get("eligibility"), rid)
+    except EligibilityMetadataError:
+        el = evaluate_race(rid)
+    if not el["bet_eligible"]:
+        return [], "対象外レースのため見送り", True
+
+    tan = {int(k): v for k, v in (market.get("tansho") or {}).items()}
+    horses = []
+    for h in race.get("horses") or []:
+        h2 = dict(h)
+        try:
+            b = int(h2.get("umaban"))
+        except (TypeError, ValueError):
+            horses.append(h2); continue
+        if b in tan:
+            h2["tansho_odds"] = tan[b]
+        horses.append(h2)
+
+    rm = dict(race.get("race_meta") or {})
+    rm.setdefault("field_size", len(horses))
+    reasons = hard_skip_reasons(rm, race.get("race_confidence") or {}, find_hon(horses))
+    if reasons:
+        return [], "参加条件を満たさず見送り（混戦度・頭数・◎信頼度など）", True
+    try:
+        plan = a95_engine.build(horses)
+    except a95_engine.A95Error:
+        return [], "判定材料不足のため見送り", True
+    bets = [{"type": t["kind_jp"], "selection": str(t["selection"]), "reason": "a95(T-20速報)"}
+            for t in plan["tickets"]]
+    return bets, "a95(T-20速報)：AI上位馬の1点セット（確定はT-10）", True
+
+
 def publish_to_site(date_str: str) -> None:
     """sync-hf-umami.ps1 で自動的にサイトへ反映する (build_site.py もその内部で実行)。
 
@@ -292,10 +345,16 @@ def process_race(date_str: str, rid: str, label: str, dry: bool,
             _save_entry(date_str, rid, entry)
         return
 
+    a95_live = _bet_engine() == "a95"
+    a95_bets: list[dict] = []
     try:
-        cfg = mv.load_config()
-        tickets, why = mv.aite_switch_tickets(race, market, cfg)
-        computed_ok = True
+        if a95_live:
+            a95_bets, why, computed_ok = a95_site_tickets(race, market, rid)
+            tickets = a95_bets       # 下の分岐 (買い目あり/見送り) を共通で使う
+        else:
+            cfg = mv.load_config()
+            tickets, why = mv.aite_switch_tickets(race, market, cfg)
+            computed_ok = True
     except Exception as exc:
         print(f"  [2/2] 買い目計算失敗: {exc}")
         tickets, why, computed_ok = [], "計算失敗", False
@@ -310,7 +369,11 @@ def process_race(date_str: str, rid: str, label: str, dry: bool,
             _save_entry(date_str, rid, entry)
         return
 
-    if tickets:
+    if tickets and a95_live:
+        entry["bets"] = a95_bets          # 既に公開用 {type, selection, reason}
+        entry["why"] = why
+        entry["engine"] = "a95"
+    elif tickets:
         entry["bets"] = tickets_to_bets(tickets)
         entry["why"] = _public_reason(why)
     elif computed_ok:
@@ -318,7 +381,7 @@ def process_race(date_str: str, rid: str, label: str, dry: bool,
         # と判断したケース (取得失敗等の技術的な理由ではない)。2026-09-12:
         # 見送りも「判定結果」として公開する (以前は非公開・無表示だった)。
         entry["skip"] = True
-        entry["why"] = _public_skip_reason(why)
+        entry["why"] = why if a95_live else _public_skip_reason(why)
     else:
         entry["why"] = why  # 計算例外 (技術的失敗) は非公開のまま
     print(f"  [2/2] {len(entry['bets'])}点 skip={entry.get('skip', False)}  ({why})")

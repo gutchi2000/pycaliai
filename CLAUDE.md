@@ -420,6 +420,14 @@ v6 + cowork_prompt 改修（節 11）でこの弱点改善を狙う。
 
 ---
 
+**2026-09-30 本線エンジンを a95_equal_v1 へ切替**（`data/production_policy.json` engine=`a95`、policy `a95-equal-v1-serve34-p667-20260930`、起算 2026-10-03）: 生の p_win 順の上位馬で、AI1位の単勝オッズ帯ごとに「2023-25 OOS 表で回収率 95% 以上だった 1 点券種」を買い、1R 1万円を均等配分（方策の正本 `data/shadow_policies/a95_equal_v1.json`、生成は `a95_engine.py`）。T-10（`compute_bets.py`）・T-20 サイト速報（`t20_site_bets.py`）・Discord（`t10_runner.py`）・サイト表示/決済（`build_site.py`）へ配線。
+- **参戦ガードは従来と同一**（混戦度 percentile・頭数・◎p_win・◎オッズ・障害 P0 gate）。紙上台帳 `shadow_a95.py`（CW-10）は全レース、本線（CW-11）はガード通過レースのみ。
+- **`real_money.enabled` は false のまま**＝買い目は表示専用の扱い。実弾再開はこのフィールドと `docs/hypothesis_registry.md` の追記が必要。
+- 馬単・枠連・三連単は engine=a95 のときだけ検証ガードが許可する。wide residual shadow v3 は親 policy 変更で cohort 停止。
+- 控除率を超える証拠は無い（OOS 98〜110%、CI は 100 を跨ぐ、上位 10 払戻除外で 100 未満）。500R でレース的中率により初回棄却判定、ROI は記述のみ。旧経路へ戻すには policy の engine を `topdown` に戻す（旧 policy id `topdown-serve34-p667-20260825`）。
+
+---
+
 ## 既知の問題
 
 ### 🟡 P1

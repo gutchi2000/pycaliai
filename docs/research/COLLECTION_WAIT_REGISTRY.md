@@ -1,6 +1,6 @@
 # PyCaLiAI 収集待ち台帳
 
-**最終更新**: 2026-09-30 JST（CW-10 追加: shadow a95_equal_v1 の前向き台帳。前回 09-29: CW-07〜CW-09 追加）  
+**最終更新**: 2026-09-30 JST（CW-10 shadow a95_equal_v1、CW-11 本線 a95 前向き cohort を追加。前回 09-29: CW-07〜CW-09）  
 **目的**: 研究・検証・forward運用のうち、「データが増えるまで結論を出せないもの」を一か所で管理する。
 
 ## 更新規則
@@ -25,6 +25,7 @@
 | CW-08 | `ACTIVE_SHORT` | **観測 Stage 0**（T−2 候補・`close_late`/`final` 候補・並走成功率） | 本番記録の最初の 2 開催日で `obs_stage0_audit` が `CONCURRENCY_OK`。契約: 必須 stage×spec の欠損 ≤ max(1%, 1 race) で全欠損の原因を帰属、組被覆不一致 ≤ 1%、raw/parser 一致、取得の process を識別。並走: 重なり時成功率 ≥ 95%、00:00 型破損 0 | 未開始（Dry 中） | 本番記録切替後の 2 開催日で監査する。`CONTRACT_NOT_MET` などで未通過なら、収集は止めずに修正し、修正後の開催日から 2 日を数え直す。判定は ledger に追記 | `reports/obs_stage0_*.json`, `data/obs_stage0_ledger.jsonl` |
 | CW-09 | `ACTIVE_LONG` | **三連複 0B35 500R**（§5.3 初回棄却専用） | 有効 race 500（label-free 上限は `analysis.obs_guard` が Stage 0 通過窓の初日以降だけで数える） | 0（Dry は数えない） | 500 到達まで性能・ROI・候補選択・配分を開かない（`assert_performance_allowed` が拒否し、`python -m analysis.obs_guard --check` が guard 無しの経路を検出）。週 66R 想定で約 8 週 | `data/forward_prices/*_trio_t10_*`, `analysis/obs_guard.py` |
 | CW-10 | `ACTIVE_LONG` | **shadow a95_equal_v1**（◎オッズ帯×上位1点券種 ROI≥95 セル、1R 1万円均等、実弾ゼロの紙上ライン。新観測列なしの馬券層 shadow で EXP 番号は立てない） | 有効 race 500（発走日 09:00 JST より前に decisions を凍結したレースのみ。起算日 2026-10-03） | 前向き 0。記述用として 9/20〜9/27 の 5 開催日 93R を事後作成（判定に数えない） | 500R 到達時に「レース的中率の片側95%上限 < 19.7%」なら設計を棄却。ROI は記述のみ（500R の標準誤差 約17pt）。帯・券種・配分は凍結、変更は新 policy id。週 66R 想定で約 8 週 | `data/shadow_policies/a95_equal_v1.json`（sha256 `8cccbed1…`）, `data/shadow_ledger/a95_equal_v1/`, `python shadow_a95.py report` |
+| CW-11 | `ACTIVE_LONG` | **本線 a95_equal_v1 前向き cohort**（P2-A95-EQUAL-LIVE-2026。T-10 確定の実ライン。実弾フラグは false のまま＝表示専用。紙上台帳 CW-10 が全レースなのに対し、本線は参戦ガード通過レースのみ） | 有効 race 500（T-10 で a95 の買い目が確定し決済できたレース。起算日 2026-10-03） | 0 | 500R 到達時に「レース的中率の片側95%上限 < 19.7%」なら方策を棄却。ROI は記述のみ。帯・券種・配分・ガードは凍結。wide residual v3 は本線 policy 切替で cohort 停止（9/27 分まで） | `data/production_policy.json`（policy `a95-equal-v1-serve34-p667-20260930`）, `reports/cowork_output/{date}_bets.json`, `data/forward_prices/*_decision_*`, `docs/hypothesis_registry.md` |
 
 ## 収集待ちではあるが、現在の主研究を止めないもの
 
@@ -40,3 +41,4 @@
 4. **CW-03**: 6,600到達前は中間性能評価を行わず、収集失敗・schema/hash異常だけを扱う。
 5. **2026-10-03（土）**: CW-07 Dry 日。夜に `obs_dry_check` と `obs_stage0_audit --dry` を実行する。本番記録への切替えは結果を見て判断する（承認が必要）。
 6. **CW-08**: 本番記録の最初の 2 開催日の後に Stage 0 監査。通過するまで CW-09 の 500R を数え始めない。
+7. **2026-10-03（土）**: CW-10 / CW-11 の初日。Phase A で紙上台帳の買い目が凍結されること、T-20 速報と T-10 確定が a95 で出ること、Discord に a95 行が出ることを確認する。

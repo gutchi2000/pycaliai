@@ -89,7 +89,12 @@ def hosei_marks(horses: list[dict]) -> list[dict] | None:
 
 # 出力 bets[] の券種表示順 (ユーザー指定 2026-06-12。金額配分には影響しない)
 KIND_ORDER = {"単勝": 0, "複勝": 1, "ワイド": 2, "馬連": 3, "馬単": 4,
-              "三連複": 5, "三連単": 6}
+              "枠連": 5, "三連複": 6, "三連単": 7}
+
+
+def engine_name(engine: str | None = None) -> str:
+    """買い目エンジンの解決順: 明示引数 > 環境変数 CB_ENGINE > production_policy.json の engine。"""
+    return str(engine or os.environ.get("CB_ENGINE") or load_policy()["engine"])
 
 # ============================================================
 # 完全トップダウンエンジン (2026-08-09 配線)
@@ -506,10 +511,39 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     anaba = market < TH_MARKET_ANABA
     value_bans = [int(v["umaban"]) for v in bj.get("value_horses", []) if _num(v.get("umaban")) is not None]
 
-    # ---- 完全トップダウンエンジン (CB_ENGINE=topdown, 既定) ----
+    # ---- a95_equal エンジン (2026-09-30 配線。policy engine="a95") ----
+    # §0 hard / §0b クリーン帯 / 予算降格 は上で適用済み (参戦ガードは topdown と同一)。
+    # 生の p_win 順の上位馬で、AI1位の単勝オッズ帯ごとの採用券種を 1 点ずつ均等に買う。
+    # 方策の正本は data/shadow_policies/a95_equal_v1.json (a95_engine.py が単一ソース)。
+    _engine = engine_name(engine)
+    if _engine == "a95":
+        import a95_engine
+        try:
+            plan = a95_engine.build(horses, budget=int(budget))
+        except a95_engine.A95Error as _e:
+            return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                    "race_reason": f"a95: {_e} のため見送り。", "bets": [],
+                    **({"hosei_marks": hosei} if hosei else {})}
+        bets = [{"馬券種": t["kind_jp"], "買い目": t["selection"], "購入額": int(t["stake"]),
+                 "枠タグ": bj.get("waku_tag") or "参加枠",
+                 "理由": f"a95 帯{plan['band_code']}: AI上位馬で{t['kind_jp']}1点（均等配分）"}
+                for t in plan["tickets"]]
+        bets.sort(key=lambda b: (KIND_ORDER.get(b["馬券種"], 9), -b["購入額"]))
+        rr = (f"a95 均等 {len(bets)}点（◎オッズ帯{plan['band_code']}）。"
+              f"{demote_note}{live_note}").rstrip()
+        return {"race_id": rid, "race_label": label, "race_nature": "a95",
+                "race_reason": rr,
+                "confidence": {"top1_pct": round(top1, 3), "top2_pct": round(top2, 3),
+                               "chaos_pct": round(chaos, 3), "market": round(market, 3)},
+                "a95": {"band": plan["band"], "band_code": plan["band_code"],
+                        "order": [plan["a1"], plan["a2"], plan["a3"]],
+                        "policy_id": plan["policy_id"], "policy_sha256": plan["policy_sha256"]},
+                "bets": bets, **({"hosei_marks": hosei} if hosei else {})}
+
+    # ---- 完全トップダウンエンジン (CB_ENGINE=topdown) ----
     # §0 hard / §0b クリーン帯 / 予算降格 は上で適用済み。ここから先の印・shape・
     # 妙味ヒューリスティクスを全てバイパスし、確率順+適応トリガミ床で組む。
-    if (engine or os.environ.get("CB_ENGINE", "topdown")) == "topdown":
+    if _engine == "topdown":
         umP, wdP = pl_pair_probs(horses)
         um_ = race.get("umaren_matrix", {}) or {}
 
@@ -970,8 +1004,13 @@ def main():
     # 前向きA/B: 本番エンジンが topdown のとき、旧 shape エンジンの買い目を
     # シャドー計算して併記ログに残す (実買い目・bets.json 本体には一切不干渉)。
     # 評価: analysis/prospective_topdown_eval.py (paired bootstrap)。
-    shadow_on = (os.environ.get("CB_ENGINE", "topdown") == "topdown"
-                 and not args.fuku_hit)
+    _eng = engine_name()
+    shadow_on = (_eng == "topdown" and not args.fuku_hit)
+    if _eng == "a95" and args.plan:
+        # a95 は全参戦レースに固定予算 (--budget)。枠プラン(勝負/準勝負/消化)は使わない。
+        print(f"[plan] engine=a95 のため --plan を無視 (1R ¥{args.budget:,} 固定)")
+        args.plan = None
+        plan_budget = {}
     out, shadow_out, residual_shadow_out = [], [], []
     for r in races:
         if args.fuku_hit:
@@ -1001,7 +1040,16 @@ def main():
                     budget=args.budget, engine="shape"))
     # 事前登録wide residual v3は実買い目から独立したshadow。T-10入力がある場合だけ
     # 計算し、欠落・policy不整合はapplyごとfail-closedにする。
+    _wr_open = False
     if live_dir is not None and not args.fuku_hit:
+        from wide_residual_shadow import cohort_open
+        _wr_open = cohort_open()
+        if not _wr_open:
+            # wide residual v3 は親 production policy (topdown-serve34-p667-20260825) に
+            # 事前登録で固定されている。本線 policy が変わった後は cohort を閉じ、混ぜない。
+            print("[shadow] wide residual v3: 親 production policy が現行と異なるため cohort 停止 "
+                  "(計算しない。再開は新 policy id で再登録)")
+    if _wr_open:
         from wide_residual_shadow import compute_shadow
         for r in races:
             rid16 = _re2.sub(r"\D", "", str(r.get("race_id", "")))[:16]
@@ -1042,7 +1090,7 @@ def main():
         run_stamp = {**policy_stamp(),
             "model": d.get("model") if isinstance(d, dict) else None,
             "engine": "compute_bets", "engine_version": ENGINE_VERSION,
-            "mode": mode, "live": bool(live_dir)}
+            "bet_engine": _eng, "mode": mode, "live": bool(live_dir)}
         if live_dir is not None:
             try:
                 from forward_price_integration import archive_compute_decisions
