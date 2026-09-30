@@ -1,0 +1,1265 @@
+{
+ "policy_id": "a95_equal_v1",
+ "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+ "date": "20260921",
+ "preregistered": false,
+ "decided_at": "2026-09-30T23:12:50+09:00",
+ "settled_at": "2026-09-30T23:12:50+09:00",
+ "races": [
+  {
+   "rid": "2026092106040702",
+   "valid": false,
+   "reason": "no_odds"
+  },
+  {
+   "rid": "2026092106040703",
+   "valid": false,
+   "reason": "no_odds"
+  },
+  {
+   "rid": "2026092106040704",
+   "valid": false,
+   "reason": "no_odds"
+  },
+  {
+   "rid": "2026092106040705",
+   "valid": false,
+   "reason": "no_odds"
+  },
+  {
+   "rid": "2026092106040706",
+   "valid": false,
+   "reason": "no_odds"
+  },
+  {
+   "rid": "2026092106040707",
+   "valid": false,
+   "reason": "no_odds"
+  },
+  {
+   "rid": "2026092106040708",
+   "valid": false,
+   "reason": "no_odds"
+  },
+  {
+   "rid": "2026092106040709",
+   "valid": false,
+   "reason": "no_odds"
+  },
+  {
+   "rid": "2026092106040710",
+   "valid": false,
+   "reason": "no_odds"
+  },
+  {
+   "rid": "2026092106040711",
+   "valid": false,
+   "reason": "no_odds"
+  },
+  {
+   "rid": "2026092106040712",
+   "valid": false,
+   "reason": "no_odds"
+  },
+  {
+   "rid": "2026092109040701",
+   "valid": true,
+   "band": "3-5倍",
+   "band_o2": "2-3倍",
+   "band_o3": "5-8倍",
+   "o1": 3.1,
+   "a": [
+    8,
+    3,
+    5
+   ],
+   "result": [
+    5,
+    2,
+    3
+   ],
+   "arms": {
+    "a95_equal": {
+     "valid": true,
+     "stake": 10000,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "umatan": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanpuku": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 2500,
+       "ret": 0.0
+      }
+     }
+    },
+    "umatan_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "umaren_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "fuku_null": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "fuku": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "b3": {
+     "valid": true,
+     "stake": 300,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "rid": "2026092109040702",
+   "valid": true,
+   "band": "5-8倍",
+   "band_o2": "3-5倍",
+   "band_o3": "3-5倍",
+   "o1": 5.6,
+   "a": [
+    5,
+    3,
+    1
+   ],
+   "result": [
+    1,
+    9,
+    3
+   ],
+   "arms": {
+    "a95_equal": {
+     "valid": true,
+     "stake": 10000,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 2000,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 2000,
+       "ret": 0.0
+      },
+      "wakuren": {
+       "stake": 2000,
+       "ret": 0.0
+      },
+      "sanpuku": {
+       "stake": 2000,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 2000,
+       "ret": 0.0
+      }
+     }
+    },
+    "umatan_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "umaren_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "fuku_null": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "fuku": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "b3": {
+     "valid": true,
+     "stake": 300,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "rid": "2026092109040703",
+   "valid": true,
+   "band": "2-3倍",
+   "band_o2": "5-8倍",
+   "band_o3": "5-8倍",
+   "o1": 2.8,
+   "a": [
+    9,
+    3,
+    6
+   ],
+   "result": [
+    6,
+    9,
+    10
+   ],
+   "arms": {
+    "a95_equal": {
+     "valid": true,
+     "stake": 10000,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "umatan": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanpuku": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 2500,
+       "ret": 0.0
+      }
+     }
+    },
+    "umatan_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "umaren_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "fuku_null": {
+     "valid": true,
+     "stake": 100,
+     "ret": 110.0,
+     "hit": true,
+     "by_kind": {
+      "fuku": {
+       "stake": 100,
+       "ret": 110.0
+      }
+     }
+    },
+    "b3": {
+     "valid": true,
+     "stake": 300,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "rid": "2026092109040704",
+   "valid": true,
+   "band": "5-8倍",
+   "band_o2": "5-8倍",
+   "band_o3": "5-8倍",
+   "o1": 5.5,
+   "a": [
+    1,
+    3,
+    11
+   ],
+   "result": [
+    15,
+    9,
+    12
+   ],
+   "arms": {
+    "a95_equal": {
+     "valid": true,
+     "stake": 10000,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 2000,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 2000,
+       "ret": 0.0
+      },
+      "wakuren": {
+       "stake": 2000,
+       "ret": 0.0
+      },
+      "sanpuku": {
+       "stake": 2000,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 2000,
+       "ret": 0.0
+      }
+     }
+    },
+    "umatan_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "umaren_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "fuku_null": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "fuku": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "b3": {
+     "valid": true,
+     "stake": 300,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "rid": "2026092109040705",
+   "valid": true,
+   "band": "2-3倍",
+   "band_o2": "2-3倍",
+   "band_o3": "8-15倍",
+   "o1": 2.9,
+   "a": [
+    7,
+    6,
+    3
+   ],
+   "result": [
+    7,
+    6,
+    3
+   ],
+   "arms": {
+    "a95_equal": {
+     "valid": true,
+     "stake": 10000,
+     "ret": 88000.0,
+     "hit": true,
+     "by_kind": {
+      "umaren": {
+       "stake": 2500,
+       "ret": 8500.0
+      },
+      "umatan": {
+       "stake": 2500,
+       "ret": 18250.0
+      },
+      "sanpuku": {
+       "stake": 2500,
+       "ret": 11500.0
+      },
+      "sanrentan": {
+       "stake": 2500,
+       "ret": 49750.0
+      }
+     }
+    },
+    "umatan_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 730.0,
+     "hit": true,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 730.0
+      }
+     }
+    },
+    "umaren_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 340.0,
+     "hit": true,
+     "by_kind": {
+      "umaren": {
+       "stake": 100,
+       "ret": 340.0
+      }
+     }
+    },
+    "fuku_null": {
+     "valid": true,
+     "stake": 100,
+     "ret": 110.0,
+     "hit": true,
+     "by_kind": {
+      "fuku": {
+       "stake": 100,
+       "ret": 110.0
+      }
+     }
+    },
+    "b3": {
+     "valid": true,
+     "stake": 300,
+     "ret": 2880.0,
+     "hit": true,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 730.0
+      },
+      "wide": {
+       "stake": 100,
+       "ret": 160.0
+      },
+      "sanrentan": {
+       "stake": 100,
+       "ret": 1990.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "rid": "2026092109040706",
+   "valid": true,
+   "band": "3-5倍",
+   "band_o2": "8-15倍",
+   "band_o3": "8-15倍",
+   "o1": 3.6,
+   "a": [
+    11,
+    14,
+    5
+   ],
+   "result": [
+    11,
+    5,
+    4
+   ],
+   "arms": {
+    "a95_equal": {
+     "valid": true,
+     "stake": 10000,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "umatan": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanpuku": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 2500,
+       "ret": 0.0
+      }
+     }
+    },
+    "umatan_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "umaren_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "fuku_null": {
+     "valid": true,
+     "stake": 100,
+     "ret": 140.0,
+     "hit": true,
+     "by_kind": {
+      "fuku": {
+       "stake": 100,
+       "ret": 140.0
+      }
+     }
+    },
+    "b3": {
+     "valid": true,
+     "stake": 300,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "rid": "2026092109040707",
+   "valid": true,
+   "band": "3-5倍",
+   "band_o2": "8-15倍",
+   "band_o3": "15倍〜",
+   "o1": 4.9,
+   "a": [
+    12,
+    10,
+    3
+   ],
+   "result": [
+    2,
+    16,
+    11
+   ],
+   "arms": {
+    "a95_equal": {
+     "valid": true,
+     "stake": 10000,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "umatan": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanpuku": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 2500,
+       "ret": 0.0
+      }
+     }
+    },
+    "umatan_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "umaren_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "fuku_null": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "fuku": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "b3": {
+     "valid": true,
+     "stake": 300,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "rid": "2026092109040708",
+   "valid": true,
+   "band": "3-5倍",
+   "band_o2": "2-3倍",
+   "band_o3": "3-5倍",
+   "o1": 4.8,
+   "a": [
+    3,
+    6,
+    7
+   ],
+   "result": [
+    3,
+    7,
+    2
+   ],
+   "arms": {
+    "a95_equal": {
+     "valid": true,
+     "stake": 10000,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "umatan": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanpuku": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 2500,
+       "ret": 0.0
+      }
+     }
+    },
+    "umatan_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "umaren_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "fuku_null": {
+     "valid": true,
+     "stake": 100,
+     "ret": 120.0,
+     "hit": true,
+     "by_kind": {
+      "fuku": {
+       "stake": 100,
+       "ret": 120.0
+      }
+     }
+    },
+    "b3": {
+     "valid": true,
+     "stake": 300,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "rid": "2026092109040709",
+   "valid": true,
+   "band": "3-5倍",
+   "band_o2": "5-8倍",
+   "band_o3": "5-8倍",
+   "o1": 4.1,
+   "a": [
+    3,
+    12,
+    16
+   ],
+   "result": [
+    14,
+    3,
+    12
+   ],
+   "arms": {
+    "a95_equal": {
+     "valid": true,
+     "stake": 10000,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "umatan": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanpuku": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 2500,
+       "ret": 0.0
+      }
+     }
+    },
+    "umatan_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "umaren_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "fuku_null": {
+     "valid": true,
+     "stake": 100,
+     "ret": 130.0,
+     "hit": true,
+     "by_kind": {
+      "fuku": {
+       "stake": 100,
+       "ret": 130.0
+      }
+     }
+    },
+    "b3": {
+     "valid": true,
+     "stake": 300,
+     "ret": 220.0,
+     "hit": true,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 100,
+       "ret": 220.0
+      },
+      "sanrentan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "rid": "2026092109040710",
+   "valid": true,
+   "band": "5-8倍",
+   "band_o2": "8-15倍",
+   "band_o3": "8-15倍",
+   "o1": 5.5,
+   "a": [
+    10,
+    11,
+    15
+   ],
+   "result": [
+    11,
+    9,
+    7
+   ],
+   "arms": {
+    "a95_equal": {
+     "valid": true,
+     "stake": 10000,
+     "ret": 23600.0,
+     "hit": true,
+     "by_kind": {
+      "umatan": {
+       "stake": 2000,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 2000,
+       "ret": 0.0
+      },
+      "wakuren": {
+       "stake": 2000,
+       "ret": 23600.0
+      },
+      "sanpuku": {
+       "stake": 2000,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 2000,
+       "ret": 0.0
+      }
+     }
+    },
+    "umatan_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "umaren_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "fuku_null": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "fuku": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "b3": {
+     "valid": true,
+     "stake": 300,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "rid": "2026092109040711",
+   "valid": true,
+   "band": "<2倍",
+   "band_o2": "8-15倍",
+   "band_o3": "15倍〜",
+   "o1": 1.4,
+   "a": [
+    1,
+    3,
+    10
+   ],
+   "result": [
+    1,
+    4,
+    8
+   ],
+   "arms": {
+    "a95_equal": {
+     "valid": true,
+     "stake": 10000,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 10000,
+       "ret": 0.0
+      }
+     }
+    },
+    "umatan_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "umaren_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umaren": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "fuku_null": {
+     "valid": true,
+     "stake": 100,
+     "ret": 110.0,
+     "hit": true,
+     "by_kind": {
+      "fuku": {
+       "stake": 100,
+       "ret": 110.0
+      }
+     }
+    },
+    "b3": {
+     "valid": true,
+     "stake": 300,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    }
+   }
+  },
+  {
+   "rid": "2026092109040712",
+   "valid": true,
+   "band": "3-5倍",
+   "band_o2": "5-8倍",
+   "band_o3": "5-8倍",
+   "o1": 3.3,
+   "a": [
+    9,
+    5,
+    10
+   ],
+   "result": [
+    5,
+    9,
+    13
+   ],
+   "arms": {
+    "a95_equal": {
+     "valid": true,
+     "stake": 10000,
+     "ret": 13500.0,
+     "hit": true,
+     "by_kind": {
+      "umaren": {
+       "stake": 2500,
+       "ret": 13500.0
+      },
+      "umatan": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanpuku": {
+       "stake": 2500,
+       "ret": 0.0
+      },
+      "sanrentan": {
+       "stake": 2500,
+       "ret": 0.0
+      }
+     }
+    },
+    "umatan_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 0.0,
+     "hit": false,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    },
+    "umaren_1pt": {
+     "valid": true,
+     "stake": 100,
+     "ret": 540.0,
+     "hit": true,
+     "by_kind": {
+      "umaren": {
+       "stake": 100,
+       "ret": 540.0
+      }
+     }
+    },
+    "fuku_null": {
+     "valid": true,
+     "stake": 100,
+     "ret": 130.0,
+     "hit": true,
+     "by_kind": {
+      "fuku": {
+       "stake": 100,
+       "ret": 130.0
+      }
+     }
+    },
+    "b3": {
+     "valid": true,
+     "stake": 300,
+     "ret": 280.0,
+     "hit": true,
+     "by_kind": {
+      "umatan": {
+       "stake": 100,
+       "ret": 0.0
+      },
+      "wide": {
+       "stake": 100,
+       "ret": 280.0
+      },
+      "sanrentan": {
+       "stake": 100,
+       "ret": 0.0
+      }
+     }
+    }
+   }
+  }
+ ]
+}

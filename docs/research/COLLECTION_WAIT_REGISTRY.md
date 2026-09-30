@@ -1,6 +1,6 @@
 # PyCaLiAI 収集待ち台帳
 
-**最終更新**: 2026-09-29 JST（CW-07〜CW-09 追加: 観測計画 v2.1.1 Phase 2 の Dry 登録）  
+**最終更新**: 2026-09-30 JST（CW-10 追加: shadow a95_equal_v1 の前向き台帳。前回 09-29: CW-07〜CW-09 追加）  
 **目的**: 研究・検証・forward運用のうち、「データが増えるまで結論を出せないもの」を一か所で管理する。
 
 ## 更新規則
@@ -24,6 +24,7 @@
 | CW-07 | `ACTIVE_SHORT` | **観測計画 v2.1.1 登録前 Dry 開催日**（T−2 候補 0B31〜0B35・三連複 T−10 0B35+0B31。同じ `-Schedule` が FINAL 18:30／翌日 REFETCH 20:00 も Dry で登録） | §5.1 開始条件: 全予定レースで 0B35 と同時点 0B31 の raw、manifest の sha256 と発表時刻、`forward_prices_dry` の trio_t10・t2_candidate | 2026-09-29 に `PyCaLiAI_OBS_Schedule`（土日 09:05、`obs_schedule.ps1 -Schedule -Dry`、user gutch）を登録。収集 0。最初の Dry 日は 2026-10-03 | 10/03 夜に `python -m analysis.obs_dry_check --date 20261003` と `python -m analysis.obs_stage0_audit --dates 20261003 --dry`（別工程）。通過後に本番記録へ切替えるか判断（`obs_register_tasks.ps1 -Apply`、承認が必要）。切替えまでは週末ごとに Dry を続け、Stage 0・500R に数えない | `reports/trio_portfolio_shadow_v2/raw/_dry/`, `data/forward_prices_dry/`, `data/jvlink_fetch_journal_dry/` |
 | CW-08 | `ACTIVE_SHORT` | **観測 Stage 0**（T−2 候補・`close_late`/`final` 候補・並走成功率） | 本番記録の最初の 2 開催日で `obs_stage0_audit` が `CONCURRENCY_OK`。契約: 必須 stage×spec の欠損 ≤ max(1%, 1 race) で全欠損の原因を帰属、組被覆不一致 ≤ 1%、raw/parser 一致、取得の process を識別。並走: 重なり時成功率 ≥ 95%、00:00 型破損 0 | 未開始（Dry 中） | 本番記録切替後の 2 開催日で監査する。`CONTRACT_NOT_MET` などで未通過なら、収集は止めずに修正し、修正後の開催日から 2 日を数え直す。判定は ledger に追記 | `reports/obs_stage0_*.json`, `data/obs_stage0_ledger.jsonl` |
 | CW-09 | `ACTIVE_LONG` | **三連複 0B35 500R**（§5.3 初回棄却専用） | 有効 race 500（label-free 上限は `analysis.obs_guard` が Stage 0 通過窓の初日以降だけで数える） | 0（Dry は数えない） | 500 到達まで性能・ROI・候補選択・配分を開かない（`assert_performance_allowed` が拒否し、`python -m analysis.obs_guard --check` が guard 無しの経路を検出）。週 66R 想定で約 8 週 | `data/forward_prices/*_trio_t10_*`, `analysis/obs_guard.py` |
+| CW-10 | `ACTIVE_LONG` | **shadow a95_equal_v1**（◎オッズ帯×上位1点券種 ROI≥95 セル、1R 1万円均等、実弾ゼロの紙上ライン。新観測列なしの馬券層 shadow で EXP 番号は立てない） | 有効 race 500（発走日 09:00 JST より前に decisions を凍結したレースのみ。起算日 2026-10-03） | 前向き 0。記述用として 9/20〜9/27 の 5 開催日 93R を事後作成（判定に数えない） | 500R 到達時に「レース的中率の片側95%上限 < 19.7%」なら設計を棄却。ROI は記述のみ（500R の標準誤差 約17pt）。帯・券種・配分は凍結、変更は新 policy id。週 66R 想定で約 8 週 | `data/shadow_policies/a95_equal_v1.json`（sha256 `8cccbed1…`）, `data/shadow_ledger/a95_equal_v1/`, `python shadow_a95.py report` |
 
 ## 収集待ちではあるが、現在の主研究を止めないもの
 

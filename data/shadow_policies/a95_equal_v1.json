@@ -1,0 +1,190 @@
+{
+ "policy_id": "a95_equal_v1",
+ "schema_version": 1,
+ "frozen_on": "2026-09-30",
+ "real_money": false,
+ "description": "◎(AI1位)の朝オッズ帯ごとに、2023-25 OOS 表で ROI>=95 だった『AI上位馬で1点』の券種を買う。1R 上限1万円を採用券種へ均等配分(100円格子)。実弾ゼロの前向き shadow。",
+ "decision_inputs": {
+  "order": "bundle の p_win 降順 (生の v6 較正確率。補正印/オッズblendは使わない)",
+  "band_odds": "bundle の tansho_odds (bundle 生成時点の単勝オッズ) の AI1位",
+  "tickets": {
+   "tan": "AI1位 単勝",
+   "fuku": "AI1位 複勝",
+   "umaren": "AI1-2位 馬連",
+   "umatan": "AI1位→2位 馬単",
+   "wide": "AI1-2位 ワイド",
+   "wakuren": "AI1-2位の枠 枠連",
+   "sanpuku": "AI1-2-3位 三連複",
+   "sanrentan": "AI1→2→3位 三連単"
+  }
+ },
+ "bands": [
+  [
+   0,
+   2,
+   "<2倍"
+  ],
+  [
+   2,
+   3,
+   "2-3倍"
+  ],
+  [
+   3,
+   5,
+   "3-5倍"
+  ],
+  [
+   5,
+   8,
+   "5-8倍"
+  ],
+  [
+   8,
+   15,
+   "8-15倍"
+  ],
+  [
+   15,
+   null,
+   "15倍〜"
+  ]
+ ],
+ "plan": {
+  "<2倍": [
+   "umaren"
+  ],
+  "2-3倍": [
+   "umaren",
+   "umatan",
+   "sanpuku",
+   "sanrentan"
+  ],
+  "3-5倍": [
+   "umaren",
+   "umatan",
+   "sanpuku",
+   "sanrentan"
+  ],
+  "5-8倍": [
+   "umatan",
+   "wide",
+   "wakuren",
+   "sanpuku",
+   "sanrentan"
+  ],
+  "8-15倍": [
+   "tan",
+   "umaren",
+   "umatan"
+  ],
+  "15倍〜": [
+   "fuku",
+   "umaren"
+  ]
+ },
+ "cap_per_race_yen": 10000,
+ "unit_yen": 100,
+ "allocation": "equal (端数は plan の先頭券種から 100 円ずつ)",
+ "reference_arms": {
+  "umatan_1pt": [
+   "umatan"
+  ],
+  "umaren_1pt": [
+   "umaren"
+  ],
+  "fuku_null": [
+   "fuku"
+  ],
+  "b3": [
+   "umatan",
+   "wide",
+   "sanrentan"
+  ]
+ },
+ "source_table": {
+  "script": "analysis/top1_by_odds_band.py",
+  "population": "data/_policy/bet_substrate.pkl 2023-25 OOS 10,261R, 100円均等, ◎=AI1位の9時単勝オッズ",
+  "roi_pct": {
+   "<2倍": {
+    "tan": 81.4,
+    "fuku": 91.4,
+    "umaren": 96.3,
+    "umatan": 93.2,
+    "wide": 91.7,
+    "wakuren": 77.7,
+    "sanpuku": 74.6,
+    "sanrentan": 64.7
+   },
+   "2-3倍": {
+    "tan": 83.8,
+    "fuku": 88.4,
+    "umaren": 97.7,
+    "umatan": 98.9,
+    "wide": 92.6,
+    "wakuren": 86.3,
+    "sanpuku": 108.0,
+    "sanrentan": 139.7
+   },
+   "3-5倍": {
+    "tan": 90.6,
+    "fuku": 89.3,
+    "umaren": 99.8,
+    "umatan": 104.4,
+    "wide": 94.4,
+    "wakuren": 94.3,
+    "sanpuku": 95.4,
+    "sanrentan": 126.7
+   },
+   "5-8倍": {
+    "tan": 91.9,
+    "fuku": 88.4,
+    "umaren": 92.8,
+    "umatan": 99.5,
+    "wide": 95.0,
+    "wakuren": 96.5,
+    "sanpuku": 98.1,
+    "sanrentan": 108.5
+   },
+   "8-15倍": {
+    "tan": 96.2,
+    "fuku": 84.7,
+    "umaren": 96.8,
+    "umatan": 125.3,
+    "wide": 86.6,
+    "wakuren": 89.9,
+    "sanpuku": 86.3,
+    "sanrentan": 39.1
+   },
+   "15倍〜": {
+    "tan": 78.1,
+    "fuku": 110.9,
+    "umaren": 117.2,
+    "umatan": 59.9,
+    "wide": 94.4,
+    "wakuren": 90.2,
+    "sanpuku": 38.6,
+    "sanrentan": 0.0
+   }
+  },
+  "oos_check": "analysis/alloc_95_design.py: 年で選び別の年で決済した4方向の平均 ROI 102.6% (最悪 97.6%), 上位10払戻除外 85.0%, R的中 23.3% (19.7〜25.6%), トリガミ 4.5%"
+ },
+ "registration": {
+  "start_date": "20261003",
+  "valid_race": "発走日 09:00 JST より前に decisions が書かれている / bundle 5頭以上で AI1位の単勝オッズあり / kekka に1・2・3着が各1頭(同着除外) / 採用券種の払戻情報が揃う",
+  "unique_question": "前向きのレース的中率 (採用券種のどれかが当たる割合) は、バックテスト OOS の 23.3% (4方向 19.7〜25.6%) と整合するか",
+  "min_valid_races": 500,
+  "reject_if_hit_upper_below": 0.197,
+  "rejection_rule": "有効 500R 到達時、レース的中率の片側95%上限が 19.7% 未満なら設計を棄却 (閾値は観測値およそ 16.8%)",
+  "power_note": "真値 23.3% での誤棄却 <1%。真値 15% に対する棄却検出力 約0.85",
+  "roi_note": "ROI は記述のみ。1レースあたり回収率 SD≈3.9 (回収率単位) のため 500R の標準誤差は約17pt。ROI>100% を CI 下限で示すには数万R必要で、500R は初回棄却専用",
+  "no_change_rule": "凍結後に帯・券種・配分・閾値を変えない。変える場合は新しい policy id (v2) として別台帳"
+ },
+ "known_limits": [
+  "帯の判定は bundle 生成時点 (前日夜〜当日未明) の単勝オッズ。バックテストは 9時オッズ",
+  "出走取消・競走除外の返還は未処理 (kekka が上位3着のみのため検出不能)。該当馬券は外れ扱い=保守側",
+  "枠番は頭数からの規則計算 (2026 実績で上位3着 3,813/3,813 一致)",
+  "2026-09-20〜27 の5開催日は事後作成の記述用 (判定に数えない)"
+ ],
+ "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+}

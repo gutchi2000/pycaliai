@@ -332,6 +332,21 @@ if ($Post) {
         }
     }
 
+    # --- a95_equal_v1 shadow (実弾0円) の決済と累積表示 --------------------------
+    # 事前凍結した decisions と今週の kekka / wide_kekka から決済するだけ。失敗しても
+    # 本番は止めない。settlements は decisions+kekka から再生成できるので commit は任意。
+    if (Test-Path "data\shadow_ledger\a95_equal_v1\decisions\$Date.json") {
+        try {
+            $prevExitA95 = $LASTEXITCODE
+            Step "[1c/3] shadow a95_equal_v1 決済 (実弾0円)"
+            $env:PYTHONIOENCODING = "utf-8"
+            & .\venv311\Scripts\python.exe shadow_a95.py settle --date $Date 2>&1 | ForEach-Object { Write-Host "    $_" }
+            if ($LASTEXITCODE -ne 0) { Warn "shadow a95 settle が exit $LASTEXITCODE (シャドーのため HF 同期は継続)" }
+            & .\venv311\Scripts\python.exe shadow_a95.py report 2>&1 | Select-Object -First 8 | ForEach-Object { Write-Host "    $_" }
+            $global:LASTEXITCODE = $prevExitA95
+        } catch { Warn "shadow a95 settle 例外 (本番には影響なし): $($_.Exception.Message)" }
+    }
+
     if (-not $SkipHF) {
         Step "[2/3] sync-hf.ps1 (NiceGUI Space)"
         & .\sync-hf.ps1
@@ -419,6 +434,19 @@ if (Test-Path $bundlePath) {
 #    --weeks を明示し、全履歴自動列挙はしない (P0-3 確認試験, 本番出力には無関係)。
 Invoke-ShadowStep -Label "score" -PyArgs @("score", "--weeks", $Date) -TimeoutSec 300
 
+# -- Shadow: a95_equal_v1 (◎オッズ帯×ROI>=95 セル・1R 1万円均等、実弾ゼロの紙上ライン)。
+#    bundle が書き終わった直後に買い目を凍結記録するだけ。失敗しても本番は止めない (fail-open)。
+#    decisions は「レース前に書いた」こと自体が証拠なので、下の Step 4 で一緒に commit する。
+$a95Decisions = "data\shadow_ledger\a95_equal_v1\decisions\$Date.json"
+try {
+    $prevExitA95 = $LASTEXITCODE
+    Step "[shadow] shadow_a95.py decide --date $Date (実弾ゼロ・本番結果には影響しません)"
+    $env:PYTHONIOENCODING = "utf-8"
+    & .\venv311\Scripts\python.exe shadow_a95.py decide --date $Date 2>&1 | ForEach-Object { Write-Host "    $_" }
+    if ($LASTEXITCODE -ne 0) { Warn "shadow a95 decide が exit $LASTEXITCODE (本番には影響なし)" }
+    $global:LASTEXITCODE = $prevExitA95
+} catch { Warn "shadow a95 decide 例外 (本番には影響なし): $($_.Exception.Message)" }
+
 # -- Step 3b: course_stats.json (NiceGUI コース分析タブ用、master_v2 から
 #             集計、HF にも同期される ~600KB の事前計算ファイル) --
 $masterCsv = Get-ChildItem 'data' -Filter 'master_v2_*.csv' -ErrorAction SilentlyContinue |
@@ -448,6 +476,9 @@ if ($SkipGit) {
     if (Test-Path $hoseiPath) { git add $hoseiPath 2>$null }
 
     if (Test-Path $bundlePath) { git add $bundlePath 2>$null }
+
+    # shadow a95 の事前凍結買い目 (レース前 commit が事前登録の証拠になる)
+    if (Test-Path $a95Decisions) { git add $a95Decisions 2>$null }
 
     if (Test-Path 'data\course_stats.json') {
         git add 'data\course_stats.json' 2>$null
