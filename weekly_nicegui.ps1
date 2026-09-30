@@ -343,6 +343,8 @@ if ($Post) {
             & .\venv311\Scripts\python.exe shadow_a95.py settle --date $Date 2>&1 | ForEach-Object { Write-Host "    $_" }
             if ($LASTEXITCODE -ne 0) { Warn "shadow a95 settle が exit $LASTEXITCODE (シャドーのため HF 同期は継続)" }
             & .\venv311\Scripts\python.exe shadow_a95.py report 2>&1 | Select-Object -First 8 | ForEach-Object { Write-Host "    $_" }
+            # T-10 オッズで決めた a95 の 本線 / ガード外(検証用) / 全レース の併記集計
+            & .\venv311\Scripts\python.exe -m analysis.a95_all_t10_report 2>&1 | ForEach-Object { Write-Host "    $_" }
             $global:LASTEXITCODE = $prevExitA95
         } catch { Warn "shadow a95 settle 例外 (本番には影響なし): $($_.Exception.Message)" }
     }

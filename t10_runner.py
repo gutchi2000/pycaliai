@@ -398,6 +398,17 @@ def show_race_bets(date_str: str, rid16: str, scheduled_post: datetime | None = 
                 discord.append(f"{b['馬券種']} `{b['買い目']}` **¥{int(b['購入額']):,}**")
         else:
             discord.append(f"🎯 a95: **見送り** — {e.get('race_reason','')}")
+        # 全レース版 (検証用の併記)。参戦ガードで見送ったレースだけ「買っていたら」を出す。
+        # 買い目ではない (bets は空のまま・サイトにも出ない)。通過レースは本線と同じなので省略。
+        aa = e.get("a95_all") or {}
+        if aa.get("tickets") and not aa.get("guard_passed"):
+            tot2 = sum(int(x["stake"]) for x in aa["tickets"])
+            discord.append(f"🧪 **全レース版（検証用・参戦ガード外） {len(aa['tickets'])}点 ¥{tot2:,}**"
+                           f"（帯{aa.get('band_code','')}）— 買い目ではない")
+            for x in aa["tickets"]:
+                discord.append(f"{x['kind_jp']} `{x['selection']}` ¥{int(x['stake']):,}")
+            print("     [全レース版・検証用] " + " / ".join(
+                f"{x['kind_jp']} {x['selection']} ¥{int(x['stake']):,}" for x in aa["tickets"]))
         if hosei_line:
             discord.append(hosei_line)
         discord.append(SEP)

@@ -475,13 +475,34 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     san = (marks.get("▲") or [None])[0]
     osae = marks.get("△", [])
 
+    # ---- a95 全レース版 (検証用の併記。2026-09-30 ユーザー指示「2つ出す」) ----
+    # 参戦ガードで見送るレースにも「買っていたらこの買い目」を T-10 オッズで記録する。
+    # これは bets ではない (ガードは下でそのまま効く。bets は空のまま、サイトにも出ない)。
+    # Discord には検証用として併記し、forward_prices の decision 録に残して後から決済する。
+    _engine = engine_name(engine)
+    _a95_all = None
+    if _engine == "a95":
+        import a95_engine
+        try:
+            _pa = a95_engine.build(horses, budget=int(budget))
+            _a95_all = {k: _pa[k] for k in ("band", "band_code", "a1", "a2", "a3", "waku1", "waku2",
+                                           "tickets", "policy_id", "policy_sha256")}
+        except a95_engine.A95Error as _e:
+            _a95_all = {"error": str(_e), "tickets": []}
+
+    def _all(guard_passed: bool) -> dict:
+        if _a95_all is None:
+            return {}
+        return {"a95_all": {**_a95_all, "guard_passed": bool(guard_passed),
+                            "note": "全レース版(検証用)。guard_passed=false は買い目ではない"}}
+
     # ---- §0 hard 見送り ----
     gate_reasons = hard_skip_reasons(
         {**rm, "field_size": field}, rc, by_ban.get(hon) if hon is not None else None)
     if gate_reasons:
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",
                 "race_reason": " / ".join(gate_reasons) + " のため見送り。", "bets": [],
-                **({"hosei_marks": hosei} if hosei else {})}
+                **_all(False), **({"hosei_marks": hosei} if hosei else {})}
 
     # ---- カード値（パーセンタイル + market 生値）----
     top1 = pct(rc.get("top1_dominance"), "top1_dominance")
@@ -491,7 +512,7 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
         # 分位テーブル欠如/破損 → shape 判定不能。fail-safe 見送り
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",
                 "race_reason": "chaos_quantiles.json 欠如/破損で指標変換不能のため見送り (fail-safe)。",
-                "bets": [], **({"hosei_marks": hosei} if hosei else {})}
+                "bets": [], **_all(False), **({"hosei_marks": hosei} if hosei else {})}
 
     # ---- §0b 参戦規律(二段): クリーン帯(低エントロピー)外は 見送り or 消化枠降格 ----
     #   force_floor 無し: 従来どおり見送り (最も負けない線)。
@@ -502,7 +523,7 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
             return {"race_id": rid, "race_label": label, "race_nature": "見送り",
                     "race_reason": f"クリーン帯外(混戦度 pct{chaos:.2f}>{CLEAN_BAND_MAX:.2f}・参戦規律)で見送り。"
                                    "◎の信頼が薄い帯=OOSで控除床近傍につき不参戦。", "bets": [],
-                    **({"hosei_marks": hosei} if hosei else {})}
+                    **_all(False), **({"hosei_marks": hosei} if hosei else {})}
         if demote_budget and int(budget) > int(demote_budget):
             budget = int(demote_budget)
             demote_note = (f"クリーン帯外(混戦度pct{chaos:.2f}>{CLEAN_BAND_MAX:.2f})"
@@ -515,9 +536,7 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
     # §0 hard / §0b クリーン帯 / 予算降格 は上で適用済み (参戦ガードは topdown と同一)。
     # 生の p_win 順の上位馬で、AI1位の単勝オッズ帯ごとの採用券種を 1 点ずつ均等に買う。
     # 方策の正本は data/shadow_policies/a95_equal_v1.json (a95_engine.py が単一ソース)。
-    _engine = engine_name(engine)
     if _engine == "a95":
-        import a95_engine
         try:
             plan = a95_engine.build(horses, budget=int(budget))
         except a95_engine.A95Error as _e:
@@ -538,7 +557,7 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
                 "a95": {"band": plan["band"], "band_code": plan["band_code"],
                         "order": [plan["a1"], plan["a2"], plan["a3"]],
                         "policy_id": plan["policy_id"], "policy_sha256": plan["policy_sha256"]},
-                "bets": bets, **({"hosei_marks": hosei} if hosei else {})}
+                "bets": bets, **_all(True), **({"hosei_marks": hosei} if hosei else {})}
 
     # ---- 完全トップダウンエンジン (CB_ENGINE=topdown) ----
     # §0 hard / §0b クリーン帯 / 予算降格 は上で適用済み。ここから先の印・shape・

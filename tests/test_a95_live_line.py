@@ -149,3 +149,37 @@ def test_t20_a95_public_tickets_have_no_odds_or_amounts(monkeypatch):
     monkeypatch.setattr(pp, "hard_skip_reasons", lambda rm, rc, hon: ["chaos"])
     bets, why, done = t20.a95_site_tickets(race, market, race["race_id"])
     assert bets == [] and done and "見送り" in why
+
+
+# ---------------------------------------------------------------- 全レース版 (検証用の併記)
+def test_guard_skipped_race_records_would_have_tickets_but_no_bets(monkeypatch):
+    import compute_bets as cb
+    import race_eligibility as re_
+    ok = {"bet_eligible": True, "is_jump": False, "reason": "", "determination": "test"}
+    monkeypatch.setattr(re_, "verify_metadata", lambda meta, rid: ok)
+    from production_policy import load_policy, raw_at_percentile
+    limit = float(load_policy()["chaos_reference"]["skip_percentile"])
+    hi = {**_race(), "race_confidence": {**_race()["race_confidence"],
+                                         "field_chaos_score": raw_at_percentile(min(limit + 0.2, 0.99))}}
+    out = cb.compute_race_bets(hi, budget=10000, engine="a95")
+    assert out["bets"] == [] and out["race_nature"] == "見送り"          # ガードはそのまま効く
+    aa = out["a95_all"]
+    assert aa["guard_passed"] is False and sum(t["stake"] for t in aa["tickets"]) == 10000
+    assert [t["kind_jp"] for t in aa["tickets"]] == ["馬連", "馬単", "三連複", "三連単"]
+    lo = {**_race(), "race_confidence": {**_race()["race_confidence"],
+                                         "field_chaos_score": raw_at_percentile(max(limit - 0.3, 0.01))}}
+    out2 = cb.compute_race_bets(lo, budget=10000, engine="a95")
+    assert out2["a95_all"]["guard_passed"] is True
+    assert {(b["馬券種"], b["買い目"], b["購入額"]) for b in out2["bets"]} == \
+        {(t["kind_jp"], t["selection"], t["stake"]) for t in out2["a95_all"]["tickets"]}
+    # 他エンジンでは併記しない
+    assert "a95_all" not in cb.compute_race_bets(hi, budget=10000, engine="topdown")
+
+
+def test_jump_race_has_no_would_have_tickets(monkeypatch):
+    import compute_bets as cb
+    import race_eligibility as re_
+    ng = {"bet_eligible": False, "is_jump": True, "reason": "jump", "determination": "test"}
+    monkeypatch.setattr(re_, "verify_metadata", lambda meta, rid: ng)
+    monkeypatch.setattr(re_, "log_exclusions", lambda *a, **k: None)
+    assert "a95_all" not in cb.compute_race_bets(_race(), budget=10000, engine="a95")
