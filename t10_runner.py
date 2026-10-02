@@ -12,7 +12,9 @@ t10_runner.py — 当日 T-10 自動馬券ライン（スケジューラ本体�
   4. compute_bets(🎫 prob-first) の買い目を表示 + ビープ（投票は人間が IPAT）
 
 を実行する。NiceGUI (ローカル) は cowork_output を ui.timer で随時読むので
-画面にもそのまま反映される。HF への push は本ランナーでは行わない（手動）。
+画面にもそのまま反映される。
+  5. sync-hf-umami.ps1 を切り離して起動し、T-10 確定を公開サイトへ反映
+     (2026-10-03〜。publish_site_async。--dry では行わない)
 
 発走時刻: data/weekly/{date}.csv の「発走時刻」列（TARGET 出走表）。
 fail-safe: オッズ欠損/鮮度NG/overround 異常は compute_bets 側で見送りになる。
@@ -425,6 +427,35 @@ def show_race_bets(date_str: str, rid16: str, scheduled_post: datetime | None = 
         beep()
 
 
+def publish_site_async(date_str: str, rid16: str) -> None:
+    """T-10 確定 (買い目/見送り) を公開サイトへ反映する (2026-10-03 ユーザー指示)。
+
+    以前は T-10 が bets.json を書くだけで、サイトに載るのは「次の別レースの T-20 が
+    sync-hf-umami.ps1 を走らせたとき」だった。昼休み前・メイン前後・最終レースでは
+    その同期が発走に間に合わず、T-20 速報のまま発走を迎えていた (10/03 は 23R 中 8R)。
+
+    待たずに切り離して起動する: sync-hf-umami.ps1 は排他ロックで最大 12 分待つことがあり、
+    同期で待つと発走後の締切価格取得 (capture_close_price) を巻き添えにし得るため。
+    出力は logs/t10_publish_{date}.log。失敗は非致命 (次の publish が拾う)。
+    """
+    try:
+        log_dir = BASE / "logs"
+        log_dir.mkdir(exist_ok=True)
+        with open(log_dir / f"t10_publish_{date_str}.log", "ab") as f:
+            f.write(f"\n===== [{datetime.now():%H:%M:%S}] T-10 publish {rid16} =====\n"
+                    .encode("utf-8"))
+            f.flush()
+            subprocess.Popen(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                 "-File", str(BASE / "sync-hf-umami.ps1"), "-Date", date_str],
+                cwd=str(BASE), stdout=f, stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        print(f"  [publish] sync-hf-umami.ps1 を起動 (ログ: logs/t10_publish_{date_str}.log)")
+    except Exception as exc:
+        print(f"  [publish] 起動失敗 (非致命、次の publish で反映): {exc}")
+
+
 def _bet_engine() -> str:
     """本番の買い目エンジン名 (production_policy.json)。読めなければ従来の topdown 扱い。"""
     try:
@@ -658,6 +689,8 @@ def main():
             close_ok = True
             process_race(date_str, bundle, rid, label, args.max_age_min, args.dry,
                          scheduled_post=until)
+            if not args.dry:
+                publish_site_async(date_str, rid)   # T-10 確定を発走前にサイトへ
             if until_hm and not args.dry:
                 poller = BotPoller()
                 if poller.enabled and datetime.now() < until:
@@ -668,6 +701,7 @@ def main():
                             process_race(date_str, bundle, rid, label,
                                          args.max_age_min, args.dry, budget=b,
                                          scheduled_post=until)
+                            publish_site_async(date_str, rid)
                         time.sleep(POLL_SEC)
                 wait_sec = max(0.0, (until - datetime.now()).total_seconds()
                                + args.close_delay_sec)
@@ -724,6 +758,8 @@ def main():
                     elif now >= pt - lead:
                         process_race(date_str, bundle, rid, label, args.max_age_min,
                                      args.dry, scheduled_post=pt)
+                        if not args.dry:
+                            publish_site_async(date_str, rid)
                         done.add(rid)
                         last_proc = (rid, label, pt)
                 close_due = args.dry or now >= pt + timedelta(seconds=args.close_delay_sec)
@@ -748,6 +784,8 @@ def main():
                     process_race(date_str, bundle, rid, label,
                                  args.max_age_min, args.dry, budget=b,
                                  scheduled_post=pt)
+                    if not args.dry:
+                        publish_site_async(date_str, rid)
             # 全レースの判断と締切価格の保存が終わるまで常駐する
             if len(done) >= len(sched) and len(close_done) >= len(sched):
                 break
