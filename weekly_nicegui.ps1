@@ -349,6 +349,17 @@ if ($Post) {
         } catch { Warn "shadow a95 settle 例外 (本番には影響なし): $($_.Exception.Message)" }
     }
 
+    # -- 配信の健全性監視: AI 1位と市場 1番人気の一致率 (直近 4 開催日・100R 以上)。
+    #    45% を割ったら WARN (Discord にも送る)。印や買い目には干渉しない (fail-open)。
+    try {
+        $prevExitSH = $LASTEXITCODE
+        Step "[1d/3] serve_health.py (印の一致率監視)"
+        $env:PYTHONIOENCODING = "utf-8"
+        & .env311\Scripts\python.exe serve_health.py --notify 2>&1 | ForEach-Object { Write-Host "    $_" }
+        if ($LASTEXITCODE -eq 2) { Warn "serve_health WARN: 印が市場と大きくずれている。配信の特徴欠損を確認すること" }
+        $global:LASTEXITCODE = $prevExitSH
+    } catch { Warn "serve_health 例外 (本番には影響なし): $($_.Exception.Message)" }
+
     if (-not $SkipHF) {
         Step "[2/3] sync-hf.ps1 (NiceGUI Space)"
         & .\sync-hf.ps1
@@ -448,6 +459,17 @@ try {
     if ($LASTEXITCODE -ne 0) { Warn "shadow a95 decide が exit $LASTEXITCODE (本番には影響なし)" }
     $global:LASTEXITCODE = $prevExitA95
 } catch { Warn "shadow a95 decide 例外 (本番には影響なし): $($_.Exception.Message)" }
+
+# -- 配信の健全性監視: AI 1位と市場 1番人気の一致率 (直近 4 開催日・100R 以上)。
+#    45% を割ったら WARN (Discord にも送る)。印や買い目には干渉しない (fail-open)。
+try {
+    $prevExitSH = $LASTEXITCODE
+    Step "[health] serve_health.py (印の一致率監視)"
+    $env:PYTHONIOENCODING = "utf-8"
+    & .env311\Scripts\python.exe serve_health.py --notify 2>&1 | ForEach-Object { Write-Host "    $_" }
+    if ($LASTEXITCODE -eq 2) { Warn "serve_health WARN: 印が市場と大きくずれている。配信の特徴欠損を確認すること" }
+    $global:LASTEXITCODE = $prevExitSH
+} catch { Warn "serve_health 例外 (本番には影響なし): $($_.Exception.Message)" }
 
 # -- Step 3b: course_stats.json (NiceGUI コース分析タブ用、master_v2 から
 #             集計、HF にも同期される ~600KB の事前計算ファイル) --
