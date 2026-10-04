@@ -1137,6 +1137,15 @@ body.drawer-open { overflow: hidden; }
   margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--line);
   font-size: 13px; color: var(--tx3);
 }
+/* 全モード共通フッター（免責・プライバシー・問い合わせ） */
+.site-legal {
+  display: flex; justify-content: center; align-items: center; gap: 8px 22px; flex-wrap: wrap;
+  max-width: var(--maxw); margin: 28px auto 0; padding: 16px var(--pad) calc(22px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  font-size: 13px; color: var(--tx3);
+}
+.site-legal a { color: var(--tx2); text-decoration: none; }
+.site-legal a:hover { color: var(--gold2); }
 .loading { padding: 60px 0; text-align: center; color: var(--tx3); font-size: 13px; letter-spacing: .2em; animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .35; } }
 .err { padding: 40px 20px; text-align: center; color: var(--red); font-size: 14px; }
