@@ -468,6 +468,7 @@ def main() -> int:
     # (build_horse_history.py 生成) から学習と同一定義・leak-safe as-of で
     # 再計算して埋める。失敗時は fail-open (従来どおり NaN のまま) —
     # 埋まらない週は serve canary (baseline 更新後) が検知する。
+    hist_stats = None
     try:
         from serve_history_feats import fill_history_features
         hist_stats = fill_history_features(df)
@@ -692,8 +693,20 @@ def main() -> int:
     for vw in venue_warnings:
         logger.warning(f"[venue odds degraded] {vw}")
 
+    # 予測経路の版 (spec §7): 版 ID・git commit・履歴 parquet / モデル / 較正器 /
+    # コード表の sha256 を刻む。下流 (compute_bets / shadow_a95) は版 ID を写す。
+    from serve_path import build_record as _serve_path_record
+    serve_path = _serve_path_record(
+        BASE, model_path=be.MODEL_PKL, calibrator_path=be.CAL_PKL,
+        hosei_proxy=(os.environ.get("CB_HOSEI_PROXY", "0") == "1" and proxy_path.exists()),
+        history_stats=hist_stats)
+    logger.info(f"[serve path] {serve_path['version']} commit="
+                f"{(serve_path['git'].get('commit') or '?')[:10]} "
+                f"history={str(serve_path['history'].get('sha256') or '?')[:12]}")
+
     with open(publish.tmp_bundle, "w", encoding="utf-8") as f:
         json.dump({"date": date_str, "model": tag,
+                   "serve_path": serve_path,
                    "race_count": len(races), "races": races,
                    "venue_warnings": venue_warnings,
                    "eligibility_coverage": _cov.as_dict()},

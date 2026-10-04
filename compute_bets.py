@@ -1106,10 +1106,13 @@ def main():
             print("[ERROR] bundle 名から日付 (YYYYMMDD) を特定できず --apply 中止", file=sys.stderr)
             return 1
         mode = "fuku_hit" if args.fuku_hit else "plan" if args.plan else "default"
+        from serve_path import stamp_fields as _serve_path_stamp
         run_stamp = {**policy_stamp(),
             "model": d.get("model") if isinstance(d, dict) else None,
             "engine": "compute_bets", "engine_version": ENGINE_VERSION,
-            "bet_engine": _eng, "mode": mode, "live": bool(live_dir)}
+            "bet_engine": _eng, "mode": mode, "live": bool(live_dir),
+            # 予測経路の版 (spec §7)。bundle に記録が無ければ旧版 sp-20261004-0。
+            **_serve_path_stamp(d if isinstance(d, dict) else None)}
         if live_dir is not None:
             try:
                 from forward_price_integration import archive_compute_decisions

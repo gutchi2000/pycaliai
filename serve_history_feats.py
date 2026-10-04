@@ -39,6 +39,13 @@ BASE = Path(__file__).parent
 HIST_PARQUET = BASE / "data" / "_horse_history.parquet"
 CODE_MAPS = BASE / "data" / "serve_code_maps.json"
 
+# 予測経路の版 (serve_path.py が bundle へ刻む)。この module の挙動を変えたら必ず上げる。
+# 仕様: docs/research/SERVE_REPRODUCIBILITY_FIX_SPEC_20261004.md §7
+SERVE_PATH_VERSION = "sp-20261004-0"
+ROLLING_ORDER_KEY = "date(unstable)"            # 騎手・調教師の直近集計の並び
+IDENTITY_MODE = "full-history-last-row"         # 馬同定の照合属性の取り方
+NAME_NORMALIZATION = "fullwidth-space+strip"    # 馬名・父名の正規化
+
 # 埋める特徴 (v6 feature_cols 名)
 NUM_FEATS = [
     "hist_same_cond_best_pos", "hist_same_cond_top3_rate",
@@ -200,7 +207,9 @@ def _load(base: Path):
             raw = json.load(f)
         maps["jockey"] = raw.get("jockey", {})
         maps["trainer"] = raw.get("trainer", {})
-    meta = {"n_rows": len(hist), "max_date": int(hist["date"].max())}
+    meta = {"n_rows": len(hist), "max_date": int(hist["date"].max()),
+            "columns": sorted(str(c) for c in hist.columns),
+            "path": str(hist_path), "maps_path": str(maps_path)}
     _CACHE[key] = (idx, maps, meta)
     return _CACHE[key]
 
@@ -328,7 +337,9 @@ def fill_history_features(df: pd.DataFrame, base: Path = BASE,
     jockey_code_col = np.array(["__NaN__"] * n, dtype=object)
     trainer_code_col = np.array(["__NaN__"] * n, dtype=object)
     stats = {"hit": 0, "new": 0, "ambiguous": 0, "bad_date": 0,
-             "jockey_code": 0, "trainer_code": 0, "hist_max_date": meta["max_date"]}
+             "jockey_code": 0, "trainer_code": 0, "hist_max_date": meta["max_date"],
+             "hist_rows": meta["n_rows"], "hist_columns": meta["columns"],
+             "hist_path": meta["path"], "maps_path": meta["maps_path"]}
 
     names = df["馬名"].map(_clean_name) if "馬名" in df.columns else pd.Series([""] * n)
     sires = (df["種牡馬"].map(_clean_name) if "種牡馬" in df.columns

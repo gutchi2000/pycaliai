@@ -146,11 +146,15 @@ def cmd_decide(date: str, pol: dict) -> int:
     now = datetime.now(JST)
     deadline = datetime.strptime(date, "%Y%m%d").replace(tzinfo=JST, hour=9)
     prereg = now < deadline
-    decs = build_decisions(json.loads(raw.decode("utf-8")), pol)
+    bundle = json.loads(raw.decode("utf-8"))
+    decs = build_decisions(bundle, pol)
+    from serve_path import stamp_fields
     rec = dict(policy_id=pol["policy_id"], policy_sha256=pol["policy_sha256"], date=date,
                decided_at=now.isoformat(timespec="seconds"), preregistered=bool(prereg),
                late_reason=(None if prereg else "decided_after_0900_JST_of_race_day"),
-               bundle_sha256=hashlib.sha256(raw).hexdigest(), races=decs)
+               bundle_sha256=hashlib.sha256(raw).hexdigest(),
+               # 予測経路の版 (spec §7)。記録の無い bundle は sp-20261004-0 とみなす。
+               **stamp_fields(bundle), races=decs)
     dpath.parent.mkdir(parents=True, exist_ok=True)
     tmp = dpath.with_suffix(".tmp")
     tmp.write_text(json.dumps(rec, ensure_ascii=False, indent=1), encoding="utf-8")
