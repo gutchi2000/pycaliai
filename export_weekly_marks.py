@@ -466,9 +466,12 @@ def main() -> int:
     # hist_same_* / course_* / jockey_* / 騎手・調教師コード は週次CSVに無く
     # 上で NaN 補完される (-9999 落ち) が、data/_horse_history.parquet
     # (build_horse_history.py 生成) から学習と同一定義・leak-safe as-of で
-    # 再計算して埋める。失敗時は fail-open (従来どおり NaN のまま) —
-    # 埋まらない週は serve canary (baseline 更新後) が検知する。
+    # 再計算して埋める。
+    # 失敗時 (2026-10-04 再現性修正で変更): 履歴 parquet が順序キーの契約を満たさない
+    # (HistorySchemaError) なら bundle を作らずに止める (無言で旧挙動に落とさない)。それ以外の
+    # 失敗は同定状態が作れないので、下の予測入力の品質ゲートが開催日ごと不合格にする。
     hist_stats = None
+    from serve_history_feats import HistorySchemaError
     try:
         from serve_history_feats import fill_history_features
         hist_stats = fill_history_features(df)
@@ -487,8 +490,11 @@ def main() -> int:
             logger.warning(
                 f"[serve history] parquet が古い (最終 {hist_max}): "
                 "python build_horse_history.py で更新推奨")
+    except HistorySchemaError as e:
+        logger.error(f"[serve history] 履歴 parquet が契約違反 → bundle 未生成: {e}")
+        return 4
     except Exception as e:
-        logger.warning(f"[serve history] 失敗 → 履歴特徴は従来どおり欠損: {e}")
+        logger.error(f"[serve history] 失敗 → 同定状態なし (品質ゲートで不合格にする): {e}")
 
     # ------ prev_hosei 代替推定 (2026-09-18) ------
     # TARGET の補正タイムは 2026-05-31 で止まっており、それ以降に前走がある馬は
@@ -595,6 +601,11 @@ def main() -> int:
     saved_paths: list[Path] = []
     n_jump_excluded = 0
     jump_excluded_rids: list[str] = []
+    # 予測入力の品質ゲート (馬同定、spec §3.3): 馬ごとの同定状態を bundle に書き、
+    # 判別不能の馬を含むレースは input_quality.bet_eligible=false (下流が見送る)。
+    from input_quality import annotate_race, day_summary, identity_map
+    from serve_history_feats import IDENTITY_STATUS_COL, SERVE_PATH_VERSION
+    _ident = identity_map(df, COL_RID, COL_BAN, IDENTITY_STATUS_COL)
     for rid, g in df.groupby(COL_RID, sort=False):
         # --- P0 hard gate (層1/5): 障害レースは bundle へ入れない ---
         # data/weekly の障害包含は日によって不安定で、実際に 3 レースが
@@ -630,6 +641,10 @@ def main() -> int:
         rid_s = payload["race_id"]
         # 下流が boolean だけを信用しないよう、証拠付き metadata を残す
         payload["eligibility"] = eligibility_metadata(_el)
+        _iq = annotate_race(payload, _ident, SERVE_PATH_VERSION)
+        if not _iq["bet_eligible"]:
+            logger.warning("  [品質ゲート] rid=%s: 馬同定が判別不能 → 見送り %s", rid_s,
+                           [(x["umaban"], x["horse_name"], x["status"]) for x in _iq["ambiguous_horses"]])
         # kako5 history を horse ごとに注入 (Cowork advisor 用)
         # + horse_facts (sex/age) も同タイミングで注入 (出走表 表示用)
         # + 血統 (sire/sire_type/broodmare_sire/broodmare_sire_type) 注入 (血統分析用)
@@ -703,10 +718,15 @@ def main() -> int:
     logger.info(f"[serve path] {serve_path['version']} commit="
                 f"{(serve_path['git'].get('commit') or '?')[:10]} "
                 f"history={str(serve_path['history'].get('sha256') or '?')[:12]}")
+    input_quality = day_summary(races, serve_path["version"])
+    logger.info(f"[品質ゲート:馬同定] 判別不能 {input_quality['n_ambiguous']}/{input_quality['n_horses']} 頭 "
+                f"({input_quality['rate']*100:.2f}%, 上限 {input_quality['day_max']*100:.0f}%) / "
+                f"見送り {len(input_quality['skipped_races'])}R")
 
     with open(publish.tmp_bundle, "w", encoding="utf-8") as f:
         json.dump({"date": date_str, "model": tag,
                    "serve_path": serve_path,
+                   "input_quality": input_quality,
                    "race_count": len(races), "races": races,
                    "venue_warnings": venue_warnings,
                    "eligibility_coverage": _cov.as_dict()},
@@ -718,6 +738,16 @@ def main() -> int:
     # bundle は書き出した上で (デバッグ用に成果物は残す)、閾値割れなら非0 exit して
     # weekly_nicegui.ps1 側の git push / sync-hf を止める。
     gate_errors: list[str] = []
+
+    # ------ 予測入力の品質ゲート: 馬同定 (2026-10-04 再現性修正 spec §3.3) ------
+    # 判別不能が出走馬の 2% を超えた開催日は全体を不合格 (同定状態が作れない日も含む)。
+    if hist_stats is None:
+        gate_errors.append("履歴特徴の計算に失敗し、馬同定の状態が無い (予測入力の品質ゲート)")
+    elif not input_quality["day_pass"]:
+        gate_errors.append(
+            f"馬同定が判別不能の馬 {input_quality['n_ambiguous']}/{input_quality['n_horses']} 頭 "
+            f"({input_quality['rate']*100:.2f}%) が上限 {input_quality['day_max']*100:.0f}% を超えた "
+            f"(予測入力の品質ゲート)")
 
     # ------ category canary の品質ゲートへの反映 (2026-09-19、EXP05-F最終確認で追加) ------
     # 重要4列 (芝・ダ/芝(内・外)/馬場状態/天気) は正規化後もunknown_rate>5%なら

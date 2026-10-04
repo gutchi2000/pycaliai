@@ -100,12 +100,16 @@ def _rid16(x) -> str:
 
 
 def build_decisions(bundle: dict, pol: dict) -> list[dict]:
+    from input_quality import race_skip_reason
     races = bundle["races"] if isinstance(bundle["races"], list) else list(bundle["races"].values())
     out = []
     for r in races:
         rid = _rid16(r.get("race_id"))
         hs = [h for h in r.get("horses", []) if h.get("p_win") is not None and h.get("umaban") is not None]
         rec = dict(rid=rid, n=len(hs))
+        if race_skip_reason(r):
+            # 予測入力の品質ゲート (馬同定が判別不能の馬を含む、spec §3.3)。買い目を作らない。
+            rec.update(valid=False, reason="input_quality_identity"); out.append(rec); continue
         if len(hs) < 5:
             rec.update(valid=False, reason="few_horses"); out.append(rec); continue
         order = sorted(hs, key=lambda h: -float(h["p_win"]))
@@ -309,8 +313,10 @@ def cmd_settle(date: str, pol: dict) -> int:
     if not kek:
         print(f"[a95] kekka 未配置 ({date}) → 未決済のまま"); return 0
     races = [settle_race(d, kek.get(d["rid"]), pol) for d in dec["races"]]
+    from serve_path import LEGACY_VERSION
     rec = dict(policy_id=pol["policy_id"], policy_sha256=pol["policy_sha256"], date=date,
                preregistered=dec["preregistered"], decided_at=dec["decided_at"],
+               serve_path_version=dec.get("serve_path_version") or LEGACY_VERSION,
                settled_at=datetime.now(JST).isoformat(timespec="seconds"), races=races)
     spath = LEDGER / "settlements" / f"{date}.json"
     spath.parent.mkdir(parents=True, exist_ok=True)
@@ -325,20 +331,40 @@ def cmd_settle(date: str, pol: dict) -> int:
 
 
 # ------------------------------------------------------------------ report
+def cohort(pol: dict) -> tuple[str, str]:
+    """判定に数える cohort = (予測経路の版, 起算日)。
+
+    予測経路の版を変えたら起算し直す (spec §8 案 B、2026-10-04 決定)。版と起算日の単一ソースは
+    data/production_policy.json の serve_path_version / prospective.start_date (本線 CW-11 と同じ)。
+    policy が版を宣言していなければ旧版 (sp-20261004-0)。起算日は a95 方策の登録起算日より前にしない。
+    """
+    from production_policy import load_policy as _production_policy
+    from serve_path import LEGACY_VERSION
+    p = _production_policy()
+    ver = str(p.get("serve_path_version") or LEGACY_VERSION)
+    start = str(pol["registration"]["start_date"])
+    pstart = str((p.get("prospective") or {}).get("start_date") or "")
+    return ver, max(start, pstart) if pstart else start
+
+
 def _collect(pol: dict):
+    from serve_path import LEGACY_VERSION
+    ver, start = cohort(pol)
     rows = []
     for sp in sorted((LEDGER / "settlements").glob("*.json")):
         s = json.loads(sp.read_text(encoding="utf-8"))
         if s["policy_sha256"] != pol["policy_sha256"]:
             continue
-        fwd = bool(s["preregistered"]) and s["date"] >= pol["registration"]["start_date"]
+        sver = s.get("serve_path_version") or LEGACY_VERSION
+        # 旧版と新版は合算しない: 判定 (fwd) に数えるのは cohort の版・起算日以降・事前凍結のみ
+        fwd = bool(s["preregistered"]) and s["date"] >= start and sver == ver
         for r in s["races"]:
             if not r.get("valid"):
                 continue
             for arm, a in r["arms"].items():
                 if a.get("valid"):
-                    rows.append(dict(date=s["date"], fwd=fwd, arm=arm, band=r["band"], stake=a["stake"],
-                                     ret=a["ret"], hit=a["hit"], by_kind=a["by_kind"]))
+                    rows.append(dict(date=s["date"], fwd=fwd, version=sver, arm=arm, band=r["band"],
+                                     stake=a["stake"], ret=a["ret"], hit=a["hit"], by_kind=a["by_kind"]))
     return rows
 
 
@@ -390,10 +416,17 @@ def _summ(rows, title, pol):
 
 def cmd_report(pol: dict) -> int:
     rows = _collect(pol)
-    print(f"policy {pol['policy_id']} sha256 {pol['policy_sha256'][:16]}…  前向き起算日 {pol['registration']['start_date']}")
+    ver, start = cohort(pol)
+    print(f"policy {pol['policy_id']} sha256 {pol['policy_sha256'][:16]}…  "
+          f"前向き cohort: 予測経路 {ver} / 起算日 {start}")
     print("※ 実弾ゼロの shadow。ROI は記述のみ (500R の ROI 標準誤差は約 17pt)。登録判定は R的中率。")
-    _summ([r for r in rows if r["fwd"]], "前向き (レース前に凍結した買い目のみ)", pol)
-    _summ([r for r in rows if not r["fwd"]], "記述用 (事後に作った買い目・起算日前。判定に使わない)", pol)
+    print("※ 予測経路の版が違う記録は合算しない (旧版 cohort は記述専用)。")
+    _summ([r for r in rows if r["fwd"]], f"前向き (判定用: {ver}、レース前に凍結した買い目のみ)", pol)
+    _summ([r for r in rows if not r["fwd"] and r["version"] == ver],
+          "記述用 (事後に作った買い目・起算日前。判定に使わない)", pol)
+    for v in sorted({r["version"] for r in rows} - {ver}):
+        _summ([r for r in rows if r["version"] == v],
+              f"記述用: 旧版 cohort {v} (判定に使わない・合算しない)", pol)
     return 0
 
 

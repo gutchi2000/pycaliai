@@ -408,6 +408,16 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
                 "is_jump": _el["is_jump"],
                 "eligibility_determination": _el["determination"],
                 "bets": []}
+    # --- 予測入力の品質ゲート (2026-10-04 再現性修正 spec §3.3) ---
+    #   馬同定が判別不能の馬を含むレース、および policy が宣言した予測経路の版と
+    #   bundle の版が違うレースは見送る (a95_all の検証用併記も作らない)。
+    from input_quality import race_skip_reason
+    from production_policy import load_policy as _load_policy
+    _iq_why = race_skip_reason(race, _load_policy().get("serve_path_version"))
+    if _iq_why:
+        return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                "race_reason": f"{_iq_why} のため見送り。",
+                "input_quality_gate": _iq_why, "bets": []}
     budget = int(budget) // 100 * 100
     if budget < MIN_BET:
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",
