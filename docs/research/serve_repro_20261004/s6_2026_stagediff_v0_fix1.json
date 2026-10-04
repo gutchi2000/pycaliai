@@ -1,0 +1,43 @@
+{
+ "a": "C:\\Users\\gutch\\AppData\\Local\\Temp\\claude\\E--PyCaLiAI\\39ff8c26-6e3d-452e-aa10-395903a5d84c\\scratchpad\\serve_repro\\out\\v0\\features_all",
+ "b": "C:\\Users\\gutch\\AppData\\Local\\Temp\\claude\\E--PyCaLiAI\\39ff8c26-6e3d-452e-aa10-395903a5d84c\\scratchpad\\serve_repro\\out\\fix1\\features_all",
+ "dates": 49,
+ "horses_feature_level": 20997,
+ "rolling4_changed_horses": 12541,
+ "identity_transitions": {},
+ "identity_examples": [],
+ "races": 1542,
+ "top1_changed_races": 33,
+ "p_win_abs_diff": {
+  "median": 0.0,
+  "p95": 0.008099999999999996,
+  "max": 0.06989999999999996,
+  "n_horses": 20997
+ },
+ "mark_changed_horses": 531,
+ "a95": {
+  "races_t10": 309,
+  "changed_t10": 33,
+  "races_bundle_odds": 1542,
+  "changed_bundle_odds": 143
+ },
+ "duplicate_keys_excluded": {},
+ "hon_top3": {
+  "n_races": 1462,
+  "a_pct": 56.29,
+  "b_pct": 56.5,
+  "b_minus_a_ci95": [
+   -0.27,
+   0.68
+  ]
+ },
+ "agree_market_fav": {
+  "n_races": 1462,
+  "a_pct": 46.1,
+  "b_pct": 46.24,
+  "b_minus_a_ci95": [
+   -0.48,
+   0.75
+  ]
+ }
+}
