@@ -14,7 +14,11 @@ serve skew 残差回収 (hist_same_* / course_* / jockey_* / 騎手・調教師�
 
   出力:
     data/_horse_history.parquet   ... 1行=1走 (ped_id, name, sire, birth_year,
-                                      date, place, surface, dist, pos, jockey_code, trainer_code)
+                                      date, place, surface, dist, pos, jockey_code, trainer_code,
+                                      race_id, post_time, umaban)
+                                      post_time は発走時刻 HHMM 整数。(date, post_time, race_id,
+                                      umaban) が直近集計の順序キー (serve_history_feats.ORDER_COLUMNS)。
+                                      発走時刻・馬番の欠損や順序キーの重複が 1 件でもあれば保存せず失敗する。
     data/serve_code_maps.json     ... {"jockey": {名前: コード}, "trainer": {...}}
 
 serve 側 (serve_history_feats.py) はこの parquet を馬名+父名/生年で引き、
@@ -67,6 +71,14 @@ def log(msg: str):
 
 def _clean_name(s) -> str:
     return str(s).replace("\u3000", "").strip()
+
+
+def parse_post_time(s: pd.Series) -> pd.Series:
+    """\u767a\u8d70\u6642\u523b "HH:MM" \u2192 HHMM \u6574\u6570\u3002\u5f62\u304c\u9055\u3046\u30fb\u6b20\u640d\u306f NaN (\u547c\u3073\u51fa\u3057\u5074\u3067 0 \u4ef6\u3092\u8981\u6c42\u3059\u308b)\u3002"""
+    m = s.astype(str).str.strip().str.extract(r"^(\d{1,2}):(\d{2})$")
+    hh, mm = pd.to_numeric(m[0], errors="coerce"), pd.to_numeric(m[1], errors="coerce")
+    ok = hh.between(0, 23) & mm.between(0, 59)
+    return (hh * 100 + mm).where(ok)
 
 
 def synthetic_id(name: str, sire: str) -> int:
@@ -133,7 +145,7 @@ def load_master_history() -> pd.DataFrame:
     log(f"master 読み込み: {MASTER_CSV.name}")
     cols = ["血統登録番号", "馬名", "日付", "場所", "芝・ダ", "距離",
             "着順", "騎手コード", "調教師コード", "種牡馬", "年齢",
-            "レースID(新/馬番無)"]
+            "レースID(新/馬番無)", "発走時刻", "馬番"]
     m = pd.read_csv(MASTER_CSV, encoding="utf-8-sig", usecols=cols,
                     low_memory=False)
     log(f"  {len(m):,} 行")
@@ -154,6 +166,9 @@ def load_master_history() -> pd.DataFrame:
         # 複数頭出走した場合、serve側のrolling集計を学習側(add_rolling_stats)
         # と同じくレース単位で1カウントに揃えるため必須。
         "race_id": m["レースID(新/馬番無)"].astype(str),
+        # 直近集計の順序キー (学習側 add_rolling_stats と同じ 日付・発走時刻・レースID・馬番)
+        "post_time": parse_post_time(m["発走時刻"]),
+        "umaban": pd.to_numeric(m["馬番"], errors="coerce"),
     })
     out = out.dropna(subset=["ped_id", "date"]).copy()
     out["ped_id"] = out["ped_id"].astype(np.int64)
@@ -200,13 +215,15 @@ def parse_weekly_light(path: Path) -> pd.DataFrame:
                 "surface": _SURF.get(str(current_race.get("芝・ダート", "")).strip(), ""),
                 "dist": current_race.get("距離"),
                 "place": str(current_race.get("場所", "")).strip(),
+                "post_time_raw": str(current_race.get("発走時刻", "")).strip(),
             })
     df = pd.DataFrame(rows)
     if df.empty:
         return df
     for c in ("馬番", "age", "dist"):
         df[c] = pd.to_numeric(df[c], errors="coerce")
-    return df
+    df["post_time"] = parse_post_time(df["post_time_raw"])
+    return df.drop(columns=["post_time_raw"])
 
 
 def load_2026_history(master_max_date: int, jockey_map: dict,
@@ -254,9 +271,10 @@ def load_2026_history(master_max_date: int, jockey_map: dict,
         merged["jockey_code"] = merged["jockey_name"].map(jockey_map).astype("float64")
         merged["trainer_code"] = merged["trainer_name"].map(trainer_map).astype("float64")
         merged["race_id"] = merged["rid16"]
+        merged["umaban"] = merged["馬番"]
         rows.append(merged[["name", "sire", "birth_year", "date", "place",
                             "surface", "dist", "pos", "jockey_code", "trainer_code",
-                            "race_id"]])
+                            "race_id", "post_time", "umaban"]])
     if not rows:
         return pd.DataFrame()
     out = pd.concat(rows, ignore_index=True)
@@ -336,8 +354,23 @@ def main() -> int:
     log("\n[4/4] 保存")
     hist = hist.sort_values(["ped_id", "date"]).reset_index(drop=True)
     hist["dist"] = pd.to_numeric(hist["dist"], errors="coerce")
-    for c, t in [("date", np.int32), ("ped_id", np.int64)]:
+    # 順序キーの検査 (発走時刻・馬番の欠損 0 件、K の重複 0 件)。違反なら保存せず失敗する。
+    from serve_history_feats import HistorySchemaError, validate_history
+    n_pt_na = int(hist["post_time"].isna().sum())
+    if n_pt_na:
+        bad = hist[hist["post_time"].isna()]
+        log(f"  ✖ 発走時刻の欠損 {n_pt_na} 行 (許容 0 件): src={bad['src'].value_counts().to_dict()} "
+            f"日付例={sorted(bad['date'].unique().tolist())[:10]}")
+    try:
+        chk = validate_history(hist)
+    except HistorySchemaError as e:
+        log(f"  ✖ 順序キーの検査に失敗 → 保存しない: {e}")
+        return 3
+    for c, t in [("date", np.int32), ("ped_id", np.int64), ("post_time", np.int16),
+                 ("umaban", np.int16)]:
         hist[c] = hist[c].astype(t)
+    log(f"  順序キー検査: 発走時刻欠損 {chk['post_time_missing']} / 馬番欠損 {chk['umaban_missing']} / "
+        f"K 重複 {chk['order_key_duplicates']} ({chk['rows']:,} 行)")
     hist.to_parquet(OUT_PARQUET, index=False)
     log(f"  {OUT_PARQUET.name}: {len(hist):,} 行 / {hist['ped_id'].nunique():,} 頭 "
         f"({hist['date'].min()}〜{hist['date'].max()})")

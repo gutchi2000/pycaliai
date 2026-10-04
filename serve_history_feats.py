@@ -41,10 +41,49 @@ CODE_MAPS = BASE / "data" / "serve_code_maps.json"
 
 # 予測経路の版 (serve_path.py が bundle へ刻む)。この module の挙動を変えたら必ず上げる。
 # 仕様: docs/research/SERVE_REPRODUCIBILITY_FIX_SPEC_20261004.md §7
-SERVE_PATH_VERSION = "sp-20261004-0"
-ROLLING_ORDER_KEY = "date(unstable)"            # 騎手・調教師の直近集計の並び
+#   sp-20261004-0: 旧経路 (日付だけの不安定ソート、全期間の最終行で同定)
+#   sp-20261004-1: 再現性修正 (順序キーの全順序 → 同定の day-start 限定 → 引用符の正規化)
+SERVE_PATH_VERSION = "sp-20261004-1"
+ROLLING_ORDER_KEY = "date,post_time,race_id,umaban"   # 騎手・調教師の直近集計の並び (全順序)
 IDENTITY_MODE = "full-history-last-row"         # 馬同定の照合属性の取り方
 NAME_NORMALIZATION = "fullwidth-space+strip"    # 馬名・父名の正規化
+
+# 直近集計の順序キー K。学習側 build_dataset.add_rolling_stats の並び
+# (日付, 発走時刻, レースID(新/馬番無), 馬番) と同じ。1 走を一意に指すので同順位は無い。
+ORDER_COLUMNS = ("date", "post_time", "race_id", "umaban")
+
+
+class HistorySchemaError(RuntimeError):
+    """履歴 parquet が順序キーの契約を満たさない (列が無い・欠損がある・重複がある)。
+
+    黙って旧挙動 (日付だけの並び) に落とさず、ここで止める (spec §2.2、9/11 の
+    「race_id 列なしで無言 fallback」の再発防止)。発走時刻の欠損は 0 件しか許さない。
+    """
+
+
+def validate_history(hist: pd.DataFrame) -> dict:
+    """順序キー K の列・欠損・重複・発走時刻の形を検査する。違反は HistorySchemaError。"""
+    missing = [c for c in ORDER_COLUMNS if c not in hist.columns]
+    if missing:
+        raise HistorySchemaError(
+            f"履歴 parquet に順序キーの列が無い: {missing} "
+            "(python build_horse_history.py で作り直す)")
+    pt = pd.to_numeric(hist["post_time"], errors="coerce")
+    ub = pd.to_numeric(hist["umaban"], errors="coerce")
+    n_pt_na, n_ub_na = int(pt.isna().sum()), int(ub.isna().sum())
+    if n_pt_na or n_ub_na:
+        raise HistorySchemaError(
+            f"順序キーに欠損: post_time {n_pt_na} 行 / umaban {n_ub_na} 行 (許容 0 件)")
+    bad_pt = ~((pt // 100).between(0, 23) & (pt % 100).between(0, 59))
+    if bad_pt.any():
+        raise HistorySchemaError(
+            f"post_time が HHMM でない: {int(bad_pt.sum())} 行 (例 {pt[bad_pt].head(3).tolist()})")
+    rid = hist["race_id"].astype(str)
+    n_dup = int(pd.DataFrame({"date": hist["date"], "post_time": pt, "race_id": rid, "umaban": ub})
+                .duplicated().sum())
+    if n_dup:
+        raise HistorySchemaError(f"順序キー K の重複 {n_dup} 行 (1 走を一意に指していない)")
+    return {"rows": int(len(hist)), "post_time_missing": 0, "umaban_missing": 0, "order_key_duplicates": 0}
 
 # 埋める特徴 (v6 feature_cols 名)
 NUM_FEATS = [
@@ -121,16 +160,24 @@ class _HistoryIndex:
         過去レースで同一主体の複数頭が異なる結果(的中/不的中等)だった場合、
         それは実際に起きた2つの別事実でありリークではない。レース単位集約
         (旧C2実装)はこれを1つの値に握りつぶしてしまっていた。
+
+        並び (2026-10-04 再現性修正 D1): 主体ごとの行を順序キー K = (date, post_time,
+        race_id, umaban) の全順序で並べる (学習側と同じ並び)。旧実装は日付だけの不安定
+        ソートで、窓の端が同じ日付の行の途中に落ちると、その日のどの行を含めるかが
+        入力配列 (履歴の追加・行順) で変わった。K は 1 走を一意に指すので結果は入力順に
+        依らないが、取り違え防止のため安定ソートを明示する。
         """
-        if code_col not in hist.columns:
-            return {}
-        work = hist[["date", "pos", code_col]].copy()
+        missing = [c for c in (code_col, "pos", *ORDER_COLUMNS) if c not in hist.columns]
+        if missing:
+            raise HistorySchemaError(f"直近集計に必要な列が無い: {missing}")
+        work = hist[["pos", code_col, *ORDER_COLUMNS]].copy()
         work["code"] = pd.to_numeric(work[code_col], errors="coerce")
         work = work.dropna(subset=["date", "code"])
         work["flag"] = (pd.to_numeric(work["pos"], errors="coerce") <= 3).astype(float)
+        work["race_id"] = work["race_id"].astype(str)
+        work = work.sort_values(["code", *ORDER_COLUMNS], kind="mergesort")
         out: dict[int, tuple[np.ndarray, np.ndarray]] = {}
         for code, g in work.groupby("code", sort=False):
-            g = g.sort_values("date")
             out[int(code)] = (
                 g["date"].to_numpy(np.int32),
                 g["flag"].to_numpy(np.float64),
@@ -200,6 +247,7 @@ def _load(base: Path):
         raise FileNotFoundError(
             f"{hist_path} 未生成 (python build_horse_history.py を先に実行)")
     hist = pd.read_parquet(hist_path)
+    validate_history(hist)          # 列不足・欠損・重複は HistorySchemaError (無言 fallback しない)
     idx = _HistoryIndex(hist)
     maps = {"jockey": {}, "trainer": {}}
     if maps_path.exists():

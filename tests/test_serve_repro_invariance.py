@@ -184,7 +184,6 @@ def test_T1_history_append_invariance_all_features(tmp_path):
     assert _same(full, trunc)
 
 
-@pytest.mark.xfail(strict=True, reason="D1: 直近集計の窓の端が不安定ソートの同順位の扱いで決まる (spec §1)")
 def test_T1r_history_append_invariance_rolling(tmp_path):
     hist = _history()
     full = _features(_base(tmp_path, hist, "full"), _weekly())[ROLL4]
@@ -220,7 +219,6 @@ def test_T3_identity_is_day_start_limited():
     assert mism == []
 
 
-@pytest.mark.xfail(strict=True, reason="順序キーの検査が未実装 (spec §2.1, §5-T5)")
 def test_T5_duplicate_order_key_is_rejected():
     hist = _history()
     shf.validate_history(hist)                     # 重複なしは通る
@@ -229,7 +227,6 @@ def test_T5_duplicate_order_key_is_rejected():
         shf.validate_history(dup)
 
 
-@pytest.mark.xfail(strict=True, reason="列不足の履歴を黙って旧挙動で読む (spec §2.2, §5-T6)")
 @pytest.mark.parametrize("drop", ["post_time", "umaban"])
 def test_T6_missing_order_columns_stop_with_error(tmp_path, drop):
     hist = _history().drop(columns=[drop])
@@ -238,7 +235,6 @@ def test_T6_missing_order_columns_stop_with_error(tmp_path, drop):
         shf.fill_history_features(_weekly(), base=base)
 
 
-@pytest.mark.xfail(strict=True, reason="発走時刻の欠損を許容しない検査が未実装 (spec §2.2、許容 0 件)")
 def test_T6_missing_post_time_value_stops_with_error(tmp_path):
     hist = _history()
     hist.loc[3, "post_time"] = np.nan
