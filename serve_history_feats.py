@@ -52,7 +52,7 @@ CODE_MAPS = BASE / "data" / "serve_code_maps.json"
 SERVE_PATH_VERSION = "sp-20261004-1"
 ROLLING_ORDER_KEY = "date,post_time,race_id,umaban"   # 騎手・調教師の直近集計の並び (全順序)
 IDENTITY_MODE = "asof-day-start"                # 馬同定: date < レース日 の行だけで候補・照合属性
-NAME_NORMALIZATION = "fullwidth-space+strip"    # 馬名・父名の正規化
+NAME_NORMALIZATION = "fullwidth-space+strip+outer-quotes"   # 馬名・父名の正規化 (_clean_name)
 
 # 直近集計の順序キー K。学習側 build_dataset.add_rolling_stats の並び
 # (日付, 発走時刻, レースID(新/馬番無), 馬番) と同じ。1 走を一意に指すので同順位は無い。
@@ -122,7 +122,17 @@ def _dist_band(d) -> str:
 
 
 def _clean_name(s) -> str:
-    return str(s).replace("　", "").strip()
+    """馬名・父名・騎手名・調教師名の正規化 (履歴生成時と配信時で同じものを通す)。
+
+    全角空白の除去・前後空白の除去に加え、外側の引用符 1 組を外す (2026-10-04 再現性修正 §3.2)。
+    出走表 CSV は空白を含む外国産の父名を引用符つきで出す ("American Pharoah")。master 由来の
+    履歴は引用符なしなので、外さないと同じ父名が不一致になる。実データで引用符が付くのは
+    父名だけ (2026 年の出走表 887 行・履歴 843 行。馬名・騎手名・調教師名・コード表は 0 件)。
+    """
+    s = str(s).replace("　", "").strip()
+    if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+        s = s[1:-1].strip()
+    return s
 
 
 class _HistoryIndex:
@@ -137,8 +147,9 @@ class _HistoryIndex:
         self.by_name: dict[str, list[dict]] = {}
         hist = hist.sort_values(["ped_id", "date"])
         for ped_id, g in hist.groupby("ped_id", sort=False):
-            names = [str(v) for v in g["name"]]
-            sires = [str(v) if pd.notna(v) else "" for v in g["sire"]]
+            # 履歴生成時 (build_horse_history) と同じ正規化を索引側でも通す (旧 parquet 対策)
+            names = [_clean_name(v) for v in g["name"]]
+            sires = [_clean_name(v) if pd.notna(v) else "" for v in g["sire"]]
             birth_years = [int(v) if pd.notna(v) else None for v in g["birth_year"]]
             ent = {
                 "ped_id": int(ped_id),

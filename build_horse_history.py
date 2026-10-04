@@ -69,8 +69,9 @@ def log(msg: str):
     print(msg, flush=True)
 
 
-def _clean_name(s) -> str:
-    return str(s).replace("\u3000", "").strip()
+# \u99ac\u540d\u30fb\u7236\u540d\u30fb\u9a0e\u624b\u540d\u30fb\u8abf\u6559\u5e2b\u540d\u306e\u6b63\u898f\u5316\u306f\u914d\u4fe1\u5074 (serve_history_feats) \u3068\u540c\u3058\u95a2\u6570\u3092\u4f7f\u3046
+# (\u5168\u89d2\u7a7a\u767d\u30fb\u524d\u5f8c\u7a7a\u767d\u30fb\u5916\u5074\u306e\u5f15\u7528\u7b26 1 \u7d44\u30022026-10-04 \u518d\u73fe\u6027\u4fee\u6b63 \u00a73.2)\u3002
+from serve_history_feats import _clean_name  # noqa: E402
 
 
 def parse_post_time(s: pd.Series) -> pd.Series:
