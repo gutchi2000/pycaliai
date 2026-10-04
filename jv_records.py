@@ -20,12 +20,22 @@ jv_records.py — JV-Link オッズ録 O1〜O5 の label-free 構造化（COM �
   O3 ワイド 2652 : [39] 発売F / 153×(組番4+lo5+hi5+人気3) @40 / 票数計11 @2641
   O4 馬単   4029 : [39] 発売F / 306×(組番4+odds6+人気3) @40 / 票数計11 @4018
   O5 三連複 12291: [39] 発売F / 816×(組番6+odds6+人気3) @40 / 票数計11 @12280
+
+期待組数（構造化版 STRUCTURE_VERSION。2026-10-05 Dry 監査の修正 F2）:
+  発走前の中間オッズ（区分 1）は出走頭数欄が全録 0（10/03・10/04 の実録で確認）。出走頭数欄が 0 のときは
+  「登録頭数 − 取消（その録の中で発売中・発売停止の組に一度も現れない馬）」を発売中の頭数とする。
+  出走頭数欄が入っている（確定後）ときは欄の値を使い、導出値との差は anomaly に残す。
+  枠連は発売フラグ（O1 [41]）が '0' なら未発売で、非空白 slot の期待値は 0。
 """
 from __future__ import annotations
 
 import hashlib
 from datetime import datetime
 
+# 構造化の版。保存録に記録し、監査は同じ版どうしだけで「再構造化 = 保存値」を比べる
+# （旧版の録を新しい式で構造化し直した差は不一致に数えない）。版の無い録は jvrec-1。
+STRUCTURE_VERSION = "jvrec-2"
+LEGACY_STRUCTURE_VERSION = "jvrec-1"
 SPEC_KIND = {"0B31": "O1", "0B32": "O2", "0B33": "O3", "0B34": "O4", "0B35": "O5"}
 RECORD_LEN = {"O1": 960, "O2": 2040, "O3": 2652, "O4": 4029, "O5": 12291}
 LEN_SOURCE = {"O1": "observed", "O2": "observed", "O3": "observed", "O4": "observed", "O5": "observed"}
@@ -150,19 +160,44 @@ def announced_at(announce: str, race_key: str) -> str | None:
         return None
 
 
-def _expected(kind: str, block: str, toroku, shusso):
-    """(発売中の組数の期待値, 非空白 slot 数の期待値)。"""
+def _expected(kind: str, block: str, toroku, n_live, wakuren_on_sale: bool = True):
+    """(発売中の組数の期待値, 非空白 slot 数の期待値)。n_live = 発売中の頭数（running_horses で決める）。"""
     if block in ("tansho", "fukusho"):
-        return shusso, toroku
+        return n_live, toroku
     if block == "wakuren":
-        return None, wakuren_slot_count(toroku)
+        return None, (wakuren_slot_count(toroku) if wakuren_on_sale else 0)
     if block in ("umaren", "wide"):
-        return n_comb(shusso or 0, 2), n_comb(toroku or 0, 2)
+        return (None if n_live is None else n_comb(n_live, 2)), n_comb(toroku or 0, 2)
     if block == "umatan":
-        return (shusso or 0) * max(0, (shusso or 0) - 1), (toroku or 0) * max(0, (toroku or 0) - 1)
+        return (None if n_live is None else n_live * max(0, n_live - 1)), (toroku or 0) * max(0, (toroku or 0) - 1)
     if block == "trio":
-        return n_comb(shusso or 0, 3), n_comb(toroku or 0, 3)
+        return (None if n_live is None else n_comb(n_live, 3)), n_comb(toroku or 0, 3)
     return None, None
+
+
+def _horses(key: str) -> list[int]:
+    return [int(x) for x in key.replace(">", "-").split("-")]
+
+
+def scratched_horses(r: dict) -> list[int]:
+    """1 block の slot から取消馬を導く: 非空白 slot に現れるが、発売中（priced）・発売停止（zero）の組に
+    一度も現れない馬。未発売 filler の理由は問わない（取消・除外の区別はしない）。"""
+    seen, live = set(), set()
+    for key in list(r["priced"]) + list(r["unpriced"]) + list(r["zero"]):
+        seen.update(_horses(key))
+    for key in list(r["priced"]) + list(r["zero"]):
+        live.update(_horses(key))
+    return sorted(seen - live)
+
+
+def running_horses(toroku, shusso, scratched: list[int], any_live: bool) -> tuple[int | None, str]:
+    """発売中の頭数と、その根拠。出走頭数欄が入っていれば欄の値、0 なら 登録頭数 − 取消。
+    発売中の組が 1 つも無い録は導出できない（None）。"""
+    if shusso:
+        return shusso, "shusso_field"
+    if toroku is None or not any_live:
+        return None, "underivable"
+    return max(0, toroku - len(scratched)), "registered_minus_scratched"
 
 
 def validated_parse(kind: str, rec: str) -> dict:
@@ -197,7 +232,8 @@ def structure_record(rec: str, spec: str, race_id: str, stream: str = "rt") -> d
            "raw_len": len(body), "stream": stream, "kind": h["kind"], "kubun": h["kubun"],
            "made": h["made"], "race_key": h["race_key"], "race_key_ok": h["race_key"] == race_id,
            "announce_raw": h["announce"], "announced_at": announced_at(h["announce"], h["race_key"]),
-           "n_registered": toroku, "n_running": shusso, "anomalies": []}
+           "n_registered": toroku, "n_running": shusso, "anomalies": [],
+           "structure_version": STRUCTURE_VERSION}
     an = out["anomalies"]
     if h["kind"] != kind:
         an.append(f"kind {h['kind']!r} != {kind!r}")
@@ -218,19 +254,31 @@ def structure_record(rec: str, spec: str, race_id: str, stream: str = "rt") -> d
     out["votes_total"] = {b: _digits(body[s:s + 11]) for b, s in VOTES.get(kind, [])}
     parsed, unpriced, counts = {}, {}, {}
     complete = bool(out["race_key_ok"] and out["length_ok"])
+    wakuren_on_sale = not (kind == "O1" and body[O1_FLAGS["hatsubai_wakuren"]:O1_FLAGS["hatsubai_wakuren"] + 1] == "0")
     for block, start, stride, n, klen, vtype in BLOCKS.get(kind, []):
         r = parse_block(body, block, start, stride, n, klen, vtype)
         parsed[block] = r["priced"]
         unpriced[block] = r["unpriced"]
-        exp_p, exp_s = _expected(kind, block, toroku, shusso)
+        if block == "wakuren":
+            n_live, basis, scr = None, None, []
+        else:
+            scr = scratched_horses(r)
+            n_live, basis = running_horses(toroku, shusso, scr, bool(r["priced"] or r["zero"]))
+        exp_p, exp_s = _expected(kind, block, toroku, n_live, wakuren_on_sale)
         c = {"priced": len(r["priced"]), "unpriced": len(r["unpriced"]), "zero": len(r["zero"]),
              "blank": r["blank"], "malformed": r["malformed"], "nonblank": r["nonblank"],
              "expected_priced": exp_p, "expected_nonblank": exp_s}
-        c["priced_match"] = None if exp_p is None else len(r["priced"]) == exp_p
         c["nonblank_match"] = None if exp_s is None else r["nonblank"] == exp_s
         if block == "wakuren":
-            c["expected_rule"] = "wakuren_slot_count(登録頭数) — Stage 0 で実録照合する仮定"
+            c["priced_match"] = None
+            c["on_sale"] = wakuren_on_sale
+            c["expected_rule"] = "wakuren_slot_count(登録頭数)。発売フラグ '0' なら 0"
         else:
+            # 導出できない録（発売中の組が 1 つも無い）は被覆不一致として数える
+            c["priced_match"] = exp_p is not None and len(r["priced"]) == exp_p
+            c["running_basis"], c["scratched"] = basis, scr
+            if shusso and toroku is not None and (r["priced"] or r["zero"]) and shusso != toroku - len(scr):
+                an.append(f"{block}: shusso field {shusso} != registered {toroku} - scratched {len(scr)}")
             complete = complete and bool(c["priced_match"]) and r["malformed"] == 0
         if r["zero"]:
             c["zero_keys"] = r["zero"]

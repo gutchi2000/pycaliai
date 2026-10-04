@@ -458,9 +458,10 @@ def _full_day(tmp_path, *, overlap=True, drop=(), bad_t2=False, announce="100315
     return root, tmp_path / "journal", {"20261003": {RID: "2026-10-03T15:30:00", R2: "2026-10-03T15:50:00"}}
 
 
-def _run_audit(root, jroot, sched):
+def _run_audit(root, jroot, sched, scope="full", **kw):
     from analysis import obs_stage0_audit as A
-    return A.audit(["20261003"], root, jroot, schedule=sched)
+    kw.setdefault("task_runs_root", root.parent / "task_runs")
+    return A.audit(["20261003"], root, jroot, schedule=sched, scope=scope, **kw)
 
 
 def test_stage0_audit_clean_day_contract_met_and_concurrency_ok(tmp_path):
