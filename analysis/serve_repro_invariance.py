@@ -566,11 +566,27 @@ MASTER = BASE / "data" / "master_v2_20130105-20251228.csv"
 
 
 def master_days(year_from: int, year_to: int, n: int, seed: int) -> list[str]:
+    """n<=0 なら期間の全開催日、それ以外は種 seed で無作為に n 日。"""
     d = pd.read_csv(MASTER, encoding="utf-8-sig", usecols=["日付"], low_memory=False)
     ds = sorted({str(int(x)) for x in pd.to_numeric(d["日付"], errors="coerce").dropna()
                  if year_from <= int(x) // 10000 <= year_to})
+    if n <= 0:
+        return ds
     rng = np.random.default_rng(seed)
     return sorted(rng.choice(ds, size=min(n, len(ds)), replace=False).tolist())
+
+
+def read_master_days(days: list[str], cols: set[str]) -> pd.DataFrame:
+    """master から指定日の行だけを読む (列を絞り、塊ごとに読んでメモリを抑える)。"""
+    head = pd.read_csv(MASTER, encoding="utf-8-sig", nrows=0).columns
+    use = [c for c in head if c in cols]
+    want = set(days)
+    parts = []
+    for ch in pd.read_csv(MASTER, encoding="utf-8-sig", usecols=use, low_memory=False, chunksize=100_000):
+        ch = ch[ch["日付"].astype("Int64").astype(str).isin(want)]
+        if len(ch):
+            parts.append(ch)
+    return pd.concat(parts, ignore_index=True)
 
 
 def cmd_hybrid(a) -> int:
@@ -586,9 +602,7 @@ def cmd_hybrid(a) -> int:
     cal = cal.get("calibrators", cal)
     need = set(feats) | {COL_RID, COL_BAN, "日付", "馬名", "種牡馬", "年齢", "場所", "芝・ダ", "距離",
                          "騎手コード", "調教師コード", "着順"}
-    head = pd.read_csv(MASTER, encoding="utf-8-sig", nrows=0).columns
-    m = pd.read_csv(MASTER, encoding="utf-8-sig", usecols=[c for c in head if c in need], low_memory=False)
-    m = m[m["日付"].astype(str).isin(days)].copy()
+    m = read_master_days(days, need)
     out = {"days": days, "stages": {}}
     stages = [s for s in a.stages.split(",") if s]
     for st in stages:
@@ -628,6 +642,143 @@ def cmd_hybrid(a) -> int:
     return 0
 
 
+def cmd_hybridcmp(a) -> int:
+    """hybrid の段階どうしを比べる: 1 位が変わるレース、p_win 差、◎top3 率 (開催日 bootstrap)。"""
+    out = Path(a.out)
+    res = {}
+    for pair in [p for p in a.pairs.split(",") if p]:
+        x, y = pair.split(":")
+        ra = pd.read_parquet(out / f"hybrid_{x}.parquet")
+        rb = pd.read_parquet(out / f"hybrid_{y}.parquet")
+        m = ra.merge(rb, on=["rid", "umaban"], suffixes=("_a", "_b"))
+        m["date"] = m["rid"].str[:8]
+        top_a = m.loc[m.groupby("rid")["score_a"].idxmax(), ["rid", "date", "umaban", "fin_a"]]
+        top_b = m.loc[m.groupby("rid")["score_b"].idxmax(), ["rid", "umaban", "fin_b"]]
+        t = top_a.merge(top_b, on="rid", suffixes=("_a", "_b"))
+        t["a_top3"] = (pd.to_numeric(t["fin_a"], errors="coerce") <= 3).astype(int)
+        t["b_top3"] = (pd.to_numeric(t["fin_b"], errors="coerce") <= 3).astype(int)
+        per = t.groupby("date").agg(n=("rid", "size"), a_top3=("a_top3", "sum"), b_top3=("b_top3", "sum")).reset_index()
+        d = (m["p_win_a"] - m["p_win_b"]).abs()
+        res[pair] = {"races": int(len(t)), "horses": int(len(m)), "days": int(per.shape[0]),
+                     "top1_changed_races": int((t["umaban_a"] != t["umaban_b"]).sum()),
+                     "p_win_abs_diff": {"median": float(d.median()), "p95": float(d.quantile(0.95)),
+                                        "max": float(d.max()), "n_changed": int((d > 0).sum())},
+                     "hon_top3": {"a_pct": round(100 * t["a_top3"].mean(), 2), "b_pct": round(100 * t["b_top3"].mean(), 2),
+                                  "b_minus_a_ci95": _boot_diff(per, "b_top3", "a_top3")}}
+        print(pair, json.dumps(res[pair], ensure_ascii=False), flush=True)
+    Path(a.report).write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
+    return 0
+
+
+def cmd_parity(a) -> int:
+    """§4-A: 2024〜25 年の全開催日で、配信経路の履歴特徴と master に格納された学習時の値を馬単位で比べる。
+
+    騎手・調教師の 4 特徴は定義差 (学習側は同日の先行レースを窓に含める) と P0-5 修正前の
+    同一レース内混入 (調教師側、ブロックの 2 頭目以降) を別枠にし、どちらにも当たらない
+    部分集合で完全一致を要求する。その前に履歴 parquet の master 由来行と master の行集合が
+    一致することを確かめる。騎手・調教師コードは master のコードを与える (名前→コード表の解決は
+    master に名前列が無いので検査できない)。
+    """
+    lower_priority()
+    import joblib
+    from backtest_pl_ev import COL_BAN, COL_RID
+    mod = load_stage_module(Path(a.module_dir))
+    base = Path(a.module_dir)
+    res: dict = {"module": str(base / "serve_history_feats.py"),
+                 "serve_path_version": getattr(mod, "SERVE_PATH_VERSION", None)}
+    # 1) 履歴行集合 (master 由来行) と master の行集合
+    keys = ["血統登録番号", "日付", "レースID(新/馬番無)"]
+    mk = pd.read_csv(MASTER, encoding="utf-8-sig", usecols=keys, low_memory=False).dropna()
+    mset = set(zip(mk["血統登録番号"].astype(np.int64), mk["日付"].astype(np.int64),
+                   mk["レースID(新/馬番無)"].astype(str)))
+    hist = pd.read_parquet(base / "data" / "_horse_history.parquet")
+    hm = hist[hist["src"] == "master"]
+    hset = set(zip(hm["ped_id"].astype(np.int64), hm["date"].astype(np.int64), hm["race_id"].astype(str)))
+    res["history_row_set"] = {"master_rows": len(mset), "history_master_rows": len(hset),
+                              "only_in_master": len(mset - hset), "only_in_history": len(hset - mset),
+                              "identical": mset == hset}
+    print("row set:", res["history_row_set"], flush=True)
+    del mk, mset, hset, hm
+    # 2) 2024〜25 年の行で配信経路の特徴を作る
+    days = master_days(2024, 2025, 0, 0)
+    cols = {COL_RID, COL_BAN, "日付", "発走時刻", "馬名", "種牡馬", "年齢", "場所", "芝・ダ", "距離",
+            "騎手コード", "調教師コード", "血統登録番号", *mod.NUM_FEATS}
+    m = read_master_days(days, cols)
+    df = m.copy()
+    df["日付"] = df["日付"].astype(int).astype(str)
+    mod._CACHE.pop(str(base), None)
+    mod.fill_history_features(df, base=base, jockey_code_override=m["騎手コード"],
+                              trainer_code_override=m["調教師コード"])
+    idx = mod._CACHE[str(base)][0]
+    names, sires = m["馬名"].map(mod._clean_name), m["種牡馬"].map(mod._clean_name)
+    ages = pd.to_numeric(m["年齢"], errors="coerce")
+    resolved = []
+    for i in m.index:
+        d = int(m.at[i, "日付"])
+        by = int(d // 10000 - ages.at[i]) if pd.notna(ages.at[i]) else None
+        resolved.append(identify(mod, idx, names.at[i], sires.at[i], by, d)[1])
+    m["resolved_ped"] = pd.array(resolved, dtype="Int64")
+    m["identity_ok"] = m["resolved_ped"].astype("float") == pd.to_numeric(m["血統登録番号"], errors="coerce")
+    st = df.get(getattr(mod, "IDENTITY_STATUS_COL", "_none"))
+    res["identity"] = {"rows": int(len(m)), "resolved_to_true_ped": int(m["identity_ok"].sum()),
+                       "status": (st.value_counts().to_dict() if st is not None else None)}
+    print("identity:", res["identity"], flush=True)
+    # 3) 同日の先行レース・同一レース内ブロックの印
+    m["_pt"] = m["発走時刻"].astype(str)
+    m["_rid"] = m[COL_RID].astype(str)
+    m = m.sort_values(["日付", "_pt", "_rid", COL_BAN], kind="mergesort")
+    m["jockey_sameday_prior"] = m.groupby(["騎手コード", "日付"]).cumcount() > 0
+    first_race = m.groupby(["調教師コード", "日付"])["_rid"].transform("first")
+    m["trainer_sameday_prior"] = m["_rid"] != first_race
+    m["trainer_block_nonfirst"] = m.groupby(["調教師コード", "_rid"]).cumcount() > 0
+    m = m.sort_index()
+    gain = {}
+    try:
+        mb = joblib.load(BASE / "models" / "unified_rank_v6.pkl")
+        g = mb["model"].feature_importance(importance_type="gain")
+        tot = float(np.sum(g))
+        gain = {f: round(100 * float(v) / tot, 3) for f, v in zip(mb["feature_cols"], g)}
+    except Exception:
+        pass
+
+    def _cmp(sel: pd.Series, c: str) -> dict:
+        x = pd.to_numeric(m.loc[sel, c], errors="coerce").to_numpy(float)
+        y = pd.to_numeric(df.loc[sel[sel].index, c], errors="coerce").to_numpy(float)
+        both = ~np.isnan(x) & ~np.isnan(y)
+        eq = (x == y) | (np.isnan(x) & np.isnan(y))
+        dd = np.abs(x[both] - y[both])
+        return {"n": int(len(x)), "exact": int(eq.sum()), "exact_pct": round(100 * float(eq.mean()), 3) if len(x) else None,
+                "both_missing": int((np.isnan(x) & np.isnan(y)).sum()),
+                "missing_mismatch": int((np.isnan(x) ^ np.isnan(y)).sum()),
+                "diff_median": float(np.median(dd)) if len(dd) else 0.0,
+                "diff_p95": float(np.percentile(dd, 95)) if len(dd) else 0.0}
+
+    allrows = pd.Series(True, index=m.index)
+    ok_id = m["identity_ok"].fillna(False)
+    feats = {}
+    for c in mod.NUM_FEATS:
+        rec = {"gain_pct": gain.get(c), "all_rows": _cmp(allrows, c)}
+        if c.startswith("jockey_fuku"):
+            sub = ~m["jockey_sameday_prior"]
+            rec["no_sameday_prior (完全一致を要求)"] = _cmp(sub, c)
+            rec["sameday_prior (定義差)"] = _cmp(~sub, c)
+        elif c.startswith("trainer_fuku"):
+            sub = ~m["trainer_sameday_prior"] & ~m["trainer_block_nonfirst"]
+            rec["no_sameday_prior_block_first (完全一致を要求)"] = _cmp(sub, c)
+            rec["sameday_prior (定義差)"] = _cmp(m["trainer_sameday_prior"] & ~m["trainer_block_nonfirst"], c)
+            rec["block_nonfirst (P0-5 修正前の混入)"] = _cmp(m["trainer_block_nonfirst"], c)
+        else:
+            rec["identity_resolved_to_true_ped (完全一致を要求)"] = _cmp(ok_id, c)
+            rec["identity_not_resolved"] = _cmp(~ok_id, c)
+        feats[c] = rec
+        print(c, json.dumps({k: (v if not isinstance(v, dict) else v.get("exact_pct")) for k, v in rec.items()},
+                            ensure_ascii=False), flush=True)
+    res["features"] = dict(sorted(feats.items(), key=lambda kv: -(kv[1]["gain_pct"] or 0)))
+    res["days"] = len(days)
+    Path(a.report).write_text(json.dumps(res, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     sp = ap.add_subparsers(dest="cmd", required=True)
@@ -660,6 +811,13 @@ def main() -> int:
     h.add_argument("--n-days", type=int, default=20)
     h.add_argument("--seed", type=int, default=20261004)
     h.add_argument("--dates", default="")
+    hc = sp.add_parser("hybridcmp")
+    hc.add_argument("--out", required=True)
+    hc.add_argument("--pairs", required=True, help="a:b,c:d (hybrid の stage 名)")
+    hc.add_argument("--report", required=True)
+    pa = sp.add_parser("parity")
+    pa.add_argument("--module-dir", required=True)
+    pa.add_argument("--report", required=True)
     ap.add_argument("--root", default=None, help="本番 root (データと未変更 module の置き場所)")
     a = ap.parse_args()
     set_root(a.root)
@@ -668,7 +826,8 @@ def main() -> int:
     except Exception:
         pass
     return {"features": cmd_features, "bundles": cmd_bundles, "t4": cmd_t4,
-            "stagediff": cmd_stagediff, "hybrid": cmd_hybrid}[a.cmd](a)
+            "stagediff": cmd_stagediff, "hybrid": cmd_hybrid, "hybridcmp": cmd_hybridcmp,
+            "parity": cmd_parity}[a.cmd](a)
 
 
 if __name__ == "__main__":
