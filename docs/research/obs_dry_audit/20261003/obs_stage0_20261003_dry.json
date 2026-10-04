@@ -1,0 +1,2335 @@
+{
+ "role": "observation plan v2.1 Phase 2 Stage 0 (label-free). No outcome, payout, ROI, performance or band selection is read or computed.",
+ "dates": [
+  "20261003"
+ ],
+ "scheduled_races": 23,
+ "records": 69,
+ "journal_events": 277,
+ "missing_threshold_races": 1.0,
+ "missing_cause_summary": {
+  "task_not_fired": 184,
+  "stock_race_absent": 115
+ },
+ "missing": {
+  "t10/0B31": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 1.0,
+   "races": [
+    {
+     "race_id": "2026100305040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040104",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "t10/0B32": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 1.0,
+   "races": [
+    {
+     "race_id": "2026100305040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040104",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "t10/0B33": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 1.0,
+   "races": [
+    {
+     "race_id": "2026100305040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040104",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "t10/0B34": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 1.0,
+   "races": [
+    {
+     "race_id": "2026100305040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040104",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "close_late/0B31": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 1.0,
+   "races": [
+    {
+     "race_id": "2026100305040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040104",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "close_late/0B32": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 1.0,
+   "races": [
+    {
+     "race_id": "2026100305040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040104",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "close_late/0B33": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 1.0,
+   "races": [
+    {
+     "race_id": "2026100305040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040104",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "close_late/0B34": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 1.0,
+   "races": [
+    {
+     "race_id": "2026100305040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100305040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040101",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040102",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040103",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040104",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040105",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040106",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040107",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040108",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040109",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040110",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040111",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100308040112",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "t2_candidate/0B31": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "t2_candidate/0B32": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "t2_candidate/0B33": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "t2_candidate/0B34": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "t2_candidate/0B35": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "trio_t10/0B35": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "trio_t10/0B31": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "final_rt_candidate/0B31": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "final_rt_candidate/0B32": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "final_rt_candidate/0B33": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "final_rt_candidate/0B34": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "final_rt_candidate/0B35": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "final_stock_candidate/0B31": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 1.0,
+   "races": [
+    {
+     "race_id": "2026100305040101",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040102",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040103",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040105",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040106",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040107",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040108",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040109",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040110",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040111",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040112",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040101",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040102",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040103",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040104",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040105",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040106",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040107",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040108",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040109",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040110",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040111",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040112",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    }
+   ],
+   "required": true
+  },
+  "final_stock_candidate/0B32": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 1.0,
+   "races": [
+    {
+     "race_id": "2026100305040101",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040102",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040103",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040105",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040106",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040107",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040108",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040109",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040110",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040111",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040112",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040101",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040102",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040103",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040104",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040105",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040106",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040107",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040108",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040109",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040110",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040111",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040112",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    }
+   ],
+   "required": true
+  },
+  "final_stock_candidate/0B33": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 1.0,
+   "races": [
+    {
+     "race_id": "2026100305040101",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040102",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040103",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040105",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040106",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040107",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040108",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040109",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040110",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040111",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040112",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040101",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040102",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040103",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040104",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040105",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040106",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040107",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040108",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040109",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040110",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040111",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040112",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    }
+   ],
+   "required": true
+  },
+  "final_stock_candidate/0B34": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 1.0,
+   "races": [
+    {
+     "race_id": "2026100305040101",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040102",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040103",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040105",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040106",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040107",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040108",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040109",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040110",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040111",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040112",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040101",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040102",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040103",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040104",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040105",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040106",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040107",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040108",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040109",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040110",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040111",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040112",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    }
+   ],
+   "required": true
+  },
+  "final_stock_candidate/0B35": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 1.0,
+   "races": [
+    {
+     "race_id": "2026100305040101",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040102",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040103",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040105",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040106",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040107",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040108",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040109",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040110",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040111",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100305040112",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040101",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040102",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040103",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040104",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040105",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040106",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040107",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040108",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040109",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040110",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040111",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    },
+    {
+     "race_id": "2026100308040112",
+     "cause": "stock_race_absent",
+     "detail": "STOCK session ok but no O1-O5 record for the race"
+    }
+   ],
+   "required": true
+  }
+ },
+ "timing": {
+  "fetch_duration_sec": {
+   "final_rt_candidate/0B31": {
+    "n": 23,
+    "p50": 0.043,
+    "p95": 0.247,
+    "max": 1.044
+   },
+   "final_rt_candidate/0B32": {
+    "n": 23,
+    "p50": 0.039,
+    "p95": 0.05,
+    "max": 1.063
+   },
+   "final_rt_candidate/0B33": {
+    "n": 23,
+    "p50": 0.04,
+    "p95": 0.05,
+    "max": 0.052
+   },
+   "final_rt_candidate/0B34": {
+    "n": 23,
+    "p50": 0.042,
+    "p95": 0.051,
+    "max": 0.053
+   },
+   "final_rt_candidate/0B35": {
+    "n": 23,
+    "p50": 0.041,
+    "p95": 0.05,
+    "max": 0.055
+   },
+   "t2_candidate/0B31": {
+    "n": 23,
+    "p50": 0.137,
+    "p95": 0.21,
+    "max": 1.403
+   },
+   "t2_candidate/0B32": {
+    "n": 23,
+    "p50": 0.04,
+    "p95": 0.055,
+    "max": 1.062
+   },
+   "t2_candidate/0B33": {
+    "n": 23,
+    "p50": 0.041,
+    "p95": 0.26,
+    "max": 1.062
+   },
+   "t2_candidate/0B34": {
+    "n": 23,
+    "p50": 0.041,
+    "p95": 0.057,
+    "max": 0.059
+   },
+   "t2_candidate/0B35": {
+    "n": 23,
+    "p50": 0.041,
+    "p95": 0.053,
+    "max": 0.284
+   },
+   "trio_t10/0B35": {
+    "n": 23,
+    "p50": 0.151,
+    "p95": 0.41,
+    "max": 0.527
+   },
+   "trio_t10/0B31": {
+    "n": 23,
+    "p50": 0.042,
+    "p95": 0.27,
+    "max": 2.248
+   }
+  },
+  "t2_candidate_5spec_span_sec": {
+   "n": 23,
+   "p50": 0.314,
+   "p95": 1.391,
+   "max": 1.857
+  },
+  "t2_5spec_p95_over_60s": false,
+  "announce_delay_sec": {
+   "final_rt_candidate/0B31": {
+    "n": 23,
+    "p50": 18794.971,
+    "p95": 29822.515,
+    "max": 29881.258
+   },
+   "final_rt_candidate/0B32": {
+    "n": 23,
+    "p50": 18795.01,
+    "p95": 29822.565,
+    "max": 29881.295
+   },
+   "final_rt_candidate/0B33": {
+    "n": 23,
+    "p50": 18795.054,
+    "p95": 29822.603,
+    "max": 29881.335
+   },
+   "final_rt_candidate/0B34": {
+    "n": 23,
+    "p50": 18795.096,
+    "p95": 29822.645,
+    "max": 29881.385
+   },
+   "final_rt_candidate/0B35": {
+    "n": 23,
+    "p50": 18795.139,
+    "p95": 29822.701,
+    "max": 29881.433
+   },
+   "t2_candidate/0B31": {
+    "n": 23,
+    "p50": 61.161,
+    "p95": 61.651,
+    "max": 63.226
+   },
+   "t2_candidate/0B32": {
+    "n": 23,
+    "p50": 61.233,
+    "p95": 62.224,
+    "max": 63.28
+   },
+   "t2_candidate/0B33": {
+    "n": 23,
+    "p50": 61.318,
+    "p95": 62.274,
+    "max": 63.334
+   },
+   "t2_candidate/0B34": {
+    "n": 23,
+    "p50": 61.358,
+    "p95": 62.327,
+    "max": 63.395
+   },
+   "t2_candidate/0B35": {
+    "n": 23,
+    "p50": 61.401,
+    "p95": 62.38,
+    "max": 63.68
+   },
+   "trio_t10/0B35": {
+    "n": 23,
+    "p50": 61.54,
+    "p95": 62.18,
+    "max": 64.136
+   },
+   "trio_t10/0B31": {
+    "n": 23,
+    "p50": 61.577,
+    "p95": 64.15,
+    "max": 64.387
+   }
+  },
+  "seconds_to_post": {
+   "final_rt_candidate/0B31": {
+    "announce_basis": {
+     "n": 23,
+     "p50": -480.0,
+     "p95": -360.0,
+     "max": -360.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": -19214.971,
+     "p95": -8429.378,
+     "max": -7230.61
+    }
+   },
+   "final_rt_candidate/0B32": {
+    "announce_basis": {
+     "n": 23,
+     "p50": -480.0,
+     "p95": -360.0,
+     "max": -360.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": -19215.01,
+     "p95": -8429.42,
+     "max": -7230.649
+    }
+   },
+   "final_rt_candidate/0B33": {
+    "announce_basis": {
+     "n": 23,
+     "p50": -480.0,
+     "p95": -360.0,
+     "max": -360.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": -19215.054,
+     "p95": -8429.462,
+     "max": -7230.695
+    }
+   },
+   "final_rt_candidate/0B34": {
+    "announce_basis": {
+     "n": 23,
+     "p50": -480.0,
+     "p95": -360.0,
+     "max": -360.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": -19215.096,
+     "p95": -8429.505,
+     "max": -7230.749
+    }
+   },
+   "final_rt_candidate/0B35": {
+    "announce_basis": {
+     "n": 23,
+     "p50": -480.0,
+     "p95": -360.0,
+     "max": -360.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": -19215.139,
+     "p95": -8429.552,
+     "max": -7230.789
+    }
+   },
+   "t2_candidate/0B31": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 180.0,
+     "p95": 180.0,
+     "max": 180.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 118.839,
+     "p95": 119.385,
+     "max": 119.429
+    }
+   },
+   "t2_candidate/0B32": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 180.0,
+     "p95": 180.0,
+     "max": 180.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 118.767,
+     "p95": 119.347,
+     "max": 119.393
+    }
+   },
+   "t2_candidate/0B33": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 180.0,
+     "p95": 180.0,
+     "max": 180.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 118.682,
+     "p95": 119.293,
+     "max": 119.352
+    }
+   },
+   "t2_candidate/0B34": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 180.0,
+     "p95": 180.0,
+     "max": 180.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 118.642,
+     "p95": 119.25,
+     "max": 119.31
+    }
+   },
+   "t2_candidate/0B35": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 180.0,
+     "p95": 180.0,
+     "max": 180.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 118.599,
+     "p95": 119.209,
+     "max": 119.269
+    }
+   },
+   "trio_t10/0B35": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 660.0,
+     "p95": 660.0,
+     "max": 660.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 598.46,
+     "p95": 598.92,
+     "max": 598.983
+    }
+   },
+   "trio_t10/0B31": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 660.0,
+     "p95": 660.0,
+     "max": 660.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 598.423,
+     "p95": 598.869,
+     "max": 598.94
+    }
+   }
+  }
+ },
+ "coverage": {
+  "final_rt_candidate/0B31": {
+   "fukusho": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "tansho": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "wakuren": {
+    "mismatch": 1,
+    "n": 23,
+    "rate": 0.0435
+   }
+  },
+  "final_rt_candidate/0B32": {
+   "umaren": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "final_rt_candidate/0B33": {
+   "wide": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "final_rt_candidate/0B34": {
+   "umatan": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "final_rt_candidate/0B35": {
+   "trio": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "t2_candidate/0B31": {
+   "fukusho": {
+    "mismatch": 23,
+    "n": 23,
+    "rate": 1.0
+   },
+   "tansho": {
+    "mismatch": 23,
+    "n": 23,
+    "rate": 1.0
+   },
+   "wakuren": {
+    "mismatch": 1,
+    "n": 23,
+    "rate": 0.0435
+   }
+  },
+  "t2_candidate/0B32": {
+   "umaren": {
+    "mismatch": 23,
+    "n": 23,
+    "rate": 1.0
+   }
+  },
+  "t2_candidate/0B33": {
+   "wide": {
+    "mismatch": 23,
+    "n": 23,
+    "rate": 1.0
+   }
+  },
+  "t2_candidate/0B34": {
+   "umatan": {
+    "mismatch": 23,
+    "n": 23,
+    "rate": 1.0
+   }
+  },
+  "t2_candidate/0B35": {
+   "trio": {
+    "mismatch": 23,
+    "n": 23,
+    "rate": 1.0
+   }
+  },
+  "trio_t10/0B35": {
+   "trio": {
+    "mismatch": 23,
+    "n": 23,
+    "rate": 1.0
+   }
+  },
+  "trio_t10/0B31": {
+   "fukusho": {
+    "mismatch": 23,
+    "n": 23,
+    "rate": 1.0
+   },
+   "tansho": {
+    "mismatch": 23,
+    "n": 23,
+    "rate": 1.0
+   },
+   "wakuren": {
+    "mismatch": 1,
+    "n": 23,
+    "rate": 0.0435
+   }
+  }
+ },
+ "coverage_fail_over_1pct": [
+  "final_rt_candidate/0B31/wakuren",
+  "t2_candidate/0B31/fukusho",
+  "t2_candidate/0B31/tansho",
+  "t2_candidate/0B31/wakuren",
+  "t2_candidate/0B32/umaren",
+  "t2_candidate/0B33/wide",
+  "t2_candidate/0B34/umatan",
+  "t2_candidate/0B35/trio",
+  "trio_t10/0B31/fukusho",
+  "trio_t10/0B31/tansho",
+  "trio_t10/0B31/wakuren",
+  "trio_t10/0B35/trio"
+ ],
+ "raw_parser": {
+  "restructure_equal": {
+   "fail": 0,
+   "n": 276
+  },
+  "validated_parser_match": {
+   "fail": 0,
+   "n": 276
+  },
+  "race_key_ok": {
+   "fail": 0,
+   "n": 276
+  },
+  "length_ok": {
+   "fail": 0,
+   "n": 276
+  },
+  "raw_sha256": {
+   "fail": 0,
+   "n": 276
+  }
+ },
+ "concurrency": {
+  "window_sec": 30.0,
+  "events": 277,
+  "unreadable": 0,
+  "measured": 276,
+  "solo": {
+   "ok": 5,
+   "n": 166,
+   "rate": 0.0301
+  },
+  "overlapped": {
+   "ok": 110,
+   "n": 110,
+   "rate": 1.0
+  },
+  "overlapped_failures": [],
+  "by_kind": {
+   "final_rt_candidate": {
+    "events": 115,
+    "solo_n": 5,
+    "over_n": 110,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": 1.0,
+    "over_rate": 1.0,
+    "partner_kinds": {
+     "final_stock_candidate(STOCK)": 110
+    }
+   },
+   "final_stock_candidate(STOCK)": {
+    "events": 1,
+    "solo_n": 0,
+    "over_n": 0,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": null,
+    "partner_kinds": {
+     "final_rt_candidate": 1
+    }
+   },
+   "t2_candidate": {
+    "events": 115,
+    "solo_n": 115,
+    "over_n": 0,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": 0.0,
+    "over_rate": null,
+    "partner_kinds": {}
+   },
+   "trio_t10": {
+    "events": 46,
+    "solo_n": 46,
+    "over_n": 0,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": 0.0,
+    "over_rate": null,
+    "partner_kinds": {}
+   }
+  },
+  "unidentified_events": 0,
+  "assumes_schedule_non_overlap": false
+ },
+ "corruption_0000": [],
+ "contract": {
+  "met": false,
+  "reasons": [
+   "required stage/spec missing count > max(1%, 1 race): ['t10/0B31 (23 > 1)', 't10/0B32 (23 > 1)', 't10/0B33 (23 > 1)', 't10/0B34 (23 > 1)', 'close_late/0B31 (23 > 1)', 'close_late/0B32 (23 > 1)', 'close_late/0B33 (23 > 1)', 'close_late/0B34 (23 > 1)', 'final_stock_candidate/0B31 (23 > 1)', 'final_stock_candidate/0B32 (23 > 1)', 'final_stock_candidate/0B33 (23 > 1)', 'final_stock_candidate/0B34 (23 > 1)', 'final_stock_candidate/0B35 (23 > 1)']",
+   "coverage mismatch > 1%: ['final_rt_candidate/0B31/wakuren', 't2_candidate/0B31/fukusho', 't2_candidate/0B31/tansho', 't2_candidate/0B31/wakuren', 't2_candidate/0B32/umaren', 't2_candidate/0B33/wide', 't2_candidate/0B34/umatan', 't2_candidate/0B35/trio', 'trio_t10/0B31/fukusho', 'trio_t10/0B31/tansho', 'trio_t10/0B31/wakuren', 'trio_t10/0B35/trio']"
+  ]
+ },
+ "concurrency_verdict": "CONCURRENCY_OK",
+ "concurrency_reasons": [],
+ "decision": "CONTRACT_NOT_MET",
+ "exit_code": 4,
+ "stage0_passed": false,
+ "collection_continues": true,
+ "performance_blocked_by_stage0": true,
+ "stage0_restart": "修正を入れた後の開催日から Stage 0 の 2 開催日を数え直す（それまで性能・ROI・帯選択へ進まない）",
+ "files_opened_outcome_like": []
+}

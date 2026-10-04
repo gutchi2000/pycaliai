@@ -1,0 +1,7 @@
+audit_run_at=2026-10-04T11:20 (obs_stage0_audit --dates 20261003 --dry, 凍結コード、取得なし)
+audit_exit=4 (CONTRACT_NOT_MET)
+obs_dry_check_exit=0
+ledger_before=ファイル無し (この監査が data/obs_stage0_ledger.jsonl を新規作成)
+ledger_after_sha256=e46528179d1e9a57093bc26255de0db00f8b7ee9a039a234db1a715d1d3b2e99 lines=1
+ledger_line_sha256=e46528179d1e9a57093bc26255de0db00f8b7ee9a039a234db1a715d1d3b2e99
+report=reports/obs_stage0_20261003_dry.json sha256=d424aab7ae87401f5b19afc9f9a3b2a88238bc0dfed15c675446adc4b1b1acdc (.gitignore の /reports/*.json 対象)
