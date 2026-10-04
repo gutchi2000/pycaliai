@@ -1,0 +1,2142 @@
+{
+ "role": "observation plan v2.1 Phase 2 Stage 0 (label-free). No outcome, payout, ROI, performance or band selection is read or computed.",
+ "audit_version": "stage0-audit-2",
+ "structure_version": "jvrec-2",
+ "dates": [
+  "20261004"
+ ],
+ "scope": "night",
+ "required_stages": [
+  "close_late",
+  "final_rt_candidate",
+  "t10",
+  "t2_candidate",
+  "trio_t10"
+ ],
+ "stage_sources": {
+  "close_late": [
+   "production"
+  ],
+  "exp05fs_t35": [
+   "production"
+  ],
+  "final_rt_candidate": [
+   "dry"
+  ],
+  "t10": [
+   "production"
+  ],
+  "t20": [
+   "production"
+  ],
+  "t2_candidate": [
+   "dry"
+  ],
+  "trio_t10": [
+   "dry"
+  ]
+ },
+ "scheduled_races": 23,
+ "records": 149,
+ "journal_events": 4169,
+ "missing_threshold_races": 1.0,
+ "missing_cause_summary": {
+  "task_not_fired": 58
+ },
+ "missing": {
+  "t10/0B31": {
+   "scheduled": 23,
+   "with_capture": 22,
+   "missing_count": 1,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0435,
+   "races": [
+    {
+     "race_id": "2026100405040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "t10/0B32": {
+   "scheduled": 23,
+   "with_capture": 22,
+   "missing_count": 1,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0435,
+   "races": [
+    {
+     "race_id": "2026100405040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "t10/0B33": {
+   "scheduled": 23,
+   "with_capture": 22,
+   "missing_count": 1,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0435,
+   "races": [
+    {
+     "race_id": "2026100405040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "t10/0B34": {
+   "scheduled": 23,
+   "with_capture": 22,
+   "missing_count": 1,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0435,
+   "races": [
+    {
+     "race_id": "2026100405040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "close_late/0B31": {
+   "scheduled": 23,
+   "with_capture": 22,
+   "missing_count": 1,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0435,
+   "races": [
+    {
+     "race_id": "2026100405040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "close_late/0B32": {
+   "scheduled": 23,
+   "with_capture": 22,
+   "missing_count": 1,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0435,
+   "races": [
+    {
+     "race_id": "2026100405040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "close_late/0B33": {
+   "scheduled": 23,
+   "with_capture": 22,
+   "missing_count": 1,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0435,
+   "races": [
+    {
+     "race_id": "2026100405040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "close_late/0B34": {
+   "scheduled": 23,
+   "with_capture": 22,
+   "missing_count": 1,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0435,
+   "races": [
+    {
+     "race_id": "2026100405040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "t2_candidate/0B31": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "t2_candidate/0B32": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "t2_candidate/0B33": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "t2_candidate/0B34": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "t2_candidate/0B35": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "trio_t10/0B35": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "trio_t10/0B31": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "threshold": 1.0,
+   "over_threshold": false,
+   "missing_rate": 0.0,
+   "races": [],
+   "required": true
+  },
+  "final_rt_candidate/0B31": {
+   "scheduled": 23,
+   "with_capture": 13,
+   "missing_count": 10,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 0.4348,
+   "races": [
+    {
+     "race_id": "2026100405040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040209",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040210",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040211",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040212",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040209",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040210",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040211",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040212",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "final_rt_candidate/0B32": {
+   "scheduled": 23,
+   "with_capture": 13,
+   "missing_count": 10,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 0.4348,
+   "races": [
+    {
+     "race_id": "2026100405040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040209",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040210",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040211",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040212",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040209",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040210",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040211",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040212",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "final_rt_candidate/0B33": {
+   "scheduled": 23,
+   "with_capture": 13,
+   "missing_count": 10,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 0.4348,
+   "races": [
+    {
+     "race_id": "2026100405040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040209",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040210",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040211",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040212",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040209",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040210",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040211",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040212",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "final_rt_candidate/0B34": {
+   "scheduled": 23,
+   "with_capture": 13,
+   "missing_count": 10,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 0.4348,
+   "races": [
+    {
+     "race_id": "2026100405040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040209",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040210",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040211",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040212",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040209",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040210",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040211",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040212",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "final_rt_candidate/0B35": {
+   "scheduled": 23,
+   "with_capture": 13,
+   "missing_count": 10,
+   "threshold": 1.0,
+   "over_threshold": true,
+   "missing_rate": 0.4348,
+   "races": [
+    {
+     "race_id": "2026100405040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040209",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040210",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040211",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100405040212",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040208",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040209",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040210",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040211",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    },
+    {
+     "race_id": "2026100408040212",
+     "cause": "task_not_fired",
+     "detail": "no journal event and no record for this race/stage/spec"
+    }
+   ],
+   "required": true
+  },
+  "final_stock_candidate/0B31": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "required": false
+  },
+  "final_stock_candidate/0B32": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "required": false
+  },
+  "final_stock_candidate/0B33": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "required": false
+  },
+  "final_stock_candidate/0B34": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "required": false
+  },
+  "final_stock_candidate/0B35": {
+   "scheduled": 23,
+   "with_capture": 0,
+   "missing_count": 23,
+   "required": false
+  },
+  "t20/0B31": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "required": false
+  },
+  "t20/0B32": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "required": false
+  },
+  "t20/0B33": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "required": false
+  },
+  "t20/0B34": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "required": false
+  },
+  "exp05fs_t35/0B31": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "required": false
+  },
+  "exp05fs_t35/0B32": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "required": false
+  },
+  "exp05fs_t35/0B33": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "required": false
+  },
+  "exp05fs_t35/0B34": {
+   "scheduled": 23,
+   "with_capture": 23,
+   "missing_count": 0,
+   "required": false
+  }
+ },
+ "timing": {
+  "fetch_duration_sec": {
+   "final_rt_candidate/0B31": {
+    "n": 13,
+    "p50": 0.039,
+    "p95": 0.047,
+    "max": 0.301
+   },
+   "final_rt_candidate/0B32": {
+    "n": 13,
+    "p50": 0.037,
+    "p95": 0.041,
+    "max": 0.041
+   },
+   "final_rt_candidate/0B33": {
+    "n": 13,
+    "p50": 0.039,
+    "p95": 0.045,
+    "max": 0.046
+   },
+   "final_rt_candidate/0B34": {
+    "n": 13,
+    "p50": 0.04,
+    "p95": 0.046,
+    "max": 0.066
+   },
+   "final_rt_candidate/0B35": {
+    "n": 13,
+    "p50": 0.04,
+    "p95": 0.046,
+    "max": 0.046
+   },
+   "t2_candidate/0B31": {
+    "n": 23,
+    "p50": 0.153,
+    "p95": 0.198,
+    "max": 0.201
+   },
+   "t2_candidate/0B32": {
+    "n": 23,
+    "p50": 0.046,
+    "p95": 0.06,
+    "max": 0.251
+   },
+   "t2_candidate/0B33": {
+    "n": 23,
+    "p50": 0.045,
+    "p95": 0.058,
+    "max": 0.07
+   },
+   "t2_candidate/0B34": {
+    "n": 23,
+    "p50": 0.046,
+    "p95": 0.067,
+    "max": 0.267
+   },
+   "t2_candidate/0B35": {
+    "n": 23,
+    "p50": 0.047,
+    "p95": 0.284,
+    "max": 0.286
+   },
+   "trio_t10/0B35": {
+    "n": 23,
+    "p50": 0.166,
+    "p95": 0.229,
+    "max": 0.234
+   },
+   "trio_t10/0B31": {
+    "n": 23,
+    "p50": 0.048,
+    "p95": 0.059,
+    "max": 0.064
+   },
+   "close_late/0B31": {
+    "n": 22,
+    "p50": 0.145,
+    "p95": 0.202,
+    "max": 0.263
+   },
+   "close_late/0B32": {
+    "n": 22,
+    "p50": 0.043,
+    "p95": 0.06,
+    "max": 1.047
+   },
+   "close_late/0B33": {
+    "n": 22,
+    "p50": 0.044,
+    "p95": 0.057,
+    "max": 0.069
+   },
+   "close_late/0B34": {
+    "n": 22,
+    "p50": 0.045,
+    "p95": 0.068,
+    "max": 1.058
+   },
+   "exp05fs_t35/0B31": {
+    "n": 23,
+    "p50": 0.171,
+    "p95": 0.391,
+    "max": 5.214
+   },
+   "exp05fs_t35/0B32": {
+    "n": 23,
+    "p50": 0.047,
+    "p95": 0.144,
+    "max": 1.064
+   },
+   "exp05fs_t35/0B33": {
+    "n": 23,
+    "p50": 0.048,
+    "p95": 0.09,
+    "max": 0.308
+   },
+   "exp05fs_t35/0B34": {
+    "n": 23,
+    "p50": 0.048,
+    "p95": 0.071,
+    "max": 0.121
+   },
+   "t10/0B31": {
+    "n": 22,
+    "p50": 0.116,
+    "p95": 0.182,
+    "max": 0.31
+   },
+   "t10/0B32": {
+    "n": 22,
+    "p50": 0.049,
+    "p95": 0.06,
+    "max": 0.062
+   },
+   "t10/0B33": {
+    "n": 22,
+    "p50": 0.046,
+    "p95": 0.059,
+    "max": 0.099
+   },
+   "t10/0B34": {
+    "n": 22,
+    "p50": 0.045,
+    "p95": 0.065,
+    "max": 0.067
+   },
+   "t20/0B31": {
+    "n": 23,
+    "p50": 0.153,
+    "p95": 5.184,
+    "max": 5.213
+   },
+   "t20/0B32": {
+    "n": 23,
+    "p50": 0.049,
+    "p95": 0.267,
+    "max": 5.061
+   },
+   "t20/0B33": {
+    "n": 23,
+    "p50": 0.047,
+    "p95": 0.251,
+    "max": 2.25
+   },
+   "t20/0B34": {
+    "n": 23,
+    "p50": 0.047,
+    "p95": 0.254,
+    "max": 5.274
+   }
+  },
+  "t2_candidate_5spec_span_sec": {
+   "n": 23,
+   "p50": 0.345,
+   "p95": 0.598,
+   "max": 0.88
+  },
+  "t2_5spec_p95_over_60s": false,
+  "announce_delay_sec": {
+   "final_rt_candidate/0B31": {
+    "n": 13,
+    "p50": 25029.212,
+    "p95": 29823.114,
+    "max": 30781.887
+   },
+   "final_rt_candidate/0B32": {
+    "n": 13,
+    "p50": 25029.25,
+    "p95": 29823.15,
+    "max": 30781.928
+   },
+   "final_rt_candidate/0B33": {
+    "n": 13,
+    "p50": 25029.289,
+    "p95": 29823.196,
+    "max": 30781.965
+   },
+   "final_rt_candidate/0B34": {
+    "n": 13,
+    "p50": 25029.329,
+    "p95": 29823.234,
+    "max": 30782.006
+   },
+   "final_rt_candidate/0B35": {
+    "n": 13,
+    "p50": 25029.367,
+    "p95": 29823.274,
+    "max": 30782.046
+   },
+   "t2_candidate/0B31": {
+    "n": 23,
+    "p50": 61.277,
+    "p95": 61.769,
+    "max": 61.948
+   },
+   "t2_candidate/0B32": {
+    "n": 23,
+    "p50": 61.318,
+    "p95": 61.82,
+    "max": 62.001
+   },
+   "t2_candidate/0B33": {
+    "n": 23,
+    "p50": 61.362,
+    "p95": 61.872,
+    "max": 62.044
+   },
+   "t2_candidate/0B34": {
+    "n": 23,
+    "p50": 61.41,
+    "p95": 61.928,
+    "max": 62.087
+   },
+   "t2_candidate/0B35": {
+    "n": 23,
+    "p50": 61.521,
+    "p95": 61.984,
+    "max": 62.137
+   },
+   "trio_t10/0B35": {
+    "n": 23,
+    "p50": 61.362,
+    "p95": 62.115,
+    "max": 62.267
+   },
+   "trio_t10/0B31": {
+    "n": 23,
+    "p50": 61.407,
+    "p95": 62.169,
+    "max": 62.327
+   },
+   "close_late/0B31": {
+    "n": 22,
+    "p50": 120.629,
+    "p95": 121.113,
+    "max": 121.309
+   },
+   "close_late/0B32": {
+    "n": 22,
+    "p50": 120.671,
+    "p95": 121.158,
+    "max": 121.362
+   },
+   "close_late/0B33": {
+    "n": 22,
+    "p50": 120.712,
+    "p95": 121.216,
+    "max": 121.409
+   },
+   "close_late/0B34": {
+    "n": 22,
+    "p50": 120.755,
+    "p95": 121.459,
+    "max": 122.275
+   },
+   "exp05fs_t35/0B31": {
+    "n": 23,
+    "p50": 61.893,
+    "p95": 121.865,
+    "max": 122.338
+   },
+   "exp05fs_t35/0B32": {
+    "n": 23,
+    "p50": 62.036,
+    "p95": 121.916,
+    "max": 122.396
+   },
+   "exp05fs_t35/0B33": {
+    "n": 23,
+    "p50": 62.085,
+    "p95": 121.963,
+    "max": 122.458
+   },
+   "exp05fs_t35/0B34": {
+    "n": 23,
+    "p50": 62.132,
+    "p95": 122.017,
+    "max": 122.53
+   },
+   "t10/0B31": {
+    "n": 22,
+    "p50": 61.936,
+    "p95": 62.64,
+    "max": 62.807
+   },
+   "t10/0B32": {
+    "n": 22,
+    "p50": 61.995,
+    "p95": 62.691,
+    "max": 62.869
+   },
+   "t10/0B33": {
+    "n": 22,
+    "p50": 62.041,
+    "p95": 62.751,
+    "max": 62.927
+   },
+   "t10/0B34": {
+    "n": 22,
+    "p50": 62.088,
+    "p95": 62.805,
+    "max": 62.993
+   },
+   "t20/0B31": {
+    "n": 23,
+    "p50": 61.336,
+    "p95": 66.525,
+    "max": 67.16
+   },
+   "t20/0B32": {
+    "n": 23,
+    "p50": 61.412,
+    "p95": 66.643,
+    "max": 67.212
+   },
+   "t20/0B33": {
+    "n": 23,
+    "p50": 61.509,
+    "p95": 66.684,
+    "max": 67.259
+   },
+   "t20/0B34": {
+    "n": 23,
+    "p50": 61.634,
+    "p95": 66.732,
+    "max": 67.305
+   }
+  },
+  "seconds_to_post": {
+   "final_rt_candidate/0B31": {
+    "announce_basis": {
+     "n": 13,
+     "p50": -480.0,
+     "p95": -360.0,
+     "max": -360.0
+    },
+    "fetch_basis": {
+     "n": 13,
+     "p50": -25809.212,
+     "p95": -19215.301,
+     "max": -18316.552
+    }
+   },
+   "final_rt_candidate/0B32": {
+    "announce_basis": {
+     "n": 13,
+     "p50": -480.0,
+     "p95": -360.0,
+     "max": -360.0
+    },
+    "fetch_basis": {
+     "n": 13,
+     "p50": -25809.25,
+     "p95": -19215.342,
+     "max": -18316.592
+    }
+   },
+   "final_rt_candidate/0B33": {
+    "announce_basis": {
+     "n": 13,
+     "p50": -480.0,
+     "p95": -360.0,
+     "max": -360.0
+    },
+    "fetch_basis": {
+     "n": 13,
+     "p50": -25809.289,
+     "p95": -19215.382,
+     "max": -18316.632
+    }
+   },
+   "final_rt_candidate/0B34": {
+    "announce_basis": {
+     "n": 13,
+     "p50": -480.0,
+     "p95": -360.0,
+     "max": -360.0
+    },
+    "fetch_basis": {
+     "n": 13,
+     "p50": -25809.329,
+     "p95": -19215.45,
+     "max": -18316.675
+    }
+   },
+   "final_rt_candidate/0B35": {
+    "announce_basis": {
+     "n": 13,
+     "p50": -480.0,
+     "p95": -360.0,
+     "max": -360.0
+    },
+    "fetch_basis": {
+     "n": 13,
+     "p50": -25809.367,
+     "p95": -19215.489,
+     "max": -18316.723
+    }
+   },
+   "t2_candidate/0B31": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 180.0,
+     "p95": 180.0,
+     "max": 180.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 118.723,
+     "p95": 119.305,
+     "max": 119.321
+    }
+   },
+   "t2_candidate/0B32": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 180.0,
+     "p95": 180.0,
+     "max": 180.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 118.682,
+     "p95": 119.267,
+     "max": 119.278
+    }
+   },
+   "t2_candidate/0B33": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 180.0,
+     "p95": 180.0,
+     "max": 180.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 118.638,
+     "p95": 119.222,
+     "max": 119.236
+    }
+   },
+   "t2_candidate/0B34": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 180.0,
+     "p95": 180.0,
+     "max": 180.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 118.59,
+     "p95": 119.18,
+     "max": 119.194
+    }
+   },
+   "t2_candidate/0B35": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 180.0,
+     "p95": 180.0,
+     "max": 180.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 118.479,
+     "p95": 119.135,
+     "max": 119.152
+    }
+   },
+   "trio_t10/0B35": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 660.0,
+     "p95": 660.0,
+     "max": 660.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 598.638,
+     "p95": 598.888,
+     "max": 598.941
+    }
+   },
+   "trio_t10/0B31": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 660.0,
+     "p95": 660.0,
+     "max": 660.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 598.593,
+     "p95": 598.844,
+     "max": 598.897
+    }
+   },
+   "close_late/0B31": {
+    "announce_basis": {
+     "n": 22,
+     "p50": 60.4,
+     "p95": 60.876,
+     "max": 60.96
+    },
+    "fetch_basis": {
+     "n": 22,
+     "p50": -60.24,
+     "p95": -60.205,
+     "max": -60.204
+    }
+   },
+   "close_late/0B32": {
+    "announce_basis": {
+     "n": 22,
+     "p50": 60.4,
+     "p95": 60.876,
+     "max": 60.96
+    },
+    "fetch_basis": {
+     "n": 22,
+     "p50": -60.285,
+     "p95": -60.243,
+     "max": -60.242
+    }
+   },
+   "close_late/0B33": {
+    "announce_basis": {
+     "n": 22,
+     "p50": 60.4,
+     "p95": 60.876,
+     "max": 60.96
+    },
+    "fetch_basis": {
+     "n": 22,
+     "p50": -60.333,
+     "p95": -60.286,
+     "max": -60.282
+    }
+   },
+   "close_late/0B34": {
+    "announce_basis": {
+     "n": 22,
+     "p50": 60.4,
+     "p95": 60.876,
+     "max": 60.96
+    },
+    "fetch_basis": {
+     "n": 22,
+     "p50": -60.381,
+     "p95": -60.323,
+     "max": -60.321
+    }
+   },
+   "exp05fs_t35/0B31": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 2160.0,
+     "p95": 2220.0,
+     "max": 2220.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 2098.466,
+     "p95": 2098.906,
+     "max": 2099.167
+    }
+   },
+   "exp05fs_t35/0B32": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 2160.0,
+     "p95": 2220.0,
+     "max": 2220.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 2098.42,
+     "p95": 2098.867,
+     "max": 2099.098
+    }
+   },
+   "exp05fs_t35/0B33": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 2160.0,
+     "p95": 2220.0,
+     "max": 2220.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 2098.361,
+     "p95": 2098.823,
+     "max": 2099.036
+    }
+   },
+   "exp05fs_t35/0B34": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 2160.0,
+     "p95": 2220.0,
+     "max": 2220.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 2098.319,
+     "p95": 2098.774,
+     "max": 2098.984
+    }
+   },
+   "t10/0B31": {
+    "announce_basis": {
+     "n": 22,
+     "p50": 660.443,
+     "p95": 660.876,
+     "max": 660.96
+    },
+    "fetch_basis": {
+     "n": 22,
+     "p50": 598.789,
+     "p95": 598.809,
+     "max": 598.816
+    }
+   },
+   "t10/0B32": {
+    "announce_basis": {
+     "n": 22,
+     "p50": 660.443,
+     "p95": 660.876,
+     "max": 660.96
+    },
+    "fetch_basis": {
+     "n": 22,
+     "p50": 598.739,
+     "p95": 598.766,
+     "max": 598.773
+    }
+   },
+   "t10/0B33": {
+    "announce_basis": {
+     "n": 22,
+     "p50": 660.443,
+     "p95": 660.876,
+     "max": 660.96
+    },
+    "fetch_basis": {
+     "n": 22,
+     "p50": 598.689,
+     "p95": 598.724,
+     "max": 598.734
+    }
+   },
+   "t10/0B34": {
+    "announce_basis": {
+     "n": 22,
+     "p50": 660.443,
+     "p95": 660.876,
+     "max": 660.96
+    },
+    "fetch_basis": {
+     "n": 22,
+     "p50": 598.642,
+     "p95": 598.678,
+     "max": 598.698
+    }
+   },
+   "t20/0B31": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 1260.0,
+     "p95": 1260.0,
+     "max": 1260.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 1198.664,
+     "p95": 1198.997,
+     "max": 1199.128
+    }
+   },
+   "t20/0B32": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 1260.0,
+     "p95": 1260.0,
+     "max": 1260.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 1198.588,
+     "p95": 1198.945,
+     "max": 1199.081
+    }
+   },
+   "t20/0B33": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 1260.0,
+     "p95": 1260.0,
+     "max": 1260.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 1198.491,
+     "p95": 1198.861,
+     "max": 1198.89
+    }
+   },
+   "t20/0B34": {
+    "announce_basis": {
+     "n": 23,
+     "p50": 1260.0,
+     "p95": 1260.0,
+     "max": 1260.0
+    },
+    "fetch_basis": {
+     "n": 23,
+     "p50": 1198.366,
+     "p95": 1198.778,
+     "max": 1198.813
+    }
+   }
+  }
+ },
+ "coverage": {
+  "final_rt_candidate/0B31": {
+   "tansho": {
+    "mismatch": 0,
+    "n": 13,
+    "rate": 0.0
+   },
+   "fukusho": {
+    "mismatch": 0,
+    "n": 13,
+    "rate": 0.0
+   },
+   "wakuren": {
+    "mismatch": 0,
+    "n": 13,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 13,
+    "rate": 0.0
+   }
+  },
+  "final_rt_candidate/0B32": {
+   "umaren": {
+    "mismatch": 0,
+    "n": 13,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 13,
+    "rate": 0.0
+   }
+  },
+  "final_rt_candidate/0B33": {
+   "wide": {
+    "mismatch": 0,
+    "n": 13,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 13,
+    "rate": 0.0
+   }
+  },
+  "final_rt_candidate/0B34": {
+   "umatan": {
+    "mismatch": 0,
+    "n": 13,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 13,
+    "rate": 0.0
+   }
+  },
+  "final_rt_candidate/0B35": {
+   "trio": {
+    "mismatch": 0,
+    "n": 13,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 13,
+    "rate": 0.0
+   }
+  },
+  "t2_candidate/0B31": {
+   "tansho": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "fukusho": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "wakuren": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "t2_candidate/0B32": {
+   "umaren": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "t2_candidate/0B33": {
+   "wide": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "t2_candidate/0B34": {
+   "umatan": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "t2_candidate/0B35": {
+   "trio": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "trio_t10/0B35": {
+   "trio": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "trio_t10/0B31": {
+   "tansho": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "fukusho": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "wakuren": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "close_late/0B31": {
+   "tansho": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "fukusho": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "wakuren": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   }
+  },
+  "close_late/0B32": {
+   "umaren": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   }
+  },
+  "close_late/0B33": {
+   "wide": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   }
+  },
+  "close_late/0B34": {
+   "umatan": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   }
+  },
+  "exp05fs_t35/0B31": {
+   "tansho": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "fukusho": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "wakuren": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "exp05fs_t35/0B32": {
+   "umaren": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "exp05fs_t35/0B33": {
+   "wide": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "exp05fs_t35/0B34": {
+   "umatan": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "t10/0B31": {
+   "tansho": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "fukusho": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "wakuren": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   }
+  },
+  "t10/0B32": {
+   "umaren": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   }
+  },
+  "t10/0B33": {
+   "wide": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   }
+  },
+  "t10/0B34": {
+   "umatan": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 22,
+    "rate": 0.0
+   }
+  },
+  "t20/0B31": {
+   "tansho": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "fukusho": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "wakuren": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "t20/0B32": {
+   "umaren": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "t20/0B33": {
+   "wide": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  },
+  "t20/0B34": {
+   "umatan": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   },
+   "scratch_consistency": {
+    "mismatch": 0,
+    "n": 23,
+    "rate": 0.0
+   }
+  }
+ },
+ "coverage_fail_over_1pct": [],
+ "coverage_fail_over_1pct_out_of_scope": [],
+ "raw_parser": {
+  "validated_parser_match": {
+   "fail": 0,
+   "n": 586
+  },
+  "race_key_ok": {
+   "fail": 0,
+   "n": 586
+  },
+  "length_ok": {
+   "fail": 0,
+   "n": 586
+  },
+  "raw_sha256": {
+   "fail": 0,
+   "n": 586
+  }
+ },
+ "restructure_version": {
+  "current": "jvrec-2",
+  "older_records_not_compared": {
+   "jvrec-1": 586
+  },
+  "older_records_that_would_differ": {
+   "jvrec-1": 586
+  }
+ },
+ "task_runs": {
+  "20261004": {
+   "recorded": false,
+   "expected": 47,
+   "required": false
+  }
+ },
+ "concurrency": {
+  "definition": "intersection",
+  "window_sec": 0.0,
+  "events": 4169,
+  "unreadable": 0,
+  "measured": 586,
+  "overlapping_event_pairs": 124,
+  "solo": {
+   "ok": 478,
+   "n": 478,
+   "rate": 1.0
+  },
+  "overlapped": {
+   "ok": 108,
+   "n": 108,
+   "rate": 1.0
+  },
+  "overlapped_failures": [],
+  "by_kind": {
+   "analysis/bodyweight_forward/collector": {
+    "events": 407,
+    "solo_n": 0,
+    "over_n": 0,
+    "rc_nonzero": 153,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": null,
+    "partner_kinds": {
+     "t20": 20,
+     "t10": 12,
+     "exp05fs_t35": 10
+    }
+   },
+   "close_late": {
+    "events": 88,
+    "solo_n": 88,
+    "over_n": 0,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": 1.0,
+    "over_rate": null,
+    "partner_kinds": {}
+   },
+   "exp05fs_calendar": {
+    "events": 1,
+    "solo_n": 0,
+    "over_n": 0,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": null,
+    "partner_kinds": {}
+   },
+   "exp05fs_t35": {
+    "events": 92,
+    "solo_n": 38,
+    "over_n": 54,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": 1.0,
+    "over_rate": 1.0,
+    "partner_kinds": {
+     "t20": 49,
+     "analysis/bodyweight_forward/collector": 5,
+     "trio_t10": 1,
+     "t10": 1
+    }
+   },
+   "final_rt_candidate": {
+    "events": 65,
+    "solo_n": 65,
+    "over_n": 0,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": 1.0,
+    "over_rate": null,
+    "partner_kinds": {}
+   },
+   "final_stock_candidate(STOCK)": {
+    "events": 1,
+    "solo_n": 0,
+    "over_n": 0,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": null,
+    "partner_kinds": {}
+   },
+   "jvlink_changes": {
+    "events": 3174,
+    "solo_n": 0,
+    "over_n": 0,
+    "rc_nonzero": 1558,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": null,
+    "partner_kinds": {}
+   },
+   "t10": {
+    "events": 88,
+    "solo_n": 70,
+    "over_n": 18,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": 1.0,
+    "over_rate": 1.0,
+    "partner_kinds": {
+     "analysis/bodyweight_forward/collector": 14,
+     "exp05fs_t35": 4
+    }
+   },
+   "t20": {
+    "events": 92,
+    "solo_n": 58,
+    "over_n": 34,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": 1.0,
+    "over_rate": 1.0,
+    "partner_kinds": {
+     "analysis/bodyweight_forward/collector": 6,
+     "exp05fs_t35": 32
+    }
+   },
+   "t2_candidate": {
+    "events": 115,
+    "solo_n": 115,
+    "over_n": 0,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": 1.0,
+    "over_rate": null,
+    "partner_kinds": {}
+   },
+   "trio_t10": {
+    "events": 46,
+    "solo_n": 44,
+    "over_n": 2,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": 1.0,
+    "over_rate": 1.0,
+    "partner_kinds": {
+     "exp05fs_t35": 2
+    }
+   }
+  },
+  "unidentified_events": 0,
+  "assumes_schedule_non_overlap": false
+ },
+ "concurrency_window30_descriptive": {
+  "definition": "window30",
+  "window_sec": 30.0,
+  "events": 4169,
+  "unreadable": 0,
+  "measured": 586,
+  "overlapping_event_pairs": 14458,
+  "solo": {
+   "ok": 180,
+   "n": 180,
+   "rate": 1.0
+  },
+  "overlapped": {
+   "ok": 406,
+   "n": 406,
+   "rate": 1.0
+  },
+  "overlapped_failures": [],
+  "by_kind": {
+   "analysis/bodyweight_forward/collector": {
+    "events": 407,
+    "solo_n": 0,
+    "over_n": 0,
+    "rc_nonzero": 153,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": null,
+    "partner_kinds": {
+     "jvlink_changes": 3,
+     "exp05fs_t35": 103,
+     "t20": 99,
+     "trio_t10": 112,
+     "t10": 107
+    }
+   },
+   "close_late": {
+    "events": 88,
+    "solo_n": 0,
+    "over_n": 88,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": 1.0,
+    "partner_kinds": {
+     "jvlink_changes": 88
+    }
+   },
+   "exp05fs_calendar": {
+    "events": 1,
+    "solo_n": 0,
+    "over_n": 0,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": null,
+    "partner_kinds": {}
+   },
+   "exp05fs_t35": {
+    "events": 92,
+    "solo_n": 0,
+    "over_n": 92,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": 1.0,
+    "partner_kinds": {
+     "analysis/bodyweight_forward/collector": 92,
+     "t20": 60,
+     "trio_t10": 4,
+     "t10": 4
+    }
+   },
+   "final_rt_candidate": {
+    "events": 65,
+    "solo_n": 65,
+    "over_n": 0,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": 1.0,
+    "over_rate": null,
+    "partner_kinds": {}
+   },
+   "final_stock_candidate(STOCK)": {
+    "events": 1,
+    "solo_n": 0,
+    "over_n": 0,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": null,
+    "partner_kinds": {}
+   },
+   "jvlink_changes": {
+    "events": 3174,
+    "solo_n": 0,
+    "over_n": 0,
+    "rc_nonzero": 1558,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": null,
+    "partner_kinds": {
+     "analysis/bodyweight_forward/collector": 138,
+     "close_late": 3036
+    }
+   },
+   "t10": {
+    "events": 88,
+    "solo_n": 0,
+    "over_n": 88,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": 1.0,
+    "partner_kinds": {
+     "analysis/bodyweight_forward/collector": 88,
+     "trio_t10": 88,
+     "exp05fs_t35": 4
+    }
+   },
+   "t20": {
+    "events": 92,
+    "solo_n": 0,
+    "over_n": 92,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": 1.0,
+    "partner_kinds": {
+     "analysis/bodyweight_forward/collector": 92,
+     "exp05fs_t35": 60
+    }
+   },
+   "t2_candidate": {
+    "events": 115,
+    "solo_n": 115,
+    "over_n": 0,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": 1.0,
+    "over_rate": null,
+    "partner_kinds": {}
+   },
+   "trio_t10": {
+    "events": 46,
+    "solo_n": 0,
+    "over_n": 46,
+    "rc_nonzero": 0,
+    "errors": 0,
+    "solo_rate": null,
+    "over_rate": 1.0,
+    "partner_kinds": {
+     "analysis/bodyweight_forward/collector": 46,
+     "t10": 44,
+     "exp05fs_t35": 2
+    }
+   }
+  },
+  "unidentified_events": 0,
+  "assumes_schedule_non_overlap": false
+ },
+ "corruption_0000": [],
+ "contract": {
+  "met": false,
+  "reasons": [
+   "required stage/spec missing count > max(1%, 1 race): ['final_rt_candidate/0B31 (10 > 1)', 'final_rt_candidate/0B32 (10 > 1)', 'final_rt_candidate/0B33 (10 > 1)', 'final_rt_candidate/0B34 (10 > 1)', 'final_rt_candidate/0B35 (10 > 1)']"
+  ]
+ },
+ "concurrency_verdict": "CONCURRENCY_OK",
+ "concurrency_reasons": [],
+ "decision": "CONTRACT_NOT_MET",
+ "exit_code": 4,
+ "stage0_passed": false,
+ "collection_continues": true,
+ "performance_blocked_by_stage0": true,
+ "stage0_restart": "修正を入れた後の開催日から Stage 0 の 2 開催日を数え直す（それまで性能・ROI・帯選択へ進まない）",
+ "files_opened_outcome_like": []
+}
