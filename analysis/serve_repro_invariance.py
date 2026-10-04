@@ -167,8 +167,17 @@ def max_abs(a: pd.DataFrame, b: pd.DataFrame, cols: list[str]) -> float:
     return m
 
 
+def drop_dup_keys(*frames: pd.DataFrame) -> tuple[list[pd.DataFrame], int]:
+    """(rid, umaban) が重複する行 (出走表 CSV の重複行) を両側から除く。除いたキー数も返す。"""
+    dup = set()
+    for f in frames:
+        dup |= set(f.index[f.index.duplicated(keep=False)])
+    return [f[~f.index.isin(dup)] for f in frames], len(dup)
+
+
 def compare(mod, ref: pd.DataFrame, got: pd.DataFrame) -> dict:
     other = [c for c in mod.NUM_FEATS if c not in ROLL4]
+    (ref, got), n_dup = drop_dup_keys(ref, got)
     common = ref.index.intersection(got.index)
     ref, got = ref.loc[common], got.loc[common]
     roll = diff_rows(ref, got, ROLL4)
@@ -179,7 +188,8 @@ def compare(mod, ref: pd.DataFrame, got: pd.DataFrame) -> dict:
     ex = ref.loc[ident[ident].index, ["horse_name", "identity_status", "identity_ped_id"]].copy()
     ex["other_status"] = got.loc[ex.index, "identity_status"].to_numpy()
     ex["other_ped_id"] = got.loc[ex.index, "identity_ped_id"].astype(str).to_numpy()
-    return {"n": int(len(common)), "any": int(anyd.sum()), "rolling4": int(roll.sum()),
+    return {"n": int(len(common)), "duplicate_keys_excluded": n_dup,
+            "any": int(anyd.sum()), "rolling4": int(roll.sum()),
             "horse_feats": int(horse.sum()), "codes": int(codes.sum()), "identity": int(ident.sum()),
             "rolling4_max_abs": round(max_abs(ref, got, ROLL4), 6),
             "horse_feats_max_abs": round(max_abs(ref, got, other), 6),
@@ -478,6 +488,7 @@ def cmd_stagediff(a) -> int:
     fa, fb = Path(a.feats_a), Path(a.feats_b)
     ba, bb = Path(a.bundles_a), Path(a.bundles_b)
     rows, days, ident_trans, ident_examples = [], [], {}, []
+    dup_excluded: dict[str, int] = {}
     roll_changed = horses_total = 0
     a95_cmp = {"races_t10": 0, "changed_t10": 0, "races_bundle_odds": 0, "changed_bundle_odds": 0}
     pdiffs = []
@@ -486,6 +497,8 @@ def cmd_stagediff(a) -> int:
         if (fa / f"feats_{d}.parquet").exists() and (fb / f"feats_{d}.parquet").exists():
             xa = pd.read_parquet(fa / f"feats_{d}.parquet").set_index(["rid", "umaban"])
             xb = pd.read_parquet(fb / f"feats_{d}.parquet").set_index(["rid", "umaban"])
+            (xa, xb), n_dup = drop_dup_keys(xa, xb)
+            dup_excluded[d] = n_dup
             com = xa.index.intersection(xb.index)
             xa, xb = xa.loc[com].sort_index(), xb.loc[com].sort_index()
             horses_total += len(com)
@@ -522,7 +535,8 @@ def cmd_stagediff(a) -> int:
                 day["b_top3"] += int(hon_b in kek[rid])
                 od = [(k[1], ka[k][2]) for k in com if ka[k][2]]
                 if len(od) >= 5:
-                    fav = min(od, key=lambda t: float(t[1]))[0]
+                    # 同オッズは馬番の小さい方 (set の反復順に依存させない)
+                    fav = min(od, key=lambda t: (float(t[1]), t[0]))[0]
                     day["n_fav"] += 1
                     day["a_fav"] += int(hon_a == fav)
                     day["b_fav"] += int(hon_b == fav)
@@ -544,7 +558,8 @@ def cmd_stagediff(a) -> int:
            "top1_changed_races": int(pdf["top1_changed"].sum()) if len(pdf) else 0,
            "p_win_abs_diff": {"median": float(np.median(pd_arr)), "p95": float(np.percentile(pd_arr, 95)),
                               "max": float(pd_arr.max()), "n_horses": len(pdiffs)},
-           "mark_changed_horses": mark_changed, "a95": a95_cmp}
+           "mark_changed_horses": mark_changed, "a95": a95_cmp,
+           "duplicate_keys_excluded": {d: n for d, n in dup_excluded.items() if n}}
     if len(pdf) and pdf["n"].sum():
         res["hon_top3"] = {"n_races": int(pdf["n"].sum()),
                            "a_pct": round(100 * pdf["a_top3"].sum() / pdf["n"].sum(), 2),
@@ -746,12 +761,49 @@ def cmd_parity(a) -> int:
         y = pd.to_numeric(df.loc[sel[sel].index, c], errors="coerce").to_numpy(float)
         both = ~np.isnan(x) & ~np.isnan(y)
         eq = (x == y) | (np.isnan(x) & np.isnan(y))
+        # 浮動小数の足し順の違い (平均の計算経路) による 1e-16 程度の差は一致とみなす
+        tol = (np.abs(np.where(both, x - y, 0.0)) <= 1e-9) & ~(np.isnan(x) ^ np.isnan(y))
         dd = np.abs(x[both] - y[both])
         return {"n": int(len(x)), "exact": int(eq.sum()), "exact_pct": round(100 * float(eq.mean()), 3) if len(x) else None,
+                "match_tol1e-9": int(tol.sum()),
+                "match_tol_pct": round(100 * float(tol.mean()), 3) if len(x) else None,
                 "both_missing": int((np.isnan(x) & np.isnan(y)).sum()),
                 "missing_mismatch": int((np.isnan(x) ^ np.isnan(y)).sum()),
                 "diff_median": float(np.median(dd)) if len(dd) else 0.0,
                 "diff_p95": float(np.percentile(dd, 95)) if len(dd) else 0.0}
+
+    # 学習側の定義 (build_dataset: K で並べ、主体・馬ごとに行単位 shift(1) の rolling) を、
+    # 履歴と同じ行集合 = master 626,774 行で計算し直す。master に格納された値は、着順欠損
+    # (除外・中止・失格) の行を含む 631,965 行で計算した後にその行を落としているので、
+    # 配信側 (履歴に無い行は見えない) と完全一致しうるのはこちら。
+    rc = ["日付", "発走時刻", "レースID(新/馬番無)", "馬番", "騎手コード", "調教師コード", "血統登録番号", "着順"]
+    full = pd.read_csv(MASTER, encoding="utf-8-sig", usecols=rc, low_memory=False)
+    full = full.sort_values(["日付", "発走時刻", "レースID(新/馬番無)", "馬番"], kind="mergesort")
+    full["_f"] = (pd.to_numeric(full["着順"], errors="coerce") <= 3).astype(float)
+    recomputed = {}
+    for code, prefix in (("騎手コード", "jockey"), ("調教師コード", "trainer")):
+        for w in (30, 90):
+            recomputed[f"{prefix}_fuku{w}"] = (full.groupby(code, sort=False)["_f"]
+                                               .transform(lambda x, w=w: x.shift(1).rolling(w, min_periods=5).mean()))
+    for w, mp in ((10, 3), (30, 5)):
+        recomputed[f"horse_fuku{w}"] = (full.groupby("血統登録番号", sort=False)["_f"]
+                                        .transform(lambda x, w=w, mp=mp: x.shift(1).rolling(w, min_periods=mp).mean()))
+    rkey = full["レースID(新/馬番無)"].astype(str) + "_" + full["馬番"].astype(str)
+    mkey = m[COL_RID].astype(str) + "_" + m[COL_BAN].astype(str)
+    re_df = pd.DataFrame(recomputed).set_index(rkey.to_numpy())
+    re_df = re_df[~re_df.index.duplicated()]
+    re_m = re_df.reindex(mkey.to_numpy())
+    re_m.index = m.index
+    del full
+
+    def _cmp_re(sel: pd.Series, c: str) -> dict:
+        x = re_m.loc[sel, c].to_numpy(float)
+        y = pd.to_numeric(df.loc[sel[sel].index, c], errors="coerce").to_numpy(float)
+        both = ~np.isnan(x) & ~np.isnan(y)
+        tol = (np.abs(np.where(both, x - y, 0.0)) <= 1e-9) & ~(np.isnan(x) ^ np.isnan(y))
+        return {"n": int(len(x)), "match_tol1e-9": int(tol.sum()),
+                "match_tol_pct": round(100 * float(tol.mean()), 3) if len(x) else None,
+                "missing_mismatch": int((np.isnan(x) ^ np.isnan(y)).sum())}
 
     allrows = pd.Series(True, index=m.index)
     ok_id = m["identity_ok"].fillna(False)
@@ -760,18 +812,22 @@ def cmd_parity(a) -> int:
         rec = {"gain_pct": gain.get(c), "all_rows": _cmp(allrows, c)}
         if c.startswith("jockey_fuku"):
             sub = ~m["jockey_sameday_prior"]
-            rec["no_sameday_prior (完全一致を要求)"] = _cmp(sub, c)
-            rec["sameday_prior (定義差)"] = _cmp(~sub, c)
+            rec["no_sameday_prior vs 格納値"] = _cmp(sub, c)
+            rec["sameday_prior (定義差) vs 格納値"] = _cmp(~sub, c)
+            rec["no_sameday_prior vs 学習定義の再計算 (完全一致を要求)"] = _cmp_re(sub, c)
         elif c.startswith("trainer_fuku"):
             sub = ~m["trainer_sameday_prior"] & ~m["trainer_block_nonfirst"]
-            rec["no_sameday_prior_block_first (完全一致を要求)"] = _cmp(sub, c)
-            rec["sameday_prior (定義差)"] = _cmp(m["trainer_sameday_prior"] & ~m["trainer_block_nonfirst"], c)
-            rec["block_nonfirst (P0-5 修正前の混入)"] = _cmp(m["trainer_block_nonfirst"], c)
+            rec["no_sameday_prior_block_first vs 格納値"] = _cmp(sub, c)
+            rec["sameday_prior (定義差) vs 格納値"] = _cmp(m["trainer_sameday_prior"] & ~m["trainer_block_nonfirst"], c)
+            rec["block_nonfirst (P0-5 修正前の混入) vs 格納値"] = _cmp(m["trainer_block_nonfirst"], c)
+            rec["no_sameday_prior_block_first vs 学習定義の再計算 (完全一致を要求)"] = _cmp_re(sub, c)
         else:
-            rec["identity_resolved_to_true_ped (完全一致を要求)"] = _cmp(ok_id, c)
-            rec["identity_not_resolved"] = _cmp(~ok_id, c)
+            rec["identity_resolved_to_true_ped vs 格納値"] = _cmp(ok_id, c)
+            rec["identity_not_resolved vs 格納値"] = _cmp(~ok_id, c)
+            if c in re_m.columns:
+                rec["identity_resolved_to_true_ped vs 学習定義の再計算 (完全一致を要求)"] = _cmp_re(ok_id, c)
         feats[c] = rec
-        print(c, json.dumps({k: (v if not isinstance(v, dict) else v.get("exact_pct")) for k, v in rec.items()},
+        print(c, json.dumps({k: (v if not isinstance(v, dict) else v.get("match_tol_pct")) for k, v in rec.items()},
                             ensure_ascii=False), flush=True)
     res["features"] = dict(sorted(feats.items(), key=lambda kv: -(kv[1]["gain_pct"] or 0)))
     res["days"] = len(days)
