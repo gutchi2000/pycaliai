@@ -176,7 +176,6 @@ def _clean(s: str) -> str:
     return shf._clean_name(s)
 
 
-@pytest.mark.xfail(strict=True, reason="D2: 馬同定が全期間の最終行の父名を使う (spec §1)")
 def test_T1_history_append_invariance_all_features(tmp_path):
     hist = _history()
     full = _features(_base(tmp_path, hist, "full"), _weekly())
@@ -203,7 +202,6 @@ def test_T2_row_order_invariance(tmp_path, seed):
     assert _same(ref, got)
 
 
-@pytest.mark.xfail(strict=True, reason="D2: 予測日より後の行が同定の候補・照合属性に使われる (spec §1)")
 def test_T3_identity_is_day_start_limited():
     hist = _history()
     full_idx = shf._HistoryIndex(hist)
@@ -241,3 +239,29 @@ def test_T6_missing_post_time_value_stops_with_error(tmp_path):
     base = _base(tmp_path, hist, "nan_post_time")
     with pytest.raises(shf.HistorySchemaError):
         shf.fill_history_features(_weekly(), base=base)
+
+
+def test_identity_status_column_and_quoted_sire(tmp_path):
+    """同定状態は馬ごとに df へ書かれる。予測日朝の情報だけで判断するので、
+    予測日より後にしか行の無い馬は new、父名の表記が引用符の有無で食い違う馬は
+    (正規化が無ければ) ambiguous になる。"""
+    df = _weekly()
+    shf.fill_history_features(df, base=_base(tmp_path, _history(), "full"))
+    status = dict(zip(df["馬名"], df[shf.IDENTITY_STATUS_COL]))
+    assert status["ミライバ"] == "new"
+    assert status["フツウバ"] == "hit"
+    assert status["クォートホース"] == "ambiguous"
+
+
+def test_resolve_without_race_date_keeps_legacy_full_history_behaviour():
+    """race_date を渡さない呼び出し元 (EXP05-F live_history ほか) は旧挙動のまま:
+    全期間の最終行の名前・父名・生年で照合する。"""
+    idx = shf._HistoryIndex(_history())
+    by = int(D // 10000 - 4)
+    ent, status = idx.resolve("クォートホース", QUOTED_SIRE, by)
+    assert (status, ent["ped_id"]) == ("hit", 20001)            # 予測日後の引用符つき行で一致
+    assert ent["sire"] == QUOTED_SIRE and ent["birth_year"] == 2022
+    ent2, status2 = idx.resolve("ミライバ", "ダミー父", 2023)
+    assert status2 == "hit" and ent2["ped_id"] == -30001       # 予測日後にしか行が無くても候補
+    assert idx.resolve("クォートホース", QUOTED_SIRE, by, race_date=D)[1] == "ambiguous"
+    assert idx.resolve("ミライバ", "ダミー父", 2023, race_date=D)[1] == "new"
