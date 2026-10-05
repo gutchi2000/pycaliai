@@ -20,8 +20,12 @@ The local store is `data/forward_bodyweight/` and must not be published.
 
 ## Live operation (2026-09-26)
 
-Windows task `PyCaLiAI_BodyWeight` runs the 32-bit Python collector directly
+Windows task `PyCaLiAI_BodyWeight` runs the 32-bit Python collector
 (no PowerShell COM bridge) every five minutes from 08:15 for nine hours.
+Since 2026-10-05 the task action is `wscript.exe //B //Nologo run_hidden.vbs`,
+which starts the same `python.exe collector.py` command with a hidden console
+and passes its exit code through (the direct launch flashed a console window
+every five minutes).
 It no-ops with exit 0 when the verified calendar for that date is absent.
 `MultipleInstancesPolicy=IgnoreNew`, `WakeToRun=true`, and the execution limit
 is four minutes. Disable or unregister this one task to stop collection; stored
