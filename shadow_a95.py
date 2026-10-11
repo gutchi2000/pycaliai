@@ -409,4 +409,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # Windows コンソール (cp932) で ¥ が UnicodeEncodeError になるため UTF-8 に寄せる
+    for _st in (sys.stdout, sys.stderr):
+        if hasattr(_st, "reconfigure"):
+            _st.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main())
