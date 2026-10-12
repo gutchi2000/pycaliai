@@ -1,56 +1,28 @@
 {
  "date": "2026-10-12",
- "fetched_at": "2026-10-12T08:30:04",
- "measured_label": "10月11日（日曜）7時00分",
- "measured_date": "2026-10-11",
- "is_measured_today": false,
+ "fetched_at": "2026-10-12T09:30:02",
+ "measured_label": "10月12日（月曜）7時00分",
+ "measured_date": "2026-10-12",
+ "is_measured_today": true,
  "venues": [
   {
    "venue": "東京",
    "rc": "rcA",
-   "cushion": 9.4,
+   "cushion": 9.6,
    "cushion_firmness": "標準",
-   "cushion_time": "10月11日（日曜）7時00分",
-   "shiba_gp": 13.6,
-   "shiba_4c": 13.0,
-   "dirt_gp": 1.8,
-   "dirt_4c": 2.0,
-   "moist_time": "10月11日（日曜）5時00分",
-   "shiba_bias": {
-    "band": "標準",
-    "front_edge": 22.6,
-    "nige_win": 18.4,
-    "senko_win": 12.6,
-    "waku_out_minus_in": -0.1,
-    "line": "芝[標準/ｸｯｼｮﾝ9.4] 前残り度+22.6pp（逃18.4%・先12.6%）・枠ほぼ均等(外-内-0.1pp)"
-   },
-   "dirt_bias": {
-    "band": "乾",
-    "front_edge": 28.9,
-    "nige_win": 19.9,
-    "senko_win": 14.8,
-    "waku_out_minus_in": 2.3,
-    "line": "ダ[乾/含水1.8%] 前残り度+28.9pp（逃19.9%・先14.8%）・外枠有利(外-内+2.3pp)"
-   }
-  },
-  {
-   "venue": "京都",
-   "rc": "rcB",
-   "cushion": 10.3,
-   "cushion_firmness": "やや硬め",
-   "cushion_time": "10月11日（日曜）7時00分",
-   "shiba_gp": 7.5,
-   "shiba_4c": 8.6,
-   "dirt_gp": 2.5,
-   "dirt_4c": 3.0,
-   "moist_time": "10月11日（日曜）6時00分",
+   "cushion_time": "10月12日（月曜）7時00分",
+   "shiba_gp": 13.2,
+   "shiba_4c": 11.8,
+   "dirt_gp": 1.7,
+   "dirt_4c": 1.7,
+   "moist_time": "10月12日（月曜）5時30分",
    "shiba_bias": {
     "band": "軽い(速)",
     "front_edge": 21.8,
     "nige_win": 17.4,
     "senko_win": 12.6,
     "waku_out_minus_in": -1.6,
-    "line": "芝[軽い(速)/ｸｯｼｮﾝ10.3] 前残り度+21.8pp（逃17.4%・先12.6%）・内枠やや有利(外-内-1.6pp)"
+    "line": "芝[軽い(速)/ｸｯｼｮﾝ9.6] 前残り度+21.8pp（逃17.4%・先12.6%）・内枠やや有利(外-内-1.6pp)"
    },
    "dirt_bias": {
     "band": "乾",
@@ -58,7 +30,35 @@
     "nige_win": 19.9,
     "senko_win": 14.8,
     "waku_out_minus_in": 2.3,
-    "line": "ダ[乾/含水2.5%] 前残り度+28.9pp（逃19.9%・先14.8%）・外枠有利(外-内+2.3pp)"
+    "line": "ダ[乾/含水1.7%] 前残り度+28.9pp（逃19.9%・先14.8%）・外枠有利(外-内+2.3pp)"
+   }
+  },
+  {
+   "venue": "京都",
+   "rc": "rcB",
+   "cushion": 10.7,
+   "cushion_firmness": "やや硬め",
+   "cushion_time": "10月12日（月曜）7時00分",
+   "shiba_gp": 6.6,
+   "shiba_4c": 8.2,
+   "dirt_gp": 2.0,
+   "dirt_4c": 2.0,
+   "moist_time": "10月12日（月曜）6時00分",
+   "shiba_bias": {
+    "band": "軽い(速)",
+    "front_edge": 21.8,
+    "nige_win": 17.4,
+    "senko_win": 12.6,
+    "waku_out_minus_in": -1.6,
+    "line": "芝[軽い(速)/ｸｯｼｮﾝ10.7] 前残り度+21.8pp（逃17.4%・先12.6%）・内枠やや有利(外-内-1.6pp)"
+   },
+   "dirt_bias": {
+    "band": "乾",
+    "front_edge": 28.9,
+    "nige_win": 19.9,
+    "senko_win": 14.8,
+    "waku_out_minus_in": 2.3,
+    "line": "ダ[乾/含水2.0%] 前残り度+28.9pp（逃19.9%・先14.8%）・外枠有利(外-内+2.3pp)"
    }
   }
  ]
