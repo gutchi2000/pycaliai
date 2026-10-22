@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "pinned_on": "2026-10-22",
+  "generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+  "note": "本番成果物の期待 sha256。不一致なら production_policy.verify_artifact_pins が PolicyError を出し、T-10 と週次 bundle 生成を止める (fail-closed)。モデルや較正器を意図して差し替えるときは、このファイルを同じ commit で更新すること。経緯: docs/research/PROD_MODEL_GENERATION_REGRESSION_20261021.md",
+  "pins": {
+    "models/unified_rank_v6.pkl": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+    "models/pl_calibrators_v6.pkl": "a08da05124c489c0d72c416bf17bf70c1c3829ffda2a381cc62e66007cad9221",
+    "models/pl_calibrators_v6_serve.pkl": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+    "data/pl_payout_curve_v6.pkl": "52b0edf639203453b350265566ea172bbd3c9a967c6cd46fdc86c3283d2095e0"
+  }
+}

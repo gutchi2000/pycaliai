@@ -284,6 +284,15 @@ def main() -> int:
     if not be.MODEL_PKL.exists():
         logger.error(f"モデル未存在: {be.MODEL_PKL}")
         return 1
+    if tag == "v6":
+        # 本番成果物が期待版か照合 (2026-09-20 の C0 退行の再発防止)。
+        from production_policy import PolicyError, verify_artifact_pins
+        try:
+            pin = verify_artifact_pins()
+            logger.info(f"artifact pins OK: {pin.get('pins_generation')}")
+        except PolicyError as exc:
+            logger.error(f"[FAIL-CLOSED] {exc}")
+            return 1
 
     bundle = joblib.load(be.MODEL_PKL)
     model = bundle["model"]
