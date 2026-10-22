@@ -182,6 +182,35 @@ def hard_skip_reasons(race_meta: dict, race_conf: dict,
     return reasons
 
 
+PINS_PATH = BASE / "data" / "artifact_pins.json"
+
+
+@lru_cache(maxsize=1)
+def verify_artifact_pins(pins_path: Path | None = None) -> dict:
+    """本番成果物 (モデル・較正器・curve) が期待 sha256 と一致するか検査する。
+
+    2026-09-20 に weekly の autostash で本番モデルが旧世代 (C0) に戻り、
+    1 か月気付かなかった事故の再発防止。stamp に hash を刻むだけでは
+    退行を検知できないため、期待値と照合して不一致なら止める。
+    """
+    path = pins_path or PINS_PATH
+    spec = _read_json(path)
+    pins = spec.get("pins")
+    if not isinstance(pins, dict) or not pins:
+        raise PolicyError(f"artifact_pins.pins 欠落: {path}")
+    mismatched = []
+    for rel, expected in pins.items():
+        actual = sha256_file(BASE / str(rel))
+        if actual != str(expected).lower():
+            mismatched.append(f"{rel}: expected {str(expected)[:16]} actual {actual[:16]}")
+    if mismatched:
+        raise PolicyError(
+            "本番成果物が期待版と不一致 (モデル退行の疑い): " + "; ".join(mismatched)
+            + "  → 意図した差し替えなら data/artifact_pins.json を同じ commit で更新")
+    return {"pins_generation": spec.get("generation"),
+            "pins_sha256": sha256_file(path)}
+
+
 @lru_cache(maxsize=1)
 def policy_stamp() -> dict:
     """本番出力に刻む、再現可能なpolicy/artifact来歴。"""
@@ -208,6 +237,7 @@ def policy_stamp() -> dict:
     for name, rel in (p.get("artifacts") or {}).items():
         hashes[name] = sha256_file(BASE / str(rel))
     stamp["artifact_sha256"] = hashes
+    stamp.update(verify_artifact_pins())
     return stamp
 
 
@@ -216,3 +246,4 @@ def clear_policy_caches() -> None:
     load_policy.cache_clear()
     load_quantiles.cache_clear()
     policy_stamp.cache_clear()
+    verify_artifact_pins.cache_clear()
