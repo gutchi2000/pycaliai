@@ -1,0 +1,2634 @@
+{
+ "build_info": {
+  "elapsed_sec": 43.8,
+  "lambda": [
+   0.8405,
+   0.7542
+  ],
+  "o1_sha256": "54d8d7551a5c4e8911efd7ac83a2426a3c2bef7fd8dbd077aff14972a15c2b8b",
+  "o1_stats": {
+   "n_races": 18910,
+   "n_records": 75619
+  },
+  "score_info": {
+   "tau": {
+    "oof": 0.8451328952818176,
+    "prod": 0.8654867745633152
+   },
+   "dup_rows_after_merge": 0,
+   "rows_by_src": {
+    "oof_c1master": 141589,
+    "v6_scores_c1": 94245,
+    "c1_rescore_2026": 23266
+   },
+   "c1_2026_dup_horses": 2349,
+   "c1_2026_dup_dates": [
+    "20260307",
+    "20260308",
+    "20260314",
+    "20260315",
+    "20260321",
+    "20260322",
+    "20260328",
+    "20260329",
+    "20260404",
+    "20260405",
+    "20260411",
+    "20260412"
+   ],
+   "c1_2026_dup_range": {
+    "p50": 0.1834,
+    "p90": 0.6008,
+    "p100": 1.7195,
+    "n": 2349
+   }
+  },
+  "kekka_stats": {
+   "rows": 260892,
+   "races": 18910,
+   "dup_rows": 0,
+   "fin_nan": 0
+  },
+  "weekly_missing_dates": [],
+  "jump_manifest_gap": {
+   "period": "2026-03-07 〜 収集開始日の前日",
+   "jump_races": 47,
+   "rows": 582,
+   "reason": "data/weekly が障害を含まず、共有 JV-Link ストアでの 過去 backfill は隔離不可のため永久中止 (判断分岐 B、2026-09-22)",
+   "policy": "推測補完しない / 馬名 join しない / 0 埋めしない"
+  },
+  "c1_2026_manifest": {
+   "generated_at": "2026-10-23T07:36:32",
+   "model_sha256": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+   "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+   "since": "20260101",
+   "until": "20260822",
+   "env": {
+    "CB_HOSEI_PROXY": "1"
+   },
+   "horse_history_truncated_lt_date": true,
+   "n_days_o1": 53,
+   "n_rows": 25615,
+   "n_races": 1638
+  },
+  "c1_2026_days": {
+   "20260104": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 48.4,
+    "csv_sha256": "040c5c093d248d93588385d0d948f1818c4bf1e38c82930cd491f304f56ba686",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     259,
+     334
+    ],
+    "n_race_json": 24,
+    "n_skip": 0,
+    "dead_gain_pct": 34.79,
+    "n_dead_feats": 46,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 24,
+    "gate_lines": [
+     "2026-10-23 06:59:51,745 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260105": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 46.1,
+    "csv_sha256": "f395241638cd331189efaf36465b2fe2fcb0480172667a38646a7d03dadc779f",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     282,
+     323
+    ],
+    "n_race_json": 23,
+    "n_skip": 0,
+    "dead_gain_pct": 33.96,
+    "n_dead_feats": 41,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 23,
+    "gate_lines": [
+     "2026-10-23 07:00:38,281 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260110": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 51.7,
+    "csv_sha256": "d8dd7f6d18bcd44fb77e69cb54d890689a62017739189edeccfed7ce743d7d63",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     296,
+     347
+    ],
+    "n_race_json": 23,
+    "n_skip": 0,
+    "dead_gain_pct": 34.79,
+    "n_dead_feats": 46,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 23,
+    "gate_lines": [
+     "2026-10-23 07:01:30,015 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260111": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 50.8,
+    "csv_sha256": "636b61cde865fe75741826c5e83520ad2af0887e079c3db3b6b255b29bd53c8a",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     312,
+     352
+    ],
+    "n_race_json": 23,
+    "n_skip": 0,
+    "dead_gain_pct": 34.67,
+    "n_dead_feats": 45,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 23,
+    "gate_lines": [
+     "2026-10-23 07:02:20,873 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260112": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 43.9,
+    "csv_sha256": "37d6b98348552c4d6454a4bf1c18dff397f4509992625fa7b8bd7e5c6fa352f8",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     302,
+     356
+    ],
+    "n_race_json": 23,
+    "n_skip": 0,
+    "dead_gain_pct": 34.08,
+    "n_dead_feats": 42,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 23,
+    "gate_lines": [
+     "2026-10-23 07:03:04,515 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260117": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 51.1,
+    "csv_sha256": "0ff9238b6ee8f09c1ebd4a370374f4d4e2c988b2600c523a6e481eafe2bd980a",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     278,
+     324
+    ],
+    "n_race_json": 23,
+    "n_skip": 0,
+    "dead_gain_pct": 34.79,
+    "n_dead_feats": 46,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 23,
+    "gate_lines": [
+     "2026-10-23 07:03:55,903 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260118": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 49.0,
+    "csv_sha256": "6e97da9d936ea1e07e3ade75dcffdca08714eecb522117d0954e8b6bedae83ea",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     296,
+     337
+    ],
+    "n_race_json": 23,
+    "n_skip": 0,
+    "dead_gain_pct": 34.55,
+    "n_dead_feats": 44,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 23,
+    "gate_lines": [
+     "2026-10-23 07:04:44,796 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260124": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 42.3,
+    "csv_sha256": "64a07ce8b23e47da27ca890b8411735b30d43d721b10fffb216eb3a2bf1f8476",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     417,
+     477
+    ],
+    "n_race_json": 34,
+    "n_skip": 0,
+    "dead_gain_pct": 33.96,
+    "n_dead_feats": 41,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 34,
+    "gate_lines": [
+     "2026-10-23 07:05:27,217 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260125": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 42.3,
+    "csv_sha256": "9961c5451d8c491d1b1d77c9065e1be8334738ae5bb51f536e3c6756a178018a",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     417,
+     504
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 34.55,
+    "n_dead_feats": 44,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:06:09,403 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260131": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.6,
+    "csv_sha256": "7cb0aa1020330f70dff1bedcbd9854e0ba1f2e25c7107c4a80d8d7581f116286",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     427,
+     496
+    ],
+    "n_race_json": 34,
+    "n_skip": 0,
+    "dead_gain_pct": 34.67,
+    "n_dead_feats": 45,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 34,
+    "gate_lines": [
+     "2026-10-23 07:06:51,167 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260201": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.9,
+    "csv_sha256": "a61e82942758ea7bdb467b03303b18fec47bc4a5d46a310a80564e024ce9ae0d",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     428,
+     489
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 35.35,
+    "n_dead_feats": 46,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:07:33,081 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako",
+     "2026-10-23 07:07:33,081 [ERROR] [品質ゲート] serve死亡特徴のgain合計 35.35% > 35.00% (芝(内・外), トラックコード(JV), 前1角, 前走日付, 前走場所, 前走出走頭数, 前走競走種別, 前走トラックコード(JV), 前走馬体重, 前走馬体重増減, 前PCI, 前好走 ...)"
+    ]
+   },
+   "20260207": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 42.5,
+    "csv_sha256": "3eab6dee47ce4d3ab150a68ee320461f404e9fc14129bed02b710fc0b721a817",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     362,
+     414
+    ],
+    "n_race_json": 29,
+    "n_skip": 0,
+    "dead_gain_pct": 33.96,
+    "n_dead_feats": 41,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 29,
+    "gate_lines": [
+     "2026-10-23 07:08:15,591 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260208": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.4,
+    "csv_sha256": "d8003ac4702439f43b8d7d3b4370ec622f851c7d39701cfef30d75131c1ecbf5",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     148,
+     165
+    ],
+    "n_race_json": 11,
+    "n_skip": 0,
+    "dead_gain_pct": 36.11,
+    "n_dead_feats": 49,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 11,
+    "gate_lines": [
+     "2026-10-23 07:08:56,988 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako",
+     "2026-10-23 07:08:56,988 [ERROR] [品質ゲート] serve死亡特徴のgain合計 36.11% > 35.00% (コース区分, 芝(内・外), トラックコード(JV), 前1角, 前走日付, 前走場所, 前走出走頭数, 前走競走種別, 前走トラックコード(JV), 前走馬体重, 前走馬体重増減, 前PCI ...)"
+    ]
+   },
+   "20260210": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 42.3,
+    "csv_sha256": "fc114c9249a4c4533df75cc172f27f45ace3ffea00482541469b63d13835a71d",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     268,
+     325
+    ],
+    "n_race_json": 24,
+    "n_skip": 0,
+    "dead_gain_pct": 34.67,
+    "n_dead_feats": 45,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 24,
+    "gate_lines": [
+     "2026-10-23 07:09:39,340 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260214": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 43.2,
+    "csv_sha256": "20f85d64ef153d46c412a12e943d04a2ce0edc7b9b6cbabdb39b42691cb42b92",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     464,
+     514
+    ],
+    "n_race_json": 34,
+    "n_skip": 0,
+    "dead_gain_pct": 34.55,
+    "n_dead_feats": 44,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 34,
+    "gate_lines": [
+     "2026-10-23 07:10:22,545 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260215": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.6,
+    "csv_sha256": "ef31e6b04c506c6493feeed8b13c4bb469b067ea7e637e53ae24318163881102",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     454,
+     494
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 33.96,
+    "n_dead_feats": 41,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:11:04,153 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260221": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.1,
+    "csv_sha256": "9badbacc15237c0fedfdb3d4c45ed95ceeba93fc72a5f077b063a6d71e02c660",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     465,
+     506
+    ],
+    "n_race_json": 34,
+    "n_skip": 0,
+    "dead_gain_pct": 34.55,
+    "n_dead_feats": 44,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 34,
+    "gate_lines": [
+     "2026-10-23 07:11:45,302 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260222": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.2,
+    "csv_sha256": "5e9a9db57022f36328a0508c57082d14e96d25aac6857f6f0350a25df6ebd1e0",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     444,
+     485
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 33.96,
+    "n_dead_feats": 41,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:12:26,513 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260228": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 40.9,
+    "csv_sha256": "86fc7c3dc57f56f2fda35dfd4ee13c95f3d673e9069350d254962533ad6c355a",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     475,
+     496
+    ],
+    "n_race_json": 34,
+    "n_skip": 0,
+    "dead_gain_pct": 35.03,
+    "n_dead_feats": 42,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 34,
+    "gate_lines": [
+     "2026-10-23 07:13:07,436 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako",
+     "2026-10-23 07:13:07,437 [ERROR] [品質ゲート] serve死亡特徴のgain合計 35.03% > 35.00% (芝(内・外), トラックコード(JV), 前走日付, 前走場所, 前走出走頭数, 前走競走種別, 前走トラックコード(JV), 前走馬体重, 前走馬体重増減, 前PCI, 前好走, 前走PCI3 ...)"
+    ]
+   },
+   "20260301": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.0,
+    "csv_sha256": "cf991b166be54464e937cd304901394e1150e785dc2483e0f39cd34cf734d010",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     483,
+     507
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 35.03,
+    "n_dead_feats": 42,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:13:48,452 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako",
+     "2026-10-23 07:13:48,452 [ERROR] [品質ゲート] serve死亡特徴のgain合計 35.03% > 35.00% (芝(内・外), トラックコード(JV), 前走日付, 前走場所, 前走出走頭数, 前走競走種別, 前走トラックコード(JV), 前走馬体重, 前走馬体重増減, 前PCI, 前好走, 前走PCI3 ...)"
+    ]
+   },
+   "20260307": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 40.4,
+    "csv_sha256": "7ec13c5f7a6c6d481ec43e27981ebcc0373fe2c947b7c3fba881b4af2628b25d",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     307,
+     341
+    ],
+    "n_race_json": 23,
+    "n_skip": 0,
+    "dead_gain_pct": 13.18,
+    "n_dead_feats": 29,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 23,
+    "gate_lines": []
+   },
+   "20260308": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 40.3,
+    "csv_sha256": "3ad8ee60a50db6e5607b584044a6c9e59932e35011b856c4e2e6f93aad729d68",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     286,
+     314
+    ],
+    "n_race_json": 23,
+    "n_skip": 0,
+    "dead_gain_pct": 13.18,
+    "n_dead_feats": 29,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 23,
+    "gate_lines": []
+   },
+   "20260314": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.3,
+    "csv_sha256": "1c61f9a6086cd4f88ed6e2686c6e5ebb4b2c73f724daad18b673e4968c97ba8f",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     530,
+     564
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 35.15,
+    "n_dead_feats": 43,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:15:50,530 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako",
+     "2026-10-23 07:15:50,530 [ERROR] [品質ゲート] serve死亡特徴のgain合計 35.15% > 35.00% (コース区分, 芝(内・外), トラックコード(JV), 前走日付, 前走場所, 前走出走頭数, 前走競走種別, 前走トラックコード(JV), 前走馬体重, 前走馬体重増減, 前PCI, 前好走 ...)"
+    ]
+   },
+   "20260315": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.4,
+    "csv_sha256": "e1a7f8ae1fccd0404e47e99893caaf7fc875c1c810dd85c49ba0a898e783cca5",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     524,
+     561
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 35.74,
+    "n_dead_feats": 46,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:16:31,951 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako",
+     "2026-10-23 07:16:31,951 [ERROR] [品質ゲート] serve死亡特徴のgain合計 35.74% > 35.00% (コース区分, 芝(内・外), トラックコード(JV), 前1角, 前走日付, 前走場所, 前走出走頭数, 前走競走種別, 前走トラックコード(JV), 前走馬体重, 前走馬体重増減, 前PCI ...)"
+    ]
+   },
+   "20260321": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.5,
+    "csv_sha256": "1a137fca8ebf9aea40fa78b231072a2e2f253e2cc08380a4ff156564e7a2f5e7",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     744,
+     779
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 35.15,
+    "n_dead_feats": 43,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:17:13,457 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako",
+     "2026-10-23 07:17:13,457 [ERROR] [品質ゲート] serve死亡特徴のgain合計 35.15% > 35.00% (コース区分, 芝(内・外), トラックコード(JV), 前走日付, 前走場所, 前走出走頭数, 前走競走種別, 前走トラックコード(JV), 前走馬体重, 前走馬体重増減, 前PCI, 前好走 ...)"
+    ]
+   },
+   "20260322": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.4,
+    "csv_sha256": "b25fffa0dd9cf74b69393f6716408958f1aa608d0987e5ba9f452f3a0736f28b",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     764,
+     799
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 34.08,
+    "n_dead_feats": 42,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:17:54,833 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260328": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.3,
+    "csv_sha256": "afb0303c472fca2e8254ff79c30bf62fe756a2aa2a4c13287e872c3c2420c0b5",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     738,
+     770
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 35.03,
+    "n_dead_feats": 42,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:18:36,161 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako",
+     "2026-10-23 07:18:36,161 [ERROR] [品質ゲート] serve死亡特徴のgain合計 35.03% > 35.00% (芝(内・外), トラックコード(JV), 前走日付, 前走場所, 前走出走頭数, 前走競走種別, 前走トラックコード(JV), 前走馬体重, 前走馬体重増減, 前PCI, 前好走, 前走PCI3 ...)"
+    ]
+   },
+   "20260329": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.2,
+    "csv_sha256": "79b2f3a9b48f155bc944afdb07604c3ab5da44393ab8fc3cbfe486597198e9e9",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     763,
+     790
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 35.03,
+    "n_dead_feats": 42,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:19:17,382 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako",
+     "2026-10-23 07:19:17,382 [ERROR] [品質ゲート] serve死亡特徴のgain合計 35.03% > 35.00% (芝(内・外), トラックコード(JV), 前走日付, 前走場所, 前走出走頭数, 前走競走種別, 前走トラックコード(JV), 前走馬体重, 前走馬体重増減, 前PCI, 前好走, 前走PCI3 ...)"
+    ]
+   },
+   "20260404": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.5,
+    "csv_sha256": "3718319c027beb7b3d49261ac512f628f2daf1a984a3bd1a41f9184f861266ee",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     484,
+     523
+    ],
+    "n_race_json": 23,
+    "n_skip": 0,
+    "dead_gain_pct": 34.08,
+    "n_dead_feats": 42,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 23,
+    "gate_lines": [
+     "2026-10-23 07:19:58,904 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   },
+   "20260405": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.0,
+    "csv_sha256": "72ddf52af48f97e9fb5b4f21a83e43c801d288ddc80a17465d616909ca91e918",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     544,
+     552
+    ],
+    "n_race_json": 23,
+    "n_skip": 0,
+    "dead_gain_pct": 35.03,
+    "n_dead_feats": 42,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 23,
+    "gate_lines": [
+     "2026-10-23 07:20:39,914 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako",
+     "2026-10-23 07:20:39,914 [ERROR] [品質ゲート] serve死亡特徴のgain合計 35.03% > 35.00% (芝(内・外), トラックコード(JV), 前走日付, 前走場所, 前走出走頭数, 前走競走種別, 前走トラックコード(JV), 前走馬体重, 前走馬体重増減, 前PCI, 前好走, 前走PCI3 ...)"
+    ]
+   },
+   "20260411": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 42.4,
+    "csv_sha256": "5a5c2e888e42eacc5daeed2aba57d7d290567c95ea5d6edf2703d1f1d01f0282",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     796,
+     833
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 14.13,
+    "n_dead_feats": 29,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 35,
+    "gate_lines": []
+   },
+   "20260412": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.6,
+    "csv_sha256": "333ca68cac0c6feaa4c8a89c7c6371955cda5c32b482d9a626a2d93e881cba68",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     787,
+     818
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 14.13,
+    "n_dead_feats": 29,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 35,
+    "gate_lines": []
+   },
+   "20260418": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.4,
+    "csv_sha256": "5abd7a7625ce5ba1f8d59f98cf297f4f7998ca4011b1d5728e8c615c7688f19e",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     454,
+     473
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 14.13,
+    "n_dead_feats": 29,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 35,
+    "gate_lines": []
+   },
+   "20260419": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.5,
+    "csv_sha256": "28bb4a176ae19f00ae1d564f323dab2e54675c9cc6b561c07619775b54a8c727",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     449,
+     476
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 14.13,
+    "n_dead_feats": 29,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 35,
+    "gate_lines": []
+   },
+   "20260425": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.4,
+    "csv_sha256": "0cbeb6b317e2e6447aec30d347b69f66788dbeadb12438cf7433932b62f31934",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     482,
+     498
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 14.72,
+    "n_dead_feats": 32,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 35,
+    "gate_lines": []
+   },
+   "20260426": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.3,
+    "csv_sha256": "0ae2caaca2c938799cd41a8af3f855cba86be2d2eebbc9ab0fdecb28834b4555",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     493,
+     513
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 13.06,
+    "n_dead_feats": 28,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 35,
+    "gate_lines": []
+   },
+   "20260502": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.7,
+    "csv_sha256": "d504d63eda958215ad0c2066de0e61772db993c0487ae37505643e955aa8ab6f",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     453,
+     467
+    ],
+    "n_race_json": 34,
+    "n_skip": 0,
+    "dead_gain_pct": 35.03,
+    "n_dead_feats": 42,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 34,
+    "gate_lines": [
+     "2026-10-23 07:25:31,168 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako",
+     "2026-10-23 07:25:31,168 [ERROR] [品質ゲート] serve死亡特徴のgain合計 35.03% > 35.00% (芝(内・外), トラックコード(JV), 前走日付, 前走場所, 前走出走頭数, 前走競走種別, 前走トラックコード(JV), 前走馬体重, 前走馬体重増減, 前PCI, 前好走, 前走PCI3 ...)"
+    ]
+   },
+   "20260503": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.6,
+    "csv_sha256": "4b37633dc65262f406e9d84be7224e18f82b31aed149c12b3434178bfbf8bf51",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     483,
+     498
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 35.03,
+    "n_dead_feats": 42,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:26:12,782 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako",
+     "2026-10-23 07:26:12,782 [ERROR] [品質ゲート] serve死亡特徴のgain合計 35.03% > 35.00% (芝(内・外), トラックコード(JV), 前走日付, 前走場所, 前走出走頭数, 前走競走種別, 前走トラックコード(JV), 前走馬体重, 前走馬体重増減, 前PCI, 前好走, 前走PCI3 ...)"
+    ]
+   },
+   "20260509": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.6,
+    "csv_sha256": "b52cb0ea18fa8bed0f59cba0db3b9763d10c5230dbe35f0b4e33c28af7c7ddd2",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     452,
+     471
+    ],
+    "n_race_json": 34,
+    "n_skip": 0,
+    "dead_gain_pct": 13.06,
+    "n_dead_feats": 28,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 34,
+    "gate_lines": []
+   },
+   "20260510": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.8,
+    "csv_sha256": "770d84b98d0643a724b2b5e6bcdf25f005c6eaed0d83a2655584d4db83f213ff",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     478,
+     491
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 14.13,
+    "n_dead_feats": 29,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 35,
+    "gate_lines": []
+   },
+   "20260516": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.3,
+    "csv_sha256": "542c48fe48cc95407e6d5034ee5f8c3fe3ff1237ecb8e3af0da6360099abaeb7",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     467,
+     487
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 18.41,
+    "n_dead_feats": 48,
+    "n_silent_dead": 16,
+    "kako5_missing": false,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:28:17,467 [ERROR] [品質ゲート] serve特徴が無言死 (16): trnH_Time1(70%→0%), trnH_Time2(70%→0%), trnH_Time3(70%→0%), trnH_Time4(70%→0%), trnH_Lap1(70%→0%), trnH_Lap2(70%→0%), trnH_Lap3(70%→0%), trnH_Lap4(70%→0%), trnH_days_ago(70%→0%), trnW_5F(45%→0%), trnW_4F(52%→0%), trnW_3F(52%→0%) ... (parse_cs"
+    ]
+   },
+   "20260517": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.2,
+    "csv_sha256": "19a84d31ae7fd4807f749c29c0bff0777b7ddd24427adc258ace2abc8d0a6e9d",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     445,
+     456
+    ],
+    "n_race_json": 34,
+    "n_skip": 0,
+    "dead_gain_pct": 17.82,
+    "n_dead_feats": 45,
+    "n_silent_dead": 16,
+    "kako5_missing": false,
+    "parsed_races": 34,
+    "gate_lines": [
+     "2026-10-23 07:28:58,601 [ERROR] [品質ゲート] serve特徴が無言死 (16): trnH_Time1(70%→0%), trnH_Time2(70%→0%), trnH_Time3(70%→0%), trnH_Time4(70%→0%), trnH_Lap1(70%→0%), trnH_Lap2(70%→0%), trnH_Lap3(70%→0%), trnH_Lap4(70%→0%), trnH_days_ago(70%→0%), trnW_5F(45%→0%), trnW_4F(52%→0%), trnW_3F(52%→0%) ... (parse_cs"
+    ]
+   },
+   "20260523": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.1,
+    "csv_sha256": "5a42ba4dbf8a570987310073f990328bed2de97a61a7474494654184eed18a49",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     508,
+     522
+    ],
+    "n_race_json": 34,
+    "n_skip": 0,
+    "dead_gain_pct": 14.72,
+    "n_dead_feats": 32,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 34,
+    "gate_lines": []
+   },
+   "20260524": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.7,
+    "csv_sha256": "39165f5ef4848748ed52e8bf01ee66cae4eeb7bab723aec8f071731e6a6e8196",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     499,
+     513
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 14.72,
+    "n_dead_feats": 32,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 35,
+    "gate_lines": []
+   },
+   "20260530": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 40.5,
+    "csv_sha256": "499e1d9b0def5a628d1ce05bc637a7e5534fcf173d0d8c6c8c47f4af70556682",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     329,
+     348
+    ],
+    "n_race_json": 23,
+    "n_skip": 0,
+    "dead_gain_pct": 14.13,
+    "n_dead_feats": 29,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 23,
+    "gate_lines": []
+   },
+   "20260606": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 40.5,
+    "csv_sha256": "e3ab778085b78fe8d5a9cf32cd15ba44dd04be3a522db3469306b34a58c71286",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     281,
+     318
+    ],
+    "n_race_json": 23,
+    "n_skip": 0,
+    "dead_gain_pct": 13.77,
+    "n_dead_feats": 32,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 23,
+    "gate_lines": []
+   },
+   "20260607": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.2,
+    "csv_sha256": "9d46abe983f643d8b583c8b7fd356862b225ac87ee2249c790fc5b454a13a82a",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     310,
+     343
+    ],
+    "n_race_json": 23,
+    "n_skip": 0,
+    "dead_gain_pct": 14.84,
+    "n_dead_feats": 33,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 23,
+    "gate_lines": []
+   },
+   "20260613": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.4,
+    "csv_sha256": "33f294ff044ceade293fbf28e95f8b5dea44d5deb04d0a5e46881926f5c3b27c",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     429,
+     488
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 15.36,
+    "n_dead_feats": 34,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 35,
+    "gate_lines": []
+   },
+   "20260614": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.7,
+    "csv_sha256": "a5945923cb7c43c3b988f946ac74bef6c939d29039a8ded8be9d670409d21007",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     437,
+     485
+    ],
+    "n_race_json": 36,
+    "n_skip": 0,
+    "dead_gain_pct": 15.52,
+    "n_dead_feats": 34,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 36,
+    "gate_lines": []
+   },
+   "20260620": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.0,
+    "csv_sha256": "fb8ea1ad58b40a2036a2a8ce0866b19ee110422783ea4f3303679dfdadf45e68",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     429,
+     496
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 13.65,
+    "n_dead_feats": 31,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 35,
+    "gate_lines": []
+   },
+   "20260705": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.5,
+    "csv_sha256": "dc36c7ec0f861e60458573aea68d7ae76048ec8797f0796cc8588c477bdba990",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     396,
+     464
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 14.96,
+    "n_dead_feats": 34,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 35,
+    "gate_lines": []
+   },
+   "20260718": {
+    "rc": 0,
+    "status": "ok",
+    "sec": 41.5,
+    "csv_sha256": "b63ca6cf280d2e2404f785a70e6b8ac7770739d653ccd0c42817bc897194bebb",
+    "gate_fail": false,
+    "pins_ok": true,
+    "n_missing_cols_filled": 24,
+    "history_resolved": [
+     420,
+     448
+    ],
+    "n_race_json": 34,
+    "n_skip": 0,
+    "dead_gain_pct": 13.06,
+    "n_dead_feats": 28,
+    "n_silent_dead": 0,
+    "kako5_missing": false,
+    "parsed_races": 34,
+    "gate_lines": []
+   },
+   "20260822": {
+    "rc": 2,
+    "status": "ok",
+    "sec": 41.2,
+    "csv_sha256": "2d4fcb82b5d5051da9a28a6da2668a5514007375e75656f656c647871062710c",
+    "gate_fail": true,
+    "pins_ok": true,
+    "n_missing_cols_filled": 30,
+    "history_resolved": [
+     424,
+     471
+    ],
+    "n_race_json": 35,
+    "n_skip": 0,
+    "dead_gain_pct": 33.96,
+    "n_dead_feats": 41,
+    "n_silent_dead": 16,
+    "kako5_missing": true,
+    "parsed_races": 35,
+    "gate_lines": [
+     "2026-10-23 07:36:32,077 [ERROR] [品質ゲート] serve特徴が無言死 (16): kako5_avg_pos(91%→0%), kako5_std_pos(91%→0%), kako5_best_pos(91%→0%), kako5_avg_ninki(91%→0%), kako5_pos_vs_ninki(91%→0%), kako5_avg_agari3f(90%→0%), kako5_best_agari3f(90%→0%), kako5_same_td_ratio(91%→0%), kako5_same_dist_ratio(91%→0%), kako"
+    ]
+   }
+  }
+ },
+ "n_rows": 505064,
+ "n_races": 18219,
+ "columns": [
+  "rid16",
+  "year",
+  "date",
+  "period_role",
+  "venue_code",
+  "venue",
+  "surface",
+  "distance",
+  "class_raw",
+  "class_norm",
+  "track_code",
+  "post_time",
+  "meta_src",
+  "n_registered",
+  "n_field_s1",
+  "n_starters_hdr_s1",
+  "umaban",
+  "waku",
+  "bet_type",
+  "s1_announced",
+  "s1_min_before_post",
+  "s1_timing_ok",
+  "s1_rule",
+  "n_o1_records",
+  "o1_divisions",
+  "odds_tan",
+  "odds_fuku_lo",
+  "odds_fuku_hi",
+  "odds_fuku_mid",
+  "fuku_places",
+  "fuku_offered",
+  "overround_tan",
+  "overround_fuku_mid",
+  "overround_fuku_lo",
+  "overround_fuku_hi",
+  "votes_tan_s1",
+  "votes_fuku_s1",
+  "q_tan_mkt",
+  "q_fuku_mkt",
+  "tan_odds_rank",
+  "mkt_entropy_tan",
+  "mkt_q_top1",
+  "mkt_q_gap12",
+  "score",
+  "score_missing",
+  "score_src",
+  "score_dup_n",
+  "n_scored",
+  "p_win_sm",
+  "p_top2_pl",
+  "p_top3_pl",
+  "p_place_model",
+  "model_rank",
+  "model_entropy",
+  "model_p_top1",
+  "model_p_gap12",
+  "p_bet",
+  "q_bet",
+  "log_p_over_q",
+  "score_day_gate_fail",
+  "score_day_dead_gain_pct",
+  "score_day_kako5_missing",
+  "res_status",
+  "res_payout_100",
+  "res_payout_src",
+  "res_fin",
+  "res_scratched_after_s1",
+  "res_dnf",
+  "res_race_deadheat_win",
+  "res_race_deadheat_place",
+  "res_race_n_scratch_after_s1",
+  "res_race_n_dnf",
+  "res_close_tan",
+  "res_close_fuku_lo",
+  "res_close_fuku_hi",
+  "res_s3_min_after_post",
+  "res_s1_to_s3_min"
+ ],
+ "races_o1_by_year": {
+  "2021": 3456,
+  "2022": 3456,
+  "2023": 3456,
+  "2024": 3454,
+  "2025": 3455,
+  "2026": 1633
+ },
+ "excluded_by_year_reason": {
+  "2021": {
+   "jump_track_code": 127,
+   "jump_weekly_surface": 0,
+   "no_s1_snapshot": 0,
+   "not_in_weekly_assumed_jump": 0
+  },
+  "2022": {
+   "jump_track_code": 125,
+   "jump_weekly_surface": 0,
+   "no_s1_snapshot": 0,
+   "not_in_weekly_assumed_jump": 0
+  },
+  "2023": {
+   "jump_track_code": 127,
+   "jump_weekly_surface": 0,
+   "no_s1_snapshot": 0,
+   "not_in_weekly_assumed_jump": 0
+  },
+  "2024": {
+   "jump_track_code": 127,
+   "jump_weekly_surface": 0,
+   "no_s1_snapshot": 0,
+   "not_in_weekly_assumed_jump": 0
+  },
+  "2025": {
+   "jump_track_code": 120,
+   "jump_weekly_surface": 0,
+   "no_s1_snapshot": 0,
+   "not_in_weekly_assumed_jump": 0
+  },
+  "2026": {
+   "jump_track_code": 0,
+   "jump_weekly_surface": 32,
+   "no_s1_snapshot": 5,
+   "not_in_weekly_assumed_jump": 28
+  }
+ },
+ "races_kept_by_year": {
+  "2021": 3329,
+  "2022": 3331,
+  "2023": 3329,
+  "2024": 3327,
+  "2025": 3335,
+  "2026": 1568
+ },
+ "rows_by_year_type": {
+  "2021": {
+   "fuku": 46243,
+   "tan": 46243
+  },
+  "2022": {
+   "fuku": 45745,
+   "tan": 45745
+  },
+  "2023": {
+   "fuku": 46134,
+   "tan": 46134
+  },
+  "2024": {
+   "fuku": 45709,
+   "tan": 45709
+  },
+  "2025": {
+   "fuku": 46422,
+   "tan": 46422
+  },
+  "2026": {
+   "fuku": 22279,
+   "tan": 22279
+  }
+ },
+ "cands_per_race_by_year": {
+  "2021": {
+   "p00": 5.0,
+   "p50": 15.0,
+   "p100": 18.0,
+   "n": 3329
+  },
+  "2022": {
+   "p00": 5.0,
+   "p50": 15.0,
+   "p100": 18.0,
+   "n": 3331
+  },
+  "2023": {
+   "p00": 5.0,
+   "p50": 15.0,
+   "p100": 18.0,
+   "n": 3329
+  },
+  "2024": {
+   "p00": 5.0,
+   "p50": 15.0,
+   "p100": 18.0,
+   "n": 3327
+  },
+  "2025": {
+   "p00": 5.0,
+   "p50": 15.0,
+   "p100": 18.0,
+   "n": 3335
+  },
+  "2026": {
+   "p00": 5.0,
+   "p50": 15.0,
+   "p100": 18.0,
+   "n": 1568
+  }
+ },
+ "dates_by_year": {
+  "2021": 106,
+  "2022": 108,
+  "2023": 107,
+  "2024": 106,
+  "2025": 109,
+  "2026": 53
+ },
+ "s1_rule_counts": {
+  "second_of_n": 18219
+ },
+ "s1_rule_all_races": {
+  "second_of_n": 18219,
+  "nan": 686,
+  "single_record_out_of_window": 5
+ },
+ "s1_min_before_post_by_year": {
+  "2021": {
+   "p00": 9.0,
+   "p01": 11.0,
+   "p05": 11.0,
+   "p10": 11.0,
+   "p50": 11.0,
+   "p90": 11.0,
+   "p95": 11.0,
+   "p99": 11.0,
+   "p100": 11.0,
+   "n": 3329
+  },
+  "2022": {
+   "p00": 11.0,
+   "p01": 11.0,
+   "p05": 11.0,
+   "p10": 11.0,
+   "p50": 11.0,
+   "p90": 11.0,
+   "p95": 11.0,
+   "p99": 11.0,
+   "p100": 11.0,
+   "n": 3331
+  },
+  "2023": {
+   "p00": 11.0,
+   "p01": 11.0,
+   "p05": 11.0,
+   "p10": 11.0,
+   "p50": 11.0,
+   "p90": 11.0,
+   "p95": 11.0,
+   "p99": 11.0,
+   "p100": 11.0,
+   "n": 3329
+  },
+  "2024": {
+   "p00": 10.0,
+   "p01": 11.0,
+   "p05": 11.0,
+   "p10": 11.0,
+   "p50": 11.0,
+   "p90": 11.0,
+   "p95": 11.0,
+   "p99": 11.0,
+   "p100": 12.0,
+   "n": 3327
+  },
+  "2025": {
+   "p00": 10.0,
+   "p01": 11.0,
+   "p05": 11.0,
+   "p10": 11.0,
+   "p50": 11.0,
+   "p90": 11.0,
+   "p95": 11.0,
+   "p99": 11.0,
+   "p100": 11.0,
+   "n": 3335
+  },
+  "2026": {
+   "p00": -99.0,
+   "p01": -10.65,
+   "p05": 10.0,
+   "p10": 11.0,
+   "p50": 11.0,
+   "p90": 11.0,
+   "p95": 11.0,
+   "p99": 11.0,
+   "p100": 11.0,
+   "n": 1568
+  }
+ },
+ "s0_min_before_post_by_year": {
+  "2021": {
+   "p01": 27.0,
+   "p50": 30.0,
+   "p99": 32.0,
+   "n": 3329
+  },
+  "2022": {
+   "p01": 27.0,
+   "p50": 30.0,
+   "p99": 32.0,
+   "n": 3331
+  },
+  "2023": {
+   "p01": 27.0,
+   "p50": 30.0,
+   "p99": 32.0,
+   "n": 3329
+  },
+  "2024": {
+   "p01": 27.0,
+   "p50": 30.0,
+   "p99": 32.0,
+   "n": 3327
+  },
+  "2025": {
+   "p01": 27.0,
+   "p50": 30.0,
+   "p99": 32.0,
+   "n": 3335
+  },
+  "2026": {
+   "p01": 7.67,
+   "p50": 30.0,
+   "p99": 32.0,
+   "n": 1568
+  }
+ },
+ "s3_min_after_post_by_year": {
+  "2021": {
+   "p01": 5.0,
+   "p50": 7.0,
+   "p99": 12.0,
+   "n": 3329
+  },
+  "2022": {
+   "p01": 5.0,
+   "p50": 7.0,
+   "p99": 12.0,
+   "n": 3331
+  },
+  "2023": {
+   "p01": 5.0,
+   "p50": 7.0,
+   "p99": 12.72,
+   "n": 3329
+  },
+  "2024": {
+   "p01": 5.0,
+   "p50": 7.0,
+   "p99": 12.0,
+   "n": 3327
+  },
+  "2025": {
+   "p01": 5.0,
+   "p50": 7.0,
+   "p99": 12.66,
+   "n": 3335
+  },
+  "2026": {
+   "p01": 5.0,
+   "p50": 7.0,
+   "p99": 28.44,
+   "n": 1565
+  }
+ },
+ "s1_flags": {
+  "post_time_missing": 0,
+  "at_or_after_post": 19,
+  "lt_5min": 3,
+  "gt_20min": 0,
+  "s1_division_not1": 0,
+  "races_lt_5_or_gt_20": [
+   {
+    "rid16": "2026012508010901",
+    "s1_min_before_post": -49.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026012508010902",
+    "s1_min_before_post": -44.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026012508010903",
+    "s1_min_before_post": -39.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026012508010904",
+    "s1_min_before_post": -39.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026012508010905",
+    "s1_min_before_post": -14.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026012508010906",
+    "s1_min_before_post": -14.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026012508010907",
+    "s1_min_before_post": -9.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026012508010908",
+    "s1_min_before_post": -5.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026012508010909",
+    "s1_min_before_post": 1.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026020810010601",
+    "s1_min_before_post": -99.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026020810010602",
+    "s1_min_before_post": -95.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026020810010603",
+    "s1_min_before_post": -94.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026020810010605",
+    "s1_min_before_post": -39.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026020810010606",
+    "s1_min_before_post": -39.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026020810010607",
+    "s1_min_before_post": -39.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026020810010608",
+    "s1_min_before_post": -34.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026020810010609",
+    "s1_min_before_post": -29.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026020810010610",
+    "s1_min_before_post": -24.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026020810010611",
+    "s1_min_before_post": -19.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026020810010612",
+    "s1_min_before_post": -9.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026050208030304",
+    "s1_min_before_post": 1.0,
+    "o1_divisions": "1114"
+   },
+   {
+    "rid16": "2026070503020408",
+    "s1_min_before_post": 1.0,
+    "o1_divisions": "1114"
+   }
+  ]
+ },
+ "s1_to_s3_min_by_year": {
+  "2021": {
+   "p00": 16.0,
+   "p01": 16.0,
+   "p50": 18.0,
+   "p99": 23.0,
+   "p100": 28.0,
+   "n": 3329
+  },
+  "2022": {
+   "p00": 16.0,
+   "p01": 16.0,
+   "p50": 18.0,
+   "p99": 23.0,
+   "p100": 35.0,
+   "n": 3331
+  },
+  "2023": {
+   "p00": 16.0,
+   "p01": 16.0,
+   "p50": 18.0,
+   "p99": 23.72,
+   "p100": 34.0,
+   "n": 3329
+  },
+  "2024": {
+   "p00": 16.0,
+   "p01": 16.0,
+   "p50": 18.0,
+   "p99": 23.0,
+   "p100": 33.0,
+   "n": 3327
+  },
+  "2025": {
+   "p00": 16.0,
+   "p01": 16.0,
+   "p50": 18.0,
+   "p99": 23.66,
+   "p100": 37.0,
+   "n": 3335
+  },
+  "2026": {
+   "p00": 11.0,
+   "p01": 16.0,
+   "p50": 18.0,
+   "p99": 23.36,
+   "p100": 33.0,
+   "n": 1565
+  }
+ },
+ "s1_timing_not_ok": {
+  "n": 22,
+  "by_date": {
+   "20260125": 9,
+   "20260208": 11,
+   "20260502": 1,
+   "20260705": 1
+  },
+  "s1_to_s3_min": {
+   "p00": 16.0,
+   "p50": 17.0,
+   "p100": 21.0,
+   "n": 22
+  },
+  "s3_min_after_sched_post": {
+   "p00": 16.0,
+   "p50": 48.5,
+   "p100": 116.0,
+   "n": 22
+  }
+ },
+ "s1_min_before_post_value_counts": {
+  "-99": 1,
+  "-95": 1,
+  "-94": 1,
+  "-49": 1,
+  "-44": 1,
+  "-39": 5,
+  "-34": 1,
+  "-29": 1,
+  "-24": 1,
+  "-19": 1,
+  "-14": 2,
+  "-9": 2,
+  "-5": 1,
+  "1": 3,
+  "6": 7,
+  "9": 1,
+  "10": 71,
+  "11": 18117,
+  "12": 1
+ },
+ "overround_tan_by_year": {
+  "2021": {
+   "p01": 1.1901,
+   "p05": 1.1968,
+   "p50": 1.2606,
+   "p95": 1.2798,
+   "p99": 1.2938,
+   "n": 3329
+  },
+  "2022": {
+   "p01": 1.1907,
+   "p05": 1.197,
+   "p50": 1.2609,
+   "p95": 1.2811,
+   "p99": 1.2979,
+   "n": 3331
+  },
+  "2023": {
+   "p01": 1.1889,
+   "p05": 1.1965,
+   "p50": 1.2609,
+   "p95": 1.2819,
+   "p99": 1.2978,
+   "n": 3329
+  },
+  "2024": {
+   "p01": 1.1989,
+   "p05": 1.2549,
+   "p50": 1.2627,
+   "p95": 1.2849,
+   "p99": 1.2986,
+   "n": 3327
+  },
+  "2025": {
+   "p01": 1.2098,
+   "p05": 1.2551,
+   "p50": 1.2627,
+   "p95": 1.2823,
+   "p99": 1.2973,
+   "n": 3335
+  },
+  "2026": {
+   "p01": 1.2532,
+   "p05": 1.2555,
+   "p50": 1.2626,
+   "p95": 1.2841,
+   "p99": 1.3009,
+   "n": 1568
+  }
+ },
+ "overround_fuku_mid_by_year": {
+  "2021": {
+   "p01": 0.7012,
+   "p05": 0.843,
+   "p50": 1.2215,
+   "p95": 1.2544,
+   "p99": 1.2645,
+   "n": 3329
+  },
+  "2022": {
+   "p01": 0.6978,
+   "p05": 0.8165,
+   "p50": 1.219,
+   "p95": 1.2518,
+   "p99": 1.2635,
+   "n": 3331
+  },
+  "2023": {
+   "p01": 0.6907,
+   "p05": 0.8102,
+   "p50": 1.2191,
+   "p95": 1.2525,
+   "p99": 1.2629,
+   "n": 3329
+  },
+  "2024": {
+   "p01": 0.6876,
+   "p05": 0.7647,
+   "p50": 1.217,
+   "p95": 1.2519,
+   "p99": 1.2612,
+   "n": 3327
+  },
+  "2025": {
+   "p01": 0.6951,
+   "p05": 0.8041,
+   "p50": 1.2232,
+   "p95": 1.2551,
+   "p99": 1.2652,
+   "n": 3335
+  },
+  "2026": {
+   "p01": 0.6736,
+   "p05": 0.7411,
+   "p50": 1.2201,
+   "p95": 1.2535,
+   "p99": 1.2629,
+   "n": 1568
+  }
+ },
+ "overround_fuku_lo_by_year": {
+  "2021": {
+   "p05": 1.417,
+   "p50": 1.5041,
+   "p95": 1.5902,
+   "n": 3329
+  },
+  "2022": {
+   "p05": 1.4152,
+   "p50": 1.5042,
+   "p95": 1.5969,
+   "n": 3331
+  },
+  "2023": {
+   "p05": 1.4165,
+   "p50": 1.5029,
+   "p95": 1.595,
+   "n": 3329
+  },
+  "2024": {
+   "p05": 1.4114,
+   "p50": 1.5076,
+   "p95": 1.5998,
+   "n": 3327
+  },
+  "2025": {
+   "p05": 1.4149,
+   "p50": 1.5041,
+   "p95": 1.5999,
+   "n": 3335
+  },
+  "2026": {
+   "p05": 1.4197,
+   "p50": 1.5166,
+   "p95": 1.6126,
+   "n": 1568
+  }
+ },
+ "overround_fuku_hi_by_year": {
+  "2021": {
+   "p05": 0.6519,
+   "p50": 1.0338,
+   "p95": 1.0989,
+   "n": 3329
+  },
+  "2022": {
+   "p05": 0.6308,
+   "p50": 1.0314,
+   "p95": 1.0964,
+   "n": 3331
+  },
+  "2023": {
+   "p05": 0.6229,
+   "p50": 1.0329,
+   "p95": 1.096,
+   "n": 3329
+  },
+  "2024": {
+   "p05": 0.5906,
+   "p50": 1.028,
+   "p95": 1.0939,
+   "n": 3327
+  },
+  "2025": {
+   "p05": 0.6249,
+   "p50": 1.036,
+   "p95": 1.0976,
+   "n": 3335
+  },
+  "2026": {
+   "p05": 0.5707,
+   "p50": 1.026,
+   "p95": 1.0973,
+   "n": 1568
+  }
+ },
+ "overround_tan_lt_1_23_rate_by_year": {
+  "2021": 0.161,
+  "2022": 0.1651,
+  "2023": 0.1661,
+  "2024": 0.0195,
+  "2025": 0.0126,
+  "2026": 0.0038
+ },
+ "q_tan_sum": {
+  "p00": 1.0,
+  "p50": 1.0,
+  "p100": 1.0,
+  "n": 18219
+ },
+ "q_fuku_sum_minus_places": {
+  "p00": -0.0,
+  "p50": 0.0,
+  "p100": 0.0,
+  "n": 18219
+ },
+ "fuku_places_s1": {
+  "3.0": 17810,
+  "2.0": 409
+ },
+ "fuku_places_s1_vs_n_field": {
+  "(False, 2.0)": 409,
+  "(False, 3.0)": 9,
+  "(True, 3.0)": 17801
+ },
+ "fuku_places_s1_ne_s3": 0,
+ "fuku_offered_false_races": 0,
+ "score_src_rows_by_year": {
+  "2021": {
+   "c1_rescore_2026": 0,
+   "oof_c1master": 92486,
+   "v6_scores_c1": 0
+  },
+  "2022": {
+   "c1_rescore_2026": 0,
+   "oof_c1master": 91490,
+   "v6_scores_c1": 0
+  },
+  "2023": {
+   "c1_rescore_2026": 0,
+   "oof_c1master": 92268,
+   "v6_scores_c1": 0
+  },
+  "2024": {
+   "c1_rescore_2026": 0,
+   "oof_c1master": 0,
+   "v6_scores_c1": 91418
+  },
+  "2025": {
+   "c1_rescore_2026": 0,
+   "oof_c1master": 0,
+   "v6_scores_c1": 92844
+  },
+  "2026": {
+   "c1_rescore_2026": 44558,
+   "oof_c1master": 0,
+   "v6_scores_c1": 0
+  }
+ },
+ "score_missing_rate_by_year": {
+  "2021": 0.00428,
+  "2022": 0.00496,
+  "2023": 0.00503,
+  "2024": 0.00595,
+  "2025": 0.00564,
+  "2026": 0.0
+ },
+ "races_all_scores_missing_by_year": {
+  "2021": 0,
+  "2022": 0,
+  "2023": 0,
+  "2024": 0,
+  "2025": 0,
+  "2026": 0
+ },
+ "score_missing_cause_by_year": {
+  "2021": {
+   "dnf": 123,
+   "other": 0,
+   "scratched_after_s1": 75
+  },
+  "2022": {
+   "dnf": 130,
+   "other": 1,
+   "scratched_after_s1": 96
+  },
+  "2023": {
+   "dnf": 136,
+   "other": 1,
+   "scratched_after_s1": 95
+  },
+  "2024": {
+   "dnf": 174,
+   "other": 0,
+   "scratched_after_s1": 98
+  },
+  "2025": {
+   "dnf": 160,
+   "other": 0,
+   "scratched_after_s1": 102
+  }
+ },
+ "psum_win": {
+  "p00": 1.0,
+  "p50": 1.0,
+  "p100": 1.0,
+  "n": 18219
+ },
+ "psum_top3_minus3": {
+  "p00": -0.0,
+  "p50": 0.0,
+  "p100": 0.0,
+  "n": 18219
+ },
+ "psum_top2_minus2": {
+  "p00": -0.0,
+  "p50": 0.0,
+  "p100": 0.0,
+  "n": 18219
+ },
+ "score_dist_by_year": {
+  "2021": {
+   "p01": -3.3485,
+   "p50": -0.8933,
+   "p99": 1.408,
+   "n": 46045,
+   "mean": -0.9351,
+   "std": 1.1345
+  },
+  "2022": {
+   "p01": -3.5588,
+   "p50": -0.8866,
+   "p99": 1.418,
+   "n": 45518,
+   "mean": -0.9569,
+   "std": 1.1612
+  },
+  "2023": {
+   "p01": -3.3298,
+   "p50": -0.8599,
+   "p99": 1.4128,
+   "n": 45902,
+   "mean": -0.9094,
+   "std": 1.1192
+  },
+  "2024": {
+   "p01": -3.732,
+   "p50": -0.8991,
+   "p99": 1.5619,
+   "n": 45437,
+   "mean": -0.9649,
+   "std": 1.221
+  },
+  "2025": {
+   "p01": -3.6931,
+   "p50": -0.8754,
+   "p99": 1.582,
+   "n": 46160,
+   "mean": -0.9392,
+   "std": 1.2301
+  },
+  "2026": {
+   "p01": -3.0537,
+   "p50": -0.6762,
+   "p99": 1.5794,
+   "n": 22279,
+   "mean": -0.687,
+   "std": 1.08
+  }
+ },
+ "model_entropy_by_year": {
+  "2021": {
+   "p05": 0.6111,
+   "p50": 0.815,
+   "p95": 0.924,
+   "n": 3329
+  },
+  "2022": {
+   "p05": 0.6137,
+   "p50": 0.8165,
+   "p95": 0.9229,
+   "n": 3331
+  },
+  "2023": {
+   "p05": 0.6246,
+   "p50": 0.818,
+   "p95": 0.9231,
+   "n": 3329
+  },
+  "2024": {
+   "p05": 0.6027,
+   "p50": 0.8082,
+   "p95": 0.9163,
+   "n": 3327
+  },
+  "2025": {
+   "p05": 0.5937,
+   "p50": 0.8053,
+   "p95": 0.9157,
+   "n": 3335
+  },
+  "2026": {
+   "p05": 0.6656,
+   "p50": 0.834,
+   "p95": 0.931,
+   "n": 1568
+  }
+ },
+ "model_p_top1_by_year": {
+  "2021": {
+   "p05": 0.159,
+   "p50": 0.2788,
+   "p95": 0.5258,
+   "n": 3329
+  },
+  "2022": {
+   "p05": 0.1578,
+   "p50": 0.2769,
+   "p95": 0.527,
+   "n": 3331
+  },
+  "2023": {
+   "p05": 0.1607,
+   "p50": 0.274,
+   "p95": 0.5108,
+   "n": 3329
+  },
+  "2024": {
+   "p05": 0.1653,
+   "p50": 0.2837,
+   "p95": 0.5407,
+   "n": 3327
+  },
+  "2025": {
+   "p05": 0.1642,
+   "p50": 0.2832,
+   "p95": 0.5507,
+   "n": 3335
+  },
+  "2026": {
+   "p05": 0.1526,
+   "p50": 0.2613,
+   "p95": 0.466,
+   "n": 1568
+  }
+ },
+ "spearman_score_vs_mkt_by_year": {
+  "2021": {
+   "p25": 0.7679,
+   "p50": 0.8474,
+   "p75": 0.9048,
+   "n": 3329
+  },
+  "2022": {
+   "p25": 0.7765,
+   "p50": 0.8549,
+   "p75": 0.9066,
+   "n": 3331
+  },
+  "2023": {
+   "p25": 0.7857,
+   "p50": 0.8618,
+   "p75": 0.9121,
+   "n": 3329
+  },
+  "2024": {
+   "p25": 0.7853,
+   "p50": 0.8588,
+   "p75": 0.9091,
+   "n": 3327
+  },
+  "2025": {
+   "p25": 0.7832,
+   "p50": 0.8601,
+   "p75": 0.9139,
+   "n": 3335
+  },
+  "2026": {
+   "p25": 0.7265,
+   "p50": 0.8182,
+   "p75": 0.8824,
+   "n": 1568
+  }
+ },
+ "spearman_2026_by_gate": {
+  "False": {
+   "p25": 0.7441,
+   "p50": 0.8297,
+   "p75": 0.8903,
+   "n": 568
+  },
+  "True": {
+   "p25": 0.7143,
+   "p50": 0.8115,
+   "p75": 0.8791,
+   "n": 1000
+  }
+ },
+ "races_2026_by_gate": {
+  "True": 1000,
+  "False": 568
+ },
+ "spearman_2026_by_kako5": {
+  "False": {
+   "p25": 0.7464,
+   "p50": 0.8321,
+   "p75": 0.8929,
+   "n": 637
+  },
+  "True": {
+   "p25": 0.708,
+   "p50": 0.8095,
+   "p75": 0.8767,
+   "n": 931
+  }
+ },
+ "missing_rate_rows": {
+  "odds_tan": 0.0,
+  "odds_fuku_lo": 0.0,
+  "q_fuku_mkt": 0.0,
+  "score": 0.00472,
+  "p_win_sm": 0.00472,
+  "p_top3_pl": 0.00472,
+  "p_place_model": 0.00472,
+  "venue": 0.0,
+  "surface": 0.0,
+  "distance": 0.0,
+  "class_norm": 0.0,
+  "s1_min_before_post": 0.0,
+  "res_payout_100": 0.0,
+  "res_close_tan": 0.00219
+ },
+ "missing_rate_by_type": {
+  "fuku": {
+   "odds_tan": 0.0,
+   "odds_fuku_mid": 0.0,
+   "p_bet": 0.00472,
+   "q_bet": 0.0,
+   "res_payout_100": 0.0
+  },
+  "tan": {
+   "odds_tan": 0.0,
+   "odds_fuku_mid": 0.0,
+   "p_bet": 0.00472,
+   "q_bet": 0.0,
+   "res_payout_100": 0.0
+  }
+ },
+ "scratch_dnf_by_year": {
+  "2021": {
+   "races": 3329,
+   "scratch_before_s1": 85,
+   "scratch_after_s1": 75,
+   "races_scratch_after_s1": 75,
+   "dnf": 123,
+   "races_dnf": 121,
+   "kekka_o1_inconsistent": 0,
+   "kekka_row_missing": 0,
+   "kekka_race_missing": 0
+  },
+  "2022": {
+   "races": 3331,
+   "scratch_before_s1": 65,
+   "scratch_after_s1": 96,
+   "races_scratch_after_s1": 94,
+   "dnf": 130,
+   "races_dnf": 119,
+   "kekka_o1_inconsistent": 0,
+   "kekka_row_missing": 0,
+   "kekka_race_missing": 0
+  },
+  "2023": {
+   "races": 3329,
+   "scratch_before_s1": 78,
+   "scratch_after_s1": 95,
+   "races_scratch_after_s1": 91,
+   "dnf": 136,
+   "races_dnf": 134,
+   "kekka_o1_inconsistent": 0,
+   "kekka_row_missing": 0,
+   "kekka_race_missing": 0
+  },
+  "2024": {
+   "races": 3327,
+   "scratch_before_s1": 87,
+   "scratch_after_s1": 98,
+   "races_scratch_after_s1": 96,
+   "dnf": 174,
+   "races_dnf": 166,
+   "kekka_o1_inconsistent": 0,
+   "kekka_row_missing": 0,
+   "kekka_race_missing": 0
+  },
+  "2025": {
+   "races": 3335,
+   "scratch_before_s1": 61,
+   "scratch_after_s1": 102,
+   "races_scratch_after_s1": 101,
+   "dnf": 160,
+   "races_dnf": 153,
+   "kekka_o1_inconsistent": 0,
+   "kekka_row_missing": 0,
+   "kekka_race_missing": 0
+  },
+  "2026": {
+   "races": 1568,
+   "scratch_before_s1": 35,
+   "scratch_after_s1": 48,
+   "races_scratch_after_s1": 45,
+   "dnf": 64,
+   "races_dnf": 62,
+   "kekka_o1_inconsistent": 0,
+   "kekka_row_missing": 0,
+   "kekka_race_missing": 0
+  }
+ },
+ "res_status_by_type": {
+  "fuku": {
+   "lose": 196941,
+   "win": 54290,
+   "dnf": 787,
+   "refund": 514
+  },
+  "tan": {
+   "lose": 232984,
+   "win": 18247,
+   "dnf": 787,
+   "refund": 514
+  }
+ },
+ "res_status_by_year_type": {
+  "(2021, 'fuku', 'dnf')": 123,
+  "(2021, 'fuku', 'lose')": 36111,
+  "(2021, 'fuku', 'refund')": 75,
+  "(2021, 'fuku', 'win')": 9934,
+  "(2021, 'tan', 'dnf')": 123,
+  "(2021, 'tan', 'lose')": 42707,
+  "(2021, 'tan', 'refund')": 75,
+  "(2021, 'tan', 'win')": 3338,
+  "(2022, 'fuku', 'dnf')": 130,
+  "(2022, 'fuku', 'lose')": 35595,
+  "(2022, 'fuku', 'refund')": 96,
+  "(2022, 'fuku', 'win')": 9924,
+  "(2022, 'tan', 'dnf')": 130,
+  "(2022, 'tan', 'lose')": 42184,
+  "(2022, 'tan', 'refund')": 96,
+  "(2022, 'tan', 'win')": 3335,
+  "(2023, 'fuku', 'dnf')": 136,
+  "(2023, 'fuku', 'lose')": 35976,
+  "(2023, 'fuku', 'refund')": 95,
+  "(2023, 'fuku', 'win')": 9927,
+  "(2023, 'tan', 'dnf')": 136,
+  "(2023, 'tan', 'lose')": 42571,
+  "(2023, 'tan', 'refund')": 95,
+  "(2023, 'tan', 'win')": 3332,
+  "(2024, 'fuku', 'dnf')": 174,
+  "(2024, 'fuku', 'lose')": 35534,
+  "(2024, 'fuku', 'refund')": 98,
+  "(2024, 'fuku', 'win')": 9903,
+  "(2024, 'tan', 'dnf')": 174,
+  "(2024, 'tan', 'lose')": 42104,
+  "(2024, 'tan', 'refund')": 98,
+  "(2024, 'tan', 'win')": 3333,
+  "(2025, 'fuku', 'dnf')": 160,
+  "(2025, 'fuku', 'lose')": 36241,
+  "(2025, 'fuku', 'refund')": 102,
+  "(2025, 'fuku', 'win')": 9919,
+  "(2025, 'tan', 'dnf')": 160,
+  "(2025, 'tan', 'lose')": 42820,
+  "(2025, 'tan', 'refund')": 102,
+  "(2025, 'tan', 'win')": 3340,
+  "(2026, 'fuku', 'dnf')": 64,
+  "(2026, 'fuku', 'lose')": 17484,
+  "(2026, 'fuku', 'refund')": 48,
+  "(2026, 'fuku', 'win')": 4683,
+  "(2026, 'tan', 'dnf')": 64,
+  "(2026, 'tan', 'lose')": 20598,
+  "(2026, 'tan', 'refund')": 48,
+  "(2026, 'tan', 'win')": 1569
+ },
+ "res_payout_src_by_type": {
+  "fuku": {
+   "lose": 196941,
+   "kekka": 54290,
+   "dnf": 787,
+   "refund_scratch": 514
+  },
+  "tan": {
+   "lose": 232984,
+   "kekka": 18247,
+   "dnf": 787,
+   "refund_scratch": 514
+  }
+ },
+ "chk_tan_eq_by_year": {
+  "2021": [
+   1.0,
+   3320
+  ],
+  "2022": [
+   1.0,
+   3327
+  ],
+  "2023": [
+   1.0,
+   3326
+  ],
+  "2024": [
+   1.0,
+   3321
+  ],
+  "2025": [
+   1.0,
+   3330
+  ],
+  "2026": [
+   1.0,
+   1564
+  ]
+ },
+ "chk_fuku_in_range_by_year": {
+  "2021": [
+   1.0,
+   9902
+  ],
+  "2022": [
+   1.0,
+   9916
+  ],
+  "2023": [
+   1.0,
+   9895
+  ],
+  "2024": [
+   1.0,
+   9867
+  ],
+  "2025": [
+   1.0,
+   9879
+  ],
+  "2026": [
+   1.0,
+   4654
+  ]
+ },
+ "chk_tan_mismatch_dates": [],
+ "chk_fuku_out_dates": {},
+ "deadheat_win_races_by_year": {
+  "2021": 9,
+  "2022": 4,
+  "2023": 3,
+  "2024": 6,
+  "2025": 5,
+  "2026": 1
+ },
+ "deadheat_place_races_by_year": {
+  "2021": 8,
+  "2022": 2,
+  "2023": 8,
+  "2024": 9,
+  "2025": 10,
+  "2026": 5
+ },
+ "deadheat_place_fuku_paid": {
+  "(3.0, 4.0)": 42
+ },
+ "deadheat_tan_ratio": {
+  "p00": 0.477,
+  "p50": 0.4955,
+  "p100": 0.5735,
+  "n": 28
+ },
+ "chk_kekka_v2_eq_top3file_by_year": {
+  "2021": 1.0,
+  "2022": 1.0,
+  "2023": 1.0,
+  "2024": 1.0,
+  "2025": 1.0
+ },
+ "n_fuku_paid_vs_places": {
+  "(2.0, 2.0)": 409,
+  "(3.0, 3.0)": 17768,
+  "(3.0, 4.0)": 42
+ },
+ "class_norm_counts": {
+  "未勝利": 6393,
+  "1勝": 5068,
+  "2勝": 2562,
+  "新馬": 1573,
+  "3勝": 1167,
+  "OP": 396,
+  "G3": 368,
+  "OP(L)": 353,
+  "G2": 207,
+  "G1": 131,
+  "重賞(格付無)": 1
+ },
+ "surface_counts": {
+  "ダ": 9221,
+  "芝": 8998
+ },
+ "context_missing_rate": {
+  "venue": 0.0,
+  "surface": 0.0,
+  "distance": 0.0,
+  "class_norm": 0.0,
+  "post_time": 0.0
+ },
+ "output_sha256": "1861e2ece9eb468b173d8661ccdcb7197f9c6f98eab3843be81f84f7dbda5774"
+}
