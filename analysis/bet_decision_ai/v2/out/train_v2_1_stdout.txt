@@ -1,0 +1,54 @@
+[08:38:00] spec 7e073a99140d5f0c OK; load 2021-2023 with results (2024+ locked)
+[08:38:02] == huber_model: 27 features ['odds_tan', 'odds_fuku_lo', 'odds_fuku_hi', 'odds_fuku_mid', 'q_tan_mkt', 'q_fuku_mkt', 'tan_odds_rank', 'mkt_entropy_tan', 'mkt_q_top1', 'mkt_q_gap12', 'votes_tan_s1', 'votes_fuku_s1', 'fuku_places', 'p_bet', 'log_p_over_q', 'model_rank', 'model_entropy', 'model_p_top1', 'model_p_gap12', 'p_win', 'p_top3', 'bet_type', 'n_field_s1', 'surface', 'distance', 'class_norm', 'venue_code']
+[08:38:06]     cv cfg00 {'num_leaves': 15, 'min_data_in_leaf': 200, 'learning_rate': 0.02, 'n_trees': 800} loss=0.438338
+[08:38:08]     cv cfg01 {'num_leaves': 15, 'min_data_in_leaf': 200, 'learning_rate': 0.05, 'n_trees': 300} loss=0.438372
+[08:38:09]     cv cfg02 {'num_leaves': 15, 'min_data_in_leaf': 200, 'learning_rate': 0.1, 'n_trees': 100} loss=0.438286
+[08:38:14]     cv cfg03 {'num_leaves': 15, 'min_data_in_leaf': 2000, 'learning_rate': 0.02, 'n_trees': 800} loss=0.438406
+[08:38:16]     cv cfg04 {'num_leaves': 15, 'min_data_in_leaf': 2000, 'learning_rate': 0.05, 'n_trees': 300} loss=0.438396
+[08:38:17]     cv cfg05 {'num_leaves': 15, 'min_data_in_leaf': 2000, 'learning_rate': 0.1, 'n_trees': 100} loss=0.438347
+[08:38:25]     cv cfg06 {'num_leaves': 63, 'min_data_in_leaf': 200, 'learning_rate': 0.02, 'n_trees': 800} loss=0.439619
+[08:38:28]     cv cfg07 {'num_leaves': 63, 'min_data_in_leaf': 200, 'learning_rate': 0.05, 'n_trees': 300} loss=0.439656
+[08:38:29]     cv cfg08 {'num_leaves': 63, 'min_data_in_leaf': 200, 'learning_rate': 0.1, 'n_trees': 100} loss=0.439257
+[08:38:37]     cv cfg09 {'num_leaves': 63, 'min_data_in_leaf': 2000, 'learning_rate': 0.02, 'n_trees': 800} loss=0.438499
+[08:38:40]     cv cfg10 {'num_leaves': 63, 'min_data_in_leaf': 2000, 'learning_rate': 0.05, 'n_trees': 300} loss=0.438501
+[08:38:42]     cv cfg11 {'num_leaves': 63, 'min_data_in_leaf': 2000, 'learning_rate': 0.1, 'n_trees': 100} loss=0.438451
+[08:38:42]   chosen cfg02 {'num_leaves': 15, 'min_data_in_leaf': 200, 'learning_rate': 0.1, 'n_trees': 100} cv_loss=0.438286 (40s)
+[08:38:42]       boot huber 1/10 rows=183,812
+[08:38:43]       boot huber 2/10 rows=183,054
+[08:38:43]       boot huber 3/10 rows=184,068
+[08:38:44]       boot huber 4/10 rows=184,026
+[08:38:44]       boot huber 5/10 rows=184,444
+[08:38:45]       boot huber 6/10 rows=184,424
+[08:38:45]       boot huber 7/10 rows=181,202
+[08:38:46]       boot huber 8/10 rows=183,970
+[08:38:46]       boot huber 9/10 rows=183,212
+[08:38:47]       boot huber 10/10 rows=182,424
+[08:38:47] == huber_nomodel: 19 features ['odds_tan', 'odds_fuku_lo', 'odds_fuku_hi', 'odds_fuku_mid', 'q_tan_mkt', 'q_fuku_mkt', 'tan_odds_rank', 'mkt_entropy_tan', 'mkt_q_top1', 'mkt_q_gap12', 'votes_tan_s1', 'votes_fuku_s1', 'fuku_places', 'bet_type', 'n_field_s1', 'surface', 'distance', 'class_norm', 'venue_code']
+[08:38:51]     cv cfg00 {'num_leaves': 15, 'min_data_in_leaf': 200, 'learning_rate': 0.02, 'n_trees': 800} loss=0.438427
+[08:38:52]     cv cfg01 {'num_leaves': 15, 'min_data_in_leaf': 200, 'learning_rate': 0.05, 'n_trees': 300} loss=0.438463
+[08:38:53]     cv cfg02 {'num_leaves': 15, 'min_data_in_leaf': 200, 'learning_rate': 0.1, 'n_trees': 100} loss=0.438317
+[08:38:57]     cv cfg03 {'num_leaves': 15, 'min_data_in_leaf': 2000, 'learning_rate': 0.02, 'n_trees': 800} loss=0.438444
+[08:38:59]     cv cfg04 {'num_leaves': 15, 'min_data_in_leaf': 2000, 'learning_rate': 0.05, 'n_trees': 300} loss=0.438415
+[08:39:00]     cv cfg05 {'num_leaves': 15, 'min_data_in_leaf': 2000, 'learning_rate': 0.1, 'n_trees': 100} loss=0.438367
+[08:39:07]     cv cfg06 {'num_leaves': 63, 'min_data_in_leaf': 200, 'learning_rate': 0.02, 'n_trees': 800} loss=0.439629
+[08:39:10]     cv cfg07 {'num_leaves': 63, 'min_data_in_leaf': 200, 'learning_rate': 0.05, 'n_trees': 300} loss=0.439660
+[08:39:11]     cv cfg08 {'num_leaves': 63, 'min_data_in_leaf': 200, 'learning_rate': 0.1, 'n_trees': 100} loss=0.439168
+[08:39:18]     cv cfg09 {'num_leaves': 63, 'min_data_in_leaf': 2000, 'learning_rate': 0.02, 'n_trees': 800} loss=0.438542
+[08:39:20]     cv cfg10 {'num_leaves': 63, 'min_data_in_leaf': 2000, 'learning_rate': 0.05, 'n_trees': 300} loss=0.438515
+[08:39:22]     cv cfg11 {'num_leaves': 63, 'min_data_in_leaf': 2000, 'learning_rate': 0.1, 'n_trees': 100} loss=0.438430
+[08:39:22]   chosen cfg02 {'num_leaves': 15, 'min_data_in_leaf': 200, 'learning_rate': 0.1, 'n_trees': 100} cv_loss=0.438317 (35s)
+[08:39:22]       boot huber 1/10 rows=183,812
+[08:39:22]       boot huber 2/10 rows=183,054
+[08:39:23]       boot huber 3/10 rows=184,068
+[08:39:23]       boot huber 4/10 rows=184,026
+[08:39:24]       boot huber 5/10 rows=184,444
+[08:39:24]       boot huber 6/10 rows=184,424
+[08:39:25]       boot huber 7/10 rows=181,202
+[08:39:25]       boot huber 8/10 rows=183,970
+[08:39:26]       boot huber 9/10 rows=183,212
+[08:39:26]       boot huber 10/10 rows=182,424
+[08:39:26] manifest written: E:\PyCaLiAI\analysis\bet_decision_ai\v2\models\manifest_v1_1.json sha256 a9b2ca398cfafab44072dd88b259cf90b6f0de0976b7e2155ae6c9826fb811c5
+[08:40:09]   [select_2023] huber_model: buy=3 roi=1.1666666666666667 ci=[1.1, 1.2000000000000002] ex10=None excess=0.3427049088461002 ci=[0.2572205818194102, 0.3936620379301553] rho=0.3929
+[08:40:52]   [select_2023] huber_nomodel: buy=0 roi=None ci=None ex10=None excess=None ci=None rho=0.3927
+[08:41:35] select judgement: {"huber_model": {"excess_ci_lo": 0.2572205818194102, "n_buy": 3, "stop_excess_ci_le_0": false, "stop_n_buy_lt_100": true, "abort": true}, "huber_nomodel": {"excess_ci_lo": null, "n_buy": 0, "stop_excess_ci_le_0": true, "stop_n_buy_lt_100": true, "abort": true}}
+[08:41:35] ABORT (primary huber_model): True

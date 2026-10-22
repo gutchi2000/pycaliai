@@ -33,7 +33,8 @@ if str(BASE) not in sys.path:
 from analysis.bet_decision_ai.build_substrate import pl_tensors  # noqa: E402  v1 を流用（変更しない）
 
 SPEC = BASE / "docs" / "research" / "BET_DECISION_AI_V2_SPEC.md"
-SPEC_SHA256_PREFIX = "d41323d6db13e48f"
+SPEC_SHA256_PREFIX = "7e073a99140d5f0c"           # v1.1（2026-10-23 改版、§10）
+SPEC_V10_SHA256_PREFIX = "d41323d6db13e48f"       # v1.0（学習器確認 v1.0 を実施した版、記録用）
 SUB = BASE / "data" / "_research" / "bet_decision_ai" / "v2" / "substrate_v2.parquet"
 BASE_PQ = BASE / "data" / "_research" / "mcond" / "base.parquet"
 LAMBDA = BASE / "data" / "harville_lambda.json"
@@ -300,6 +301,30 @@ def make_X(d: pd.DataFrame, mode: str) -> pd.DataFrame:
         if c not in CAT_COLS:
             X[c] = X[c].astype(float)
     return X
+
+
+# ---------------------------------------------------------------- §10 超過回収のセル（券種 × 判断時点オッズ十分位）
+def decision_odds(d: pd.DataFrame) -> np.ndarray:
+    """券の判断時点オッズ: 単勝 = odds_tan、複勝 = odds_fuku_mid（S1 の複勝幅の中点）。"""
+    return np.where(d["bet_type"].to_numpy() == "tan", d["odds_tan"].to_numpy(float), d["odds_fuku_mid"].to_numpy(float))
+
+
+def odds_decile_edges(d_train: pd.DataFrame) -> dict:
+    """学習期間の候補で、券種ごとの判断時点オッズの 10%〜90% 点（9 本）。"""
+    o = decision_odds(d_train)
+    bt = d_train["bet_type"].to_numpy()
+    return {b: [float(x) for x in np.quantile(o[bt == b], np.arange(1, 10) / 10.0)] for b in ("tan", "fuku")}
+
+
+def odds_cell(d: pd.DataFrame, edges: dict) -> np.ndarray:
+    """セル番号 0..19（単勝 0-9、複勝 10-19）。境界ちょうどは上の十分位。"""
+    o = decision_odds(d)
+    bt = d["bet_type"].to_numpy()
+    cell = np.empty(len(d), np.int64)
+    for k, b in enumerate(("tan", "fuku")):
+        m = bt == b
+        cell[m] = np.searchsorted(np.asarray(edges[b]), o[m], side="right") + 10 * k
+    return cell
 
 
 def payout_R(d: pd.DataFrame) -> np.ndarray:

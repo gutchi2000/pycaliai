@@ -78,7 +78,7 @@ def spearman_stats(pred: np.ndarray, R: np.ndarray, date: np.ndarray, reps: int 
 
 
 def decile_table(pred: np.ndarray, R: np.ndarray, buy: np.ndarray | None = None) -> list[dict]:
-    r = rankdata(pred, method="first")
+    r = rankdata(pred, method="ordinal")
     dec = np.minimum((r - 1) * 10 // len(pred), 9).astype(int)
     rows = []
     for k in range(10):
@@ -167,3 +167,122 @@ def paired_diff(predA: np.ndarray, buyA: np.ndarray, predB: np.ndarray, buyB: np
             "roi_diff": float(d_roi) if np.isfinite(d_roi) else None,
             "roi_diff_ci": [float(np.percentile(bo, 2.5)), float(np.percentile(bo, 97.5))] if len(bo) else None,
             "roi_diff_valid_reps": int(len(bo)), "reps": reps}
+
+
+# ================================================================ v1.1 §10: 超過回収
+NCELL = 20
+
+
+def _excess_arrays(R: np.ndarray, buy: np.ndarray, date: np.ndarray, cell: np.ndarray):
+    days, inv = _day_index(date)
+    nd = len(days)
+    idx = inv * NCELL + cell
+    sumR = np.bincount(idx, weights=R, minlength=nd * NCELL).reshape(nd, NCELL)
+    cnt = np.bincount(idx, minlength=nd * NCELL).reshape(nd, NCELL).astype(float)
+    bcnt = np.bincount(idx[buy], minlength=nd * NCELL).reshape(nd, NCELL).astype(float)
+    bR = np.bincount(inv[buy], weights=R[buy], minlength=nd)
+    return nd, sumR, cnt, bcnt, bR
+
+
+def _excess_from(W, sumR, cnt, bcnt, bR):
+    """W: [reps, nd]（点推定は 1 行の全 1）。超過回収 = (Σ_buy R − Σ_c n_buy,c · 平均R_c) / n_buy。"""
+    cs, cc = W @ sumR, W @ cnt
+    with np.errstate(invalid="ignore", divide="ignore"):
+        base = np.where(cc > 0, cs / cc, 0.0)
+        nb = W @ bcnt
+        return ((W @ bR) - (nb * base).sum(1)) / nb.sum(1)
+
+
+def excess_stats(R: np.ndarray, buy: np.ndarray, date: np.ndarray, cell: np.ndarray, reps: int = REPS_ROI,
+                 seed: int = 3) -> dict:
+    """購入券の R − 同じ期間・券種・オッズ十分位の全候補平均 R、の購入平均。CI は開催日ブロック bootstrap（セル平均も抽出ごとに再計算）。"""
+    n_buy = int(buy.sum())
+    if n_buy == 0:
+        return {"excess": None, "excess_ci": None, "excess_ci_contains_0": None}
+    nd, sumR, cnt, bcnt, bR = _excess_arrays(R, buy, date, cell)
+    pt = float(_excess_from(np.ones((1, nd)), sumR, cnt, bcnt, bR)[0])
+    W = boot_weights(nd, reps, seed)
+    eb = _excess_from(W, sumR, cnt, bcnt, bR)
+    eb = eb[np.isfinite(eb)]
+    ci = [float(np.percentile(eb, 2.5)), float(np.percentile(eb, 97.5))]
+    return {"excess": pt, "excess_ci": ci, "excess_ci_contains_0": bool(ci[0] <= 0.0 <= ci[1]),
+            "excess_boot_valid": int(len(eb))}
+
+
+def excess_diff(buyA: np.ndarray, buyB: np.ndarray, R: np.ndarray, date: np.ndarray, cell: np.ndarray,
+                reps: int = REPS_ROI, seed: int = 4) -> dict:
+    """A − B の超過回収の差と回収率の差（同じ開催日抽出で対）。§6-4。"""
+    nd, sumR, cnt, bA, rA = _excess_arrays(R, buyA, date, cell)
+    _, _, _, bB, rB = _excess_arrays(R, buyB, date, cell)
+    W = np.vstack([np.ones((1, nd)), boot_weights(nd, reps, seed)])
+    with np.errstate(invalid="ignore", divide="ignore"):
+        eA = _excess_from(W, sumR, cnt, bA, rA) if buyA.any() else np.full(len(W), np.nan)
+        eB = _excess_from(W, sumR, cnt, bB, rB) if buyB.any() else np.full(len(W), np.nan)
+        roA = (W @ rA) / (W @ bA.sum(1)) if buyA.any() else np.full(len(W), np.nan)
+        roB = (W @ rB) / (W @ bB.sum(1)) if buyB.any() else np.full(len(W), np.nan)
+    de, dr = eA - eB, roA - roB
+
+    def ci(x):
+        x = x[1:][np.isfinite(x[1:])]
+        return [float(np.percentile(x, 2.5)), float(np.percentile(x, 97.5))] if len(x) else None
+    return {"excess_diff": float(de[0]) if np.isfinite(de[0]) else None, "excess_diff_ci": ci(de),
+            "roi_diff": float(dr[0]) if np.isfinite(dr[0]) else None, "roi_diff_ci": ci(dr), "reps": reps}
+
+
+def full_report_v11(pred: np.ndarray, R: np.ndarray, date: np.ndarray, bet_type: np.ndarray, buy: np.ndarray,
+                    cell: np.ndarray, pred_mean: np.ndarray | None = None) -> dict:
+    out = {"all": roi_stats(R, buy, date)}
+    out["all"].update(excess_stats(R, buy, date, cell))
+    out["all"].update(spearman_stats(pred, R, date))          # 記述のみ
+    if pred_mean is not None:
+        out["all"]["rho_boot_mean_pred"] = _spearman(pred_mean, R)
+    out["deciles"] = decile_table(pred, R, buy)
+    out["by_bet_type"] = {}
+    for b in np.unique(bet_type):
+        m = bet_type == b
+        dd = roi_stats(R[m], buy[m], date[m])
+        dd.update(excess_stats(R[m], buy[m], date[m], cell[m]))
+        dd.update(spearman_stats(pred[m], R[m], date[m]))
+        dd["deciles"] = decile_table(pred[m], R[m], buy[m])
+        out["by_bet_type"][str(b)] = dd
+    # 購入券のオッズ十分位別（セル別）
+    cb = []
+    for c in range(NCELL):
+        m = cell == c
+        if m.any():
+            cb.append({"cell": c, "bet_type": "tan" if c < 10 else "fuku", "decile": c % 10 + 1, "n": int(m.sum()),
+                       "cell_mean_R": float(R[m].mean()), "n_buy": int(buy[m].sum()),
+                       "buy_mean_R": float(R[m & buy].mean()) if (m & buy).any() else None})
+    out["cells"] = cb
+    return out
+
+
+def judge_select_v11(rep: dict) -> dict:
+    """§10 §6-2（改）: 超過回収の CI 下限 ≤ 0、または購入 100 件未満なら打ち切り。"""
+    a = rep["all"]
+    lo = a["excess_ci"][0] if a.get("excess_ci") else None
+    stop_ex = lo is None or lo <= 0
+    stop_n = a["n_buy"] < 100
+    return {"excess_ci_lo": lo, "n_buy": a["n_buy"], "stop_excess_ci_le_0": bool(stop_ex),
+            "stop_n_buy_lt_100": bool(stop_n), "abort": bool(stop_ex or stop_n)}
+
+
+def judge_confirm_v11(rep: dict) -> dict:
+    """§10 §7（改）。SIGNAL は文言どおり「超過回収の CI 下限 > 0 で、回収率の CI が 100 をまたぐ」。"""
+    a = rep["all"]
+    ex_ok = bool(a.get("excess_ci") and a["excess_ci"][0] > 0)
+    roi_ok = bool(a["roi_ci"] is not None and a["roi_ci"][0] > 1.0)
+    straddle = bool(a["roi_ci"] is not None and a["roi_ci"][0] <= 1.0 <= a["roi_ci"][1])
+    top_ok = bool(a["roi_ex_top10"] is not None and a["roi_ex_top10"] >= 1.0)
+    n_ok = a["n_buy"] >= 300
+    note = None
+    if ex_ok and roi_ok and top_ok and n_ok:
+        v = "PASS"
+    elif ex_ok and straddle:
+        v = "SIGNAL"
+    else:
+        v = "FAIL"
+        if ex_ok:
+            note = "超過回収の CI 下限 > 0 だが PASS の条件を欠き、回収率の CI が 100 をまたがないため、§7（改）の文言どおり FAIL"
+    return {"verdict": v, "excess_ci_lo_gt_0": ex_ok, "roi_ci_lo_gt_100": roi_ok, "roi_ci_straddles_100": straddle,
+            "roi_ex_top10_ge_100": top_ok, "n_buy_ge_300": bool(n_ok), "note": note}

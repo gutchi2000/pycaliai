@@ -231,3 +231,44 @@ def load_models(blob: bytes) -> list:
 
 def sha256_bytes(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
+
+
+# ================================================================ v1.1 §10: 学習期間内の開催日 3 分割 CV で Huber 損失最小の設定を選ぶ
+KFOLD_SELECT = 3
+
+
+def huber_loss(y: np.ndarray, f: np.ndarray, delta: float = HUBER_DELTA) -> np.ndarray:
+    r = np.abs(y - f)
+    return np.where(r <= delta, 0.5 * r * r, delta * (r - 0.5 * delta))
+
+
+def day_folds(day: np.ndarray, k: int, seed: int) -> np.ndarray:
+    udays = np.unique(day)
+    rng = np.random.default_rng(20_000 + seed)
+    perm = rng.permutation(len(udays))
+    f = dict(zip(udays[perm], np.arange(len(udays)) % k))
+    return np.array([f[x] for x in day])
+
+
+def select_cfg_cv(X: pd.DataFrame, R: np.ndarray, day: np.ndarray, seed: int = 0, log=None) -> tuple[dict, list]:
+    """各候補設定で、学習期間の開催日 3 分割 CV。保持側の損失 = 学習側の 1%/99% 点で打ち切った R−1 に対する Huber 損失（δ=1）。
+    全保持行の平均が最小の設定（同値は候補番号の小さい方）。"""
+    fold = day_folds(day, KFOLD_SELECT, seed)
+    rows = []
+    for ci, cfg in enumerate(GRID):
+        tot, n = 0.0, 0
+        per = []
+        for f in range(KFOLD_SELECT):
+            trm, tem = fold != f, fold == f
+            m = HuberDirect().fit(X[trm], R[trm], day[trm], cfg, seed=seed)
+            lo, hi = m.clip
+            y = np.clip(R[tem] - 1.0, lo, hi)
+            L = huber_loss(y, m.predict(X[tem]) - 1.0)
+            per.append(float(L.mean()))
+            tot += float(L.sum())
+            n += int(tem.sum())
+        rows.append({"cfg_id": ci, **cfg, "cv_huber_loss": tot / n, "fold_losses": per})
+        if log:
+            log(f"    cv cfg{ci:02d} {cfg} loss={tot / n:.6f}")
+    best = min(rows, key=lambda r: (r["cv_huber_loss"], r["cfg_id"]))
+    return GRID[best["cfg_id"]], rows
