@@ -1,0 +1,2263 @@
+{
+ "spec_sha256": "5cc64e6adfbd87693ca41e2427f6d5df360b01f708b601f7e81dca0b9a113eb3",
+ "models": {
+  "manifest_sha256": "b5ee21a60e12f20792753ac264602497b41a9766c36a947dd669add6d6624b0e",
+  "n_files": 18
+ },
+ "run_at": "2026-10-23T00:45:14",
+ "period": [
+  2021,
+  2022
+ ],
+ "n_races": 6659,
+ "n_unsettleable_excluded": 1,
+ "budgets": {
+  "B10000": {
+   "B": 10000,
+   "policies": {
+    "B0_null": {
+     "B": 10000,
+     "n_races": 6659,
+     "n_bet_races": 6659,
+     "n_tickets": 6659,
+     "stake": 66590000.0,
+     "return": 55549000.0,
+     "roi": 0.8341943234719927,
+     "roi_ci": [
+      0.8170173956417283,
+      0.8515747639767363
+     ],
+     "log_growth": -0.00904505371115139,
+     "log_growth_ci": [
+      -0.00991334982613955,
+      -0.008174690337867885
+     ],
+     "roi_ex_top10": 0.8271662411773539,
+     "top10_returns": [
+      60000.0,
+      52000.0,
+      51000.0,
+      51000.0,
+      46000.0,
+      44000.0,
+      42000.0,
+      42000.0,
+      40000.0,
+      40000.0
+     ],
+     "race_hit_rate": 0.5954347499624568,
+     "by_bet_type": {
+      "fuku": {
+       "stake_share": 1.0,
+       "stake": 66590000.0,
+       "n_tickets": 6659,
+       "roi": 0.8341943234719927
+      }
+     },
+     "mean_stake_per_bet_race": 10000.0
+    },
+    "B3_prob_first": {
+     "B": 10000,
+     "n_races": 6659,
+     "n_bet_races": 6659,
+     "n_tickets": 6659,
+     "stake": 66590000.0,
+     "return": 55509000.0,
+     "roi": 0.8335936326775792,
+     "roi_ci": [
+      0.8160776689343265,
+      0.8510864896556872
+     ],
+     "log_growth": -0.009075593302044223,
+     "log_growth_ci": [
+      -0.009946926157245206,
+      -0.008203696466299544
+     ],
+     "roi_ex_top10": 0.8265655503829403,
+     "top10_returns": [
+      60000.0,
+      52000.0,
+      51000.0,
+      51000.0,
+      46000.0,
+      44000.0,
+      42000.0,
+      42000.0,
+      40000.0,
+      40000.0
+     ],
+     "race_hit_rate": 0.5949842318666466,
+     "by_bet_type": {
+      "fuku": {
+       "stake_share": 0.9971467187265355,
+       "stake": 66400000.0,
+       "n_tickets": 6640,
+       "roi": 0.834066265060241
+      },
+      "wide": {
+       "stake_share": 0.002853281273464484,
+       "stake": 190000.0,
+       "n_tickets": 19,
+       "roi": 0.6684210526315789
+      }
+     },
+     "mean_stake_per_bet_race": 10000.0
+    },
+    "B1_a95": {
+     "B": 10000,
+     "n_races": 6659,
+     "n_bet_races": 6658,
+     "n_tickets": 23933,
+     "stake": 66580000.0,
+     "return": 52525740.0,
+     "roi": 0.788911685190748,
+     "roi_ci": [
+      0.713161135530462,
+      0.8748052649077425
+     ],
+     "log_growth": -0.017550480313302943,
+     "log_growth_ci": [
+      -0.02002847372474079,
+      -0.014986642024722297
+     ],
+     "roi_ex_top10": 0.7392107239411234,
+     "top10_returns": [
+      989500.0,
+      410000.0,
+      305200.0,
+      270600.0,
+      243500.0,
+      225390.0,
+      221500.0,
+      221400.0,
+      219500.0,
+      202500.0
+     ],
+     "race_hit_rate": 0.18819465304896366,
+     "by_bet_type": {
+      "fuku": {
+       "stake_share": 0.005632322018624211,
+       "stake": 375000.0,
+       "n_tickets": 75,
+       "roi": 0.548
+      },
+      "sanrenpuku": {
+       "stake_share": 0.17943826975067587,
+       "stake": 11947000.0,
+       "n_tickets": 5027,
+       "roi": 0.7456265171172679
+      },
+      "sanrentan": {
+       "stake_share": 0.17943826975067587,
+       "stake": 11947000.0,
+       "n_tickets": 5027,
+       "roi": 0.6331003599229932
+      },
+      "tan": {
+       "stake_share": 0.02241814358666266,
+       "stake": 1492600.0,
+       "n_tickets": 439,
+       "roi": 0.9580865603644647
+      },
+      "umaren": {
+       "stake_share": 0.3351787323520577,
+       "stake": 22316200.0,
+       "n_tickets": 5360,
+       "roi": 0.8450278273182711
+      },
+      "umatan": {
+       "stake_share": 0.20119705617302494,
+       "stake": 13395700.0,
+       "n_tickets": 5466,
+       "roi": 0.8698754077801085
+      },
+      "wakuren": {
+       "stake_share": 0.03727846200060078,
+       "stake": 2482000.0,
+       "n_tickets": 1241,
+       "roi": 0.7958904109589041
+      },
+      "wide": {
+       "stake_share": 0.039418744367677984,
+       "stake": 2624500.0,
+       "n_tickets": 1298,
+       "roi": 0.7364259859020766
+      }
+     },
+     "mean_stake_per_bet_race": 10000.0
+    },
+    "B2_market_fav": {
+     "B": 10000,
+     "n_races": 6659,
+     "n_bet_races": 6659,
+     "n_tickets": 6659,
+     "stake": 66590000.0,
+     "return": 56520000.0,
+     "roi": 0.8487760925063823,
+     "roi_ci": [
+      0.8322493130394902,
+      0.8652254033097114
+     ],
+     "log_growth": -0.00820116231996439,
+     "log_growth_ci": [
+      -0.00903876946334998,
+      -0.007370608954560099
+     ],
+     "roi_ex_top10": 0.8439405316113531,
+     "top10_returns": [
+      48000.0,
+      33000.0,
+      33000.0,
+      31000.0,
+      31000.0,
+      31000.0,
+      30000.0,
+      29000.0,
+      28000.0,
+      28000.0
+     ],
+     "race_hit_rate": 0.6298242979426341,
+     "by_bet_type": {
+      "fuku": {
+       "stake_share": 1.0,
+       "stake": 66590000.0,
+       "n_tickets": 6659,
+       "roi": 0.8487760925063823
+      }
+     },
+     "mean_stake_per_bet_race": 10000.0
+    },
+    "AI": {
+     "B": 10000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "B4_market_AI": {
+     "B": 10000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "GBM": {
+     "B": 10000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "AI_seed0": {
+     "B": 10000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "AI_seed1": {
+     "B": 10000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "AI_seed2": {
+     "B": 10000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "AI_seed3": {
+     "B": 10000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "AI_seed4": {
+     "B": 10000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    }
+   },
+   "diff_vs": {
+    "AI": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017550480313302943,
+      "log_growth_diff_ci": [
+       0.014986642024722299,
+       0.02002847372474079
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "GBM": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "GBM": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017550480313302943,
+      "log_growth_diff_ci": [
+       0.014986642024722299,
+       0.02002847372474079
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "AI_seed0": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017550480313302943,
+      "log_growth_diff_ci": [
+       0.014986642024722299,
+       0.02002847372474079
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "GBM": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "AI_seed1": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017550480313302943,
+      "log_growth_diff_ci": [
+       0.014986642024722299,
+       0.02002847372474079
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "GBM": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "AI_seed2": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017550480313302943,
+      "log_growth_diff_ci": [
+       0.014986642024722299,
+       0.02002847372474079
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "GBM": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "AI_seed3": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017550480313302943,
+      "log_growth_diff_ci": [
+       0.014986642024722299,
+       0.02002847372474079
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "GBM": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "AI_seed4": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017550480313302943,
+      "log_growth_diff_ci": [
+       0.014986642024722299,
+       0.02002847372474079
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "GBM": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    }
+   },
+   "quintiles": {
+    "B0_null": [
+     {
+      "quintile": 1,
+      "stake_share": 0.17059618561345546,
+      "n_tickets": 1136,
+      "n_bet_races": 1136,
+      "roi": 0.8665492957746479,
+      "roi_ci": [
+       0.834401751323212,
+       0.8995626402110225
+      ],
+      "roi_ex_top10": 0.8494718309859155
+     },
+     {
+      "quintile": 2,
+      "stake_share": 0.20333383390899534,
+      "n_tickets": 1354,
+      "n_bet_races": 1354,
+      "roi": 0.8166174298375185,
+      "roi_ci": [
+       0.7811998095547167,
+       0.8513575687461066
+      ],
+      "roi_ex_top10": 0.7994091580502216
+     },
+     {
+      "quintile": 3,
+      "stake_share": 0.20919056915452772,
+      "n_tickets": 1393,
+      "n_bet_races": 1393,
+      "roi": 0.8348169418521177,
+      "roi_ci": [
+       0.795444364189818,
+       0.873555672533093
+      ],
+      "roi_ex_top10": 0.815218951902369
+     },
+     {
+      "quintile": 4,
+      "stake_share": 0.22961405616458927,
+      "n_tickets": 1529,
+      "n_bet_races": 1529,
+      "roi": 0.8517985611510791,
+      "roi_ci": [
+       0.8117225720454424,
+       0.8901502635070053
+      ],
+      "roi_ex_top10": 0.8335513407455853
+     },
+     {
+      "quintile": 5,
+      "stake_share": 0.1872653551584322,
+      "n_tickets": 1247,
+      "n_bet_races": 1247,
+      "roi": 0.801523656776263,
+      "roi_ci": [
+       0.7440959016393444,
+       0.8583077430185215
+      ],
+      "roi_ex_top10": 0.7639935846030473
+     }
+    ],
+    "B3_prob_first": [
+     {
+      "quintile": 1,
+      "stake_share": 0.1698453221204385,
+      "n_tickets": 1131,
+      "n_bet_races": 1131,
+      "roi": 0.8664898320070734,
+      "roi_ci": [
+       0.8345007707544607,
+       0.8999145486415425
+      ],
+      "roi_ex_top10": 0.8493368700265252
+     },
+     {
+      "quintile": 2,
+      "stake_share": 0.20363417930620215,
+      "n_tickets": 1356,
+      "n_bet_races": 1356,
+      "roi": 0.8170353982300885,
+      "roi_ci": [
+       0.7819126486530216,
+       0.8512004155272899
+      ],
+      "roi_ex_top10": 0.7998525073746313
+     },
+     {
+      "quintile": 3,
+      "stake_share": 0.21039195074335487,
+      "n_tickets": 1401,
+      "n_bet_races": 1401,
+      "roi": 0.8316916488222698,
+      "roi_ci": [
+       0.7924117961128138,
+       0.8697228590969334
+      ],
+      "roi_ex_top10": 0.8122055674518202
+     },
+     {
+      "quintile": 4,
+      "stake_share": 0.22886319267157232,
+      "n_tickets": 1524,
+      "n_bet_races": 1524,
+      "roi": 0.8519028871391076,
+      "roi_ci": [
+       0.8124320694186766,
+       0.8904386724386725
+      ],
+      "roi_ex_top10": 0.8335958005249344
+     },
+     {
+      "quintile": 5,
+      "stake_share": 0.1872653551584322,
+      "n_tickets": 1247,
+      "n_bet_races": 1247,
+      "roi": 0.801523656776263,
+      "roi_ci": [
+       0.7440959016393444,
+       0.8583077430185215
+      ],
+      "roi_ex_top10": 0.7639935846030473
+     }
+    ],
+    "B1_a95": [
+     {
+      "quintile": 1,
+      "stake_share": 0.13310399700458672,
+      "n_tickets": 2966,
+      "n_bet_races": 1420,
+      "roi": 0.6460095877726596,
+      "roi_ci": [
+       0.5351308954524026,
+       0.76528189683557
+      ],
+      "roi_ex_top10": 0.5309680368508035
+     },
+     {
+      "quintile": 2,
+      "stake_share": 0.19876127180255235,
+      "n_tickets": 4382,
+      "n_bet_races": 2486,
+      "roi": 0.7493351752719738,
+      "roi_ci": [
+       0.653450012306729,
+       0.8497348907557687
+      ],
+      "roi_ex_top10": 0.6689667352160876
+     },
+     {
+      "quintile": 3,
+      "stake_share": 0.22944241630004056,
+      "n_tickets": 5026,
+      "n_bet_races": 3000,
+      "roi": 0.7401127369652134,
+      "roi_ci": [
+       0.6312316704374591,
+       0.8620401191327571
+      ],
+      "roi_ex_top10": 0.6213302689912149
+     },
+     {
+      "quintile": 4,
+      "stake_share": 0.2285718743174514,
+      "n_tickets": 5301,
+      "n_bet_races": 2922,
+      "roi": 0.8727397447273224,
+      "roi_ci": [
+       0.7388191812356271,
+       1.0159256173478366
+      ],
+      "roi_ex_top10": 0.7420995153914408
+     },
+     {
+      "quintile": 5,
+      "stake_share": 0.21012044057536897,
+      "n_tickets": 5017,
+      "n_bet_races": 2218,
+      "roi": 0.877683152290935,
+      "roi_ci": [
+       0.660537476264164,
+       1.1613029993923951
+      ],
+      "roi_ex_top10": 0.6730106991973746
+     }
+    ],
+    "B2_market_fav": [
+     {
+      "quintile": 1,
+      "stake_share": 0.0,
+      "n_tickets": 0
+     },
+     {
+      "quintile": 2,
+      "stake_share": 0.0,
+      "n_tickets": 0
+     },
+     {
+      "quintile": 3,
+      "stake_share": 0.0,
+      "n_tickets": 0
+     },
+     {
+      "quintile": 4,
+      "stake_share": 0.0,
+      "n_tickets": 0
+     },
+     {
+      "quintile": 5,
+      "stake_share": 1.0,
+      "n_tickets": 6659,
+      "n_bet_races": 6659,
+      "roi": 0.8487760925063823,
+      "roi_ci": [
+       0.8322493130394902,
+       0.8652254033097114
+      ],
+      "roi_ex_top10": 0.8439405316113531
+     }
+    ],
+    "AI": [],
+    "B4_market_AI": [],
+    "GBM": [],
+    "AI_seed0": [],
+    "AI_seed1": [],
+    "AI_seed2": [],
+    "AI_seed3": [],
+    "AI_seed4": []
+   },
+   "baseline_info": {
+    "B1": {
+     "races": 6658,
+     "a95_error": 1,
+     "wakuren_planned": 1267,
+     "wakuren_dropped_no_data": 26,
+     "ticket_not_in_candidates": 0,
+     "band_counts": {
+      "2-3倍": 1563,
+      "3-5倍": 2166,
+      "5-8倍": 1298,
+      "8-15倍": 439,
+      "<2倍": 1117,
+      "15倍〜": 75
+     },
+     "odds_mismatch": 0
+    },
+    "B2": {
+     "fav_not_finisher_scratch": 9,
+     "fav_not_finisher_dnf": 15,
+     "no_snapshot": 0
+    }
+   },
+   "verdict_mean_policy": {
+    "verdict": "FAIL",
+    "detail": {
+     "n_bet_races": 0,
+     "roi": null,
+     "roi_ci": null,
+     "roi_ex_top10": null,
+     "diff_ci_lo": {
+      "B0_null": NaN,
+      "B1_a95": NaN,
+      "B2_market_fav": NaN,
+      "B3_prob_first": NaN,
+      "B4_market_AI": NaN
+     },
+     "reason": "購入 0R < 300R"
+    }
+   },
+   "verdict_seeds": [
+    "FAIL",
+    "FAIL",
+    "FAIL",
+    "FAIL",
+    "FAIL"
+   ]
+  },
+  "B2000": {
+   "B": 2000,
+   "policies": {
+    "B0_null": {
+     "B": 2000,
+     "n_races": 6659,
+     "n_bet_races": 6659,
+     "n_tickets": 6659,
+     "stake": 13318000.0,
+     "return": 11109800.0,
+     "roi": 0.8341943234719927,
+     "roi_ci": [
+      0.8170173956417283,
+      0.8515747639767363
+     ],
+     "log_growth": -0.00904505371115139,
+     "log_growth_ci": [
+      -0.00991334982613955,
+      -0.008174690337867885
+     ],
+     "roi_ex_top10": 0.8271662411773539,
+     "top10_returns": [
+      12000.0,
+      10400.0,
+      10200.0,
+      10200.0,
+      9200.0,
+      8800.0,
+      8400.0,
+      8400.0,
+      8000.0,
+      8000.0
+     ],
+     "race_hit_rate": 0.5954347499624568,
+     "by_bet_type": {
+      "fuku": {
+       "stake_share": 1.0,
+       "stake": 13318000.0,
+       "n_tickets": 6659,
+       "roi": 0.8341943234719927
+      }
+     },
+     "mean_stake_per_bet_race": 2000.0
+    },
+    "B3_prob_first": {
+     "B": 2000,
+     "n_races": 6659,
+     "n_bet_races": 6659,
+     "n_tickets": 6659,
+     "stake": 13318000.0,
+     "return": 11101800.0,
+     "roi": 0.8335936326775792,
+     "roi_ci": [
+      0.8160776689343265,
+      0.8510864896556872
+     ],
+     "log_growth": -0.009075593302044223,
+     "log_growth_ci": [
+      -0.009946926157245206,
+      -0.008203696466299544
+     ],
+     "roi_ex_top10": 0.8265655503829403,
+     "top10_returns": [
+      12000.0,
+      10400.0,
+      10200.0,
+      10200.0,
+      9200.0,
+      8800.0,
+      8400.0,
+      8400.0,
+      8000.0,
+      8000.0
+     ],
+     "race_hit_rate": 0.5949842318666466,
+     "by_bet_type": {
+      "fuku": {
+       "stake_share": 0.9971467187265355,
+       "stake": 13280000.0,
+       "n_tickets": 6640,
+       "roi": 0.834066265060241
+      },
+      "wide": {
+       "stake_share": 0.002853281273464484,
+       "stake": 38000.0,
+       "n_tickets": 19,
+       "roi": 0.6684210526315789
+      }
+     },
+     "mean_stake_per_bet_race": 2000.0
+    },
+    "B1_a95": {
+     "B": 2000,
+     "n_races": 6659,
+     "n_bet_races": 6658,
+     "n_tickets": 23933,
+     "stake": 13316000.0,
+     "return": 10491630.0,
+     "roi": 0.7878965154701112,
+     "roi_ci": [
+      0.7126137618662215,
+      0.8732282018552677
+     ],
+     "log_growth": -0.017559333871246485,
+     "log_growth_ci": [
+      -0.02002148228196965,
+      -0.014981392907658594
+     ],
+     "roi_ex_top10": 0.738872784620006,
+     "top10_returns": [
+      197900.0,
+      82000.0,
+      61040.0,
+      49200.0,
+      48700.0,
+      44300.0,
+      44280.0,
+      43900.0,
+      40980.0,
+      40500.0
+     ],
+     "race_hit_rate": 0.18819465304896366,
+     "by_bet_type": {
+      "fuku": {
+       "stake_share": 0.005632322018624211,
+       "stake": 75000.0,
+       "n_tickets": 75,
+       "roi": 0.548
+      },
+      "sanrenpuku": {
+       "stake_share": 0.17943826975067587,
+       "stake": 2389400.0,
+       "n_tickets": 5027,
+       "roi": 0.7456265171172679
+      },
+      "sanrentan": {
+       "stake_share": 0.17943826975067587,
+       "stake": 2389400.0,
+       "n_tickets": 5027,
+       "roi": 0.6331003599229932
+      },
+      "tan": {
+       "stake_share": 0.023077500750976268,
+       "stake": 307300.0,
+       "n_tickets": 439,
+       "roi": 0.9580865603644647
+      },
+      "umaren": {
+       "stake_share": 0.3364974466806849,
+       "stake": 4480800.0,
+       "n_tickets": 5360,
+       "roi": 0.8452486163185146
+      },
+      "umatan": {
+       "stake_share": 0.19921898468008412,
+       "stake": 2652800.0,
+       "n_tickets": 5466,
+       "roi": 0.8642792521109771
+      },
+      "wakuren": {
+       "stake_share": 0.03727846200060078,
+       "stake": 496400.0,
+       "n_tickets": 1241,
+       "roi": 0.7958904109589041
+      },
+      "wide": {
+       "stake_share": 0.039418744367677984,
+       "stake": 524900.0,
+       "n_tickets": 1298,
+       "roi": 0.7364259859020766
+      }
+     },
+     "mean_stake_per_bet_race": 2000.0
+    },
+    "B2_market_fav": {
+     "B": 2000,
+     "n_races": 6659,
+     "n_bet_races": 6659,
+     "n_tickets": 6659,
+     "stake": 13318000.0,
+     "return": 11304000.0,
+     "roi": 0.8487760925063823,
+     "roi_ci": [
+      0.8322493130394902,
+      0.8652254033097114
+     ],
+     "log_growth": -0.00820116231996439,
+     "log_growth_ci": [
+      -0.00903876946334998,
+      -0.007370608954560099
+     ],
+     "roi_ex_top10": 0.8439405316113531,
+     "top10_returns": [
+      9600.0,
+      6600.0,
+      6600.0,
+      6200.0,
+      6200.0,
+      6200.0,
+      6000.0,
+      5800.0,
+      5600.0,
+      5600.0
+     ],
+     "race_hit_rate": 0.6298242979426341,
+     "by_bet_type": {
+      "fuku": {
+       "stake_share": 1.0,
+       "stake": 13318000.0,
+       "n_tickets": 6659,
+       "roi": 0.8487760925063823
+      }
+     },
+     "mean_stake_per_bet_race": 2000.0
+    },
+    "AI": {
+     "B": 2000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "B4_market_AI": {
+     "B": 2000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "GBM": {
+     "B": 2000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "AI_seed0": {
+     "B": 2000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "AI_seed1": {
+     "B": 2000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "AI_seed2": {
+     "B": 2000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "AI_seed3": {
+     "B": 2000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    },
+    "AI_seed4": {
+     "B": 2000,
+     "n_races": 6659,
+     "n_bet_races": 0,
+     "n_tickets": 0,
+     "stake": 0.0,
+     "return": 0.0,
+     "roi": null,
+     "roi_ci": null,
+     "log_growth": 0.0,
+     "log_growth_ci": [
+      0.0,
+      0.0
+     ]
+    }
+   },
+   "diff_vs": {
+    "AI": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017559333871246485,
+      "log_growth_diff_ci": [
+       0.014981392907658594,
+       0.02002148228196965
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "GBM": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "GBM": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017559333871246485,
+      "log_growth_diff_ci": [
+       0.014981392907658594,
+       0.02002148228196965
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "AI_seed0": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017559333871246485,
+      "log_growth_diff_ci": [
+       0.014981392907658594,
+       0.02002148228196965
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "GBM": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "AI_seed1": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017559333871246485,
+      "log_growth_diff_ci": [
+       0.014981392907658594,
+       0.02002148228196965
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "GBM": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "AI_seed2": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017559333871246485,
+      "log_growth_diff_ci": [
+       0.014981392907658594,
+       0.02002148228196965
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "GBM": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "AI_seed3": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017559333871246485,
+      "log_growth_diff_ci": [
+       0.014981392907658594,
+       0.02002148228196965
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "GBM": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "AI_seed4": {
+     "B0_null": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00904505371115139,
+      "log_growth_diff_ci": [
+       0.008174690337867885,
+       0.00991334982613955
+      ]
+     },
+     "B1_a95": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.017559333871246485,
+      "log_growth_diff_ci": [
+       0.014981392907658594,
+       0.02002148228196965
+      ]
+     },
+     "B2_market_fav": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.00820116231996439,
+      "log_growth_diff_ci": [
+       0.007370608954560099,
+       0.00903876946334998
+      ]
+     },
+     "B3_prob_first": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.009075593302044223,
+      "log_growth_diff_ci": [
+       0.008203696466299544,
+       0.009946926157245206
+      ]
+     },
+     "B4_market_AI": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     },
+     "GBM": {
+      "roi_diff": NaN,
+      "roi_diff_ci": [
+       NaN,
+       NaN
+      ],
+      "log_growth_diff": 0.0,
+      "log_growth_diff_ci": [
+       0.0,
+       0.0
+      ]
+     }
+    }
+   },
+   "quintiles": {
+    "B0_null": [
+     {
+      "quintile": 1,
+      "stake_share": 0.17059618561345546,
+      "n_tickets": 1136,
+      "n_bet_races": 1136,
+      "roi": 0.8665492957746479,
+      "roi_ci": [
+       0.834401751323212,
+       0.8995626402110225
+      ],
+      "roi_ex_top10": 0.8494718309859155
+     },
+     {
+      "quintile": 2,
+      "stake_share": 0.20333383390899534,
+      "n_tickets": 1354,
+      "n_bet_races": 1354,
+      "roi": 0.8166174298375185,
+      "roi_ci": [
+       0.7811998095547167,
+       0.8513575687461066
+      ],
+      "roi_ex_top10": 0.7994091580502216
+     },
+     {
+      "quintile": 3,
+      "stake_share": 0.20919056915452772,
+      "n_tickets": 1393,
+      "n_bet_races": 1393,
+      "roi": 0.8348169418521177,
+      "roi_ci": [
+       0.795444364189818,
+       0.873555672533093
+      ],
+      "roi_ex_top10": 0.815218951902369
+     },
+     {
+      "quintile": 4,
+      "stake_share": 0.22961405616458927,
+      "n_tickets": 1529,
+      "n_bet_races": 1529,
+      "roi": 0.8517985611510791,
+      "roi_ci": [
+       0.8117225720454424,
+       0.8901502635070053
+      ],
+      "roi_ex_top10": 0.8335513407455853
+     },
+     {
+      "quintile": 5,
+      "stake_share": 0.1872653551584322,
+      "n_tickets": 1247,
+      "n_bet_races": 1247,
+      "roi": 0.801523656776263,
+      "roi_ci": [
+       0.7440959016393444,
+       0.8583077430185215
+      ],
+      "roi_ex_top10": 0.7639935846030473
+     }
+    ],
+    "B3_prob_first": [
+     {
+      "quintile": 1,
+      "stake_share": 0.1698453221204385,
+      "n_tickets": 1131,
+      "n_bet_races": 1131,
+      "roi": 0.8664898320070734,
+      "roi_ci": [
+       0.8345007707544607,
+       0.8999145486415425
+      ],
+      "roi_ex_top10": 0.8493368700265252
+     },
+     {
+      "quintile": 2,
+      "stake_share": 0.20363417930620215,
+      "n_tickets": 1356,
+      "n_bet_races": 1356,
+      "roi": 0.8170353982300885,
+      "roi_ci": [
+       0.7819126486530216,
+       0.8512004155272899
+      ],
+      "roi_ex_top10": 0.7998525073746313
+     },
+     {
+      "quintile": 3,
+      "stake_share": 0.21039195074335487,
+      "n_tickets": 1401,
+      "n_bet_races": 1401,
+      "roi": 0.8316916488222698,
+      "roi_ci": [
+       0.7924117961128138,
+       0.8697228590969334
+      ],
+      "roi_ex_top10": 0.8122055674518202
+     },
+     {
+      "quintile": 4,
+      "stake_share": 0.22886319267157232,
+      "n_tickets": 1524,
+      "n_bet_races": 1524,
+      "roi": 0.8519028871391076,
+      "roi_ci": [
+       0.8124320694186766,
+       0.8904386724386725
+      ],
+      "roi_ex_top10": 0.8335958005249344
+     },
+     {
+      "quintile": 5,
+      "stake_share": 0.1872653551584322,
+      "n_tickets": 1247,
+      "n_bet_races": 1247,
+      "roi": 0.801523656776263,
+      "roi_ci": [
+       0.7440959016393444,
+       0.8583077430185215
+      ],
+      "roi_ex_top10": 0.7639935846030473
+     }
+    ],
+    "B1_a95": [
+     {
+      "quintile": 1,
+      "stake_share": 0.13313987955942463,
+      "n_tickets": 2966,
+      "n_bet_races": 1420,
+      "roi": 0.6460510897586126,
+      "roi_ci": [
+       0.535064194916175,
+       0.7654478022238055
+      ],
+      "roi_ex_top10": 0.5310405437075228
+     },
+     {
+      "quintile": 2,
+      "stake_share": 0.1987737526911916,
+      "n_tickets": 4382,
+      "n_bet_races": 2486,
+      "roi": 0.7493681814614237,
+      "roi_ci": [
+       0.6536345203249216,
+       0.8500956007580437
+      ],
+      "roi_ex_top10": 0.6692292598697119
+     },
+     {
+      "quintile": 3,
+      "stake_share": 0.22934412930200632,
+      "n_tickets": 5026,
+      "n_bet_races": 3000,
+      "roi": 0.739774157341587,
+      "roi_ci": [
+       0.6312401746853107,
+       0.8617472755726542
+      ],
+      "roi_ex_top10": 0.6225774633515867
+     },
+     {
+      "quintile": 4,
+      "stake_share": 0.22856407376205184,
+      "n_tickets": 5301,
+      "n_bet_races": 2922,
+      "roi": 0.8717279273744923,
+      "roi_ci": [
+       0.7388425869885816,
+       1.014470107854708
+      ],
+      "roi_ex_top10": 0.7419678509265896
+     },
+     {
+      "quintile": 5,
+      "stake_share": 0.2101781646853256,
+      "n_tickets": 5017,
+      "n_bet_races": 2218,
+      "roi": 0.8740610154394299,
+      "roi_ci": [
+       0.6600120708787947,
+       1.1539591430918699
+      ],
+      "roi_ex_top10": 0.6751744358669833
+     }
+    ],
+    "B2_market_fav": [
+     {
+      "quintile": 1,
+      "stake_share": 0.0,
+      "n_tickets": 0
+     },
+     {
+      "quintile": 2,
+      "stake_share": 0.0,
+      "n_tickets": 0
+     },
+     {
+      "quintile": 3,
+      "stake_share": 0.0,
+      "n_tickets": 0
+     },
+     {
+      "quintile": 4,
+      "stake_share": 0.0,
+      "n_tickets": 0
+     },
+     {
+      "quintile": 5,
+      "stake_share": 1.0,
+      "n_tickets": 6659,
+      "n_bet_races": 6659,
+      "roi": 0.8487760925063823,
+      "roi_ci": [
+       0.8322493130394902,
+       0.8652254033097114
+      ],
+      "roi_ex_top10": 0.8439405316113531
+     }
+    ],
+    "AI": [],
+    "B4_market_AI": [],
+    "GBM": [],
+    "AI_seed0": [],
+    "AI_seed1": [],
+    "AI_seed2": [],
+    "AI_seed3": [],
+    "AI_seed4": []
+   },
+   "baseline_info": {
+    "B1": {
+     "races": 6658,
+     "a95_error": 1,
+     "wakuren_planned": 1267,
+     "wakuren_dropped_no_data": 26,
+     "ticket_not_in_candidates": 0,
+     "band_counts": {
+      "2-3倍": 1563,
+      "3-5倍": 2166,
+      "5-8倍": 1298,
+      "8-15倍": 439,
+      "<2倍": 1117,
+      "15倍〜": 75
+     },
+     "odds_mismatch": 0
+    },
+    "B2": {
+     "fav_not_finisher_scratch": 9,
+     "fav_not_finisher_dnf": 15,
+     "no_snapshot": 0
+    }
+   },
+   "verdict_mean_policy": {
+    "verdict": "FAIL",
+    "detail": {
+     "n_bet_races": 0,
+     "roi": null,
+     "roi_ci": null,
+     "roi_ex_top10": null,
+     "diff_ci_lo": {
+      "B0_null": NaN,
+      "B1_a95": NaN,
+      "B2_market_fav": NaN,
+      "B3_prob_first": NaN,
+      "B4_market_AI": NaN
+     },
+     "reason": "購入 0R < 300R"
+    }
+   },
+   "verdict_seeds": [
+    "FAIL",
+    "FAIL",
+    "FAIL",
+    "FAIL",
+    "FAIL"
+   ]
+  }
+ },
+ "FINAL_VERDICT": "FAIL",
+ "final_note": "平均方策 FAIL、種 5/5 が一致",
+ "mode": "dryrun_dev"
+}

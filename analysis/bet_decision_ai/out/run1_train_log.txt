@@ -1,0 +1,75 @@
+[00:32:18] spec sha 5cc64e6adfbd8769  device=cuda
+[00:32:21] cand rows=878,234 races=19,960  unsettleable excluded=13 deadheatÅ®100=46
+[00:32:26] train races=13,301 select races=6,659 features=57
+[00:32:26] NN grid (model inputs)
+[00:32:32]   [nn] cfg00 w=32 d=1 l2=0.0001 lr=0.001 ep=59 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (6s)
+[00:32:37]   [nn] cfg01 w=32 d=1 l2=0.0001 lr=0.003 ep=57 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (5s)
+[00:32:42]   [nn] cfg02 w=32 d=1 l2=0.003 lr=0.001 ep=59 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (5s)
+[00:32:47]   [nn] cfg03 w=32 d=1 l2=0.003 lr=0.003 ep=57 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (5s)
+[00:32:53]   [nn] cfg04 w=32 d=2 l2=0.0001 lr=0.001 ep=58 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (6s)
+[00:32:54]   [nn] cfg05 w=32 d=2 l2=0.0001 lr=0.003 ep=9 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (2s)
+[00:33:00]   [nn] cfg06 w=32 d=2 l2=0.003 lr=0.001 ep=58 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (6s)
+[00:33:02]   [nn] cfg07 w=32 d=2 l2=0.003 lr=0.003 ep=9 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (2s)
+[00:33:07]   [nn] cfg08 w=128 d=1 l2=0.0001 lr=0.001 ep=58 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (5s)
+[00:33:08]   [nn] cfg09 w=128 d=1 l2=0.0001 lr=0.003 ep=1 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (1s)
+[00:33:13]   [nn] cfg10 w=128 d=1 l2=0.003 lr=0.001 ep=58 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (5s)
+[00:33:14]   [nn] cfg11 w=128 d=1 l2=0.003 lr=0.003 ep=1 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (1s)
+[00:33:18]   [nn] cfg12 w=128 d=2 l2=0.0001 lr=0.001 ep=42 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (5s)
+[00:33:19]   [nn] cfg13 w=128 d=2 l2=0.0001 lr=0.003 ep=0 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (1s)
+[00:33:24]   [nn] cfg14 w=128 d=2 l2=0.003 lr=0.001 ep=42 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (5s)
+[00:33:25]   [nn] cfg15 w=128 d=2 l2=0.003 lr=0.003 ep=0 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (1s)
+[00:33:25]   selected: {'cfg_id': 15, 'width': 128, 'depth': 2, 'l2': 0.003, 'lr': 0.003, 'max_epochs': 60, 'patience': 8, 'batch': 512, 'abstain_bias': 6.0, 'best_epoch': 0, 'sel_lg': -9.357975108519306e-15, 'sel_mean_stake_frac': 9.805721772754294e-13, 'train_lg': -0.00027695247768310126, 'sel_lg_rounded_B10000': 0.0, 'sel_n_bet_races_B10000': 0}
+[00:33:25] NN grid (market inputs = B4)
+[00:33:30]   [b4] cfg00 w=32 d=1 l2=0.0001 lr=0.001 ep=59 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (5s)
+[00:33:35]   [b4] cfg01 w=32 d=1 l2=0.0001 lr=0.003 ep=56 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (5s)
+[00:33:39]   [b4] cfg02 w=32 d=1 l2=0.003 lr=0.001 ep=59 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (5s)
+[00:33:44]   [b4] cfg03 w=32 d=1 l2=0.003 lr=0.003 ep=56 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (5s)
+[00:33:50]   [b4] cfg04 w=32 d=2 l2=0.0001 lr=0.001 ep=59 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (6s)
+[00:33:52]   [b4] cfg05 w=32 d=2 l2=0.0001 lr=0.003 ep=8 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (2s)
+[00:33:57]   [b4] cfg06 w=32 d=2 l2=0.003 lr=0.001 ep=59 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (6s)
+[00:33:59]   [b4] cfg07 w=32 d=2 l2=0.003 lr=0.003 ep=8 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (2s)
+[00:34:04]   [b4] cfg08 w=128 d=1 l2=0.0001 lr=0.001 ep=57 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (5s)
+[00:34:04]   [b4] cfg09 w=128 d=1 l2=0.0001 lr=0.003 ep=1 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (1s)
+[00:34:09]   [b4] cfg10 w=128 d=1 l2=0.003 lr=0.001 ep=57 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (5s)
+[00:34:10]   [b4] cfg11 w=128 d=1 l2=0.003 lr=0.003 ep=1 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (1s)
+[00:34:16]   [b4] cfg12 w=128 d=2 l2=0.0001 lr=0.001 ep=38 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (6s)
+[00:34:17]   [b4] cfg13 w=128 d=2 l2=0.0001 lr=0.003 ep=0 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (1s)
+[00:34:23]   [b4] cfg14 w=128 d=2 l2=0.003 lr=0.001 ep=38 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (6s)
+[00:34:24]   [b4] cfg15 w=128 d=2 l2=0.003 lr=0.003 ep=0 sel_lg=-0.000000 frac=0.0000 lg_round=0.000000 betR=0 (1s)
+[00:34:24]   selected: {'cfg_id': 13, 'width': 128, 'depth': 2, 'l2': 0.0001, 'lr': 0.003, 'max_epochs': 60, 'patience': 8, 'batch': 512, 'abstain_bias': 6.0, 'best_epoch': 0, 'sel_lg': -6.03512965446115e-15, 'sel_mean_stake_frac': 6.601539519028587e-13, 'train_lg': -0.00027353733791276593, 'sel_lg_rounded_B10000': 0.0, 'sel_n_bet_races_B10000': 0}
+[00:34:24] NN seeds
+[00:34:25]   [nn_model] seed0 ep=0 sel_lg=-0.000000
+[00:34:26]   [nn_model] seed1 ep=0 sel_lg=-0.000000
+[00:34:27]   [nn_model] seed2 ep=0 sel_lg=-0.000000
+[00:34:28]   [nn_model] seed3 ep=0 sel_lg=-0.000000
+[00:34:29]   [nn_model] seed4 ep=0 sel_lg=-0.000000
+[00:34:30]   [nn_market] seed0 ep=0 sel_lg=-0.000000
+[00:34:31]   [nn_market] seed1 ep=0 sel_lg=-0.000000
+[00:34:32]   [nn_market] seed2 ep=0 sel_lg=-0.000000
+[00:34:33]   [nn_market] seed3 ep=0 sel_lg=-0.000000
+[00:34:33]   [nn_market] seed4 ep=0 sel_lg=-0.000000
+[00:34:33] GBM grid
+[00:34:38]   [gbm] cfg00 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0} it=83 sel_lg=0.000000 bet_races=0
+[00:34:38]   [gbm] cfg01 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.002} it=83 sel_lg=0.000000 bet_races=0
+[00:34:38]   [gbm] cfg02 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.005} it=83 sel_lg=0.000000 bet_races=0
+[00:34:40]   [gbm] cfg03 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.0} it=69 sel_lg=0.000000 bet_races=0
+[00:34:40]   [gbm] cfg04 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.002} it=69 sel_lg=0.000000 bet_races=0
+[00:34:40]   [gbm] cfg05 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.005} it=69 sel_lg=0.000000 bet_races=0
+[00:34:42]   [gbm] cfg06 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.0} it=73 sel_lg=0.000000 bet_races=0
+[00:34:42]   [gbm] cfg07 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.002} it=73 sel_lg=0.000000 bet_races=0
+[00:34:42]   [gbm] cfg08 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.005} it=73 sel_lg=0.000000 bet_races=0
+[00:34:45]   [gbm] cfg09 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.0} it=60 sel_lg=0.000000 bet_races=0
+[00:34:45]   [gbm] cfg10 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.002} it=60 sel_lg=0.000000 bet_races=0
+[00:34:45]   [gbm] cfg11 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.005} it=60 sel_lg=0.000000 bet_races=0
+[00:34:45]   selected: {'cfg_id': 0, 'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0, 'best_iter': 83, 'sel_lg': 0.0, 'sel_n_bet_races': 0, 'sel_pred_pos_rate': 0.0}
+[00:34:47]   [gbm] seed0 it=83
+[00:34:48]   [gbm] seed1 it=79
+[00:34:50]   [gbm] seed2 it=86
+[00:34:52]   [gbm] seed3 it=76
+[00:34:53]   [gbm] seed4 it=81
+[00:34:53] saved 18 files + manifest
+[00:35:24] [select_2021_2022 B=10000] B0_null:83.4%/6659R  B3_prob_first:83.4%/6659R  B1_a95:78.9%/6658R  B2_market_fav:84.9%/6659R  AI:0.0%/0R  B4_market_AI:0.0%/0R  GBM:0.0%/0R
+[00:35:46] [select_2021_2022 B=2000] B0_null:83.4%/6659R  B3_prob_first:83.4%/6659R  B1_a95:78.8%/6658R  B2_market_fav:84.9%/6659R  AI:0.0%/0R  B4_market_AI:0.0%/0R  GBM:0.0%/0R
+[00:36:31] [train_2017_2020 B=10000] B0_null:83.5%/13301R  B3_prob_first:83.5%/13301R  B1_a95:73.7%/13301R  B2_market_fav:84.0%/13301R  AI:0.0%/0R  B4_market_AI:0.0%/0R  GBM:0.0%/0R
+[00:37:13] [train_2017_2020 B=2000] B0_null:83.5%/13301R  B3_prob_first:83.5%/13301R  B1_a95:73.7%/13301R  B2_market_fav:84.0%/13301R  AI:0.0%/0R  B4_market_AI:0.0%/0R  GBM:0.0%/0R
+[00:37:13] done 294.6s Å® out/dev_results.json

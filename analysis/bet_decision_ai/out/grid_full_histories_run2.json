@@ -1,0 +1,290 @@
+{
+ "0": {
+  "mode": "softmax_abstain",
+  "max_sel_lg": -6.753248982249715e-08,
+  "max_sel_frac": 0.38029783964157104,
+  "max_train_lg": -6.806321735779458e-08,
+  "first": {
+   "epoch": 0,
+   "train_lg": -0.006127313721216989,
+   "sel_lg": -0.004639012273401022,
+   "sel_mean_stake_frac": 0.38029783964157104
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": -6.806321735779458e-08,
+   "sel_lg": -6.753248982249715e-08,
+   "sel_mean_stake_frac": 5.895037247682922e-06
+  }
+ },
+ "1": {
+  "mode": "softmax_abstain",
+  "max_sel_lg": -4.5961234818037155e-09,
+  "max_sel_frac": 0.007665849290788174,
+  "max_train_lg": -4.2666588536225364e-09,
+  "first": {
+   "epoch": 0,
+   "train_lg": -0.003760210513561902,
+   "sel_lg": -8.966933819465339e-05,
+   "sel_mean_stake_frac": 0.007665849290788174
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": -4.2666588536225364e-09,
+   "sel_lg": -4.5961234818037155e-09,
+   "sel_mean_stake_frac": 4.0182609950534243e-07
+  }
+ },
+ "2": {
+  "mode": "softmax_abstain",
+  "max_sel_lg": -7.018231773514572e-09,
+  "max_sel_frac": 0.011485391296446323,
+  "max_train_lg": -6.548594948750855e-09,
+  "first": {
+   "epoch": 0,
+   "train_lg": -0.0034292861501895263,
+   "sel_lg": -0.00013032736023887992,
+   "sel_mean_stake_frac": 0.011485391296446323
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": -6.548594948750855e-09,
+   "sel_lg": -7.018231773514572e-09,
+   "sel_mean_stake_frac": 6.204568876455596e-07
+  }
+ },
+ "3": {
+  "mode": "softmax_abstain",
+  "max_sel_lg": -1.8758160139488623e-21,
+  "max_sel_frac": 2.2901434438074575e-13,
+  "max_train_lg": -2.8442072811016646e-21,
+  "first": {
+   "epoch": 0,
+   "train_lg": -0.0014407974800763326,
+   "sel_lg": -2.136508472309201e-15,
+   "sel_mean_stake_frac": 2.2901434438074575e-13
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": -2.844207318618729e-21,
+   "sel_lg": -1.8758160139488623e-21,
+   "sel_mean_stake_frac": 2.120268507928046e-19
+  }
+ },
+ "4": {
+  "mode": "sigmoid_ticket",
+  "max_sel_lg": -1.7329874424376612e-07,
+  "max_sel_frac": 0.2503522038459778,
+  "max_train_lg": -1.7430543245651188e-07,
+  "first": {
+   "epoch": 0,
+   "train_lg": -0.003752136480779634,
+   "sel_lg": -0.0029875512700527906,
+   "sel_mean_stake_frac": 0.2503522038459778
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": -1.7430543245651188e-07,
+   "sel_lg": -1.7329874424376612e-07,
+   "sel_mean_stake_frac": 1.493566196586471e-05
+  }
+ },
+ "5": {
+  "mode": "sigmoid_ticket",
+  "max_sel_lg": -2.5392088431885895e-08,
+  "max_sel_frac": 0.06472960859537125,
+  "max_train_lg": -2.534621027842644e-08,
+  "first": {
+   "epoch": 0,
+   "train_lg": -0.0027843394495228792,
+   "sel_lg": -0.00075499527156353,
+   "sel_mean_stake_frac": 0.06472960859537125
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": -2.534621027842644e-08,
+   "sel_lg": -2.5392088431885895e-08,
+   "sel_mean_stake_frac": 2.1910375380684854e-06
+  }
+ },
+ "6": {
+  "mode": "sigmoid_ticket",
+  "max_sel_lg": -3.698068695712209e-08,
+  "max_sel_frac": 0.1154676228761673,
+  "max_train_lg": -3.7434958357893626e-08,
+  "first": {
+   "epoch": 0,
+   "train_lg": -0.0031274612985649946,
+   "sel_lg": -0.0013255763333290815,
+   "sel_mean_stake_frac": 0.1154676228761673
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": -3.7434958357893626e-08,
+   "sel_lg": -3.698068695712209e-08,
+   "sel_mean_stake_frac": 3.216179948140052e-06
+  }
+ },
+ "7": {
+  "mode": "sigmoid_ticket",
+  "max_sel_lg": -4.2410491785105364e-10,
+  "max_sel_frac": 2.298181971127633e-05,
+  "max_train_lg": -3.101736466431298e-10,
+  "first": {
+   "epoch": 0,
+   "train_lg": -0.0014766788459893195,
+   "sel_lg": -2.53607908007325e-07,
+   "sel_mean_stake_frac": 2.298181971127633e-05
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": -3.101736466431298e-10,
+   "sel_lg": -4.2410491785105364e-10,
+   "sel_mean_stake_frac": 3.731714670607289e-08
+  }
+ },
+ "8": {
+  "mode": "relu_st",
+  "max_sel_lg": 0.0,
+  "max_sel_frac": 0.0,
+  "max_train_lg": 0.0,
+  "first": {
+   "epoch": 0,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  }
+ },
+ "9": {
+  "mode": "relu_st",
+  "max_sel_lg": 0.0,
+  "max_sel_frac": 0.0,
+  "max_train_lg": 0.0,
+  "first": {
+   "epoch": 0,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  }
+ },
+ "10": {
+  "mode": "relu_st",
+  "max_sel_lg": 0.0,
+  "max_sel_frac": 0.0,
+  "max_train_lg": 0.0,
+  "first": {
+   "epoch": 0,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  }
+ },
+ "11": {
+  "mode": "relu_st",
+  "max_sel_lg": 0.0,
+  "max_sel_frac": 0.0,
+  "max_train_lg": 0.0,
+  "first": {
+   "epoch": 0,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  }
+ },
+ "12": {
+  "mode": "relu_st",
+  "max_sel_lg": 0.0,
+  "max_sel_frac": 0.0,
+  "max_train_lg": 0.0,
+  "first": {
+   "epoch": 0,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  }
+ },
+ "13": {
+  "mode": "relu_st",
+  "max_sel_lg": 0.0,
+  "max_sel_frac": 0.0,
+  "max_train_lg": 0.0,
+  "first": {
+   "epoch": 0,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  }
+ },
+ "14": {
+  "mode": "relu_st",
+  "max_sel_lg": 0.0,
+  "max_sel_frac": 0.0,
+  "max_train_lg": 0.0,
+  "first": {
+   "epoch": 0,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  }
+ },
+ "15": {
+  "mode": "relu_st",
+  "max_sel_lg": 0.0,
+  "max_sel_frac": 0.0,
+  "max_train_lg": 0.0,
+  "first": {
+   "epoch": 0,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  },
+  "last": {
+   "epoch": 59,
+   "train_lg": 0.0,
+   "sel_lg": 0.0,
+   "sel_mean_stake_frac": 0.0
+  }
+ }
+}
