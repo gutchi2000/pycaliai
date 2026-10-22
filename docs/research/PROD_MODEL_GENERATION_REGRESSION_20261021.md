@@ -63,3 +63,21 @@ git commit -m "prod: C1 モデル/基本較正器を再配置 (9/20 autostash �
 
 - C1 を復元するか（推奨: する。C1 は正しい学習データの帰結であり、復元しないなら VOL3 の「P0-5 本番反映済み ✅」が偽）。
 - 復元のタイミング（推奨: serve-repro-sp1 マージと同じ日。a95 再起算を 1 回で済ませる）。
+
+## 7. 解消（2026-10-22）
+
+- ユーザーが `scripts/restore_c1_model.sh` を実行し、C1 を再配置した（commit `bcb2e49a`）。続けてガード（`prod/artifact-pin-guard`、`b1e3c465`）を merge した（`454f38a2`）。テストは 9 件すべて通過。
+- 確認: `models/unified_rank_v6.pkl` = `db2ffe65…`、`models/pl_calibrators_v6.pkl` = `a08da051…`。`policy_stamp()` が pin 照合 OK、`export_weekly_marks.py` が「artifact pins OK」を出して bundle を生成。
+- 再発防止: `data/artifact_pins.json` と期待値が違えば T-10 と週次 bundle が fail-closed で止まる。モデルを意図して差し替えるときは、pins を同じ commit で更新する。
+- a95 の再起算（10/24 予定）は `docs/hypothesis_registry.md` と `COLLECTION_WAIT_REGISTRY.md` に記録した。
+
+### C0 と C1 の差（10 月 7 開催日・185R、同じ入力で両モデルの bundle を作り直して比較、記述のみ）
+
+| 指標 | C0 | C1 |
+|---|---|---|
+| ◎ 3 着内率 | 61.6% | 61.1% |
+| ◎ 勝率 | 26.5% | 25.4% |
+| 勝ち馬の logloss | 2.267 | 2.222 |
+
+- ◎ が入れ替わるのは 25%（185R 中 46R）。入れ替わった 46R で 3 着内に来たのは C0 が 24、C1 が 23。
+- 差の 95% 区間は ◎3 着内 [−5.9, +4.3]pt、logloss [−0.151, +0.028] で、どちらも 0 をまたぐ。精度の差は検出できない（P0-5 は正しさのための修正で、精度改善を主張していない点と整合）。
