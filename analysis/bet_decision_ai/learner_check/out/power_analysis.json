@@ -1,0 +1,75 @@
+{
+ "edges_lpq_q60_train": {
+  "tan": 0.3119882240209569,
+  "fuku": 0.21600689488664462
+ },
+ "subset_share_all": 0.04506543814063222,
+ "subset_share_by_year": {
+  "2017": 0.046650358060460285,
+  "2018": 0.04300898980790775,
+  "2019": 0.042745334136062615,
+  "2020": 0.04647269447329579,
+  "2021": 0.0475709331221497,
+  "2022": 0.04394119333306032
+ },
+ "subset_by_bet_type": {
+  "tan": 19599,
+  "fuku": 19979
+ },
+ "races_with_subset_ticket_share": 0.7230460921843688,
+ "n_select_races": 6659,
+ "conditions": {
+  "control": {
+   "boost": null,
+   "n_pi_capped": 0,
+   "n_tan_sum_scaled_races": 0,
+   "design_expected_return_subset": 0.7999999999999999,
+   "design_expected_return_nonsubset": 0.7559703859508546,
+   "fuku_coupling_clip": 31,
+   "oracle_expected_mean_log_growth": 0.0,
+   "oracle_se": 0.0,
+   "oracle_z": null,
+   "oracle_bet_race_share": 0.0,
+   "oracle_mean_stake_frac": 0.0
+  },
+  "e105": {
+   "boost": 1.05,
+   "n_pi_capped": 0,
+   "n_tan_sum_scaled_races": 1,
+   "design_expected_return_subset": 1.049999962214707,
+   "design_expected_return_nonsubset": 0.7559703852715518,
+   "fuku_coupling_clip": 20,
+   "oracle_expected_mean_log_growth": 0.0008193116195893466,
+   "oracle_se": 0.0003903904091047876,
+   "oracle_z": 2.0986981249568277,
+   "oracle_bet_race_share": 0.718276017420033,
+   "oracle_mean_stake_frac": 0.5318886457435881
+  },
+  "e110": {
+   "boost": 1.1,
+   "n_pi_capped": 0,
+   "n_tan_sum_scaled_races": 2,
+   "design_expected_return_subset": 1.0999990599849168,
+   "design_expected_return_nonsubset": 0.7559703698194526,
+   "fuku_coupling_clip": 24,
+   "oracle_expected_mean_log_growth": 0.0023145561418693107,
+   "oracle_se": 0.0005246499585675655,
+   "oracle_z": 4.4116197934879615,
+   "oracle_bet_race_share": 0.718276017420033,
+   "oracle_mean_stake_frac": 0.6493618845141187
+  },
+  "e120": {
+   "boost": 1.2,
+   "n_pi_capped": 49,
+   "n_tan_sum_scaled_races": 11,
+   "design_expected_return_subset": 1.1999246738156188,
+   "design_expected_return_nonsubset": 0.7559700810312768,
+   "fuku_coupling_clip": 26,
+   "oracle_expected_mean_log_growth": 0.005675048420154215,
+   "oracle_se": 0.0006201854909992493,
+   "oracle_z": 9.150566245931548,
+   "oracle_bet_race_share": 0.718276017420033,
+   "oracle_mean_stake_frac": 0.7012221785247406
+  }
+ }
+}

@@ -1,0 +1,376 @@
+[06:50:22] tag=v1 learner=analysis.bet_decision_ai.learner_check.v1_learner seeds=[11, 22, 33] conds=['control', 'e105', 'e110', 'e120'] device=cuda
+[06:50:27] cand=878,234 races=19,960 subset share=0.0451 sel races=6659
+[06:50:29] [seed 11 control] meanR subset sel=0.799 oracle lg=0.000000 CI=[0.0, 0.0]
+[06:50:36]     nn cfg00 softmax_abstain w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (7s)
+[06:50:38]     nn cfg01 softmax_abstain w= 32 l2=0.0001 lr=0.003 ep= 5/14 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (2s)
+[06:50:44]     nn cfg02 softmax_abstain w=128 l2=0.0001 lr=0.001 ep=55/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (6s)
+[06:50:45]     nn cfg03 softmax_abstain w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:50:50]     nn cfg04 sigmoid_ticket  w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (5s)
+[06:50:55]     nn cfg05 sigmoid_ticket  w= 32 l2=0.0001 lr=0.003 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (5s)
+[06:51:01]     nn cfg06 sigmoid_ticket  w=128 l2=0.0001 lr=0.001 ep=58/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (5s)
+[06:51:01]     nn cfg07 sigmoid_ticket  w=128 l2=0.0001 lr=0.003 ep= 1/10 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:51:02]     nn cfg08 relu_st         w= 32 l2=0.0001 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:51:03]     nn cfg09 relu_st         w= 32 l2=0.0001 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:51:04]     nn cfg10 relu_st         w= 32 l2=0.003 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:51:04]     nn cfg11 relu_st         w= 32 l2=0.003 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:51:05]     nn cfg12 relu_st         w=128 l2=0.0001 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:51:06]     nn cfg13 relu_st         w=128 l2=0.0001 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:51:07]     nn cfg14 relu_st         w=128 l2=0.003 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:51:07]     nn cfg15 relu_st         w=128 l2=0.003 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:51:11]   NN main: betR=0 lg=0.000000 CI=[0.0, 0.0] roi=None subset=None ratio=None
+[06:51:18]     gbm cfg00 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0} it=99 sel_lg=0.000000 betR=0
+[06:51:18]     gbm cfg01 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.002} it=99 sel_lg=0.000000 betR=0
+[06:51:18]     gbm cfg02 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.005} it=99 sel_lg=0.000000 betR=0
+[06:51:20]     gbm cfg03 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.0} it=81 sel_lg=0.000000 betR=0
+[06:51:20]     gbm cfg04 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.002} it=81 sel_lg=0.000000 betR=0
+[06:51:20]     gbm cfg05 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.005} it=81 sel_lg=0.000000 betR=0
+[06:51:23]     gbm cfg06 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.0} it=73 sel_lg=0.000000 betR=0
+[06:51:23]     gbm cfg07 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.002} it=73 sel_lg=0.000000 betR=0
+[06:51:23]     gbm cfg08 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.005} it=73 sel_lg=0.000000 betR=0
+[06:51:26]     gbm cfg09 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.0} it=69 sel_lg=0.000000 betR=0
+[06:51:26]     gbm cfg10 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.002} it=69 sel_lg=0.000000 betR=0
+[06:51:26]     gbm cfg11 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.005} it=69 sel_lg=0.000000 betR=0
+[06:51:38]   GBM main: betR=0 lg=0.000000 CI=[0.0, 0.0] roi=None subset=None ratio=None
+[06:51:43] [seed 11 e105] meanR subset sel=1.034 oracle lg=0.000617 CI=[-9.494031692242104e-05, 0.0013235948074085868]
+[06:51:50]     nn cfg00 softmax_abstain w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (7s)
+[06:51:51]     nn cfg01 softmax_abstain w= 32 l2=0.0001 lr=0.003 ep= 7/16 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (2s)
+[06:51:58]     nn cfg02 softmax_abstain w=128 l2=0.0001 lr=0.001 ep=54/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (7s)
+[06:51:59]     nn cfg03 softmax_abstain w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:52:00]     nn cfg04 sigmoid_ticket  w= 32 l2=0.0001 lr=0.001 ep= 6/15 sel_lg=-0.000017 frac=0.029 maxtrain=0.001023 (1s)
+[06:52:01]     nn cfg05 sigmoid_ticket  w= 32 l2=0.0001 lr=0.003 ep= 1/10 sel_lg=-0.000005 frac=0.009 maxtrain=0.001233 (1s)
+[06:52:02]     nn cfg06 sigmoid_ticket  w=128 l2=0.0001 lr=0.001 ep= 2/11 sel_lg=-0.000013 frac=0.040 maxtrain=0.001130 (1s)
+[06:52:03]     nn cfg07 sigmoid_ticket  w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=0.000004 frac=0.007 maxtrain=0.001625 (1s)
+[06:52:04]     nn cfg08 relu_st         w= 32 l2=0.0001 lr=0.0003 ep= 4/13 sel_lg=0.000010 frac=0.004 maxtrain=0.000327 (1s)
+[06:52:05]     nn cfg09 relu_st         w= 32 l2=0.0001 lr=0.001 ep= 1/10 sel_lg=0.000013 frac=0.004 maxtrain=0.000460 (1s)
+[06:52:06]     nn cfg10 relu_st         w= 32 l2=0.003 lr=0.0003 ep= 4/13 sel_lg=0.000010 frac=0.004 maxtrain=0.000289 (1s)
+[06:52:07]     nn cfg11 relu_st         w= 32 l2=0.003 lr=0.001 ep= 1/10 sel_lg=0.000013 frac=0.004 maxtrain=0.000418 (1s)
+[06:52:08]     nn cfg12 relu_st         w=128 l2=0.0001 lr=0.0003 ep= 2/11 sel_lg=0.000004 frac=0.006 maxtrain=0.000417 (1s)
+[06:52:09]     nn cfg13 relu_st         w=128 l2=0.0001 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000481 (1s)
+[06:52:10]     nn cfg14 relu_st         w=128 l2=0.003 lr=0.0003 ep= 2/11 sel_lg=0.000004 frac=0.006 maxtrain=0.000376 (1s)
+[06:52:11]     nn cfg15 relu_st         w=128 l2=0.003 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000369 (1s)
+[06:52:15]   NN main: betR=273 lg=0.000007 CI=[-1.8607559106133434e-05, 3.716740285126848e-05] roi=1.1202115090501295 subset=0.8907168037602821 ratio=0.01127855002152563
+[06:52:17]     gbm cfg00 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0} it=111 sel_lg=0.000000 betR=0
+[06:52:17]     gbm cfg01 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.002} it=111 sel_lg=0.000000 betR=0
+[06:52:17]     gbm cfg02 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.005} it=111 sel_lg=0.000000 betR=0
+[06:52:20]     gbm cfg03 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.0} it=94 sel_lg=0.000000 betR=0
+[06:52:20]     gbm cfg04 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.002} it=94 sel_lg=0.000000 betR=0
+[06:52:20]     gbm cfg05 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.005} it=94 sel_lg=0.000000 betR=0
+[06:52:22]     gbm cfg06 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.0} it=73 sel_lg=0.000000 betR=0
+[06:52:22]     gbm cfg07 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.002} it=73 sel_lg=0.000000 betR=0
+[06:52:22]     gbm cfg08 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.005} it=73 sel_lg=0.000000 betR=0
+[06:52:25]     gbm cfg09 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.0} it=77 sel_lg=-0.000158 betR=341
+[06:52:25]     gbm cfg10 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.002} it=77 sel_lg=0.000000 betR=0
+[06:52:25]     gbm cfg11 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.005} it=77 sel_lg=0.000000 betR=0
+[06:52:38]   GBM main: betR=0 lg=0.000000 CI=[0.0, 0.0] roi=None subset=None ratio=0.0
+[06:52:42] [seed 11 e110] meanR subset sel=1.074 oracle lg=0.001899 CI=[0.0008756496474666114, 0.0029131031781848365]
+[06:52:48]     nn cfg00 softmax_abstain w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (6s)
+[06:52:50]     nn cfg01 softmax_abstain w= 32 l2=0.0001 lr=0.003 ep= 7/16 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (2s)
+[06:52:56]     nn cfg02 softmax_abstain w=128 l2=0.0001 lr=0.001 ep=56/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (6s)
+[06:52:57]     nn cfg03 softmax_abstain w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:53:00]     nn cfg04 sigmoid_ticket  w= 32 l2=0.0001 lr=0.001 ep=31/40 sel_lg=0.000545 frac=0.500 maxtrain=0.003202 (3s)
+[06:53:02]     nn cfg05 sigmoid_ticket  w= 32 l2=0.0001 lr=0.003 ep= 7/16 sel_lg=0.000439 frac=0.530 maxtrain=0.003128 (1s)
+[06:53:04]     nn cfg06 sigmoid_ticket  w=128 l2=0.0001 lr=0.001 ep=17/26 sel_lg=0.000734 frac=0.482 maxtrain=0.003275 (2s)
+[06:53:06]     nn cfg07 sigmoid_ticket  w=128 l2=0.0001 lr=0.003 ep=12/21 sel_lg=0.000798 frac=0.512 maxtrain=0.003361 (2s)
+[06:53:07]     nn cfg08 relu_st         w= 32 l2=0.0001 lr=0.0003 ep= 3/12 sel_lg=0.000004 frac=0.001 maxtrain=0.000987 (1s)
+[06:53:08]     nn cfg09 relu_st         w= 32 l2=0.0001 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.001223 (1s)
+[06:53:11]     nn cfg10 relu_st         w= 32 l2=0.003 lr=0.0003 ep=19/28 sel_lg=0.000285 frac=0.184 maxtrain=0.000845 (3s)
+[06:53:12]     nn cfg11 relu_st         w= 32 l2=0.003 lr=0.001 ep= 6/15 sel_lg=0.000304 frac=0.164 maxtrain=0.000813 (1s)
+[06:53:13]     nn cfg12 relu_st         w=128 l2=0.0001 lr=0.0003 ep= 2/11 sel_lg=0.000103 frac=0.078 maxtrain=0.001361 (1s)
+[06:53:14]     nn cfg13 relu_st         w=128 l2=0.0001 lr=0.001 ep= 0/9 sel_lg=0.000001 frac=0.001 maxtrain=0.001391 (1s)
+[06:53:15]     nn cfg14 relu_st         w=128 l2=0.003 lr=0.0003 ep= 2/11 sel_lg=0.000104 frac=0.071 maxtrain=0.000921 (1s)
+[06:53:16]     nn cfg15 relu_st         w=128 l2=0.003 lr=0.001 ep=11/20 sel_lg=0.000372 frac=0.118 maxtrain=0.000826 (2s)
+[06:53:25]   NN main: betR=4487 lg=0.000886 CI=[-7.267901975654525e-05, 0.0018593885617672532] roi=1.072418337528293 subset=0.9580287914645468 ratio=0.46690929796750286
+[06:53:27]     gbm cfg00 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0} it=119 sel_lg=0.000405 betR=2464
+[06:53:27]     gbm cfg01 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.002} it=119 sel_lg=0.000085 betR=10
+[06:53:27]     gbm cfg02 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.005} it=119 sel_lg=0.000000 betR=0
+[06:53:30]     gbm cfg03 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.0} it=87 sel_lg=0.000080 betR=1497
+[06:53:30]     gbm cfg04 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.002} it=87 sel_lg=0.000000 betR=0
+[06:53:30]     gbm cfg05 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.005} it=87 sel_lg=0.000000 betR=0
+[06:53:32]     gbm cfg06 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.0} it=73 sel_lg=-0.000134 betR=640
+[06:53:32]     gbm cfg07 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.002} it=73 sel_lg=-0.000008 betR=1
+[06:53:32]     gbm cfg08 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.005} it=73 sel_lg=0.000000 betR=0
+[06:53:35]     gbm cfg09 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.0} it=72 sel_lg=0.000101 betR=1855
+[06:53:35]     gbm cfg10 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.002} it=72 sel_lg=-0.000079 betR=233
+[06:53:35]     gbm cfg11 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.005} it=72 sel_lg=0.000000 betR=0
+[06:53:47]   GBM main: betR=2505 lg=0.000419 CI=[-0.0004118976758392381, 0.0012764617842439055] roi=1.0759503592631752 subset=1.0 ratio=0.22065006371187135
+[06:53:51] [seed 11 e120] meanR subset sel=1.189 oracle lg=0.005270 CI=[0.004107518188382662, 0.006479878707507111]
+[06:53:57]     nn cfg00 softmax_abstain w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (6s)
+[06:53:59]     nn cfg01 softmax_abstain w= 32 l2=0.0001 lr=0.003 ep= 6/15 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (2s)
+[06:54:05]     nn cfg02 softmax_abstain w=128 l2=0.0001 lr=0.001 ep=58/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (6s)
+[06:54:06]     nn cfg03 softmax_abstain w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:54:11]     nn cfg04 sigmoid_ticket  w= 32 l2=0.0001 lr=0.001 ep=55/60 sel_lg=0.004157 frac=0.598 maxtrain=0.006924 (5s)
+[06:54:14]     nn cfg05 sigmoid_ticket  w= 32 l2=0.0001 lr=0.003 ep=25/34 sel_lg=0.004194 frac=0.593 maxtrain=0.007147 (3s)
+[06:54:15]     nn cfg06 sigmoid_ticket  w=128 l2=0.0001 lr=0.001 ep=15/24 sel_lg=0.003682 frac=0.620 maxtrain=0.006318 (2s)
+[06:54:17]     nn cfg07 sigmoid_ticket  w=128 l2=0.0001 lr=0.003 ep= 8/17 sel_lg=0.003980 frac=0.582 maxtrain=0.006749 (1s)
+[06:54:19]     nn cfg08 relu_st         w= 32 l2=0.0001 lr=0.0003 ep=20/29 sel_lg=0.001980 frac=0.532 maxtrain=0.003571 (2s)
+[06:54:20]     nn cfg09 relu_st         w= 32 l2=0.0001 lr=0.001 ep= 5/14 sel_lg=0.002039 frac=0.534 maxtrain=0.003581 (1s)
+[06:54:23]     nn cfg10 relu_st         w= 32 l2=0.003 lr=0.0003 ep=23/32 sel_lg=0.001756 frac=0.389 maxtrain=0.003208 (3s)
+[06:54:26]     nn cfg11 relu_st         w= 32 l2=0.003 lr=0.001 ep=28/37 sel_lg=0.002000 frac=0.444 maxtrain=0.003409 (3s)
+[06:54:27]     nn cfg12 relu_st         w=128 l2=0.0001 lr=0.0003 ep= 8/17 sel_lg=0.002546 frac=0.538 maxtrain=0.003668 (1s)
+[06:54:28]     nn cfg13 relu_st         w=128 l2=0.0001 lr=0.001 ep= 3/12 sel_lg=0.002453 frac=0.545 maxtrain=0.003712 (1s)
+[06:54:29]     nn cfg14 relu_st         w=128 l2=0.003 lr=0.0003 ep= 4/13 sel_lg=0.002124 frac=0.473 maxtrain=0.003573 (1s)
+[06:54:30]     nn cfg15 relu_st         w=128 l2=0.003 lr=0.001 ep= 1/10 sel_lg=0.002206 frac=0.540 maxtrain=0.003716 (1s)
+[06:54:43]   NN main: betR=4662 lg=0.004262 CI=[0.003047946156875702, 0.005465795272131518] roi=1.1908349928612365 subset=0.9603180375390274 ratio=0.8086462273382172
+[06:54:45]     gbm cfg00 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0} it=95 sel_lg=0.004608 betR=4020
+[06:54:45]     gbm cfg01 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.002} it=95 sel_lg=0.002906 betR=2728
+[06:54:45]     gbm cfg02 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.005} it=95 sel_lg=0.001251 betR=1440
+[06:54:47]     gbm cfg03 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.0} it=88 sel_lg=0.004561 betR=3926
+[06:54:47]     gbm cfg04 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.002} it=88 sel_lg=0.003053 betR=3079
+[06:54:47]     gbm cfg05 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.005} it=88 sel_lg=0.001125 betR=1152
+[06:54:50]     gbm cfg06 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.0} it=73 sel_lg=0.004551 betR=3902
+[06:54:50]     gbm cfg07 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.002} it=73 sel_lg=0.002986 betR=2738
+[06:54:50]     gbm cfg08 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.005} it=73 sel_lg=0.000887 betR=1106
+[06:54:53]     gbm cfg09 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.0} it=81 sel_lg=0.005011 betR=4154
+[06:54:53]     gbm cfg10 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.002} it=81 sel_lg=0.004002 betR=3520
+[06:54:53]     gbm cfg11 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.005} it=81 sel_lg=0.001872 betR=1992
+[06:55:11]   GBM main: betR=4358 lg=0.005197 CI=[0.003979577212259291, 0.006389592045785245] roi=1.2128573000377536 subset=1.0 ratio=0.9860972374744157
+[06:55:11] [seed 22 control] meanR subset sel=0.811 oracle lg=0.000000 CI=[0.0, 0.0]
+[06:55:17]     nn cfg00 softmax_abstain w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (6s)
+[06:55:18]     nn cfg01 softmax_abstain w= 32 l2=0.0001 lr=0.003 ep= 2/11 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:55:24]     nn cfg02 softmax_abstain w=128 l2=0.0001 lr=0.001 ep=58/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (6s)
+[06:55:25]     nn cfg03 softmax_abstain w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:55:30]     nn cfg04 sigmoid_ticket  w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (5s)
+[06:55:35]     nn cfg05 sigmoid_ticket  w= 32 l2=0.0001 lr=0.003 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (5s)
+[06:55:40]     nn cfg06 sigmoid_ticket  w=128 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (5s)
+[06:55:41]     nn cfg07 sigmoid_ticket  w=128 l2=0.0001 lr=0.003 ep= 1/10 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:55:41]     nn cfg08 relu_st         w= 32 l2=0.0001 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:55:42]     nn cfg09 relu_st         w= 32 l2=0.0001 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:55:43]     nn cfg10 relu_st         w= 32 l2=0.003 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:55:44]     nn cfg11 relu_st         w= 32 l2=0.003 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:55:44]     nn cfg12 relu_st         w=128 l2=0.0001 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:55:45]     nn cfg13 relu_st         w=128 l2=0.0001 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:55:46]     nn cfg14 relu_st         w=128 l2=0.003 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:55:47]     nn cfg15 relu_st         w=128 l2=0.003 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[06:55:52]   NN main: betR=0 lg=0.000000 CI=[0.0, 0.0] roi=None subset=None ratio=None
+[06:55:54]     gbm cfg00 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0} it=165 sel_lg=0.000000 betR=0
+[06:55:54]     gbm cfg01 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.002} it=165 sel_lg=0.000000 betR=0
+[06:55:54]     gbm cfg02 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.005} it=165 sel_lg=0.000000 betR=0
+[06:55:57]     gbm cfg03 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.0} it=106 sel_lg=0.000000 betR=0
+[06:55:57]     gbm cfg04 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.002} it=106 sel_lg=0.000000 betR=0
+[06:55:57]     gbm cfg05 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.005} it=106 sel_lg=0.000000 betR=0
+[06:55:59]     gbm cfg06 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.0} it=79 sel_lg=0.000000 betR=0
+[06:55:59]     gbm cfg07 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.002} it=79 sel_lg=0.000000 betR=0
+[06:55:59]     gbm cfg08 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.005} it=79 sel_lg=0.000000 betR=0
+[06:56:02]     gbm cfg09 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.0} it=74 sel_lg=0.000000 betR=0
+[06:56:02]     gbm cfg10 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.002} it=74 sel_lg=0.000000 betR=0
+[06:56:02]     gbm cfg11 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.005} it=74 sel_lg=0.000000 betR=0
+[06:56:15]   GBM main: betR=0 lg=0.000000 CI=[0.0, 0.0] roi=None subset=None ratio=None
+[06:56:15] [seed 22 e105] meanR subset sel=1.058 oracle lg=0.000587 CI=[-9.173335912686118e-05, 0.0013448837683899203]
+[06:56:22]     nn cfg00 softmax_abstain w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (7s)
+[06:56:23]     nn cfg01 softmax_abstain w= 32 l2=0.0001 lr=0.003 ep= 2/11 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:56:29]     nn cfg02 softmax_abstain w=128 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (6s)
+[06:56:29]     nn cfg03 softmax_abstain w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:56:31]     nn cfg04 sigmoid_ticket  w= 32 l2=0.0001 lr=0.001 ep=15/24 sel_lg=0.000170 frac=0.137 maxtrain=0.001390 (2s)
+[06:56:33]     nn cfg05 sigmoid_ticket  w= 32 l2=0.0001 lr=0.003 ep= 7/16 sel_lg=0.000187 frac=0.190 maxtrain=0.001836 (1s)
+[06:56:35]     nn cfg06 sigmoid_ticket  w=128 l2=0.0001 lr=0.001 ep=15/24 sel_lg=0.000312 frac=0.162 maxtrain=0.002465 (2s)
+[06:56:36]     nn cfg07 sigmoid_ticket  w=128 l2=0.0001 lr=0.003 ep= 5/14 sel_lg=0.000317 frac=0.122 maxtrain=0.002679 (1s)
+[06:56:37]     nn cfg08 relu_st         w= 32 l2=0.0001 lr=0.0003 ep= 7/16 sel_lg=0.000072 frac=0.036 maxtrain=0.000299 (1s)
+[06:56:39]     nn cfg09 relu_st         w= 32 l2=0.0001 lr=0.001 ep= 8/17 sel_lg=0.000102 frac=0.016 maxtrain=0.000294 (1s)
+[06:56:40]     nn cfg10 relu_st         w= 32 l2=0.003 lr=0.0003 ep= 7/16 sel_lg=0.000067 frac=0.028 maxtrain=0.000276 (1s)
+[06:56:41]     nn cfg11 relu_st         w= 32 l2=0.003 lr=0.001 ep= 7/16 sel_lg=0.000102 frac=0.015 maxtrain=0.000298 (1s)
+[06:56:42]     nn cfg12 relu_st         w=128 l2=0.0001 lr=0.0003 ep= 6/15 sel_lg=0.000121 frac=0.062 maxtrain=0.000155 (1s)
+[06:56:44]     nn cfg13 relu_st         w=128 l2=0.0001 lr=0.001 ep= 7/16 sel_lg=0.000364 frac=0.153 maxtrain=0.000311 (1s)
+[06:56:45]     nn cfg14 relu_st         w=128 l2=0.003 lr=0.0003 ep=11/20 sel_lg=0.000260 frac=0.066 maxtrain=0.000180 (2s)
+[06:56:46]     nn cfg15 relu_st         w=128 l2=0.003 lr=0.001 ep= 5/14 sel_lg=0.000267 frac=0.030 maxtrain=0.000356 (1s)
+[06:56:54]   NN main: betR=1387 lg=0.000374 CI=[-4.09647087603073e-05, 0.0008336865796212885] roi=1.1476697327800154 subset=0.9266528313074415 ratio=0.6366750185153486
+[06:56:56]     gbm cfg00 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0} it=165 sel_lg=0.000073 betR=26
+[06:56:56]     gbm cfg01 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.002} it=165 sel_lg=0.000039 betR=6
+[06:56:56]     gbm cfg02 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.005} it=165 sel_lg=0.000000 betR=0
+[06:56:59]     gbm cfg03 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.0} it=138 sel_lg=0.000000 betR=0
+[06:56:59]     gbm cfg04 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.002} it=138 sel_lg=0.000000 betR=0
+[06:56:59]     gbm cfg05 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.005} it=138 sel_lg=0.000000 betR=0
+[06:57:01]     gbm cfg06 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.0} it=85 sel_lg=-0.000061 betR=19
+[06:57:01]     gbm cfg07 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.002} it=85 sel_lg=-0.000039 betR=5
+[06:57:01]     gbm cfg08 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.005} it=85 sel_lg=-0.000008 betR=1
+[06:57:04]     gbm cfg09 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.0} it=84 sel_lg=0.000003 betR=55
+[06:57:04]     gbm cfg10 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.002} it=84 sel_lg=0.000000 betR=0
+[06:57:04]     gbm cfg11 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.005} it=84 sel_lg=0.000000 betR=0
+[06:57:19]   GBM main: betR=61 lg=-0.000004 CI=[-0.0001060409917366053, 0.00011681686855828052] roi=1.0457975137996582 subset=1.0 ratio=-0.006611110912023564
+[06:57:19] [seed 22 e110] meanR subset sel=1.100 oracle lg=0.002331 CI=[0.0014373260496938465, 0.0032891363361702217]
+[06:57:25]     nn cfg00 softmax_abstain w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (6s)
+[06:57:26]     nn cfg01 softmax_abstain w= 32 l2=0.0001 lr=0.003 ep= 2/11 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:57:32]     nn cfg02 softmax_abstain w=128 l2=0.0001 lr=0.001 ep=55/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (6s)
+[06:57:33]     nn cfg03 softmax_abstain w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:57:36]     nn cfg04 sigmoid_ticket  w= 32 l2=0.0001 lr=0.001 ep=25/34 sel_lg=0.001064 frac=0.475 maxtrain=0.002803 (3s)
+[06:57:39]     nn cfg05 sigmoid_ticket  w= 32 l2=0.0001 lr=0.003 ep=31/40 sel_lg=0.001474 frac=0.483 maxtrain=0.004324 (3s)
+[06:57:42]     nn cfg06 sigmoid_ticket  w=128 l2=0.0001 lr=0.001 ep=20/29 sel_lg=0.001188 frac=0.481 maxtrain=0.003227 (3s)
+[06:57:44]     nn cfg07 sigmoid_ticket  w=128 l2=0.0001 lr=0.003 ep= 8/17 sel_lg=0.001538 frac=0.495 maxtrain=0.003076 (2s)
+[06:57:47]     nn cfg08 relu_st         w= 32 l2=0.0001 lr=0.0003 ep=32/41 sel_lg=0.000634 frac=0.238 maxtrain=0.000823 (4s)
+[06:57:49]     nn cfg09 relu_st         w= 32 l2=0.0001 lr=0.001 ep=12/21 sel_lg=0.000490 frac=0.247 maxtrain=0.000776 (2s)
+[06:57:51]     nn cfg10 relu_st         w= 32 l2=0.003 lr=0.0003 ep= 7/16 sel_lg=0.000175 frac=0.054 maxtrain=0.000390 (2s)
+[06:57:52]     nn cfg11 relu_st         w= 32 l2=0.003 lr=0.001 ep= 2/11 sel_lg=0.000137 frac=0.060 maxtrain=0.000405 (1s)
+[06:57:54]     nn cfg12 relu_st         w=128 l2=0.0001 lr=0.0003 ep=10/19 sel_lg=0.000485 frac=0.203 maxtrain=0.000667 (2s)
+[06:57:56]     nn cfg13 relu_st         w=128 l2=0.0001 lr=0.001 ep=12/21 sel_lg=0.000663 frac=0.150 maxtrain=0.000547 (2s)
+[06:57:57]     nn cfg14 relu_st         w=128 l2=0.003 lr=0.0003 ep= 3/12 sel_lg=0.000265 frac=0.112 maxtrain=0.000518 (1s)
+[06:57:59]     nn cfg15 relu_st         w=128 l2=0.003 lr=0.001 ep= 5/14 sel_lg=0.000520 frac=0.138 maxtrain=0.000618 (1s)
+[06:58:07]   NN main: betR=4272 lg=0.001401 CI=[0.0004751865014337684, 0.002433184284442139] roi=1.0972202403586964 subset=0.9681009930436536 ratio=0.6009898518959129
+[06:58:09]     gbm cfg00 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0} it=145 sel_lg=0.000520 betR=517
+[06:58:09]     gbm cfg01 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.002} it=145 sel_lg=0.000095 betR=23
+[06:58:09]     gbm cfg02 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.005} it=145 sel_lg=0.000000 betR=0
+[06:58:12]     gbm cfg03 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.0} it=127 sel_lg=0.000229 betR=559
+[06:58:12]     gbm cfg04 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.002} it=127 sel_lg=0.000000 betR=0
+[06:58:12]     gbm cfg05 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.005} it=127 sel_lg=0.000000 betR=0
+[06:58:14]     gbm cfg06 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.0} it=84 sel_lg=0.000028 betR=47
+[06:58:14]     gbm cfg07 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.002} it=84 sel_lg=-0.000007 betR=12
+[06:58:14]     gbm cfg08 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.005} it=84 sel_lg=-0.000015 betR=2
+[06:58:18]     gbm cfg09 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.0} it=87 sel_lg=0.000687 betR=1997
+[06:58:18]     gbm cfg10 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.002} it=87 sel_lg=-0.000091 betR=79
+[06:58:18]     gbm cfg11 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.005} it=87 sel_lg=0.000000 betR=0
+[06:58:38]   GBM main: betR=2447 lg=0.000810 CI=[0.00012620110421254982, 0.0015345291357392887] roi=1.086269409856696 subset=1.0 ratio=0.34734296706113776
+[06:58:38] [seed 22 e120] meanR subset sel=1.187 oracle lg=0.005670 CI=[0.004524895241789678, 0.006905400246381255]
+[06:58:44]     nn cfg00 softmax_abstain w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (6s)
+[06:58:45]     nn cfg01 softmax_abstain w= 32 l2=0.0001 lr=0.003 ep= 2/11 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:58:51]     nn cfg02 softmax_abstain w=128 l2=0.0001 lr=0.001 ep=55/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (6s)
+[06:58:52]     nn cfg03 softmax_abstain w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[06:58:56]     nn cfg04 sigmoid_ticket  w= 32 l2=0.0001 lr=0.001 ep=42/51 sel_lg=0.004313 frac=0.614 maxtrain=0.006313 (4s)
+[06:58:59]     nn cfg05 sigmoid_ticket  w= 32 l2=0.0001 lr=0.003 ep=21/30 sel_lg=0.004367 frac=0.614 maxtrain=0.006983 (2s)
+[06:59:01]     nn cfg06 sigmoid_ticket  w=128 l2=0.0001 lr=0.001 ep=20/29 sel_lg=0.004199 frac=0.589 maxtrain=0.005933 (2s)
+[06:59:05]     nn cfg07 sigmoid_ticket  w=128 l2=0.0001 lr=0.003 ep=33/42 sel_lg=0.004045 frac=0.582 maxtrain=0.007013 (4s)
+[06:59:08]     nn cfg08 relu_st         w= 32 l2=0.0001 lr=0.0003 ep=24/33 sel_lg=0.002470 frac=0.420 maxtrain=0.002517 (3s)
+[06:59:10]     nn cfg09 relu_st         w= 32 l2=0.0001 lr=0.001 ep=11/20 sel_lg=0.002460 frac=0.401 maxtrain=0.002511 (2s)
+[06:59:12]     nn cfg10 relu_st         w= 32 l2=0.003 lr=0.0003 ep=12/21 sel_lg=0.001938 frac=0.308 maxtrain=0.002209 (2s)
+[06:59:13]     nn cfg11 relu_st         w= 32 l2=0.003 lr=0.001 ep= 4/13 sel_lg=0.001788 frac=0.299 maxtrain=0.002239 (1s)
+[06:59:14]     nn cfg12 relu_st         w=128 l2=0.0001 lr=0.0003 ep= 7/16 sel_lg=0.002434 frac=0.394 maxtrain=0.002729 (2s)
+[06:59:16]     nn cfg13 relu_st         w=128 l2=0.0001 lr=0.001 ep= 2/11 sel_lg=0.002459 frac=0.411 maxtrain=0.002696 (1s)
+[06:59:17]     nn cfg14 relu_st         w=128 l2=0.003 lr=0.0003 ep= 4/13 sel_lg=0.002137 frac=0.345 maxtrain=0.002492 (1s)
+[06:59:18]     nn cfg15 relu_st         w=128 l2=0.003 lr=0.001 ep= 1/10 sel_lg=0.002186 frac=0.385 maxtrain=0.002502 (1s)
+[06:59:32]   NN main: betR=4532 lg=0.004286 CI=[0.0031851278499648904, 0.005500843696846031] roi=1.1926991283718062 subset=0.9704230910908804 ratio=0.755924207531576
+[06:59:34]     gbm cfg00 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0} it=165 sel_lg=0.004921 betR=4270
+[06:59:34]     gbm cfg01 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.002} it=165 sel_lg=0.004234 betR=3431
+[06:59:34]     gbm cfg02 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.005} it=165 sel_lg=0.001418 betR=1040
+[06:59:36]     gbm cfg03 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.0} it=127 sel_lg=0.004530 betR=3929
+[06:59:36]     gbm cfg04 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.002} it=127 sel_lg=0.003914 betR=3156
+[06:59:36]     gbm cfg05 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.005} it=127 sel_lg=0.001284 betR=940
+[06:59:39]     gbm cfg06 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.0} it=86 sel_lg=0.004954 betR=4159
+[06:59:39]     gbm cfg07 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.002} it=86 sel_lg=0.003722 betR=2954
+[06:59:39]     gbm cfg08 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.005} it=86 sel_lg=0.000066 betR=101
+[06:59:42]     gbm cfg09 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.0} it=86 sel_lg=0.004408 betR=3866
+[06:59:42]     gbm cfg10 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.002} it=86 sel_lg=0.003680 betR=3124
+[06:59:42]     gbm cfg11 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.005} it=86 sel_lg=0.001722 betR=1558
+[06:59:59]   GBM main: betR=4328 lg=0.004926 CI=[0.0037646339041826305, 0.006148190905558099] roi=1.2022185688579892 subset=0.999806671290445 ratio=0.8687403093712971
+[07:00:00] [seed 33 control] meanR subset sel=0.802 oracle lg=0.000000 CI=[0.0, 0.0]
+[07:00:07]     nn cfg00 softmax_abstain w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (7s)
+[07:00:08]     nn cfg01 softmax_abstain w= 32 l2=0.0001 lr=0.003 ep= 2/11 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[07:00:15]     nn cfg02 softmax_abstain w=128 l2=0.0001 lr=0.001 ep=55/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (7s)
+[07:00:17]     nn cfg03 softmax_abstain w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[07:00:22]     nn cfg04 sigmoid_ticket  w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (6s)
+[07:00:28]     nn cfg05 sigmoid_ticket  w= 32 l2=0.0001 lr=0.003 ep=58/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (5s)
+[07:00:33]     nn cfg06 sigmoid_ticket  w=128 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (5s)
+[07:00:34]     nn cfg07 sigmoid_ticket  w=128 l2=0.0001 lr=0.003 ep= 1/10 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[07:00:35]     nn cfg08 relu_st         w= 32 l2=0.0001 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[07:00:36]     nn cfg09 relu_st         w= 32 l2=0.0001 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[07:00:37]     nn cfg10 relu_st         w= 32 l2=0.003 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[07:00:37]     nn cfg11 relu_st         w= 32 l2=0.003 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[07:00:38]     nn cfg12 relu_st         w=128 l2=0.0001 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[07:00:39]     nn cfg13 relu_st         w=128 l2=0.0001 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[07:00:40]     nn cfg14 relu_st         w=128 l2=0.003 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[07:00:41]     nn cfg15 relu_st         w=128 l2=0.003 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000000 (1s)
+[07:00:46]   NN main: betR=0 lg=0.000000 CI=[0.0, 0.0] roi=None subset=None ratio=None
+[07:00:48]     gbm cfg00 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0} it=103 sel_lg=0.000000 betR=0
+[07:00:48]     gbm cfg01 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.002} it=103 sel_lg=0.000000 betR=0
+[07:00:48]     gbm cfg02 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.005} it=103 sel_lg=0.000000 betR=0
+[07:00:51]     gbm cfg03 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.0} it=180 sel_lg=0.000000 betR=0
+[07:00:51]     gbm cfg04 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.002} it=180 sel_lg=0.000000 betR=0
+[07:00:51]     gbm cfg05 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.005} it=180 sel_lg=0.000000 betR=0
+[07:00:54]     gbm cfg06 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.0} it=87 sel_lg=0.000000 betR=0
+[07:00:54]     gbm cfg07 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.002} it=87 sel_lg=0.000000 betR=0
+[07:00:54]     gbm cfg08 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.005} it=87 sel_lg=0.000000 betR=0
+[07:00:58]     gbm cfg09 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.0} it=98 sel_lg=0.000000 betR=0
+[07:00:58]     gbm cfg10 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.002} it=98 sel_lg=0.000000 betR=0
+[07:00:58]     gbm cfg11 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.005} it=98 sel_lg=0.000000 betR=0
+[07:01:11]   GBM main: betR=0 lg=0.000000 CI=[0.0, 0.0] roi=None subset=None ratio=None
+[07:01:11] [seed 33 e105] meanR subset sel=1.070 oracle lg=0.000950 CI=[0.00016945602060581579, 0.0017660806782917567]
+[07:01:18]     nn cfg00 softmax_abstain w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (7s)
+[07:01:19]     nn cfg01 softmax_abstain w= 32 l2=0.0001 lr=0.003 ep= 2/11 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[07:01:26]     nn cfg02 softmax_abstain w=128 l2=0.0001 lr=0.001 ep=55/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (7s)
+[07:01:27]     nn cfg03 softmax_abstain w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[07:01:28]     nn cfg04 sigmoid_ticket  w= 32 l2=0.0001 lr=0.001 ep= 5/14 sel_lg=-0.000024 frac=0.012 maxtrain=0.000416 (1s)
+[07:01:29]     nn cfg05 sigmoid_ticket  w= 32 l2=0.0001 lr=0.003 ep= 1/10 sel_lg=-0.000006 frac=0.006 maxtrain=0.000662 (1s)
+[07:01:30]     nn cfg06 sigmoid_ticket  w=128 l2=0.0001 lr=0.001 ep= 1/10 sel_lg=-0.000030 frac=0.010 maxtrain=0.000627 (1s)
+[07:01:31]     nn cfg07 sigmoid_ticket  w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=0.000001 frac=0.002 maxtrain=0.000268 (1s)
+[07:01:32]     nn cfg08 relu_st         w= 32 l2=0.0001 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000108 (1s)
+[07:01:33]     nn cfg09 relu_st         w= 32 l2=0.0001 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000111 (1s)
+[07:01:34]     nn cfg10 relu_st         w= 32 l2=0.003 lr=0.0003 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000099 (1s)
+[07:01:34]     nn cfg11 relu_st         w= 32 l2=0.003 lr=0.001 ep= 0/9 sel_lg=0.000000 frac=0.000 maxtrain=0.000120 (1s)
+[07:01:36]     nn cfg12 relu_st         w=128 l2=0.0001 lr=0.0003 ep= 2/11 sel_lg=0.000001 frac=0.004 maxtrain=0.000059 (1s)
+[07:01:37]     nn cfg13 relu_st         w=128 l2=0.0001 lr=0.001 ep= 6/15 sel_lg=0.000243 frac=0.135 maxtrain=0.000107 (2s)
+[07:01:38]     nn cfg14 relu_st         w=128 l2=0.003 lr=0.0003 ep= 2/11 sel_lg=0.000001 frac=0.004 maxtrain=0.000079 (1s)
+[07:01:40]     nn cfg15 relu_st         w=128 l2=0.003 lr=0.001 ep= 6/15 sel_lg=0.000245 frac=0.119 maxtrain=0.000084 (2s)
+[07:01:46]   NN main: betR=1248 lg=0.000247 CI=[-5.477851588823978e-07, 0.0005047785001591141] roi=1.1329427494652535 subset=0.9426852647583791 ratio=0.2596274915266535
+[07:01:49]     gbm cfg00 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0} it=180 sel_lg=-0.000009 betR=42
+[07:01:49]     gbm cfg01 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.002} it=180 sel_lg=-0.000023 betR=3
+[07:01:49]     gbm cfg02 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.005} it=180 sel_lg=0.000000 betR=0
+[07:01:51]     gbm cfg03 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.0} it=156 sel_lg=0.000000 betR=0
+[07:01:51]     gbm cfg04 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.002} it=156 sel_lg=0.000000 betR=0
+[07:01:52]     gbm cfg05 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.005} it=156 sel_lg=0.000000 betR=0
+[07:01:54]     gbm cfg06 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.0} it=94 sel_lg=-0.000069 betR=9
+[07:01:54]     gbm cfg07 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.002} it=94 sel_lg=-0.000008 betR=1
+[07:01:54]     gbm cfg08 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.005} it=94 sel_lg=0.000000 betR=0
+[07:01:58]     gbm cfg09 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.0} it=95 sel_lg=-0.000008 betR=1
+[07:01:58]     gbm cfg10 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.002} it=95 sel_lg=0.000000 betR=0
+[07:01:58]     gbm cfg11 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.005} it=95 sel_lg=0.000000 betR=0
+[07:02:12]   GBM main: betR=0 lg=0.000000 CI=[0.0, 0.0] roi=None subset=None ratio=0.0
+[07:02:12] [seed 33 e110] meanR subset sel=1.118 oracle lg=0.002764 CI=[0.001654991682702449, 0.003912046843822991]
+[07:02:19]     nn cfg00 softmax_abstain w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (7s)
+[07:02:20]     nn cfg01 softmax_abstain w= 32 l2=0.0001 lr=0.003 ep= 2/11 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[07:02:27]     nn cfg02 softmax_abstain w=128 l2=0.0001 lr=0.001 ep=54/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (7s)
+[07:02:28]     nn cfg03 softmax_abstain w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[07:02:31]     nn cfg04 sigmoid_ticket  w= 32 l2=0.0001 lr=0.001 ep=16/25 sel_lg=0.001315 frac=0.449 maxtrain=0.002023 (3s)
+[07:02:32]     nn cfg05 sigmoid_ticket  w= 32 l2=0.0001 lr=0.003 ep= 9/18 sel_lg=0.001394 frac=0.507 maxtrain=0.002323 (2s)
+[07:02:34]     nn cfg06 sigmoid_ticket  w=128 l2=0.0001 lr=0.001 ep= 9/18 sel_lg=0.001496 frac=0.456 maxtrain=0.001997 (2s)
+[07:02:37]     nn cfg07 sigmoid_ticket  w=128 l2=0.0001 lr=0.003 ep=20/29 sel_lg=0.001668 frac=0.523 maxtrain=0.003760 (3s)
+[07:02:40]     nn cfg08 relu_st         w= 32 l2=0.0001 lr=0.0003 ep=27/36 sel_lg=0.000925 frac=0.278 maxtrain=0.000726 (3s)
+[07:02:42]     nn cfg09 relu_st         w= 32 l2=0.0001 lr=0.001 ep= 8/17 sel_lg=0.000860 frac=0.264 maxtrain=0.000735 (1s)
+[07:02:43]     nn cfg10 relu_st         w= 32 l2=0.003 lr=0.0003 ep=11/20 sel_lg=0.000192 frac=0.114 maxtrain=0.000445 (2s)
+[07:02:45]     nn cfg11 relu_st         w= 32 l2=0.003 lr=0.001 ep= 5/14 sel_lg=0.000203 frac=0.136 maxtrain=0.000430 (1s)
+[07:02:46]     nn cfg12 relu_st         w=128 l2=0.0001 lr=0.0003 ep= 7/16 sel_lg=0.000505 frac=0.294 maxtrain=0.000898 (1s)
+[07:02:47]     nn cfg13 relu_st         w=128 l2=0.0001 lr=0.001 ep= 7/16 sel_lg=0.000789 frac=0.215 maxtrain=0.000790 (1s)
+[07:02:50]     nn cfg14 relu_st         w=128 l2=0.003 lr=0.0003 ep=22/31 sel_lg=0.000825 frac=0.173 maxtrain=0.000845 (3s)
+[07:02:52]     nn cfg15 relu_st         w=128 l2=0.003 lr=0.001 ep= 7/16 sel_lg=0.000900 frac=0.140 maxtrain=0.000627 (2s)
+[07:03:03]   NN main: betR=4584 lg=0.001703 CI=[0.0006666684203191501, 0.0027466441160952774] roi=1.1108574857465119 subset=0.9505079978039196 ratio=0.6161504571092511
+[07:03:05]     gbm cfg00 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0} it=113 sel_lg=0.000021 betR=6
+[07:03:05]     gbm cfg01 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.002} it=113 sel_lg=0.000000 betR=0
+[07:03:05]     gbm cfg02 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.005} it=113 sel_lg=0.000000 betR=0
+[07:03:08]     gbm cfg03 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.0} it=147 sel_lg=0.000482 betR=719
+[07:03:08]     gbm cfg04 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.002} it=147 sel_lg=0.000000 betR=0
+[07:03:08]     gbm cfg05 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.005} it=147 sel_lg=0.000000 betR=0
+[07:03:10]     gbm cfg06 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.0} it=76 sel_lg=-0.000116 betR=15
+[07:03:10]     gbm cfg07 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.002} it=76 sel_lg=-0.000039 betR=5
+[07:03:10]     gbm cfg08 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.005} it=76 sel_lg=0.000000 betR=0
+[07:03:13]     gbm cfg09 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.0} it=89 sel_lg=0.001084 betR=1404
+[07:03:13]     gbm cfg10 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.002} it=89 sel_lg=0.000000 betR=0
+[07:03:13]     gbm cfg11 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.005} it=89 sel_lg=0.000000 betR=0
+[07:03:34]   GBM main: betR=2578 lg=0.001265 CI=[0.00046821041092272124, 0.0020584940836719883] roi=1.1287968977686582 subset=1.0 ratio=0.4574370955419992
+[07:03:35] [seed 33 e120] meanR subset sel=1.218 oracle lg=0.006322 CI=[0.004973318526159504, 0.007648293598669696]
+[07:03:41]     nn cfg00 softmax_abstain w= 32 l2=0.0001 lr=0.001 ep=59/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (7s)
+[07:03:43]     nn cfg01 softmax_abstain w= 32 l2=0.0001 lr=0.003 ep= 2/11 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[07:03:50]     nn cfg02 softmax_abstain w=128 l2=0.0001 lr=0.001 ep=55/60 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (7s)
+[07:03:51]     nn cfg03 softmax_abstain w=128 l2=0.0001 lr=0.003 ep= 0/9 sel_lg=-0.000000 frac=0.000 maxtrain=-0.000000 (1s)
+[07:03:55]     nn cfg04 sigmoid_ticket  w= 32 l2=0.0001 lr=0.001 ep=37/46 sel_lg=0.004724 frac=0.618 maxtrain=0.006341 (4s)
+[07:03:58]     nn cfg05 sigmoid_ticket  w= 32 l2=0.0001 lr=0.003 ep=23/32 sel_lg=0.004381 frac=0.641 maxtrain=0.006394 (3s)
+[07:04:01]     nn cfg06 sigmoid_ticket  w=128 l2=0.0001 lr=0.001 ep=23/32 sel_lg=0.004507 frac=0.630 maxtrain=0.006232 (3s)
+[07:04:02]     nn cfg07 sigmoid_ticket  w=128 l2=0.0001 lr=0.003 ep= 6/15 sel_lg=0.004870 frac=0.592 maxtrain=0.005452 (1s)
+[07:04:04]     nn cfg08 relu_st         w= 32 l2=0.0001 lr=0.0003 ep=11/20 sel_lg=0.002449 frac=0.455 maxtrain=0.002422 (2s)
+[07:04:05]     nn cfg09 relu_st         w= 32 l2=0.0001 lr=0.001 ep= 3/12 sel_lg=0.002622 frac=0.481 maxtrain=0.002453 (1s)
+[07:04:07]     nn cfg10 relu_st         w= 32 l2=0.003 lr=0.0003 ep=12/21 sel_lg=0.001913 frac=0.323 maxtrain=0.002139 (2s)
+[07:04:09]     nn cfg11 relu_st         w= 32 l2=0.003 lr=0.001 ep= 3/12 sel_lg=0.001945 frac=0.337 maxtrain=0.002090 (1s)
+[07:04:10]     nn cfg12 relu_st         w=128 l2=0.0001 lr=0.0003 ep= 4/13 sel_lg=0.003164 frac=0.515 maxtrain=0.002751 (1s)
+[07:04:11]     nn cfg13 relu_st         w=128 l2=0.0001 lr=0.001 ep= 1/10 sel_lg=0.003074 frac=0.573 maxtrain=0.002534 (1s)
+[07:04:12]     nn cfg14 relu_st         w=128 l2=0.003 lr=0.0003 ep= 3/12 sel_lg=0.002533 frac=0.405 maxtrain=0.002520 (1s)
+[07:04:13]     nn cfg15 relu_st         w=128 l2=0.003 lr=0.001 ep= 1/10 sel_lg=0.002628 frac=0.430 maxtrain=0.002576 (1s)
+[07:04:23]   NN main: betR=4926 lg=0.004885 CI=[0.0036558912898105997, 0.006099506644887173] roi=1.2018205121777317 subset=0.9343017179396584 ratio=0.7725790914615065
+[07:04:25]     gbm cfg00 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.0} it=144 sel_lg=0.005463 betR=4247
+[07:04:25]     gbm cfg01 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.002} it=144 sel_lg=0.004426 betR=3544
+[07:04:25]     gbm cfg02 {'num_leaves': 15, 'min_child_samples': 500, 'thr': 0.005} it=144 sel_lg=0.000547 betR=575
+[07:04:27]     gbm cfg03 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.0} it=159 sel_lg=0.005401 betR=4202
+[07:04:27]     gbm cfg04 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.002} it=159 sel_lg=0.004250 betR=3532
+[07:04:28]     gbm cfg05 {'num_leaves': 15, 'min_child_samples': 5000, 'thr': 0.005} it=159 sel_lg=0.001979 betR=1517
+[07:04:30]     gbm cfg06 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.0} it=80 sel_lg=0.005112 betR=4062
+[07:04:30]     gbm cfg07 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.002} it=80 sel_lg=0.003329 betR=2882
+[07:04:30]     gbm cfg08 {'num_leaves': 63, 'min_child_samples': 500, 'thr': 0.005} it=80 sel_lg=-0.000216 betR=28
+[07:04:33]     gbm cfg09 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.0} it=103 sel_lg=0.005416 betR=4273
+[07:04:33]     gbm cfg10 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.002} it=103 sel_lg=0.004477 betR=3708
+[07:04:33]     gbm cfg11 {'num_leaves': 63, 'min_child_samples': 5000, 'thr': 0.005} it=103 sel_lg=0.002671 betR=2029
+[07:04:47]   GBM main: betR=4460 lg=0.005623 CI=[0.004313526598229291, 0.0069583940743441364] roi=1.2227145186412858 subset=0.9998521938653415 ratio=0.8893563062817335
+[07:04:47] JUDGEMENT {"nn": true, "gbm": true}
+[07:04:47] done 866s
