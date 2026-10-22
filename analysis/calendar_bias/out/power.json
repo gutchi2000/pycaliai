@@ -1,0 +1,274 @@
+{
+ "role": "L-4 calendar layers — synthetic-outcome power audit (label-free)",
+ "prereg": "docs\\research\\L4_CALENDAR_BIAS_PREREG_20261022.md",
+ "prereg_sha256": "1d82ecbfb8834cfaa8a120f892983b7296097acb94aef22c16d768ee833458fb",
+ "seed": 20261022,
+ "bootstrap_B": 10000,
+ "floor": 0.005,
+ "eval_years": [
+  2017,
+  2018,
+  2019,
+  2020,
+  2021,
+  2022,
+  2023
+ ],
+ "reps": {
+  "null": 1000,
+  "floor_per_layer_direction": 400,
+  "grid": 100
+ },
+ "layer_counts": {
+  "L4a_R12": {
+   "races_2016_2023": 2222,
+   "races_eval_2017_2023": 1945,
+   "by_year": {
+    "2016": 277,
+    "2017": 278,
+    "2018": 279,
+    "2019": 276,
+    "2020": 275,
+    "2021": 282,
+    "2022": 278,
+    "2023": 277
+   },
+   "calendar_days": 865,
+   "horse_rows": 32463
+  },
+  "L4b_WEEKDAY": {
+   "races_2016_2023": 978,
+   "races_eval_2017_2023": 869,
+   "by_year": {
+    "2016": 109,
+    "2017": 167,
+    "2018": 122,
+    "2019": 122,
+    "2020": 120,
+    "2021": 89,
+    "2022": 136,
+    "2023": 113
+   },
+   "calendar_days": 49,
+   "horse_rows": 13793
+  },
+  "L4c_KAI_LAST": {
+   "races_2016_2023": 3200,
+   "races_eval_2017_2023": 2800,
+   "by_year": {
+    "2016": 400,
+    "2017": 394,
+    "2018": 399,
+    "2019": 404,
+    "2020": 392,
+    "2021": 403,
+    "2022": 402,
+    "2023": 406
+   },
+   "calendar_days": 170,
+   "horse_rows": 45736
+  },
+  "L4d_G1DAY_OTHER": {
+   "races_2016_2023": 2017,
+   "races_eval_2017_2023": 1782,
+   "by_year": {
+    "2016": 235,
+    "2017": 251,
+    "2018": 259,
+    "2019": 255,
+    "2020": 254,
+    "2021": 253,
+    "2022": 256,
+    "2023": 254
+   },
+   "calendar_days": 191,
+   "horse_rows": 28183
+  },
+  "ALL": {
+   "races_2016_2023": 25501,
+   "races_eval_2017_2023": 22312,
+   "calendar_days": 867
+  }
+ },
+ "layers": {
+  "L4a_R12": {
+   "floor": {
+    "logpi": {
+     "effect_b": 0.1277364082634449,
+     "delta_true": 0.004999999811420192,
+     "reps": 400,
+     "detect_power": 0.17,
+     "detect_wilson95": [
+      0.1363689819616431,
+      0.2099091323970924
+     ],
+     "above_screen_power": 0.0025,
+     "median_point": -0.0038937254360170304
+    },
+    "z": {
+     "effect_b": 0.1309410072863102,
+     "delta_true": 0.0049999998849437005,
+     "reps": 400,
+     "detect_power": 0.1275,
+     "detect_wilson95": [
+      0.09832118895330216,
+      0.1637654704364826
+     ],
+     "above_screen_power": 0.0025,
+     "median_point": -0.003481860046494566
+    }
+   },
+   "curve_logpi_detect_power": {
+    "0.0025": 0.03,
+    "0.005": 0.17,
+    "0.0075": 0.42,
+    "0.01": 0.6,
+    "0.015": 0.84,
+    "0.02": 0.97,
+    "0.03": 1.0
+   },
+   "mde_detect_0_80_logpi": 0.014166666666666668,
+   "power_at_floor_min_over_directions": 0.1275,
+   "status": "UNPOWERED"
+  },
+  "L4b_WEEKDAY": {
+   "floor": {
+    "logpi": {
+     "effect_b": 0.11587108299136162,
+     "delta_true": 0.004999999872830594,
+     "reps": 400,
+     "detect_power": 0.0175,
+     "detect_wilson95": [
+      0.008502291060486266,
+      0.03567707311554369
+     ],
+     "above_screen_power": 0.005,
+     "median_point": -0.0021330774772485234
+    },
+    "z": {
+     "effect_b": 0.1254873387515545,
+     "delta_true": 0.005000000091025832,
+     "reps": 400,
+     "detect_power": 0.0175,
+     "detect_wilson95": [
+      0.008502291060486266,
+      0.03567707311554369
+     ],
+     "above_screen_power": 0.0,
+     "median_point": -0.0016011656895011525
+    }
+   },
+   "curve_logpi_detect_power": {
+    "0.0025": 0.0,
+    "0.005": 0.0175,
+    "0.0075": 0.05,
+    "0.01": 0.1,
+    "0.015": 0.24,
+    "0.02": 0.43,
+    "0.03": 0.78
+   },
+   "mde_detect_0_80_logpi": null,
+   "power_at_floor_min_over_directions": 0.0175,
+   "status": "UNPOWERED"
+  },
+  "L4c_KAI_LAST": {
+   "floor": {
+    "logpi": {
+     "effect_b": 0.129819143563509,
+     "delta_true": 0.005000000094099023,
+     "reps": 400,
+     "detect_power": 0.35,
+     "detect_wilson95": [
+      0.30488564866609746,
+      0.39796803967878236
+     ],
+     "above_screen_power": 0.0125,
+     "median_point": -0.00412728400155632
+    },
+    "z": {
+     "effect_b": 0.13804025575518608,
+     "delta_true": 0.004999999770952704,
+     "reps": 400,
+     "detect_power": 0.355,
+     "detect_wilson95": [
+      0.3096890262218683,
+      0.40306953917818217
+     ],
+     "above_screen_power": 0.0125,
+     "median_point": -0.004168799251090377
+    }
+   },
+   "curve_logpi_detect_power": {
+    "0.0025": 0.04,
+    "0.005": 0.35,
+    "0.0075": 0.59,
+    "0.01": 0.82,
+    "0.015": 0.96,
+    "0.02": 0.99,
+    "0.03": 1.0
+   },
+   "mde_detect_0_80_logpi": 0.009782608695652175,
+   "power_at_floor_min_over_directions": 0.35,
+   "status": "UNPOWERED"
+  },
+  "L4d_G1DAY_OTHER": {
+   "floor": {
+    "logpi": {
+     "effect_b": 0.1191570870578289,
+     "delta_true": 0.0050000002382967704,
+     "reps": 400,
+     "detect_power": 0.11,
+     "detect_wilson95": [
+      0.08296867893340175,
+      0.14445091076328567
+     ],
+     "above_screen_power": 0.005,
+     "median_point": -0.0034682026401028684
+    },
+    "z": {
+     "effect_b": 0.1357000730931759,
+     "delta_true": 0.005000000249697834,
+     "reps": 400,
+     "detect_power": 0.1225,
+     "detect_wilson95": [
+      0.09391315500625651,
+      0.15826862732835756
+     ],
+     "above_screen_power": 0.005,
+     "median_point": -0.00366474200748041
+    }
+   },
+   "curve_logpi_detect_power": {
+    "0.0025": 0.03,
+    "0.005": 0.11,
+    "0.0075": 0.41,
+    "0.01": 0.49,
+    "0.015": 0.84,
+    "0.02": 0.96,
+    "0.03": 1.0
+   },
+   "mde_detect_0_80_logpi": 0.01442857142857143,
+   "power_at_floor_min_over_directions": 0.11,
+   "status": "UNPOWERED"
+  }
+ },
+ "null_familywise": {
+  "reps": 1000,
+  "any_detect": 0,
+  "rate": 0.0,
+  "wilson95": [
+   2.168404344971009e-19,
+   0.0038267585456940676
+  ],
+  "per_layer": {
+   "L4a_R12": 0,
+   "L4b_WEEKDAY": 0,
+   "L4c_KAI_LAST": 0,
+   "L4d_G1DAY_OTHER": 0
+  },
+  "stop": false
+ },
+ "powered_layers": [],
+ "elapsed_sec": 1366.0,
+ "outcomes_opened": false
+}

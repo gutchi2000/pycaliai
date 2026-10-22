@@ -1,0 +1,1003 @@
+{
+ "policy_id": "a95_equal_v1",
+ "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+ "n_gate": 500,
+ "floor": 0.197,
+ "substrate_races": 10299,
+ "q667_raw_within": 0.8511909346923623,
+ "guard_rates": {
+  "guard_ref": 0.680745703466356,
+  "guard_q": 0.6483153704243131
+ },
+ "composition": {
+  "A_all_x_9h (CW-10 設計母集団)": {
+   "n": 10261,
+   "share": {
+    "<2倍": 0.1285,
+    "2-3倍": 0.2144,
+    "3-5倍": 0.3521,
+    "5-8倍": 0.2119,
+    "8-15倍": 0.0811,
+    "15倍〜": 0.012
+   },
+   "hit_by_band": {
+    "<2倍": 0.2578,
+    "2-3倍": 0.2636,
+    "3-5倍": 0.1874,
+    "5-8倍": 0.258,
+    "8-15倍": 0.1695,
+    "15倍〜": 0.3089
+   },
+   "hit_realized": 0.2278,
+   "hit_expected_from_A_bandrates": 0.2278,
+   "by_year": {
+    "2023": 0.2132,
+    "2024": 0.2282,
+    "2025": 0.2419
+   }
+  },
+  "B_all_x_pre": {
+   "n": 10299,
+   "share": {
+    "<2倍": 0.1755,
+    "2-3倍": 0.227,
+    "3-5倍": 0.3386,
+    "5-8倍": 0.1874,
+    "8-15倍": 0.061,
+    "15倍〜": 0.0106
+   },
+   "hit_by_band": {
+    "<2倍": 0.2529,
+    "2-3倍": 0.2399,
+    "3-5倍": 0.1781,
+    "5-8倍": 0.2466,
+    "8-15倍": 0.1624,
+    "15倍〜": 0.1927
+   },
+   "hit_realized": 0.2173,
+   "hit_expected_from_A_bandrates": 0.2305,
+   "by_year": {
+    "2023": 0.2052,
+    "2024": 0.2174,
+    "2025": 0.2294
+   }
+  },
+  "C_guardq_x_9h": {
+   "n": 6655,
+   "share": {
+    "<2倍": 0.1681,
+    "2-3倍": 0.2566,
+    "3-5倍": 0.3611,
+    "5-8倍": 0.1644,
+    "8-15倍": 0.0458,
+    "15倍〜": 0.0039
+   },
+   "hit_by_band": {
+    "<2倍": 0.2493,
+    "2-3倍": 0.2734,
+    "3-5倍": 0.2027,
+    "5-8倍": 0.2861,
+    "8-15倍": 0.1967,
+    "15倍〜": 0.2692
+   },
+   "hit_realized": 0.2424,
+   "hit_expected_from_A_bandrates": 0.2301,
+   "by_year": {
+    "2023": 0.2351,
+    "2024": 0.2375,
+    "2025": 0.2542
+   }
+  },
+  "D_guardq_x_pre (CW-11 近似)": {
+   "n": 6677,
+   "share": {
+    "<2倍": 0.225,
+    "2-3倍": 0.2619,
+    "3-5倍": 0.3356,
+    "5-8倍": 0.1414,
+    "8-15倍": 0.0329,
+    "15倍〜": 0.0031
+   },
+   "hit_by_band": {
+    "<2倍": 0.249,
+    "2-3倍": 0.2539,
+    "3-5倍": 0.1972,
+    "5-8倍": 0.2765,
+    "8-15倍": 0.1727,
+    "15倍〜": 0.1905
+   },
+   "hit_realized": 0.2341,
+   "hit_expected_from_A_bandrates": 0.233,
+   "by_year": {
+    "2023": 0.2315,
+    "2024": 0.2289,
+    "2025": 0.2418
+   }
+  },
+  "E_guardref_x_pre (CW-11 近似, 本番参照分布)": {
+   "n": 7011,
+   "share": {
+    "<2倍": 0.2187,
+    "2-3倍": 0.2575,
+    "3-5倍": 0.339,
+    "5-8倍": 0.1465,
+    "8-15倍": 0.0347,
+    "15倍〜": 0.0037
+   },
+   "hit_by_band": {
+    "<2倍": 0.2459,
+    "2-3倍": 0.2493,
+    "3-5倍": 0.1981,
+    "5-8倍": 0.2726,
+    "8-15倍": 0.1728,
+    "15倍〜": 0.1923
+   },
+   "hit_realized": 0.2318,
+   "hit_expected_from_A_bandrates": 0.2326,
+   "by_year": {
+    "2023": 0.2296,
+    "2024": 0.2286,
+    "2025": 0.237
+   }
+  },
+  "F_guardq_x_final (感度: 帯を確定オッズで。発走後の値なので決定には使えない)": {
+   "n": 6677,
+   "share": {
+    "<2倍": 0.2691,
+    "2-3倍": 0.3344,
+    "3-5倍": 0.3052,
+    "5-8倍": 0.0747,
+    "8-15倍": 0.0154,
+    "15倍〜": 0.001
+   },
+   "hit_by_band": {
+    "<2倍": 0.2454,
+    "2-3倍": 0.2297,
+    "3-5倍": 0.1801,
+    "5-8倍": 0.2545,
+    "8-15倍": 0.165,
+    "15倍〜": 0.1429
+   },
+   "hit_realized": 0.2196,
+   "hit_expected_from_A_bandrates": 0.237,
+   "by_year": {
+    "2023": 0.2192,
+    "2024": 0.2181,
+    "2025": 0.2214
+   }
+  }
+ },
+ "band_agreement_9h_vs_pre": {
+  "same_band": 0.7144,
+  "crosstab": {
+   "<2倍": {
+    "<2倍": 1232,
+    "2-3倍": 546,
+    "3-5倍": 20,
+    "5-8倍": 0,
+    "8-15倍": 0,
+    "15倍〜": 1
+   },
+   "2-3倍": {
+    "<2倍": 79,
+    "2-3倍": 1481,
+    "3-5倍": 748,
+    "5-8倍": 16,
+    "8-15倍": 2,
+    "15倍〜": 2
+   },
+   "3-5倍": {
+    "<2倍": 8,
+    "2-3倍": 169,
+    "3-5倍": 2640,
+    "5-8倍": 640,
+    "8-15倍": 15,
+    "15倍〜": 2
+   },
+   "5-8倍": {
+    "<2倍": 0,
+    "2-3倍": 4,
+    "3-5倍": 205,
+    "5-8倍": 1421,
+    "8-15倍": 290,
+    "15倍〜": 5
+   },
+   "8-15倍": {
+    "<2倍": 0,
+    "2-3倍": 0,
+    "3-5倍": 0,
+    "5-8倍": 96,
+    "8-15倍": 501,
+    "15倍〜": 30
+   },
+   "15倍〜": {
+    "<2倍": 0,
+    "2-3倍": 0,
+    "3-5倍": 0,
+    "5-8倍": 1,
+    "8-15倍": 24,
+    "15倍〜": 83
+   }
+  }
+ },
+ "floor_reproduction": {
+  "A_all_9h_as_alloc95": [
+   {
+    "fit": "2023",
+    "eval": "2024+2025",
+    "n": 6841,
+    "hit": 0.2561
+   },
+   {
+    "fit": "2025",
+    "eval": "2023+2024",
+    "n": 6834,
+    "hit": 0.2335
+   },
+   {
+    "fit": "2023+2024",
+    "eval": "2025",
+    "n": 3005,
+    "hit": 0.2459
+   },
+   {
+    "fit": "2024+2025",
+    "eval": "2023",
+    "n": 3420,
+    "hit": 0.1971
+   }
+  ],
+  "A_all_9h_with_wakuren_rule": [
+   {
+    "fit": "2023",
+    "eval": "2024+2025",
+    "n": 6841,
+    "hit": 0.2561
+   },
+   {
+    "fit": "2025",
+    "eval": "2023+2024",
+    "n": 6834,
+    "hit": 0.2334
+   },
+   {
+    "fit": "2023+2024",
+    "eval": "2025",
+    "n": 3005,
+    "hit": 0.2459
+   },
+   {
+    "fit": "2024+2025",
+    "eval": "2023",
+    "n": 3420,
+    "hit": 0.1971
+   }
+  ],
+  "D_guardq_pre": [
+   {
+    "fit": "2023",
+    "eval": "2024+2025",
+    "n": 4478,
+    "hit": 0.2928
+   },
+   {
+    "fit": "2025",
+    "eval": "2023+2024",
+    "n": 4423,
+    "hit": 0.244
+   },
+   {
+    "fit": "2023+2024",
+    "eval": "2025",
+    "n": 1788,
+    "hit": 0.2606
+   },
+   {
+    "fit": "2024+2025",
+    "eval": "2023",
+    "n": 2199,
+    "hit": 0.2146
+   }
+  ],
+  "E_guardref_pre": [
+   {
+    "fit": "2023",
+    "eval": "2024+2025",
+    "n": 4698,
+    "hit": 0.2882
+   },
+   {
+    "fit": "2025",
+    "eval": "2023+2024",
+    "n": 4640,
+    "hit": 0.2427
+   },
+   {
+    "fit": "2023+2024",
+    "eval": "2025",
+    "n": 1897,
+    "hit": 0.2562
+   },
+   {
+    "fit": "2024+2025",
+    "eval": "2023",
+    "n": 2313,
+    "hit": 0.2123
+   }
+  ]
+ },
+ "icc": {
+  "A_all_x_9h (CW-10 設計母集団)": {
+   "n": 10261,
+   "hit": 0.22775557937822824,
+   "date": {
+    "icc": -0.00415,
+    "icc_ci95": [
+     -0.00881,
+     0.0004
+    ],
+    "mbar": 31.87,
+    "deff_formula": 0.8718,
+    "deff": 0.8733,
+    "deff_ci95": [
+     0.7449,
+     1.0115
+    ],
+    "n_clusters": 322
+   },
+   "dp": {
+    "icc": -0.01121,
+    "icc_ci95": [
+     -0.01781,
+     -0.00418
+    ],
+    "mbar": 11.88,
+    "deff_formula": 0.8781,
+    "deff": 0.879,
+    "deff_ci95": [
+     0.8037,
+     0.9568
+    ],
+    "n_clusters": 864
+   },
+   "week": {
+    "icc": 0.00166,
+    "icc_ci95": [
+     -0.0022,
+     0.00544
+    ],
+    "mbar": 65.78,
+    "deff_formula": 1.1075,
+    "deff": 1.0704,
+    "deff_ci95": [
+     0.8562,
+     1.3065
+    ],
+    "n_clusters": 156
+   },
+   "resid_after_band_icc_date": -0.004,
+   "window500": {
+    "n_windows": 20,
+    "sd_window": 0.024699243542646146,
+    "sd_iid": 0.01875542457212397,
+    "deff": 1.7342571958761372,
+    "deff_ci95": [
+     1.0030000876446816,
+     3.699637988464356
+    ],
+    "window_hits": [
+     0.2,
+     0.252,
+     0.23,
+     0.188,
+     0.19,
+     0.214,
+     0.214,
+     0.252,
+     0.232,
+     0.232,
+     0.218,
+     0.198,
+     0.232,
+     0.25,
+     0.212,
+     0.242,
+     0.23,
+     0.258,
+     0.242,
+     0.284
+    ]
+   },
+   "window500_year_demeaned": {
+    "n_windows": 20,
+    "sd_window": 0.020652424117969918,
+    "sd_iid": 0.01875542457212397,
+    "deff": 1.2125182124100518,
+    "deff_ci95": [
+     0.7012546214079043,
+     2.586628125865079
+    ],
+    "window_hits": [
+     0.2146,
+     0.2666,
+     0.2446,
+     0.2026,
+     0.2046,
+     0.2286,
+     0.2262,
+     0.2516,
+     0.2316,
+     0.2316,
+     0.2176,
+     0.1976,
+     0.2316,
+     0.245,
+     0.1979,
+     0.2279,
+     0.2159,
+     0.2439,
+     0.2279,
+     0.2699
+    ]
+   },
+   "month_icc": 0.00119,
+   "month_deff_ratio": 1.349,
+   "year_hit": {
+    "2023": 0.2132,
+    "2024": 0.2282,
+    "2025": 0.2419
+   },
+   "year_homogeneity_chi2_p": 0.01789
+  },
+  "D_guardq_x_pre (CW-11 近似)": {
+   "n": 6677,
+   "hit": 0.23408716489441367,
+   "date": {
+    "icc": -0.00261,
+    "icc_ci95": [
+     -0.00931,
+     0.00403
+    ],
+    "mbar": 20.74,
+    "deff_formula": 0.9486,
+    "deff": 0.9346,
+    "deff_ci95": [
+     0.8025,
+     1.0705
+    ],
+    "n_clusters": 322
+   },
+   "dp": {
+    "icc": -0.01305,
+    "icc_ci95": [
+     -0.02573,
+     -0.00178
+    ],
+    "mbar": 7.73,
+    "deff_formula": 0.9122,
+    "deff": 0.8926,
+    "deff_ci95": [
+     0.8139,
+     0.9809
+    ],
+    "n_clusters": 864
+   },
+   "week": {
+    "icc": 0.00072,
+    "icc_ci95": [
+     -0.00425,
+     0.00559
+    ],
+    "mbar": 42.8,
+    "deff_formula": 1.0303,
+    "deff": 0.9894,
+    "deff_ci95": [
+     0.8014,
+     1.2129
+    ],
+    "n_clusters": 156
+   },
+   "resid_after_band_icc_date": -0.00275,
+   "window500": {
+    "n_windows": 13,
+    "sd_window": 0.021157528816972596,
+    "sd_iid": 0.018936227930932248,
+    "deff": 1.2483688898254564,
+    "deff_ci95": [
+     0.6419266513871393,
+     3.40171346879073
+    ],
+    "window_hits": [
+     0.256,
+     0.246,
+     0.198,
+     0.222,
+     0.256,
+     0.224,
+     0.234,
+     0.22,
+     0.218,
+     0.214,
+     0.244,
+     0.236,
+     0.276
+    ]
+   },
+   "window500_year_demeaned": {
+    "n_windows": 13,
+    "sd_window": 0.02036707971116902,
+    "sd_iid": 0.018936227930932248,
+    "deff": 1.1568327667329013,
+    "deff_ci95": [
+     0.5948576500233033,
+     3.1522842613323747
+    ],
+    "window_hits": [
+     0.2586,
+     0.2486,
+     0.2006,
+     0.2246,
+     0.2602,
+     0.2292,
+     0.2392,
+     0.2252,
+     0.2212,
+     0.2063,
+     0.2363,
+     0.2283,
+     0.2683
+    ]
+   },
+   "month_icc": 0.00031,
+   "month_deff_ratio": 1.0451,
+   "year_hit": {
+    "2023": 0.2315,
+    "2024": 0.2289,
+    "2025": 0.2418
+   },
+   "year_homogeneity_chi2_p": 0.55752
+  },
+  "E_guardref_x_pre (CW-11 近似, 本番参照分布)": {
+   "n": 7011,
+   "hit": 0.23177863357580944,
+   "date": {
+    "icc": -0.0031,
+    "icc_ci95": [
+     -0.00886,
+     0.00303
+    ],
+    "mbar": 21.77,
+    "deff_formula": 0.9357,
+    "deff": 0.9191,
+    "deff_ci95": [
+     0.7943,
+     1.0544
+    ],
+    "n_clusters": 322
+   },
+   "dp": {
+    "icc": -0.01217,
+    "icc_ci95": [
+     -0.02328,
+     -0.00126
+    ],
+    "mbar": 8.11,
+    "deff_formula": 0.9134,
+    "deff": 0.8961,
+    "deff_ci95": [
+     0.8164,
+     0.9747
+    ],
+    "n_clusters": 864
+   },
+   "week": {
+    "icc": 0.00052,
+    "icc_ci95": [
+     -0.00404,
+     0.00522
+    ],
+    "mbar": 44.94,
+    "deff_formula": 1.0229,
+    "deff": 0.9797,
+    "deff_ci95": [
+     0.767,
+     1.1824
+    ],
+    "n_clusters": 156
+   },
+   "resid_after_band_icc_date": -0.00309,
+   "window500": {
+    "n_windows": 14,
+    "sd_window": 0.01762864801308458,
+    "sd_iid": 0.018870998839146808,
+    "deff": 0.8726663642096429,
+    "deff_ci95": [
+     0.4586369643071194,
+     2.2649686200131813
+    ],
+    "window_hits": [
+     0.25,
+     0.24,
+     0.202,
+     0.218,
+     0.246,
+     0.234,
+     0.238,
+     0.206,
+     0.23,
+     0.216,
+     0.222,
+     0.234,
+     0.248,
+     0.264
+    ]
+   },
+   "window500_year_demeaned": {
+    "n_windows": 14,
+    "sd_window": 0.017014018997008586,
+    "sd_iid": 0.018870998839146808,
+    "deff": 0.8128755314079307,
+    "deff_ci95": [
+     0.4272134017931595,
+     2.109784043622427
+    ],
+    "window_hits": [
+     0.2522,
+     0.2422,
+     0.2042,
+     0.2202,
+     0.2486,
+     0.2372,
+     0.2412,
+     0.2092,
+     0.2332,
+     0.2131,
+     0.2167,
+     0.2287,
+     0.2427,
+     0.2587
+    ]
+   },
+   "month_icc": -0.0,
+   "month_deff_ratio": 1.0115,
+   "year_hit": {
+    "2023": 0.2296,
+    "2024": 0.2286,
+    "2025": 0.237
+   },
+   "year_homogeneity_chi2_p": 0.75544
+  }
+ },
+ "power": {
+  "CW-10": {
+   "deff_cluster": 0.879,
+   "deff_window": 1.7343,
+   "threshold_obs": {
+    "iid": 0.1694,
+    "cluster_est(max day,dp)": 0.1694,
+    "window500_est": 0.1614,
+    "stress_1.5": 0.1637,
+    "stress_2.0": 0.159
+   },
+   "reject_iff_hits_le": 84,
+   "table": {
+    "0.233": {
+     "frozen_rule|data=iid": {
+      "h_star": 0.1694,
+      "p_reject": 0.0002,
+      "method": "exact_binomial"
+     },
+     "frozen_rule|data=cluster_est(max day,dp)": {
+      "h_star": 0.1694,
+      "p_reject": 0.0002,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=window500_est": {
+      "h_star": 0.1694,
+      "p_reject": 0.0053,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=window500_est": {
+      "h_star": 0.1614,
+      "p_reject": 0.002,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=stress_1.5": {
+      "h_star": 0.1694,
+      "p_reject": 0.003,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=stress_1.5": {
+      "h_star": 0.1637,
+      "p_reject": 0.0014,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=stress_2.0": {
+      "h_star": 0.1694,
+      "p_reject": 0.0087,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=stress_2.0": {
+      "h_star": 0.159,
+      "p_reject": 0.0028,
+      "method": "normal_approx"
+     }
+    },
+    "0.197": {
+     "frozen_rule|data=iid": {
+      "h_star": 0.1694,
+      "p_reject": 0.0556,
+      "method": "exact_binomial"
+     },
+     "frozen_rule|data=cluster_est(max day,dp)": {
+      "h_star": 0.1694,
+      "p_reject": 0.049,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=window500_est": {
+      "h_star": 0.1694,
+      "p_reject": 0.1194,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=window500_est": {
+      "h_star": 0.1614,
+      "p_reject": 0.0641,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=stress_1.5": {
+      "h_star": 0.1694,
+      "p_reject": 0.1026,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=stress_1.5": {
+      "h_star": 0.1637,
+      "p_reject": 0.063,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=stress_2.0": {
+      "h_star": 0.1694,
+      "p_reject": 0.1363,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=stress_2.0": {
+      "h_star": 0.159,
+      "p_reject": 0.0652,
+      "method": "normal_approx"
+     }
+    },
+    "0.150": {
+     "frozen_rule|data=iid": {
+      "h_star": 0.1694,
+      "p_reject": 0.8819,
+      "method": "exact_binomial"
+     },
+     "frozen_rule|data=cluster_est(max day,dp)": {
+      "h_star": 0.1694,
+      "p_reject": 0.9025,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=window500_est": {
+      "h_star": 0.1694,
+      "p_reject": 0.8219,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=window500_est": {
+      "h_star": 0.1614,
+      "p_reject": 0.7055,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=stress_1.5": {
+      "h_star": 0.1694,
+      "p_reject": 0.8394,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=stress_1.5": {
+      "h_star": 0.1637,
+      "p_reject": 0.7576,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=stress_2.0": {
+      "h_star": 0.1694,
+      "p_reject": 0.8049,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=stress_2.0": {
+      "h_star": 0.159,
+      "p_reject": 0.6542,
+      "method": "normal_approx"
+     }
+    }
+   }
+  },
+  "CW-11": {
+   "deff_cluster": 0.9346,
+   "deff_window": 1.2484,
+   "threshold_obs": {
+    "iid": 0.1694,
+    "cluster_est(max day,dp)": 0.1694,
+    "window500_est": 0.1664,
+    "stress_1.5": 0.1637,
+    "stress_2.0": 0.159
+   },
+   "reject_iff_hits_le": 84,
+   "table": {
+    "0.233": {
+     "frozen_rule|data=iid": {
+      "h_star": 0.1694,
+      "p_reject": 0.0002,
+      "method": "exact_binomial"
+     },
+     "frozen_rule|data=cluster_est(max day,dp)": {
+      "h_star": 0.1694,
+      "p_reject": 0.0003,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=window500_est": {
+      "h_star": 0.1694,
+      "p_reject": 0.0013,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=window500_est": {
+      "h_star": 0.1664,
+      "p_reject": 0.0008,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=stress_1.5": {
+      "h_star": 0.1694,
+      "p_reject": 0.003,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=stress_1.5": {
+      "h_star": 0.1637,
+      "p_reject": 0.0014,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=stress_2.0": {
+      "h_star": 0.1694,
+      "p_reject": 0.0087,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=stress_2.0": {
+      "h_star": 0.159,
+      "p_reject": 0.0028,
+      "method": "normal_approx"
+     }
+    },
+    "0.197": {
+     "frozen_rule|data=iid": {
+      "h_star": 0.1694,
+      "p_reject": 0.0556,
+      "method": "exact_binomial"
+     },
+     "frozen_rule|data=cluster_est(max day,dp)": {
+      "h_star": 0.1694,
+      "p_reject": 0.0543,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=window500_est": {
+      "h_star": 0.1694,
+      "p_reject": 0.0825,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=window500_est": {
+      "h_star": 0.1664,
+      "p_reject": 0.0617,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=stress_1.5": {
+      "h_star": 0.1694,
+      "p_reject": 0.1026,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=stress_1.5": {
+      "h_star": 0.1637,
+      "p_reject": 0.063,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=stress_2.0": {
+      "h_star": 0.1694,
+      "p_reject": 0.1363,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=stress_2.0": {
+      "h_star": 0.159,
+      "p_reject": 0.0652,
+      "method": "normal_approx"
+     }
+    },
+    "0.150": {
+     "frozen_rule|data=iid": {
+      "h_star": 0.1694,
+      "p_reject": 0.8819,
+      "method": "exact_binomial"
+     },
+     "frozen_rule|data=cluster_est(max day,dp)": {
+      "h_star": 0.1694,
+      "p_reject": 0.8956,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=window500_est": {
+      "h_star": 0.1694,
+      "p_reject": 0.8616,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=window500_est": {
+      "h_star": 0.1664,
+      "p_reject": 0.8208,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=stress_1.5": {
+      "h_star": 0.1694,
+      "p_reject": 0.8394,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=stress_1.5": {
+      "h_star": 0.1637,
+      "p_reject": 0.7576,
+      "method": "normal_approx"
+     },
+     "frozen_rule|data=stress_2.0": {
+      "h_star": 0.1694,
+      "p_reject": 0.8049,
+      "method": "normal_approx"
+     },
+     "corrected_rule|data=stress_2.0": {
+      "h_star": 0.159,
+      "p_reject": 0.6542,
+      "method": "normal_approx"
+     }
+    }
+   }
+  }
+ },
+ "forward_band_composition_label_free": {
+  "note": "2026-10-03〜10-18 は本番モデル C0 混成期間 (判定に数えない、記述のみ)。band 列以外は読んでいない。",
+  "dates": [
+   "20261003",
+   "20261004",
+   "20261010",
+   "20261011",
+   "20261012",
+   "20261017",
+   "20261018"
+  ],
+  "cw10_bundle": {
+   "<2倍": 0.0757,
+   "2-3倍": 0.2054,
+   "3-5倍": 0.2973,
+   "5-8倍": 0.2216,
+   "8-15倍": 0.1514,
+   "15倍〜": 0.0486,
+   "n": 185
+  },
+  "cw11_t10": {
+   "<2倍": 0.2214,
+   "2-3倍": 0.2519,
+   "3-5倍": 0.313,
+   "5-8倍": 0.1145,
+   "8-15倍": 0.0687,
+   "15倍〜": 0.0305,
+   "n": 131
+  },
+  "t10_all": {
+   "<2倍": 0.1902,
+   "2-3倍": 0.2228,
+   "3-5倍": 0.2717,
+   "5-8倍": 0.1902,
+   "8-15倍": 0.0815,
+   "15倍〜": 0.0435,
+   "n": 184
+  },
+  "expected_hit_from_A_bandrates": {
+   "cw10_bundle": 0.2272,
+   "cw11_t10": 0.2327,
+   "cw11_t10_using_D_bandrates": 0.2301
+  },
+  "gof_p": {
+   "cw10_bundle_vs_A_9h": 1e-05,
+   "cw11_t10_vs_D_pre": 0.00381,
+   "cw11_t10_vs_F_final": 0.0,
+   "t10_all_vs_B_pre": 0.0403
+  }
+ }
+}
