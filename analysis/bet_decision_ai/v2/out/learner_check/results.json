@@ -1,0 +1,3392 @@
+{
+ "prereg_sha256": "106c56972b48693f1e08802499bc41fa0a75a08650a5110ac909b9e8395c398b",
+ "edges": {
+  "tan": 0.21391498057099226,
+  "fuku": 0.11078848401551768
+ },
+ "subset_share": 0.05182737000622638,
+ "judgement": {
+  "two_stage": {
+   "control": {
+    "passes": [
+     false,
+     false,
+     false
+    ],
+    "n_pass": 0,
+    "need": 3,
+    "ok": false
+   },
+   "e110": {
+    "passes": [
+     false,
+     false,
+     false
+    ],
+    "n_pass": 0,
+    "need": 2,
+    "ok": false
+   },
+   "e120": {
+    "passes": [
+     false,
+     false,
+     false
+    ],
+    "n_pass": 0,
+    "need": 2,
+    "ok": false
+   },
+   "overall": false
+  },
+  "huber": {
+   "control": {
+    "passes": [
+     true,
+     true,
+     true
+    ],
+    "n_pass": 3,
+    "need": 3,
+    "ok": true
+   },
+   "e110": {
+    "passes": [
+     true,
+     true,
+     true
+    ],
+    "n_pass": 3,
+    "need": 2,
+    "ok": true
+   },
+   "e120": {
+    "passes": [
+     true,
+     true,
+     true
+    ],
+    "n_pass": 3,
+    "need": 2,
+    "ok": true
+   },
+   "overall": true
+  }
+ },
+ "results": [
+  {
+   "cond": "control",
+   "boost": null,
+   "seed": 11,
+   "pi_info": {
+    "n_pi_tan_capped": 0,
+    "n_pi_fuku_capped": 0,
+    "n_fuku_lifted_to_tan": 18,
+    "n_fuku_lifted_er_gt_1": 5,
+    "tan_pi_race_sum": [
+     0.9999999999999993,
+     1.0000000000000004
+    ]
+   },
+   "design_er": {
+    "2021": {
+     "S_mean": 0.7990063675372971,
+     "nonS_mean": 0.7988226520149331,
+     "nonS_max": 1.5057536950279733,
+     "nonS_share_gt_1": 5.720103877086408e-05
+    },
+    "2022": {
+     "S_mean": 0.7987165202998454,
+     "nonS_mean": 0.7987515826606176,
+     "nonS_max": 0.8923663712481823,
+     "nonS_share_gt_1": 0.0
+    },
+    "2023": {
+     "S_mean": 0.7985403798163514,
+     "nonS_mean": 0.7987040160863423,
+     "nonS_max": 0.9953196517887264,
+     "nonS_share_gt_1": 0.0
+    }
+   },
+   "oracle_buy_S": null,
+   "two_stage": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 2000,
+     "learning_rate": 0.1,
+     "n_trees": 100
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": -0.023275667292910772,
+      "sec": 9.8
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": -0.02210104624141117,
+      "sec": 4.1
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": -0.026230139858011915,
+      "sec": 2.1
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.08946117025282718,
+      "sec": 10.5
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.0936541077756108,
+      "sec": 4.0
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.10664484144704894,
+      "sec": 1.9
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": -0.11465476850648246,
+      "sec": 19.6
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": -0.11297388759862255,
+      "sec": 7.6
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": -0.08228219011382842,
+      "sec": 3.1
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.07884737193720615,
+      "sec": 15.0
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.08067542418333719,
+      "sec": 5.6
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.09250692386709591,
+      "sec": 2.5
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 4326,
+    "buy_share": 0.046885160619066196,
+    "n_buy_days": 107,
+    "roi": 0.7531091077207581,
+    "roi_ci": [
+     0.6814805946095427,
+     0.8252385393838113
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 0.700868860055607,
+    "top10_R": [
+     29.0,
+     28.8,
+     25.5,
+     24.7,
+     23.6,
+     21.5,
+     20.6,
+     19.9,
+     19.7,
+     19.7
+    ],
+    "hit_rate": 0.08321775312066575,
+    "refund_n": 0,
+    "rho": 0.1435196188049368,
+    "rho_ci": [
+     0.13829071721778838,
+     0.1490492937614006
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.016643550624133148,
+    "subset_recall": 0.015635179153094463,
+    "buy_by_bet_type": {
+     "tan": 2606,
+     "fuku": 1720
+    },
+    "cons_mean_S": 0.7674091435350057,
+    "cons_mean_nonS": 0.6690249786643131,
+    "true_er_mean_of_buys": 0.7990815134560073,
+    "pass": false
+   },
+   "huber": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 200,
+     "learning_rate": 0.02,
+     "n_trees": 800
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.35584065530974435,
+      "sec": 1.9
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.35581308142653617,
+      "sec": 0.8
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3556916670955498,
+      "sec": 0.9
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3548484442933002,
+      "sec": 2.4
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.3547767035059998,
+      "sec": 0.9
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3552220187782362,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3533084373382416,
+      "sec": 3.2
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.35275343446269974,
+      "sec": 1.3
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3534501252475715,
+      "sec": 0.6
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3494943507253701,
+      "sec": 4.1
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.34951286505752505,
+      "sec": 1.7
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3515361053858046,
+      "sec": 0.7
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 0,
+    "buy_share": 0.0,
+    "n_buy_days": 0,
+    "roi": null,
+    "roi_ci": null,
+    "roi_ex_top10": null,
+    "hit_rate": null,
+    "rho": 0.3555326817762283,
+    "rho_ci": [
+     0.3498202734857464,
+     0.360537985515603
+    ],
+    "reps": 500,
+    "subset_share_of_buys": null,
+    "subset_recall": 0.0,
+    "buy_by_bet_type": {
+     "tan": 0,
+     "fuku": 0
+    },
+    "cons_mean_S": 0.37558107305739846,
+    "cons_mean_nonS": 0.16179125664024996,
+    "true_er_mean_of_buys": null,
+    "pass": true
+   },
+   "sec": 155.6
+  },
+  {
+   "cond": "e110",
+   "boost": 1.1,
+   "seed": 11,
+   "pi_info": {
+    "n_races_tan_S_sum_scaled": 0,
+    "n_pi_tan_capped": 0,
+    "n_pi_fuku_capped": 14,
+    "n_fuku_lifted_to_tan": 23,
+    "n_fuku_lifted_er_gt_1": 5,
+    "tan_pi_race_sum": [
+     0.9999999999999994,
+     1.0000000000000007
+    ]
+   },
+   "design_er": {
+    "2021": {
+     "S_mean": 1.0999804926108372,
+     "nonS_mean": 0.7794243081269904,
+     "nonS_max": 1.5057536950279737,
+     "nonS_share_gt_1": 5.720103877086408e-05
+    },
+    "2022": {
+     "S_mean": 1.0999715333189561,
+     "nonS_mean": 0.7817123428110958,
+     "nonS_max": 0.9307692307692308,
+     "nonS_share_gt_1": 0.0
+    },
+    "2023": {
+     "S_mean": 1.0999498371335503,
+     "nonS_mean": 0.7816774241736395,
+     "nonS_max": 0.9953196517887262,
+     "nonS_share_gt_1": 0.0
+    }
+   },
+   "oracle_buy_S": {
+    "n_candidates": 92268,
+    "n_buy": 4605,
+    "buy_share": 0.04990896085316686,
+    "n_buy_days": 107,
+    "roi": 1.1281867535287728,
+    "roi_ci": [
+     1.0711799073728068,
+     1.1850549085613464
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 1.10892274211099,
+    "top10_R": [
+     10.0,
+     10.0,
+     10.0,
+     10.0,
+     10.0,
+     10.0,
+     10.0,
+     10.0,
+     9.9,
+     9.9
+    ],
+    "hit_rate": 0.3785016286644951,
+    "refund_n": 0
+   },
+   "two_stage": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 2000,
+     "learning_rate": 0.1,
+     "n_trees": 100
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.07262087076915008,
+      "sec": 10.5
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.06974428264172959,
+      "sec": 4.3
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.08592917374652927,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.14670521179594723,
+      "sec": 9.6
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.14621240666111404,
+      "sec": 4.0
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.15380926137440584,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": -0.017022606780846834,
+      "sec": 18.7
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": -0.01885407159216005,
+      "sec": 7.5
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.007984114340267965,
+      "sec": 3.1
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.12206805772784561,
+      "sec": 14.1
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.1231225684031873,
+      "sec": 5.7
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.13883465311568635,
+      "sec": 2.9
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 5264,
+    "buy_share": 0.05705119868209997,
+    "n_buy_days": 107,
+    "roi": 0.8961246200607902,
+    "roi_ci": [
+     0.8370238692760766,
+     0.9574025076731182
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 0.8544156832889226,
+    "top10_R": [
+     28.8,
+     26.6,
+     25.5,
+     23.7,
+     22.1,
+     20.9,
+     20.7,
+     20.6,
+     19.9,
+     19.3
+    ],
+    "hit_rate": 0.1865501519756839,
+    "refund_n": 0,
+    "rho": 0.18926292534200717,
+    "rho_ci": [
+     0.18380923701396606,
+     0.1957068709081365
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.31458966565349544,
+    "subset_recall": 0.35960912052117266,
+    "buy_by_bet_type": {
+     "tan": 2815,
+     "fuku": 2449
+    },
+    "cons_mean_S": 0.9725172020991232,
+    "cons_mean_nonS": 0.6481839355050665,
+    "true_er_mean_of_buys": 0.8842384817365523,
+    "pass": false
+   },
+   "huber": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 200,
+     "learning_rate": 0.02,
+     "n_trees": 800
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.366804658284608,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.366786226197391,
+      "sec": 1.1
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3667107750125777,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.36615332319135035,
+      "sec": 2.2
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.366194319497486,
+      "sec": 1.1
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3666239295727089,
+      "sec": 0.9
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.36483775224960874,
+      "sec": 3.7
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.364295769343165,
+      "sec": 1.4
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3650197847036899,
+      "sec": 0.6
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3615857363174607,
+      "sec": 4.0
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.3617148460201075,
+      "sec": 1.7
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.36284769718766535,
+      "sec": 0.7
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 834,
+    "buy_share": 0.009038886721290156,
+    "n_buy_days": 107,
+    "roi": 1.0694244604316547,
+    "roi_ci": [
+     1.0142513588219881,
+     1.1255917332952599
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 1.0563713592233008,
+    "top10_R": [
+     2.3,
+     2.3,
+     2.2,
+     2.15,
+     2.1,
+     2.1,
+     2.1,
+     2.0999999999999996,
+     2.05,
+     2.05
+    ],
+    "hit_rate": 0.6462829736211031,
+    "refund_n": 0,
+    "rho": 0.3666391185566036,
+    "rho_ci": [
+     0.36104900878227775,
+     0.37217142579517165
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.9976019184652278,
+    "subset_recall": 0.18067318132464713,
+    "buy_by_bet_type": {
+     "tan": 3,
+     "fuku": 831
+    },
+    "cons_mean_S": 0.5280734489589886,
+    "cons_mean_nonS": 0.16252275868577928,
+    "true_er_mean_of_buys": 1.0990827338129494,
+    "pass": true
+   },
+   "sec": 153.5
+  },
+  {
+   "cond": "e120",
+   "boost": 1.2,
+   "seed": 11,
+   "pi_info": {
+    "n_races_tan_S_sum_scaled": 0,
+    "n_pi_tan_capped": 0,
+    "n_pi_fuku_capped": 95,
+    "n_fuku_lifted_to_tan": 24,
+    "n_fuku_lifted_er_gt_1": 6,
+    "tan_pi_race_sum": [
+     0.9999999999999994,
+     1.0000000000000007
+    ]
+   },
+   "design_er": {
+    "2021": {
+     "S_mean": 1.1995963546798027,
+     "nonS_mean": 0.7730059666618746,
+     "nonS_max": 1.5057536950279737,
+     "nonS_share_gt_1": 5.720103877086408e-05
+    },
+    "2022": {
+     "S_mean": 1.199597045503558,
+     "nonS_mean": 0.7760864959554843,
+     "nonS_max": 1.0153846153846153,
+     "nonS_share_gt_1": 1.151370706826477e-05
+    },
+    "2023": {
+     "S_mean": 1.199518132464712,
+     "nonS_mean": 0.7760605041608043,
+     "nonS_max": 0.9953196517887262,
+     "nonS_share_gt_1": 0.0
+    }
+   },
+   "oracle_buy_S": {
+    "n_candidates": 92268,
+    "n_buy": 4605,
+    "buy_share": 0.04990896085316686,
+    "n_buy_days": 107,
+    "roi": 1.201172638436482,
+    "roi_ci": [
+     1.1446826932628915,
+     1.2598426138307717
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 1.1820674646354732,
+    "top10_R": [
+     10.0,
+     10.0,
+     10.0,
+     10.0,
+     10.0,
+     10.0,
+     10.0,
+     10.0,
+     9.9,
+     9.9
+    ],
+    "hit_rate": 0.40542888165038005,
+    "refund_n": 0
+   },
+   "two_stage": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 2000,
+     "learning_rate": 0.1,
+     "n_trees": 100
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.09385117996117019,
+      "sec": 10.7
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.0822329033771329,
+      "sec": 4.1
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.09200611987754183,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.157480962086595,
+      "sec": 9.6
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.1614640117196702,
+      "sec": 4.0
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.17400297087237013,
+      "sec": 1.9
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": -0.00014345901021419762,
+      "sec": 18.9
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.002653627911166851,
+      "sec": 7.7
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.018397365393364253,
+      "sec": 3.2
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.13690098582211635,
+      "sec": 13.9
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.13721572111041996,
+      "sec": 5.7
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.1523736682731687,
+      "sec": 2.4
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 6721,
+    "buy_share": 0.0728421554601812,
+    "n_buy_days": 107,
+    "roi": 0.9809477756286267,
+    "roi_ci": [
+     0.931775941356998,
+     1.0319192401472579
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 0.949567873640292,
+    "top10_R": [
+     28.8,
+     26.6,
+     25.5,
+     23.7,
+     21.5,
+     19.9,
+     19.3,
+     19.1,
+     18.2,
+     17.8
+    ],
+    "hit_rate": 0.25799732182710905,
+    "refund_n": 0,
+    "rho": 0.20611968072701975,
+    "rho_ci": [
+     0.2002887132137142,
+     0.21351225835717186
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.48474929325993155,
+    "subset_recall": 0.7074918566775245,
+    "buy_by_bet_type": {
+     "tan": 3117,
+     "fuku": 3604
+    },
+    "cons_mean_S": 1.0611707438803406,
+    "cons_mean_nonS": 0.6447397608131024,
+    "true_er_mean_of_buys": 0.9859924219185464,
+    "pass": false
+   },
+   "huber": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 200,
+     "learning_rate": 0.02,
+     "n_trees": 800
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3720775175075301,
+      "sec": 2.1
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.3717453702642815,
+      "sec": 1.0
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3718191519888423,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3712899355853828,
+      "sec": 2.2
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.3713622893632692,
+      "sec": 1.5
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3714691031710968,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3700668440054792,
+      "sec": 3.7
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.3694959663795145,
+      "sec": 1.3
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3703838265176366,
+      "sec": 0.6
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3672839118376214,
+      "sec": 4.0
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.36730016150398237,
+      "sec": 1.7
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3686945814502638,
+      "sec": 0.7
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 1323,
+    "buy_share": 0.014338665626219275,
+    "n_buy_days": 107,
+    "roi": 1.200302343159486,
+    "roi_ci": [
+     1.1524180894337024,
+     1.246459946974378
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 1.1908606245239908,
+    "top10_R": [
+     2.5,
+     2.5,
+     2.45,
+     2.45,
+     2.45,
+     2.45,
+     2.4000000000000004,
+     2.4000000000000004,
+     2.4000000000000004,
+     2.4000000000000004
+    ],
+    "hit_rate": 0.6885865457294029,
+    "refund_n": 0,
+    "rho": 0.37178610282803487,
+    "rho_ci": [
+     0.3661488251825189,
+     0.37781717639837054
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.99848828420257,
+    "subset_recall": 0.28686210640608034,
+    "buy_by_bet_type": {
+     "tan": 13,
+     "fuku": 1310
+    },
+    "cons_mean_S": 0.6072406600458367,
+    "cons_mean_nonS": 0.1623232172172033,
+    "true_er_mean_of_buys": 1.1977452758881328,
+    "pass": true
+   },
+   "sec": 154.5
+  },
+  {
+   "cond": "control",
+   "boost": null,
+   "seed": 22,
+   "pi_info": {
+    "n_pi_tan_capped": 0,
+    "n_pi_fuku_capped": 0,
+    "n_fuku_lifted_to_tan": 18,
+    "n_fuku_lifted_er_gt_1": 5,
+    "tan_pi_race_sum": [
+     0.9999999999999993,
+     1.0000000000000004
+    ]
+   },
+   "design_er": {
+    "2021": {
+     "S_mean": 0.7990063675372971,
+     "nonS_mean": 0.7988226520149331,
+     "nonS_max": 1.5057536950279733,
+     "nonS_share_gt_1": 5.720103877086408e-05
+    },
+    "2022": {
+     "S_mean": 0.7987165202998454,
+     "nonS_mean": 0.7987515826606176,
+     "nonS_max": 0.8923663712481823,
+     "nonS_share_gt_1": 0.0
+    },
+    "2023": {
+     "S_mean": 0.7985403798163514,
+     "nonS_mean": 0.7987040160863423,
+     "nonS_max": 0.9953196517887264,
+     "nonS_share_gt_1": 0.0
+    }
+   },
+   "oracle_buy_S": null,
+   "two_stage": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 2000,
+     "learning_rate": 0.1,
+     "n_trees": 100
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.008331143602217286,
+      "sec": 10.8
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": -0.007525254748332238,
+      "sec": 4.2
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.0018423558927645539,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.08086124504389942,
+      "sec": 9.7
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.0782798242547084,
+      "sec": 4.0
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.09578908586614092,
+      "sec": 1.9
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": -0.07878469377573974,
+      "sec": 18.8
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": -0.07053217224634496,
+      "sec": 7.6
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": -0.04974260419437212,
+      "sec": 3.1
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.06784506731131267,
+      "sec": 13.8
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.06948569328342045,
+      "sec": 5.6
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.08990507780514685,
+      "sec": 2.4
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 4557,
+    "buy_share": 0.0493887371569775,
+    "n_buy_days": 107,
+    "roi": 0.8150866798332236,
+    "roi_ci": [
+     0.741267698695483,
+     0.8901993003455705
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 0.7813613371453706,
+    "top10_R": [
+     25.6,
+     22.1,
+     15.65,
+     15.5,
+     14.85,
+     14.6,
+     13.65,
+     13.45,
+     13.3,
+     12.8
+    ],
+    "hit_rate": 0.09545753785385122,
+    "refund_n": 0,
+    "rho": 0.1383509986229303,
+    "rho_ci": [
+     0.1327547404297305,
+     0.1447476314409576
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.05903006363835857,
+    "subset_recall": 0.05841476655808903,
+    "buy_by_bet_type": {
+     "tan": 1729,
+     "fuku": 2828
+    },
+    "cons_mean_S": 0.7903844621026302,
+    "cons_mean_nonS": 0.6723916031815185,
+    "true_er_mean_of_buys": 0.799161102127234,
+    "pass": false
+   },
+   "huber": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 2000,
+     "learning_rate": 0.1,
+     "n_trees": 100
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3561664715285643,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.3561954168997094,
+      "sec": 0.8
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.35615421906865297,
+      "sec": 0.6
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.356033745636963,
+      "sec": 2.3
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.35594994437716265,
+      "sec": 0.9
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.35633990527446235,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.35387357247031637,
+      "sec": 3.7
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.35366332066221,
+      "sec": 1.3
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3541628334565659,
+      "sec": 0.6
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.35124395126674546,
+      "sec": 4.0
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.3511533250693815,
+      "sec": 1.7
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.353162516136565,
+      "sec": 0.7
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 0,
+    "buy_share": 0.0,
+    "n_buy_days": 0,
+    "roi": null,
+    "roi_ci": null,
+    "roi_ex_top10": null,
+    "hit_rate": null,
+    "rho": 0.3562268075826699,
+    "rho_ci": [
+     0.3507878354158078,
+     0.361345399449876
+    ],
+    "reps": 500,
+    "subset_share_of_buys": null,
+    "subset_recall": 0.0,
+    "buy_by_bet_type": {
+     "tan": 0,
+     "fuku": 0
+    },
+    "cons_mean_S": 0.3692343348091078,
+    "cons_mean_nonS": 0.16041379966759386,
+    "true_er_mean_of_buys": null,
+    "pass": true
+   },
+   "sec": 138.9
+  },
+  {
+   "cond": "e110",
+   "boost": 1.1,
+   "seed": 22,
+   "pi_info": {
+    "n_races_tan_S_sum_scaled": 0,
+    "n_pi_tan_capped": 0,
+    "n_pi_fuku_capped": 14,
+    "n_fuku_lifted_to_tan": 23,
+    "n_fuku_lifted_er_gt_1": 5,
+    "tan_pi_race_sum": [
+     0.9999999999999994,
+     1.0000000000000007
+    ]
+   },
+   "design_er": {
+    "2021": {
+     "S_mean": 1.0999804926108372,
+     "nonS_mean": 0.7794243081269904,
+     "nonS_max": 1.5057536950279737,
+     "nonS_share_gt_1": 5.720103877086408e-05
+    },
+    "2022": {
+     "S_mean": 1.0999715333189561,
+     "nonS_mean": 0.7817123428110958,
+     "nonS_max": 0.9307692307692308,
+     "nonS_share_gt_1": 0.0
+    },
+    "2023": {
+     "S_mean": 1.0999498371335503,
+     "nonS_mean": 0.7816774241736395,
+     "nonS_max": 0.9953196517887262,
+     "nonS_share_gt_1": 0.0
+    }
+   },
+   "oracle_buy_S": {
+    "n_candidates": 92268,
+    "n_buy": 4605,
+    "buy_share": 0.04990896085316686,
+    "n_buy_days": 107,
+    "roi": 1.1236264929424538,
+    "roi_ci": [
+     1.070904379969216,
+     1.1773724481123955
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 1.104461371055495,
+    "top10_R": [
+     10.0,
+     10.0,
+     10.0,
+     10.0,
+     9.9,
+     9.9,
+     9.9,
+     9.9,
+     9.9,
+     9.8
+    ],
+    "hit_rate": 0.3739413680781759,
+    "refund_n": 0
+   },
+   "two_stage": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 2000,
+     "learning_rate": 0.1,
+     "n_trees": 100
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.06304210882067217,
+      "sec": 10.4
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.0588164141802714,
+      "sec": 4.1
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.06580939974266098,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.1446421202760674,
+      "sec": 9.4
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.1479279555522066,
+      "sec": 4.0
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.16557869900961464,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": -0.01988545391564282,
+      "sec": 19.2
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": -0.0265251483391661,
+      "sec": 7.5
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": -0.009616821974822148,
+      "sec": 3.1
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.11678042665029964,
+      "sec": 13.9
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.10914218707668957,
+      "sec": 5.6
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.1447679828328417,
+      "sec": 2.4
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 5953,
+    "buy_share": 0.06451857632115143,
+    "n_buy_days": 107,
+    "roi": 0.9172182093062321,
+    "roi_ci": [
+     0.8528331341352993,
+     0.9860417698283959
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 0.886673397274104,
+    "top10_R": [
+     25.6,
+     25.6,
+     22.7,
+     20.2,
+     17.3,
+     17.0,
+     16.0,
+     15.7,
+     15.5,
+     15.1
+    ],
+    "hit_rate": 0.16327901898202588,
+    "refund_n": 0,
+    "rho": 0.19389698207807793,
+    "rho_ci": [
+     0.18713794421089058,
+     0.20074912887663407
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.30640013438602387,
+    "subset_recall": 0.39609120521172636,
+    "buy_by_bet_type": {
+     "tan": 2452,
+     "fuku": 3501
+    },
+    "cons_mean_S": 0.982619493935696,
+    "cons_mean_nonS": 0.6634571057283769,
+    "true_er_mean_of_buys": 0.8860136395040388,
+    "pass": false
+   },
+   "huber": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 2000,
+     "learning_rate": 0.1,
+     "n_trees": 100
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.36789166331175616,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.36763061209333153,
+      "sec": 0.9
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3674280089618432,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.36767709653110675,
+      "sec": 2.2
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.36758373978815345,
+      "sec": 0.9
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3679710248233482,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.36577775691508857,
+      "sec": 3.8
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.3655327768600767,
+      "sec": 1.4
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3659932917424018,
+      "sec": 0.6
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.36309438882141576,
+      "sec": 4.1
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.36285073372999077,
+      "sec": 1.7
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.36467213945150373,
+      "sec": 0.7
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 513,
+    "buy_share": 0.0055598907530238,
+    "n_buy_days": 106,
+    "roi": 1.112280701754386,
+    "roi_ci": [
+     1.0483731599112722,
+     1.1727647968448531
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 1.092544731610338,
+    "top10_R": [
+     2.2,
+     2.2,
+     2.1,
+     2.1,
+     2.1,
+     2.1,
+     2.1,
+     2.05,
+     2.05,
+     2.05
+    ],
+    "hit_rate": 0.6530214424951267,
+    "refund_n": 0,
+    "rho": 0.3678906398120482,
+    "rho_ci": [
+     0.3630362600614351,
+     0.37303597932316396
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.9961013645224172,
+    "subset_recall": 0.11096634093376764,
+    "buy_by_bet_type": {
+     "tan": 0,
+     "fuku": 513
+    },
+    "cons_mean_S": 0.5187396162287733,
+    "cons_mean_nonS": 0.16195932109229927,
+    "true_er_mean_of_buys": 1.098830409356725,
+    "pass": true
+   },
+   "sec": 139.1
+  },
+  {
+   "cond": "e120",
+   "boost": 1.2,
+   "seed": 22,
+   "pi_info": {
+    "n_races_tan_S_sum_scaled": 0,
+    "n_pi_tan_capped": 0,
+    "n_pi_fuku_capped": 95,
+    "n_fuku_lifted_to_tan": 24,
+    "n_fuku_lifted_er_gt_1": 6,
+    "tan_pi_race_sum": [
+     0.9999999999999994,
+     1.0000000000000007
+    ]
+   },
+   "design_er": {
+    "2021": {
+     "S_mean": 1.1995963546798027,
+     "nonS_mean": 0.7730059666618746,
+     "nonS_max": 1.5057536950279737,
+     "nonS_share_gt_1": 5.720103877086408e-05
+    },
+    "2022": {
+     "S_mean": 1.199597045503558,
+     "nonS_mean": 0.7760864959554843,
+     "nonS_max": 1.0153846153846153,
+     "nonS_share_gt_1": 1.151370706826477e-05
+    },
+    "2023": {
+     "S_mean": 1.199518132464712,
+     "nonS_mean": 0.7760605041608043,
+     "nonS_max": 0.9953196517887262,
+     "nonS_share_gt_1": 0.0
+    }
+   },
+   "oracle_buy_S": {
+    "n_candidates": 92268,
+    "n_buy": 4605,
+    "buy_share": 0.04990896085316686,
+    "n_buy_days": 107,
+    "roi": 1.2303908794788274,
+    "roi_ci": [
+     1.1758226477770894,
+     1.2865967064117199
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 1.2114581066376497,
+    "top10_R": [
+     10.0,
+     10.0,
+     10.0,
+     10.0,
+     9.9,
+     9.9,
+     9.9,
+     9.9,
+     9.9,
+     9.8
+    ],
+    "hit_rate": 0.40977198697068407,
+    "refund_n": 0
+   },
+   "two_stage": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 2000,
+     "learning_rate": 0.1,
+     "n_trees": 100
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.08277264439269981,
+      "sec": 10.4
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.06934256598762448,
+      "sec": 4.2
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.07999007217595887,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.1647701456442438,
+      "sec": 9.6
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.1629896307706104,
+      "sec": 4.0
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.18335596996433015,
+      "sec": 1.9
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.002649077997787262,
+      "sec": 19.2
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": -0.009147321682044638,
+      "sec": 7.7
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.008673240186801896,
+      "sec": 3.1
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.13518606612906986,
+      "sec": 13.9
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.1388689692763615,
+      "sec": 5.9
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.15864105888188706,
+      "sec": 2.4
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 7318,
+    "buy_share": 0.0793124376815364,
+    "n_buy_days": 107,
+    "roi": 0.9812175457775347,
+    "roi_ci": [
+     0.9231157165154475,
+     1.043472142099092
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 0.9580938697318007,
+    "top10_R": [
+     23.6,
+     20.2,
+     18.6,
+     18.5,
+     18.2,
+     17.3,
+     17.0,
+     15.5,
+     15.05,
+     14.85
+    ],
+    "hit_rate": 0.24378245422246517,
+    "refund_n": 0,
+    "rho": 0.20914367086235391,
+    "rho_ci": [
+     0.20276697682640946,
+     0.21646260998536898
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.44725334790926485,
+    "subset_recall": 0.7107491856677525,
+    "buy_by_bet_type": {
+     "tan": 2506,
+     "fuku": 4812
+    },
+    "cons_mean_S": 1.0531517730287847,
+    "cons_mean_nonS": 0.6627022294232414,
+    "true_er_mean_of_buys": 0.973721364302044,
+    "pass": false
+   },
+   "huber": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 200,
+     "learning_rate": 0.02,
+     "n_trees": 800
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.37358122251307063,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.37336148152740134,
+      "sec": 0.8
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3733273686951826,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3731512976447817,
+      "sec": 2.3
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.37293952534108193,
+      "sec": 0.9
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.37330279508369585,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.37137825465972,
+      "sec": 3.9
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.37113824596691986,
+      "sec": 1.4
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.37199472812669676,
+      "sec": 0.6
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.36851738896385156,
+      "sec": 4.4
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.3687748852872217,
+      "sec": 1.8
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3704234001643641,
+      "sec": 0.7
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 1204,
+    "buy_share": 0.013048944379416482,
+    "n_buy_days": 107,
+    "roi": 1.1834717607973422,
+    "roi_ci": [
+     1.1336561937198355,
+     1.2333897845820352
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 1.172110552763819,
+    "top10_R": [
+     2.75,
+     2.75,
+     2.55,
+     2.55,
+     2.55,
+     2.5,
+     2.45,
+     2.45,
+     2.45,
+     2.4000000000000004
+    ],
+    "hit_rate": 0.6893687707641196,
+    "refund_n": 0,
+    "rho": 0.37371535538356854,
+    "rho_ci": [
+     0.3684065608212805,
+     0.3794484001741108
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.9958471760797342,
+    "subset_recall": 0.26036916395222587,
+    "buy_by_bet_type": {
+     "tan": 6,
+     "fuku": 1198
+    },
+    "cons_mean_S": 0.5945739247089932,
+    "cons_mean_nonS": 0.16366839009102907,
+    "true_er_mean_of_buys": 1.1966661129568106,
+    "pass": true
+   },
+   "sec": 154.3
+  },
+  {
+   "cond": "control",
+   "boost": null,
+   "seed": 33,
+   "pi_info": {
+    "n_pi_tan_capped": 0,
+    "n_pi_fuku_capped": 0,
+    "n_fuku_lifted_to_tan": 18,
+    "n_fuku_lifted_er_gt_1": 5,
+    "tan_pi_race_sum": [
+     0.9999999999999993,
+     1.0000000000000004
+    ]
+   },
+   "design_er": {
+    "2021": {
+     "S_mean": 0.7990063675372971,
+     "nonS_mean": 0.7988226520149331,
+     "nonS_max": 1.5057536950279733,
+     "nonS_share_gt_1": 5.720103877086408e-05
+    },
+    "2022": {
+     "S_mean": 0.7987165202998454,
+     "nonS_mean": 0.7987515826606176,
+     "nonS_max": 0.8923663712481823,
+     "nonS_share_gt_1": 0.0
+    },
+    "2023": {
+     "S_mean": 0.7985403798163514,
+     "nonS_mean": 0.7987040160863423,
+     "nonS_max": 0.9953196517887264,
+     "nonS_share_gt_1": 0.0
+    }
+   },
+   "oracle_buy_S": null,
+   "two_stage": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 2000,
+     "learning_rate": 0.1,
+     "n_trees": 100
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.0015207701688379298,
+      "sec": 10.9
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.007646062550816904,
+      "sec": 4.1
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.01865621650829164,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.09075187505605409,
+      "sec": 9.4
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.09041304879422334,
+      "sec": 4.0
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.1068741671164892,
+      "sec": 1.9
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": -0.06842633335030666,
+      "sec": 18.7
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": -0.0717158007689665,
+      "sec": 7.5
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": -0.056050604736520945,
+      "sec": 3.1
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.08196471051811768,
+      "sec": 13.8
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.0789858164052558,
+      "sec": 5.8
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.09113772893084679,
+      "sec": 2.4
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 3219,
+    "buy_share": 0.03488750162569905,
+    "n_buy_days": 107,
+    "roi": 0.8393134513824169,
+    "roi_ci": [
+     0.7386033849719149,
+     0.9504547386414545
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 0.7708476160797757,
+    "top10_R": [
+     30.2,
+     26.8,
+     25.2,
+     23.9,
+     23.3,
+     22.25,
+     21.35,
+     19.8,
+     18.5,
+     16.8
+    ],
+    "hit_rate": 0.09599254426840634,
+    "refund_n": 0,
+    "rho": 0.1459551494231521,
+    "rho_ci": [
+     0.14044480627676037,
+     0.15237177045613798
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.016464740602671637,
+    "subset_recall": 0.011509229098805645,
+    "buy_by_bet_type": {
+     "tan": 1299,
+     "fuku": 1920
+    },
+    "cons_mean_S": 0.7573470931588646,
+    "cons_mean_nonS": 0.662243972050699,
+    "true_er_mean_of_buys": 0.7992730918180073,
+    "pass": false
+   },
+   "huber": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 200,
+     "learning_rate": 0.02,
+     "n_trees": 800
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.35763167119532585,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.3574469805319586,
+      "sec": 0.8
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.35709313710694224,
+      "sec": 0.6
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3570457608706831,
+      "sec": 2.3
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.35706592760165684,
+      "sec": 0.9
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.35719234197310334,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3555749089232401,
+      "sec": 3.9
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.35513954496852296,
+      "sec": 1.3
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3554437006986281,
+      "sec": 0.6
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3516157690247789,
+      "sec": 4.0
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.35215240328877984,
+      "sec": 1.7
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3542724860087449,
+      "sec": 0.7
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 1,
+    "buy_share": 1.0837993670611696e-05,
+    "n_buy_days": 1,
+    "roi": 0.0,
+    "roi_ci": [
+     0.0,
+     0.0
+    ],
+    "roi_boot_valid": 2547,
+    "roi_ex_top10": null,
+    "top10_R": [
+     0.0
+    ],
+    "hit_rate": 0.0,
+    "refund_n": 0,
+    "rho": 0.3575477026519433,
+    "rho_ci": [
+     0.35204570460171775,
+     0.36345495252751703
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.0,
+    "subset_recall": 0.0,
+    "buy_by_bet_type": {
+     "tan": 0,
+     "fuku": 1
+    },
+    "cons_mean_S": 0.36742799800776643,
+    "cons_mean_nonS": 0.1607128340749256,
+    "true_er_mean_of_buys": 0.8,
+    "pass": true
+   },
+   "sec": 152.4
+  },
+  {
+   "cond": "e110",
+   "boost": 1.1,
+   "seed": 33,
+   "pi_info": {
+    "n_races_tan_S_sum_scaled": 0,
+    "n_pi_tan_capped": 0,
+    "n_pi_fuku_capped": 14,
+    "n_fuku_lifted_to_tan": 23,
+    "n_fuku_lifted_er_gt_1": 5,
+    "tan_pi_race_sum": [
+     0.9999999999999994,
+     1.0000000000000007
+    ]
+   },
+   "design_er": {
+    "2021": {
+     "S_mean": 1.0999804926108372,
+     "nonS_mean": 0.7794243081269904,
+     "nonS_max": 1.5057536950279737,
+     "nonS_share_gt_1": 5.720103877086408e-05
+    },
+    "2022": {
+     "S_mean": 1.0999715333189561,
+     "nonS_mean": 0.7817123428110958,
+     "nonS_max": 0.9307692307692308,
+     "nonS_share_gt_1": 0.0
+    },
+    "2023": {
+     "S_mean": 1.0999498371335503,
+     "nonS_mean": 0.7816774241736395,
+     "nonS_max": 0.9953196517887262,
+     "nonS_share_gt_1": 0.0
+    }
+   },
+   "oracle_buy_S": {
+    "n_candidates": 92268,
+    "n_buy": 4605,
+    "buy_share": 0.04990896085316686,
+    "n_buy_days": 107,
+    "roi": 1.0758306188925082,
+    "roi_ci": [
+     1.028885925330956,
+     1.127031177977082
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 1.0568226332970618,
+    "top10_R": [
+     10.0,
+     10.0,
+     9.9,
+     9.9,
+     9.8,
+     9.7,
+     9.7,
+     9.7,
+     9.7,
+     9.7
+    ],
+    "hit_rate": 0.3722041259500543,
+    "refund_n": 0
+   },
+   "two_stage": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 2000,
+     "learning_rate": 0.1,
+     "n_trees": 100
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.09338372017552744,
+      "sec": 11.2
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.08843500918942385,
+      "sec": 4.1
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.1076438870960721,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.15687952694818288,
+      "sec": 9.8
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.1577393057400853,
+      "sec": 4.0
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.17649163721611377,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": -0.006785940826718271,
+      "sec": 19.1
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": -0.017454962869379607,
+      "sec": 7.6
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.016569974659213303,
+      "sec": 3.1
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.1409042041262541,
+      "sec": 14.0
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.13652029419968592,
+      "sec": 5.7
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.15359856504626002,
+      "sec": 2.5
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 4418,
+    "buy_share": 0.04788225603676247,
+    "n_buy_days": 107,
+    "roi": 0.9506450882752379,
+    "roi_ci": [
+     0.8799004426733869,
+     1.0210779663588292
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 0.9056374773139747,
+    "top10_R": [
+     35.3,
+     25.45,
+     23.0,
+     19.8,
+     18.9,
+     18.5,
+     17.6,
+     17.3,
+     16.2,
+     15.85
+    ],
+    "hit_rate": 0.2034857401539158,
+    "refund_n": 0,
+    "rho": 0.20124243997709962,
+    "rho_ci": [
+     0.19520743159224907,
+     0.20754220332651338
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.3315980081484835,
+    "subset_recall": 0.31813246471226925,
+    "buy_by_bet_type": {
+     "tan": 1748,
+     "fuku": 2670
+    },
+    "cons_mean_S": 0.9549651437122032,
+    "cons_mean_nonS": 0.6499198835415815,
+    "true_er_mean_of_buys": 0.8918326889792417,
+    "pass": false
+   },
+   "huber": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 2000,
+     "learning_rate": 0.05,
+     "n_trees": 300
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3692261211240586,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.36919214835287545,
+      "sec": 0.8
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.36911228581612565,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.36895968937362517,
+      "sec": 2.3
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.369303715296153,
+      "sec": 0.9
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3692804649035958,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.3685522810140433,
+      "sec": 3.2
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.3677895057383414,
+      "sec": 1.3
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.36820471706318997,
+      "sec": 0.6
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.36465452210147514,
+      "sec": 4.1
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.36540268679027094,
+      "sec": 1.7
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.36625952271814627,
+      "sec": 0.7
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 827,
+    "buy_share": 0.008963020765595874,
+    "n_buy_days": 107,
+    "roi": 1.141837968561064,
+    "roi_ci": [
+     1.0925790057630826,
+     1.1918030841749283
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 1.1288861689106486,
+    "top10_R": [
+     2.3,
+     2.25,
+     2.2,
+     2.2,
+     2.2,
+     2.2,
+     2.2,
+     2.15,
+     2.15,
+     2.15
+    ],
+    "hit_rate": 0.6662636033857315,
+    "refund_n": 0,
+    "rho": 0.3682929315190153,
+    "rho_ci": [
+     0.3628020427167546,
+     0.373792345680492
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.992744860943168,
+    "subset_recall": 0.17828447339847991,
+    "buy_by_bet_type": {
+     "tan": 0,
+     "fuku": 827
+    },
+    "cons_mean_S": 0.5249450372000314,
+    "cons_mean_nonS": 0.15841882368576507,
+    "true_er_mean_of_buys": 1.0978234582829502,
+    "pass": true
+   },
+   "sec": 144.3
+  },
+  {
+   "cond": "e120",
+   "boost": 1.2,
+   "seed": 33,
+   "pi_info": {
+    "n_races_tan_S_sum_scaled": 0,
+    "n_pi_tan_capped": 0,
+    "n_pi_fuku_capped": 95,
+    "n_fuku_lifted_to_tan": 24,
+    "n_fuku_lifted_er_gt_1": 6,
+    "tan_pi_race_sum": [
+     0.9999999999999994,
+     1.0000000000000007
+    ]
+   },
+   "design_er": {
+    "2021": {
+     "S_mean": 1.1995963546798027,
+     "nonS_mean": 0.7730059666618746,
+     "nonS_max": 1.5057536950279737,
+     "nonS_share_gt_1": 5.720103877086408e-05
+    },
+    "2022": {
+     "S_mean": 1.199597045503558,
+     "nonS_mean": 0.7760864959554843,
+     "nonS_max": 1.0153846153846153,
+     "nonS_share_gt_1": 1.151370706826477e-05
+    },
+    "2023": {
+     "S_mean": 1.199518132464712,
+     "nonS_mean": 0.7760605041608043,
+     "nonS_max": 0.9953196517887262,
+     "nonS_share_gt_1": 0.0
+    }
+   },
+   "oracle_buy_S": {
+    "n_candidates": 92268,
+    "n_buy": 4605,
+    "buy_share": 0.04990896085316686,
+    "n_buy_days": 107,
+    "roi": 1.1629750271444081,
+    "roi_ci": [
+     1.1143812092901184,
+     1.2138677323587563
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 1.1439825897714908,
+    "top10_R": [
+     10.0,
+     10.0,
+     9.9,
+     9.9,
+     9.9,
+     9.9,
+     9.9,
+     9.9,
+     9.8,
+     9.7
+    ],
+    "hit_rate": 0.4030401737242128,
+    "refund_n": 0
+   },
+   "two_stage": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 2000,
+     "learning_rate": 0.1,
+     "n_trees": 100
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.1360719409567663,
+      "sec": 10.0
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.13641796871197406,
+      "sec": 4.1
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.1451346422345499,
+      "sec": 2.0
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.17956839756295537,
+      "sec": 10.5
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.17555491332381648,
+      "sec": 4.1
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.1966157828139247,
+      "sec": 1.9
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.05457341895689429,
+      "sec": 19.7
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.04277657193102339,
+      "sec": 7.7
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.06729689975752101,
+      "sec": 3.3
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.15540785090698406,
+      "sec": 13.9
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.1558726649570785,
+      "sec": 5.8
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.18018125414369898,
+      "sec": 2.5
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 5624,
+    "buy_share": 0.06095287640352018,
+    "n_buy_days": 107,
+    "roi": 0.9815700568990043,
+    "roi_ci": [
+     0.9269043095737095,
+     1.0397395704042438
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 0.9535447096544355,
+    "top10_R": [
+     23.0,
+     18.9,
+     18.5,
+     17.6,
+     15.85,
+     14.95,
+     14.75,
+     14.7,
+     14.7,
+     14.2
+    ],
+    "hit_rate": 0.2796941678520626,
+    "refund_n": 0,
+    "rho": 0.22362925608986414,
+    "rho_ci": [
+     0.21754375085932312,
+     0.23026892730115864
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.5106685633001422,
+    "subset_recall": 0.6236699239956569,
+    "buy_by_bet_type": {
+     "tan": 1987,
+     "fuku": 3637
+    },
+    "cons_mean_S": 1.0401894015555564,
+    "cons_mean_nonS": 0.6376993548622292,
+    "true_er_mean_of_buys": 0.9979603800455905,
+    "pass": false
+   },
+   "huber": {
+    "cfg": {
+     "num_leaves": 15,
+     "min_data_in_leaf": 200,
+     "learning_rate": 0.02,
+     "n_trees": 800
+    },
+    "grid": [
+     {
+      "cfg_id": 0,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.37516789275192286,
+      "sec": 2.2
+     },
+     {
+      "cfg_id": 1,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.37491393127764566,
+      "sec": 0.8
+     },
+     {
+      "cfg_id": 2,
+      "num_leaves": 15,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.37483704374587407,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 3,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.37466605533246083,
+      "sec": 2.2
+     },
+     {
+      "cfg_id": 4,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.374974743887328,
+      "sec": 0.9
+     },
+     {
+      "cfg_id": 5,
+      "num_leaves": 15,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3749545778397556,
+      "sec": 0.5
+     },
+     {
+      "cfg_id": 6,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.37390093300247274,
+      "sec": 3.5
+     },
+     {
+      "cfg_id": 7,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.3736967595962605,
+      "sec": 1.4
+     },
+     {
+      "cfg_id": 8,
+      "num_leaves": 63,
+      "min_data_in_leaf": 200,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.3741278686727573,
+      "sec": 0.6
+     },
+     {
+      "cfg_id": 9,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.02,
+      "n_trees": 800,
+      "rho_select": 0.37063391043522426,
+      "sec": 4.0
+     },
+     {
+      "cfg_id": 10,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.05,
+      "n_trees": 300,
+      "rho_select": 0.3703629690934982,
+      "sec": 1.7
+     },
+     {
+      "cfg_id": 11,
+      "num_leaves": 63,
+      "min_data_in_leaf": 2000,
+      "learning_rate": 0.1,
+      "n_trees": 100,
+      "rho_select": 0.37249229334193384,
+      "sec": 0.7
+     }
+    ],
+    "n_candidates": 92268,
+    "n_buy": 1302,
+    "buy_share": 0.014111067759136429,
+    "n_buy_days": 107,
+    "roi": 1.2270353302611368,
+    "roi_ci": [
+     1.1884116337137933,
+     1.268514629590682
+    ],
+    "roi_boot_valid": 4000,
+    "roi_ex_top10": 1.217685758513932,
+    "top10_R": [
+     2.5,
+     2.5,
+     2.5,
+     2.45,
+     2.4000000000000004,
+     2.4000000000000004,
+     2.4000000000000004,
+     2.4000000000000004,
+     2.4000000000000004,
+     2.4000000000000004
+    ],
+    "hit_rate": 0.7035330261136713,
+    "refund_n": 0,
+    "rho": 0.37493094780331987,
+    "rho_ci": [
+     0.36954938708820223,
+     0.3807623081215644
+    ],
+    "reps": 500,
+    "subset_share_of_buys": 0.9984639016897081,
+    "subset_recall": 0.28230184581976114,
+    "buy_by_bet_type": {
+     "tan": 0,
+     "fuku": 1302
+    },
+    "cons_mean_S": 0.6074542519480044,
+    "cons_mean_nonS": 0.16125555241805198,
+    "true_er_mean_of_buys": 1.197811059907834,
+    "pass": true
+   },
+   "sec": 155.9
+  }
+ ]
+}
