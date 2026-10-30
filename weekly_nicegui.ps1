@@ -355,10 +355,29 @@ if ($Post) {
         $prevExitSH = $LASTEXITCODE
         Step "[1d/3] serve_health.py (印の一致率監視)"
         $env:PYTHONIOENCODING = "utf-8"
-        & .env311\Scripts\python.exe serve_health.py --notify 2>&1 | ForEach-Object { Write-Host "    $_" }
+        & .\venv311\Scripts\python.exe serve_health.py --notify 2>&1 | ForEach-Object { Write-Host "    $_" }
         if ($LASTEXITCODE -eq 2) { Warn "serve_health WARN: 印が市場と大きくずれている。配信の特徴欠損を確認すること" }
         $global:LASTEXITCODE = $prevExitSH
     } catch { Warn "serve_health 例外 (本番には影響なし): $($_.Exception.Message)" }
+
+    # -- 出世予測 AI (ファン向け読み物、馬券非転用) の週次更新: 今週の出走表/結果を取り込み
+    #    → 現役馬を再推論 → サイト用 JSON (analysis/shusse/out_v2/live/site/)。続く
+    #    sync-hf-umami.ps1 内の build_site.py が site/data/shusse/ に取り込む。
+    #    失敗しても印・買い目・成績には影響しないので Warn のみ (サイトは前回分のまま)。
+    try {
+        $prevExitSS = $LASTEXITCODE
+        Step "[1e/3] 出世予測 AI 更新 (extend_2026 -> predict_live -> site_export)"
+        $env:PYTHONIOENCODING = "utf-8"
+        & .\venv311\Scripts\python.exe -m analysis.shusse.extend_2026 2>&1 | Select-Object -Last 2 | ForEach-Object { Write-Host "    $_" }
+        if ($LASTEXITCODE -ne 0) {
+            Warn "shusse extend_2026 が exit $LASTEXITCODE (サイトは前回の出世予測のまま)"
+        } else {
+            & .\venv311\Scripts\python.exe -m analysis.shusse.predict_live 2>&1 | Select-Object -Last 2 | ForEach-Object { Write-Host "    $_" }
+            if ($LASTEXITCODE -ne 0) { Warn "shusse predict_live が exit $LASTEXITCODE (サイトは前回の出世予測のまま)" }
+            else { OK "出世予測 AI 更新 (site/data/shusse/ は build_site.py が反映)" }
+        }
+        $global:LASTEXITCODE = $prevExitSS
+    } catch { Warn "出世予測 AI 更新 例外 (本番には影響なし): $($_.Exception.Message)" }
 
     if (-not $SkipHF) {
         Step "[2/3] sync-hf.ps1 (NiceGUI Space)"
@@ -466,7 +485,7 @@ try {
     $prevExitSH = $LASTEXITCODE
     Step "[health] serve_health.py (印の一致率監視)"
     $env:PYTHONIOENCODING = "utf-8"
-    & .env311\Scripts\python.exe serve_health.py --notify 2>&1 | ForEach-Object { Write-Host "    $_" }
+    & .\venv311\Scripts\python.exe serve_health.py --notify 2>&1 | ForEach-Object { Write-Host "    $_" }
     if ($LASTEXITCODE -eq 2) { Warn "serve_health WARN: 印が市場と大きくずれている。配信の特徴欠損を確認すること" }
     $global:LASTEXITCODE = $prevExitSH
 } catch { Warn "serve_health 例外 (本番には影響なし): $($_.Exception.Message)" }

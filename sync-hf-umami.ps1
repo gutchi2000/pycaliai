@@ -190,7 +190,8 @@ $SiteAllowPatterns = @(
     '^site/data/realized_bias\.json$',
     '^site/data/career_\d{8}\.json$',
     '^site/data/forecast_history/.*\.json$',
-    '^site/data/calibration\.json$'
+    '^site/data/calibration\.json$',
+    '^site/data/shusse/[^/]+\.json$'
 )
 #     --untracked-files=all: without this, git collapses a brand-new directory
 #     (e.g. a first-ever site/data/forecast_history/{date}/ from build_forecast_history.py)

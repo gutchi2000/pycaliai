@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyCaLiAI — 出世予測 AI（若駒のキャリア予測）</title>
+<meta name="description" content="デビューから数走の内容だけから、若駒が1年以内に重賞で掲示板に載る確率と到達クラスをAIが推定。2023〜2026年デビューの現役馬を毎開催後に更新。馬券予想ではない読み物です。">
+<link rel="canonical" href="https://pycaliai.com/shusse.html">
+<meta property="og:title" content="PyCaLiAI — 出世予測 AI">
+<meta property="og:description" content="若駒の「出世」をAIが読む。重賞掲示板確率・到達クラス・離脱確率を現役馬ごとに公開。">
+<meta property="og:url" content="https://pycaliai.com/shusse.html">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pycaliai.com/apple-touch-icon.png">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#070b14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PyCaLiAI">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=20261031-shusse1">
+<style>
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:var(--pad);}
+  .ehead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 14px;}
+  .ehead h1{font-family:var(--disp);font-weight:600;font-size:1.4rem;margin:0;color:var(--tx);}
+  .badge{display:inline-block;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--r-pill);padding:2px 8px;font-size:.75rem;color:var(--tx2);vertical-align:middle;}
+  .backlink{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:var(--r-pill);padding:6px 12px;text-decoration:none;font-family:var(--sans);font-size:.85rem;font-weight:500;}
+  .backlink:hover{border-color:var(--gold);color:var(--gold2);}
+  .hint{color:var(--tx3);font-size:.8rem;margin:6px 0 0;line-height:1.7;}
+  /* 概要パネル */
+  .intro{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:18px;margin:0 0 16px;}
+  @media(max-width:860px){.intro{grid-template-columns:1fr;}}
+  .panel{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 18px;box-shadow:var(--shadow-card);}
+  .panel h2{font-size:.95rem;font-weight:700;color:var(--tx2);letter-spacing:.08em;margin:0 0 8px;display:flex;align-items:center;gap:9px;}
+  .panel h2::before{content:"";width:3px;height:14px;border-radius:2px;background:linear-gradient(180deg,var(--gold2),var(--gold));}
+  .panel p{color:var(--tx2);font-size:.9rem;line-height:1.8;margin:0 0 8px;}
+  .panel p:last-child{margin-bottom:0;}
+  .panel b{color:var(--tx);}
+  .kv{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--tx2);font-size:.84rem;margin-top:6px;}
+  .kv b{color:var(--teal2);font-weight:600;}
+  .vtab{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:6px;}
+  .vtab th,.vtab td{padding:4px 6px;text-align:right;white-space:nowrap;}
+  .vtab th{color:var(--tx3);font-weight:500;border-bottom:1px solid var(--line2);}
+  .vtab td.l,.vtab th.l{text-align:left;}
+  .vtab .arrow{color:var(--tx3);margin:0 3px;}
+  .vtab .ai{color:var(--gold2);font-weight:600;}
+  details.more{margin-top:8px;}
+  details.more summary{cursor:pointer;color:var(--tx3);font-size:.8rem;list-style:none;}
+  details.more summary::before{content:"▸ ";}
+  details.more[open] summary::before{content:"▾ ";}
+  /* 操作列 */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;}
+  .ctrls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 12px;}
+  .ctrls input,.ctrls select{background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:var(--r-input);padding:7px 10px;font-family:var(--sans);font-size:.9rem;}
+  .ctrls input{min-width:16em;flex:1 1 16em;}
+  .ctrls input:focus,.ctrls select:focus{outline:none;box-shadow:var(--ring);border-color:var(--gold);}
+  .ctrls label{color:var(--tx3);font-size:.8rem;display:inline-flex;gap:6px;align-items:center;}
+  .count{color:var(--tx3);font-size:.82rem;margin-left:auto;}
+  /* 表 */
+  .twrap{overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-md);}
+  table.ht{width:100%;border-collapse:collapse;font-size:.86rem;}
+  .ht th,.ht td{padding:8px 10px;text-align:right;white-space:nowrap;vertical-align:middle;}
+  .ht th{color:var(--tx3);font-weight:500;border-bottom:1px solid var(--line2);font-size:.78rem;letter-spacing:.04em;position:sticky;top:0;background:var(--bg2);z-index:1;}
+  .ht td.l,.ht th.l{text-align:left;}
+  .ht tr.hr{cursor:pointer;transition:background .12s;}
+  .ht tr.hr:hover td{background:rgba(255,255,255,.03);}
+  .ht tr.hr.open td{background:rgba(245,185,66,.06);}
+  .ht tr.hr:not(:first-child) td{border-top:1px solid var(--border-subtle);}
+  .ht td.rank{color:var(--tx3);font-family:var(--disp);font-size:.8rem;}
+  .ht .nm{font-weight:700;color:var(--tx);font-size:.98rem;}
+  .ht .nm .sex{font-size:.72rem;color:var(--tx3);margin-left:5px;font-weight:400;}
+  .ht .sub{display:block;color:var(--tx3);font-size:.74rem;margin-top:1px;}
+  .ht td.sum{max-width:30em;overflow:hidden;text-overflow:ellipsis;color:var(--tx2);font-size:.8rem;text-align:left;}
+  .pbar{display:inline-flex;align-items:center;gap:8px;min-width:9em;justify-content:flex-end;}
+  .pbar .bar{width:72px;height:7px;border-radius:4px;background:var(--bg3);overflow:hidden;flex:none;}
+  .pbar .bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold),var(--gold2));}
+  .pbar .v{font-family:var(--disp);font-weight:600;color:var(--gold2);min-width:3.4em;text-align:right;}
+  .pbar.dim .bar i{background:linear-gradient(90deg,var(--line2),var(--tx3));}
+  .pbar.dim .v{color:var(--tx2);font-weight:500;}
+  .lv{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:var(--r-pill);border:1px solid transparent;letter-spacing:.02em;}
+  .lv4{color:#231803;background:linear-gradient(120deg,var(--gold2),var(--gold));}
+  .lv3{color:var(--teal2);background:color-mix(in srgb,var(--teal) 14%,transparent);border-color:color-mix(in srgb,var(--teal) 36%,transparent);}
+  .lv2{color:var(--blue);background:color-mix(in srgb,var(--blue) 12%,transparent);border-color:color-mix(in srgb,var(--blue) 32%,transparent);}
+  .lv1{color:var(--tx2);background:var(--bg3);border-color:var(--line2);}
+  .lv0{color:var(--tx3);background:transparent;border-color:var(--line);}
+  .ht td.num{font-family:var(--disp);}
+  .ht td.pct{color:var(--tx2);font-family:var(--disp);font-size:.8rem;}
+  /* 詳細行 */
+  /* 詳細行は表が横スクロールしても画面幅に収める (sticky で左端に留め、幅を可視領域に制限) */
+  .ht tr.det td{padding:0 10px 14px;text-align:left;white-space:normal;background:rgba(245,185,66,.035);border-top:0;position:sticky;left:0;}
+  .det-in{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 26px;padding-top:6px;max-width:calc(100vw - 2*var(--pad) - 22px);}
+  @media(max-width:860px){.det-in{grid-template-columns:1fr;}}
+  .det h4{font-size:.78rem;color:var(--tx3);font-weight:600;letter-spacing:.08em;margin:0 0 6px;}
+  .stack{display:flex;height:16px;border-radius:5px;overflow:hidden;background:var(--bg3);margin:4px 0 6px;}
+  .stack i{display:block;height:100%;}
+  .stack .s0{background:var(--line2);} .stack .s1{background:#4a5c86;} .stack .s2{background:var(--blue);} .stack .s3{background:var(--teal);} .stack .s4{background:var(--gold);}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.76rem;color:var(--tx2);}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
+  .legend .num{color:var(--tx);margin-left:3px;}
+  .why{margin:0;padding-left:1.2em;color:var(--tx);font-size:.88rem;line-height:1.75;}
+  .narr{background:var(--bg3);border-left:3px solid var(--gold);border-radius:8px;padding:10px 14px;margin:0;color:var(--tx);line-height:1.8;font-size:.9rem;}
+  .narr b{color:var(--gold2);}
+  .mini{width:100%;border-collapse:collapse;font-size:.8rem;}
+  .mini th,.mini td{padding:3px 6px;text-align:right;white-space:nowrap;}
+  .mini th{color:var(--tx3);font-weight:500;border-bottom:1px solid var(--line2);}
+  .mini td.l,.mini th.l{text-align:left;}
+  .mini td.cur{color:var(--gold2);font-weight:600;}
+  .mini td.win{color:var(--gold2);font-weight:700;}
+  .more-btn{display:block;margin:14px auto 0;background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:var(--r-pill);padding:9px 26px;font-family:var(--sans);font-size:.9rem;cursor:pointer;}
+  .more-btn:hover{border-color:var(--gold);color:var(--gold2);}
+  .empty{padding:26px;text-align:center;color:var(--tx3);font-size:.9rem;}
+  .foot-note{color:var(--tx3);font-size:.78rem;line-height:1.8;margin:16px 0 0;}
+  @media(max-width:680px){
+    .ht .c-sum,.ht .c-pct,.ht .c-n{display:none;}
+    .ht th,.ht td{padding:7px 7px;}
+    .pbar{min-width:7em;} .pbar .bar{width:48px;}
+  }
+</style>
+</head>
+<body>
+<div class="track-stripe"></div>
+<div class="wrap">
+  <div class="ehead">
+    <a href="index.html" class="backlink">← 予想に戻る</a>
+    <h1>出世予測 AI <span class="badge">Career Outlook</span></h1>
+    <span class="hint" id="asofHint"></span>
+  </div>
+
+  <div class="intro">
+    <div class="panel">
+      <h2>若駒の「出世」を、走った内容だけから読む</h2>
+      <p>デビューから <b>1・2・3・5 走目</b> の時点で、その馬が <b>1 年以内に重賞で掲示板（5 着以内）に載る確率</b>、到達しそうなクラス、そして <b>1 年間走らなくなる（離脱）確率</b> を推定します。使うのは着順・着差・上がり・相手関係・レースの格といった「走った内容」で、血統や厩舎の寄与はごくわずかでした。<b>市場のオッズや人気は一切使っていません。</b></p>
+      <p>馬券の予想ではありません。新馬・未勝利を勝ち上がった若駒が「どこまで行くか」を追いかけるための読み物です。結果が出るまで 1 年かかるので、表の馬はまだ判定待ちです。各馬の行をタップすると、クラス確率の内訳・根拠・基準点ごとの推移が開きます。</p>
+      <div class="kv" id="introKv"></div>
+    </div>
+    <div class="panel">
+      <h2>どのくらい当たるのか</h2>
+      <p>学習に使っていない <b>2023 年デビュー世代</b>で前向きに検証しました（規則ベースの単純予測 → AI）。</p>
+      <div id="valTable"></div>
+      <details class="more"><summary>指標の読み方</summary>
+        <p class="hint">QWK は 5 段階クラス（未勝利圏〜重賞掲示板）の一致度で 1 が完全一致、0 が偶然並み。AUC は「重賞で掲示板に載る馬」をどれだけ上位に並べられるかで、0.5 が偶然、1 が完全。3 走目で未勝利圏にいた遅咲きの重賞馬は拾えません。好走馬の故障離脱も予測できません。</p>
+      </details>
+    </div>
+  </div>
+
+  <div class="tabs" id="yearTabs"></div>
+  <div class="ctrls">
+    <input id="q" type="search" placeholder="馬名・父・調教師で検索" autocomplete="off">
+    <label>基準点 <select id="kSel"><option value="all">すべて</option><option value="1">1 走目</option><option value="2">2 走目</option><option value="3">3 走目</option><option value="5">5 走目</option></select></label>
+    <label>並び <select id="sortSel">
+      <option value="pg12">重賞掲示板の確率が高い順</option>
+      <option value="lvl">到達クラスが高い順</option>
+      <option value="pd">離脱しにくい順</option>
+      <option value="base">基準日が新しい順</option>
+      <option value="n">出走数が多い順</option>
+      <option value="name">馬名順</option>
+    </select></label>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="twrap"><table class="ht" id="tbl"></table></div>
+  <button class="more-btn" id="moreBtn" hidden>さらに表示</button>
+
+  <p class="foot-note">P(重賞) = (1 − 離脱確率) × P(重賞掲示板 | 走る)。「同世代上位」は同じデビュー年の対象馬の中での順位。基準日はその馬の最新の基準点（1・2・3・5 走目のうち到達している最大のもの）で、6 走目以降は 5 走目時点の予測を据え置いています。直近の走の着差・上がりは次の週次更新で反映されます。<br>
+  出典：TARGET frontier JV（JRA-VAN Data Lab.）のデータを基に独自分析・作成。AI の推定は参考情報であり、投資助言ではありません。</p>
+</div>
+<footer class="site-legal">
+  <a href="legal.html">免責事項・プライバシーポリシー</a>
+  <a href="mailto:contact@pycaliai.com">お問い合わせ</a>
+  <span>© 2026 PyCaLiAI</span>
+</footer>
+<script defer src="js/shusse.js?v=20261031-shusse1"></script>
+<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+</body>
+</html>

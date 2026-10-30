@@ -367,3 +367,14 @@ master は 2025-12-28 で終わるので、`data/kekka/2026*.csv`（確定着順
 6. **2025 コホートの確定分は選択バイアス**（基準日が 2025-10-18 以前 = 早期デビュー・多走馬）。前向き検証の本体は 2023（と 2024）コホート。
 7. **週次 CSV の列幅**は 46 / 49 / 44 が混在し、`build_horse_history.parse_weekly_light` は 44 列を落とす（2026-09-21 の 161 行）。本スクリプトは 44 列も読む。
 8. 市場オッズ・人気は特徴に入れていない（週次の 単勝・人気 列は読まない）。
+
+## 12. 公開サイトへの配線（2026-10-31、ユーザー指示「サイトにも載せて」）
+
+- **ページ**: `site/shusse.html` + `site/js/shusse.js`。分析カード（`explain.html`）と同じ独立ページ方式で、`index.html` のモードナビに「出世予測」ボタン、表紙に「05 — CAREER OUTLOOK」節を追加。`sitemap.xml` にも登録。
+- **データ**: `analysis/shusse/site_export.py` が `predictions_latest.parquet` + `live_validation.json` + `starts_ext.parquet` から `out_v2/live/site/index.json`（メタ・件数・検証数値）と `{debut_year}.json`（未確定馬の予測行 + 上位 30 頭の文章カード）を書く。`build_site.py` がバイト比較で変化分だけ `site/data/shusse/` にコピー。`sync-hf-umami.ps1` の allowlist に `^site/data/shusse/[^/]+\.json$` を追加。
+- **表示内容**: 行＝馬（順位・馬名・性・父・厩舎・出走数・これまでの走・P(重賞掲示板 12m) バー・予測到達クラス・P(離脱)・同世代上位%）。行を開くと、走った場合の到達クラス確率の積み上げバー、根拠（SHAP 上位 3 を `direction_phrase` で日本語句化）、基準点ごとの推移、上位 30 頭は `narrate` の文章カードと走明細。年タブ・馬名/父/調教師検索・基準点フィルタ・6 種の並び替え・100 行ずつの追加表示。
+- **検証数値の掲示**: 2023 デビュー世代の前向き検証（頭数・QWK 規則→AI と CI・重賞掲示板 AUC・離脱 AUC）と参考の test 2022 を表にして載せる。「3 走目で未勝利圏の遅咲きは拾えない」「好走馬の故障離脱は予測できない」を注記。
+- **週次更新**: `weekly_nicegui.ps1 -Post` の `[1e/3]` に `extend_2026` → `predict_live`（内部で `site_export`）を best-effort で追加。失敗は Warn のみで本番（印・買い目・成績）に影響しない。初回は 2026-10-31 朝のユーザーの Phase C 実行（10/24・10/25 の kekka 取り込み）でそのまま動き、asof が 2026-10-18 → **2026-10-25** に進んだ（判定待ち 7,138 頭: 2026 デビュー 3,698 / 2025 3,252 / 2024 165 / 2023 23）。
+- **サイズ**: 年ファイル最大 1.9MB（Cloudflare 側で圧縮）。`shusse_live.json`（4〜5MB、report_v2 用）はサイトに置かない。
+- **テスト**: `tests/test_shusse_site.py`（index/年ファイルのスキーマ、確率の整合 pg12 = (1−pd)·pl[4]、未確定のみ、rank 連番、カードが上位と一致、市場情報キーの不在）4 本。
+- **副産物の修正**: `weekly_nicegui.ps1` の `serve_health.py` 呼び出し 2 か所で `.\venv311` の `\v` が垂直タブ文字になっており、serve_health が毎週例外→Warn で実行されていなかった。`.\venv311` に修正。

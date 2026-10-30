@@ -134,6 +134,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
       <button data-mode="races" class="on">予想</button>
       <button data-mode="results">成績</button>
       <a href="explain.html" style="text-decoration:none"><button type="button">分析カード</button></a>
+      <a href="shusse.html" style="text-decoration:none"><button type="button">出世予測</button></a>
     </nav>
     <div class="topbar-right">
       <label class="date-wrap" id="dateWrap">
@@ -235,6 +236,32 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
       <h2 class="lp-h2">今日のメインレース</h2>
       <div class="lp-idx" id="lpIdxRows"></div>
       <a class="lp-more" href="#venueTabs" id="lpMore"></a>
+    </div>
+  </section>
+
+  <section class="lp-sec" id="lpShusse">
+    <div class="lp-in lp-grid">
+      <div class="lp-txt">
+        <p class="lp-eyebrow">05 — CAREER OUTLOOK</p>
+        <h2 class="lp-h2">若駒の「出世」も、<br>AIが読みます</h2>
+        <p class="lp-copy">デビューから数走の内容（着順・着差・上がり・相手関係）だけから、その馬が1年以内に重賞で掲示板に載る確率と、到達しそうなクラスを推定します。馬券の予想ではなく、新馬・未勝利の若駒を追いかけるための読み物です。市場のオッズや人気は一切使っていません。</p>
+        <div class="hero-cta" style="margin-top:22px"><a class="btn-prime" href="shusse.html">出世予測を見る</a></div>
+        <p class="lp-note">2023年デビュー世代での前向き検証（学習に未使用）: 3走目時点でクラス一致度 QWK 0.73、重賞掲示板 AUC 0.96。毎開催後に現役馬の予測を更新します。</p>
+      </div>
+      <div class="lp-stats">
+        <div class="lp-stat">
+          <span class="k">基準点 <small>BASE POINTS — 1・2・3・5 走目で更新</small></span>
+          <span class="v num">4<small>点</small></span>
+        </div>
+        <div class="lp-stat">
+          <span class="k">重賞掲示板 AUC <small>GRADED TOP-5 WITHIN 12M / 3走目・2023世代</small></span>
+          <span class="v num">0.96</span>
+        </div>
+        <div class="lp-stat">
+          <span class="k">血統・厩舎の寄与 <small>PEDIGREE &amp; STABLE — 走った内容がほぼ全て</small></span>
+          <span class="v num">+0.005</span>
+        </div>
+      </div>
     </div>
   </section>
 </div>

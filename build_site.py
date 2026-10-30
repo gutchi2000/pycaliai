@@ -23,6 +23,7 @@ import csv
 import io
 import json
 import re
+import shutil
 import sys
 import unicodedata
 from datetime import datetime, timezone
@@ -1494,6 +1495,28 @@ def main() -> None:
         (SITE_DATA_DIR / "realized_bias.json").write_text(
             rb_src.read_text(encoding="utf-8"), encoding="utf-8")
         print("realized_bias: copied to site/data")
+
+    # 出世予測 AI (ファン向け読み物、馬券非転用)。analysis/shusse/site_export.py の出力を同梱。
+    # 週次 (weekly_nicegui.ps1 -Post の [1e/3]) にしか更新されないので、変化した
+    # ファイルだけコピーし、無ければ既存の site/data/shusse/ をそのまま残す。
+    try:
+        src_dir = ROOT / "analysis" / "shusse" / "out_v2" / "live" / "site"
+        if (src_dir / "index.json").exists():
+            dst_dir = SITE_DATA_DIR / "shusse"
+            dst_dir.mkdir(exist_ok=True)
+            n_copied = 0
+            for fp in sorted(src_dir.glob("*.json")):
+                dst = dst_dir / fp.name
+                if not dst.exists() or fp.read_bytes() != dst.read_bytes():
+                    shutil.copyfile(fp, dst)
+                    n_copied += 1
+            for dst in dst_dir.glob("*.json"):          # 消えた年ファイルは追従して削除
+                if not (src_dir / dst.name).exists():
+                    dst.unlink()
+            print(f"shusse: {n_copied} files refreshed -> site/data/shusse "
+                  f"({len(list(dst_dir.glob('*.json')))} files)")
+    except Exception as e:
+        print(f"[shusse skip] {e}")
 
 
 if __name__ == "__main__":

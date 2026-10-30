@@ -16,7 +16,8 @@ k ∈ {1,2,3,5} ごとに学習済み 3 ヘッド（D 離脱 / A 到達クラス
     live_summary.json         頭数・k 別件数・確定/未確定・欠損率・前向き検証の要約
     live_top.md               デビュー年別 P(重賞掲示板 12m) 上位 30 頭（未確定・最新基準点のみ）
     live_sanity.md            2024〜2025 デビューの重賞勝ち馬の k=3 / k=1 時点予測（目視妥当性）
-    shusse_live.json          サイト用（未確定・最新基準点の馬 1 行 + 更新履歴、小数 3 桁）
+    shusse_live.json          完全版（report_v2 用。未確定・最新基準点の馬 1 行 + 更新履歴、小数 3 桁）
+    site/{index,YYYY}.json    公開サイト用の軽量版（site_export.py、build_site.py が site/data/shusse/ へ）
 
 確定 / 未確定: 基準日 + 365 日 ≤ asof なら「確定」（12 か月窓が閉じている）。asof の既定は取り込んだ
 データの最新日（kekka の最終日）。市場オッズ・人気は特徴に入れていない（features_v2 と同じ）。
@@ -382,6 +383,12 @@ def main(asof_arg: str | None = None) -> None:
                   f"AUC L4 {r['A_auc_L4']:.3f} (test {ref['A_auc_L4']:.3f}) | D AUC {r['D_auc']:.3f} (test {ref['D_auc']:.3f})"
                   + (f" | B AUC {r['B_auc']:.3f} (test {ref['B_auc']:.3f})" if "B_auc" in r else ""))
     print(f"total {log['elapsed_sec']}s")
+    # サイト用の軽量 JSON（site/data/shusse/ へは build_site.py がコピー）
+    try:
+        from analysis.shusse.site_export import build as _site_build
+        _site_build()
+    except Exception as e:                         # 読み物の出力失敗で推論本体を落とさない
+        print(f"[site_export skip] {e}")
 
 
 if __name__ == "__main__":

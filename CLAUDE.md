@@ -176,6 +176,7 @@ P0-1（騎手/調教師stats）・P0-2（着度数CSV列数）・P0-4（Ｒ全�
 2. `sync-hf.ps1`（旧 NiceGUI）→ `sync-hf-umami.ps1`（**本番 静的サイト**）
 3. 日曜 + 月初 1〜7 日なら `retrain_value_model.py` 自動実行
 4. 日曜なら `run_audit.ps1` 自動実行（週次監査）
+5. `[1e/3]` 出世予測 AI 更新（`analysis.shusse.extend_2026` → `predict_live`、best-effort。失敗は Warn のみで本番に影響なし。`build_site.py` が `site/data/shusse/` へ反映）
 
 ---
 
@@ -311,6 +312,7 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 | `build_site.py` | ★**本番 静的サイト**のデータ生成（bundle/cowork_output/kekka 等 → `site/data/*.json`） |
 | `site/` | ★**本番 静的サイト**ソース（index.html / css / js、vanilla JS + ECharts CDN） |
 | `sync-hf-umami.ps1` | ★**本番**デプロイ: `build_site.py` → Docker Space `pycaliai-umami` へ push |
+| `site/shusse.html` + `analysis/shusse/site_export.py` | 出世予測 AI（ファン向け読み物、馬券非転用、2026-10-31 公開）。データ `site/data/shusse/{index,YYYY}.json`。更新は Phase C の [1e/3]。詳細 `analysis/shusse/README.md` |
 | `export_weekly_marks.py` | unified_rank_v6 → bundle.json |
 | `build_course_stats.py` | コース分析タブ用統計 |
 | `weekly_nicegui.ps1` | 週次ワークフロー 3 フェーズ統合（sync-hf + sync-hf-umami 両方を叩く） |
