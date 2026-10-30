@@ -6,6 +6,10 @@
 > コード: `analysis/shusse/build_career.py`（データ理解・キャリア集計）、`analysis/shusse/train_baseline.py`（学習・評価・カード）。
 > 出力: `analysis/shusse/out/`。本番ファイルには一切触れていない。
 
+
+> **2026-10-31 更新**: v2（離脱分離・重賞掲示板定義・基準点 k=1/2/3/5・走破タイム結合・現役馬適用・文章カード・HTML レポート）は `SHUSSE_AI_V2_RESULTS_20261031.md` と `analysis/shusse/README.md` を参照。本書は v1 の記録。
+
+
 ---
 
 ## 1. データ理解

@@ -1,0 +1,5573 @@
+[
+ {
+  "section": "名指し馬（§5.1 + v1 カード）— k=3",
+  "cards": [
+   {
+    "馬名": "ミッキーカプチーノ",
+    "horse_id": 2020104484,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2022-12-28",
+    "sex": "牡",
+    "sire": "エピファネイア",
+    "trainer": "矢作芳人",
+    "trainer_code": 1075,
+    "runs": [
+     {
+      "date": "2022-10-09",
+      "place": "東京",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 15,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     },
+     {
+      "date": "2022-12-03",
+      "place": "中山",
+      "class": "1勝",
+      "race": "葉牡丹賞",
+      "label": "葉牡丹賞(1勝)",
+      "pos": 1,
+      "field": 18,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     },
+     {
+      "date": "2022-12-28",
+      "place": "中山",
+      "class": "G1",
+      "race": "ホープフルS",
+      "label": "ホープフルS(G1)",
+      "pos": 5,
+      "field": 18,
+      "margin": 0.3,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.038068240194568406,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0016,
+     "1勝クラス": 0.0196,
+     "2勝クラス": 0.0274,
+     "3勝/OP": 0.3939,
+     "重賞掲示板": 0.5575
+    },
+    "p_levels": [
+     0.0016361357017604834,
+     0.0195973863832838,
+     0.027412549255474317,
+     0.3938871728518778,
+     0.5574667558076036
+    ],
+    "p_graded12": 0.5362449774470329,
+    "p_graded24": 0.7054948345518262,
+    "p_graded_class": 0.9513539286594814,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.4859510266802802,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 1.0445859872611465,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.14,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.118,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.445,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 0,
+     "actual_level": null,
+     "actual_level_name": "離脱（12 か月出走なし）",
+     "best_race": null,
+     "n_starts_12m": 0,
+     "verdict": "外れ（離脱は読めず）"
+    },
+    "text": "**ミッキーカプチーノ**（牡、父エピファネイア、矢作芳人厩舎）。新馬 1 着/15頭 → 葉牡丹賞(1勝) 1 着/18頭 → ホープフルS(G1) 5 着/18頭（0.3 秒差） と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **54%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 4%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 56%）、次いで「3勝/OP」（39%）。重賞で着外以上まで含めた「重賞級」なら 95% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 12 か月以内の出走なし＝離脱。外れ（離脱は読めず））"
+   },
+   {
+    "馬名": "ガストリック",
+    "horse_id": 2020106274,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2022-12-28",
+    "sex": "牡",
+    "sire": "ジャスタウェイ",
+    "trainer": "上原博之",
+    "trainer_code": 423,
+    "runs": [
+     {
+      "date": "2022-10-23",
+      "place": "東京",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 13,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-11-19",
+      "place": "東京",
+      "class": "G2",
+      "race": "東京スポーツ杯2歳S",
+      "label": "東京スポーツ杯2歳S(G2)",
+      "pos": 1,
+      "field": 11,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-12-28",
+      "place": "中山",
+      "class": "G1",
+      "race": "ホープフルS",
+      "label": "ホープフルS(G1)",
+      "pos": 16,
+      "field": 18,
+      "margin": 1.3,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.03536126819623593,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0025,
+     "1勝クラス": 0.0418,
+     "2勝クラス": 0.0428,
+     "3勝/OP": 0.4303,
+     "重賞掲示板": 0.4826
+    },
+    "p_levels": [
+     0.002495476714573959,
+     0.04181455297992598,
+     0.0427777502850848,
+     0.43030032767546017,
+     0.48261189234495505
+    ],
+    "p_graded12": 0.4655461237850521,
+    "p_graded24": 0.2859205952267844,
+    "p_graded_class": 0.9129122200204152,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.348718605956296,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 1.2484076433121019,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.151,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 0.846,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "best_margin",
+      "label": "最良の着差(秒)",
+      "contrib": 0.389,
+      "phrase": "最良の着差が小さい",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 0,
+     "actual_level": null,
+     "actual_level_name": "離脱（12 か月出走なし）",
+     "best_race": null,
+     "n_starts_12m": 0,
+     "verdict": "外れ（離脱は読めず）"
+    },
+    "text": "**ガストリック**（牡、父ジャスタウェイ、上原博之厩舎）。新馬 1 着/13頭 → 東京スポーツ杯2歳S(G2) 1 着/11頭 → ホープフルS(G1) 16 着/18頭（1.3 秒差） と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **47%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 4%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 48%）、次いで「3勝/OP」（43%）。重賞で着外以上まで含めた「重賞級」なら 91% と読みます。\n根拠は、勝利数が多い、平均着差が小さい、最良の着差が小さい。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 12 か月以内の出走なし＝離脱。外れ（離脱は読めず））"
+   },
+   {
+    "馬名": "ピピオラ",
+    "horse_id": 2020103450,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2023-03-26",
+    "sex": "牝",
+    "sire": "モーリス",
+    "trainer": "武幸四郎",
+    "trainer_code": 1160,
+    "runs": [
+     {
+      "date": "2022-12-25",
+      "place": "阪神",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 6,
+      "field": 18,
+      "margin": 0.4,
+      "win": false,
+      "surface": "芝",
+      "dist": 1400
+     },
+     {
+      "date": "2023-01-07",
+      "place": "中京",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 7,
+      "field": 15,
+      "margin": 1.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2023-03-26",
+      "place": "阪神",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 11,
+      "field": 11,
+      "margin": 2.9,
+      "win": false,
+      "surface": "ダ",
+      "dist": 1800
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.0815487893146804,
+    "p_level_given_ran": {
+     "未勝利圏": 0.7406,
+     "1勝クラス": 0.2226,
+     "2勝クラス": 0.0243,
+     "3勝/OP": 0.0116,
+     "重賞掲示板": 0.0008
+    },
+    "p_levels": [
+     0.74064226384122,
+     0.22264685898329228,
+     0.02429067415911646,
+     0.011585870567676076,
+     0.0008343324486951564
+    ],
+    "p_graded12": 0.0007662936476181136,
+    "p_graded24": 0.0027223936676783246,
+    "p_graded_class": 0.012420203016371232,
+    "pred_level": 0,
+    "pred_level_name": "未勝利圏",
+    "expected_level": 0.30932314879933404,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "cohort_top_pct": 57.55414012738853,
+    "reason_head": "top3_A_L0",
+    "reasons": [
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 0.925,
+      "phrase": "勝利数が少ない",
+      "directed": false
+     },
+     {
+      "feature": "best_pos",
+      "label": "最高着順",
+      "contrib": 0.175,
+      "phrase": "最高着順が低い",
+      "directed": false
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.108,
+      "phrase": "3走目の出走クラスが低い",
+      "directed": false
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 3,
+     "actual_level_name": "3勝/OP",
+     "best_race": {
+      "date": "2023-10-15",
+      "place": "京都",
+      "class": "G1",
+      "race": "秋華賞",
+      "label": "秋華賞(G1)",
+      "pos": 14,
+      "field": 18,
+      "margin": 1.3,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     },
+     "n_starts_12m": 6,
+     "verdict": "外れ",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**ピピオラ**（牝、父モーリス、武幸四郎厩舎）。新馬 6 着/18頭（0.4 秒差） → 未勝利 7 着/15頭（1.0 秒差） → 未勝利 11 着/11頭（2.9 秒差） と 3 走して未勝利です。\nAI が見る 1 年以内の重賞掲示板（5 着以内）の確率は **1% 未満** と、ほぼ見ていません。離脱（1 年間出走なし）の確率は 8%。\n走り続けた場合の 1 年後の居場所は「未勝利圏」が最有力（確率 74%）、次いで「1勝クラス」（22%）。\n判断材料は、勝利数が少ない、最高着順が低い、3走目の出走クラスが低い。規則（勝てば 1 段上げ）でも「未勝利圏」で、AI の見立てと同じです。\n（結果: 秋華賞(G1) 14 着/18頭（1.3 秒差）で「3勝/OP」。外れ）"
+   },
+   {
+    "馬名": "ドゥレッツァ",
+    "horse_id": 2020103650,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2023-04-02",
+    "sex": "牡",
+    "sire": "ドゥラメンテ",
+    "trainer": "尾関知人",
+    "trainer_code": 1103,
+    "runs": [
+     {
+      "date": "2022-09-19",
+      "place": "中山",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 3,
+      "field": 10,
+      "margin": 0.6,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     },
+     {
+      "date": "2022-11-12",
+      "place": "東京",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 1,
+      "field": 11,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     },
+     {
+      "date": "2023-04-02",
+      "place": "中山",
+      "class": "1勝",
+      "race": "山吹賞",
+      "label": "山吹賞(1勝)",
+      "pos": 1,
+      "field": 6,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2200
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.019816258868566188,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0026,
+     "1勝クラス": 0.0249,
+     "2勝クラス": 0.1037,
+     "3勝/OP": 0.4264,
+     "重賞掲示板": 0.4423
+    },
+    "p_levels": [
+     0.002638064881034278,
+     0.024932021824174113,
+     0.10373102894422498,
+     0.42636374302120733,
+     0.4423351413293593
+    ],
+    "p_graded12": 0.4335697136621129,
+    "p_graded24": 0.48164144207753395,
+    "p_graded_class": 0.8686988843505666,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.2808258740936838,
+    "rule_level": 2,
+    "rule_level_name": "2勝クラス",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 1.4267515923566878,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.442,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 0.99,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "mean_agari_rank",
+      "label": "平均上り3F順位",
+      "contrib": 0.463,
+      "phrase": "平均上り3F順位が良い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-10-22",
+      "place": "京都",
+      "class": "G1",
+      "race": "菊花賞",
+      "label": "菊花賞(G1)",
+      "pos": 1,
+      "field": 17,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 3000
+     },
+     "n_starts_12m": 4,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ドゥレッツァ**（牡、父ドゥラメンテ、尾関知人厩舎）。新馬 3 着/10頭（0.6 秒差） → 未勝利 1 着/11頭 → 山吹賞(1勝) 1 着/6頭 と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **43%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 44%）、次いで「3勝/OP」（43%）。重賞で着外以上まで含めた「重賞級」なら 87% と読みます。\n根拠は、勝利数が多い、平均着差が小さい、平均上り3F順位が良い。規則（勝てば 1 段上げ）なら「2勝クラス」止まりで、AI はそれより 2 段上を見ています。\n（結果: 菊花賞(G1) 1 着/17頭で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "リバティアイランド",
+    "horse_id": 2020103656,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2022-12-11",
+    "sex": "牝",
+    "sire": "ドゥラメンテ",
+    "trainer": "中内田充",
+    "trainer_code": 1137,
+    "runs": [
+     {
+      "date": "2022-07-30",
+      "place": "新潟",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 12,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2022-10-29",
+      "place": "東京",
+      "class": "G3",
+      "race": "アルテミスS",
+      "label": "アルテミスS(G3)",
+      "pos": 2,
+      "field": 10,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2022-12-11",
+      "place": "阪神",
+      "class": "G1",
+      "race": "阪神JF",
+      "label": "阪神JF(G1)",
+      "pos": 1,
+      "field": 18,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.03181586338343837,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0005,
+     "1勝クラス": 0.004,
+     "2勝クラス": 0.0075,
+     "3勝/OP": 0.1,
+     "重賞掲示板": 0.888
+    },
+    "p_levels": [
+     0.0005396269211681828,
+     0.0040023472562445254,
+     0.0074812818032764525,
+     0.0999660069191931,
+     0.8880107371001178
+    ],
+    "p_graded12": 0.8597579088055141,
+    "p_graded24": 0.8588003733182401,
+    "p_graded_class": 0.9879767440193109,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.870905880020848,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 0.025477707006369425,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.42,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.149,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.506,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-04-09",
+      "place": "阪神",
+      "class": "G1",
+      "race": "桜花賞",
+      "label": "桜花賞(G1)",
+      "pos": 1,
+      "field": 18,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     },
+     "n_starts_12m": 4,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**リバティアイランド**（牝、父ドゥラメンテ、中内田充厩舎）。新馬 1 着/12頭 → アルテミスS(G3) 2 着/10頭（0.1 秒差） → 阪神JF(G1) 1 着/18頭 と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **86%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 3%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 89%）。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 桜花賞(G1) 1 着/18頭で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "ドゥラエレーデ",
+    "horse_id": 2020103626,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2022-08-20",
+    "sex": "牡",
+    "sire": "ドゥラメンテ",
+    "trainer": "池添学",
+    "trainer_code": 1144,
+    "runs": [
+     {
+      "date": "2022-06-26",
+      "place": "阪神",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 5,
+      "field": 12,
+      "margin": 0.7,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-08-06",
+      "place": "札幌",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 2,
+      "field": 10,
+      "margin": 0.3,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-08-20",
+      "place": "札幌",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 1,
+      "field": 12,
+      "margin": 0.0,
+      "win": true,
+      "surface": "ダ",
+      "dist": 1700
+     }
+    ],
+    "n_wins": 1,
+    "p_dropout": 0.017043590778342832,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0048,
+     "1勝クラス": 0.4884,
+     "2勝クラス": 0.0894,
+     "3勝/OP": 0.3386,
+     "重賞掲示板": 0.0787
+    },
+    "p_levels": [
+     0.004828065265110211,
+     0.4884120120238772,
+     0.08941637061209606,
+     0.3386247019597276,
+     0.07871885013918896
+    ],
+    "p_graded12": 0.07737719827087493,
+    "p_graded24": 0.079590958208473,
+    "p_graded_class": 0.41734355209891655,
+    "pred_level": 3,
+    "pred_level_name": "3勝/OP",
+    "expected_level": 1.9979942596840081,
+    "rule_level": 1,
+    "rule_level_name": "1勝クラス",
+    "level_order": [
+     1,
+     3,
+     2,
+     4,
+     0
+    ],
+    "cohort_top_pct": 7.898089171974522,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 0.784,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 0.34,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "turf_3",
+      "label": "3走目が芝",
+      "contrib": -0.338,
+      "phrase": "3走目が芝",
+      "directed": null
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2022-12-28",
+      "place": "中山",
+      "class": "G1",
+      "race": "ホープフルS",
+      "label": "ホープフルS(G1)",
+      "pos": 1,
+      "field": 18,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     },
+     "n_starts_12m": 3,
+     "verdict": "惜しい",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ドゥラエレーデ**（牡、父ドゥラメンテ、池添学厩舎）。新馬 5 着/12頭（0.7 秒差） → 未勝利 2 着/10頭（0.3 秒差） → 未勝利 1 着/12頭 と 3 走で 1 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **8%** と見ます（同世代の上位 8%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「1勝クラス」が最有力（確率 49%）、次いで「3勝/OP」（34%）。確率を均した予測クラス（規則との比較に使う値）は「3勝/OP」です。\n根拠は、平均着差が小さい、勝利数が多い、3走目が芝。規則（勝てば 1 段上げ）なら「1勝クラス」止まりで、AI はそれより 2 段上を見ています。\n（結果: ホープフルS(G1) 1 着/18頭で「重賞掲示板」。惜しい）"
+   },
+   {
+    "馬名": "ソールオリエンス",
+    "horse_id": 2020102899,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2023-04-16",
+    "sex": "牡",
+    "sire": "キタサンブラック",
+    "trainer": "手塚貴久",
+    "trainer_code": 1038,
+    "runs": [
+     {
+      "date": "2022-11-13",
+      "place": "東京",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 9,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2023-01-15",
+      "place": "中山",
+      "class": "G3",
+      "race": "京成杯",
+      "label": "京成杯(G3)",
+      "pos": 1,
+      "field": 9,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     },
+     {
+      "date": "2023-04-16",
+      "place": "中山",
+      "class": "G1",
+      "race": "皐月賞",
+      "label": "皐月賞(G1)",
+      "pos": 1,
+      "field": 18,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     }
+    ],
+    "n_wins": 3,
+    "p_dropout": 0.01859497291486116,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0005,
+     "1勝クラス": 0.0042,
+     "2勝クラス": 0.0175,
+     "3勝/OP": 0.1092,
+     "重賞掲示板": 0.8686
+    },
+    "p_levels": [
+     0.00048700368656685075,
+     0.004205652502156888,
+     0.017528566277410538,
+     0.10915592745703018,
+     0.8686228500768357
+    ],
+    "p_graded12": 0.8524708317064275,
+    "p_graded24": 0.8568577469743703,
+    "p_graded_class": 0.9777787775338659,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.8412219677354114,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 0.05095541401273885,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.366,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.257,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.631,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-05-28",
+      "place": "東京",
+      "class": "G1",
+      "race": "東京優駿",
+      "label": "東京優駿(G1)",
+      "pos": 2,
+      "field": 18,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 2400
+     },
+     "n_starts_12m": 6,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ソールオリエンス**（牡、父キタサンブラック、手塚貴久厩舎）。新馬 1 着/9頭 → 京成杯(G3) 1 着/9頭 → 皐月賞(G1) 1 着/18頭 と 3 走で 3 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **85%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 87%）、次いで「3勝/OP」（11%）。重賞で着外以上まで含めた「重賞級」なら 98% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 東京優駿(G1) 2 着/18頭で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "タスティエーラ",
+    "horse_id": 2020103532,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2023-03-05",
+    "sex": "牡",
+    "sire": "サトノクラウン",
+    "trainer": "堀宣行",
+    "trainer_code": 1070,
+    "runs": [
+     {
+      "date": "2022-11-27",
+      "place": "東京",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 16,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2023-02-12",
+      "place": "東京",
+      "class": "G3",
+      "race": "共同通信杯",
+      "label": "共同通信杯(G3)",
+      "pos": 4,
+      "field": 12,
+      "margin": 0.2,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2023-03-05",
+      "place": "中山",
+      "class": "G2",
+      "race": "弥生賞",
+      "label": "弥生賞(G2)",
+      "pos": 1,
+      "field": 10,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.016650570379772314,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0013,
+     "1勝クラス": 0.015,
+     "2勝クラス": 0.0458,
+     "3勝/OP": 0.3468,
+     "重賞掲示板": 0.5911
+    },
+    "p_levels": [
+     0.0013147109218832117,
+     0.015037897134116008,
+     0.045778115645229885,
+     0.3467634649623856,
+     0.5911058113363854
+    ],
+    "p_graded12": 0.5812635624228365,
+    "p_graded24": 0.7295251495049924,
+    "p_graded_class": 0.937869276298771,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.5113077686572742,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 1.019108280254777,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.241,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.211,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.669,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-05-28",
+      "place": "東京",
+      "class": "G1",
+      "race": "東京優駿",
+      "label": "東京優駿(G1)",
+      "pos": 1,
+      "field": 18,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2400
+     },
+     "n_starts_12m": 4,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**タスティエーラ**（牡、父サトノクラウン、堀宣行厩舎）。新馬 1 着/16頭 → 共同通信杯(G3) 4 着/12頭（0.2 秒差） → 弥生賞(G2) 1 着/10頭 と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **58%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 59%）、次いで「3勝/OP」（35%）。重賞で着外以上まで含めた「重賞級」なら 94% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 東京優駿(G1) 1 着/18頭で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "ベラジオオペラ",
+    "horse_id": 2020102781,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2023-03-19",
+    "sex": "牡",
+    "sire": "ロードカナロア",
+    "trainer": "上村洋行",
+    "trainer_code": 1168,
+    "runs": [
+     {
+      "date": "2022-11-20",
+      "place": "阪神",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 9,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2023-01-29",
+      "place": "東京",
+      "class": "1勝",
+      "race": "セントポ",
+      "label": "セントポ(1勝)",
+      "pos": 1,
+      "field": 8,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2023-03-19",
+      "place": "中山",
+      "class": "G2",
+      "race": "スプリングS",
+      "label": "スプリングS(G2)",
+      "pos": 1,
+      "field": 16,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     }
+    ],
+    "n_wins": 3,
+    "p_dropout": 0.015326198286013863,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0005,
+     "1勝クラス": 0.0044,
+     "2勝クラス": 0.0207,
+     "3勝/OP": 0.1192,
+     "重賞掲示板": 0.8551
+    },
+    "p_levels": [
+     0.0004940525323489899,
+     0.004437532974246377,
+     0.020721074398997126,
+     0.1192445661092306,
+     0.855102773985177
+    ],
+    "p_graded12": 0.8419972993161596,
+    "p_graded24": 0.8328429905909815,
+    "p_graded_class": 0.9743473400944076,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.8240244760406403,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 0.07643312101910828,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.33,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.277,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.587,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-12-02",
+      "place": "阪神",
+      "class": "G3",
+      "race": "チャレン",
+      "label": "チャレン(G3)",
+      "pos": 1,
+      "field": 13,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     },
+     "n_starts_12m": 4,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ベラジオオペラ**（牡、父ロードカナロア、上村洋行厩舎）。新馬 1 着/9頭 → セントポ(1勝) 1 着/8頭 → スプリングS(G2) 1 着/16頭 と 3 走で 3 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **84%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 86%）、次いで「3勝/OP」（12%）。重賞で着外以上まで含めた「重賞級」なら 97% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: チャレン(G3) 1 着/13頭で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "ペリファーニア",
+    "horse_id": 2020103364,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2023-04-09",
+    "sex": "牝",
+    "sire": "モーリス",
+    "trainer": "鹿戸雄一",
+    "trainer_code": 1097,
+    "runs": [
+     {
+      "date": "2022-12-25",
+      "place": "中山",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 16,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2023-03-04",
+      "place": "阪神",
+      "class": "G2",
+      "race": "チューリップ賞",
+      "label": "チューリップ賞(G2)",
+      "pos": 3,
+      "field": 17,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2023-04-09",
+      "place": "阪神",
+      "class": "G1",
+      "race": "桜花賞",
+      "label": "桜花賞(G1)",
+      "pos": 3,
+      "field": 18,
+      "margin": 0.2,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     }
+    ],
+    "n_wins": 1,
+    "p_dropout": 0.018645080084683716,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0018,
+     "1勝クラス": 0.0848,
+     "2勝クラス": 0.1088,
+     "3勝/OP": 0.3761,
+     "重賞掲示板": 0.4285
+    },
+    "p_levels": [
+     0.0017930424093867581,
+     0.08482143846597089,
+     0.10880039001367826,
+     0.37609603610974623,
+     0.4284890930012179
+    ],
+    "p_graded12": 0.42049987954679674,
+    "p_graded24": 0.5286770564372173,
+    "p_graded_class": 0.8045851291109641,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.1446666988274377,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 1.4777070063694266,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.215,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.721,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 0.653,
+      "phrase": "勝利数が多い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 3,
+     "actual_level_name": "3勝/OP",
+     "best_race": {
+      "date": "2023-05-21",
+      "place": "東京",
+      "class": "G1",
+      "race": "優駿牝馬",
+      "label": "優駿牝馬(G1)",
+      "pos": 12,
+      "field": 18,
+      "margin": 2.8,
+      "win": false,
+      "surface": "芝",
+      "dist": 2400
+     },
+     "n_starts_12m": 4,
+     "verdict": "惜しい",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**ペリファーニア**（牝、父モーリス、鹿戸雄一厩舎）。新馬 1 着/16頭 → チューリップ賞(G2) 3 着/17頭 → 桜花賞(G1) 3 着/18頭（0.2 秒差） と 3 走で 1 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **42%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 43%）、次いで「3勝/OP」（38%）。重賞で着外以上まで含めた「重賞級」なら 80% と読みます。\n根拠は、平均着差が小さい、3走目の出走クラスが高い、勝利数が多い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 優駿牝馬(G1) 12 着/18頭（2.8 秒差）で「3勝/OP」。惜しい）"
+   },
+   {
+    "馬名": "ハーパー",
+    "horse_id": 2020103458,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2023-02-11",
+    "sex": "牝",
+    "sire": "ハーツクライ",
+    "trainer": "友道康夫",
+    "trainer_code": 1061,
+    "runs": [
+     {
+      "date": "2022-11-27",
+      "place": "阪神",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 14,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     },
+     {
+      "date": "2022-12-18",
+      "place": "阪神",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 1,
+      "field": 15,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2023-02-11",
+      "place": "東京",
+      "class": "G3",
+      "race": "クイーン",
+      "label": "クイーン(G3)",
+      "pos": 1,
+      "field": 16,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.022594982057026862,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0013,
+     "1勝クラス": 0.0132,
+     "2勝クラス": 0.0306,
+     "3勝/OP": 0.3116,
+     "重賞掲示板": 0.6433
+    },
+    "p_levels": [
+     0.0013472304756524368,
+     0.013171802605920241,
+     0.03058552614232003,
+     0.31156158139943174,
+     0.6433338593766756
+    ],
+    "p_graded12": 0.6287977423673818,
+    "p_graded24": 0.7345511600743696,
+    "p_graded_class": 0.9548954407761074,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.582363036595558,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 0.8152866242038216,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.319,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.16,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.656,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-05-21",
+      "place": "東京",
+      "class": "G1",
+      "race": "優駿牝馬",
+      "label": "優駿牝馬(G1)",
+      "pos": 2,
+      "field": 18,
+      "margin": 1.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 2400
+     },
+     "n_starts_12m": 5,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ハーパー**（牝、父ハーツクライ、友道康夫厩舎）。新馬 2 着/14頭 → 未勝利 1 着/15頭 → クイーン(G3) 1 着/16頭 と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **63%** と見ます（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 64%）、次いで「3勝/OP」（31%）。重賞で着外以上まで含めた「重賞級」なら 95% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 優駿牝馬(G1) 2 着/18頭（1.0 秒差）で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "スキルヴィング",
+    "horse_id": 2020103722,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2023-02-05",
+    "sex": "牡",
+    "sire": "キタサンブラック",
+    "trainer": "木村哲也",
+    "trainer_code": 1126,
+    "runs": [
+     {
+      "date": "2022-10-15",
+      "place": "東京",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 11,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     },
+     {
+      "date": "2022-11-19",
+      "place": "東京",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 1,
+      "field": 14,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     },
+     {
+      "date": "2023-02-05",
+      "place": "東京",
+      "class": "1勝",
+      "race": "ゆりかも",
+      "label": "ゆりかも(1勝)",
+      "pos": 1,
+      "field": 10,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2400
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.040305700522064496,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0013,
+     "1勝クラス": 0.0132,
+     "2勝クラス": 0.0407,
+     "3勝/OP": 0.222,
+     "重賞掲示板": 0.7228
+    },
+    "p_levels": [
+     0.0013242869370265042,
+     0.013159078363034288,
+     0.04065553945981522,
+     0.2220144957385761,
+     0.722846599501548
+    ],
+    "p_graded12": 0.6937117609386458,
+    "p_graded24": 0.7193223495765612,
+    "p_graded_class": 0.9448610952401241,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.6519000425045847,
+    "rule_level": 2,
+    "rule_level_name": "2勝クラス",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 0.535031847133758,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.329,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.17,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "mean_agari_rank",
+      "label": "平均上り3F順位",
+      "contrib": 0.498,
+      "phrase": "平均上り3F順位が良い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-04-29",
+      "place": "東京",
+      "class": "G2",
+      "race": "青葉賞",
+      "label": "青葉賞(G2)",
+      "pos": 1,
+      "field": 15,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2400
+     },
+     "n_starts_12m": 2,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**スキルヴィング**（牡、父キタサンブラック、木村哲也厩舎）。新馬 2 着/11頭 → 未勝利 1 着/14頭 → ゆりかも(1勝) 1 着/10頭 と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **69%** と見ます（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 4%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 72%）、次いで「3勝/OP」（22%）。重賞で着外以上まで含めた「重賞級」なら 94% と読みます。\n根拠は、勝利数が多い、平均着差が小さい、平均上り3F順位が良い。規則（勝てば 1 段上げ）なら「2勝クラス」止まりで、AI はそれより 2 段上を見ています。\n（結果: 青葉賞(G2) 1 着/15頭で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "アヴェッリーノ",
+    "horse_id": 2020103747,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2022-09-04",
+    "sex": "牡",
+    "sire": "リアルインパクト",
+    "trainer": "的場均",
+    "trainer_code": 1063,
+    "runs": [
+     {
+      "date": "2022-07-31",
+      "place": "新潟",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 11,
+      "field": 14,
+      "margin": 2.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1400
+     },
+     {
+      "date": "2022-08-13",
+      "place": "新潟",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 13,
+      "field": 16,
+      "margin": 2.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-09-04",
+      "place": "新潟",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 14,
+      "field": 18,
+      "margin": 2.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1400
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.18360236568499533,
+    "p_level_given_ran": {
+     "未勝利圏": 0.8322,
+     "1勝クラス": 0.1358,
+     "2勝クラス": 0.0122,
+     "3勝/OP": 0.0193,
+     "重賞掲示板": 0.0004
+    },
+    "p_levels": [
+     0.8322443391475923,
+     0.13579721542196885,
+     0.01220342427917646,
+     0.019343366507869282,
+     0.0004116546433930875
+    ],
+    "p_graded12": 0.00033607387702090354,
+    "p_graded24": 0.0009518447496090828,
+    "p_graded_class": 0.01975502115126237,
+    "pred_level": 0,
+    "pred_level_name": "未勝利圏",
+    "expected_level": 0.21988078207750197,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     0,
+     1,
+     3,
+     2,
+     4
+    ],
+    "cohort_top_pct": 78.31847133757962,
+    "reason_head": "top3_A_L0",
+    "reasons": [
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 0.934,
+      "phrase": "勝利数が少ない",
+      "directed": false
+     },
+     {
+      "feature": "best_pos",
+      "label": "最高着順",
+      "contrib": 0.181,
+      "phrase": "最高着順が低い",
+      "directed": false
+     },
+     {
+      "feature": "mean_relpos",
+      "label": "平均相対着順",
+      "contrib": 0.15,
+      "phrase": "平均相対着順が悪い",
+      "directed": false
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 3,
+     "actual_level_name": "3勝/OP",
+     "best_race": {
+      "date": "2023-03-19",
+      "place": "中山",
+      "class": "G2",
+      "race": "スプリングS",
+      "label": "スプリングS(G2)",
+      "pos": 16,
+      "field": 16,
+      "margin": 5.6,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     "n_starts_12m": 12,
+     "verdict": "外れ",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**アヴェッリーノ**（牡、父リアルインパクト、的場均厩舎）。新馬 11 着/14頭（2.1 秒差） → 未勝利 13 着/16頭（2.0 秒差） → 未勝利 14 着/18頭（2.1 秒差） と 3 走して未勝利です。\nAI が見る 1 年以内の重賞掲示板（5 着以内）の確率は **1% 未満** と、ほぼ見ていません。離脱（1 年間出走なし）の確率は 18%。\n走り続けた場合の 1 年後の居場所は「未勝利圏」が最有力（確率 83%）、次いで「1勝クラス」（14%）。\n判断材料は、勝利数が少ない、最高着順が低い、平均相対着順が悪い。規則（勝てば 1 段上げ）でも「未勝利圏」で、AI の見立てと同じです。\n（結果: スプリングS(G2) 16 着/16頭（5.6 秒差）で「3勝/OP」。外れ）"
+   },
+   {
+    "馬名": "ドゥーラ",
+    "horse_id": 2020106435,
+    "k": 3,
+    "why": "名指し馬",
+    "debut_year": 2022,
+    "base_date": "2022-09-03",
+    "sex": "牝",
+    "sire": "ドゥラメンテ",
+    "trainer": "高橋康之",
+    "trainer_code": 1135,
+    "runs": [
+     {
+      "date": "2022-07-24",
+      "place": "札幌",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 4,
+      "field": 9,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-08-06",
+      "place": "札幌",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 1,
+      "field": 10,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-09-03",
+      "place": "札幌",
+      "class": "G3",
+      "race": "札幌2歳S",
+      "label": "札幌2歳S(G3)",
+      "pos": 1,
+      "field": 14,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.018986126475547847,
+    "p_level_given_ran": {
+     "未勝利圏": 0.001,
+     "1勝クラス": 0.0052,
+     "2勝クラス": 0.0063,
+     "3勝/OP": 0.1639,
+     "重賞掲示板": 0.8237
+    },
+    "p_levels": [
+     0.0009535358367525923,
+     0.005159992118248225,
+     0.006295285352469469,
+     0.16391338799777933,
+     0.8236777986947503
+    ],
+    "p_graded12": 0.808039347833631,
+    "p_graded24": 0.7784106799404831,
+    "p_graded_class": 0.9875911866925297,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.8042019215955265,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 0.12738853503184713,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.333,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.021,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.43,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-07-30",
+      "place": "札幌",
+      "class": "G3",
+      "race": "クイーン",
+      "label": "クイーン(G3)",
+      "pos": 1,
+      "field": 14,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     "n_starts_12m": 5,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ドゥーラ**（牝、父ドゥラメンテ、高橋康之厩舎）。新馬 4 着/9頭（0.1 秒差） → 未勝利 1 着/10頭 → 札幌2歳S(G3) 1 着/14頭 と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **81%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 82%）、次いで「3勝/OP」（16%）。重賞で着外以上まで含めた「重賞級」なら 99% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: クイーン(G3) 1 着/14頭で「重賞掲示板」。的中）"
+   }
+  ]
+ },
+ {
+  "section": "P(重賞掲示板 12m) 上位 10 — k=3",
+  "cards": [
+   {
+    "馬名": "ドルチェモア",
+    "horse_id": 2020101533,
+    "k": 3,
+    "why": "P(重賞) 上位",
+    "debut_year": 2022,
+    "base_date": "2022-12-18",
+    "sex": "牡",
+    "sire": "ルーラーシップ",
+    "trainer": "須貝尚介",
+    "trainer_code": 1105,
+    "runs": [
+     {
+      "date": "2022-08-20",
+      "place": "札幌",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 12,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1500
+     },
+     {
+      "date": "2022-10-08",
+      "place": "東京",
+      "class": "G3",
+      "race": "サウジアラビアRC",
+      "label": "サウジアラビアRC(G3)",
+      "pos": 1,
+      "field": 9,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2022-12-18",
+      "place": "阪神",
+      "class": "G1",
+      "race": "朝日杯FS",
+      "label": "朝日杯FS(G1)",
+      "pos": 1,
+      "field": 17,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     }
+    ],
+    "n_wins": 3,
+    "p_dropout": 0.014220094784274568,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0004,
+     "1勝クラス": 0.0036,
+     "2勝クラス": 0.0061,
+     "3勝/OP": 0.1012,
+     "重賞掲示板": 0.8888
+    },
+    "p_levels": [
+     0.0004071393875894642,
+     0.0035728407464269557,
+     0.006075011875790949,
+     0.10116312556580036,
+     0.8887818824243923
+    ],
+    "p_graded12": 0.8761433198137715,
+    "p_graded24": 0.852094847673913,
+    "p_graded_class": 0.9899450079901926,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.8743397708929788,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 0.0,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.429,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.135,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.519,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 3,
+     "actual_level_name": "3勝/OP",
+     "best_race": {
+      "date": "2023-04-08",
+      "place": "中山",
+      "class": "G2",
+      "race": "ニュージーランドT",
+      "label": "ニュージーランドT(G2)",
+      "pos": 7,
+      "field": 16,
+      "margin": 0.6,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     "n_starts_12m": 6,
+     "verdict": "惜しい",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**ドルチェモア**（牡、父ルーラーシップ、須貝尚介厩舎）。新馬 1 着/12頭 → サウジアラビアRC(G3) 1 着/9頭 → 朝日杯FS(G1) 1 着/17頭 と 3 走で 3 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **88%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 1%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 89%）、次いで「3勝/OP」（10%）。重賞で着外以上まで含めた「重賞級」なら 99% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: ニュージーランドT(G2) 7 着/16頭（0.6 秒差）で「3勝/OP」。惜しい）"
+   },
+   {
+    "馬名": "ダノンタッチダウン",
+    "horse_id": 2020103277,
+    "k": 3,
+    "why": "P(重賞) 上位",
+    "debut_year": 2022,
+    "base_date": "2022-12-18",
+    "sex": "牡",
+    "sire": "ロードカナロア",
+    "trainer": "安田隆行",
+    "trainer_code": 438,
+    "runs": [
+     {
+      "date": "2022-10-01",
+      "place": "中京",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 14,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2022-11-12",
+      "place": "阪神",
+      "class": "G2",
+      "race": "デイリー杯2歳S",
+      "label": "デイリー杯2歳S(G2)",
+      "pos": 2,
+      "field": 10,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2022-12-18",
+      "place": "阪神",
+      "class": "G1",
+      "race": "朝日杯FS",
+      "label": "朝日杯FS(G1)",
+      "pos": 2,
+      "field": 17,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     }
+    ],
+    "n_wins": 1,
+    "p_dropout": 0.034483188625801776,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0007,
+     "1勝クラス": 0.0167,
+     "2勝クラス": 0.0161,
+     "3勝/OP": 0.1292,
+     "重賞掲示板": 0.8373
+    },
+    "p_levels": [
+     0.0007114602833765933,
+     0.016700611185240317,
+     0.016139238027449862,
+     0.12918777098509124,
+     0.837260919518842
+    ],
+    "p_graded12": 0.8083894933020614,
+    "p_graded24": 0.8364468293832539,
+    "p_graded_class": 0.9664486905039332,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.7855860782707813,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     1,
+     2,
+     0
+    ],
+    "cohort_top_pct": 0.1019108280254777,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.417,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 0.622,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.51,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-05-07",
+      "place": "東京",
+      "class": "G1",
+      "race": "NHKマイルC",
+      "label": "NHKマイルC(G1)",
+      "pos": 4,
+      "field": 17,
+      "margin": 0.4,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     "n_starts_12m": 3,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ダノンタッチダウン**（牡、父ロードカナロア、安田隆行厩舎）。新馬 1 着/14頭 → デイリー杯2歳S(G2) 2 着/10頭（0.1 秒差） → 朝日杯FS(G1) 2 着/17頭（0.1 秒差） と 3 走で 1 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **81%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 3%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 84%）、次いで「3勝/OP」（13%）。重賞で着外以上まで含めた「重賞級」なら 97% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: NHKマイルC(G1) 4 着/17頭（0.4 秒差）で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "オールパルフェ",
+    "horse_id": 2020104056,
+    "k": 3,
+    "why": "P(重賞) 上位",
+    "debut_year": 2022,
+    "base_date": "2022-11-12",
+    "sex": "牡",
+    "sire": "リアルスティール",
+    "trainer": "和田雄二",
+    "trainer_code": 1143,
+    "runs": [
+     {
+      "date": "2022-06-04",
+      "place": "東京",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 13,
+      "margin": 0.5,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2022-10-02",
+      "place": "中山",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 1,
+      "field": 14,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2022-11-12",
+      "place": "阪神",
+      "class": "G2",
+      "race": "デイリー杯2歳S",
+      "label": "デイリー杯2歳S(G2)",
+      "pos": 1,
+      "field": 10,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.02715811345562364,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0007,
+     "1勝クラス": 0.0058,
+     "2勝クラス": 0.0139,
+     "3勝/OP": 0.1679,
+     "重賞掲示板": 0.8118
+    },
+    "p_levels": [
+     0.0006762294991571243,
+     0.00577086377975041,
+     0.013886095349216534,
+     0.16787583116391142,
+     0.8117909802079645
+    ],
+    "p_graded12": 0.7897442686652246,
+    "p_graded24": 0.7969273919583953,
+    "p_graded_class": 0.9796668113718758,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.7843344688017755,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 0.15286624203821655,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.329,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.143,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.533,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 3,
+     "actual_level_name": "3勝/OP",
+     "best_race": {
+      "date": "2022-12-18",
+      "place": "阪神",
+      "class": "G1",
+      "race": "朝日杯FS",
+      "label": "朝日杯FS(G1)",
+      "pos": 6,
+      "field": 17,
+      "margin": 0.5,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     "n_starts_12m": 5,
+     "verdict": "惜しい",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**オールパルフェ**（牡、父リアルスティール、和田雄二厩舎）。新馬 2 着/13頭（0.5 秒差） → 未勝利 1 着/14頭 → デイリー杯2歳S(G2) 1 着/10頭 と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **79%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 3%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 81%）、次いで「3勝/OP」（17%）。重賞で着外以上まで含めた「重賞級」なら 98% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 朝日杯FS(G1) 6 着/17頭（0.5 秒差）で「3勝/OP」。惜しい）"
+   },
+   {
+    "馬名": "キングズレイン",
+    "horse_id": 2020103466,
+    "k": 3,
+    "why": "P(重賞) 上位",
+    "debut_year": 2022,
+    "base_date": "2022-11-06",
+    "sex": "牡",
+    "sire": "ルーラーシップ",
+    "trainer": "手塚貴久",
+    "trainer_code": 1038,
+    "runs": [
+     {
+      "date": "2022-07-17",
+      "place": "函館",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 3,
+      "field": 11,
+      "margin": 0.4,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-08-27",
+      "place": "札幌",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 1,
+      "field": 7,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-11-06",
+      "place": "東京",
+      "class": "1勝",
+      "race": "百日草特",
+      "label": "百日草特(1勝)",
+      "pos": 1,
+      "field": 9,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.016741224775105902,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0009,
+     "1勝クラス": 0.0113,
+     "2勝クラス": 0.0106,
+     "3勝/OP": 0.1764,
+     "重賞掲示板": 0.8007
+    },
+    "p_levels": [
+     0.0009293926485973551,
+     0.011341787720582853,
+     0.010585425901619766,
+     0.1764116282269674,
+     0.8007317655022327
+    ],
+    "p_graded12": 0.7873265350313925,
+    "p_graded24": 0.7170612557101032,
+    "p_graded_class": 0.9771433937292001,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.7646745862136552,
+    "rule_level": 2,
+    "rule_level_name": "2勝クラス",
+    "level_order": [
+     4,
+     3,
+     1,
+     2,
+     0
+    ],
+    "cohort_top_pct": 0.17834394904458598,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.308,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.118,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "mean_agari_rank",
+      "label": "平均上り3F順位",
+      "contrib": 0.406,
+      "phrase": "平均上り3F順位が良い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2022-12-28",
+      "place": "中山",
+      "class": "G1",
+      "race": "ホープフルS",
+      "label": "ホープフルS(G1)",
+      "pos": 3,
+      "field": 18,
+      "margin": 0.2,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     },
+     "n_starts_12m": 4,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**キングズレイン**（牡、父ルーラーシップ、手塚貴久厩舎）。新馬 3 着/11頭（0.4 秒差） → 未勝利 1 着/7頭 → 百日草特(1勝) 1 着/9頭 と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **79%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 80%）、次いで「3勝/OP」（18%）。重賞で着外以上まで含めた「重賞級」なら 98% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、平均上り3F順位が良い。規則（勝てば 1 段上げ）なら「2勝クラス」止まりで、AI はそれより 2 段上を見ています。\n（結果: ホープフルS(G1) 3 着/18頭（0.2 秒差）で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "ヴェルテンベルク",
+    "horse_id": 2020103060,
+    "k": 3,
+    "why": "P(重賞) 上位",
+    "debut_year": 2022,
+    "base_date": "2022-11-26",
+    "sex": "牡",
+    "sire": "キタサンブラック",
+    "trainer": "宮本博",
+    "trainer_code": 1073,
+    "runs": [
+     {
+      "date": "2022-08-14",
+      "place": "小倉",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 13,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-09-03",
+      "place": "小倉",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 1,
+      "field": 11,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-11-26",
+      "place": "阪神",
+      "class": "G3",
+      "race": "京都2歳",
+      "label": "京都2歳(G3)",
+      "pos": 3,
+      "field": 15,
+      "margin": 0.2,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     }
+    ],
+    "n_wins": 1,
+    "p_dropout": 0.018316845799319744,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0008,
+     "1勝クラス": 0.0293,
+     "2勝クラス": 0.0263,
+     "3勝/OP": 0.146,
+     "重賞掲示板": 0.7977
+    },
+    "p_levels": [
+     0.0008137827536710115,
+     0.02926705350204102,
+     0.026279075062225717,
+     0.14598023787911332,
+     0.7976598508029489
+    ],
+    "p_graded12": 0.7830492383154829,
+    "p_graded24": 0.7509124555436485,
+    "p_graded_class": 0.9436400886820622,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.710405320475628,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     1,
+     2,
+     0
+    ],
+    "cohort_top_pct": 0.2038216560509554,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.353,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 0.614,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.516,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 3,
+     "actual_level_name": "3勝/OP",
+     "best_race": {
+      "date": "2022-12-28",
+      "place": "中山",
+      "class": "G1",
+      "race": "ホープフルS",
+      "label": "ホープフルS(G1)",
+      "pos": 12,
+      "field": 18,
+      "margin": 1.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     },
+     "n_starts_12m": 6,
+     "verdict": "惜しい",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**ヴェルテンベルク**（牡、父キタサンブラック、宮本博厩舎）。新馬 2 着/13頭（0.1 秒差） → 未勝利 1 着/11頭 → 京都2歳(G3) 3 着/15頭（0.2 秒差） と 3 走で 1 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **78%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 80%）、次いで「3勝/OP」（15%）。重賞で着外以上まで含めた「重賞級」なら 94% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: ホープフルS(G1) 12 着/18頭（1.0 秒差）で「3勝/OP」。惜しい）"
+   },
+   {
+    "馬名": "ブトンドール",
+    "horse_id": 2020103589,
+    "k": 3,
+    "why": "P(重賞) 上位",
+    "debut_year": 2022,
+    "base_date": "2022-11-05",
+    "sex": "牝",
+    "sire": "ビッグアーサー",
+    "trainer": "池添学",
+    "trainer_code": 1144,
+    "runs": [
+     {
+      "date": "2022-07-02",
+      "place": "函館",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 8,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1200
+     },
+     {
+      "date": "2022-07-16",
+      "place": "函館",
+      "class": "G3",
+      "race": "函館2歳S",
+      "label": "函館2歳S(G3)",
+      "pos": 1,
+      "field": 13,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1200
+     },
+     {
+      "date": "2022-11-05",
+      "place": "阪神",
+      "class": "G3",
+      "race": "ファンタジーS",
+      "label": "ファンタジーS(G3)",
+      "pos": 2,
+      "field": 12,
+      "margin": 0.2,
+      "win": false,
+      "surface": "芝",
+      "dist": 1400
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.018356935678735333,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0012,
+     "1勝クラス": 0.0105,
+     "2勝クラス": 0.0188,
+     "3勝/OP": 0.173,
+     "重賞掲示板": 0.7965
+    },
+    "p_levels": [
+     0.001227935884388278,
+     0.010517646279705107,
+     0.018817161610753395,
+     0.172978259924553,
+     0.7964589963006002
+    ],
+    "p_graded12": 0.78183844973476,
+    "p_graded24": 0.687516113908112,
+    "p_graded_class": 0.9694372562251532,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.7529227344772718,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 0.22929936305732482,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.33,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.165,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.531,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-06-11",
+      "place": "函館",
+      "class": "G3",
+      "race": "函館スプリントS",
+      "label": "函館スプリントS(G3)",
+      "pos": 5,
+      "field": 16,
+      "margin": 0.4,
+      "win": false,
+      "surface": "芝",
+      "dist": 1200
+     },
+     "n_starts_12m": 5,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ブトンドール**（牝、父ビッグアーサー、池添学厩舎）。新馬 1 着/8頭 → 函館2歳S(G3) 1 着/13頭 → ファンタジーS(G3) 2 着/12頭（0.2 秒差） と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **78%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 80%）、次いで「3勝/OP」（17%）。重賞で着外以上まで含めた「重賞級」なら 97% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 函館スプリントS(G3) 5 着/16頭（0.4 秒差）で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "ファントムシーフ",
+    "horse_id": 2020106582,
+    "k": 3,
+    "why": "P(重賞) 上位",
+    "debut_year": 2022,
+    "base_date": "2022-12-28",
+    "sex": "牡",
+    "sire": "ハービンジャー",
+    "trainer": "西村真幸",
+    "trainer_code": 1148,
+    "runs": [
+     {
+      "date": "2022-06-18",
+      "place": "阪神",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 12,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2022-09-24",
+      "place": "中京",
+      "class": "OP(L)",
+      "race": "野路菊S",
+      "label": "野路菊S(OP(L))",
+      "pos": 1,
+      "field": 7,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     },
+     {
+      "date": "2022-12-28",
+      "place": "中山",
+      "class": "G1",
+      "race": "ホープフルS",
+      "label": "ホープフルS(G1)",
+      "pos": 4,
+      "field": 18,
+      "margin": 0.2,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.05640902150181694,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0009,
+     "1勝クラス": 0.0092,
+     "2勝クラス": 0.0219,
+     "3勝/OP": 0.1666,
+     "重賞掲示板": 0.8015
+    },
+    "p_levels": [
+     0.000896621160594549,
+     0.009174799624226685,
+     0.021927276338777543,
+     0.16655106908181988,
+     0.8014502337945814
+    ],
+    "p_graded12": 0.7562412103238266,
+    "p_graded24": 0.7703427312569502,
+    "p_graded_class": 0.9680013028764012,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.7584834947255668,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 0.25477707006369427,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.277,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.147,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.414,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-02-12",
+      "place": "東京",
+      "class": "G3",
+      "race": "共同通信杯",
+      "label": "共同通信杯(G3)",
+      "pos": 1,
+      "field": 12,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     "n_starts_12m": 5,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ファントムシーフ**（牡、父ハービンジャー、西村真幸厩舎）。新馬 1 着/12頭 → 野路菊S(OP(L)) 1 着/7頭 → ホープフルS(G1) 4 着/18頭（0.2 秒差） と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **76%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 6%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 80%）、次いで「3勝/OP」（17%）。重賞で着外以上まで含めた「重賞級」なら 97% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 共同通信杯(G3) 1 着/12頭で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "ウインオーディン",
+    "horse_id": 2020105217,
+    "k": 3,
+    "why": "P(重賞) 上位",
+    "debut_year": 2022,
+    "base_date": "2022-08-28",
+    "sex": "牡",
+    "sire": "エピファネイア",
+    "trainer": "鹿戸雄一",
+    "trainer_code": 1097,
+    "runs": [
+     {
+      "date": "2022-07-31",
+      "place": "新潟",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 5,
+      "field": 10,
+      "margin": 0.4,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-08-21",
+      "place": "新潟",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 1,
+      "field": 9,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-08-28",
+      "place": "新潟",
+      "class": "G3",
+      "race": "新潟2歳S",
+      "label": "新潟2歳S(G3)",
+      "pos": 2,
+      "field": 11,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     }
+    ],
+    "n_wins": 1,
+    "p_dropout": 0.0236278245636268,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0011,
+     "1勝クラス": 0.0173,
+     "2勝クラス": 0.0089,
+     "3勝/OP": 0.1993,
+     "重賞掲示板": 0.7734
+    },
+    "p_levels": [
+     0.0010686024074383342,
+     0.017336573681447198,
+     0.008875298807615534,
+     0.19928465023841418,
+     0.7734348748650848
+    ],
+    "p_graded12": 0.7551602913303819,
+    "p_graded24": 0.8491491713806438,
+    "p_graded_class": 0.972719525103499,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.72668062147226,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     1,
+     2,
+     0
+    ],
+    "cohort_top_pct": 0.2802547770700637,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.476,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 0.618,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.47,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-02-12",
+      "place": "東京",
+      "class": "G3",
+      "race": "共同通信杯",
+      "label": "共同通信杯(G3)",
+      "pos": 5,
+      "field": 12,
+      "margin": 0.5,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     "n_starts_12m": 3,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ウインオーディン**（牡、父エピファネイア、鹿戸雄一厩舎）。新馬 5 着/10頭（0.4 秒差） → 未勝利 1 着/9頭 → 新潟2歳S(G3) 2 着/11頭（0.1 秒差） と 3 走で 1 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **76%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 77%）、次いで「3勝/OP」（20%）。重賞で着外以上まで含めた「重賞級」なら 97% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 共同通信杯(G3) 5 着/12頭（0.5 秒差）で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "シーウィザード",
+    "horse_id": 2020101695,
+    "k": 3,
+    "why": "P(重賞) 上位",
+    "debut_year": 2022,
+    "base_date": "2022-10-01",
+    "sex": "牡",
+    "sire": "ビーチパトロール",
+    "trainer": "鹿戸雄一",
+    "trainer_code": 1097,
+    "runs": [
+     {
+      "date": "2022-07-03",
+      "place": "函館",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 8,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-08-28",
+      "place": "新潟",
+      "class": "G3",
+      "race": "新潟2歳S",
+      "label": "新潟2歳S(G3)",
+      "pos": 3,
+      "field": 11,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2022-10-01",
+      "place": "中山",
+      "class": "OP(L)",
+      "race": "芙蓉S",
+      "label": "芙蓉S(OP(L))",
+      "pos": 1,
+      "field": 7,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.01775169148918186,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0007,
+     "1勝クラス": 0.0063,
+     "2勝クラス": 0.0083,
+     "3勝/OP": 0.2187,
+     "重賞掲示板": 0.7661
+    },
+    "p_levels": [
+     0.0006598026380112659,
+     0.0062727428776652,
+     0.008252702480661614,
+     0.21872229529006929,
+     0.7660924567135926
+    ],
+    "p_graded12": 0.7524930197698235,
+    "p_graded24": 0.7646151367265848,
+    "p_graded_class": 0.9848147520036619,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.743314860563567,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 0.3057324840764331,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.239,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.202,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "mean_agari_rank",
+      "label": "平均上り3F順位",
+      "contrib": 0.398,
+      "phrase": "平均上り3F順位が良い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 3,
+     "actual_level_name": "3勝/OP",
+     "best_race": {
+      "date": "2023-01-15",
+      "place": "中山",
+      "class": "G3",
+      "race": "京成杯",
+      "label": "京成杯(G3)",
+      "pos": 7,
+      "field": 9,
+      "margin": 0.9,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     },
+     "n_starts_12m": 7,
+     "verdict": "惜しい",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**シーウィザード**（牡、父ビーチパトロール、鹿戸雄一厩舎）。新馬 1 着/8頭 → 新潟2歳S(G3) 3 着/11頭（0.1 秒差） → 芙蓉S(OP(L)) 1 着/7頭 と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **75%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 77%）、次いで「3勝/OP」（22%）。重賞で着外以上まで含めた「重賞級」なら 98% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、平均上り3F順位が良い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 京成杯(G3) 7 着/9頭（0.9 秒差）で「3勝/OP」。惜しい）"
+   },
+   {
+    "馬名": "ダノンザタイガー",
+    "horse_id": 2020103417,
+    "k": 3,
+    "why": "P(重賞) 上位",
+    "debut_year": 2022,
+    "base_date": "2022-11-19",
+    "sex": "牡",
+    "sire": "ハーツクライ",
+    "trainer": "国枝栄",
+    "trainer_code": 399,
+    "runs": [
+     {
+      "date": "2022-06-12",
+      "place": "東京",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 12,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-08-13",
+      "place": "新潟",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 1,
+      "field": 16,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-11-19",
+      "place": "東京",
+      "class": "G2",
+      "race": "東京スポーツ杯2歳S",
+      "label": "東京スポーツ杯2歳S(G2)",
+      "pos": 2,
+      "field": 11,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     }
+    ],
+    "n_wins": 1,
+    "p_dropout": 0.02925516751621126,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0011,
+     "1勝クラス": 0.0299,
+     "2勝クラス": 0.0309,
+     "3勝/OP": 0.1639,
+     "重賞掲示板": 0.7742
+    },
+    "p_levels": [
+     0.0010554365859819581,
+     0.029935222737957276,
+     0.030919598995991223,
+     0.1638681395652635,
+     0.774221602114806
+    ],
+    "p_graded12": 0.7515716194502678,
+    "p_graded24": 0.7451531311375267,
+    "p_graded_class": 0.9380897416800694,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.680265247884954,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 0.33121019108280253,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.349,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 0.67,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.563,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-02-12",
+      "place": "東京",
+      "class": "G3",
+      "race": "共同通信杯",
+      "label": "共同通信杯(G3)",
+      "pos": 3,
+      "field": 12,
+      "margin": 0.2,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     "n_starts_12m": 2,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ダノンザタイガー**（牡、父ハーツクライ、国枝栄厩舎）。新馬 2 着/12頭（0.1 秒差） → 未勝利 1 着/16頭 → 東京スポーツ杯2歳S(G2) 2 着/11頭（0.1 秒差） と 3 走で 1 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **75%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 3%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 77%）、次いで「3勝/OP」（16%）。重賞で着外以上まで含めた「重賞級」なら 94% と読みます。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 共同通信杯(G3) 3 着/12頭（0.2 秒差）で「重賞掲示板」。的中）"
+   }
+  ]
+ },
+ {
+  "section": "規則は未勝利圏なのに AI は重賞 20% 以上 — k=1（デビュー戦直後）",
+  "cards": [
+   {
+    "馬名": "ブレイディヴェーグ",
+    "horse_id": 2020103242,
+    "k": 1,
+    "why": "規則 L0 / AI 重賞 20%+",
+    "debut_year": 2022,
+    "base_date": "2022-08-21",
+    "sex": "牝",
+    "sire": "ロードカナロア",
+    "trainer": "宮田敬介",
+    "trainer_code": 1175,
+    "runs": [
+     {
+      "date": "2022-08-21",
+      "place": "新潟",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 13,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.015993588622522835,
+    "p_level_given_ran": {
+     "未勝利圏": 0.1307,
+     "1勝クラス": 0.0882,
+     "2勝クラス": 0.015,
+     "3勝/OP": 0.2023,
+     "重賞掲示板": 0.5639
+    },
+    "p_levels": [
+     0.13070548146337013,
+     0.08815724685122245,
+     0.0149647231265984,
+     0.20232071365200152,
+     0.5638518349068075
+    ],
+    "p_graded12": 0.5548338206152533,
+    "p_graded24": 0.6687414215530717,
+    "p_graded_class": 0.766172548558809,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 2.980456173687654,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     4,
+     3,
+     0,
+     1,
+     2
+    ],
+    "cohort_top_pct": 0.3270111183780248,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "agari_1",
+      "label": "1走目の上り3F(秒)",
+      "contrib": 0.978,
+      "phrase": "1走目の上り3Fが速い",
+      "directed": true
+     },
+     {
+      "feature": "margin_1",
+      "label": "1走目の勝ち馬との着差(秒)",
+      "contrib": 0.888,
+      "phrase": "1走目の勝ち馬との着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "pos_1",
+      "label": "1走目の着順",
+      "contrib": 0.694,
+      "phrase": "1走目の着順が良い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 1,
+     "actual_level_name": "1勝クラス",
+     "best_race": {
+      "date": "2023-06-25",
+      "place": "東京",
+      "class": "1勝",
+      "race": null,
+      "label": "1勝",
+      "pos": 1,
+      "field": 11,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     },
+     "n_starts_12m": 2,
+     "verdict": "外れ",
+     "graded12": false,
+     "graded24": true
+    },
+    "text": "**ブレイディヴェーグ**（牝、父ロードカナロア、宮田敬介厩舎）。新馬 2 着/13頭 と、デビュー戦は勝てませんでした。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **55%** と見ます（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 56%）、次いで「3勝/OP」（20%）。重賞で着外以上まで含めた「重賞級」なら 77% と読みます。\n根拠は、1走目の上り3Fが速い、1走目の勝ち馬との着差が小さい、1走目の着順が良い。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 4 段上を見ています。\n（結果: 1勝 1 着/11頭で「1勝クラス」、2 年以内には重賞掲示板に到達。外れ）"
+   },
+   {
+    "馬名": "ベルシャンブル",
+    "horse_id": 2020103402,
+    "k": 1,
+    "why": "規則 L0 / AI 重賞 20%+",
+    "debut_year": 2022,
+    "base_date": "2022-11-06",
+    "sex": "牝",
+    "sire": "キズナ",
+    "trainer": "中内田充",
+    "trainer_code": 1137,
+    "runs": [
+     {
+      "date": "2022-11-06",
+      "place": "阪神",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 17,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.011068518682640225,
+    "p_level_given_ran": {
+     "未勝利圏": 0.1622,
+     "1勝クラス": 0.1361,
+     "2勝クラス": 0.0391,
+     "3勝/OP": 0.1634,
+     "重賞掲示板": 0.4992
+    },
+    "p_levels": [
+     0.16219983569585272,
+     0.13606228900101305,
+     0.03914715610560996,
+     0.16335894408292653,
+     0.49923177511459765
+    ],
+    "p_graded12": 0.49370601888477406,
+    "p_graded24": 0.4895760181369745,
+    "p_graded_class": 0.6625907191975242,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 2.701360533919403,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     4,
+     3,
+     0,
+     1,
+     2
+    ],
+    "cohort_top_pct": 0.6758229779812513,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "agari_1",
+      "label": "1走目の上り3F(秒)",
+      "contrib": 1.097,
+      "phrase": "1走目の上り3Fが速い",
+      "directed": true
+     },
+     {
+      "feature": "pos_1",
+      "label": "1走目の着順",
+      "contrib": 0.787,
+      "phrase": "1走目の着順が良い",
+      "directed": true
+     },
+     {
+      "feature": "agari_rank_1",
+      "label": "1走目の上り3F順位",
+      "contrib": 0.366,
+      "phrase": "1走目の上り3F順位が良い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 1,
+     "actual_level_name": "1勝クラス",
+     "best_race": {
+      "date": "2023-05-20",
+      "place": "京都",
+      "class": "1勝",
+      "race": "メルボルンT",
+      "label": "メルボルンT(1勝)",
+      "pos": 3,
+      "field": 10,
+      "margin": 0.3,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     "n_starts_12m": 4,
+     "verdict": "外れ",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**ベルシャンブル**（牝、父キズナ、中内田充厩舎）。新馬 2 着/17頭（0.1 秒差） と、デビュー戦は勝てませんでした。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **49%** と見ます（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 1%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 50%）、次いで「3勝/OP」（16%）。重賞で着外以上まで含めた「重賞級」なら 66% と読みます。\n根拠は、1走目の上り3Fが速い、1走目の着順が良い、1走目の上り3F順位が良い。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 4 段上を見ています。\n（結果: メルボルンT(1勝) 3 着/10頭（0.3 秒差）で「1勝クラス」。外れ）"
+   },
+   {
+    "馬名": "シャザーン",
+    "horse_id": 2020102832,
+    "k": 1,
+    "why": "規則 L0 / AI 重賞 20%+",
+    "debut_year": 2022,
+    "base_date": "2022-07-31",
+    "sex": "牡",
+    "sire": "ロードカナロア",
+    "trainer": "友道康夫",
+    "trainer_code": 1061,
+    "runs": [
+     {
+      "date": "2022-07-31",
+      "place": "新潟",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 10,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.02063203875389037,
+    "p_level_given_ran": {
+     "未勝利圏": 0.1988,
+     "1勝クラス": 0.1395,
+     "2勝クラス": 0.0167,
+     "3勝/OP": 0.2056,
+     "重賞掲示板": 0.4394
+    },
+    "p_levels": [
+     0.19883064088035537,
+     0.139461207506624,
+     0.016730740849263445,
+     0.20559188287673202,
+     0.43938552788702506
+    ],
+    "p_graded12": 0.4303201086477614,
+    "p_graded24": 0.5408128590099298,
+    "p_graded_class": 0.6449774107637571,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 2.5472404493834473,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     4,
+     3,
+     0,
+     1,
+     2
+    ],
+    "cohort_top_pct": 1.2862437322868978,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "agari_1",
+      "label": "1走目の上り3F(秒)",
+      "contrib": 0.964,
+      "phrase": "1走目の上り3Fが速い",
+      "directed": true
+     },
+     {
+      "feature": "margin_1",
+      "label": "1走目の勝ち馬との着差(秒)",
+      "contrib": 0.818,
+      "phrase": "1走目の勝ち馬との着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "pos_1",
+      "label": "1走目の着順",
+      "contrib": 0.653,
+      "phrase": "1走目の着順が良い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 3,
+     "actual_level_name": "3勝/OP",
+     "best_race": {
+      "date": "2023-02-25",
+      "place": "阪神",
+      "class": "OP(L)",
+      "race": "すみれS",
+      "label": "すみれS(OP(L))",
+      "pos": 1,
+      "field": 6,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2200
+     },
+     "n_starts_12m": 4,
+     "verdict": "惜しい",
+     "graded12": false,
+     "graded24": true
+    },
+    "text": "**シャザーン**（牡、父ロードカナロア、友道康夫厩舎）。新馬 2 着/10頭 と、デビュー戦は勝てませんでした。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **43%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 44%）、次いで「3勝/OP」（21%）。重賞で着外以上まで含めた「重賞級」なら 64% と読みます。\n根拠は、1走目の上り3Fが速い、1走目の勝ち馬との着差が小さい、1走目の着順が良い。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 4 段上を見ています。\n（結果: すみれS(OP(L)) 1 着/6頭で「3勝/OP」、2 年以内には重賞掲示板に到達。惜しい）"
+   },
+   {
+    "馬名": "ショウナンアレクサ",
+    "horse_id": 2020103271,
+    "k": 1,
+    "why": "規則 L0 / AI 重賞 20%+",
+    "debut_year": 2022,
+    "base_date": "2022-08-13",
+    "sex": "牡",
+    "sire": "キズナ",
+    "trainer": "清水久詞",
+    "trainer_code": 1110,
+    "runs": [
+     {
+      "date": "2022-08-13",
+      "place": "新潟",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 17,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.01421594318703909,
+    "p_level_given_ran": {
+     "未勝利圏": 0.2034,
+     "1勝クラス": 0.1393,
+     "2勝クラス": 0.022,
+     "3勝/OP": 0.211,
+     "重賞掲示板": 0.4243
+    },
+    "p_levels": [
+     0.20337036512272438,
+     0.1392800775076996,
+     0.022006001654870083,
+     0.21100062483625945,
+     0.4243429308784465
+    ],
+    "p_graded12": 0.41831049588125685,
+    "p_graded24": 0.4638850618433564,
+    "p_graded_class": 0.6353435557147059,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 2.5136656788400042,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     4,
+     3,
+     0,
+     1,
+     2
+    ],
+    "cohort_top_pct": 1.4388489208633095,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "margin_1",
+      "label": "1走目の勝ち馬との着差(秒)",
+      "contrib": 0.784,
+      "phrase": "1走目の勝ち馬との着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "agari_1",
+      "label": "1走目の上り3F(秒)",
+      "contrib": 0.699,
+      "phrase": "1走目の上り3Fが速い",
+      "directed": true
+     },
+     {
+      "feature": "pos_1",
+      "label": "1走目の着順",
+      "contrib": 0.668,
+      "phrase": "1走目の着順が良い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 3,
+     "actual_level_name": "3勝/OP",
+     "best_race": {
+      "date": "2022-11-12",
+      "place": "阪神",
+      "class": "G2",
+      "race": "デイリー杯2歳S",
+      "label": "デイリー杯2歳S(G2)",
+      "pos": 6,
+      "field": 10,
+      "margin": 0.8,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     "n_starts_12m": 7,
+     "verdict": "惜しい",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**ショウナンアレクサ**（牡、父キズナ、清水久詞厩舎）。新馬 2 着/17頭 と、デビュー戦は勝てませんでした。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **42%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 1%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 42%）、次いで「3勝/OP」（21%）。重賞で着外以上まで含めた「重賞級」なら 64% と読みます。\n根拠は、1走目の勝ち馬との着差が小さい、1走目の上り3Fが速い、1走目の着順が良い。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 4 段上を見ています。\n（結果: デイリー杯2歳S(G2) 6 着/10頭（0.8 秒差）で「3勝/OP」。惜しい）"
+   },
+   {
+    "馬名": "イッツオンリーユー",
+    "horse_id": 2020102542,
+    "k": 1,
+    "why": "規則 L0 / AI 重賞 20%+",
+    "debut_year": 2022,
+    "base_date": "2022-07-10",
+    "sex": "牝",
+    "sire": "ハーツクライ",
+    "trainer": "手塚貴久",
+    "trainer_code": 1038,
+    "runs": [
+     {
+      "date": "2022-07-10",
+      "place": "函館",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 6,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.022252834914880403,
+    "p_level_given_ran": {
+     "未勝利圏": 0.22,
+     "1勝クラス": 0.1481,
+     "2勝クラス": 0.0091,
+     "3勝/OP": 0.2035,
+     "重賞掲示板": 0.4193
+    },
+    "p_levels": [
+     0.22001020774592858,
+     0.14807341081419947,
+     0.009123349986417988,
+     0.20350366954617205,
+     0.41928936190728183
+    ],
+    "p_graded12": 0.40995898495519356,
+    "p_graded24": 0.3433812288356059,
+    "p_graded_class": 0.6227930314534539,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 2.453988567054679,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     4,
+     0,
+     3,
+     1,
+     2
+    ],
+    "cohort_top_pct": 1.5042511445389144,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "margin_1",
+      "label": "1走目の勝ち馬との着差(秒)",
+      "contrib": 0.982,
+      "phrase": "1走目の勝ち馬との着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "pos_1",
+      "label": "1走目の着順",
+      "contrib": 0.751,
+      "phrase": "1走目の着順が良い",
+      "directed": true
+     },
+     {
+      "feature": "debut_dayage",
+      "label": "デビュー時の日齢",
+      "contrib": 0.473,
+      "phrase": "デビュー時の日齢",
+      "directed": null
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 0,
+     "actual_level_name": "未勝利圏",
+     "best_race": {
+      "date": "2022-11-06",
+      "place": "東京",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 2,
+      "field": 15,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     "n_starts_12m": 7,
+     "verdict": "外れ",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**イッツオンリーユー**（牝、父ハーツクライ、手塚貴久厩舎）。新馬 2 着/6頭 と、デビュー戦は勝てませんでした。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **41%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 42%）、次いで「未勝利圏」（22%）。重賞で着外以上まで含めた「重賞級」なら 62% と読みます。\n根拠は、1走目の勝ち馬との着差が小さい、1走目の着順が良い、デビュー時の日齢。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 4 段上を見ています。\n（結果: 未勝利 2 着/15頭（0.1 秒差）で「未勝利圏」。外れ）"
+   },
+   {
+    "馬名": "ブルジュドバイ",
+    "horse_id": 2020103587,
+    "k": 1,
+    "why": "規則 L0 / AI 重賞 20%+",
+    "debut_year": 2022,
+    "base_date": "2022-06-18",
+    "sex": "牝",
+    "sire": "キタサンブラック",
+    "trainer": "森秀行",
+    "trainer_code": 427,
+    "runs": [
+     {
+      "date": "2022-06-18",
+      "place": "函館",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 10,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 1200
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.0153448690800026,
+    "p_level_given_ran": {
+     "未勝利圏": 0.1997,
+     "1勝クラス": 0.1274,
+     "2勝クラス": 0.0093,
+     "3勝/OP": 0.2536,
+     "重賞掲示板": 0.41
+    },
+    "p_levels": [
+     0.19972610793744963,
+     0.12741285296668406,
+     0.009250431319552523,
+     0.2535913387393548,
+     0.41001926903695884
+    ],
+    "p_graded12": 0.4037275770333083,
+    "p_graded24": 0.4105565276281222,
+    "p_graded_class": 0.6636106077763136,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 2.5467648079716887,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     4,
+     3,
+     0,
+     1,
+     2
+    ],
+    "cohort_top_pct": 1.526051885764116,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "margin_1",
+      "label": "1走目の勝ち馬との着差(秒)",
+      "contrib": 0.882,
+      "phrase": "1走目の勝ち馬との着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "pos_1",
+      "label": "1走目の着順",
+      "contrib": 0.661,
+      "phrase": "1走目の着順が良い",
+      "directed": true
+     },
+     {
+      "feature": "debut_dayage",
+      "label": "デビュー時の日齢",
+      "contrib": 0.498,
+      "phrase": "デビュー時の日齢",
+      "directed": null
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 0,
+     "actual_level_name": "未勝利圏",
+     "best_race": {
+      "date": "2022-07-02",
+      "place": "函館",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 2,
+      "field": 6,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 1200
+     },
+     "n_starts_12m": 4,
+     "verdict": "外れ",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**ブルジュドバイ**（牝、父キタサンブラック、森秀行厩舎）。新馬 2 着/10頭 と、デビュー戦は勝てませんでした。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **40%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 41%）、次いで「3勝/OP」（25%）。重賞で着外以上まで含めた「重賞級」なら 66% と読みます。\n根拠は、1走目の勝ち馬との着差が小さい、1走目の着順が良い、デビュー時の日齢。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 4 段上を見ています。\n（結果: 未勝利 2 着/6頭で「未勝利圏」。外れ）"
+   },
+   {
+    "馬名": "ダノンザタイガー",
+    "horse_id": 2020103417,
+    "k": 1,
+    "why": "規則 L0 / AI 重賞 20%+",
+    "debut_year": 2022,
+    "base_date": "2022-06-12",
+    "sex": "牡",
+    "sire": "ハーツクライ",
+    "trainer": "国枝栄",
+    "trainer_code": 399,
+    "runs": [
+     {
+      "date": "2022-06-12",
+      "place": "東京",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 12,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.02903016986734262,
+    "p_level_given_ran": {
+     "未勝利圏": 0.209,
+     "1勝クラス": 0.1815,
+     "2勝クラス": 0.0134,
+     "3勝/OP": 0.1899,
+     "重賞掲示板": 0.4062
+    },
+    "p_levels": [
+     0.20896357294486115,
+     0.18151371270345268,
+     0.013381674943748848,
+     0.1899307202035362,
+     0.4062103192044011
+    ],
+    "p_graded12": 0.39441796463602985,
+    "p_graded24": 0.4375974961710126,
+    "p_graded_class": 0.5961410394079373,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 2.4029105000191633,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     4,
+     0,
+     3,
+     1,
+     2
+    ],
+    "cohort_top_pct": 1.6350555918901242,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "pos_1",
+      "label": "1走目の着順",
+      "contrib": 0.764,
+      "phrase": "1走目の着順が良い",
+      "directed": true
+     },
+     {
+      "feature": "agari_1",
+      "label": "1走目の上り3F(秒)",
+      "contrib": 0.633,
+      "phrase": "1走目の上り3Fが速い",
+      "directed": true
+     },
+     {
+      "feature": "margin_1",
+      "label": "1走目の勝ち馬との着差(秒)",
+      "contrib": 0.534,
+      "phrase": "1走目の勝ち馬との着差が小さい",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2022-11-19",
+      "place": "東京",
+      "class": "G2",
+      "race": "東京スポーツ杯2歳S",
+      "label": "東京スポーツ杯2歳S(G2)",
+      "pos": 2,
+      "field": 11,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     "n_starts_12m": 3,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ダノンザタイガー**（牡、父ハーツクライ、国枝栄厩舎）。新馬 2 着/12頭（0.1 秒差） と、デビュー戦は勝てませんでした。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **39%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 3%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 41%）、次いで「未勝利圏」（21%）。重賞で着外以上まで含めた「重賞級」なら 60% と読みます。\n根拠は、1走目の着順が良い、1走目の上り3Fが速い、1走目の勝ち馬との着差が小さい。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 4 段上を見ています。\n（結果: 東京スポーツ杯2歳S(G2) 2 着/11頭（0.1 秒差）で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "ルクスグローリア",
+    "horse_id": 2020102695,
+    "k": 1,
+    "why": "規則 L0 / AI 重賞 20%+",
+    "debut_year": 2022,
+    "base_date": "2022-07-03",
+    "sex": "牡",
+    "sire": "サトノダイヤモンド",
+    "trainer": "宮田敬介",
+    "trainer_code": 1175,
+    "runs": [
+     {
+      "date": "2022-07-03",
+      "place": "函館",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 8,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.018761491775257714,
+    "p_level_given_ran": {
+     "未勝利圏": 0.1786,
+     "1勝クラス": 0.1704,
+     "2勝クラス": 0.0082,
+     "3勝/OP": 0.2417,
+     "重賞掲示板": 0.4011
+    },
+    "p_levels": [
+     0.17861517069584587,
+     0.17035075416921822,
+     0.008235906239548667,
+     0.24170495415148258,
+     0.40109321474390464
+    ],
+    "p_graded12": 0.39356810769437517,
+    "p_graded24": 0.5032315680079392,
+    "p_graded_class": 0.6427981688953872,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 2.516310288078382,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     4,
+     3,
+     0,
+     1,
+     2
+    ],
+    "cohort_top_pct": 1.6786570743405276,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "pos_1",
+      "label": "1走目の着順",
+      "contrib": 0.794,
+      "phrase": "1走目の着順が良い",
+      "directed": true
+     },
+     {
+      "feature": "margin_1",
+      "label": "1走目の勝ち馬との着差(秒)",
+      "contrib": 0.584,
+      "phrase": "1走目の勝ち馬との着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "debut_dayage",
+      "label": "デビュー時の日齢",
+      "contrib": 0.476,
+      "phrase": "デビュー時の日齢",
+      "directed": null
+     }
+    ],
+    "outcome": {
+     "ran_12m": 0,
+     "actual_level": null,
+     "actual_level_name": "離脱（12 か月出走なし）",
+     "best_race": null,
+     "n_starts_12m": 0,
+     "verdict": "外れ（離脱は読めず）"
+    },
+    "text": "**ルクスグローリア**（牡、父サトノダイヤモンド、宮田敬介厩舎）。新馬 2 着/8頭（0.1 秒差） と、デビュー戦は勝てませんでした。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **39%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 40%）、次いで「3勝/OP」（24%）。重賞で着外以上まで含めた「重賞級」なら 64% と読みます。\n根拠は、1走目の着順が良い、1走目の勝ち馬との着差が小さい、デビュー時の日齢。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 4 段上を見ています。\n（結果: 12 か月以内の出走なし＝離脱。外れ（離脱は読めず））"
+   },
+   {
+    "馬名": "イコサン",
+    "horse_id": 2020106914,
+    "k": 1,
+    "why": "規則 L0 / AI 重賞 20%+",
+    "debut_year": 2022,
+    "base_date": "2022-06-25",
+    "sex": "牡",
+    "sire": "ビッグアーサー",
+    "trainer": "長谷川浩",
+    "trainer_code": 1173,
+    "runs": [
+     {
+      "date": "2022-06-25",
+      "place": "函館",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 8,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 1200
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.012324265289246045,
+    "p_level_given_ran": {
+     "未勝利圏": 0.2654,
+     "1勝クラス": 0.1915,
+     "2勝クラス": 0.0154,
+     "3勝/OP": 0.1385,
+     "重賞掲示板": 0.3892
+    },
+    "p_levels": [
+     0.26535484840906837,
+     0.19154069020830325,
+     0.015352907395688562,
+     0.1385485088599209,
+     0.38920304512701887
+    ],
+    "p_graded12": 0.3844064035474911,
+    "p_graded24": 0.37543037679043334,
+    "p_graded_class": 0.5277515539869397,
+    "pred_level": 3,
+    "pred_level_name": "3勝/OP",
+    "expected_level": 2.1947042120875184,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     4,
+     0,
+     1,
+     3,
+     2
+    ],
+    "cohort_top_pct": 1.7440592980161325,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "margin_1",
+      "label": "1走目の勝ち馬との着差(秒)",
+      "contrib": 1.024,
+      "phrase": "1走目の勝ち馬との着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "pos_1",
+      "label": "1走目の着順",
+      "contrib": 0.627,
+      "phrase": "1走目の着順が良い",
+      "directed": true
+     },
+     {
+      "feature": "agari_1",
+      "label": "1走目の上り3F(秒)",
+      "contrib": 0.438,
+      "phrase": "1走目の上り3Fが速い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 3,
+     "actual_level_name": "3勝/OP",
+     "best_race": {
+      "date": "2022-08-21",
+      "place": "札幌",
+      "class": "OP(L)",
+      "race": "クローバ",
+      "label": "クローバ(OP(L))",
+      "pos": 2,
+      "field": 11,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 1500
+     },
+     "n_starts_12m": 6,
+     "verdict": "的中",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**イコサン**（牡、父ビッグアーサー、長谷川浩厩舎）。新馬 2 着/8頭 と、デビュー戦は勝てませんでした。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **38%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 1%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 39%）、次いで「未勝利圏」（27%）。確率を均した予測クラス（規則との比較に使う値）は「3勝/OP」です。重賞で着外以上まで含めた「重賞級」なら 53% と読みます。\n根拠は、1走目の勝ち馬との着差が小さい、1走目の着順が良い、1走目の上り3Fが速い。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 3 段上を見ています。\n（結果: クローバ(OP(L)) 2 着/11頭で「3勝/OP」。的中）"
+   },
+   {
+    "馬名": "スキルヴィング",
+    "horse_id": 2020103722,
+    "k": 1,
+    "why": "規則 L0 / AI 重賞 20%+",
+    "debut_year": 2022,
+    "base_date": "2022-10-15",
+    "sex": "牡",
+    "sire": "キタサンブラック",
+    "trainer": "木村哲也",
+    "trainer_code": 1126,
+    "runs": [
+     {
+      "date": "2022-10-15",
+      "place": "東京",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 11,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.03917587514294322,
+    "p_level_given_ran": {
+     "未勝利圏": 0.2028,
+     "1勝クラス": 0.1881,
+     "2勝クラス": 0.0656,
+     "3勝/OP": 0.1729,
+     "重賞掲示板": 0.3706
+    },
+    "p_levels": [
+     0.20277318441117112,
+     0.18813528685831107,
+     0.0656150779422557,
+     0.17290339157055326,
+     0.37057305921770883
+    ],
+    "p_graded12": 0.3560555353184574,
+    "p_graded24": 0.38284522871286597,
+    "p_graded_class": 0.5434764507882621,
+    "pred_level": 3,
+    "pred_level_name": "3勝/OP",
+    "expected_level": 2.3203678543253177,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     4,
+     0,
+     1,
+     3,
+     2
+    ],
+    "cohort_top_pct": 1.9838674514933505,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "margin_1",
+      "label": "1走目の勝ち馬との着差(秒)",
+      "contrib": 0.943,
+      "phrase": "1走目の勝ち馬との着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "agari_1",
+      "label": "1走目の上り3F(秒)",
+      "contrib": 0.648,
+      "phrase": "1走目の上り3Fが速い",
+      "directed": true
+     },
+     {
+      "feature": "pos_1",
+      "label": "1走目の着順",
+      "contrib": 0.608,
+      "phrase": "1走目の着順が良い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-04-29",
+      "place": "東京",
+      "class": "G2",
+      "race": "青葉賞",
+      "label": "青葉賞(G2)",
+      "pos": 1,
+      "field": 15,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2400
+     },
+     "n_starts_12m": 4,
+     "verdict": "惜しい",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**スキルヴィング**（牡、父キタサンブラック、木村哲也厩舎）。新馬 2 着/11頭 と、デビュー戦は勝てませんでした。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **36%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 4%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 37%）、次いで「未勝利圏」（20%）。確率を均した予測クラス（規則との比較に使う値）は「3勝/OP」です。重賞で着外以上まで含めた「重賞級」なら 54% と読みます。\n根拠は、1走目の勝ち馬との着差が小さい、1走目の上り3Fが速い、1走目の着順が良い。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 3 段上を見ています。\n（結果: 青葉賞(G2) 1 着/15頭で「重賞掲示板」。惜しい）"
+   }
+  ]
+ },
+ {
+  "section": "外れの例 — k=3",
+  "cards": [
+   {
+    "馬名": "ワイズダムアスク",
+    "horse_id": 2019106625,
+    "k": 3,
+    "why": "離脱確率が最大なのに走り続けた",
+    "debut_year": 2022,
+    "base_date": "2022-05-28",
+    "sex": "牝",
+    "sire": "オルフェーヴル",
+    "trainer": "梅田智之",
+    "trainer_code": 1084,
+    "runs": [
+     {
+      "date": "2022-01-23",
+      "place": "中京",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 10,
+      "field": 13,
+      "margin": 3.2,
+      "win": false,
+      "surface": "ダ",
+      "dist": 1200
+     },
+     {
+      "date": "2022-01-30",
+      "place": "中京",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 15,
+      "field": 16,
+      "margin": 3.2,
+      "win": false,
+      "surface": "ダ",
+      "dist": 1200
+     },
+     {
+      "date": "2022-05-28",
+      "place": "中京",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 15,
+      "field": 16,
+      "margin": 7.2,
+      "win": false,
+      "surface": "ダ",
+      "dist": 1800
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.8605308467050939,
+    "p_level_given_ran": {
+     "未勝利圏": 0.9387,
+     "1勝クラス": 0.0569,
+     "2勝クラス": 0.0029,
+     "3勝/OP": 0.0013,
+     "重賞掲示板": 0.0002
+    },
+    "p_levels": [
+     0.9387190639387634,
+     0.05692860685101913,
+     0.0028532756714340925,
+     0.0012977858507203519,
+     0.00020126768806301464
+    ],
+    "p_graded12": 2.8070634039771922e-05,
+    "p_graded24": 0.0007362069225057189,
+    "p_graded_class": 0.0014990535387833666,
+    "pred_level": 0,
+    "pred_level_name": "未勝利圏",
+    "expected_level": 0.06733358649830043,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "cohort_top_pct": 99.94904458598725,
+    "reason_head": "top3_D",
+    "reasons": [
+     {
+      "feature": "margin_3",
+      "label": "3走目の勝ち馬との着差(秒)",
+      "contrib": 0.726,
+      "phrase": "3走目の勝ち馬との着差が大きい",
+      "directed": false
+     },
+     {
+      "feature": "mean_relpos",
+      "label": "平均相対着順",
+      "contrib": 0.655,
+      "phrase": "平均相対着順が悪い",
+      "directed": false
+     },
+     {
+      "feature": "best_pos",
+      "label": "最高着順",
+      "contrib": 0.641,
+      "phrase": "最高着順が低い",
+      "directed": false
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 0,
+     "actual_level_name": "未勝利圏",
+     "best_race": {
+      "date": "2022-07-24",
+      "place": "小倉",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 11,
+      "field": 18,
+      "margin": 1.7,
+      "win": false,
+      "surface": "芝",
+      "dist": 1200
+     },
+     "n_starts_12m": 1,
+     "verdict": "的中",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**ワイズダムアスク**（牝、父オルフェーヴル、梅田智之厩舎）。新馬 10 着/13頭（3.2 秒差） → 未勝利 15 着/16頭（3.2 秒差） → 未勝利 15 着/16頭（7.2 秒差） と 3 走して未勝利です。\nAI が見る 1 年以内の重賞掲示板（5 着以内）の確率は **1% 未満** と、ほぼ見ていません。一方、離脱（1 年間出走なし）の確率は **86%** とかなり高く、走り続けられるかを疑っています。\n走り続けた場合の 1 年後の居場所は「未勝利圏」が最有力（確率 94%）。\n離脱を疑う材料は、3走目の勝ち馬との着差が大きい、平均相対着順が悪い、最高着順が低い。規則（勝てば 1 段上げ）でも「未勝利圏」で、AI の見立てと同じです。\n（結果: 未勝利 11 着/18頭（1.7 秒差）で「未勝利圏」。的中）"
+   },
+   {
+    "馬名": "メイショウトワニ",
+    "horse_id": 2019103713,
+    "k": 3,
+    "why": "離脱確率が最大なのに走り続けた",
+    "debut_year": 2022,
+    "base_date": "2022-06-19",
+    "sex": "牝",
+    "sire": "シニスターミニスター",
+    "trainer": "安達昭夫",
+    "trainer_code": 1042,
+    "runs": [
+     {
+      "date": "2022-05-07",
+      "place": "中京",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 13,
+      "field": 14,
+      "margin": 3.7,
+      "win": false,
+      "surface": "ダ",
+      "dist": 1400
+     },
+     {
+      "date": "2022-05-28",
+      "place": "中京",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 11,
+      "field": 16,
+      "margin": 3.9,
+      "win": false,
+      "surface": "ダ",
+      "dist": 1800
+     },
+     {
+      "date": "2022-06-19",
+      "place": "阪神",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 15,
+      "field": 16,
+      "margin": 4.1,
+      "win": false,
+      "surface": "ダ",
+      "dist": 1800
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.8452278912546443,
+    "p_level_given_ran": {
+     "未勝利圏": 0.908,
+     "1勝クラス": 0.0866,
+     "2勝クラス": 0.0038,
+     "3勝/OP": 0.0015,
+     "重賞掲示板": 0.0002
+    },
+    "p_levels": [
+     0.9079828843572958,
+     0.08655720695931889,
+     0.0037597880212323414,
+     0.0014990857031653725,
+     0.00020103495898764914
+    ],
+    "p_graded12": 3.1114604534054564e-05,
+    "p_graded24": 0.0007470121777815456,
+    "p_graded_class": 0.0017001206621530217,
+    "pred_level": 0,
+    "pred_level_name": "未勝利圏",
+    "expected_level": 0.09937817994723029,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "cohort_top_pct": 99.92356687898089,
+    "reason_head": "top3_D",
+    "reasons": [
+     {
+      "feature": "best_pos",
+      "label": "最高着順",
+      "contrib": 0.699,
+      "phrase": "最高着順が低い",
+      "directed": false
+     },
+     {
+      "feature": "lvl_1",
+      "label": "1走目のクラス",
+      "contrib": 0.574,
+      "phrase": "1走目の出走クラスが低い",
+      "directed": false
+     },
+     {
+      "feature": "mean_relpos",
+      "label": "平均相対着順",
+      "contrib": 0.528,
+      "phrase": "平均相対着順が悪い",
+      "directed": false
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 0,
+     "actual_level_name": "未勝利圏",
+     "best_race": {
+      "date": "2022-08-06",
+      "place": "新潟",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 7,
+      "field": 14,
+      "margin": 2.1,
+      "win": false,
+      "surface": "ダ",
+      "dist": 1800
+     },
+     "n_starts_12m": 1,
+     "verdict": "的中",
+     "graded12": false,
+     "graded24": false
+    },
+    "text": "**メイショウトワニ**（牝、父シニスターミニスター、安達昭夫厩舎）。未勝利 13 着/14頭（3.7 秒差） → 未勝利 11 着/16頭（3.9 秒差） → 未勝利 15 着/16頭（4.1 秒差） と 3 走して未勝利です。\nAI が見る 1 年以内の重賞掲示板（5 着以内）の確率は **1% 未満** と、ほぼ見ていません。一方、離脱（1 年間出走なし）の確率は **85%** とかなり高く、走り続けられるかを疑っています。\n走り続けた場合の 1 年後の居場所は「未勝利圏」が最有力（確率 91%）。\n離脱を疑う材料は、最高着順が低い、1走目の出走クラスが低い、平均相対着順が悪い。規則（勝てば 1 段上げ）でも「未勝利圏」で、AI の見立てと同じです。\n（結果: 未勝利 7 着/14頭（2.1 秒差）で「未勝利圏」。的中）"
+   },
+   {
+    "馬名": "ルガル",
+    "horse_id": 2020106851,
+    "k": 3,
+    "why": "P(重賞) 最小で重賞掲示板に到達",
+    "debut_year": 2022,
+    "base_date": "2023-01-08",
+    "sex": "牡",
+    "sire": "ドゥラメンテ",
+    "trainer": "杉山晴紀",
+    "trainer_code": 1157,
+    "runs": [
+     {
+      "date": "2022-11-12",
+      "place": "阪神",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 9,
+      "field": 9,
+      "margin": 2.4,
+      "win": false,
+      "surface": "ダ",
+      "dist": 1800
+     },
+     {
+      "date": "2022-12-17",
+      "place": "阪神",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 2,
+      "field": 16,
+      "margin": 0.0,
+      "win": false,
+      "surface": "ダ",
+      "dist": 1400
+     },
+     {
+      "date": "2023-01-08",
+      "place": "中京",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 4,
+      "field": 16,
+      "margin": 0.6,
+      "win": false,
+      "surface": "ダ",
+      "dist": 1400
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.026170043980945384,
+    "p_level_given_ran": {
+     "未勝利圏": 0.4197,
+     "1勝クラス": 0.4384,
+     "2勝クラス": 0.087,
+     "3勝/OP": 0.0522,
+     "重賞掲示板": 0.0027
+    },
+    "p_levels": [
+     0.4197018781371212,
+     0.4384267921200234,
+     0.08697454662925828,
+     0.05222528673187708,
+     0.0026714963817202854
+    ],
+    "p_graded12": 0.002601583203915729,
+    "p_graded24": 0.006062986392168346,
+    "p_graded_class": 0.054896783113597365,
+    "pred_level": 1,
+    "pred_level_name": "1勝クラス",
+    "expected_level": 0.7797377311010524,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     1,
+     0,
+     2,
+     3,
+     4
+    ],
+    "cohort_top_pct": 36.05095541401273,
+    "reason_head": "top3_A_L0",
+    "reasons": [
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 0.846,
+      "phrase": "勝利数が少ない",
+      "directed": false
+     },
+     {
+      "feature": "best_pos",
+      "label": "最高着順",
+      "contrib": 0.156,
+      "phrase": "最高着順が低い",
+      "directed": false
+     },
+     {
+      "feature": "pos_3",
+      "label": "3走目の着順",
+      "contrib": -0.123,
+      "phrase": "3走目の着順が良い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-05-27",
+      "place": "京都",
+      "class": "G3",
+      "race": "葵S",
+      "label": "葵S(G3)",
+      "pos": 2,
+      "field": 18,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1200
+     },
+     "n_starts_12m": 7,
+     "verdict": "外れ",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ルガル**（牡、父ドゥラメンテ、杉山晴紀厩舎）。新馬 9 着/9頭（2.4 秒差） → 未勝利 2 着/16頭 → 未勝利 4 着/16頭（0.6 秒差） と 3 走して未勝利です。\nAI が見る 1 年以内の重賞掲示板（5 着以内）の確率は **1% 未満** と、ほぼ見ていません。離脱（1 年間出走なし）の確率は 3%。\n走り続けた場合の 1 年後の居場所は「1勝クラス」が最有力（確率 44%）、次いで「未勝利圏」（42%）。\n判断材料は、勝利数が少ない、最高着順が低い、3走目の着順が良い。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 1 段上を見ています。\n（結果: 葵S(G3) 2 着/18頭（0.1 秒差）で「重賞掲示板」。外れ）"
+   },
+   {
+    "馬名": "ミルトクレイモー",
+    "horse_id": 2020100815,
+    "k": 3,
+    "why": "P(重賞) 最小で重賞掲示板に到達",
+    "debut_year": 2022,
+    "base_date": "2022-09-25",
+    "sex": "牡",
+    "sire": "バゴ",
+    "trainer": "中村直也",
+    "trainer_code": 1186,
+    "runs": [
+     {
+      "date": "2022-08-20",
+      "place": "札幌",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 3,
+      "field": 12,
+      "margin": 0.7,
+      "win": false,
+      "surface": "芝",
+      "dist": 1500
+     },
+     {
+      "date": "2022-09-04",
+      "place": "札幌",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 2,
+      "field": 14,
+      "margin": 0.7,
+      "win": false,
+      "surface": "芝",
+      "dist": 1500
+     },
+     {
+      "date": "2022-09-25",
+      "place": "中京",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 6,
+      "field": 15,
+      "margin": 0.5,
+      "win": false,
+      "surface": "芝",
+      "dist": 1400
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.015512640914215647,
+    "p_level_given_ran": {
+     "未勝利圏": 0.4696,
+     "1勝クラス": 0.3756,
+     "2勝クラス": 0.0403,
+     "3勝/OP": 0.1114,
+     "重賞掲示板": 0.003
+    },
+    "p_levels": [
+     0.4696247550209157,
+     0.37564090742579964,
+     0.04029541706903956,
+     0.11140885030607538,
+     0.003030070178169676
+    ],
+    "p_graded12": 0.002983065787550856,
+    "p_graded24": 0.009741910387296049,
+    "p_graded_class": 0.11443892048424505,
+    "pred_level": 1,
+    "pred_level_name": "1勝クラス",
+    "expected_level": 0.8025785731947835,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     0,
+     1,
+     3,
+     2,
+     4
+    ],
+    "cohort_top_pct": 34.038216560509554,
+    "reason_head": "top3_A_L0",
+    "reasons": [
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 0.836,
+      "phrase": "勝利数が少ない",
+      "directed": false
+     },
+     {
+      "feature": "mean_relpos",
+      "label": "平均相対着順",
+      "contrib": -0.211,
+      "phrase": "平均相対着順が良い",
+      "directed": true
+     },
+     {
+      "feature": "best_pos",
+      "label": "最高着順",
+      "contrib": 0.142,
+      "phrase": "最高着順が低い",
+      "directed": false
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-03-18",
+      "place": "中京",
+      "class": "G3",
+      "race": "ファルコンS",
+      "label": "ファルコンS(G3)",
+      "pos": 4,
+      "field": 14,
+      "margin": 0.6,
+      "win": false,
+      "surface": "芝",
+      "dist": 1400
+     },
+     "n_starts_12m": 8,
+     "verdict": "外れ",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ミルトクレイモー**（牡、父バゴ、中村直也厩舎）。新馬 3 着/12頭（0.7 秒差） → 未勝利 2 着/14頭（0.7 秒差） → 未勝利 6 着/15頭（0.5 秒差） と 3 走して未勝利です。\nAI が見る 1 年以内の重賞掲示板（5 着以内）の確率は **1% 未満** と、ほぼ見ていません。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「未勝利圏」が最有力（確率 47%）、次いで「1勝クラス」（38%）。確率を均した予測クラス（規則との比較に使う値）は「1勝クラス」です。\n判断材料は、勝利数が少ない、平均相対着順が良い、最高着順が低い。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 1 段上を見ています。\n（結果: ファルコンS(G3) 4 着/14頭（0.6 秒差）で「重賞掲示板」。外れ）"
+   },
+   {
+    "馬名": "カレンパンピナップ",
+    "horse_id": 2020103314,
+    "k": 3,
+    "why": "離脱確率が最小なのに離脱",
+    "debut_year": 2022,
+    "base_date": "2022-12-10",
+    "sex": "牡",
+    "sire": "デクラレーションオブウォー",
+    "trainer": "平田修",
+    "trainer_code": 1082,
+    "runs": [
+     {
+      "date": "2022-09-19",
+      "place": "中京",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 2,
+      "field": 14,
+      "margin": 0.0,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2022-10-16",
+      "place": "新潟",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 4,
+      "field": 10,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2022-12-10",
+      "place": "中京",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 3,
+      "field": 16,
+      "margin": 0.3,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.007872305474081073,
+    "p_level_given_ran": {
+     "未勝利圏": 0.3011,
+     "1勝クラス": 0.2729,
+     "2勝クラス": 0.0612,
+     "3勝/OP": 0.2575,
+     "重賞掲示板": 0.1073
+    },
+    "p_levels": [
+     0.3010857586334233,
+     0.2729046665856694,
+     0.06117613731936485,
+     0.2575372014668098,
+     0.1072962359947326
+    ],
+    "p_graded12": 0.10645156724876298,
+    "p_graded24": 0.16734511792721893,
+    "p_graded_class": 0.3648334374615424,
+    "pred_level": 2,
+    "pred_level_name": "2勝クラス",
+    "expected_level": 1.597053489603759,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     0,
+     1,
+     3,
+     4,
+     2
+    ],
+    "cohort_top_pct": 6.445859872611464,
+    "reason_head": "top3_A_L0",
+    "reasons": [
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 0.801,
+      "phrase": "勝利数が少ない",
+      "directed": false
+     },
+     {
+      "feature": "mean_relpos",
+      "label": "平均相対着順",
+      "contrib": -0.218,
+      "phrase": "平均相対着順が良い",
+      "directed": true
+     },
+     {
+      "feature": "relpos_3",
+      "label": "3走目の相対着順(0=1着)",
+      "contrib": -0.175,
+      "phrase": "3走目の相対着順が良い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 0,
+     "actual_level": null,
+     "actual_level_name": "離脱（12 か月出走なし）",
+     "best_race": null,
+     "n_starts_12m": 0,
+     "verdict": "外れ（離脱は読めず）"
+    },
+    "text": "**カレンパンピナップ**（牡、父デクラレーションオブウォー、平田修厩舎）。新馬 2 着/14頭 → 未勝利 4 着/10頭（0.1 秒差） → 未勝利 3 着/16頭（0.3 秒差） と 3 走して未勝利です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **11%** と見ます（同世代の上位 7%）。離脱（1 年間出走なし）の確率は 1%。\n走り続けた場合の 1 年後の居場所は「未勝利圏」が最有力（確率 30%）、次いで「1勝クラス」（27%）。確率を均した予測クラス（規則との比較に使う値）は「2勝クラス」です。\n判断材料は、勝利数が少ない、平均相対着順が良い、3走目の相対着順が良い。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 2 段上を見ています。\n（結果: 12 か月以内の出走なし＝離脱。外れ（離脱は読めず））"
+   }
+  ]
+ },
+ {
+  "section": "「更新」例: 同じ馬の k=1 → k=3",
+  "cards": [
+   {
+    "馬名": "ドゥレッツァ",
+    "horse_id": 2020103650,
+    "k": 1,
+    "why": "更新例 1 走目時点",
+    "debut_year": 2022,
+    "base_date": "2022-09-19",
+    "sex": "牡",
+    "sire": "ドゥラメンテ",
+    "trainer": "尾関知人",
+    "trainer_code": 1103,
+    "runs": [
+     {
+      "date": "2022-09-19",
+      "place": "中山",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 3,
+      "field": 10,
+      "margin": 0.6,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.013473386397878585,
+    "p_level_given_ran": {
+     "未勝利圏": 0.4788,
+     "1勝クラス": 0.2659,
+     "2勝クラス": 0.032,
+     "3勝/OP": 0.1324,
+     "重賞掲示板": 0.0909
+    },
+    "p_levels": [
+     0.47881806485445855,
+     0.26586393306480166,
+     0.032018903479060896,
+     0.13241558702202078,
+     0.09088351157965806
+    ],
+    "p_graded12": 0.08965900291094926,
+    "p_graded24": 0.09415098532598454,
+    "p_graded_class": 0.22329909860167885,
+    "pred_level": 2,
+    "pred_level_name": "2勝クラス",
+    "expected_level": 1.090682547407618,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     0,
+     1,
+     3,
+     4,
+     2
+    ],
+    "cohort_top_pct": 8.28428166557663,
+    "reason_head": "top3_A_L0",
+    "reasons": [
+     {
+      "feature": "best_pos",
+      "label": "最高着順",
+      "contrib": -0.086,
+      "phrase": "最高着順が良い",
+      "directed": true
+     },
+     {
+      "feature": "jky_top3_1",
+      "label": "1走目の騎手の3着内率(直近2年)",
+      "contrib": -0.079,
+      "phrase": "1走目の騎手の3着内率が高い",
+      "directed": true
+     },
+     {
+      "feature": "trn_te_lvl",
+      "label": "調教師の過去馬の平均到達レベル",
+      "contrib": -0.055,
+      "phrase": "調教師の過去馬の到達レベルが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 3,
+     "actual_level_name": "3勝/OP",
+     "best_race": {
+      "date": "2023-08-19",
+      "place": "新潟",
+      "class": "3勝",
+      "race": "日本海S",
+      "label": "日本海S(3勝)",
+      "pos": 1,
+      "field": 13,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2200
+     },
+     "n_starts_12m": 4,
+     "verdict": "惜しい",
+     "graded12": false,
+     "graded24": true
+    },
+    "text": "**ドゥレッツァ**（牡、父ドゥラメンテ、尾関知人厩舎）。新馬 3 着/10頭（0.6 秒差） と、デビュー戦は勝てませんでした。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **9%** と見ます（同世代の上位 9%）。離脱（1 年間出走なし）の確率は 1%。\n走り続けた場合の 1 年後の居場所は「未勝利圏」が最有力（確率 48%）、次いで「1勝クラス」（27%）。確率を均した予測クラス（規則との比較に使う値）は「2勝クラス」です。\n判断材料は、最高着順が良い、1走目の騎手の3着内率が高い、調教師の過去馬の到達レベルが高い。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 2 段上を見ています。\n（結果: 日本海S(3勝) 1 着/13頭で「3勝/OP」、2 年以内には重賞掲示板に到達。惜しい）"
+   },
+   {
+    "馬名": "ドゥレッツァ",
+    "horse_id": 2020103650,
+    "k": 3,
+    "why": "更新例 3 走目時点",
+    "debut_year": 2022,
+    "base_date": "2023-04-02",
+    "sex": "牡",
+    "sire": "ドゥラメンテ",
+    "trainer": "尾関知人",
+    "trainer_code": 1103,
+    "runs": [
+     {
+      "date": "2022-09-19",
+      "place": "中山",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 3,
+      "field": 10,
+      "margin": 0.6,
+      "win": false,
+      "surface": "芝",
+      "dist": 2000
+     },
+     {
+      "date": "2022-11-12",
+      "place": "東京",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 1,
+      "field": 11,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     },
+     {
+      "date": "2023-04-02",
+      "place": "中山",
+      "class": "1勝",
+      "race": "山吹賞",
+      "label": "山吹賞(1勝)",
+      "pos": 1,
+      "field": 6,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2200
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.019816258868566188,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0026,
+     "1勝クラス": 0.0249,
+     "2勝クラス": 0.1037,
+     "3勝/OP": 0.4264,
+     "重賞掲示板": 0.4423
+    },
+    "p_levels": [
+     0.002638064881034278,
+     0.024932021824174113,
+     0.10373102894422498,
+     0.42636374302120733,
+     0.4423351413293593
+    ],
+    "p_graded12": 0.4335697136621129,
+    "p_graded24": 0.48164144207753395,
+    "p_graded_class": 0.8686988843505666,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.2808258740936838,
+    "rule_level": 2,
+    "rule_level_name": "2勝クラス",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 1.4267515923566878,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.442,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 0.99,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "mean_agari_rank",
+      "label": "平均上り3F順位",
+      "contrib": 0.463,
+      "phrase": "平均上り3F順位が良い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-10-22",
+      "place": "京都",
+      "class": "G1",
+      "race": "菊花賞",
+      "label": "菊花賞(G1)",
+      "pos": 1,
+      "field": 17,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 3000
+     },
+     "n_starts_12m": 4,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ドゥレッツァ**（牡、父ドゥラメンテ、尾関知人厩舎）。新馬 3 着/10頭（0.6 秒差） → 未勝利 1 着/11頭 → 山吹賞(1勝) 1 着/6頭 と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **43%** と見ます（同世代の上位 2%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 44%）、次いで「3勝/OP」（43%）。重賞で着外以上まで含めた「重賞級」なら 87% と読みます。\n根拠は、勝利数が多い、平均着差が小さい、平均上り3F順位が良い。規則（勝てば 1 段上げ）なら「2勝クラス」止まりで、AI はそれより 2 段上を見ています。\n（結果: 菊花賞(G1) 1 着/17頭で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "リバティアイランド",
+    "horse_id": 2020103656,
+    "k": 1,
+    "why": "更新例 1 走目時点",
+    "debut_year": 2022,
+    "base_date": "2022-07-30",
+    "sex": "牝",
+    "sire": "ドゥラメンテ",
+    "trainer": "中内田充",
+    "trainer_code": 1137,
+    "runs": [
+     {
+      "date": "2022-07-30",
+      "place": "新潟",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 12,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     }
+    ],
+    "n_wins": 1,
+    "p_dropout": 0.013287211072994626,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0035,
+     "1勝クラス": 0.0551,
+     "2勝クラス": 0.0215,
+     "3勝/OP": 0.2393,
+     "重賞掲示板": 0.6806
+    },
+    "p_levels": [
+     0.003475211678707035,
+     0.05507873101133665,
+     0.021531960877089848,
+     0.23928892629424983,
+     0.6806251701386166
+    ],
+    "p_graded12": 0.6715815598413919,
+    "p_graded24": 0.7177247788504618,
+    "p_graded_class": 0.9199140964328664,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.538510112202732,
+    "rule_level": 1,
+    "rule_level_name": "1勝クラス",
+    "level_order": [
+     4,
+     3,
+     1,
+     2,
+     0
+    ],
+    "cohort_top_pct": 0.06540222367560497,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "margin_1",
+      "label": "1走目の勝ち馬との着差(秒)",
+      "contrib": 1.026,
+      "phrase": "1走目の勝ち馬との着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "agari_1",
+      "label": "1走目の上り3F(秒)",
+      "contrib": 0.992,
+      "phrase": "1走目の上り3Fが速い",
+      "directed": true
+     },
+     {
+      "feature": "pos_1",
+      "label": "1走目の着順",
+      "contrib": 0.863,
+      "phrase": "1走目の着順が良い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2022-12-11",
+      "place": "阪神",
+      "class": "G1",
+      "race": "阪神JF",
+      "label": "阪神JF(G1)",
+      "pos": 1,
+      "field": 18,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     },
+     "n_starts_12m": 4,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**リバティアイランド**（牝、父ドゥラメンテ、中内田充厩舎）。新馬 1 着/12頭 と、デビュー戦を勝ちました。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **67%** と見ます（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 1%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 68%）、次いで「3勝/OP」（24%）。重賞で着外以上まで含めた「重賞級」なら 92% と読みます。\n根拠は、1走目の勝ち馬との着差が小さい、1走目の上り3Fが速い、1走目の着順が良い。規則（勝てば 1 段上げ）なら「1勝クラス」止まりで、AI はそれより 3 段上を見ています。\n（結果: 阪神JF(G1) 1 着/18頭で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "リバティアイランド",
+    "horse_id": 2020103656,
+    "k": 3,
+    "why": "更新例 3 走目時点",
+    "debut_year": 2022,
+    "base_date": "2022-12-11",
+    "sex": "牝",
+    "sire": "ドゥラメンテ",
+    "trainer": "中内田充",
+    "trainer_code": 1137,
+    "runs": [
+     {
+      "date": "2022-07-30",
+      "place": "新潟",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 1,
+      "field": 12,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2022-10-29",
+      "place": "東京",
+      "class": "G3",
+      "race": "アルテミスS",
+      "label": "アルテミスS(G3)",
+      "pos": 2,
+      "field": 10,
+      "margin": 0.1,
+      "win": false,
+      "surface": "芝",
+      "dist": 1600
+     },
+     {
+      "date": "2022-12-11",
+      "place": "阪神",
+      "class": "G1",
+      "race": "阪神JF",
+      "label": "阪神JF(G1)",
+      "pos": 1,
+      "field": 18,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     }
+    ],
+    "n_wins": 2,
+    "p_dropout": 0.03181586338343837,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0005,
+     "1勝クラス": 0.004,
+     "2勝クラス": 0.0075,
+     "3勝/OP": 0.1,
+     "重賞掲示板": 0.888
+    },
+    "p_levels": [
+     0.0005396269211681828,
+     0.0040023472562445254,
+     0.0074812818032764525,
+     0.0999660069191931,
+     0.8880107371001178
+    ],
+    "p_graded12": 0.8597579088055141,
+    "p_graded24": 0.8588003733182401,
+    "p_graded_class": 0.9879767440193109,
+    "pred_level": 4,
+    "pred_level_name": "重賞掲示板",
+    "expected_level": 3.870905880020848,
+    "rule_level": 4,
+    "rule_level_name": "重賞掲示板",
+    "level_order": [
+     4,
+     3,
+     2,
+     1,
+     0
+    ],
+    "cohort_top_pct": 0.025477707006369425,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 1.42,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 1.149,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "lvl_3",
+      "label": "3走目のクラス",
+      "contrib": 0.506,
+      "phrase": "3走目の出走クラスが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2023-04-09",
+      "place": "阪神",
+      "class": "G1",
+      "race": "桜花賞",
+      "label": "桜花賞(G1)",
+      "pos": 1,
+      "field": 18,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 1600
+     },
+     "n_starts_12m": 4,
+     "verdict": "的中",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**リバティアイランド**（牝、父ドゥラメンテ、中内田充厩舎）。新馬 1 着/12頭 → アルテミスS(G3) 2 着/10頭（0.1 秒差） → 阪神JF(G1) 1 着/18頭 と 3 走で 2 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **86%** とかなり高く見ています（同世代の上位 1%）。離脱（1 年間出走なし）の確率は 3%。\n走り続けた場合の 1 年後の居場所は「重賞掲示板」が最有力（確率 89%）。\n根拠は、平均着差が小さい、勝利数が多い、3走目の出走クラスが高い。規則（勝てば 1 段上げ）でも「重賞掲示板」で、AI の見立てと同じです。\n（結果: 桜花賞(G1) 1 着/18頭で「重賞掲示板」。的中）"
+   },
+   {
+    "馬名": "ドゥラエレーデ",
+    "horse_id": 2020103626,
+    "k": 1,
+    "why": "更新例 1 走目時点",
+    "debut_year": 2022,
+    "base_date": "2022-06-26",
+    "sex": "牡",
+    "sire": "ドゥラメンテ",
+    "trainer": "池添学",
+    "trainer_code": 1144,
+    "runs": [
+     {
+      "date": "2022-06-26",
+      "place": "阪神",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 5,
+      "field": 12,
+      "margin": 0.7,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     }
+    ],
+    "n_wins": 0,
+    "p_dropout": 0.026471145818807523,
+    "p_level_given_ran": {
+     "未勝利圏": 0.4418,
+     "1勝クラス": 0.2714,
+     "2勝クラス": 0.0288,
+     "3勝/OP": 0.1856,
+     "重賞掲示板": 0.0724
+    },
+    "p_levels": [
+     0.44178677216565343,
+     0.27143248411786697,
+     0.028766401014863413,
+     0.18562850476282058,
+     0.07238583793879565
+    ],
+    "p_graded12": 0.07046970186750122,
+    "p_graded24": 0.07904645204259535,
+    "p_graded_class": 0.2580143427016162,
+    "pred_level": 2,
+    "pred_level_name": "2勝クラス",
+    "expected_level": 1.175394152191238,
+    "rule_level": 0,
+    "rule_level_name": "未勝利圏",
+    "level_order": [
+     0,
+     1,
+     3,
+     4,
+     2
+    ],
+    "cohort_top_pct": 10.13734466971877,
+    "reason_head": "top3_A_L0",
+    "reasons": [
+     {
+      "feature": "pos_1",
+      "label": "1走目の着順",
+      "contrib": 0.189,
+      "phrase": "1走目の着順が悪い",
+      "directed": false
+     },
+     {
+      "feature": "weight_1",
+      "label": "1走目の馬体重",
+      "contrib": -0.145,
+      "phrase": "1走目の馬体重",
+      "directed": null
+     },
+     {
+      "feature": "trn_te_lvl",
+      "label": "調教師の過去馬の平均到達レベル",
+      "contrib": -0.071,
+      "phrase": "調教師の過去馬の到達レベルが高い",
+      "directed": true
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2022-12-28",
+      "place": "中山",
+      "class": "G1",
+      "race": "ホープフルS",
+      "label": "ホープフルS(G1)",
+      "pos": 1,
+      "field": 18,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     },
+     "n_starts_12m": 5,
+     "verdict": "外れ",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ドゥラエレーデ**（牡、父ドゥラメンテ、池添学厩舎）。新馬 5 着/12頭（0.7 秒差） と、デビュー戦は勝てませんでした。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **7%** と見ます（同世代の上位 11%）。離脱（1 年間出走なし）の確率は 3%。\n走り続けた場合の 1 年後の居場所は「未勝利圏」が最有力（確率 44%）、次いで「1勝クラス」（27%）。確率を均した予測クラス（規則との比較に使う値）は「2勝クラス」です。\n判断材料は、1走目の着順が悪い、1走目の馬体重、調教師の過去馬の到達レベルが高い。規則（勝てば 1 段上げ）なら「未勝利圏」止まりで、AI はそれより 2 段上を見ています。\n（結果: ホープフルS(G1) 1 着/18頭で「重賞掲示板」。外れ）"
+   },
+   {
+    "馬名": "ドゥラエレーデ",
+    "horse_id": 2020103626,
+    "k": 3,
+    "why": "更新例 3 走目時点",
+    "debut_year": 2022,
+    "base_date": "2022-08-20",
+    "sex": "牡",
+    "sire": "ドゥラメンテ",
+    "trainer": "池添学",
+    "trainer_code": 1144,
+    "runs": [
+     {
+      "date": "2022-06-26",
+      "place": "阪神",
+      "class": "新馬",
+      "race": null,
+      "label": "新馬",
+      "pos": 5,
+      "field": 12,
+      "margin": 0.7,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-08-06",
+      "place": "札幌",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 2,
+      "field": 10,
+      "margin": 0.3,
+      "win": false,
+      "surface": "芝",
+      "dist": 1800
+     },
+     {
+      "date": "2022-08-20",
+      "place": "札幌",
+      "class": "未勝利",
+      "race": null,
+      "label": "未勝利",
+      "pos": 1,
+      "field": 12,
+      "margin": 0.0,
+      "win": true,
+      "surface": "ダ",
+      "dist": 1700
+     }
+    ],
+    "n_wins": 1,
+    "p_dropout": 0.017043590778342832,
+    "p_level_given_ran": {
+     "未勝利圏": 0.0048,
+     "1勝クラス": 0.4884,
+     "2勝クラス": 0.0894,
+     "3勝/OP": 0.3386,
+     "重賞掲示板": 0.0787
+    },
+    "p_levels": [
+     0.004828065265110211,
+     0.4884120120238772,
+     0.08941637061209606,
+     0.3386247019597276,
+     0.07871885013918896
+    ],
+    "p_graded12": 0.07737719827087493,
+    "p_graded24": 0.079590958208473,
+    "p_graded_class": 0.41734355209891655,
+    "pred_level": 3,
+    "pred_level_name": "3勝/OP",
+    "expected_level": 1.9979942596840081,
+    "rule_level": 1,
+    "rule_level_name": "1勝クラス",
+    "level_order": [
+     1,
+     3,
+     2,
+     4,
+     0
+    ],
+    "cohort_top_pct": 7.898089171974522,
+    "reason_head": "top3_A_L4",
+    "reasons": [
+     {
+      "feature": "mean_margin",
+      "label": "平均着差(秒)",
+      "contrib": 0.784,
+      "phrase": "平均着差が小さい",
+      "directed": true
+     },
+     {
+      "feature": "n_wins",
+      "label": "勝利数",
+      "contrib": 0.34,
+      "phrase": "勝利数が多い",
+      "directed": true
+     },
+     {
+      "feature": "turf_3",
+      "label": "3走目が芝",
+      "contrib": -0.338,
+      "phrase": "3走目が芝",
+      "directed": null
+     }
+    ],
+    "outcome": {
+     "ran_12m": 1,
+     "actual_level": 4,
+     "actual_level_name": "重賞掲示板",
+     "best_race": {
+      "date": "2022-12-28",
+      "place": "中山",
+      "class": "G1",
+      "race": "ホープフルS",
+      "label": "ホープフルS(G1)",
+      "pos": 1,
+      "field": 18,
+      "margin": 0.0,
+      "win": true,
+      "surface": "芝",
+      "dist": 2000
+     },
+     "n_starts_12m": 3,
+     "verdict": "惜しい",
+     "graded12": true,
+     "graded24": true
+    },
+    "text": "**ドゥラエレーデ**（牡、父ドゥラメンテ、池添学厩舎）。新馬 5 着/12頭（0.7 秒差） → 未勝利 2 着/10頭（0.3 秒差） → 未勝利 1 着/12頭 と 3 走で 1 勝です。\nAI は 1 年以内に重賞で掲示板（5 着以内）に載る確率を **8%** と見ます（同世代の上位 8%）。離脱（1 年間出走なし）の確率は 2%。\n走り続けた場合の 1 年後の居場所は「1勝クラス」が最有力（確率 49%）、次いで「3勝/OP」（34%）。確率を均した予測クラス（規則との比較に使う値）は「3勝/OP」です。\n根拠は、平均着差が小さい、勝利数が多い、3走目が芝。規則（勝てば 1 段上げ）なら「1勝クラス」止まりで、AI はそれより 2 段上を見ています。\n（結果: ホープフルS(G1) 1 着/18頭で「重賞掲示板」。惜しい）"
+   }
+  ]
+ }
+]

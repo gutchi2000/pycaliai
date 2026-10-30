@@ -1,0 +1,139 @@
+{
+  "weekly": {
+    "files": 92,
+    "unmatched_widths": {},
+    "race_rows": 2860,
+    "horse_rows": 39404,
+    "horse_rows_by_width": {
+      "46": 29019,
+      "49": 10224,
+      "44": 161
+    }
+  },
+  "kekka": {
+    "files": 89,
+    "rows": 38608,
+    "rows_pos0_or_nan(取消/除外/中止)": 297,
+    "date_from_filename_equals_日付": true,
+    "rows_ran": 38311,
+    "races": 2802,
+    "dup_rid16_umaban": 0
+  },
+  "weekly_races": 2860,
+  "weekly_jump_races": {
+    "surface_障": 50
+  },
+  "join": {
+    "kekka_ran_rows": 38311,
+    "race_in_weekly": 37741,
+    "races_kekka_only(assumed_jump)": 50,
+    "horse_row_matched": 37741,
+    "horse_row_name_agree": 37740,
+    "horse_row_name_disagree": 1,
+    "in_weekly_race_but_no_horse_row": 0
+  },
+  "excluded_jump_rows_by_reason": {
+    "surface_障": 507
+  },
+  "excluded_flat_rows_without_horse_row_or_name_mismatch": 1,
+  "unmapped_class_names": {},
+  "surface_values_after_norm": {
+    "ダ": 18641,
+    "芝": 18592
+  },
+  "place_values": [
+    "中京",
+    "中山",
+    "京都",
+    "函館",
+    "小倉",
+    "新潟",
+    "札幌",
+    "東京",
+    "福島",
+    "阪神"
+  ],
+  "jockey_code_mapped_rate": 0.99576,
+  "trainer_code_mapped_rate": 0.97663,
+  "trainer_unmapped_top": {
+    "柴田卓": 140,
+    "橋田宜長": 133,
+    "室井潔": 124,
+    "平岩大典": 111,
+    "手塚貴徳": 103,
+    "秋本大介": 102,
+    "松尾卓哉": 98,
+    "古賀大生": 36,
+    "荒山勝徳": 5,
+    "五十嵐冬": 4
+  },
+  "sire_name_in_master_rate": 0.98295,
+  "sire_type_missing_rate_rows": 0.90149,
+  "bms_type_missing_rate_rows": 0.12344,
+  "weight_available_rate_rows": 0.26571,
+  "ped": {
+    "ped_src_counts": {
+      "horse_history": 37233
+    },
+    "rows_unified_within_name": 0,
+    "horses_total": 10258,
+    "horses_in_master": 6637,
+    "horses_synthetic": 3621
+  },
+  "margin_fill": {
+    "rows": 37233,
+    "next_start_row_found": 27690,
+    "pos_agree": 27688,
+    "pos_disagree_nulled": 2,
+    "fill_rate": 0.74364,
+    "margin_describe": {
+      "count": 27688.0,
+      "mean": 1.206,
+      "std": 1.209,
+      "min": -0.0,
+      "25%": 0.4,
+      "50%": 0.9,
+      "75%": 1.7,
+      "max": 41.8
+    }
+  },
+  "rows_2026_flat": 37233,
+  "dup_horse_date_rows": 0,
+  "missing_rate_2026_rows": {
+    "margin": 0.25636,
+    "agari3f": 0.25636,
+    "agari_rank": 0.25636,
+    "weight": 0.73429,
+    "父タイプ名": 0.90149,
+    "母父タイプ名": 0.12344,
+    "生産者": 0.25577,
+    "birth_date": 0.25577,
+    "前走確定着順": 0.09489
+  },
+  "unknown_code_rate": {
+    "騎手コード": 0.00424,
+    "調教師コード": 0.02337
+  },
+  "elapsed_build_sec": 2.7,
+  "extend": {
+    "rows_total": 645268,
+    "rows_master": 608035,
+    "rows_2026": 37233,
+    "data_end_ext": "2026-10-18",
+    "horses_total": 71357,
+    "horses_new_2026": 3621,
+    "horses_new_true_debut": 3533,
+    "horses_new_age3_first_race_not_shinba(kept)": 834,
+    "horses_new_debut_age_counts": {
+      "2": 2024,
+      "3": 1579,
+      "4": 15,
+      "5": 2,
+      "7": 1
+    },
+    "horses_new_sire_type_missing": 0.942,
+    "jky_prior_g": 0.21362914963776755,
+    "jky_unknown_code_rows_2026": 158
+  },
+  "elapsed_sec": 4.6
+}
