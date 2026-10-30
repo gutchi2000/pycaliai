@@ -1,0 +1,26 @@
+{
+  "form_only(3走の成績/クラス/距離/芝ダ/間隔)": {
+    "n_feats": 39,
+    "qwk_test": 0.7173,
+    "auc_L4_test": 0.9329,
+    "auc_L1_test": 0.8791
+  },
+  "form+jockey": {
+    "n_feats": 45,
+    "qwk_test": 0.7194,
+    "auc_L4_test": 0.9337,
+    "auc_L1_test": 0.8803
+  },
+  "form+pedigree/trainer/breeder(as-of TE)": {
+    "n_feats": 58,
+    "qwk_test": 0.7187,
+    "auc_L4_test": 0.9342,
+    "auc_L1_test": 0.8801
+  },
+  "full": {
+    "n_feats": 66,
+    "qwk_test": 0.7207,
+    "auc_L4_test": 0.935,
+    "auc_L1_test": 0.879
+  }
+}
