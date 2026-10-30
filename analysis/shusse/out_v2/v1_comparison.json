@@ -1,0 +1,263 @@
+{
+  "k": 3,
+  "rows": {
+    "v1_def_all_horses": {
+      "desc": "v1 定義（出走ベース L4、離脱=L0）、全対象馬",
+      "n": 3925,
+      "qwk_argmax": 0.6512704692099043,
+      "qwk_expected_cut": 0.7202067429225165,
+      "multi_logloss": 0.7883366401402369,
+      "auc_ge_L1": 0.8826690642690642,
+      "auc_ge_L2": 0.8933717723923338,
+      "auc_ge_L3": 0.9227398940978948,
+      "auc_ge_L4": 0.9391113325031133,
+      "level_dist": {
+        "0": 0.5796178343949044,
+        "1": 0.2486624203821656,
+        "2": 0.05834394904458599,
+        "3": 0.04331210191082802,
+        "4": 0.07006369426751592
+      },
+      "qwk_expected_cut_ci95": [
+        0.6994032048172295,
+        0.7429559210765568
+      ],
+      "auc_ge_L4_ci95": [
+        0.9271204845814943,
+        0.9521210983108294
+      ],
+      "auc_ge_L1_ci95": [
+        0.8727800363302166,
+        0.8930258290057337
+      ],
+      "rule": {
+        "n": 3925,
+        "qwk": 0.5400577880801661,
+        "auc_ge_L1": 0.8694834498834498,
+        "auc_ge_L2": 0.8776500633906756,
+        "auc_ge_L3": 0.8941815187911661,
+        "auc_ge_L4": 0.9091402241594022
+      }
+    },
+    "v1_def_model_eval_on_ran": {
+      "desc": "同じ v1 モデルを走った馬だけで評価（y_level_v1）",
+      "n": 3407,
+      "qwk_argmax": 0.6534375176684902,
+      "qwk_expected_cut": 0.7241566259978941,
+      "multi_logloss": 0.8575956459288707,
+      "auc_ge_L1": 0.8758793397837223,
+      "auc_ge_L2": 0.8829038642984252,
+      "auc_ge_L3": 0.9148525517984356,
+      "auc_ge_L4": 0.9330988041332869,
+      "level_dist": {
+        "0": 0.5157029644848841,
+        "1": 0.2864690343410625,
+        "2": 0.06721455826240094,
+        "3": 0.049897270325799825,
+        "4": 0.08071617258585266
+      },
+      "qwk_expected_cut_ci95": [
+        0.7011810251244738,
+        0.7451081129710353
+      ],
+      "auc_ge_L4_ci95": [
+        0.9140903478191962,
+        0.9451167510840545
+      ],
+      "auc_ge_L1_ci95": [
+        0.8638693392906244,
+        0.8856503211156055
+      ]
+    },
+    "dropout_separated_v1_L4": {
+      "desc": "離脱分離のみ（走った馬で学習・評価、L4 は出走ベース）",
+      "n": 3407,
+      "qwk_argmax": 0.6627965396726048,
+      "qwk_expected_cut": 0.7251664423950797,
+      "multi_logloss": 0.8432904475670397,
+      "auc_ge_L1": 0.8767944671530329,
+      "auc_ge_L2": 0.8850525666624323,
+      "auc_ge_L3": 0.9164298340780979,
+      "auc_ge_L4": 0.9340938116800186,
+      "level_dist": {
+        "0": 0.5157029644848841,
+        "1": 0.2864690343410625,
+        "2": 0.06721455826240094,
+        "3": 0.049897270325799825,
+        "4": 0.08071617258585266
+      },
+      "qwk_expected_cut_ci95": [
+        0.7022818034406716,
+        0.7466057275782767
+      ],
+      "auc_ge_L4_ci95": [
+        0.9156856991199278,
+        0.9456871958895062
+      ],
+      "auc_ge_L1_ci95": [
+        0.8656568259786702,
+        0.88722673959179
+      ],
+      "rule": {
+        "n": 3407,
+        "qwk": 0.5378113545863261,
+        "auc_ge_L1": 0.8641430813542367,
+        "auc_ge_L2": 0.8668792568247631,
+        "auc_ge_L3": 0.8849740912987732,
+        "auc_ge_L4": 0.9006461163357715
+      }
+    },
+    "new_def_dropout_separated_board_L4": {
+      "desc": "新定義（離脱分離 + 重賞掲示板 L4）",
+      "n": 3407,
+      "qwk_argmax": 0.660879318507113,
+      "qwk_expected_cut": 0.7256423194844861,
+      "multi_logloss": 0.8298157357804405,
+      "auc_ge_L1": 0.8771935634087027,
+      "auc_ge_L2": 0.8851871998575493,
+      "auc_ge_L3": 0.9169571121850556,
+      "auc_ge_L4": 0.9520280144483967,
+      "level_dist": {
+        "0": 0.5157029644848841,
+        "1": 0.2864690343410625,
+        "2": 0.06721455826240094,
+        "3": 0.09832697387731142,
+        "4": 0.03228646903434106
+      },
+      "qwk_expected_cut_ci95": [
+        0.7049031980896462,
+        0.7473825388733862
+      ],
+      "auc_ge_L4_ci95": [
+        0.9389186918628987,
+        0.9653959322452101
+      ],
+      "auc_ge_L1_ci95": [
+        0.8660234663061755,
+        0.8873316851189846
+      ],
+      "rule": {
+        "n": 3407,
+        "qwk": 0.5515440260978175,
+        "auc_ge_L1": 0.8641430813542367,
+        "auc_ge_L2": 0.8668792568247631,
+        "auc_ge_L3": 0.8849740912987732,
+        "auc_ge_L4": 0.9282143546474756
+      }
+    }
+  },
+  "L4_reclassification_test": {
+    "v1_L4_count": 275,
+    "v1_L4_that_are_dropout": 0,
+    "v1_L4_now_L4_board": 110,
+    "v1_L4_now_L3_unplaced": 165,
+    "v1_L0_that_are_dropout": 518,
+    "v1_L0_count": 2275
+  },
+  "named_horses": [
+    {
+      "馬名": "ミッキーカプチーノ",
+      "v1_model_pL4": 0.9,
+      "v1_model_pred_level": 4,
+      "new_p_dropout": 0.038,
+      "new_pL4_given_ran": 0.557,
+      "new_pL3_given_ran": 0.394,
+      "new_p_graded12": 0.536,
+      "new_pred_level_given_ran": 4,
+      "actual_ran_12m": 0,
+      "actual_y_level_v1": 0,
+      "actual_y_level_new": null
+    },
+    {
+      "馬名": "ガストリック",
+      "v1_model_pL4": 0.784,
+      "v1_model_pred_level": 4,
+      "new_p_dropout": 0.035,
+      "new_pL4_given_ran": 0.483,
+      "new_pL3_given_ran": 0.43,
+      "new_p_graded12": 0.466,
+      "new_pred_level_given_ran": 4,
+      "actual_ran_12m": 0,
+      "actual_y_level_v1": 0,
+      "actual_y_level_new": null
+    },
+    {
+      "馬名": "ピピオラ",
+      "v1_model_pL4": 0.005,
+      "v1_model_pred_level": 0,
+      "new_p_dropout": 0.082,
+      "new_pL4_given_ran": 0.001,
+      "new_pL3_given_ran": 0.012,
+      "new_p_graded12": 0.001,
+      "new_pred_level_given_ran": 0,
+      "actual_ran_12m": 1,
+      "actual_y_level_v1": 4,
+      "actual_y_level_new": 3
+    },
+    {
+      "馬名": "ドゥレッツァ",
+      "v1_model_pL4": 0.83,
+      "v1_model_pred_level": 4,
+      "new_p_dropout": 0.02,
+      "new_pL4_given_ran": 0.442,
+      "new_pL3_given_ran": 0.426,
+      "new_p_graded12": 0.434,
+      "new_pred_level_given_ran": 4,
+      "actual_ran_12m": 1,
+      "actual_y_level_v1": 4,
+      "actual_y_level_new": 4
+    },
+    {
+      "馬名": "リバティアイランド",
+      "v1_model_pL4": 0.943,
+      "v1_model_pred_level": 4,
+      "new_p_dropout": 0.032,
+      "new_pL4_given_ran": 0.888,
+      "new_pL3_given_ran": 0.1,
+      "new_p_graded12": 0.86,
+      "new_pred_level_given_ran": 4,
+      "actual_ran_12m": 1,
+      "actual_y_level_v1": 4,
+      "actual_y_level_new": 4
+    },
+    {
+      "馬名": "ドゥラエレーデ",
+      "v1_model_pL4": 0.241,
+      "v1_model_pred_level": 3,
+      "new_p_dropout": 0.017,
+      "new_pL4_given_ran": 0.079,
+      "new_pL3_given_ran": 0.339,
+      "new_p_graded12": 0.077,
+      "new_pred_level_given_ran": 3,
+      "actual_ran_12m": 1,
+      "actual_y_level_v1": 4,
+      "actual_y_level_new": 4
+    },
+    {
+      "馬名": "ソールオリエンス",
+      "v1_model_pL4": 0.929,
+      "v1_model_pred_level": 4,
+      "new_p_dropout": 0.019,
+      "new_pL4_given_ran": 0.869,
+      "new_pL3_given_ran": 0.109,
+      "new_p_graded12": 0.852,
+      "new_pred_level_given_ran": 4,
+      "actual_ran_12m": 1,
+      "actual_y_level_v1": 4,
+      "actual_y_level_new": 4
+    },
+    {
+      "馬名": "タスティエーラ",
+      "v1_model_pL4": 0.907,
+      "v1_model_pred_level": 4,
+      "new_p_dropout": 0.017,
+      "new_pL4_given_ran": 0.591,
+      "new_pL3_given_ran": 0.347,
+      "new_p_graded12": 0.581,
+      "new_pred_level_given_ran": 4,
+      "actual_ran_12m": 1,
+      "actual_y_level_v1": 4,
+      "actual_y_level_new": 4
+    }
+  ]
+}

@@ -1,0 +1,411 @@
+{
+  "k": 3,
+  "features": [
+    "pos_1",
+    "relpos_1",
+    "field_1",
+    "lvl_1",
+    "win_1",
+    "dist_1",
+    "turf_1",
+    "main4_1",
+    "jky_top3_1",
+    "jky_n_1",
+    "jky_pair_top3_1",
+    "jky_age_1",
+    "margin_1",
+    "agari_1",
+    "agari_rank_1",
+    "weight_1",
+    "pos_2",
+    "relpos_2",
+    "field_2",
+    "lvl_2",
+    "win_2",
+    "dist_2",
+    "turf_2",
+    "main4_2",
+    "jky_top3_2",
+    "jky_n_2",
+    "jky_pair_top3_2",
+    "jky_age_2",
+    "margin_2",
+    "agari_2",
+    "agari_rank_2",
+    "weight_2",
+    "gap_days_2",
+    "pos_3",
+    "relpos_3",
+    "field_3",
+    "lvl_3",
+    "win_3",
+    "dist_3",
+    "turf_3",
+    "main4_3",
+    "jky_top3_3",
+    "jky_n_3",
+    "jky_pair_top3_3",
+    "jky_age_3",
+    "margin_3",
+    "agari_3",
+    "agari_rank_3",
+    "weight_3",
+    "gap_days_3",
+    "age_base",
+    "trainer_age",
+    "debut_month",
+    "debut_age",
+    "n_wins",
+    "n_top3",
+    "best_pos",
+    "mean_relpos",
+    "max_lvl",
+    "best_margin",
+    "mean_margin",
+    "best_agari_rank",
+    "mean_agari_rank",
+    "dist_mean",
+    "turf_share",
+    "trend_pos",
+    "trend_margin",
+    "weight_change",
+    "days_debut_to_k",
+    "sex",
+    "sire_type",
+    "bms_type",
+    "debut_dayage",
+    "trn_n_known",
+    "trn_te_ran",
+    "trn_te_lvl",
+    "trn_te_l4",
+    "trn_te_l3p",
+    "trn_n_debut",
+    "sire_n_known",
+    "sire_te_ran",
+    "sire_te_lvl",
+    "sire_te_l4",
+    "sire_te_l3p",
+    "sire_n_debut",
+    "brd_n_known",
+    "brd_te_ran",
+    "brd_te_lvl",
+    "brd_te_l4",
+    "brd_te_l3p",
+    "brd_n_debut"
+  ],
+  "categorical": {
+    "sex": [
+      "セ",
+      "牝",
+      "牡"
+    ],
+    "sire_type": [
+      "その他のエクリプス系",
+      "セントサイモン系",
+      "トゥルビヨン系",
+      "ナスルーラ系",
+      "ニアークティック系",
+      "ネイティヴダンサー系",
+      "マンノウォー系",
+      "ロイヤルチャージャー系"
+    ],
+    "bms_type": [
+      "その他のエクリプス系",
+      "セントサイモン系",
+      "トゥルビヨン系",
+      "ナスルーラ系",
+      "ニアークティック系",
+      "ネイティヴダンサー系",
+      "マンノウォー系",
+      "ロイヤルチャージャー系"
+    ]
+  },
+  "te_priors": {
+    "ran": 0.8757504759115536,
+    "lvl": 0.8098821168798596,
+    "l4": 0.030306830532564166,
+    "l3p": 0.11917899841150406
+  },
+  "te_m": 20.0,
+  "splits": {
+    "train": [
+      2013,
+      2019
+    ],
+    "valid": [
+      2020,
+      2021
+    ],
+    "test": [
+      2022,
+      2022
+    ],
+    "test2023_partial": [
+      2023,
+      2023
+    ]
+  },
+  "eligibility": "true_debut & debut_age in {2,3} & n_flat_starts >= k & base_date+365 <= 2025-12-28",
+  "target_level_name": {
+    "0": "未勝利圏",
+    "1": "1勝クラス",
+    "2": "2勝クラス",
+    "3": "3勝/OP",
+    "4": "重賞掲示板"
+  },
+  "heads": {
+    "D": {
+      "target": "y_dropout",
+      "params": {
+        "learning_rate": 0.03,
+        "feature_fraction": 0.8,
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "lambda_l2": 1.0,
+        "verbose": -1,
+        "seed": 20261031,
+        "num_threads": 8,
+        "objective": "binary",
+        "num_leaves": 31,
+        "min_data_in_leaf": 60
+      },
+      "best_iter": 256,
+      "grid": {
+        "grid": [
+          {
+            "num_leaves": 15,
+            "min_data_in_leaf": 30,
+            "valid_logloss": 0.2812751798430997,
+            "best_iter": 485
+          },
+          {
+            "num_leaves": 15,
+            "min_data_in_leaf": 60,
+            "valid_logloss": 0.2819615447814004,
+            "best_iter": 319
+          },
+          {
+            "num_leaves": 15,
+            "min_data_in_leaf": 120,
+            "valid_logloss": 0.28100080566764063,
+            "best_iter": 487
+          },
+          {
+            "num_leaves": 31,
+            "min_data_in_leaf": 30,
+            "valid_logloss": 0.28168407219330294,
+            "best_iter": 201
+          },
+          {
+            "num_leaves": 31,
+            "min_data_in_leaf": 60,
+            "valid_logloss": 0.2807681808949416,
+            "best_iter": 256
+          },
+          {
+            "num_leaves": 31,
+            "min_data_in_leaf": 120,
+            "valid_logloss": 0.28146237121796225,
+            "best_iter": 243
+          },
+          {
+            "num_leaves": 63,
+            "min_data_in_leaf": 30,
+            "valid_logloss": 0.28283058966006336,
+            "best_iter": 173
+          },
+          {
+            "num_leaves": 63,
+            "min_data_in_leaf": 60,
+            "valid_logloss": 0.2832436737955145,
+            "best_iter": 195
+          },
+          {
+            "num_leaves": 63,
+            "min_data_in_leaf": 120,
+            "valid_logloss": 0.28136368072966994,
+            "best_iter": 171
+          }
+        ],
+        "chosen": {
+          "num_leaves": 31,
+          "min_data_in_leaf": 60,
+          "valid_logloss": 0.2807681808949416,
+          "best_iter": 256
+        }
+      }
+    },
+    "A": {
+      "target": "y_level",
+      "population": "ran_12m == 1",
+      "params": {
+        "learning_rate": 0.03,
+        "feature_fraction": 0.8,
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "lambda_l2": 1.0,
+        "verbose": -1,
+        "seed": 20261031,
+        "num_threads": 8,
+        "objective": "multiclass",
+        "num_class": 5,
+        "num_leaves": 15,
+        "min_data_in_leaf": 120
+      },
+      "best_iter": 228,
+      "cutpoints": [
+        0.55,
+        1.2500000000000002,
+        1.9000000000000001,
+        2.5
+      ],
+      "grid": {
+        "grid": [
+          {
+            "num_leaves": 15,
+            "min_data_in_leaf": 30,
+            "valid_logloss": 0.8420895117508824,
+            "best_iter": 229
+          },
+          {
+            "num_leaves": 15,
+            "min_data_in_leaf": 60,
+            "valid_logloss": 0.8412875253462274,
+            "best_iter": 233
+          },
+          {
+            "num_leaves": 15,
+            "min_data_in_leaf": 120,
+            "valid_logloss": 0.840988494094601,
+            "best_iter": 228
+          },
+          {
+            "num_leaves": 31,
+            "min_data_in_leaf": 30,
+            "valid_logloss": 0.8440653180704448,
+            "best_iter": 177
+          },
+          {
+            "num_leaves": 31,
+            "min_data_in_leaf": 60,
+            "valid_logloss": 0.84360714567516,
+            "best_iter": 179
+          },
+          {
+            "num_leaves": 31,
+            "min_data_in_leaf": 120,
+            "valid_logloss": 0.8438556039071085,
+            "best_iter": 183
+          },
+          {
+            "num_leaves": 63,
+            "min_data_in_leaf": 30,
+            "valid_logloss": 0.8507351483171355,
+            "best_iter": 130
+          },
+          {
+            "num_leaves": 63,
+            "min_data_in_leaf": 60,
+            "valid_logloss": 0.8483499082253484,
+            "best_iter": 130
+          },
+          {
+            "num_leaves": 63,
+            "min_data_in_leaf": 120,
+            "valid_logloss": 0.848237436841504,
+            "best_iter": 151
+          }
+        ],
+        "chosen": {
+          "num_leaves": 15,
+          "min_data_in_leaf": 120,
+          "valid_logloss": 0.840988494094601,
+          "best_iter": 228
+        }
+      }
+    },
+    "B": {
+      "target": "y_graded24",
+      "population": "h24_complete",
+      "params": {
+        "learning_rate": 0.03,
+        "feature_fraction": 0.8,
+        "bagging_fraction": 0.8,
+        "bagging_freq": 1,
+        "lambda_l2": 1.0,
+        "verbose": -1,
+        "seed": 20261031,
+        "num_threads": 8,
+        "objective": "binary",
+        "num_leaves": 15,
+        "min_data_in_leaf": 120
+      },
+      "best_iter": 178,
+      "grid": {
+        "grid": [
+          {
+            "num_leaves": 15,
+            "min_data_in_leaf": 30,
+            "valid_logloss": 0.08981750939133679,
+            "best_iter": 168
+          },
+          {
+            "num_leaves": 15,
+            "min_data_in_leaf": 60,
+            "valid_logloss": 0.08995205720361997,
+            "best_iter": 175
+          },
+          {
+            "num_leaves": 15,
+            "min_data_in_leaf": 120,
+            "valid_logloss": 0.08951265057892004,
+            "best_iter": 178
+          },
+          {
+            "num_leaves": 31,
+            "min_data_in_leaf": 30,
+            "valid_logloss": 0.09025505694689956,
+            "best_iter": 129
+          },
+          {
+            "num_leaves": 31,
+            "min_data_in_leaf": 60,
+            "valid_logloss": 0.0915227365574302,
+            "best_iter": 116
+          },
+          {
+            "num_leaves": 31,
+            "min_data_in_leaf": 120,
+            "valid_logloss": 0.09049220973856595,
+            "best_iter": 142
+          },
+          {
+            "num_leaves": 63,
+            "min_data_in_leaf": 30,
+            "valid_logloss": 0.09198246914168268,
+            "best_iter": 108
+          },
+          {
+            "num_leaves": 63,
+            "min_data_in_leaf": 60,
+            "valid_logloss": 0.09158212978829813,
+            "best_iter": 106
+          },
+          {
+            "num_leaves": 63,
+            "min_data_in_leaf": 120,
+            "valid_logloss": 0.09085379543113278,
+            "best_iter": 111
+          }
+        ],
+        "chosen": {
+          "num_leaves": 15,
+          "min_data_in_leaf": 120,
+          "valid_logloss": 0.08951265057892004,
+          "best_iter": 178
+        }
+      }
+    }
+  },
+  "elapsed_sec": 53.5
+}

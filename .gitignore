@@ -277,3 +277,10 @@ data/forward_prices_dry/
 
 # serve_health.py の最新判定 (bundle から再生成可能)
 data/serve_health.json
+
+# 出世予測 AI (analysis/shusse): 大きい生成物は再生成可能 (build_career_v2 19s + train_v2 4min)
+analysis/shusse/out/*.parquet
+analysis/shusse/out/lgbm_*.txt
+analysis/shusse/out_v2/*.parquet
+analysis/shusse/out_v2/models/
+analysis/shusse/out_v2/live/*.parquet
