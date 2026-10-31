@@ -2,8 +2,114 @@
   "bets": [
     {
       "race_id": "2026103105041001",
-      "race_label": "東京ダ1600 未勝利",
-      "bets": [],
+      "race_label": "東京 1R ダ1600",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 1点（◎オッズ帯A）。 [T-10オッズ 単複16頭/ワイド120組/馬単240組]",
+      "confidence": {
+        "top1_pct": 0.978,
+        "top2_pct": 0.888,
+        "chaos_pct": 0.031,
+        "market": 0.85
+      },
+      "a95": {
+        "band": "<2倍",
+        "band_code": "A",
+        "order": [
+          11,
+          12,
+          7
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "11-12",
+          "購入額": 10000,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯A: AI上位馬で馬連1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "<2倍",
+        "band_code": "A",
+        "a1": 11,
+        "a2": 12,
+        "a3": 7,
+        "waku1": 6,
+        "waku2": 6,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "11-12",
+            "stake": 10000
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 11,
+          "horse_name": "ランフェザー",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 12,
+          "horse_name": "ホウオウシュウ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 14,
+          "horse_name": "パレスラン",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 7,
+          "horse_name": "フジサンインフレ",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 5,
+          "horse_name": "ハイファイネスト",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T09:40:03"
+      },
       "advisor": [
         {
           "umaban": 11,
@@ -51,8 +157,114 @@
     },
     {
       "race_id": "2026103105041002",
-      "race_label": "東京芝1600 未勝利",
-      "bets": [],
+      "race_label": "東京 2R 芝1600",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 1点（◎オッズ帯A）。 [T-10オッズ 単複10頭/ワイド45組/馬単90組]",
+      "confidence": {
+        "top1_pct": 0.979,
+        "top2_pct": 0.992,
+        "chaos_pct": 0.026,
+        "market": 0.758
+      },
+      "a95": {
+        "band": "<2倍",
+        "band_code": "A",
+        "order": [
+          9,
+          2,
+          6
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "2-9",
+          "購入額": 10000,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯A: AI上位馬で馬連1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "<2倍",
+        "band_code": "A",
+        "a1": 9,
+        "a2": 2,
+        "a3": 6,
+        "waku1": 8,
+        "waku2": 2,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "2-9",
+            "stake": 10000
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 9,
+          "horse_name": "ローザヴェローナ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 2,
+          "horse_name": "ドナフェリーチェ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 6,
+          "horse_name": "クリガーレ",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 10,
+          "horse_name": "コスモシグナス",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 3,
+          "horse_name": "セラフィムコード",
+          "orig_mark": ""
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T10:10:02"
+      },
       "advisor": [
         {
           "umaban": 9,
@@ -93,8 +305,114 @@
     },
     {
       "race_id": "2026103105041003",
-      "race_label": "東京芝2000 未勝利",
-      "bets": [],
+      "race_label": "東京 3R 芝2000",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 1点（◎オッズ帯A）。 [T-10オッズ 単複8頭/ワイド28組/馬単56組]",
+      "confidence": {
+        "top1_pct": 0.972,
+        "top2_pct": 0.905,
+        "chaos_pct": 0.288,
+        "market": 0.5
+      },
+      "a95": {
+        "band": "<2倍",
+        "band_code": "A",
+        "order": [
+          8,
+          2,
+          7
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "2-8",
+          "購入額": 10000,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯A: AI上位馬で馬連1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "<2倍",
+        "band_code": "A",
+        "a1": 8,
+        "a2": 2,
+        "a3": 7,
+        "waku1": 8,
+        "waku2": 2,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "2-8",
+            "stake": 10000
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 8,
+          "horse_name": "アトミックリーチ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 2,
+          "horse_name": "グランドストーリー",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 7,
+          "horse_name": "サラサシンシアズ",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 6,
+          "horse_name": "アオイゲート",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 4,
+          "horse_name": "リカジョンファンク",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T10:40:02"
+      },
       "advisor": [
         {
           "umaban": 8,
@@ -135,8 +453,113 @@
     },
     {
       "race_id": "2026103105041004",
-      "race_label": "東京ダ1400 新馬",
+      "race_label": "東京 4R ダ1400",
+      "race_nature": "見送り",
+      "race_reason": "chaos raw=0.896 pct=0.850>=0.667 のため見送り。",
       "bets": [],
+      "a95_all": {
+        "band": "5-8倍",
+        "band_code": "D",
+        "a1": 6,
+        "a2": 10,
+        "a3": 4,
+        "waku1": 3,
+        "waku2": 5,
+        "tickets": [
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "6→10",
+            "stake": 2000
+          },
+          {
+            "kind": "wide",
+            "kind_jp": "ワイド",
+            "selection": "6-10",
+            "stake": 2000
+          },
+          {
+            "kind": "wakuren",
+            "kind_jp": "枠連",
+            "selection": "3-5",
+            "stake": 2000
+          },
+          {
+            "kind": "sanpuku",
+            "kind_jp": "三連複",
+            "selection": "4-6-10",
+            "stake": 2000
+          },
+          {
+            "kind": "sanrentan",
+            "kind_jp": "三連単",
+            "selection": "6→10→4",
+            "stake": 2000
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": false,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 6,
+          "horse_name": "ジャスティンバルサ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 9,
+          "horse_name": "ミヤルロワ",
+          "orig_mark": ""
+        },
+        {
+          "mark": "▲",
+          "umaban": 4,
+          "horse_name": "ホウオウビリオン",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 14,
+          "horse_name": "エコロガルディア",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 10,
+          "horse_name": "モリノヤマセミ",
+          "orig_mark": "〇"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T11:10:02"
+      },
       "advisor": [
         {
           "umaban": 6,
@@ -177,8 +600,114 @@
     },
     {
       "race_id": "2026103105041005",
-      "race_label": "東京芝1800 新馬",
-      "bets": [],
+      "race_label": "東京 5R 芝1800",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 1点（◎オッズ帯A）。 [T-10オッズ 単複9頭/ワイド36組/馬単72組]",
+      "confidence": {
+        "top1_pct": 0.749,
+        "top2_pct": 0.856,
+        "chaos_pct": 0.549,
+        "market": 0.767
+      },
+      "a95": {
+        "band": "<2倍",
+        "band_code": "A",
+        "order": [
+          8,
+          6,
+          2
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "6-8",
+          "購入額": 10000,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯A: AI上位馬で馬連1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "<2倍",
+        "band_code": "A",
+        "a1": 8,
+        "a2": 6,
+        "a3": 2,
+        "waku1": 8,
+        "waku2": 6,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "6-8",
+            "stake": 10000
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 8,
+          "horse_name": "エクアトーレ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 2,
+          "horse_name": "ラヴェーラ",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "▲",
+          "umaban": 6,
+          "horse_name": "タイセイリメンバー",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "△",
+          "umaban": 3,
+          "horse_name": "ケープルグラン",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 5,
+          "horse_name": "ハクアイソー",
+          "orig_mark": ""
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T12:00:02"
+      },
       "advisor": [
         {
           "umaban": 8,
@@ -219,8 +748,101 @@
     },
     {
       "race_id": "2026103105041006",
-      "race_label": "東京ダ2100 1勝",
+      "race_label": "東京 6R ダ2100",
+      "race_nature": "見送り",
+      "race_reason": "chaos raw=0.891 pct=0.832>=0.667 のため見送り。",
       "bets": [],
+      "a95_all": {
+        "band": "8-15倍",
+        "band_code": "E",
+        "a1": 15,
+        "a2": 11,
+        "a3": 16,
+        "waku1": 8,
+        "waku2": 6,
+        "tickets": [
+          {
+            "kind": "tan",
+            "kind_jp": "単勝",
+            "selection": "15",
+            "stake": 3400
+          },
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "11-15",
+            "stake": 3300
+          },
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "15→11",
+            "stake": 3300
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": false,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 8,
+          "horse_name": "ワンダーブリッツ",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "〇",
+          "umaban": 11,
+          "horse_name": "ターフクリスタル",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 10,
+          "horse_name": "ルシャルムール",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 15,
+          "horse_name": "モデレートゲイル",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "△",
+          "umaban": 5,
+          "horse_name": "グランドスウェル",
+          "orig_mark": ""
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T12:30:02"
+      },
       "advisor": [
         {
           "umaban": 15,
@@ -268,8 +890,153 @@
     },
     {
       "race_id": "2026103105041007",
-      "race_label": "東京芝2000 1勝",
-      "bets": [],
+      "race_label": "東京 7R 芝2000",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 4点（◎オッズ帯B）。 [T-10オッズ 単複11頭/ワイド55組/馬単110組]",
+      "confidence": {
+        "top1_pct": 0.569,
+        "top2_pct": 0.887,
+        "chaos_pct": 0.348,
+        "market": 0.918
+      },
+      "a95": {
+        "band": "2-3倍",
+        "band_code": "B",
+        "order": [
+          5,
+          2,
+          3
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "2-5",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯B: AI上位馬で馬連1点（均等配分）"
+        },
+        {
+          "馬券種": "馬単",
+          "買い目": "5→2",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯B: AI上位馬で馬単1点（均等配分）"
+        },
+        {
+          "馬券種": "三連複",
+          "買い目": "2-3-5",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯B: AI上位馬で三連複1点（均等配分）"
+        },
+        {
+          "馬券種": "三連単",
+          "買い目": "5→2→3",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯B: AI上位馬で三連単1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "2-3倍",
+        "band_code": "B",
+        "a1": 5,
+        "a2": 2,
+        "a3": 3,
+        "waku1": 5,
+        "waku2": 2,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "2-5",
+            "stake": 2500
+          },
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "5→2",
+            "stake": 2500
+          },
+          {
+            "kind": "sanpuku",
+            "kind_jp": "三連複",
+            "selection": "2-3-5",
+            "stake": 2500
+          },
+          {
+            "kind": "sanrentan",
+            "kind_jp": "三連単",
+            "selection": "5→2→3",
+            "stake": 2500
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 5,
+          "horse_name": "ランザワールド",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 3,
+          "horse_name": "ホールドザデイ",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "▲",
+          "umaban": 2,
+          "horse_name": "キアラメンテ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "△",
+          "umaban": 10,
+          "horse_name": "ディヒターリーベ",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 6,
+          "horse_name": "ジーティーメティオ",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T13:00:02"
+      },
       "advisor": [
         {
           "umaban": 5,
@@ -310,8 +1077,114 @@
     },
     {
       "race_id": "2026103105041008",
-      "race_label": "東京ダ1400 2勝",
-      "bets": [],
+      "race_label": "東京 8R ダ1400",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 1点（◎オッズ帯A）。 [T-10オッズ 単複13頭/ワイド78組/馬単156組]",
+      "confidence": {
+        "top1_pct": 0.958,
+        "top2_pct": 0.936,
+        "chaos_pct": 0.073,
+        "market": 0.374
+      },
+      "a95": {
+        "band": "<2倍",
+        "band_code": "A",
+        "order": [
+          7,
+          11,
+          4
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "7-11",
+          "購入額": 10000,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯A: AI上位馬で馬連1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "<2倍",
+        "band_code": "A",
+        "a1": 7,
+        "a2": 11,
+        "a3": 4,
+        "waku1": 5,
+        "waku2": 7,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "7-11",
+            "stake": 10000
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 7,
+          "horse_name": "ヘリテージブルーム",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 11,
+          "horse_name": "ミライテーラー",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 3,
+          "horse_name": "ダイシンリンク",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 13,
+          "horse_name": "アクアマリーナ",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 4,
+          "horse_name": "ベルメサイア",
+          "orig_mark": "▲"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T13:35:02"
+      },
       "advisor": [
         {
           "umaban": 7,
@@ -352,8 +1225,114 @@
     },
     {
       "race_id": "2026103105041009",
-      "race_label": "東京ダ1400 1勝 オキザリス賞",
-      "bets": [],
+      "race_label": "東京 9R ダ1400 オキザリス賞",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 1点（◎オッズ帯A）。 [T-10オッズ 単複14頭/ワイド91組/馬単182組]",
+      "confidence": {
+        "top1_pct": 0.798,
+        "top2_pct": 0.519,
+        "chaos_pct": 0.454,
+        "market": 0.789
+      },
+      "a95": {
+        "band": "<2倍",
+        "band_code": "A",
+        "order": [
+          4,
+          3,
+          7
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "3-4",
+          "購入額": 10000,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯A: AI上位馬で馬連1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "<2倍",
+        "band_code": "A",
+        "a1": 4,
+        "a2": 3,
+        "a3": 7,
+        "waku1": 3,
+        "waku2": 3,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "3-4",
+            "stake": 10000
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 4,
+          "horse_name": "ワンスフォーユー",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 13,
+          "horse_name": "ユイノエスポワール",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "▲",
+          "umaban": 3,
+          "horse_name": "スマートブライド",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 7,
+          "horse_name": "イトウカカリチョウ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "△",
+          "umaban": 1,
+          "horse_name": "マイスターシューズ",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T14:10:02"
+      },
       "advisor": [
         {
           "umaban": 4,
@@ -401,8 +1380,153 @@
     },
     {
       "race_id": "2026103105041010",
-      "race_label": "東京芝1600 2勝 国立特別",
-      "bets": [],
+      "race_label": "東京 10R 芝1600 国立特別",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 4点（◎オッズ帯B）。 [T-10オッズ 単複10頭/ワイド45組/馬単90組]",
+      "confidence": {
+        "top1_pct": 0.656,
+        "top2_pct": 0.99,
+        "chaos_pct": 0.088,
+        "market": 0.973
+      },
+      "a95": {
+        "band": "2-3倍",
+        "band_code": "B",
+        "order": [
+          3,
+          7,
+          4
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "3-7",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯B: AI上位馬で馬連1点（均等配分）"
+        },
+        {
+          "馬券種": "馬単",
+          "買い目": "3→7",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯B: AI上位馬で馬単1点（均等配分）"
+        },
+        {
+          "馬券種": "三連複",
+          "買い目": "3-4-7",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯B: AI上位馬で三連複1点（均等配分）"
+        },
+        {
+          "馬券種": "三連単",
+          "買い目": "3→7→4",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯B: AI上位馬で三連単1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "2-3倍",
+        "band_code": "B",
+        "a1": 3,
+        "a2": 7,
+        "a3": 4,
+        "waku1": 3,
+        "waku2": 7,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "3-7",
+            "stake": 2500
+          },
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "3→7",
+            "stake": 2500
+          },
+          {
+            "kind": "sanpuku",
+            "kind_jp": "三連複",
+            "selection": "3-4-7",
+            "stake": 2500
+          },
+          {
+            "kind": "sanrentan",
+            "kind_jp": "三連単",
+            "selection": "3→7→4",
+            "stake": 2500
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 3,
+          "horse_name": "シャンソンドール",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 7,
+          "horse_name": "フジガイフウ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 4,
+          "horse_name": "キシダンチョウ",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 10,
+          "horse_name": "クールデイトナ",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 8,
+          "horse_name": "パワースナッチ",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T14:45:02"
+      },
       "advisor": [
         {
           "umaban": 3,
@@ -443,8 +1567,153 @@
     },
     {
       "race_id": "2026103105041011",
-      "race_label": "東京ダ1600 ｵｰﾌﾟﾝ ペルセウスＳ",
-      "bets": [],
+      "race_label": "東京 11R ダ1600 ペルセウスＳ",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 4点（◎オッズ帯C）。 [T-10オッズ 単複16頭/ワイド120組/馬単240組]",
+      "confidence": {
+        "top1_pct": 0.906,
+        "top2_pct": 0.662,
+        "chaos_pct": 0.358,
+        "market": 0.709
+      },
+      "a95": {
+        "band": "3-5倍",
+        "band_code": "C",
+        "order": [
+          12,
+          7,
+          16
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "7-12",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で馬連1点（均等配分）"
+        },
+        {
+          "馬券種": "馬単",
+          "買い目": "12→7",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で馬単1点（均等配分）"
+        },
+        {
+          "馬券種": "三連複",
+          "買い目": "7-12-16",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で三連複1点（均等配分）"
+        },
+        {
+          "馬券種": "三連単",
+          "買い目": "12→7→16",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で三連単1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "3-5倍",
+        "band_code": "C",
+        "a1": 12,
+        "a2": 7,
+        "a3": 16,
+        "waku1": 6,
+        "waku2": 4,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "7-12",
+            "stake": 2500
+          },
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "12→7",
+            "stake": 2500
+          },
+          {
+            "kind": "sanpuku",
+            "kind_jp": "三連複",
+            "selection": "7-12-16",
+            "stake": 2500
+          },
+          {
+            "kind": "sanrentan",
+            "kind_jp": "三連単",
+            "selection": "12→7→16",
+            "stake": 2500
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 12,
+          "horse_name": "クレーキング",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 16,
+          "horse_name": "ピエマンソン",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "▲",
+          "umaban": 7,
+          "horse_name": "シュラザック",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "△",
+          "umaban": 6,
+          "horse_name": "ジェイパームス",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 13,
+          "horse_name": "クールブロン",
+          "orig_mark": ""
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T15:20:02"
+      },
       "advisor": [
         {
           "umaban": 12,
@@ -485,8 +1754,153 @@
     },
     {
       "race_id": "2026103105041012",
-      "race_label": "東京芝1800 1勝",
-      "bets": [],
+      "race_label": "東京 12R 芝1800",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 4点（◎オッズ帯C）。 [T-10オッズ 単複12頭/ワイド66組/馬単132組]",
+      "confidence": {
+        "top1_pct": 0.312,
+        "top2_pct": 0.667,
+        "chaos_pct": 0.657,
+        "market": 0.839
+      },
+      "a95": {
+        "band": "3-5倍",
+        "band_code": "C",
+        "order": [
+          10,
+          7,
+          5
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "7-10",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で馬連1点（均等配分）"
+        },
+        {
+          "馬券種": "馬単",
+          "買い目": "10→7",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で馬単1点（均等配分）"
+        },
+        {
+          "馬券種": "三連複",
+          "買い目": "5-7-10",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で三連複1点（均等配分）"
+        },
+        {
+          "馬券種": "三連単",
+          "買い目": "10→7→5",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で三連単1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "3-5倍",
+        "band_code": "C",
+        "a1": 10,
+        "a2": 7,
+        "a3": 5,
+        "waku1": 7,
+        "waku2": 6,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "7-10",
+            "stake": 2500
+          },
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "10→7",
+            "stake": 2500
+          },
+          {
+            "kind": "sanpuku",
+            "kind_jp": "三連複",
+            "selection": "5-7-10",
+            "stake": 2500
+          },
+          {
+            "kind": "sanrentan",
+            "kind_jp": "三連単",
+            "selection": "10→7→5",
+            "stake": 2500
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 7,
+          "horse_name": "ラヴェニュー",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "〇",
+          "umaban": 10,
+          "horse_name": "オルグジェシダ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "▲",
+          "umaban": 12,
+          "horse_name": "ヴァロアーク",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 8,
+          "horse_name": "アメテュストス",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 5,
+          "horse_name": "マイネルグレート",
+          "orig_mark": "▲"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T16:05:03"
+      },
       "advisor": [
         {
           "umaban": 10,
@@ -527,8 +1941,114 @@
     },
     {
       "race_id": "2026103108041001",
-      "race_label": "京都ダ1400 未勝利",
-      "bets": [],
+      "race_label": "京都 1R ダ1400",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 1点（◎オッズ帯A）。 [T-10オッズ 単複16頭/ワイド120組/馬単240組]",
+      "confidence": {
+        "top1_pct": 0.767,
+        "top2_pct": 0.441,
+        "chaos_pct": 0.486,
+        "market": 0.879
+      },
+      "a95": {
+        "band": "<2倍",
+        "band_code": "A",
+        "order": [
+          5,
+          7,
+          13
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "5-7",
+          "購入額": 10000,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯A: AI上位馬で馬連1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "<2倍",
+        "band_code": "A",
+        "a1": 5,
+        "a2": 7,
+        "a3": 13,
+        "waku1": 3,
+        "waku2": 4,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "5-7",
+            "stake": 10000
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 5,
+          "horse_name": "マルモリマイベスト",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 1,
+          "horse_name": "スリーオブスペイズ",
+          "orig_mark": ""
+        },
+        {
+          "mark": "▲",
+          "umaban": 9,
+          "horse_name": "エアロクリスタ",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 7,
+          "horse_name": "シムサラビン",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "△",
+          "umaban": 14,
+          "horse_name": "ピコジャック",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T09:55:02"
+      },
       "advisor": [
         {
           "umaban": 5,
@@ -576,8 +2096,114 @@
     },
     {
       "race_id": "2026103108041002",
-      "race_label": "京都芝1600 未勝利",
-      "bets": [],
+      "race_label": "京都 2R 芝1600",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 1点（◎オッズ帯A）。 [T-10オッズ 単複10頭/ワイド45組/馬単90組]",
+      "confidence": {
+        "top1_pct": 0.843,
+        "top2_pct": 0.99,
+        "chaos_pct": 0.047,
+        "market": 0.952
+      },
+      "a95": {
+        "band": "<2倍",
+        "band_code": "A",
+        "order": [
+          6,
+          9,
+          1
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "6-9",
+          "購入額": 10000,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯A: AI上位馬で馬連1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "<2倍",
+        "band_code": "A",
+        "a1": 6,
+        "a2": 9,
+        "a3": 1,
+        "waku1": 6,
+        "waku2": 8,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "6-9",
+            "stake": 10000
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 6,
+          "horse_name": "ラガッタレアーレ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 9,
+          "horse_name": "コンセルノ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 8,
+          "horse_name": "ダディーズレガリア",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 1,
+          "horse_name": "フクノブルースカイ",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 5,
+          "horse_name": "サウンドアミューズ",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T10:25:03"
+      },
       "advisor": [
         {
           "umaban": 6,
@@ -618,8 +2244,114 @@
     },
     {
       "race_id": "2026103108041003",
-      "race_label": "京都芝1800 未勝利",
-      "bets": [],
+      "race_label": "京都 3R 芝1800",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 1点（◎オッズ帯A）。 [T-10オッズ 単複8頭/ワイド28組/馬単56組]",
+      "confidence": {
+        "top1_pct": 0.9,
+        "top2_pct": 0.945,
+        "chaos_pct": 0.335,
+        "market": 0.898
+      },
+      "a95": {
+        "band": "<2倍",
+        "band_code": "A",
+        "order": [
+          7,
+          5,
+          8
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "5-7",
+          "購入額": 10000,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯A: AI上位馬で馬連1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "<2倍",
+        "band_code": "A",
+        "a1": 7,
+        "a2": 5,
+        "a3": 8,
+        "waku1": 7,
+        "waku2": 5,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "5-7",
+            "stake": 10000
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 7,
+          "horse_name": "ディープリメンバー",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 5,
+          "horse_name": "ブラックミューズ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 4,
+          "horse_name": "ポカポカヨウキ",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 8,
+          "horse_name": "アイオリスパルス",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 1,
+          "horse_name": "シルクウォード",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T10:55:02"
+      },
       "advisor": [
         {
           "umaban": 7,
@@ -660,8 +2392,107 @@
     },
     {
       "race_id": "2026103108041005",
-      "race_label": "京都芝2000 新馬",
+      "race_label": "京都 5R 芝2000",
+      "race_nature": "見送り",
+      "race_reason": "chaos raw=0.867 pct=0.707>=0.667 のため見送り。",
       "bets": [],
+      "a95_all": {
+        "band": "3-5倍",
+        "band_code": "C",
+        "a1": 5,
+        "a2": 10,
+        "a3": 1,
+        "waku1": 4,
+        "waku2": 7,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "5-10",
+            "stake": 2500
+          },
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "5→10",
+            "stake": 2500
+          },
+          {
+            "kind": "sanpuku",
+            "kind_jp": "三連複",
+            "selection": "1-5-10",
+            "stake": 2500
+          },
+          {
+            "kind": "sanrentan",
+            "kind_jp": "三連単",
+            "selection": "5→10→1",
+            "stake": 2500
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": false,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 5,
+          "horse_name": "アンドロニクス",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 10,
+          "horse_name": "フォコンノワール",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 9,
+          "horse_name": "オーバーアゲイン",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 1,
+          "horse_name": "ソトッキー",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 2,
+          "horse_name": "フェイムシーカー",
+          "orig_mark": "△"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T12:15:02"
+      },
       "advisor": [
         {
           "umaban": 5,
@@ -702,8 +2533,113 @@
     },
     {
       "race_id": "2026103108041006",
-      "race_label": "京都ダ1400 新馬",
+      "race_label": "京都 6R ダ1400",
+      "race_nature": "見送り",
+      "race_reason": "chaos raw=0.920 pct=0.941>=0.667 のため見送り。",
       "bets": [],
+      "a95_all": {
+        "band": "5-8倍",
+        "band_code": "D",
+        "a1": 3,
+        "a2": 10,
+        "a3": 8,
+        "waku1": 2,
+        "waku2": 5,
+        "tickets": [
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "3→10",
+            "stake": 2000
+          },
+          {
+            "kind": "wide",
+            "kind_jp": "ワイド",
+            "selection": "3-10",
+            "stake": 2000
+          },
+          {
+            "kind": "wakuren",
+            "kind_jp": "枠連",
+            "selection": "2-5",
+            "stake": 2000
+          },
+          {
+            "kind": "sanpuku",
+            "kind_jp": "三連複",
+            "selection": "3-8-10",
+            "stake": 2000
+          },
+          {
+            "kind": "sanrentan",
+            "kind_jp": "三連単",
+            "selection": "3→10→8",
+            "stake": 2000
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": false,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 10,
+          "horse_name": "スターシーカー",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "〇",
+          "umaban": 3,
+          "horse_name": "クローネンリーベ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "▲",
+          "umaban": 8,
+          "horse_name": "ジーティーイレブン",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 12,
+          "horse_name": "ホーフアイゼン",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 1,
+          "horse_name": "レッドガレオン",
+          "orig_mark": ""
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T12:45:02"
+      },
       "advisor": [
         {
           "umaban": 3,
@@ -744,8 +2680,107 @@
     },
     {
       "race_id": "2026103108041007",
-      "race_label": "京都ダ1800 1勝",
+      "race_label": "京都 7R ダ1800",
+      "race_nature": "見送り",
+      "race_reason": "chaos raw=0.865 pct=0.699>=0.667 のため見送り。",
       "bets": [],
+      "a95_all": {
+        "band": "3-5倍",
+        "band_code": "C",
+        "a1": 10,
+        "a2": 12,
+        "a3": 8,
+        "waku1": 7,
+        "waku2": 8,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "10-12",
+            "stake": 2500
+          },
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "10→12",
+            "stake": 2500
+          },
+          {
+            "kind": "sanpuku",
+            "kind_jp": "三連複",
+            "selection": "8-10-12",
+            "stake": 2500
+          },
+          {
+            "kind": "sanrentan",
+            "kind_jp": "三連単",
+            "selection": "10→12→8",
+            "stake": 2500
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": false,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 10,
+          "horse_name": "バリオス",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 12,
+          "horse_name": "ジーティーアメリカ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 2,
+          "horse_name": "スカイストライプス",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 8,
+          "horse_name": "ハイロード",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 7,
+          "horse_name": "ララディアーブル",
+          "orig_mark": ""
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T13:15:02"
+      },
       "advisor": [
         {
           "umaban": 10,
@@ -793,8 +2828,153 @@
     },
     {
       "race_id": "2026103108041008",
-      "race_label": "京都ダ1200 2勝",
-      "bets": [],
+      "race_label": "京都 8R ダ1200",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 4点（◎オッズ帯C）。 [T-10オッズ 単複14頭/ワイド91組/馬単182組]",
+      "confidence": {
+        "top1_pct": 0.579,
+        "top2_pct": 0.563,
+        "chaos_pct": 0.478,
+        "market": 0.9
+      },
+      "a95": {
+        "band": "3-5倍",
+        "band_code": "C",
+        "order": [
+          3,
+          13,
+          10
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "3-13",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で馬連1点（均等配分）"
+        },
+        {
+          "馬券種": "馬単",
+          "買い目": "3→13",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で馬単1点（均等配分）"
+        },
+        {
+          "馬券種": "三連複",
+          "買い目": "3-10-13",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で三連複1点（均等配分）"
+        },
+        {
+          "馬券種": "三連単",
+          "買い目": "3→13→10",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で三連単1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "3-5倍",
+        "band_code": "C",
+        "a1": 3,
+        "a2": 13,
+        "a3": 10,
+        "waku1": 3,
+        "waku2": 8,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "3-13",
+            "stake": 2500
+          },
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "3→13",
+            "stake": 2500
+          },
+          {
+            "kind": "sanpuku",
+            "kind_jp": "三連複",
+            "selection": "3-10-13",
+            "stake": 2500
+          },
+          {
+            "kind": "sanrentan",
+            "kind_jp": "三連単",
+            "selection": "3→13→10",
+            "stake": 2500
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 3,
+          "horse_name": "ダノンモンテローザ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 13,
+          "horse_name": "ライトオブヌカタ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 8,
+          "horse_name": "マメタンク",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 10,
+          "horse_name": "バッハアルプゼー",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "△",
+          "umaban": 12,
+          "horse_name": "モンサンゴールデン",
+          "orig_mark": ""
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T13:50:02"
+      },
       "advisor": [
         {
           "umaban": 3,
@@ -842,8 +3022,153 @@
     },
     {
       "race_id": "2026103108041009",
-      "race_label": "京都芝2000 2勝 北野特別",
-      "bets": [],
+      "race_label": "京都 9R 芝2000 北野特別",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 4点（◎オッズ帯C）。 [T-10オッズ 単複10頭/ワイド45組/馬単90組]",
+      "confidence": {
+        "top1_pct": 0.797,
+        "top2_pct": 0.737,
+        "chaos_pct": 0.647,
+        "market": 0.77
+      },
+      "a95": {
+        "band": "3-5倍",
+        "band_code": "C",
+        "order": [
+          6,
+          7,
+          3
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "6-7",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で馬連1点（均等配分）"
+        },
+        {
+          "馬券種": "馬単",
+          "買い目": "6→7",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で馬単1点（均等配分）"
+        },
+        {
+          "馬券種": "三連複",
+          "買い目": "3-6-7",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で三連複1点（均等配分）"
+        },
+        {
+          "馬券種": "三連単",
+          "買い目": "6→7→3",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で三連単1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "3-5倍",
+        "band_code": "C",
+        "a1": 6,
+        "a2": 7,
+        "a3": 3,
+        "waku1": 6,
+        "waku2": 7,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "6-7",
+            "stake": 2500
+          },
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "6→7",
+            "stake": 2500
+          },
+          {
+            "kind": "sanpuku",
+            "kind_jp": "三連複",
+            "selection": "3-6-7",
+            "stake": 2500
+          },
+          {
+            "kind": "sanrentan",
+            "kind_jp": "三連単",
+            "selection": "6→7→3",
+            "stake": 2500
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 6,
+          "horse_name": "ダイヤモンドハンズ",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 7,
+          "horse_name": "カムアップローゼス",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 8,
+          "horse_name": "スカイスプレンダー",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 4,
+          "horse_name": "ホウオウタイタン",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 3,
+          "horse_name": "スターリングアップ",
+          "orig_mark": "▲"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T14:25:02"
+      },
       "advisor": [
         {
           "umaban": 6,
@@ -884,8 +3209,153 @@
     },
     {
       "race_id": "2026103108041010",
-      "race_label": "京都ダ1900 3勝 ハロウィンＳ",
-      "bets": [],
+      "race_label": "京都 10R ダ1900 ハロウィンＳ",
+      "race_nature": "a95",
+      "race_reason": "a95 均等 4点（◎オッズ帯C）。 [T-10オッズ 単複16頭/ワイド120組/馬単240組]",
+      "confidence": {
+        "top1_pct": 0.767,
+        "top2_pct": 0.441,
+        "chaos_pct": 0.565,
+        "market": 0.798
+      },
+      "a95": {
+        "band": "3-5倍",
+        "band_code": "C",
+        "order": [
+          9,
+          11,
+          2
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d"
+      },
+      "bets": [
+        {
+          "馬券種": "馬連",
+          "買い目": "9-11",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で馬連1点（均等配分）"
+        },
+        {
+          "馬券種": "馬単",
+          "買い目": "9→11",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で馬単1点（均等配分）"
+        },
+        {
+          "馬券種": "三連複",
+          "買い目": "2-9-11",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で三連複1点（均等配分）"
+        },
+        {
+          "馬券種": "三連単",
+          "買い目": "9→11→2",
+          "購入額": 2500,
+          "枠タグ": "妙味枠",
+          "理由": "a95 帯C: AI上位馬で三連単1点（均等配分）"
+        }
+      ],
+      "a95_all": {
+        "band": "3-5倍",
+        "band_code": "C",
+        "a1": 9,
+        "a2": 11,
+        "a3": 2,
+        "waku1": 5,
+        "waku2": 6,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "9-11",
+            "stake": 2500
+          },
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "9→11",
+            "stake": 2500
+          },
+          {
+            "kind": "sanpuku",
+            "kind_jp": "三連複",
+            "selection": "2-9-11",
+            "stake": 2500
+          },
+          {
+            "kind": "sanrentan",
+            "kind_jp": "三連単",
+            "selection": "9→11→2",
+            "stake": 2500
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": true,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 9,
+          "horse_name": "システマソラー",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 11,
+          "horse_name": "ペンナヴェローチェ",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "▲",
+          "umaban": 3,
+          "horse_name": "ソルチェリア",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 16,
+          "horse_name": "リューデスハイム",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 14,
+          "horse_name": "マテンロウブレイブ",
+          "orig_mark": ""
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T15:00:02"
+      },
       "advisor": [
         {
           "umaban": 9,
@@ -933,8 +3403,113 @@
     },
     {
       "race_id": "2026103108041011",
-      "race_label": "京都芝1400 Ｇ３ ＫＢＳ京都賞ファンタジーＳ",
+      "race_label": "京都 11R 芝1400 ＫＢＳ京都賞ファンタジーＳ",
+      "race_nature": "見送り",
+      "race_reason": "chaos raw=0.959 pct=0.994>=0.667 のため見送り。",
       "bets": [],
+      "a95_all": {
+        "band": "5-8倍",
+        "band_code": "D",
+        "a1": 3,
+        "a2": 8,
+        "a3": 6,
+        "waku1": 3,
+        "waku2": 7,
+        "tickets": [
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "3→8",
+            "stake": 2000
+          },
+          {
+            "kind": "wide",
+            "kind_jp": "ワイド",
+            "selection": "3-8",
+            "stake": 2000
+          },
+          {
+            "kind": "wakuren",
+            "kind_jp": "枠連",
+            "selection": "3-7",
+            "stake": 2000
+          },
+          {
+            "kind": "sanpuku",
+            "kind_jp": "三連複",
+            "selection": "3-6-8",
+            "stake": 2000
+          },
+          {
+            "kind": "sanrentan",
+            "kind_jp": "三連単",
+            "selection": "3→8→6",
+            "stake": 2000
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": false,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 8,
+          "horse_name": "ブライトスクリプト",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 6,
+          "horse_name": "イモージェン",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "▲",
+          "umaban": 3,
+          "horse_name": "ビスケットサンド",
+          "orig_mark": "〇"
+        },
+        {
+          "mark": "△",
+          "umaban": 4,
+          "horse_name": "ニクスルーナ",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 10,
+          "horse_name": "フェリチタ",
+          "orig_mark": ""
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T15:35:02"
+      },
       "advisor": [
         {
           "umaban": 8,
@@ -982,8 +3557,107 @@
     },
     {
       "race_id": "2026103108041012",
-      "race_label": "京都芝1600 1勝",
+      "race_label": "京都 12R 芝1600",
+      "race_nature": "見送り",
+      "race_reason": "chaos raw=0.863 pct=0.687>=0.667 のため見送り。",
       "bets": [],
+      "a95_all": {
+        "band": "3-5倍",
+        "band_code": "C",
+        "a1": 6,
+        "a2": 15,
+        "a3": 17,
+        "waku1": 3,
+        "waku2": 7,
+        "tickets": [
+          {
+            "kind": "umaren",
+            "kind_jp": "馬連",
+            "selection": "6-15",
+            "stake": 2500
+          },
+          {
+            "kind": "umatan",
+            "kind_jp": "馬単",
+            "selection": "6→15",
+            "stake": 2500
+          },
+          {
+            "kind": "sanpuku",
+            "kind_jp": "三連複",
+            "selection": "6-15-17",
+            "stake": 2500
+          },
+          {
+            "kind": "sanrentan",
+            "kind_jp": "三連単",
+            "selection": "6→15→17",
+            "stake": 2500
+          }
+        ],
+        "policy_id": "a95_equal_v1",
+        "policy_sha256": "8cccbed13f55411afa2b0b4adeaf454eca8babe015f7bea79b243df18726690d",
+        "guard_passed": false,
+        "note": "全レース版(検証用)。guard_passed=false は買い目ではない"
+      },
+      "hosei_marks": [
+        {
+          "mark": "◎",
+          "umaban": 6,
+          "horse_name": "パスコード",
+          "orig_mark": "◎"
+        },
+        {
+          "mark": "〇",
+          "umaban": 15,
+          "horse_name": "メイショウトウコウ",
+          "orig_mark": "▲"
+        },
+        {
+          "mark": "▲",
+          "umaban": 1,
+          "horse_name": "スマートティアナ",
+          "orig_mark": "△"
+        },
+        {
+          "mark": "△",
+          "umaban": 2,
+          "horse_name": "テイエムスティール",
+          "orig_mark": ""
+        },
+        {
+          "mark": "△",
+          "umaban": 17,
+          "horse_name": "フォルナックス",
+          "orig_mark": "〇"
+        }
+      ],
+      "stamp": {
+        "policy_id": "a95-equal-v1-serve34-p667-20260930",
+        "policy_schema_version": 1,
+        "policy_sha256": "c2427a7fdcde509ed807a0ad6c1fe578092f4ee8bc9592ca86bc1e857ea16d72",
+        "chaos_reference_id": "serve34-forward-policy-20260825",
+        "chaos_reference_sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+        "chaos_skip_percentile": 0.667,
+        "chaos_skip_raw_equivalent": 0.858108,
+        "bet_engine": "a95",
+        "real_money_enabled": false,
+        "real_money_stopped_on": "2026-08-27",
+        "artifact_sha256": {
+          "rank_model": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+          "serve_calibrator": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+          "serve_feature_baseline": "7e3bbc3224a75bd59cb9de919e2b03c9d7c84ef620e6bf8a2a606cd3ad8f7e0e",
+          "bet_policy": "0119f0438c0ea26f871fdbcdfa88e79607e7d59cc6688947b0d553dccfaf30ff"
+        },
+        "pins_generation": "C1 (P0-5 修正, 2026-09-11 切替)",
+        "pins_sha256": "099c34a22160bdd4560a30c3845d39ada9f3a676ac652a62c5aa2d8f414ff9f1",
+        "model": "v6",
+        "engine": "compute_bets",
+        "engine_version": "2026-09-30",
+        "mode": "default",
+        "live": true,
+        "stamped_at": "2026-10-31T16:15:02"
+      },
       "advisor": [
         {
           "umaban": 6,
