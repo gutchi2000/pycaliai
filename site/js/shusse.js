@@ -67,6 +67,65 @@
     $("#valTable").innerHTML = `<table class="vtab"><thead><tr><th class="l">基準点</th><th>頭数</th><th>クラス一致度 QWK<br><small>規則 → AI</small></th><th>重賞掲示板<br>AUC</th><th>離脱<br>AUC</th><th>参考: 2022 世代<br><small>QWK / AUC</small></th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
   }
 
+  /* ---------------- 今週の注目若駒 (data/shusse/weekly.json) ---------------- */
+  function fmtMD(d) { return d ? `${Number(d.slice(4, 6))}/${Number(d.slice(6, 8))}` : ""; }
+  function renderWeekly(w) {
+    const sec = $("#weekly");
+    if (!w || !w.picks || !w.picks.length) { sec.hidden = true; return; }
+    const dates = (w.dates || []).map(fmtMD).join("・");
+    const review = w.mode === "review";
+    $("#weeklyH").innerHTML = review
+      ? `先週末の注目若駒<span class="wkd">${esc(dates)}</span> — レース前の評価と結果`
+      : `今週末に走る注目若駒<span class="wkd">${esc(dates)}</span>`;
+    $("#weeklyNote").textContent = review
+      ? "出走していた判定待ちの若駒のうち、レース前の時点で出世予測が高かった馬。走った後の評価の動きも併記します（デビュー戦の馬はレース前の予測が無いので対象外）。カードを押すと下の表で詳細が開きます。"
+      : "出走表に載っている判定待ちの若駒のうち、出世予測が高い馬。金＝重賞掲示板確率の上位、緑＝新馬・未勝利・1勝クラス出走で同世代上位 5% 以内。カードを押すと下の表で詳細が開きます。";
+    $("#weeklyGrid").innerHTML = w.picks.map((c) => {
+      const r = c.race, p = c.pre, n = c.now;
+      const w1 = Math.max(2, Math.round(Math.min(1, p.pg12) * 100));
+      let delta = "";
+      if (n && n.pg12 != null) {
+        const d = n.pg12 - p.pg12;
+        const cls = d > 0.02 ? "up" : d < -0.02 ? "down" : "flat";
+        const arrow = d > 0.02 ? "↗" : d < -0.02 ? "↘" : "→";
+        delta = `<span class="delta ${cls}">${arrow} 走った後 ${fmtP(n.pg12)}</span>`;
+      }
+      const res = r.pos != null ? `<span class="res${r.pos <= 3 ? "" : " lose"}">${r.pos} 着${r.field ? `/${r.field}頭` : ""}</span>` : (r.start ? `<span style="color:var(--tx3)"> ${esc(r.start)} 発走</span>` : "");
+      const rname = r.name ? `${esc(r.name)}` : esc(r.klass || "");
+      const klass = r.name && r.klass ? `<small style="color:var(--tx3)">（${esc(r.klass)}）</small>` : "";
+      return `<div class="wkcard" data-dy="${c.dy}" data-id="${c.id}" role="button" tabindex="0">
+        <div class="wk-head"><span class="nm">${esc(c.name)}</span><span class="sex">${esc(c.sex || "")} ・ ${esc(c.sire || "")}</span>
+          <span class="tagchip ${c.tag}">${c.tag === "top" ? "出世株" : "下級条件から浮上"}</span></div>
+        <div class="wk-race">${fmtMD(r.date)} ${esc(r.place || "")} ${r.rno}R <b>${rname}</b>${klass} ${esc(r.course || "")}<br>
+          馬番 ${r.umaban}${r.mark ? ` ・ AI印 <span class="mk">${esc(r.mark)}</span>` : ""}${res}</div>
+        <div class="wk-p"><span>レース前の重賞掲示板確率</span><span class="pbar${p.pg12 < 0.05 ? " dim" : ""}"><span class="bar"><i style="width:${w1}%"></i></span><span class="v">${fmtP(p.pg12)}</span></span>
+          <span class="lv lv${p.lvl}">${esc(lvName(p.lvl))}</span>${delta}</div>
+        <div class="wk-sum" title="${esc(c.summary || "")}">${esc(c.summary || "")}</div>
+        ${c.why && c.why.length ? `<div class="wk-why">根拠: ${esc(c.why.slice(0, 2).join("、"))}</div>` : ""}
+      </div>`;
+    }).join("");
+    sec.hidden = false;
+    sec.querySelectorAll(".wkcard").forEach((el) => {
+      const go = () => openHorse(Number(el.dataset.dy), Number(el.dataset.id));
+      el.onclick = go;
+      el.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } };
+    });
+  }
+
+  /* 年タブを切り替えて該当馬の行を開き、そこへスクロール */
+  async function openHorse(dy, id) {
+    if (!state.years.includes(dy)) return;
+    if (state.year !== dy || !state.cache[dy]) await selectYear(dy);
+    const d = state.cache[dy];
+    const h = d && d.horses.find((x) => x.id === id);
+    if (!h) return;
+    $("#q").value = h.name; state.q = h.name; state.k = "all"; $("#kSel").value = "all"; state.shown = 100;
+    state.open.clear(); state.open.add(id);
+    renderTable();
+    const tr = $(`#tbl tr.hr[data-id="${id}"]`);
+    if (tr) tr.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   /* ---------------- 年タブ ---------------- */
   function renderTabs() {
     const ix = state.index;
@@ -214,6 +273,7 @@
     }
     state.years = (state.index.years || Object.keys(state.index.n_by_year || {}).map(Number)).slice().sort((a, b) => b - a);
     renderIntro();
+    getJSON("data/shusse/weekly.json").then(renderWeekly).catch(() => { $("#weekly").hidden = true; });
     const hy = Number((location.hash || "").replace("#", ""));
     const y0 = state.years.includes(hy) ? hy : state.years[0];
     $("#q").oninput = () => { state.q = $("#q").value.trim(); state.shown = 100; renderTable(); };

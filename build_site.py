@@ -1510,11 +1510,18 @@ def main() -> None:
                 if not dst.exists() or fp.read_bytes() != dst.read_bytes():
                     shutil.copyfile(fp, dst)
                     n_copied += 1
-            for dst in dst_dir.glob("*.json"):          # 消えた年ファイルは追従して削除
-                if not (src_dir / dst.name).exists():
+            for dst in dst_dir.glob("*.json"):          # 消えた年ファイルは追従して削除 (weekly.json は下で別生成)
+                if dst.name != "weekly.json" and not (src_dir / dst.name).exists():
                     dst.unlink()
             print(f"shusse: {n_copied} files refreshed -> site/data/shusse "
                   f"({len(list(dst_dir.glob('*.json')))} files)")
+        # 今週の注目若駒: 直近の出走表 (site/data/{date}.json) × 出世予測 を突合 → site/data/shusse/weekly.json
+        # (出走表は土曜朝に更新されるので毎ビルドで作り直す。年ファイルの削除ループは weekly を触らない)
+        if (SITE_DATA_DIR / "shusse" / "index.json").exists():
+            from analysis.shusse.weekly_picks import build as _shusse_weekly
+            wk = _shusse_weekly()
+            print(f"shusse weekly: {wk['mode']} {wk['dates']} picks {len(wk['picks'])} "
+                  f"(entered {wk['n_entered']} / matched {wk['n_matched']} / with_pre {wk['n_with_pre']})")
     except Exception as e:
         print(f"[shusse skip] {e}")
 

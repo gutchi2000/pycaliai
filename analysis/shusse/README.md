@@ -29,6 +29,11 @@ venv311\Scripts\python.exe -m pytest -q -p no:cacheprovider tests/test_shusse_as
 - 表示は「未確定（基準日 + 365 日 > asof）かつ各馬の最新基準点」の馬だけ。確定した馬は前向き検証（`live_validation.json`）にだけ使う。
 - 根拠は SHAP 上位 3 を `narrate.direction_phrase` で日本語句にして持たせる（ラベル＋数値は載せない）。市場オッズ・人気はどこにも出ない。
 - `sync-hf-umami.ps1` の allowlist に `^site/data/shusse/[^/]+\.json$` を追加済み（生成データとして自動 commit 対象）。
+- **今週の注目若駒**（2026-11-02）: `weekly_picks.py` が直近週末の出走表 `site/data/{date}.json` と判定待ちセットを (馬名, 父)+年齢整合で突合し、
+  **レース前の基準点の予測**（`hist` のうち基準日 < レース日）で top 12（P(重賞) 上位）と rising 8（新馬/未勝利/1勝 出走で同世代上位 5%）を
+  `site/data/shusse/weekly.json` に書く。`build_site.py` から毎ビルド呼ばれるので、土曜朝に出走表が来れば「これから走る馬」のプレビュー、
+  日曜夜に結果と予測が入れば着順と「走った後の評価」付きの答え合わせに自動で切り替わる（`mode`: preview / review）。デビュー戦の馬は対象外。
+  ページ上部のカードを押すと下の表で該当馬が開く。クラス名 `.wk` は style.css の枠番バッジと衝突するので `.wkcard`。
 
 ## ファイル
 | ファイル | 役割 |

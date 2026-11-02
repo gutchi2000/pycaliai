@@ -87,6 +87,39 @@ def test_cards(index, years):
             assert c["runs"] and all({"date", "label", "pos"} <= set(r) for r in c["runs"])
 
 
+WEEKLY = BASE / "site" / "data" / "shusse" / "weekly.json"
+
+
+@pytest.mark.skipif(not WEEKLY.exists(), reason="run build_site.py (or analysis.shusse.weekly_picks) first")
+def test_weekly_picks():
+    """今週の注目若駒: レース前の予測で選ばれ、判定待ちセットの馬だけ、タグ規則どおり、市場情報なし。"""
+    w = json.loads(WEEKLY.read_text(encoding="utf-8"))
+    assert w["mode"] in ("preview", "review") and w["dates"]
+    live = {}
+    for fp in (BASE / "site" / "data" / "shusse").glob("*.json"):
+        if fp.stem.isdigit():
+            for h in json.loads(fp.read_text(encoding="utf-8"))["horses"]:
+                live[h["id"]] = h
+    ids = [c["id"] for c in w["picks"]]
+    assert len(ids) == len(set(ids)) and set(ids) <= set(live)
+    tops = [c for c in w["picks"] if c["tag"] == "top"]
+    rising = [c for c in w["picks"] if c["tag"] == "rising"]
+    assert len(tops) <= 12 and len(rising) <= 8 and [c["tag"] for c in w["picks"]] == ["top"] * len(tops) + ["rising"] * len(rising)
+    assert [c["pre"]["pg12"] for c in tops] == sorted((c["pre"]["pg12"] for c in tops), reverse=True)
+    for c in w["picks"]:
+        r, p = c["race"], c["pre"]
+        rd = f"{r['date'][:4]}-{r['date'][4:6]}-{r['date'][6:8]}"
+        assert p["base"] < rd, "pre-race prediction must predate the race"
+        assert any(hh[0] == p["k"] and hh[1] == p["base"] for hh in live[c["id"]]["hist"])
+        assert 0 <= p["pg12"] <= 1 and 0 <= p["pct"] <= 100 and r["date"] in w["dates"]
+        if c["tag"] == "rising":
+            assert r["klass"] in ("新馬", "未勝利", "1勝") and p["pct"] >= 95
+        if c["now"] is not None:
+            assert w["mode"] == "review" and live[c["id"]]["base"].replace("-", "") >= r["date"]
+        for key in ("odds", "ninki", "人気", "オッズ"):
+            assert key not in json.dumps(r, ensure_ascii=False)
+
+
 def test_no_market_fields(index, years):
     def keys(o, acc):
         if isinstance(o, dict):

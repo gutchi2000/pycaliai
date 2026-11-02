@@ -52,6 +52,32 @@
   details.more summary{cursor:pointer;color:var(--tx3);font-size:.8rem;list-style:none;}
   details.more summary::before{content:"▸ ";}
   details.more[open] summary::before{content:"▾ ";}
+  /* 今週の注目若駒 */
+  .weekly{margin:0 0 16px;}
+  .weekly h2{font-size:1.02rem;color:var(--tx);display:block;line-height:1.5;}
+  .weekly h2::before{display:inline-block;vertical-align:-2px;margin-right:9px;}
+  .weekly h2 .wkd{font-family:var(--disp);font-weight:500;color:var(--gold2);margin-left:8px;font-size:.9rem;}
+  .wk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px;}
+  /* 注: .wk は style.css の枠番バッジと衝突するので .wkcard を使う */
+  .wkcard{background:var(--bg3);border:1px solid var(--line);border-radius:var(--r-md);padding:11px 13px 12px;cursor:pointer;transition:border-color .15s,transform .15s;display:flex;flex-direction:column;gap:6px;}
+  .wkcard:hover{border-color:var(--gold);transform:translateY(-1px);}
+  .wk-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+  .wk-head .nm{font-weight:700;font-size:1.02rem;color:var(--tx);}
+  .wk-head .sex{font-size:.72rem;color:var(--tx3);}
+  .tagchip{margin-left:auto;font-size:.68rem;font-weight:700;padding:1px 8px;border-radius:var(--r-pill);letter-spacing:.04em;}
+  .tagchip.top{color:#231803;background:linear-gradient(120deg,var(--gold2),var(--gold));}
+  .tagchip.rising{color:var(--teal2);background:color-mix(in srgb,var(--teal) 14%,transparent);border:1px solid color-mix(in srgb,var(--teal) 36%,transparent);}
+  .wk-race{font-size:.8rem;color:var(--tx2);line-height:1.6;}
+  .wk-race b{color:var(--tx);font-weight:600;}
+  .wk-race .mk{font-weight:900;color:var(--gold2);}
+  .wk-race .res{color:var(--gold2);font-weight:700;margin-left:6px;}
+  .wk-race .res.lose{color:var(--tx2);font-weight:600;}
+  .wk-p{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.8rem;color:var(--tx3);}
+  .wk-p .pbar{min-width:0;}
+  .wk-p .delta{font-family:var(--disp);font-weight:600;}
+  .wk-p .delta.up{color:var(--teal2);} .wk-p .delta.down{color:var(--uncertain);} .wk-p .delta.flat{color:var(--tx2);}
+  .wk-sum{font-size:.76rem;color:var(--tx3);line-height:1.55;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .wk-why{font-size:.78rem;color:var(--tx2);}
   /* 操作列 */
   .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;}
   .ctrls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 12px;}
@@ -146,6 +172,12 @@
       </details>
     </div>
   </div>
+
+  <section class="panel weekly" id="weekly" hidden>
+    <h2 id="weeklyH"></h2>
+    <p class="hint" id="weeklyNote" style="margin:0 0 10px"></p>
+    <div class="wk-grid" id="weeklyGrid"></div>
+  </section>
 
   <div class="tabs" id="yearTabs"></div>
   <div class="ctrls">
