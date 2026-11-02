@@ -120,6 +120,57 @@ def test_weekly_picks():
             assert key not in json.dumps(r, ensure_ascii=False)
 
 
+@pytest.mark.skipif(not WEEKLY.exists(), reason="run build_site.py first")
+def test_weekly_entries_and_x_post():
+    """出走表バッジ用 entries は picks と整合し、X 投稿の short は 140 字以内で URL とヘッダーを含む。"""
+    w = json.loads(WEEKLY.read_text(encoding="utf-8"))
+    ent = w["entries"]
+    flat = {(rid, u): e for rid, d in ent.items() for u, e in d.items()}
+    for c in w["picks"]:
+        e = flat[(str(c["race"]["rid"]), str(c["race"]["umaban"]))]
+        assert e["id"] == c["id"] and e["tag"] == c["tag"] and e["pg12"] == c["pre"]["pg12"]
+    assert sum(1 for e in flat.values() if "tag" in e) == len(w["picks"])
+    assert len(flat) == w["n_with_pre"]
+    xp = w["x_post"]
+    if w["picks"]:
+        assert 0 < len(xp["short"]) <= 140 and "pycaliai.com/shusse" in xp["short"] and "注目若駒" in xp["short"]
+        assert "#" not in xp["short"]           # ハッシュタグ無し
+        assert len(xp["long"]) >= len(xp["short"])
+
+
+CHECK_IDX = SITE_SRC / "check_index.json"
+
+
+@pytest.mark.skipif(not CHECK_IDX.exists(), reason="run analysis.shusse.check_export first")
+def test_check_export():
+    """答え合わせ: 確定行だけ、混同行列と件数が整合、較正ビンの件数が合計と一致、年ファイルの行が index の件数と一致。"""
+    ix = json.loads(CHECK_IDX.read_text(encoding="utf-8"))
+    asof = pd.Timestamp(ix["asof"])
+    tot_rows = 0
+    for y in ix["years"]:
+        d = json.loads((SITE_SRC / f"check_{y}.json").read_text(encoding="utf-8"))
+        assert d["n"] == len(d["horses"]) == ix["by_year"][str(y)]["n_horses"]
+        for h in d["horses"]:
+            ks = [r[0] for r in h["rows"]]
+            assert ks == sorted(ks) and set(ks) <= {1, 2, 3, 5}
+            for r in h["rows"]:
+                k, base, pg12, pdp, lvl, pct, ran, alvl, g12, g24 = r
+                assert pd.Timestamp(base) + pd.Timedelta(days=365) <= asof, "unconfirmed row leaked into check set"
+                assert 0 <= pg12 <= 1 and 0 <= pdp <= 1 and 0 <= lvl <= 4 and ran in (0, 1) and g12 in (0, 1)
+                assert (alvl is None) == (ran == 0)
+                if alvl is not None:
+                    assert 0 <= alvl <= 4 and (g12 == 1) == (alvl == 4)
+                tot_rows += 1
+        for k, m in ix["by_year"][str(y)]["k"].items():
+            conf_n = sum(sum(row) for row in m["confusion"])
+            assert conf_n == m["n_ran"] and conf_n + sum(m["dropout_by_pred"]) == m["n"]
+            assert sum(b["n"] for b in m["calibration"]) == m["n"]
+            assert sum(v["n"] for v in m["by_pred"].values()) == m["n"]
+            if m["qwk"] is not None:
+                assert 0 <= m["qwk"] <= 1 and 0.5 <= m["g12_auc"] <= 1
+    assert tot_rows == ix["n_rows"]
+
+
 def test_no_market_fields(index, years):
     def keys(o, acc):
         if isinstance(o, dict):

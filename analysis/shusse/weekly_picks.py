@@ -33,6 +33,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SITE_DATA = ROOT / "site" / "data"
 SHUSSE_DIR = SITE_DATA / "shusse"
 OUT = SHUSSE_DIR / "weekly.json"
+X_TXT = ROOT / "analysis" / "shusse" / "out_v2" / "live" / "x_post_shusse.txt"   # X 投稿の下書き（ローカル用、.gitignore）
 
 TOP_N = 12                # P(重賞) 上位
 LOW_CLASS = {"新馬", "未勝利", "1勝"}
@@ -128,7 +129,7 @@ def build(site_data: Path = SITE_DATA, shusse_dir: Path = SHUSSE_DIR, out: Path 
                     "id": lv["id"], "name": lv["name"], "dy": lv["dy"], "sex": lv.get("sex"), "sire": lv.get("sire"),
                     "trainer": lv.get("trainer"), "summary": lv.get("summary"), "why": lv.get("why", []),
                     "pre": pre, "now": now,
-                    "race": {"date": d, "place": r.get("place"), "rno": r.get("rno"), "klass": r.get("klass"),
+                    "race": {"rid": r.get("race_id"), "date": d, "place": r.get("place"), "rno": r.get("rno"), "klass": r.get("klass"),
                              "name": r.get("race_name") or "", "course": r.get("course"), "start": r.get("start_time"),
                              "field": r.get("field_size"), "umaban": h.get("umaban"), "mark": h.get("mark"),
                              "pos": (int(pos) if pos is not None else None)},
@@ -142,6 +143,17 @@ def build(site_data: Path = SITE_DATA, shusse_dir: Path = SHUSSE_DIR, out: Path 
     for c in low:
         c["tag"] = "rising"
     picks = top + low
+    # 出走表側のバッジ用: race_id → 馬番 → レース前の予測（突合できた全馬）。index.html の馬行が参照する
+    tags = {c["id"]: c["tag"] for c in picks}
+    entries: dict[str, dict] = {}
+    for c in cands:
+        rid = c["race"].get("rid")
+        if not rid:
+            continue
+        e = {"id": c["id"], "dy": c["dy"], "pg12": c["pre"]["pg12"], "lvl": c["pre"]["lvl"], "pct": c["pre"]["pct"]}
+        if c["id"] in tags:
+            e["tag"] = tags[c["id"]]
+        entries.setdefault(str(rid), {})[str(c["race"].get("umaban"))] = e
     obj = {
         "dates": dates, "built_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "asof": index_meta.get("asof"), "data_end": index_meta.get("data_end"),
@@ -151,11 +163,69 @@ def build(site_data: Path = SITE_DATA, shusse_dir: Path = SHUSSE_DIR, out: Path 
         "note": ("出走表の馬を (馬名, 父) で出世予測の判定待ちセットと突合し、レース前の基準点の予測 (pre) で選ぶ。"
                  "top = P(重賞掲示板 12m) 上位、rising = 新馬/未勝利/1勝クラス出走で同デビュー年の上位 5% 以内。"
                  "now = そのレースを走った後の評価（取り込み済みのときだけ）。市場情報は含まない。"),
-        "picks": picks,
+        "picks": picks, "entries": entries,
     }
+    obj["x_post"] = x_posts(obj)
     if out is not None:
         out.write_text(json.dumps(obj, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        xp = obj["x_post"]
+        txt = "\n".join([f"# short ({len(xp['short'])} 字)", xp["short"], "", f"# long ({len(xp['long'])} 字)", xp["long"], ""])
+        X_TXT.parent.mkdir(parents=True, exist_ok=True)      # site/ には置かない (公開物でも allowlist 対象でもない)
+        X_TXT.write_text(txt, encoding="utf-8")
     return obj
+
+
+# --------------------------------------------------------------------------- X 投稿下書き
+X_URL = "pycaliai.com/shusse"
+X_LIMIT = 140          # 全角実数で数える（ユーザーの型: 140 字以内、ハッシュタグ無し、日付ヘッダー必須）
+
+
+def _pctj(p: float) -> str:
+    v = p * 100
+    return f"{v:.0f}%" if v >= 10 else f"{v:.1f}%"
+
+
+def _md(d: str) -> str:
+    return f"{int(d[4:6])}/{int(d[6:8])}"
+
+
+def x_posts(obj: dict) -> dict:
+    """weekly.json の picks から X 投稿の下書き（short ≤ 140 字 / long）。review なら結果と評価の動きを書く。"""
+    picks = obj.get("picks") or []
+    if not picks:
+        return {"short": "", "long": ""}
+    dates = "・".join(_md(d) for d in obj.get("dates", []))
+    review = obj.get("mode") == "review"
+    head = f"{dates} 注目若駒 答え合わせ" if review else f"{dates} 今週末の注目若駒"
+    foot = ("※出世予測AI 1年以内に重賞掲示板に載る確率（走る前→後）。馬券予想ではありません" if review
+            else "※出世予測AI 1年以内に重賞掲示板に載る確率。馬券予想ではありません")
+
+    def line(c: dict, long: bool) -> str:
+        r, p, n = c["race"], c["pre"], c.get("now")
+        race = r.get("name") or r.get("klass") or ""
+        where = (f"{r.get('place') or ''}{r.get('rno')}R {race}".strip() if long
+                 else (race if 0 < len(race) <= 8 else f"{r.get('place') or ''}{r.get('rno')}R"))
+        if review:
+            res = f"{r['pos']}着" if r.get("pos") is not None else "結果待ち"
+            move = f"{_pctj(p['pg12'])}→{_pctj(n['pg12'])}" if n else _pctj(p["pg12"])
+            s = f"{c['name']} {where} {res} {move}"
+        else:
+            s = f"{c['name']} {where} {_pctj(p['pg12'])}"
+        if long and c.get("summary"):
+            s += f"（{c['summary']}）"
+        return s
+
+    def assemble(n: int, long: bool) -> str:
+        body = "\n".join(line(c, long) for c in picks[:n])
+        return f"{head}\n{body}\n{foot}\n{X_URL}"
+
+    short = ""
+    for n in range(min(5, len(picks)), 0, -1):
+        short = assemble(n, False)
+        if len(short) <= X_LIMIT:
+            break
+    long = assemble(min(6, len(picks)), True)
+    return {"short": short, "long": long}
 
 
 if __name__ == "__main__":

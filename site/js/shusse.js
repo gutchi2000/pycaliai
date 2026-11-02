@@ -274,17 +274,23 @@
     state.years = (state.index.years || Object.keys(state.index.n_by_year || {}).map(Number)).slice().sort((a, b) => b - a);
     renderIntro();
     getJSON("data/shusse/weekly.json").then(renderWeekly).catch(() => { $("#weekly").hidden = true; });
-    const hy = Number((location.hash || "").replace("#", ""));
+    // ハッシュ: "#2026" で年タブ、"#2026:1234567" で年タブ + 該当馬の行を開く (index.html の出世株バッジからの導線)
+    const parseHash = () => { const m = (location.hash || "").replace("#", "").split(":"); return { y: Number(m[0]), id: m[1] ? Number(m[1]) : null }; };
+    const h0 = parseHash();
+    const hy = h0.y;
     const y0 = state.years.includes(hy) ? hy : state.years[0];
     $("#q").oninput = () => { state.q = $("#q").value.trim(); state.shown = 100; renderTable(); };
     $("#kSel").onchange = () => { state.k = $("#kSel").value; state.shown = 100; renderTable(); };
     $("#sortSel").onchange = () => { state.sort = $("#sortSel").value; state.shown = 100; renderTable(); };
     $("#moreBtn").onclick = () => { state.shown += 200; renderTable(); };
     addEventListener("hashchange", () => {
-      const y = Number((location.hash || "").replace("#", ""));
-      if (state.years.includes(y) && y !== state.year) selectYear(y);
+      const hh = parseHash();
+      if (!state.years.includes(hh.y)) return;
+      if (hh.id) openHorse(hh.y, hh.id);
+      else if (hh.y !== state.year) selectYear(hh.y);
     });
     await selectYear(y0);
+    if (h0.id && state.years.includes(hy)) await openHorse(hy, h0.id);
   }
   boot();
 })();

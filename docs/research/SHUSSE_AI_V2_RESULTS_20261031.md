@@ -386,3 +386,10 @@ master は 2025-12-28 で終わるので、`data/kekka/2026*.csv`（確定着順
 - `build_site.py` が毎ビルドで再生成（`site/data/shusse/weekly.json`、allowlist 済）。土曜朝の Phase A で新しい出走表が入ると preview、日曜夜の Phase C で review に切り替わる。
 - テスト `tests/test_shusse_site.py::test_weekly_picks`（pre がレース日より前で hist と一致、タグ規則、判定待ちセット内、市場情報キー不在）。
 - ページ: `shusse.html` 上部のカード群（金=出世株、緑=下級条件から浮上）。クリックで該当年タブへ移り行を開く。`.wk` は style.css の枠番バッジと衝突したため `.wkcard`。
+
+### 12.2 答え合わせページ・出走表バッジ・X 下書き（2026-11-02 追加、ユーザー「1.2.3 いいね」）
+
+- **答え合わせ** `site/shusse_check.html`（`analysis/shusse/check_export.py` → `check_index.json` / `check_{year}.json`、確定行 40,821 / 13,252 頭）。年 × 基準点ごとに、確定頭数・到達クラス的中率（2023 世代 k=3: 一致 57.9%、1 段違いまで 92.5%）・QWK（0.725、規則 0.541）・重賞掲示板 AUC（0.961）・離脱 AUC（0.871）、較正ビン（P(重賞) 0–2% 帯 3,330 頭の実現率 0.3%、80–100% 帯 12 頭の実現率 91.7%。全帯で予測平均と実現率が揃う）、混同行列（予測×実際、離脱列つき）、外した例（セットアップ k=3 0.899 → 3勝/OP）・離脱した例（アマンテビアンコ 0.41）・拾えなかった例（ドリーミングアップ 0.005 → 重賞掲示板）を全頭表で公開。判定規則は narrate.py と同じ。
+- **出走表バッジ**: `weekly.json` に `entries`（race_id → 馬番 → レース前評価、突合できた全馬 294 頭）を追加し、`app.js` の `shusseBadge()` が注目若駒か同世代上位 10% 以内の馬名横に「出世株 78%」を表示。`shusse.html#{debut_year}:{id}` のディープリンクで該当馬が開く（`shusse.js` に hash 解釈を追加）。
+- **X 下書き**: `weekly_picks.x_posts()`。short は 140 字以内（ヘッダー＋馬 1〜5 頭＋注記＋URL、長いレース名は「場所R」に圧縮）、long は 6 頭＋経過。`weekly.json` の `x_post` と `out_v2/live/x_post_shusse.txt`（gitignore）。ハッシュタグ無し・日付ヘッダーは既存の投稿の型に従う。
+- テスト: `tests/test_shusse_site.py` に `test_weekly_entries_and_x_post`・`test_check_export` を追加（7 本）。

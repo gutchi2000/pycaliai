@@ -34,6 +34,14 @@ venv311\Scripts\python.exe -m pytest -q -p no:cacheprovider tests/test_shusse_as
   `site/data/shusse/weekly.json` に書く。`build_site.py` から毎ビルド呼ばれるので、土曜朝に出走表が来れば「これから走る馬」のプレビュー、
   日曜夜に結果と予測が入れば着順と「走った後の評価」付きの答え合わせに自動で切り替わる（`mode`: preview / review）。デビュー戦の馬は対象外。
   ページ上部のカードを押すと下の表で該当馬が開く。クラス名 `.wk` は style.css の枠番バッジと衝突するので `.wkcard`。
+- **答え合わせページ**（2026-11-02）: `check_export.py` が確定行（基準日 + 365 日 ≤ asof）から `out_v2/live/site/check_index.json`
+  （年 × 基準点の QWK/AUC/的中率・混同行列・較正ビン・外した例/拾った例）と `check_{year}.json`（馬ごとの基準点別 予測と結果）を書く。
+  `site_export.build()` の最後に自動実行。ページは `site/shusse_check.html` + `site/js/shusse_check.js`（判定規則は narrate.py と同じ:
+  走らず→離脱、クラス差 0/1/2+ → 的中/惜しい/外れ）。既定表示は最も古い世代（全基準点が確定している 2023）。
+- **出走表バッジ**（2026-11-02）: `weekly.json` の `entries`（race_id → 馬番 → レース前の評価）を `site/js/app.js` の `shusseBadge()` が読み、
+  注目若駒（tag あり）か同世代上位 10% 以内の馬の馬名横に「出世株 78%」バッジ（CSS `.shbadge`）。押すと `shusse.html#{debut_year}:{id}` で該当馬が開く。
+- **X 投稿の下書き**（2026-11-02）: `weekly_picks.x_posts()` が `weekly.json` の `x_post.short`（140 字以内、ハッシュタグ無し、日付ヘッダー、URL）と `x_post.long`
+  を作り、ローカル `out_v2/live/x_post_shusse.txt`（.gitignore）にも書く。review 週は「走る前→走った後」の確率、preview 週は確率のみ。投稿は手動。
 
 ## ファイル
 | ファイル | 役割 |

@@ -65,6 +65,10 @@ async function boot() {
     return;
   }
   state.manifest = mf;
+  // 出世予測 (shusse.html) のレース前評価。出走表の馬名横に「出世株」バッジを出すためだけに使う (無くても描画は続行)
+  fetch("data/shusse/weekly.json?t=" + Date.now()).then((r) => r.ok ? r.json() : null)
+    .then((w) => { state.shusse = w && w.entries ? w : null; if (state.shusse && state.mode === "races" && typeof currentRace === "function") { try { const r = currentRace(); if (r) renderTable(r, false); } catch (e) { /* noop */ } } })
+    .catch(() => { state.shusse = null; });
   try {
     realizedBias = await (window.__rbP || fetch("data/realized_bias.json?t=" + Date.now()).then((r) => r.json()));
   } catch (e) { realizedBias = null; }   // 非開催週などで無くても描画は続行
@@ -550,6 +554,17 @@ function honmeiVerdictEl(r) {
 // T-15 直前補正印カードは掲載停止 (2026-07-31): JV-Link 由来データの投稿不可条項
 // (post_guide FAQ) に抵触するため。posting-support への照会結果次第で再開判断。
 
+/* 出世予測バッジ: data/shusse/weekly.json の entries (race_id → 馬番 → レース前の評価)。
+   注目若駒 (tag あり) か同世代上位 10% 以内のときだけ出す。押すと shusse.html の該当馬へ (行クリックの drawer は開かない) */
+function shusseBadge(r, h) {
+  const e = state.shusse?.entries?.[r.race_id]?.[String(h.umaban)];
+  if (!e || (!e.tag && e.pct < 90)) return "";
+  const p = e.pg12 * 100;
+  const label = e.tag === "rising" ? "浮上" : "出世株";
+  return `<a class="shbadge ${e.tag || "near"}" href="shusse.html#${e.dy}:${e.id}" onclick="event.stopPropagation()"
+    title="出世予測AI: 1年以内に重賞掲示板に載る確率 ${p < 10 ? p.toFixed(1) : Math.round(p)}%（レース前の評価、同世代上位 ${Math.max(0.1, 100 - e.pct).toFixed(1)}%）">${label} ${p < 10 ? p.toFixed(1) : Math.round(p)}%</a>`;
+}
+
 function renderTable(r, flip = false) {
   const prevTops = new Map();
   if (flip) {
@@ -578,7 +593,7 @@ function renderTable(r, flip = false) {
       <span class="mark ${markCls(h.mark)}">${h.mark || "・"}</span>
       <span>${wk(h)}</span>
       <span class="hcell">
-        <span class="hname">${esc(h.name)}${h.scratched ? `<i class="scrbadge">${esc(h.scratched)}</i>` : ""}</span>
+        <span class="hname">${esc(h.name)}${h.scratched ? `<i class="scrbadge">${esc(h.scratched)}</i>` : ""}${shusseBadge(r, h)}</span>
         <span class="hsub">${levelChip(h)}${kyakuChip(h)}${esc(subLine(h))}</span>
       </span>
       <span class="c-ninki num ta-c">${h.ninki ?? "—"}</span>

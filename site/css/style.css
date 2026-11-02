@@ -1608,6 +1608,13 @@ body.drawer-open { overflow: hidden; }
 /* ---------------- 当日変更情報 (changes_{date}.json, 2026-07-30) ---------------- */
 .hrow.scr { opacity: .42; }
 .hrow.scr .hname { text-decoration: line-through; text-decoration-color: rgba(242,85,90,.8); }
+/* 出世予測バッジ (shusse.html への導線、app.js shusseBadge) */
+.shbadge { display: inline-block; font-size: 11px; font-weight: 700; line-height: 1.5; border-radius: 4px; padding: 0 6px; margin-left: 6px;
+  text-decoration: none; vertical-align: 2px; letter-spacing: .02em; transition: filter .15s; }
+.shbadge.top { color: #231803; background: linear-gradient(120deg, var(--gold2), var(--gold)); }
+.shbadge.rising { color: var(--teal2); border: 1px solid color-mix(in srgb, var(--teal) 45%, transparent); background: color-mix(in srgb, var(--teal) 12%, transparent); }
+.shbadge.near { color: var(--gold2); border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent); background: color-mix(in srgb, var(--gold) 9%, transparent); }
+.shbadge:hover { filter: brightness(1.15); }
 .scrbadge { font-style: normal; font-size: 11px; font-weight: 700; color: #f2555a;
   border: 1px solid rgba(242,85,90,.55); border-radius: 4px; padding: 0 5px; margin-left: 6px;
   vertical-align: 1px; white-space: nowrap; }

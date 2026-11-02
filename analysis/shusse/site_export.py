@@ -166,6 +166,12 @@ def build(write: bool = True) -> dict:
         sizes = ", ".join(f"{n} {(DST / n).stat().st_size / 1e6:.2f}MB" for n in files)
         print(f"[site_export] {DST.relative_to(OUT.parents[1])}/: {len(horses):,} horses / {len(cards)} cards / "
               f"{tot / 1e6:.2f} MB total ({sizes}) / {time.time() - t0:.1f}s")
+        # 答え合わせ（確定した馬の予測 vs 結果）も同じディレクトリへ
+        try:
+            from analysis.shusse.check_export import build as _check_build
+            _check_build()
+        except Exception as e:                      # 答え合わせの失敗で本体の出力を止めない
+            print(f"[check_export skip] {e}")
     return files
 
 

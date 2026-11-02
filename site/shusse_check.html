@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyCaLiAI — 出世予測 AI 答え合わせ</title>
+<meta name="description" content="出世予測 AI が若駒に付けた「1年以内に重賞掲示板に載る確率」と到達クラス予測を、1年後の結果と突き合わせて全頭公開。的中も外れもそのまま載せています。">
+<link rel="canonical" href="https://pycaliai.com/shusse_check.html">
+<meta property="og:title" content="PyCaLiAI — 出世予測 AI 答え合わせ">
+<meta property="og:description" content="予測と1年後の結果を全頭突き合わせ。的中も外れもそのまま。">
+<meta property="og:url" content="https://pycaliai.com/shusse_check.html">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pycaliai.com/apple-touch-icon.png">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#070b14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PyCaLiAI">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=20261102-check1">
+<style>
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:var(--pad);}
+  .ehead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 14px;}
+  .ehead h1{font-family:var(--disp);font-weight:600;font-size:1.4rem;margin:0;color:var(--tx);}
+  .badge{display:inline-block;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--r-pill);padding:2px 8px;font-size:.75rem;color:var(--tx2);vertical-align:middle;}
+  .backlink{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:var(--r-pill);padding:6px 12px;text-decoration:none;font-family:var(--sans);font-size:.85rem;font-weight:500;}
+  .backlink:hover{border-color:var(--gold);color:var(--gold2);}
+  .hint{color:var(--tx3);font-size:.8rem;margin:6px 0 0;line-height:1.7;}
+  .panel{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 18px;box-shadow:var(--shadow-card);margin:0 0 14px;}
+  .panel h2{font-size:.95rem;font-weight:700;color:var(--tx2);letter-spacing:.08em;margin:0 0 10px;display:flex;align-items:center;gap:9px;}
+  .panel h2::before{content:"";width:3px;height:14px;border-radius:2px;background:linear-gradient(180deg,var(--gold2),var(--gold));}
+  .panel p{color:var(--tx2);font-size:.9rem;line-height:1.8;margin:0 0 8px;}
+  .panel p:last-child{margin-bottom:0;}
+  .panel b{color:var(--tx);}
+  /* 操作列 */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;}
+  .ctrls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 12px;}
+  .ctrls input,.ctrls select{background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:var(--r-input);padding:7px 10px;font-family:var(--sans);font-size:.9rem;}
+  .ctrls input{min-width:14em;flex:1 1 14em;}
+  .ctrls input:focus,.ctrls select:focus{outline:none;box-shadow:var(--ring);border-color:var(--gold);}
+  .ctrls label{color:var(--tx3);font-size:.8rem;display:inline-flex;gap:6px;align-items:center;}
+  .count{color:var(--tx3);font-size:.82rem;margin-left:auto;}
+  .ksel{display:inline-flex;gap:4px;background:var(--card);border:1px solid var(--line2);border-radius:var(--r-pill);padding:3px;}
+  .ksel button{font-size:.82rem;font-weight:600;color:var(--tx2);padding:4px 12px;border-radius:var(--r-pill);background:transparent;border:0;cursor:pointer;font-family:var(--sans);}
+  .ksel button.on{color:#131008;background:linear-gradient(120deg,var(--gold2),var(--gold));}
+  /* 指標カード */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 14px;}
+  .kpi{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;}
+  .kpi .k{display:block;font-size:.74rem;color:var(--tx3);letter-spacing:.06em;margin-bottom:4px;}
+  .kpi .v{font-family:var(--disp);font-weight:600;font-size:1.55rem;color:var(--gold2);line-height:1.1;}
+  .kpi .v small{font-size:.8rem;color:var(--tx2);margin-left:3px;font-weight:400;}
+  .kpi .s{display:block;font-size:.74rem;color:var(--tx3);margin-top:4px;}
+  .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr;}}
+  /* 較正バー */
+  .calib{display:flex;flex-direction:column;gap:6px;}
+  .cb{display:grid;grid-template-columns:7.5em 1fr 4.6em;gap:8px;align-items:center;font-size:.8rem;color:var(--tx2);}
+  .cb .rng{font-family:var(--disp);color:var(--tx3);}
+  .cb .bars{position:relative;height:18px;background:var(--bg3);border-radius:4px;overflow:hidden;}
+  .cb .bars i{position:absolute;left:0;top:0;height:100%;border-radius:4px;}
+  .cb .bars .pr{background:color-mix(in srgb,var(--blue) 35%,transparent);height:100%;}
+  .cb .bars .ac{background:linear-gradient(90deg,var(--gold),var(--gold2));height:8px;top:5px;}
+  .cb .n{font-family:var(--disp);color:var(--tx3);text-align:right;}
+  .legend{display:flex;gap:14px;font-size:.76rem;color:var(--tx3);margin-top:8px;flex-wrap:wrap;}
+  .legend i{display:inline-block;width:12px;height:8px;border-radius:2px;margin-right:5px;vertical-align:0;}
+  /* 混同行列 */
+  .cm{border-collapse:collapse;font-size:.8rem;width:100%;}
+  .cm th,.cm td{padding:5px 6px;text-align:right;white-space:nowrap;}
+  .cm th{color:var(--tx3);font-weight:500;border-bottom:1px solid var(--line2);}
+  .cm th.l,.cm td.l{text-align:left;color:var(--tx2);}
+  .cm td{font-family:var(--disp);color:var(--tx);position:relative;}
+  .cm td.diag{color:var(--gold2);font-weight:600;}
+  .cm td .heat{position:absolute;inset:2px;border-radius:3px;background:var(--gold);opacity:0;z-index:0;}
+  .cm td span.v{position:relative;z-index:1;}
+  .cm td.drop{color:var(--tx3);}
+  /* 例カード */
+  .ex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;}
+  .exc{background:var(--bg3);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:4px;}
+  .exc:hover{border-color:var(--gold);}
+  .exc .nm{font-weight:700;color:var(--tx);}
+  .exc .line{font-size:.78rem;color:var(--tx2);}
+  .exc .line b{color:var(--gold2);}
+  .exc .sum{font-size:.74rem;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ex-h{font-size:.82rem;color:var(--tx2);margin:12px 0 6px;font-weight:700;}
+  .ex-h:first-child{margin-top:0;}
+  /* 表 */
+  .twrap{overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-md);}
+  table.ht{width:100%;border-collapse:collapse;font-size:.86rem;}
+  .ht th,.ht td{padding:8px 10px;text-align:right;white-space:nowrap;vertical-align:middle;}
+  .ht th{color:var(--tx3);font-weight:500;border-bottom:1px solid var(--line2);font-size:.78rem;letter-spacing:.04em;position:sticky;top:0;background:var(--bg2);z-index:1;}
+  .ht td.l,.ht th.l{text-align:left;}
+  .ht tr.hr{cursor:pointer;}
+  .ht tr.hr:hover td{background:rgba(255,255,255,.03);}
+  .ht tr.hr.open td{background:rgba(245,185,66,.06);}
+  .ht tr.hr:not(:first-child) td{border-top:1px solid var(--border-subtle);}
+  .ht .nm{font-weight:700;color:var(--tx);font-size:.98rem;}
+  .ht .nm .sex{font-size:.72rem;color:var(--tx3);margin-left:5px;font-weight:400;}
+  .ht .sub{display:block;color:var(--tx3);font-size:.74rem;margin-top:1px;}
+  .ht td.sum{max-width:26em;overflow:hidden;text-overflow:ellipsis;color:var(--tx2);font-size:.8rem;text-align:left;}
+  .ht td.num{font-family:var(--disp);}
+  .pbar{display:inline-flex;align-items:center;gap:8px;min-width:8em;justify-content:flex-end;}
+  .pbar .bar{width:60px;height:7px;border-radius:4px;background:var(--bg3);overflow:hidden;flex:none;}
+  .pbar .bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold),var(--gold2));}
+  .pbar .v{font-family:var(--disp);font-weight:600;color:var(--gold2);min-width:3.4em;text-align:right;}
+  .lv{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:var(--r-pill);border:1px solid transparent;letter-spacing:.02em;}
+  .lv4{color:#231803;background:linear-gradient(120deg,var(--gold2),var(--gold));}
+  .lv3{color:var(--teal2);background:color-mix(in srgb,var(--teal) 14%,transparent);border-color:color-mix(in srgb,var(--teal) 36%,transparent);}
+  .lv2{color:var(--blue);background:color-mix(in srgb,var(--blue) 12%,transparent);border-color:color-mix(in srgb,var(--blue) 32%,transparent);}
+  .lv1{color:var(--tx2);background:var(--bg3);border-color:var(--line2);}
+  .lv0{color:var(--tx3);background:transparent;border-color:var(--line);}
+  .lvD{color:var(--uncertain);background:color-mix(in srgb,var(--uncertain) 12%,transparent);border-color:color-mix(in srgb,var(--uncertain) 36%,transparent);}
+  .vd{display:inline-block;font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:var(--r-pill);}
+  .vd.hit{color:#07201a;background:linear-gradient(120deg,var(--teal2),var(--teal));}
+  .vd.near{color:var(--gold2);border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);}
+  .vd.miss{color:var(--tx2);border:1px solid var(--line2);}
+  .vd.drop{color:var(--uncertain);border:1px solid color-mix(in srgb,var(--uncertain) 40%,transparent);}
+  .ht tr.det td{padding:0 10px 14px;text-align:left;white-space:normal;background:rgba(245,185,66,.035);border-top:0;position:sticky;left:0;}
+  .det-in{max-width:calc(100vw - 2*var(--pad) - 22px);padding-top:6px;}
+  .det-in h4{font-size:.78rem;color:var(--tx3);font-weight:600;letter-spacing:.08em;margin:0 0 6px;}
+  .mini{width:100%;border-collapse:collapse;font-size:.8rem;}
+  .mini th,.mini td{padding:3px 6px;text-align:right;white-space:nowrap;}
+  .mini th{color:var(--tx3);font-weight:500;border-bottom:1px solid var(--line2);}
+  .mini td.l,.mini th.l{text-align:left;}
+  .mini td.cur{color:var(--gold2);font-weight:600;}
+  .more-btn{display:block;margin:14px auto 0;background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:var(--r-pill);padding:9px 26px;font-family:var(--sans);font-size:.9rem;cursor:pointer;}
+  .more-btn:hover{border-color:var(--gold);color:var(--gold2);}
+  .empty{padding:26px;text-align:center;color:var(--tx3);font-size:.9rem;}
+  .foot-note{color:var(--tx3);font-size:.78rem;line-height:1.8;margin:16px 0 0;}
+  @media(max-width:680px){
+    .ht .c-sum,.ht .c-n,.ht .c-pct{display:none;}
+    .ht th,.ht td{padding:7px 7px;}
+    .pbar{min-width:6.5em;} .pbar .bar{width:40px;}
+  }
+</style>
+</head>
+<body>
+<div class="track-stripe"></div>
+<div class="wrap">
+  <div class="ehead">
+    <a href="shusse.html" class="backlink">← 出世予測に戻る</a>
+    <h1>出世予測 AI 答え合わせ <span class="badge">Scorecard</span></h1>
+    <span class="hint" id="asofHint"></span>
+  </div>
+
+  <div class="panel">
+    <h2>予測と 1 年後の結果を、全頭そのまま突き合わせています</h2>
+    <p>基準点（1・2・3・5 走目）から <b>12 か月が過ぎて結果が確定した馬</b>だけを載せています。各馬について、AI がその時点で言っていた「1 年以内に重賞で掲示板（5 着以内）に載る確率」と到達クラスの予測を、実際に 1 年間で到達したクラスと並べます。<b>的中した馬だけを選んで載せることはしていません。</b>離脱（1 年間出走なし）も、外した馬も全部入っています。</p>
+    <p>的中の判定: 走った馬は予測クラスと実クラスが一致で「的中」、1 段違いで「惜しい」、2 段以上で「外れ」。走らなかった馬は「離脱」として別枠で数えます（離脱は確率でしか出していません）。2023 年デビュー世代は学習にもパラメータ選びにも使っていない、純粋な前向きの答え合わせです。</p>
+  </div>
+
+  <div class="tabs" id="yearTabs"></div>
+  <div class="ctrls">
+    <span class="ksel" id="kSel"></span>
+    <span class="hint" style="margin:0">基準点を選ぶと、その時点の予測で集計します</span>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid2">
+    <div class="panel"><h2>確率は当たっているか（較正）</h2>
+      <p class="hint" style="margin:0 0 10px">AI が付けた重賞掲示板の確率ごとに、実際にそうなった割合。青＝AI の平均予測、金＝実際の割合。2 本が揃っていれば確率として信頼できます。</p>
+      <div class="calib" id="calib"></div>
+      <div class="legend"><span><i style="background:color-mix(in srgb,var(--blue) 35%,transparent)"></i>AI の予測（平均）</span><span><i style="background:var(--gold)"></i>実際の割合</span></div>
+    </div>
+    <div class="panel"><h2>到達クラスの予測 × 実際</h2>
+      <p class="hint" style="margin:0 0 10px">行＝AI の予測、列＝1 年後の実際。対角線（金）が的中。右端は 1 年間走らなかった馬。</p>
+      <div style="overflow-x:auto"><table class="cm" id="cm"></table></div>
+    </div>
+  </div>
+
+  <div class="panel" id="exPanel"><h2>外した例・拾った例</h2>
+    <div id="examples"></div>
+  </div>
+
+  <div class="ctrls">
+    <input id="q" type="search" placeholder="馬名・父・調教師で検索" autocomplete="off">
+    <label>判定 <select id="vdSel"><option value="all">すべて</option><option value="hit">的中</option><option value="near">惜しい</option><option value="miss">外れ</option><option value="drop">離脱</option></select></label>
+    <label>並び <select id="sortSel">
+      <option value="pg12">予測確率が高い順</option>
+      <option value="alvl">実際の到達クラスが高い順</option>
+      <option value="gap">予測と結果のズレが大きい順</option>
+      <option value="name">馬名順</option>
+    </select></label>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="twrap"><table class="ht" id="tbl"></table></div>
+  <button class="more-btn" id="moreBtn" hidden>さらに表示</button>
+
+  <p class="foot-note">P(重賞) = (1 − 離脱確率) × P(重賞掲示板 | 走る)。実クラスは基準日から 365 日以内に出走したレースの最高到達（重賞で 5 着以内＝「重賞掲示板」、重賞出走のみは「3勝/OP」）。各馬の行を開くと基準点ごとの予測と結果が見られます。<br>
+  出典：TARGET frontier JV（JRA-VAN Data Lab.）のデータを基に独自分析・作成。AI の推定は参考情報であり、投資助言ではありません。</p>
+</div>
+<footer class="site-legal">
+  <a href="legal.html">免責事項・プライバシーポリシー</a>
+  <a href="mailto:contact@pycaliai.com">お問い合わせ</a>
+  <span>© 2026 PyCaLiAI</span>
+</footer>
+<script defer src="js/shusse_check.js?v=20261102-check1"></script>
+<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+</body>
+</html>
