@@ -36,6 +36,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/api/soudan") return soudan(request, env, ctx);
+    if (url.pathname === "/api/soudan/health") return health(env);
     if (url.pathname.startsWith("/api/")) return json({ error: "not found" }, 404);
     return env.ASSETS.fetch(request);
   },
@@ -82,6 +83,19 @@ async function loadDay(env, request, date) {
   return day;
 }
 
+/* GET /api/soudan/health: 秘密の値は返さず「設定されているか・形が正しいか」と本日の消費だけ（運用確認用）。 */
+async function health(env) {
+  const key = String(env.ANTHROPIC_API_KEY || "");
+  const { ymd, ym } = jstParts();
+  const kv = env.SOUDAN_KV;
+  const [g, spend] = kv ? await Promise.all([kvNum(kv, `g:${ymd}`), kvNum(kv, `spend:${ym}`)]) : [0, 0];
+  return json({
+    ok: key.trim().length > 20, key_set: key.length > 0, key_len: key.length, key_prefix_ok: key.startsWith("sk-ant-"),
+    kv: !!kv, today_jst: ymd, questions_today: g, est_spend_month_usd: +(spend / 1e6).toFixed(3),
+    model: env.SOUDAN_MODEL || "claude-sonnet-5-5", daily_sonnet: num(env.SOUDAN_DAILY_SONNET, 150), daily_hard: num(env.SOUDAN_DAILY_HARD, 600),
+  });
+}
+
 /* ---------------- /api/soudan ---------------- */
 async function soudan(request, env, ctx) {
   const origin = request.headers.get("origin") || "";
@@ -90,7 +104,7 @@ async function soudan(request, env, ctx) {
   if (request.method !== "POST") return json({ error: "POST only" }, 405);
   if (!ok) return json({ error: "forbidden origin" }, 403);
   const C = cors(origin);
-  if (!env.ANTHROPIC_API_KEY) return json({ error: "相談AIは準備中です（鍵未設定）", code: "no_key" }, 503, C);
+  if (!String(env.ANTHROPIC_API_KEY || "").trim()) return json({ error: "相談AIは準備中です（鍵未設定）", code: "no_key" }, 503, C);
 
   // --- 入力検証 ---
   let body;
