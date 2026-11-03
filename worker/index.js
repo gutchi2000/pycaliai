@@ -152,7 +152,8 @@ async function soudan(request, env, ctx) {
   ];
 
   // --- Claude（手動ツールループ、最大 MAX_TOOL_ROUNDS 往復） ---
-  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 45_000 });
+  // trim: パイプ経由で secret を入れたときの末尾改行を無害化
+  const client = new Anthropic({ apiKey: String(env.ANTHROPIC_API_KEY).trim(), maxRetries: 1, timeout: 45_000 });
   const conv = msgs.map((m) => ({ role: m.role, content: m.content }));
   let inTok = 0, outTok = 0, answer = "", stop = "", toolsUsed = [];
   try {
