@@ -84,6 +84,7 @@ P0-1（騎手/調教師stats）・P0-2（着度数CSV列数）・P0-4（Ｒ全�
 - Windows 11 / `E:\PyCaLiAI`
 - 仮想環境: `venv311\Scripts\activate`
 - **静的サイト（本番表示, 2026-06-14〜）**: https://gutchi15300-pycaliai-umami.hf.space ← クリーンURL。`site/` を Docker Space `gutchi15300/pycaliai-umami` で配信。ソースは `site/`、データ生成は `build_site.py`、デプロイは `sync-hf-umami.ps1`
+- **pycaliai.com（Cloudflare Workers）**: `wrangler.jsonc` で `site/` を ASSETS 配信 + `worker/index.js` が `/api/soudan`（相談AI）。デプロイは `sync-hf-umami.ps1` 内の `npx wrangler deploy`（単独でも可）。`package.json`（`@anthropic-ai/sdk`）は `npm install` が必要、`node_modules/` は .gitignore
 - **NiceGUI（旧本番）**: `python nicegui_app.py` → `http://localhost:8080` / HF: https://gutchi15300-pycaliai.hf.space （`sync-hf.ps1`、まだ併行更新中）
 - **Streamlit（副）**: `streamlit run app.py`
 - **GPU / torch**: CUDA 12.8 動作中（unified_rank_v5 自体は LightGBM のみで torch 不要）
@@ -313,6 +314,7 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 | `site/` | ★**本番 静的サイト**ソース（index.html / css / js、vanilla JS + ECharts CDN） |
 | `sync-hf-umami.ps1` | ★**本番**デプロイ: `build_site.py` → Docker Space `pycaliai-umami` へ push |
 | `site/shusse.html` + `analysis/shusse/site_export.py` | 出世予測 AI（ファン向け読み物、馬券非転用、2026-10-31 公開）。データ `site/data/shusse/{index,YYYY}.json`。更新は Phase C の [1e/3]。詳細 `analysis/shusse/README.md` |
+| `worker/index.js` + `worker/tools.js` + `worker/prompt.js` | **相談AI（2026-11-03 公開）**: pycaliai.com の Cloudflare Worker。`POST /api/soudan` が Claude（Sonnet 5.5、全体 1 日 150 問超で Haiku 5.5、IP 別 30 問/日、月 $90 で停止、KV カウンタ）を中継。数字は公開済み `site/data/{date}.json` だけ（オッズ・EV 不在）。UI は `app.js renderSoudan()` の「💬 相談AI」タブ。鍵は `npx wrangler secret put ANTHROPIC_API_KEY`（Max の月次 API クレジット）。確認 `GET /api/soudan/health`。テスト `node --test worker/tools.test.mjs`。`assistant/chat.py`（Ollama 版）は未改修 |
 | `export_weekly_marks.py` | unified_rank_v6 → bundle.json |
 | `build_course_stats.py` | コース分析タブ用統計 |
 | `weekly_nicegui.ps1` | 週次ワークフロー 3 フェーズ統合（sync-hf + sync-hf-umami 両方を叩く） |
