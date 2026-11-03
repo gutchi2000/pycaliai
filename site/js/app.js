@@ -1229,12 +1229,99 @@ document.addEventListener("visibilitychange", () => {
   if (r) renderCowork(r);
 });
 
+/* ================= 相談AI (2026-11-03) =================
+   レース単位のチャット。サーバは Cloudflare Worker の POST /api/soudan（worker/index.js）。
+   数字の供給元はこのページが読んでいる data/{date}.json と同じ公開 JSON（オッズ・EV は存在しない）。
+   履歴はレースごとにメモリ上（state.soudan[race_id]）、リロードで消える。保存はしない。 */
+const SOUDAN_API = location.hostname.endsWith("pycaliai.com") ? "/api/soudan" : "https://pycaliai.com/api/soudan";
+const SOUDAN_HISTORY = 8;   // サーバへ送る直近の発話数（user+assistant）
+const SOUDAN_CHIPS = [
+  { t: "◎は信頼できる？", q: (r) => { const h = honmeiHorse(r); return h ? `◎${h.umaban}番 ${h.name} は信頼できる？根拠は？` : "AI1位の馬は信頼できる？根拠は？"; } },
+  { t: "◎と〇どっちが軸？", q: (r) => { const a = honmeiHorse(r), b = maruHorse(r); return a && b ? `◎${a.umaban}番と〇${b.umaban}番、どっちを軸にすべき？` : "AI上位2頭はどっちを軸にすべき？"; } },
+  { t: "見送るべき？", q: () => "このレースは見送るべき？堅い？荒れる？" },
+  { t: "内枠外枠どっち？", q: () => "このコースは内枠と外枠どっちが有利？脚質の傾向も。" },
+  { t: "◎-〇の馬連率", q: (r) => { const a = honmeiHorse(r), b = maruHorse(r); return a && b ? `${a.umaban}番と${b.umaban}番の馬連・ワイドの確率は？` : "AI上位2頭の馬連・ワイドの確率は？"; } },
+];
+function soudanState(r) {
+  state.soudan = state.soudan || {};
+  return (state.soudan[r.race_id] = state.soudan[r.race_id] || { msgs: [], busy: false, remaining: null, err: null, locked: false });
+}
+function sdText(t) {
+  return esc(t).replace(/\n/g, "<br>").replace(/(^|<br>)(結論[:：][^<]*)/, "$1<b>$2</b>");
+}
+function sdMsgHtml(m) {
+  if (m.role === "user") return `<div class="sd-msg me"><div class="sd-b">${esc(m.content)}</div></div>`;
+  return `<div class="sd-msg ai"><div class="sd-b">${sdText(m.content)}</div>${m.model === "haiku" ? `<div class="sd-tag">軽量モデルで回答（本日の上位モデル枠が終了）</div>` : ""}</div>`;
+}
+function renderSoudan(r, vb) {
+  const s = soudanState(r);
+  const dis = s.busy || s.locked ? "disabled" : "";
+  vb.innerHTML = `<div class="card sd">
+    <div class="sd-head">
+      <div class="an-t">💬 相談AI <small>β · このレースのAI評価だけを根拠に答えます</small></div>
+      ${s.remaining != null ? `<span class="sd-rem">残り ${s.remaining} 問 / 日</span>` : ""}
+    </div>
+    <p class="sd-note">答えられるのは <b>馬の評価</b>・<b>2頭の比較</b>・<b>見送り判断</b>・<b>枠と脚質の傾向</b>・<b>2頭のペア確率</b> の5つ。
+      数字はこのページに表示している AI 算出値をそのまま使い、AI が作文で数字を作ることはありません。
+      オッズ・払戻・馬場・騎手相性のデータは持っていません。</p>
+    <div class="sd-chips">${SOUDAN_CHIPS.map((c, i) => `<button class="sd-chip" data-i="${i}" ${dis}>${c.t}</button>`).join("")}</div>
+    <div class="sd-log" id="sdLog">
+      ${s.msgs.length ? s.msgs.map(sdMsgHtml).join("") : `<div class="sd-empty">質問を選ぶか入力してください。例:「7番の前走はどうだった？」「1と7の馬連は？」「△の2頭はどっちが上？」</div>`}
+      ${s.busy ? `<div class="sd-msg ai"><div class="sd-b sd-dots"><i></i><i></i><i></i></div></div>` : ""}
+      ${s.err ? `<div class="sd-err">${esc(s.err)}</div>` : ""}
+    </div>
+    <form class="sd-form" id="sdForm" autocomplete="off">
+      <input id="sdIn" maxlength="300" placeholder="${s.locked ? "本日の回数に達しました" : "このレースについて質問（300字まで）"}" ${dis}>
+      <button class="btn-prime sd-send" type="submit" ${dis}>送る</button>
+    </form>
+    <p class="sd-foot">参考情報です。的中・利益を保証しません。馬券の購入はご自身の判断と責任で。
+      入力した文章は回答生成のため Anthropic 社の API に送信されます（<a href="legal.html#soudan">詳細</a>）。1人1日30問まで。</p>
+  </div>`;
+  const log = $("#sdLog");
+  if (log) log.scrollTop = log.scrollHeight;
+  vb.querySelectorAll(".sd-chip").forEach((b) => { b.onclick = () => soudanSend(r, SOUDAN_CHIPS[+b.dataset.i].q(r)); });
+  const form = $("#sdForm");
+  if (form) form.onsubmit = (e) => { e.preventDefault(); const v = $("#sdIn").value.trim(); if (v) soudanSend(r, v); };
+  if (!s.busy && !s.locked && window.matchMedia("(hover: hover)").matches) { const i = $("#sdIn"); if (i) i.focus(); }
+}
+async function soudanSend(r, text) {
+  const s = soudanState(r);
+  if (s.busy || s.locked || !text) return;
+  const date = state.day?.date;
+  s.msgs.push({ role: "user", content: text.slice(0, 300) });
+  s.busy = true; s.err = null;
+  const rerender = () => { if (state.view === "soudan" && currentRace()?.race_id === r.race_id) renderSoudan(r, $("#viewbody")); };
+  rerender();
+  try {
+    const res = await fetch(SOUDAN_API, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ date, race_id: r.race_id, messages: s.msgs.slice(-SOUDAN_HISTORY).map((m) => ({ role: m.role, content: m.content })) }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      s.err = j.error || `相談AIに接続できませんでした (${res.status})`;
+      if (j.code === "ip_limit" || j.code === "daily_limit" || j.code === "month_limit") { s.locked = true; s.remaining = 0; }
+      s.msgs.pop();   // 失敗した質問は履歴に残さない（再送しやすいように入力欄へ戻す）
+      s.busy = false; rerender(); const i = $("#sdIn"); if (i) i.value = text;
+      return;
+    }
+    s.msgs.push({ role: "assistant", content: j.answer || "", model: j.model });
+    if (typeof j.remaining === "number") { s.remaining = j.remaining; if (j.remaining <= 0) s.locked = true; }
+  } catch (e) {
+    s.err = "通信に失敗しました。電波状況を確認してもう一度どうぞ。";
+    s.msgs.pop();
+  }
+  s.busy = false;
+  rerender();
+}
+
 /* ================= 全頭分析 / コース / 調教 / 血統 ================= */
 const VIEWS = [
   { key: "shutsuba", label: "出走表" },
   { key: "bunseki", label: "全頭分析" },
   { key: "course", label: "コース" },
   { key: "pedigree", label: "血統" },
+  { key: "soudan", label: "💬 相談AI" },   // 2026-11-03: Cloudflare Worker /api/soudan（Claude）。数字は公開 JSON の値だけ
 ];
 const MARK_COLOR = { "◎": "#f5b942", "〇": "#d9e2f2", "○": "#d9e2f2", "▲": "#d08b4c", "△": "#8d9cba", "": "#46587e" };
 const RANK_COLOR = { SS: "#f5b942", S: "#2dd4a8", A: "#5ba0f5", B: "#8d9cba" };
@@ -2252,6 +2339,8 @@ function renderView() {
     renderForecast(r, vb);
   } else if (state.view === "compare") {
     renderHorseCompare(r, vb);
+  } else if (state.view === "soudan") {
+    renderSoudan(r, vb);
   }
 }
 

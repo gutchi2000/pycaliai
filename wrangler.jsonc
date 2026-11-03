@@ -1,11 +1,29 @@
 {
-  // Cloudflare Workers (static assets) — site/ を配信する設定。
-  // Cloudflare ダッシュボードの Workers Builds が `npx wrangler deploy` で参照する。
-  // Build command は空でよい (site/data は build_site.py がローカル生成し git に含める)。
+  // Cloudflare Workers — pycaliai.com
+  //   site/ を静的配信 (ASSETS) + worker/index.js が /api/soudan（相談AI, 2026-11-03）を処理。
+  //   デプロイは sync-hf-umami.ps1 の `npx wrangler deploy`（Workers Builds は 2026-08-17 以降発火せず、ローカルから直接 upload）。
+  //   秘密: ANTHROPIC_API_KEY は `npx wrangler secret put ANTHROPIC_API_KEY`（git には入れない）。
   "name": "pycaliai",
+  "main": "worker/index.js",
   "compatibility_date": "2026-07-25",
+  "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": "./site",
-    "not_found_handling": "single-page-application"
-  }
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "kv_namespaces": [
+    { "binding": "SOUDAN_KV", "id": "cdc7e8c706bb4875b2490a63f13b8c33" }
+  ],
+  "vars": {
+    // 相談AI の守り（ユーザー承認 2026-11-03: Sonnet、全体 1 日 150 問まで、超えたら Haiku）
+    "SOUDAN_MODEL": "claude-sonnet-5-5",
+    "SOUDAN_FALLBACK_MODEL": "claude-haiku-5-5",
+    "SOUDAN_DAILY_SONNET": "150",
+    "SOUDAN_DAILY_HARD": "600",
+    "SOUDAN_PER_IP_DAY": "30",
+    "SOUDAN_MONTH_USD_CAP": "90"
+  },
+  "observability": { "enabled": true }
 }

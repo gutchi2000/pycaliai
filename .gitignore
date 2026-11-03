@@ -288,3 +288,8 @@ analysis/shusse/out_v2/live/*.parquet
 analysis/shusse/out_v2/live/shusse_live.json
 analysis/shusse/out_v2/live/site/
 analysis/shusse/out_v2/live/x_post_shusse.txt
+
+# Cloudflare Worker (相談AI, 2026-11-03): 依存と wrangler のローカル状態・秘密
+node_modules/
+.wrangler/
+.dev.vars

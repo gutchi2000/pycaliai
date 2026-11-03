@@ -1,0 +1,18 @@
+{
+  "name": "pycaliai-site",
+  "private": true,
+  "version": "1.0.0",
+  "description": "pycaliai.com Cloudflare Worker (static assets + /api/soudan 相談AI)",
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "test": "node --test worker/tools.test.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.156.2"
+  }
+}
