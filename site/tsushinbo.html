@@ -18,7 +18,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#070b14">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261104-tsushinbo2">
+<link rel="stylesheet" href="css/style.css?v=20261105-nav">
 <style>
   .wrap{max-width:var(--maxw);margin:0 auto;padding:var(--pad);}
   .ehead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 14px;}
@@ -109,12 +109,16 @@
     <nav class="modenav" aria-label="サイト内ナビ">
       <a href="index.html#app" style="text-decoration:none"><button type="button">予想</button></a>
       <a href="index.html#results" style="text-decoration:none"><button type="button">成績</button></a>
-      <a href="explain.html" style="text-decoration:none"><button type="button">分析カード</button></a>
-      <a href="shusse.html" style="text-decoration:none"><button type="button">出世予測</button></a>
       <a href="kaiko.html" style="text-decoration:none"><button type="button">回顧</button></a>
       <a href="tsushinbo.html" style="text-decoration:none"><button type="button" class="on">通信簿</button></a>
-      <a href="horse.html" style="text-decoration:none"><button type="button">馬</button></a>
-      <a href="jt.html" style="text-decoration:none"><button type="button">騎手</button></a>
+      <details class="nav-more"><summary>データ</summary>
+        <div class="nav-menu">
+        <a href="explain.html" style="text-decoration:none"><button type="button">分析カード</button></a>
+        <a href="shusse.html" style="text-decoration:none"><button type="button">出世予測</button></a>
+        <a href="horse.html" style="text-decoration:none"><button type="button">馬</button></a>
+        <a href="jt.html" style="text-decoration:none"><button type="button">騎手</button></a>
+        </div>
+      </details>
       <a id="navDiscord" href="#" hidden style="text-decoration:none"><button type="button">Discord</button></a>
     </nav>
   </div>
@@ -168,6 +172,6 @@
 <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <script defer src="js/tsushinbo.js?v=20261104-tsushinbo2"></script>
 <script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
-<script defer src="js/site_config.js?v=20261105"></script>
+<script defer src="js/site_config.js?v=20261105b"></script>
 </body>
 </html>

@@ -14,3 +14,14 @@ window.PYCALIAI_CONFIG = {
     a.hidden = false;
   }
 })();
+/* ナビ「データ ▾」: 外側クリック / Escape で閉じる (2026-11-05) */
+(function () {
+  document.addEventListener("click", function (e) {
+    document.querySelectorAll("details.nav-more[open]").forEach(function (d) {
+      if (!d.contains(e.target)) d.removeAttribute("open");
+    });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") document.querySelectorAll("details.nav-more[open]").forEach(function (d) { d.removeAttribute("open"); });
+  });
+})();

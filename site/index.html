@@ -31,7 +31,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=optional" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=optional" rel="stylesheet"></noscript>
-<link rel="stylesheet" href="css/style.css?v=20261104-horse1">
+<link rel="stylesheet" href="css/style.css?v=20261105-nav">
 <style>
 /* CLS対策: 初期描画は動的セクションを不可視にし、全データ描画後に1フレームで表示
    (未描画要素の移動はCLSに計上されないため、babaBias等の後入れ押し下げシフトが消える)。
@@ -133,12 +133,16 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
     <nav class="modenav" id="modeNav">
       <button data-mode="races" class="on">予想</button>
       <button data-mode="results">成績</button>
-      <a href="explain.html" style="text-decoration:none"><button type="button">分析カード</button></a>
-      <a href="shusse.html" style="text-decoration:none"><button type="button">出世予測</button></a>
       <a href="kaiko.html" style="text-decoration:none"><button type="button">回顧</button></a>
       <a href="tsushinbo.html" style="text-decoration:none"><button type="button">通信簿</button></a>
-      <a href="horse.html" style="text-decoration:none"><button type="button">馬</button></a>
-      <a href="jt.html" style="text-decoration:none"><button type="button">騎手</button></a>
+      <details class="nav-more"><summary>データ</summary>
+        <div class="nav-menu">
+        <a href="explain.html" style="text-decoration:none"><button type="button">分析カード</button></a>
+        <a href="shusse.html" style="text-decoration:none"><button type="button">出世予測</button></a>
+        <a href="horse.html" style="text-decoration:none"><button type="button">馬</button></a>
+        <a href="jt.html" style="text-decoration:none"><button type="button">騎手</button></a>
+        </div>
+      </details>
       <a id="navDiscord" href="#" hidden style="text-decoration:none"><button type="button">Discord</button></a>
     </nav>
     <div class="topbar-right">
@@ -442,6 +446,6 @@ addEventListener('DOMContentLoaded',function(){
 })();
 </script>
 <script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
-<script defer src="js/site_config.js?v=20261105"></script>
+<script defer src="js/site_config.js?v=20261105b"></script>
 </body>
 </html>
