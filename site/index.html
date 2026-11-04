@@ -197,17 +197,18 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
         <p class="lp-note">集計は毎開催後に自動更新。数値はモデル運用実績に基づく実測値で、投資助言ではありません。馬券の購入は自己責任でお願いします。</p>
       </div>
       <div class="lp-stats">
+        <!-- 数値は data/report_card.json (build_site.py が毎ビルド集計) から下の script が差し替える。ここは最終ビルド時の値 (2026-11-01 まで) -->
         <div class="lp-stat">
-          <span class="k">検証レース数 <small>MODEL v6 LIVE / 2026.5.17–8.9・AI参戦判定「go」のみ</small></span>
-          <span class="v num">448<small>R</small></span>
+          <span class="k">検証レース数 <small id="lpStatNSub">MODEL v6 LIVE / 2026.4.18–11.1・公開した全レース</small></span>
+          <span class="v num"><span id="lpStatN">1,809</span><small>R</small></span>
         </div>
         <div class="lp-stat">
-          <span class="k">◎ 複勝圏率 <small>HONMEI TOP-3 HIT / LIVE</small></span>
-          <span class="v num">53.3<small>%</small></span>
+          <span class="k">◎ 複勝圏率 <small id="lpStatTop3Sub">HONMEI TOP-3 HIT / LIVE・95% CI 52.1–56.7・勝率 24.2%</small></span>
+          <span class="v num"><span id="lpStatTop3">54.4</span><small>%</small></span>
         </div>
         <div class="lp-stat">
-          <span class="k">◎ 複勝回収率 <small>HONMEI PLACE ROI — 単勝は78.1%</small></span>
-          <span class="v num">84.2<small>%</small></span>
+          <span class="k">表示買い目 回収率 <small id="lpStatRoiSub">SITE BETS ROI / LIVE・3,202 点・外れも全部込み</small></span>
+          <span class="v num"><span id="lpStatRoi">71.3</span><small>%</small></span>
         </div>
       </div>
     </div>
@@ -310,6 +311,18 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 addEventListener('DOMContentLoaded',function(){
   var nav=document.getElementById('modeNav');
   function showApp(){document.body.classList.remove('on-landing');scrollTo(0,0)}
+  /* 表紙の HONEST RECORD を最新の通信簿 (data/report_card.json) で更新 (2026-11-05)。失敗時は HTML の値のまま */
+  fetch('data/report_card.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():null}).then(function(d){
+    if(!d||!d.overall)return;var o=d.overall,p=d.period||{};
+    var f=function(x){return x?x.slice(0,4)+'.'+(+x.slice(4,6))+'.'+(+x.slice(6,8)):''};
+    var $=function(id){return document.getElementById(id)};
+    if($('lpStatN'))$('lpStatN').textContent=(o.n||0).toLocaleString('ja-JP');
+    if($('lpStatNSub')&&p.from)$('lpStatNSub').textContent='MODEL v6 LIVE / '+f(p.from)+'–'+f(p.to)+'・公開した全レース';
+    if($('lpStatTop3')&&o.top3_rate!=null)$('lpStatTop3').textContent=o.top3_rate.toFixed(1);
+    if($('lpStatTop3Sub')&&o.top3_lo!=null)$('lpStatTop3Sub').textContent='HONMEI TOP-3 HIT / LIVE・95% CI '+o.top3_lo.toFixed(1)+'–'+o.top3_hi.toFixed(1)+'・勝率 '+o.win_rate.toFixed(1)+'%';
+    if($('lpStatRoi')&&o.roi!=null)$('lpStatRoi').textContent=o.roi.toFixed(1);
+    if($('lpStatRoiSub')&&o.bets_n!=null)$('lpStatRoiSub').textContent='SITE BETS ROI / LIVE・'+o.bets_n.toLocaleString('ja-JP')+' 点・外れも全部込み';
+  }).catch(function(){});
   // 他ページのナビから index.html#app / #results で来たら表紙を飛ばしてアプリへ（#results は app.js boot が成績モードにする）
   if(location.hash==='#app'||location.hash==='#results'||/^#race=\d{16}$/.test(location.hash)||/^#day=\d{8}$/.test(location.hash)){showApp();}
   function showLanding(){
