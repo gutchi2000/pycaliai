@@ -39,7 +39,8 @@ export async function kvNum(kv, key) {
   try { const v = await kv.get(key); return v ? +v || 0 : 0; } catch { return 0; }
 }
 export async function kvSet(kv, key, val, ttlSec) {
-  try { await kv.put(key, String(val), ttlSec ? { expirationTtl: ttlSec } : {}); } catch { /* 結果整合・失敗は許容 */ }
+  try { await kv.put(key, String(val), ttlSec ? { expirationTtl: ttlSec } : {}); return true; }
+  catch (e) { console.error("kv put failed", key, String(e && e.message || e)); return false; }   // 結果整合・失敗は許容（ログには残す）
 }
 export async function kvJson(kv, key) {
   try { const v = await kv.get(key); return v ? JSON.parse(v) : null; } catch { return null; }

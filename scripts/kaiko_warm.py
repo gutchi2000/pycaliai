@@ -50,7 +50,10 @@ def warm(date: str) -> tuple[int, int]:
     made = failed = 0
     for rid in missing:
         st, j = _req("POST", "/api/kaiko/gen", {"date": date, "race_id": rid})
-        if st == 200:
+        if st == 200 and j.get("stored") is False:
+            failed += 1
+            print(f"    NG  {rid} 生成はできたが KV 保存に失敗（Worker ログを確認）")
+        elif st == 200:
             made += 1
             print(f"    ok  {rid} ({j['item'].get('model')}, in {j['item']['usage']['input_tokens']} / out {j['item']['usage']['output_tokens']})")
         elif st == 409:

@@ -49,9 +49,19 @@ const SYSTEM_DAY = `あなたは JRA 中央競馬 AI 予想サイト「PyCaLiAI�
   ◎の成績と目立ったレース 1 つ、ハッシュタグ無し、末尾に pycaliai.com/kaiko 。`;
 
 /* ---------------- facts ---------------- */
-function horseFacts(race, h, order) {
+/** 着順。order が 0 でも top3 に居れば同着（build_site の order は同着を 0 にする）→ top3 の位置。
+    どちらにも無ければ出走取消・除外・競走中止 → null。 */
+function posOf(order, umaban, top3) {
+  const p = order[String(umaban)];
+  if (p) return p;
+  const i = (top3 || []).findIndex((u) => +u === +umaban);
+  return i >= 0 ? i + 1 : null;
+}
+
+function horseFacts(race, h, order, top3) {
   if (!h) return null;
   const run = ((h.history || {}).runs || [])[0];
+  const pos = posOf(order, h.umaban, top3);
   return {
     umaban: h.umaban, name: h.name, mark: h.mark || "無印", ai_rank: h.ai_rank,
     p_win_pct: pct(h.p_win), p_plc_pct: pct(h.p_plc), ninki_morning: h.ninki ?? null,
@@ -59,7 +69,8 @@ function horseFacts(race, h, order) {
     style: h.style || null, waku: h.waku ?? null, sex_age: `${h.sex || ""}${h.age || ""}`,
     avg_pos_last5: (h.history || {}).avg_pos ?? null,
     last_run: run ? `${run.race_name || ""} ${run.pos}着(${run.ninki ? `${run.ninki}人気・` : ""}${run.place || ""}${run.td || ""}${run.dist || ""})` : null,
-    result_pos: order[String(h.umaban)] ?? null,
+    result_pos: pos,
+    result_note: pos ? (order[String(h.umaban)] ? null : "同着") : "出走取消・除外・競走中止のいずれか（着順なし）",
   };
 }
 
@@ -70,7 +81,7 @@ export function kaikoFacts(day, race) {
   const order = res.order;
   const marks = (race.horses || []).filter((h) => h.mark && MARK_TIER[h.mark]).sort((a, b) => MARK_TIER[a.mark] - MARK_TIER[b.mark]);
   const honmei = marks[0] || null;
-  const top3 = res.top3.map((u) => horseFacts(race, horseByUma(race, u), order)).filter(Boolean);
+  const top3 = res.top3.map((u) => horseFacts(race, horseByUma(race, u), order, res.top3)).filter(Boolean);
   const bets = ((race.tact && race.tact.bets) || (race.cowork && race.cowork.bets) || []);
   const settled = (race.tact && race.tact.bets) ? (race.tact_settled || []) : (race.bets_settled || []);
   const betRows = bets.map((b, i) => ({ type: b.type, selection: b.selection, hit: settled[i] ? !!settled[i].is_win : null }));
@@ -86,11 +97,12 @@ export function kaikoFacts(day, race) {
       top1_dominance: c.top1_dominance ?? null, ai_market_agreement: c.ai_market_agreement ?? null,
       site_headline: j.headline || null, site_detail: j.detail || null,
     },
-    marks: marks.map((h) => horseFacts(race, h, order)),
+    marks: marks.map((h) => horseFacts(race, h, order, res.top3)),
     honmei_reasons: honmei ? (honmei.why || []).slice(0, 3).map((w) => `${w.label}${(w.contrib ?? 0) >= 0 ? "(＋)" : "(－)"}`) : [],
     result_top3: top3,
-    honmei_result_pos: honmei ? order[String(honmei.umaban)] ?? null : null,
-    honmei_in_top3: honmei ? (order[String(honmei.umaban)] ?? 99) <= 3 : null,
+    honmei_result_pos: honmei ? posOf(order, honmei.umaban, res.top3) : null,
+    honmei_in_top3: honmei ? (posOf(order, honmei.umaban, res.top3) ?? 99) <= 3 : null,
+    honmei_dnf: honmei ? posOf(order, honmei.umaban, res.top3) == null : null,
     winner_ai_rank: winner ? winner.ai_rank : null, winner_ninki_morning: winner ? winner.ninki_morning : null,
     site_bets: betRows, site_bets_hit: betRows.filter((b) => b.hit).length, site_bets_n: betRows.length,
     course_bias: cb.error ? null : { verdict: cb.verdict, bands: cb.bands, kyaku: cb.kyaku },
@@ -183,13 +195,14 @@ export async function generateOne(env, baseUrl, date, rid, ctx) {
       honmei_in_top3: facts.honmei_in_top3, honmei_result_pos: facts.honmei_result_pos, site_bets_hit: facts.site_bets_hit, site_bets_n: facts.site_bets_n };
   }
   const micro = microUsd(out.model, out.usage.input_tokens, out.usage.output_tokens);
-  const writes = Promise.all([
-    kvSet(kv, k, JSON.stringify(item)),
+  // 記事本体の put は必ず待つ（waitUntil に逃がすと失敗が見えない）。カウンタは後回しでよい。
+  const stored = await kvSet(kv, k, JSON.stringify(item));
+  const counters = Promise.all([
     kvSet(kv, `g_kaiko:${ymd}`, gen + 1, 2 * 86400),
     kvSet(kv, `spend:${ym}`, spend + micro, 40 * 86400),
   ]);
-  if (ctx) ctx.waitUntil(writes); else await writes;
-  return { item, created: true };
+  if (ctx) ctx.waitUntil(counters); else await counters;
+  return { item, created: true, stored };
 }
 
 /** レース一覧 + KV にある記事。 */
@@ -207,8 +220,8 @@ export async function listKaiko(env, baseUrl, date) {
     const it = items[i + 1];
     return {
       race_id: r.race_id, place: r.place, rno: r.rno, race_name: r.race_name || "", klass: r.klass, course: r.course, start_time: r.start_time || "",
-      honmei: h ? { umaban: h.umaban, name: h.name, p_win_pct: pct(h.p_win), ninki: h.ninki ?? null, pos: order[String(h.umaban)] ?? null } : null,
-      marks: marks.map((m) => ({ umaban: m.umaban, mark: m.mark, pos: order[String(m.umaban)] ?? null })),
+      honmei: h ? { umaban: h.umaban, name: h.name, p_win_pct: pct(h.p_win), ninki: h.ninki ?? null, pos: posOf(order, h.umaban, r.result.top3) } : null,
+      marks: marks.map((m) => ({ umaban: m.umaban, mark: m.mark, pos: posOf(order, m.umaban, r.result.top3) })),
       top3: r.result.top3.map((u) => { const x = horseByUma(r, u); return { umaban: u, name: x ? x.name : "", mark: x && x.mark ? x.mark : "", ai_rank: x ? x.ai_rank : null }; }),
       bets_hit: it ? it.site_bets_hit : null, bets_n: it ? it.site_bets_n : null,
       text: it ? it.text : null, model: it ? it.model : null, generated_at: it ? it.generated_at : null,
@@ -246,7 +259,7 @@ export async function handleGen(request, env, ctx) {
   if (!/^\d{8}$/.test(date) || !(rid === "day" || /^\d{16}$/.test(rid))) return json({ error: "bad date/race_id" }, 400, C);
   const r = await generateOne(env, request.url, date, rid, ctx);
   if (r.error) return json(r, r.code === "daily_limit" || r.code === "month_limit" ? 429 : r.code === "busy" ? 409 : r.code === "upstream" ? 502 : 404, C);
-  return json({ item: r.item, created: r.created }, 200, C);
+  return json({ item: r.item, created: r.created, stored: r.created ? r.stored : true }, 200, C);
 }
 
 /** cron: 直近 2 開催日（結果あり）の未生成分を順に埋める。 */
