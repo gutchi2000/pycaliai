@@ -1435,7 +1435,7 @@ const GRID = { left: 8, right: 14, top: 28, bottom: 8, containLabel: true };
 function axisStyle() {
   return {
     axisLine: { lineStyle: { color: "#32456e" } },
-    axisLabel: { color: "#a9b6d3", fontSize: 12 },
+    axisLabel: { color: "#a9b6d3", fontSize: 12, hideOverlap: true },   // 2026-11-05: スマホ幅で日付ラベルが重なるのを抑止
     splitLine: { lineStyle: { color: "rgba(50,69,110,.35)" } },
     nameTextStyle: { color: "#c2cde4", fontSize: 12 },
   };
@@ -1744,7 +1744,9 @@ function renderBunseki(r, vb) {
       formatter: (p) => { const h = p.data.h; return `<b>${h.umaban} ${esc(h.name)}</b> ${h.mark || ""}<br>`
         + `${h.ninki ?? "—"}番人気<br>AI複勝圏 ${pct(h.p_sho)}% / 勝率 ${pct(h.p_win)}%`; },
     },
-    xAxis: Object.assign({ name: "市場人気（左ほど上位人気）", nameLocation: "middle", nameGap: 30, min: 0.5, max: N + 0.5, interval: 1, inverse: false }, axisStyle()),
+    xAxis: Object.assign({ name: "市場人気（左ほど上位人気）", nameLocation: "middle", nameGap: 30, min: 0, max: N + 1, interval: 1, inverse: false }, axisStyle(),
+      // 2026-11-05: 0.5 刻みの目盛りがスマホ幅で「0.51.52.5…」と連結して読めなかった → 整数の人気順だけ表示 (両端は空)
+      { axisLabel: Object.assign({}, axisStyle().axisLabel, { formatter: (v) => (v >= 1 && v <= N ? String(v) : "") }) }),
     yAxis: Object.assign({ name: "AI複勝圏率（%）", nameLocation: "middle", nameRotate: 90, nameGap: 34, min: 0 }, axisStyle()),
     series: [{
       type: "scatter", data: pts,

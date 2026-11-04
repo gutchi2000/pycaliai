@@ -1729,3 +1729,25 @@ body.drawer-open { overflow: hidden; }
   .nav-more summary { width: 100%; justify-content: center; padding: 8px 6px; font-size: 13.5px; }
   .nav-menu { left: auto; right: 0; }
 }
+
+/* ---------------- iPhone 幅の整理 (2026-11-05) ---------------- */
+@media (max-width: 480px) {
+  /* ナビ: 6 個を 1 段に詰めると「通信簿データ」が接触し「データ」が潰れる → 3 + 3 の 2 段 */
+  .topbar .modenav, .topbar.gnav .modenav { flex-wrap: wrap; gap: 4px; overflow: visible; }
+  .topbar .modenav > button, .topbar .modenav > a, .topbar .modenav > details,
+  .topbar.gnav .modenav > a, .topbar.gnav .modenav > details { flex: 1 1 calc(33.333% - 4px); min-width: 0; display: flex; }
+  .topbar .modenav > a > button, .topbar.gnav .modenav > a > button { width: 100%; }
+  .topbar .modenav button, .topbar .nav-more summary { padding: 8px 4px; font-size: 13.5px; justify-content: center; }
+  .topbar .nav-more summary { width: 100%; }
+  .topbar .nav-menu { left: 0; right: auto; min-width: 180px; }
+  /* 馬場バイアスの見出し: タイトルと測定メモを横並びにしない */
+  #babaBias > h3 { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+  #babaBias > h3 .sub { white-space: normal; margin-left: 0; }
+  /* 成績サマリ: 「-2,020,607」が 2 列グリッドから溢れる */
+  .rs-sum-grid { gap: 8px; }
+  .rs-stat { padding: 10px 12px; }
+  .rs-stat .v { font-size: 20px; letter-spacing: 0; overflow-wrap: anywhere; }
+  /* 月別成績: 列が切れるのでカード内で横スクロール */
+  table.rsm { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.rsm th, table.rsm td { padding-left: 6px; padding-right: 6px; font-size: 13px; }
+}
