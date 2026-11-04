@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyCaLiAI — 騎手・調教師ページ（AI 評価 × 結果）</title>
+<meta name="description" content="騎手・調教師ごとに、PyCaLiAI の AI がレース前に付けた印・AI 順位・勝率と実際の着順を 2026 年の全出走ぶん並べます。◎本命時や AI 1 位時の勝率、月別の成績つき。">
+<link rel="canonical" href="https://pycaliai.com/jt.html">
+<meta property="og:title" content="PyCaLiAI — 騎手・調教師ページ">
+<meta property="og:description" content="騎手・調教師ごとの AI 評価と結果の履歴。">
+<meta property="og:url" content="https://pycaliai.com/jt.html">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pycaliai.com/og/default.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#070b14">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=20261104-jt1">
+<style>
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:var(--pad);}
+  .ehead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 14px;}
+  .ehead h1{font-family:var(--disp);font-weight:600;font-size:1.4rem;margin:0;color:var(--tx);}
+  .badge{display:inline-block;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--r-pill);padding:2px 8px;font-size:.75rem;color:var(--tx2);vertical-align:middle;}
+  .panel{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 18px;box-shadow:var(--shadow-card);}
+  .panel h2{font-size:.95rem;font-weight:700;color:var(--tx2);letter-spacing:.08em;margin:0 0 8px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+  .panel h2::before{content:"";width:3px;height:14px;border-radius:2px;background:linear-gradient(180deg,var(--gold2),var(--gold));}
+  .panel h2 small{font-weight:400;font-size:.75rem;color:var(--tx3);letter-spacing:0;}
+  .panel p{color:var(--tx2);font-size:.9rem;line-height:1.8;margin:0 0 8px;}
+  .panel p:last-child{margin-bottom:0;}
+  /* 検索 */
+  .search{position:relative;margin:0 0 14px;}
+  .search input{width:100%;box-sizing:border-box;font:inherit;font-size:1.05rem;color:var(--tx);background:var(--bg2);border:1px solid var(--line2);border-radius:var(--r-input);padding:11px 14px;}
+  .search input:focus{outline:none;border-color:var(--gold);}
+  .sug{position:absolute;left:0;right:0;top:100%;z-index:20;background:var(--bg2);border:1px solid var(--line2);border-radius:var(--r-md);margin-top:4px;max-height:320px;overflow:auto;box-shadow:var(--shadow-card);}
+  .sug[hidden]{display:none;}
+  .sug a{display:flex;justify-content:space-between;gap:10px;padding:8px 14px;color:var(--tx);text-decoration:none;font-size:.95rem;align-items:center;}
+  .sug a:hover,.sug a.on{background:var(--card2);color:var(--gold2);}
+  .sug a small{color:var(--tx3);font-size:.78rem;white-space:nowrap;}
+  .sug a .kd{display:inline-block;font-size:.72rem;color:var(--tx2);border:1px solid var(--line2);border-radius:var(--r-pill);padding:0 6px;margin-right:8px;vertical-align:middle;}
+  /* 人ヘッダ */
+  .hhead{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin:0 0 14px;padding:18px 20px;}
+  .hhead .nm{font-family:var(--disp);font-size:1.8rem;font-weight:700;color:var(--tx);line-height:1.2;}
+  .hhead .attrs{display:flex;gap:6px 10px;flex-wrap:wrap;margin-top:8px;}
+  .hhead .attrs span{font-size:.84rem;color:var(--tx2);border:1px solid var(--line2);border-radius:var(--r-pill);padding:2px 11px;}
+  .hhead .attrs span b{color:var(--tx);}
+  .hhead .right{margin-left:auto;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
+  .lv{display:inline-flex;align-items:baseline;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:var(--r-pill);padding:4px 12px;font-size:.84rem;color:var(--tx2);}
+  .lv b{font-family:var(--disp);font-size:1.1rem;color:var(--gold2);}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 14px;}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;}
+  .kpi .l{font-size:.74rem;color:var(--tx3);letter-spacing:.08em;}
+  .kpi .v{font-family:var(--disp);font-size:1.6rem;font-weight:600;color:var(--gold2);line-height:1.2;margin:4px 0 2px;}
+  .kpi .s{font-size:.74rem;color:var(--tx3);}
+  table.rc{width:100%;border-collapse:collapse;font-size:.88rem;}
+  .rc th,.rc td{padding:7px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line);}
+  .rc th{color:var(--tx3);font-weight:500;font-size:.76rem;letter-spacing:.04em;position:sticky;top:0;background:var(--bg2);}
+  .rc td.l,.rc th.l{text-align:left;}
+  .rc a{color:var(--tx);text-decoration:none;border-bottom:1px dotted var(--line2);}
+  .rc a:hover{color:var(--gold2);}
+  .num{font-family:var(--disp);}
+  .mk{font-weight:700;} .mk.m1{color:#f5b942;} .mk.m2{color:#d9e2f2;} .mk.m3{color:#d08b4c;} .mk.m4{color:#8d9cba;}
+  .pos{font-family:var(--disp);font-weight:600;display:inline-block;min-width:1.6em;text-align:center;border-radius:6px;padding:0 4px;}
+  .pos.p1{color:#2d2002;background:#f5b942;} .pos.p2{color:#0b1324;background:#d9e2f2;} .pos.p3{color:#2d1a08;background:#d08b4c;} .pos.px{color:var(--tx2);}
+  .tw{overflow-x:auto;}
+  .dim{margin:0 0 14px;padding:14px 16px 10px;}
+  .two{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px;margin:0 0 14px;}
+  .two .panel{margin:0;}
+  .chart{height:220px;width:100%;}
+  .chart.empty{display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:.85rem;}
+  .filt{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;}
+  .filt button{font:inherit;font-size:.8rem;color:var(--tx2);background:var(--card);border:1px solid var(--line2);border-radius:var(--r-pill);padding:3px 10px;cursor:pointer;}
+  .filt button.on{color:var(--on-lime);background:var(--gold);border-color:var(--gold);}
+  .more{display:block;width:100%;font:inherit;font-size:.85rem;color:var(--tx2);background:var(--card);border:1px solid var(--line2);border-radius:var(--r-md);padding:8px;margin:10px 0 0;cursor:pointer;}
+  .more:hover{color:var(--gold2);}
+  .note{color:var(--tx3);font-size:.8rem;line-height:1.7;margin:14px 0 0;}
+  .err{color:var(--red);}
+  .empty{color:var(--tx3);padding:24px 0;text-align:center;}
+  @media(max-width:760px){.two{grid-template-columns:1fr;}}
+  @media(max-width:620px){.rc th,.rc td{padding:6px 5px;} .hhead .nm{font-size:1.4rem;} .chart{height:180px;}}
+</style>
+</head>
+<body>
+<div class="track-stripe"></div>
+<header class="topbar gnav">
+  <div class="tb-in">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit" aria-label="PyCaLiAI トップ">
+      <img class="brand-logo" src="icons/icon-96.png" alt="" width="30" height="30">
+      <span class="brand-mark">Py<b>CaLi</b>AI</span>
+    </a>
+    <nav class="modenav" aria-label="サイト内ナビ">
+      <a href="index.html#app" style="text-decoration:none"><button type="button">予想</button></a>
+      <a href="index.html#results" style="text-decoration:none"><button type="button">成績</button></a>
+      <a href="explain.html" style="text-decoration:none"><button type="button">分析カード</button></a>
+      <a href="shusse.html" style="text-decoration:none"><button type="button">出世予測</button></a>
+      <a href="kaiko.html" style="text-decoration:none"><button type="button">回顧</button></a>
+      <a href="tsushinbo.html" style="text-decoration:none"><button type="button">通信簿</button></a>
+      <a href="horse.html" style="text-decoration:none"><button type="button">馬</button></a>
+      <a id="navDiscord" href="#" hidden style="text-decoration:none"><button type="button">Discord</button></a>
+      <a href="jt.html" style="text-decoration:none"><button type="button" class="on">騎手</button></a>
+    </nav>
+  </div>
+</header>
+<div class="wrap">
+  <div class="ehead">
+    <h1>騎手・調教師ページ <span class="badge">AI 評価 × 結果</span></h1>
+  </div>
+  <div class="search">
+    <input id="q" type="search" placeholder="騎手名・調教師名で探す（2026 年に JRA で出走のある人）" autocomplete="off" aria-label="騎手・調教師検索">
+    <div class="sug" id="sug" hidden></div>
+  </div>
+
+  <div id="jt">
+    <section class="panel" id="intro">
+      <h2>このページについて</h2>
+      <p>2026 年に JRA で騎乗・出走させた騎手・調教師ごとに、PyCaLiAI の AI が <b>レース前に</b> 付けた印・AI 順位・勝率と、実際の着順を全出走ぶん並べます。「AI が ◎ を打ったときに何割勝ったか」「AI 1 位評価のときの 3着内率」など、AI の見立てと結果のズレが人ごとに分かります。</p>
+      <p>数字はこのサイトで公開済みの AI 評価だけです。オッズ・払戻は載せません。URL は <code>jt.html?j=騎手名</code> / <code>jt.html?t=調教師名</code>。</p>
+    </section>
+  </div>
+  <p class="note">AI 予測は参考情報です。的中・利益を保証しません。馬券の購入はご自身の判断と責任で。</p>
+</div>
+<footer class="site-legal">
+  <a href="legal.html">免責事項・プライバシーポリシー</a>
+  <a href="mailto:contact@pycaliai.com">お問い合わせ</a>
+  <span>© 2026 PyCaLiAI</span>
+</footer>
+<script defer id="echartsJs" src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script defer src="js/jt.js?v=20261104-jt1"></script>
+<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+<script defer src="js/site_config.js?v=20261104"></script>
+</body>
+</html>

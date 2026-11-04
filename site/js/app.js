@@ -84,9 +84,13 @@ async function boot() {
   // 共有 URL (/r/{rid} → /#race={rid}) から来たときはそのレースを直接開く (2026-11-04)。
   // 日付が manifest に無ければ最新日へフォールバック。
   const deep = parseRaceHash();
+  const deepDay = parseDayHash();   // 開催日カード (/r/d/{date} → /#day={date}) はその日のレース一覧を開く
   if (deep && mf.dates.some((d) => d.date === deep.slice(0, 8))) {
     pendingRaceId = deep;
     loadDay(deep.slice(0, 8));
+  } else if (deepDay && mf.dates.some((d) => d.date === deepDay)) {
+    sel.value = deepDay;
+    loadDay(deepDay);
   } else if (mf.dates.length) {
     loadDay(mf.dates[0].date);
   }
@@ -94,6 +98,13 @@ async function boot() {
   if (location.hash === "#results") setMode("results");
   // 戻る/進む・手入力の #race= にも追従する
   addEventListener("hashchange", () => {
+    const dd = parseDayHash();
+    if (dd) {
+      if (state.mode !== "races") setMode("races");
+      if (state.day && state.day.date === dd) { syncHash(); return; }
+      if (state.manifest.dates.some((d) => d.date === dd)) { $("#dateSel").value = dd; loadDay(dd); }
+      return;
+    }
     const rid = parseRaceHash();
     if (!rid || rid === state.raceId) return;
     if (state.mode !== "races") setMode("races");
@@ -108,6 +119,11 @@ function parseRaceHash() {
   const m = location.hash.match(/^#race=(\d{16})$/);
   return m ? m[1] : null;
 }
+function parseDayHash() {
+  const m = location.hash.match(/^#day=(\d{8})$/);
+  return m ? m[1] : null;
+}
+function shareDayUrl() { return state.day ? `https://pycaliai.com/r/d/${state.day.date}` : null; }
 function syncHash() {
   // URL をいま見ているレースに揃える (履歴は増やさない)。表紙 skip 判定も #race= を見る。
   if (state.mode !== "races" || !state.raceId) return;
@@ -127,6 +143,7 @@ function shareHtml(r) {
   return `<div class="share">
     <a class="share-btn" href="${x}" target="_blank" rel="noopener" title="X に投稿">𝕏 で共有</a>
     <button type="button" class="share-btn" data-copy="${esc(url)}" title="このレースの URL をコピー">URL をコピー</button>
+    ${shareDayUrl() ? `<button type="button" class="share-btn" data-copy="${esc(shareDayUrl())}" title="この開催日 (全レース) の URL をコピー">この日の URL</button>` : ""}
   </div>`;
 }
 document.addEventListener("click", async (e) => {

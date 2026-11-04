@@ -10,6 +10,11 @@ site/data/report_card.json に書く。LLM は使わない。build_site.py の�
 回収率はサイトに表示した買い目（cowork.bets の amount と bets_settled.received）。表示専用で実弾ではない。
 払戻額そのもの（1 点ごとの payout）は出さず、合計の回収率だけを出す。
 
+追加ブロック（2026-11-04）:
+  weekly  : 開催週（土日を 1 組、キーは土曜の日付）ごとの ◎勝率・複勝圏率（Wilson 95% CI）と表示買い目の回収率、
+            および累積（運用開始からの通算 ◎勝率・複勝圏率・回収率）の時系列。グラフ「AI の調子（週ごと）」用。
+  miokuri : 参戦ガードで見送ったレースを「買っていたら」の成績（report_card_miokuri.py）。参戦 vs 見送りの比較。
+
 実行:
     venv311\\Scripts\\python.exe build_report_card.py
 """
@@ -20,7 +25,7 @@ import math
 import re
 import sys
 from collections import defaultdict
-from datetime import datetime
+from datetime import date as _date, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -129,10 +134,46 @@ DIMS = [
 ]
 
 
+def week_key(d8: str) -> str:
+    """開催週のキー = その週の土曜日 (YYYYMMDD)。土→当日、日→前日、月(祝日開催)→2 日前。
+    金曜以前の変則開催は「次の土曜」ではなく直前の土曜に寄せる（土曜起点で 1 週を切る）。"""
+    d = _date(int(d8[:4]), int(d8[4:6]), int(d8[6:8]))
+    back = (d.weekday() - 5) % 7          # Sat=5 → 0, Sun=6 → 1, Mon=0 → 2, …
+    return (d - timedelta(days=back)).strftime("%Y%m%d")
+
+
+def weekly_series(weeks: dict[str, "Acc"]) -> dict:
+    """週ごとの行 + 累積の行。Acc は既存の条件別集計と同じ定義（◎の勝率/複勝圏率/表示買い目の回収率）。"""
+    rows, cum = [], []
+    cn = cw = ct = cb = cbh = 0
+    cs = cr = 0.0
+    for wk in sorted(weeks):
+        a = weeks[wk]
+        r = a.row(wk)
+        rows.append({
+            "week": wk, "label": f"{int(wk[4:6])}/{int(wk[6:8])}", "n": a.n,
+            "win_rate": r["win_rate"], "win_lo": r["win_lo"], "win_hi": r["win_hi"],
+            "top3_rate": r["top3_rate"], "top3_lo": r["top3_lo"], "top3_hi": r["top3_hi"],
+            "bets_n": a.bets_n, "bets_hit_rate": r["bets_hit_rate"], "stake": r["stake"], "roi": r["roi"],
+        })
+        cn += a.n; cw += a.win; ct += a.top3; cb += a.bets_n; cbh += a.bets_hit; cs += a.stake; cr += a.ret
+        wlo, whi = wilson(cw, cn)
+        tlo, thi = wilson(ct, cn)
+        cum.append({
+            "week": wk, "label": rows[-1]["label"], "n": cn,
+            "win_rate": round(cw / cn * 100, 1) if cn else None, "win_lo": round(wlo * 100, 1), "win_hi": round(whi * 100, 1),
+            "top3_rate": round(ct / cn * 100, 1) if cn else None, "top3_lo": round(tlo * 100, 1), "top3_hi": round(thi * 100, 1),
+            "bets_n": cb, "bets_hit_rate": round(cbh / cb * 100, 1) if cb else None,
+            "stake": int(cs), "roi": round(cr / cs * 100, 1) if cs else None,
+        })
+    return {"key": "saturday", "rows": rows, "cumulative": cum}
+
+
 def build(write: bool = True) -> dict:
     files = sorted(SITE_DATA.glob("2026????.json"))
     overall = Acc()
     acc: dict[str, dict[str, Acc]] = {k: defaultdict(Acc) for k, _ in DIMS}
+    weeks: dict[str, Acc] = defaultdict(Acc)
     n_days = 0
     dates = []
     for fp in files:
@@ -169,6 +210,7 @@ def build(write: bool = True) -> dict:
             overall.add(win, top3, fav, bets)
             for k, v in keys.items():
                 acc[k][v].add(win, top3, fav, bets)
+            weeks[week_key(day["date"])].add(win, top3, fav, bets)
             used = True
         if used:
             n_days += 1
@@ -198,13 +240,24 @@ def build(write: bool = True) -> dict:
         "n_races": overall.n,
         "overall": overall.row("全体"),
         "dims": [{"key": k, "label": lbl, "rows": order_rows(k, acc[k])} for k, lbl in DIMS],
+        "weekly": weekly_series(weeks),
         "note": ("◎の勝率・複勝圏率は AI 本命（◎）の結果。CI は Wilson 95%。回収率はサイトに表示した買い目（表示専用、実弾ではない）の"
                  "合計払戻 ÷ 合計購入額。障害レースと◎無しのレースは除外。同着は着順どおりに扱う。"),
     }
+    # 見送り判断の成績（参戦 vs 買っていたら）。入力（cowork_output の a95_all / kekka）が無くても本体は壊さない。
+    try:
+        import report_card_miokuri as _rcm
+        out["miokuri"] = _rcm.build_miokuri()
+    except Exception as e:   # noqa: BLE001
+        print(f"[report_card] miokuri skip: {e}")
+        out["miokuri"] = None
     if write:
-        OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-        print(f"report_card: {overall.n} races / {n_days} days -> site/data/report_card.json "
-              f"(◎勝率 {out['overall']['win_rate']}% 複勝圏 {out['overall']['top3_rate']}% 回収率 {out['overall']['roi']}%)")
+        OUT.write_bytes(json.dumps(out, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+        mk = out.get("miokuri") or {}
+        print(f"report_card: {overall.n} races / {n_days} days / {len(out['weekly']['rows'])} weeks -> site/data/report_card.json "
+              f"(◎勝率 {out['overall']['win_rate']}% 複勝圏 {out['overall']['top3_rate']}% 回収率 {out['overall']['roi']}%"
+              + (f" | 見送り比較: 参戦 {mk['sanse']['n_races']}R ROI {mk['sanse']['roi']}% / 見送り {mk['miokuri']['n_races']}R "
+                 f"ROI {mk['miokuri']['roi']}%" if mk else "") + ")")
     return out
 
 

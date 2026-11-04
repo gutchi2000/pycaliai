@@ -1482,6 +1482,22 @@ def main() -> None:
     except Exception as e:
         print(f"[horse_pages skip] {e}")
 
+    # 騎手・調教師ページ (jt.html?j=/?t=) 用データ site/data/jt/{jockeys,trainers,_index}.json (2026-11-04)
+    try:
+        from build_jt_pages import build as _build_jt_pages
+        _jt = _build_jt_pages()
+        print(f"jt pages: 騎手 {_jt['jockeys']} 人 / 調教師 {_jt['trainers']} 人, 更新 {_jt['written']}")
+    except Exception as e:
+        print(f"[jt_pages skip] {e}")
+
+    # sitemap.xml (静的ページ + /r/{rid} + /r/d/{date} + 馬ページ + 騎手/調教師ページ) (2026-11-04)
+    try:
+        from build_sitemap import build as _build_sitemap
+        _sm = _build_sitemap()
+        print(f"sitemap: {_sm['urls']} URL (races {_sm['races']}, days {_sm['days']}, horses {_sm['horses']}, jt {_sm['jt']}){' 更新' if _sm['written'] else ''}")
+    except Exception as e:
+        print(f"[sitemap skip] {e}")
+
     # 分析カードの manifest (explain.html 用)
     try:
         from explain_card import write_explain_manifest

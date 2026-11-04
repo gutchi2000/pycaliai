@@ -99,6 +99,11 @@
         <div class="right">${right}</div>
       </section>
       <div class="kpis">${kpis}</div>
+      ${(h.runs || []).length >= 2 && window.echarts ? `<section class="panel dim" id="runChart">
+        <h2>AI順・人気・着順の推移 <small>古い出走 → 新しい出走。上ほど上位</small></h2>
+        <div class="chart-legend"><span><i style="background:#f5b942"></i>AI順</span><span><i style="background:#5ba0f5"></i>人気</span><span><i style="background:#2dd4a8"></i>着順 (3着内)</span><span><i style="background:#f2555a"></i>着順 (4着以下)</span></div>
+        <div class="chart-wrap" id="runChartEl" role="img" aria-label="出走ごとの AI順位・人気・着順の推移"></div>
+      </section>` : ""}
       <section class="panel dim">
         <h2>2026 年の出走と AI 評価 <small>レース前の印・勝率・3着内率 と 実際の着順</small></h2>
         <div class="tw"><table class="rc">
@@ -115,7 +120,59 @@
       </section>` : ""}
       ${sh && sh.summary ? `<section class="panel dim"><h2>出世予測 AI <small>${esc(sh.dy)} 世代・基準日 ${esc(sh.base || "")}</small></h2>
         <p>${esc(sh.summary)}　<a class="shlink" href="shusse.html#${esc(sh.dy)}:${esc(sh.id)}">出世予測を見る ↗</a></p></section>` : ""}`;
+    renderChart(h);
   }
+
+  /* 出走ごとの AI順 (線) ・ 人気 (線) ・ 着順 (点) を 1 本の反転軸 (1 が上) に描く。2 走未満は section 自体を出さない。 */
+  let chart = null;
+  function renderChart(h) {
+    const el = $("#runChartEl");
+    if (chart) { chart.dispose(); chart = null; }
+    if (!el || !window.echarts) return;
+    const runs = (h.runs || []).slice().reverse();   // data は新しい順 → 古い順に
+    if (runs.length < 2) { const s = $("#runChart"); if (s) s.hidden = true; return; }
+    const css = getComputedStyle(document.documentElement);
+    const cv = (n, fb) => (css.getPropertyValue(n) || "").trim() || fb;
+    const GOLD = "#f5b942", BLUE = "#5ba0f5", TEAL = "#2dd4a8", RED = "#f2555a";
+    const tx2 = cv("--text-2", "#a9b6d3"), tx3 = cv("--text-3", "#7385a8"), line = cv("--line", "#1e2b4a");
+    const maxRank = Math.max(8, ...runs.map((r) => Math.max(r.field_size || 0, r.ai_rank || 0, r.ninki || 0, r.pos || 0)));
+    const xs = runs.map((r) => fmtDate(r.date));
+    const posPts = runs.map((r, i) => (r.has_result && r.pos ? { value: [i, r.pos], itemStyle: { color: r.pos <= 3 ? TEAL : RED } } : null)).filter(Boolean);
+    chart = echarts.init(el, null, { renderer: "canvas" });
+    chart.setOption({
+      animationDuration: 300,
+      grid: { left: 34, right: 14, top: 12, bottom: 30, containLabel: false },
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "line", lineStyle: { color: line } },
+        backgroundColor: cv("--card2", "#121c31"), borderColor: cv("--line2", "#32456e"), textStyle: { color: cv("--text", "#edf1fb"), fontSize: 12 },
+        formatter: (ps) => {
+          const i = ps[0].dataIndex, r = runs[i];
+          const res = r.scratched ? esc(r.scratched) : (r.has_result && r.pos ? `${r.pos}着` : "未確定");
+          return `<b>${esc(r.place)}${r.rno}R</b> <span style="color:${tx3}">${esc(r.race_name || r.klass || "")}</span><br>` +
+            `${fmtDate(r.date)} ${esc(r.course || "")}<br>` +
+            `印 <b>${esc(r.mark || "・")}</b>　勝率 <b>${pct(r.p_win)}%</b>　3着内 ${pct(r.p_sho, 0)}%<br>` +
+            `AI順 ${r.ai_rank ?? "—"}　人気 ${r.ninki ?? "—"}　着順 <b>${res}</b>${r.field_size ? `　(${r.field_size}頭)` : ""}`;
+        },
+      },
+      xAxis: { type: "category", data: xs, boundaryGap: true,
+        axisLine: { lineStyle: { color: line } }, axisTick: { show: false },
+        axisLabel: { color: tx3, fontSize: 11, interval: runs.length > 8 ? "auto" : 0, rotate: runs.length > 6 ? 35 : 0 } },
+      yAxis: { type: "value", inverse: true, min: 1, max: maxRank, interval: maxRank > 12 ? 3 : (maxRank > 6 ? 2 : 1),
+        axisLabel: { color: tx3, fontSize: 11, formatter: (v) => `${v}` },
+        splitLine: { lineStyle: { color: line, type: "dashed" } } },
+      series: [
+        { name: "AI順", type: "line", data: runs.map((r) => r.ai_rank ?? null), connectNulls: true, symbol: "circle", symbolSize: 7,
+          lineStyle: { color: GOLD, width: 2.2 }, itemStyle: { color: GOLD }, z: 3 },
+        { name: "人気", type: "line", data: runs.map((r) => r.ninki ?? null), connectNulls: true, symbol: "diamond", symbolSize: 7,
+          lineStyle: { color: BLUE, width: 1.6, type: "dashed" }, itemStyle: { color: BLUE }, z: 2 },
+        { name: "着順", type: "scatter", data: posPts, symbol: "roundRect", symbolSize: 16, z: 4,
+          label: { show: true, color: "#0b1324", fontSize: 10, fontWeight: 700, formatter: (p) => p.value[1] },
+          itemStyle: { borderColor: cv("--bg2", "#0a101e"), borderWidth: 1 }, tooltip: { show: false } },
+      ],
+      textStyle: { fontFamily: cv("--sans", "sans-serif"), color: tx2 },
+    });
+  }
+  addEventListener("resize", () => { if (chart) chart.resize(); });
 
   async function showHorse(name) {
     if (!name) return;

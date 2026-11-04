@@ -18,7 +18,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#070b14">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261104-tsushinbo1">
+<link rel="stylesheet" href="css/style.css?v=20261104-tsushinbo2">
 <style>
   .wrap{max-width:var(--maxw);margin:0 auto;padding:var(--pad);}
   .ehead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 14px;}
@@ -61,6 +61,41 @@
   .note{color:var(--tx3);font-size:.8rem;line-height:1.7;margin:14px 0 0;}
   .err{color:var(--red);}
   @media(max-width:620px){.bar{width:70px;}.rc th,.rc td{padding:6px 5px;}}
+  /* AI の調子（週ごと） */
+  .trend{margin:0 0 14px;padding:14px 16px 12px;}
+  .trend-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+  @media(max-width:860px){.trend-grid{grid-template-columns:1fr;}}
+  .trend-box{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 8px 4px;min-width:0;}
+  .trend-box h3{font-size:.8rem;font-weight:500;color:var(--tx2);letter-spacing:.06em;margin:0 0 2px 8px;}
+  .trend-box h3 small{color:var(--tx3);font-weight:400;margin-left:6px;}
+  .chart{width:100%;height:280px;}
+  @media(max-width:620px){.chart{height:240px;}}
+  .trend .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:8px 0 0;font-size:.76rem;color:var(--tx3);}
+  .trend .legend i{display:inline-block;width:14px;height:0;border-top:2px solid currentColor;vertical-align:middle;margin-right:5px;}
+  .trend .legend i.dash{border-top-style:dashed;}
+  .trend .legend i.band{height:10px;border:0;opacity:.35;}
+  /* 見送りの成績 */
+  .mio{margin:0 0 14px;padding:14px 16px 12px;}
+  .mio-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:4px 0 10px;}
+  @media(max-width:620px){.mio-grid{grid-template-columns:1fr;}}
+  .mio-col{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;min-width:0;}
+  .mio-col.skip{border-color:rgba(224,135,106,.45);}
+  .mio-col .t{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:0 0 8px;}
+  .mio-col .t b{font-size:1rem;color:var(--tx);}
+  .mio-col .t span{font-size:.76rem;color:var(--tx3);}
+  .mio-col .t .tag{display:inline-block;border-radius:var(--r-pill);padding:1px 7px;font-size:.7rem;letter-spacing:.06em;border:1px solid var(--line2);color:var(--tx2);}
+  .mio-col.skip .t .tag{color:var(--uncertain);border-color:rgba(224,135,106,.5);}
+  .mio-row{display:grid;grid-template-columns:7.5em minmax(0,1fr);gap:6px 10px;align-items:center;padding:6px 0;border-top:1px solid var(--line);}
+  .mio-row .l{font-size:.76rem;color:var(--tx3);letter-spacing:.04em;}
+  .mio-row .v{font-family:var(--disp);font-size:1.25rem;font-weight:600;color:var(--gold2);line-height:1.2;}
+  .mio-row .v small{font-size:.72rem;color:var(--tx3);font-weight:400;margin-left:6px;font-family:var(--sans);}
+  .mio-row .v.low{color:var(--uncertain);}
+  .mio-row .bar{width:100%;max-width:260px;height:10px;margin:4px 0 0;}
+  .verdict{border-left:3px solid var(--gold);background:var(--card2);padding:10px 14px;border-radius:0 var(--r-md) var(--r-md) 0;font-size:.92rem;color:var(--tx);line-height:1.8;margin:0 0 10px;}
+  .verdict.good{border-left-color:var(--teal);}
+  .verdict.leak{border-left-color:var(--uncertain);}
+  .verdict.insufficient{border-left-color:var(--line2);color:var(--tx2);}
+  .mio .sub{font-size:.8rem;color:var(--tx3);line-height:1.7;margin:0;}
 </style>
 </head>
 <body>
@@ -79,6 +114,8 @@
       <a href="kaiko.html" style="text-decoration:none"><button type="button">回顧</button></a>
       <a href="tsushinbo.html" style="text-decoration:none"><button type="button" class="on">通信簿</button></a>
       <a href="horse.html" style="text-decoration:none"><button type="button">馬</button></a>
+      <a href="jt.html" style="text-decoration:none"><button type="button">騎手</button></a>
+      <a id="navDiscord" href="#" hidden style="text-decoration:none"><button type="button">Discord</button></a>
     </nav>
   </div>
 </header>
@@ -101,6 +138,25 @@
   </div>
 
   <div class="kpis" id="kpis"></div>
+
+  <section class="panel trend" id="trend" hidden>
+    <h2>AI の調子（週ごと） <small id="trend-sub"></small></h2>
+    <p>開催週（土日）ごとの ◎ の成績と、サイトに表示した買い目の回収率の推移です。<b>帯は 95% 信頼区間</b>（Wilson）、点線は運用開始からの<b>累積</b>。1 週あたり 50〜70 レースなので週単位の上下は大きく、累積線が落ち着いていく様子を見るためのグラフです。</p>
+    <div class="trend-grid">
+      <div class="trend-box"><h3>◎ の勝率・複勝圏率<small>%</small></h3><div class="chart" id="chart-marks"></div></div>
+      <div class="trend-box"><h3>表示買い目の回収率<small>%・横線は 80%（控除率の目安）</small></h3><div class="chart" id="chart-roi"></div></div>
+    </div>
+    <div class="legend" id="trend-legend"></div>
+  </section>
+
+  <section class="panel mio" id="mio" hidden>
+    <h2>見送りの成績（買っていたら？） <small id="mio-sub"></small></h2>
+    <p>本線の買い目は、混戦度・頭数・◎の勝率やオッズなどの「参戦ガード」に引っかかったレースを<b>見送り</b>ます。見送ったレースにも発走 10 分前のオッズで同じ方式の買い目を記録しておき、結果が出た後に「もし買っていたら」を集計しました。見送り判断そのものの成績表です。</p>
+    <div class="verdict" id="mio-verdict"></div>
+    <div class="mio-grid" id="mio-grid"></div>
+    <p class="sub" id="mio-note"></p>
+  </section>
+
   <div id="dims"><span class="note">読み込み中…</span></div>
   <p class="note" id="note"></p>
 </div>
@@ -109,7 +165,9 @@
   <a href="mailto:contact@pycaliai.com">お問い合わせ</a>
   <span>© 2026 PyCaLiAI</span>
 </footer>
-<script defer src="js/tsushinbo.js?v=20261104-tsushinbo1"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script defer src="js/tsushinbo.js?v=20261104-tsushinbo2"></script>
 <script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+<script defer src="js/site_config.js?v=20261104"></script>
 </body>
 </html>

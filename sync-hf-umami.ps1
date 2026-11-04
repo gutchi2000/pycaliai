@@ -175,6 +175,9 @@ if ($RebuildCalibration) {
 #       build_horse_career.py    -> site/data/career_{8-digit-date}.json  (called by build_site.py)
 #       build_share_cards.py     -> site/r/{rid16}.html, site/og/{rid16}.png, site/og/default.png (called by build_site.py)
 #       build_horse_pages.py     -> site/data/h/{id2}.json (256 shards), site/data/h/_index.json (called by build_site.py)
+#       build_share_cards.py     -> site/r/d/{date}.html, site/og/d/{date}.png  (per-date cards, 2026-11-04)
+#       build_jt_pages.py        -> site/data/jt/{jockeys,trainers,_index}.json (called by build_site.py, 2026-11-04)
+#       build_sitemap.py         -> site/sitemap.xml (called by build_site.py, 2026-11-04)
 #       build_forecast_history.py-> site/data/forecast_history/**/*.json  (step 1.2, -Date only)
 #       build_calibration.py     -> site/data/calibration.json            (step 1.3, -RebuildCalibration only)
 #     Explicitly NOT this pipeline's output (must never be swept in even if dirty):
@@ -201,7 +204,14 @@ $SiteAllowPatterns = @(
     '^site/og/default\.png$',
     # build_horse_pages.py (called by build_site.py): per-horse data for horse.html (2026-11-04)
     '^site/data/h/[0-9a-f]{2}\.json$',
-    '^site/data/h/_index\.json$'
+    '^site/data/h/_index\.json$',
+    # build_share_cards.py: per-date share page + OG image (2026-11-04)
+    '^site/r/d/\d{8}\.html$',
+    '^site/og/d/\d{8}\.png$',
+    # build_jt_pages.py (called by build_site.py): jockey/trainer data for jt.html (2026-11-04)
+    '^site/data/jt/(jockeys|trainers|_index)\.json$',
+    # build_sitemap.py (called by build_site.py) (2026-11-04)
+    '^site/sitemap\.xml$'
 )
 #     --untracked-files=all: without this, git collapses a brand-new directory
 #     (e.g. a first-ever site/data/forecast_history/{date}/ from build_forecast_history.py)

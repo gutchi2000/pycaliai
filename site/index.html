@@ -138,6 +138,8 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
       <a href="kaiko.html" style="text-decoration:none"><button type="button">回顧</button></a>
       <a href="tsushinbo.html" style="text-decoration:none"><button type="button">通信簿</button></a>
       <a href="horse.html" style="text-decoration:none"><button type="button">馬</button></a>
+      <a href="jt.html" style="text-decoration:none"><button type="button">騎手</button></a>
+      <a id="navDiscord" href="#" hidden style="text-decoration:none"><button type="button">Discord</button></a>
     </nav>
     <div class="topbar-right">
       <label class="date-wrap" id="dateWrap">
@@ -297,7 +299,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 <aside id="drawer" aria-label="馬詳細"></aside>
 
 <script defer src="js/baba.js?v=20260902a"></script>
-<script defer src="js/app.js?v=20261104-horse1"></script>
+<script defer src="js/app.js?v=20261104-day1"></script>
 <script defer id="echartsJs" src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <script>
 /* 表紙シート ⇔ アプリシートの切替 (初回=表紙のみ表示、CTA/レース行→アプリ、ロゴ→表紙) */
@@ -305,7 +307,7 @@ addEventListener('DOMContentLoaded',function(){
   var nav=document.getElementById('modeNav');
   function showApp(){document.body.classList.remove('on-landing');scrollTo(0,0)}
   // 他ページのナビから index.html#app / #results で来たら表紙を飛ばしてアプリへ（#results は app.js boot が成績モードにする）
-  if(location.hash==='#app'||location.hash==='#results'||/^#race=\d{16}$/.test(location.hash)){showApp();}
+  if(location.hash==='#app'||location.hash==='#results'||/^#race=\d{16}$/.test(location.hash)||/^#day=\d{8}$/.test(location.hash)){showApp();}
   function showLanding(){
     var b=nav&&nav.querySelector('[data-mode="races"]');
     if(b&&!b.classList.contains('on'))b.click();
@@ -440,5 +442,6 @@ addEventListener('DOMContentLoaded',function(){
 })();
 </script>
 <script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+<script defer src="js/site_config.js?v=20261104"></script>
 </body>
 </html>

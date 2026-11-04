@@ -8,6 +8,11 @@ SPA の index.html は共有すると表紙しか見えない。各レースに
 を持たせ、X 等に貼ると印・勝率がカードで出るようにする。人間が開くと
 /#race={rid} へ即リダイレクトし app.js がそのレースを直接開く。
 
+開催日単位のカードも同時に作る（2026-11-04）:
+  https://pycaliai.com/r/d/{YYYYMMDD}      (site/r/d/{date}.html → /#day={date})
+  https://pycaliai.com/og/d/{YYYYMMDD}.png (site/og/d/{date}.png)
+  内容は 日付・会場・レース数、結果があれば ◎勝利数/◎複勝圏数/買い目的中数（件数のみ）。
+
 入力は公開済み site/data/{date}.json だけ（オッズ・EV・払戻は元から無い）。
 build_site.py の末尾から呼ばれる。単体: python build_share_cards.py [YYYYMMDD ...]
 
@@ -28,6 +33,8 @@ SITE = ROOT / "site"
 DATA = SITE / "data"
 R_DIR = SITE / "r"
 OG_DIR = SITE / "og"
+R_D_DIR = R_DIR / "d"      # 開催日カード: site/r/d/{YYYYMMDD}.html → /#day={date}
+OG_D_DIR = OG_DIR / "d"    # 開催日 OG 画像: site/og/d/{YYYYMMDD}.png
 BASE_URL = "https://pycaliai.com"
 
 FONT_CANDIDATES = [
@@ -105,6 +112,61 @@ def _honmei_pos(race: dict) -> int | None:
             v = res.get(str(h["umaban"]))
             return int(v) if v else None
     return None
+
+
+# ------------------------------------------------------------------ 開催日サマリ
+def day_summary(day: dict) -> dict:
+    """開催日 1 日ぶんの集計（件数だけ。オッズ・EV・払戻額は一切使わない）。
+    ◎着順は _honmei_pos と同じ読み方、買い目の的中は build_report_card.py と同じ
+    cowork.bets × bets_settled の zip で settled かつ is_win を数える。"""
+    races = day.get("races") or []
+    places = list(day.get("places") or [])
+    if not places:
+        seen = []
+        for r in races:
+            if r.get("place") and r["place"] not in seen:
+                seen.append(r["place"])
+        places = seen
+    s = {"date": day["date"], "places": places, "n_races": len(races), "n_settled": 0,
+         "hon_n": 0, "hon_win": 0, "hon_top3": 0, "bets_n": 0, "bets_hit": 0, "bet_races": 0}
+    for r in races:
+        res = r.get("result") or {}
+        settled = bool(res.get("order")) and bool(res.get("top3"))
+        if settled:
+            s["n_settled"] += 1
+            hp = _honmei_pos(r)
+            if any(h.get("mark") == "◎" for h in r.get("horses") or []):
+                s["hon_n"] += 1
+            if hp == 1:
+                s["hon_win"] += 1
+            if hp and hp <= 3:
+                s["hon_top3"] += 1
+        bets = (r.get("cowork") or {}).get("bets") or []
+        if bets:
+            s["bet_races"] += 1
+        for b, st in zip(bets, r.get("bets_settled") or []):
+            if not isinstance(b, dict) or not isinstance(st, dict) or not st.get("settled"):
+                continue
+            s["bets_n"] += 1
+            if st.get("is_win"):
+                s["bets_hit"] += 1
+    s["has_results"] = s["n_settled"] > 0
+    return s
+
+
+def day_title(s: dict) -> str:
+    return f"{_date_label(s['date'])} {'・'.join(s['places'])} 全{s['n_races']}R"
+
+
+def day_description(s: dict) -> str:
+    places = "・".join(s["places"])
+    if not s["has_results"]:
+        return f"本日 {s['n_races']} レースの AI 予想を公開中（{places}）。印・勝率・混戦度・買い目を各レースで。"
+    d = (f"{_date_label(s['date'])} {places} の AI 予想と結果。{s['n_settled']}R 確定: "
+         f"◎勝利 {s['hon_win']}／◎複勝圏 {s['hon_top3']}（◎{s['hon_n']}R）")
+    if s["bets_n"]:
+        d += f"、サイト買い目の的中 {s['bets_hit']}／{s['bets_n']} 点"
+    return d[:300]
 
 
 def description(day: dict, race: dict) -> str:
@@ -217,6 +279,51 @@ def render_png(day: dict, race: dict, out: Path) -> None:
     img.convert("P", palette=Image.ADAPTIVE, colors=96).save(out, optimize=True)
 
 
+def render_day_png(s: dict, out: Path) -> None:
+    """開催日カード。件数のみ（◎勝利 / ◎複勝圏 / 買い目的中）。結果が無い日は公開中の告知。"""
+    from PIL import Image, ImageDraw
+    img = Image.new("RGB", (W, H), BG)
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, 14, H], fill=GOLD)
+    d.rounded_rectangle([44, 150, W - 44, H - 92], radius=22, fill=CARD, outline=LINE, width=2)
+    _txt(d, (48, 44), "PyCaLiAI", 40, GOLD)
+    _txt(d, (262, 54), "AI 競馬予想", 26, TX2, bold=False)
+    _txt(d, (W - 48, 54), "開催日まとめ" if s["has_results"] else "本日の予想", 28, TX2, bold=False, anchor="ra")
+    _txt(d, (48, 100), f"{_date_label(s['date'])}  {'・'.join(s['places'])}", 44, TX, maxw=W - 300)
+    _txt(d, (W - 48, 108), f"全 {s['n_races']} R", 30, GOLD2, anchor="ra")
+    if not s["has_results"]:
+        _txt(d, (W / 2, 262), f"本日 {s['n_races']} レースの", 46, TX, anchor="mm")
+        _txt(d, (W / 2, 330), "AI 予想を公開中", 52, GOLD, anchor="mm")
+        _txt(d, (W / 2, 420), "印・勝率・混戦度・買い目を各レースで", 28, TX2, anchor="mm", bold=False)
+        _txt(d, (W / 2, 468), "　".join(f"{p}" for p in s["places"]), 26, TX3, anchor="mm", bold=False)
+    else:
+        tiles = [
+            ("◎ 勝利", f"{s['hon_win']}", f"/ {s['hon_n']}R", GOLD),
+            ("◎ 複勝圏", f"{s['hon_top3']}", f"/ {s['hon_n']}R", TEAL),
+        ]
+        if s["bets_n"]:
+            tiles.append(("買い目 的中", f"{s['bets_hit']}", f"/ {s['bets_n']}点", GOLD2))
+        else:
+            tiles.append(("確定", f"{s['n_settled']}", f"/ {s['n_races']}R", TX2))
+        n = len(tiles)
+        gap = 24
+        tw = (W - 88 - 2 * 36 - gap * (n - 1)) // n
+        x = 44 + 36
+        for lab, big, sub, col in tiles:
+            d.rounded_rectangle([x, 190, x + tw, 450], radius=16, fill=(18, 28, 49), outline=LINE, width=2)
+            _txt(d, (x + tw / 2, 232), lab, 28, TX2, anchor="mm", bold=False)
+            _txt(d, (x + tw / 2, 330), big, 104, col, anchor="mm")
+            _txt(d, (x + tw / 2, 412), sub, 26, TX3, anchor="mm", bold=False)
+            x += tw + gap
+        d.line([72, H - 150, W - 72, H - 150], fill=LINE, width=2)
+        _txt(d, (72, H - 140), f"確定 {s['n_settled']}R / 全 {s['n_races']}R　レース別の予想・結果・回顧は pycaliai.com で",
+             26, TX2, bold=False, maxw=W - 144)
+    _txt(d, (48, H - 62), "pycaliai.com", 30, GOLD)
+    _txt(d, (W - 48, H - 56), "AI 予測は参考情報です。的中・利益を保証しません。", 20, TX3, bold=False, anchor="ra")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    img.convert("P", palette=Image.ADAPTIVE, colors=96).save(out, optimize=True)
+
+
 def render_default_png(out: Path) -> None:
     from PIL import Image, ImageDraw
     img = Image.new("RGB", (W, H), BG)
@@ -254,6 +361,7 @@ HTML_TPL = """<!DOCTYPE html>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <style>body{{background:#070b14;color:#edf1fb;font-family:system-ui,sans-serif;display:grid;place-items:center;height:100vh;margin:0}}a{{color:#f5b942}}</style>
 <script>location.replace("/#race={rid}");</script>
+<script type="application/ld+json">{ld}</script>
 </head>
 <body><p>{title} の AI 予想を開いています… <a href="/#race={rid}">開かない場合はこちら</a></p></body>
 </html>
@@ -264,12 +372,63 @@ def write_html(day: dict, race: dict, has_png: bool) -> bool:
     rid = str(race["race_id"])
     url = f"{BASE_URL}/r/{rid}"
     img = f"{BASE_URL}/og/{rid}.png" if has_png else f"{BASE_URL}/og/default.png"
-    html = HTML_TPL.format(title=_esc(race_title(race) + (f" {race['race_name']}" if race.get("race_name") else "")),
-                           desc=_esc(description(day, race)), url=url, img=img, rid=rid)
+    _title = race_title(race) + (f" {race['race_name']}" if race.get("race_name") else "")
+    _d8 = str(day.get("date") or rid[:8])
+    _ld = json.dumps({  # SEO: 検索結果のリッチ表示用 (schema.org SportsEvent)。数字は入れない
+        "@context": "https://schema.org", "@type": "SportsEvent", "name": f"{_title} の AI 予想",
+        "startDate": f"{_d8[:4]}-{_d8[4:6]}-{_d8[6:8]}", "sport": "Horse racing",
+        "location": {"@type": "Place", "name": f"{race.get('place', '')}競馬場"},
+        "organizer": {"@type": "Organization", "name": "JRA"},
+        "url": url, "image": img, "description": description(day, race),
+        "publisher": {"@type": "Organization", "name": "PyCaLiAI", "url": BASE_URL},
+    }, ensure_ascii=False).replace("</", "<\/")
+    html = HTML_TPL.format(title=_esc(_title), desc=_esc(description(day, race)), url=url, img=img, rid=rid, ld=_ld)
     p = R_DIR / f"{rid}.html"
     if p.exists() and p.read_bytes() == html.encode("utf-8"):
         return False
     p.write_bytes(html.encode("utf-8"))   # LF 固定 (Windows の text mode で CRLF にしない)
+    return True
+
+
+DAY_HTML_TPL = """<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title} — PyCaLiAI AI予想</title>
+<meta name="description" content="{desc}">
+<link rel="canonical" href="{url}">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="PyCaLiAI">
+<meta property="og:title" content="{title} — AI予想">
+<meta property="og:description" content="{desc}">
+<meta property="og:url" content="{url}">
+<meta property="og:image" content="{img}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{title} — AI予想">
+<meta name="twitter:description" content="{desc}">
+<meta name="twitter:image" content="{img}">
+<meta http-equiv="refresh" content="0;url=/#day={date}">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<style>body{{background:#070b14;color:#edf1fb;font-family:system-ui,sans-serif;display:grid;place-items:center;height:100vh;margin:0}}a{{color:#f5b942}}</style>
+<script>location.replace("/#day={date}");</script>
+</head>
+<body><p>{title} の AI 予想を開いています… <a href="/#day={date}">開かない場合はこちら</a></p></body>
+</html>
+"""
+
+
+def write_day_html(s: dict, has_png: bool) -> bool:
+    date = s["date"]
+    url = f"{BASE_URL}/r/d/{date}"
+    img = f"{BASE_URL}/og/d/{date}.png" if has_png else f"{BASE_URL}/og/default.png"
+    html = DAY_HTML_TPL.format(title=_esc(day_title(s)), desc=_esc(day_description(s)), url=url, img=img, date=date)
+    p = R_D_DIR / f"{date}.html"
+    if p.exists() and p.read_bytes() == html.encode("utf-8"):
+        return False
+    p.write_bytes(html.encode("utf-8"))   # LF 固定
     return True
 
 
@@ -285,13 +444,31 @@ def build(manifest_entries: list[dict], hot_results: int = 2) -> dict:
     hot = {e["date"] for e in manifest_entries if not e.get("has_results")}
     hot |= set([e["date"] for e in sorted(manifest_entries, key=lambda e: e["date"], reverse=True)
                 if e.get("has_results")][:hot_results])
-    stats = {"html_written": 0, "html_total": 0, "png_written": 0, "png_removed": 0, "font": have_font}
+    stats = {"html_written": 0, "html_total": 0, "png_written": 0, "png_removed": 0, "font": have_font,
+             "day_html_written": 0, "day_png_written": 0, "day_png_removed": 0}
     keep_png: set[str] = {"default.png"}
+    keep_day_png: set[str] = set()
+    R_D_DIR.mkdir(parents=True, exist_ok=True)
+    OG_D_DIR.mkdir(parents=True, exist_ok=True)
     for date in dates:
         p = DATA / f"{date}.json"
         if not p.exists():
             continue
         day = json.loads(p.read_text(encoding="utf-8"))
+        # 開催日カード (site/r/d/{date}.html + site/og/d/{date}.png)。PNG の hot 判定はレースと同じ。
+        s = day_summary(day)
+        dpng = OG_D_DIR / f"{date}.png"
+        if have_font and date in hot:
+            try:
+                render_day_png(s, dpng)
+                stats["day_png_written"] += 1
+            except Exception as e:
+                print(f"  [share_card day png skip] {date}: {e}")
+        has_day_png = have_font and date in hot and dpng.exists()
+        if has_day_png:
+            keep_day_png.add(dpng.name)
+        if write_day_html(s, has_day_png):
+            stats["day_html_written"] += 1
         for race in day.get("races") or []:
             rid = str(race["race_id"])
             png = OG_DIR / f"{rid}.png"
@@ -312,6 +489,10 @@ def build(manifest_entries: list[dict], hot_results: int = 2) -> dict:
         if f.name not in keep_png:
             f.unlink()
             stats["png_removed"] += 1
+    for f in OG_D_DIR.glob("*.png"):
+        if f.name not in keep_day_png:
+            f.unlink()
+            stats["day_png_removed"] += 1
     return stats
 
 
@@ -323,7 +504,8 @@ def main() -> int:
         entries = [e for e in entries if e["date"] in only]
     st = build(entries)
     print(f"share cards: html {st['html_written']}/{st['html_total']} 更新, png {st['png_written']} 生成 / "
-          f"{st['png_removed']} 削除, font={'OK' if st['font'] else '無し'}")
+          f"{st['png_removed']} 削除, font={'OK' if st['font'] else '無し'}; "
+          f"day cards: html {st['day_html_written']} 更新, png {st['day_png_written']} 生成 / {st['day_png_removed']} 削除")
     return 0
 
 

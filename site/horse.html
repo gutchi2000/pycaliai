@@ -70,7 +70,11 @@
   .note{color:var(--tx3);font-size:.8rem;line-height:1.7;margin:14px 0 0;}
   .err{color:var(--red);}
   .empty{color:var(--tx3);padding:24px 0;text-align:center;}
-  @media(max-width:620px){.rc th,.rc td{padding:6px 5px;} .hhead .nm{font-size:1.4rem;}}
+  /* 出走ごとの AI順・人気・着順チャート (ECharts) */
+  .chart-wrap{position:relative;width:100%;height:260px;}
+  .chart-legend{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:.78rem;color:var(--tx3);margin:0 0 4px;}
+  .chart-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px;}
+  @media(max-width:620px){.rc th,.rc td{padding:6px 5px;} .hhead .nm{font-size:1.4rem;} .chart-wrap{height:220px;}}
 </style>
 </head>
 <body>
@@ -89,6 +93,8 @@
       <a href="kaiko.html" style="text-decoration:none"><button type="button">回顧</button></a>
       <a href="tsushinbo.html" style="text-decoration:none"><button type="button">通信簿</button></a>
       <a href="horse.html" style="text-decoration:none"><button type="button" class="on">馬</button></a>
+      <a href="jt.html" style="text-decoration:none"><button type="button">騎手</button></a>
+      <a id="navDiscord" href="#" hidden style="text-decoration:none"><button type="button">Discord</button></a>
     </nav>
   </div>
 </header>
@@ -115,7 +121,9 @@
   <a href="mailto:contact@pycaliai.com">お問い合わせ</a>
   <span>© 2026 PyCaLiAI</span>
 </footer>
-<script defer src="js/horse.js?v=20261104-horse1"></script>
+<script defer id="echartsJs" src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<script defer src="js/horse.js?v=20261104-horse2"></script>
 <script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+<script defer src="js/site_config.js?v=20261104"></script>
 </body>
 </html>
