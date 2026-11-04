@@ -1691,3 +1691,12 @@ body.drawer-open { overflow: hidden; }
   .sd-b { font-size: 14.5px; }
   .sd-send { padding: 11px 14px; }
 }
+
+/* ---------------- サイト内ナビ (スタンドアロンページ用 topbar, 2026-11-04) ---------------- */
+.topbar.gnav .tb-in { gap: 14px; }
+.topbar.gnav .brand { color: inherit; }
+.topbar.gnav .modenav { overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.topbar.gnav .modenav::-webkit-scrollbar { display: none; }
+.topbar.gnav .modenav > a { display: flex; flex: 0 0 auto; }
+.topbar.gnav .modenav button { white-space: nowrap; }
+.topbar.gnav + .wrap .ehead { margin-top: 14px; }

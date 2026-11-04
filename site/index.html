@@ -303,6 +303,8 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 addEventListener('DOMContentLoaded',function(){
   var nav=document.getElementById('modeNav');
   function showApp(){document.body.classList.remove('on-landing');scrollTo(0,0)}
+  // 他ページのナビから index.html#app / #results で来たら表紙を飛ばしてアプリへ（#results は app.js boot が成績モードにする）
+  if(location.hash==='#app'||location.hash==='#results'){showApp();}
   function showLanding(){
     var b=nav&&nav.querySelector('[data-mode="races"]');
     if(b&&!b.classList.contains('on'))b.click();

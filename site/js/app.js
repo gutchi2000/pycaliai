@@ -82,6 +82,8 @@ async function boot() {
     b.onclick = () => setMode(b.dataset.mode);
   });
   if (mf.dates.length) loadDay(mf.dates[0].date);
+  // 他ページのナビ「成績」(index.html#results) から来たときは成績モードで開く（表紙は index.html 側の inline script が外す）
+  if (location.hash === "#results") setMode("results");
 }
 
 /* ---------------- 予想 / 成績 モード ---------------- */

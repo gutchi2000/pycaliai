@@ -142,6 +142,9 @@
     var d = babaData;
     if (!d || !d.venues || !d.venues.length) { el.hidden = true; return; }
     if (d.date !== todayISO()) { el.hidden = true; return; }  // 今日のデータでなければ出さない
+    // 成績モードでは出さない（他ページのナビ #results で開いたとき、app.js setMode より後に描画されて残る）
+    var rm = document.getElementById("resultsMain");
+    if (rm && !rm.hidden) { el.hidden = true; return; }
     // ★選択中の会場だけに絞る。会場未選択 or その会場の馬場が無ければ出さない。
     var place = window.__babaPlace || null;
     var vs = place ? d.venues.filter(function (v) { return v.venue === place; }) : [];
