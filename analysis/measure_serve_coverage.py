@@ -84,6 +84,10 @@ for wk in WEEKS:
         else:
             print("  [hosei proxy] CB_HOSEI_PROXY 未設定 → prev_hosei は本番より低く測られる "
                   "(本番は weekly_nicegui.ps1 が =1 で起動)")
+        # serve 特徴復元 (export_weekly_marks と同じ関数・同じ環境変数 CB_SERVE_RECOVER)
+        from serve_feature_recovery import recover_serve_features, format_stats
+        _rec = recover_serve_features(df, p.stem)
+        print("  " + format_stats(_rec))
     except Exception as e:
         print(f"  [warn] serve history fill 失敗 (履歴特徴は0%扱い): {e}")
     # canary と同一定義の実効カバレッジ ("__NaN__"/空文字=欠損, 定数列=0.0) で測る。

@@ -548,6 +548,18 @@ def main() -> int:
     # 実装は apply_hosei_proxy() (baseline 再測定 analysis/measure_serve_coverage.py と共用)。
     apply_hosei_proxy(df, encs)
 
+    # ------ serve 特徴復元 (2026-11-04, CB_SERVE_RECOVER=1/2 のときだけ) ------
+    # 間隔 (週次CSV の列対応が「1走前の前走間隔」で誤っていた) / 前走日付 / 休み明け～戦目 /
+    # 血統タイプ / (L2) 斤量体重比 代理。定義と検証は serve_feature_recovery.py 冒頭。
+    # baseline 再測定 (analysis/measure_serve_coverage.py) も同じ関数を通す。
+    try:
+        from serve_feature_recovery import recover_serve_features, format_stats
+        _rec = recover_serve_features(df, date_str)
+        if _rec:
+            logger.info(format_stats(_rec))
+    except Exception as e:  # noqa: BLE001  fail-open: 従来どおりの値のまま
+        logger.warning(f"[serve recover] 失敗 → 復元なし: {e}")
+
     # ------ kako5 history + horse facts (advisor + 出走表 表示用) ------
     from kako5_summary import build_histories, build_horse_facts
     kako5_path = BASE / "data" / "kako5" / f"{date_str}.csv"
