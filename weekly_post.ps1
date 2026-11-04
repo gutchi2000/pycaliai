@@ -73,6 +73,25 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "      data\_horse_history.parquet updated." -ForegroundColor Green
 }
 
+# -- Step 2.8: wide_kekka.csv の鮮度 (2026-11-04) --
+# ワイド払戻は TARGET の別エクスポート (data\kekka\wide_kekka.csv, ユーザー手動配置) に依存し、
+# 置き忘れると build_site.py のワイド決済と cowork_results のワイド集計が「未決済」のまま
+# 公開される (2026-10-24〜11-01 の 4 開催日で発生)。最大日付が今週より古ければ警告する (non-fatal)。
+Write-Host "[2.8/4] wide_kekka.csv freshness ..." -ForegroundColor Cyan
+$wideCsv = "data\kekka\wide_kekka.csv"
+if (Test-Path $wideCsv) {
+    $wideMax = python -c "import csv,sys; r=[x for x in csv.reader(open(sys.argv[1],encoding='cp932',errors='replace')) if len(x)>3 and x[0].isdigit()]; print(max(f'{x[0]}{x[1]}{x[2]}' for x in r) if r else '')" $wideCsv
+    if ($LASTEXITCODE -ne 0 -or -not $wideMax) {
+        Write-Warning "wide_kekka.csv を読めない (ワイド決済は未決済のまま公開される)"
+    } elseif ([string]$wideMax -lt [string]$Date) {
+        Write-Warning "wide_kekka.csv の最終日 $wideMax < $Date : TARGET からワイド払戻を再エクスポートして data\kekka\wide_kekka.csv を置き換えること (このままだと $Date のワイドは未決済表示)"
+    } else {
+        Write-Host "      wide_kekka.csv OK (最終日 $wideMax)" -ForegroundColor Green
+    }
+} else {
+    Write-Warning "$wideCsv が無い (ワイド決済は未決済のまま公開される)"
+}
+
 # -- Step 2.7: 決済ドリフト係数の鮮度管理 (SettleAI Phase 0, 2026-07-31) --
 # reports/settle_drift.json が 28 日より古ければ live_odds 全量で再実測、
 # 毎週は --check で compute_bets の SETTLE_DRIFT_* 配線値との乖離を警告 (non-fatal)。
@@ -115,6 +134,11 @@ $addTargets = @(
 $coworkBetsDir = "reports\cowork_bets\$Date"
 if (Test-Path $coworkBetsDir) {
     $addTargets += "reports/cowork_bets/$Date"
+}
+# wide_kekka.csv はユーザーが置き換えるだけで誰も commit していなかった (2026-09-27 以降 240 行が未コミット)。
+# 変更があれば同じ commit に乗せる。
+if ((Test-Path $wideCsv) -and (git status --short -- $wideCsv)) {
+    $addTargets += 'data/kekka/wide_kekka.csv'
 }
 
 function Invoke-GitAddVerified([string[]]$targets) {

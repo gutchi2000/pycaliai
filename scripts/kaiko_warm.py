@@ -8,9 +8,12 @@ scripts/kaiko_warm.py — 回顧記事・見どころの事前生成（Phase A /
 sync-hf-umami.ps1（wrangler deploy）で当日の site/data/{date}.json が本番に乗った後に呼ぶこと。
 
 使い方:
-    venv311\\Scripts\\python.exe scripts\\kaiko_warm.py [YYYYMMDD ...] [--discord]
+    venv311\\Scripts\\python.exe scripts\\kaiko_warm.py [YYYYMMDD ...] [--discord] [--x]
     引数なし: site/data/manifest.json の開催日のうち、結果待ちの日（見どころ）と結果ありの直近 2 日（回顧）。
     --discord: この実行で新しく生成した総括・見どころを Discord（notify_config.json の webhook）へ投稿する。
+    --x:       同じものの X 下書き（+ kaiko リンク）を X へ自動投稿する（2026-11-04）。鍵は notify_config.json の
+               x_api_key / x_api_secret / x_access_token / x_access_secret（X Developer Portal の
+               Free プラン、Read and Write 権限で発行）。無ければ黙ってスキップ。
 """
 from __future__ import annotations
 
@@ -68,6 +71,49 @@ def discord(text: str) -> bool:
         return False
 
 
+def _x_creds() -> dict:
+    """X (Twitter) API v2 の鍵。notify_config.json (gitignore) の x_api_key / x_api_secret /
+    x_access_token / x_access_secret、無ければ環境変数 X_API_KEY 等。無ければ {} (投稿スキップ)。"""
+    keys = ("x_api_key", "x_api_secret", "x_access_token", "x_access_secret")
+    cfg = {}
+    if NOTIFY_CFG.exists():
+        try:
+            cfg = json.loads(NOTIFY_CFG.read_text(encoding="utf-8")) or {}
+        except Exception:
+            cfg = {}
+    out = {k: str(cfg.get(k) or os.environ.get(k.upper(), "") or "").strip() for k in keys}
+    return out if all(out.values()) else {}
+
+
+def x_post(text: str) -> bool:
+    """X へ 1 件投稿 (tweepy, OAuth 1.0a user context)。鍵未設定/失敗は非致命。"""
+    c = _x_creds()
+    if not c:
+        print("  [x] 鍵未設定 (notify_config.json の x_api_key 等) → スキップ")
+        return False
+    try:
+        import tweepy
+        client = tweepy.Client(consumer_key=c["x_api_key"], consumer_secret=c["x_api_secret"],
+                               access_token=c["x_access_token"], access_token_secret=c["x_access_secret"])
+        r = client.create_tweet(text=text)
+        print(f"  [x] 投稿 id={getattr(r, 'data', {}).get('id') if hasattr(r, 'data') else '?'}")
+        return True
+    except Exception as e:
+        print(f"  [x] 投稿失敗 (非致命): {e}")
+        return False
+
+
+def _x_text(date: str, rid: str, it: dict) -> str:
+    """X 下書き + リンク。URL は X 側で 23 字換算なので本文は 250 字で切る。"""
+    body = (it.get("x_post") or "").strip()
+    if not body:
+        body = f"{_fmt(date)} の{'回顧' if rid == 'day' else '見どころ'}を公開しました。"
+    link = f"{BASE}/kaiko#{date}"
+    if len(body) > 250:
+        body = body[:249] + "…"
+    return f"{body}\n{link}"
+
+
 def _fmt(d8: str) -> str:
     return f"{int(d8[4:6])}/{int(d8[6:8])}"
 
@@ -106,13 +152,14 @@ def warm(date: str, created: list) -> tuple[int, int]:
 def main() -> int:
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     want_discord = "--discord" in sys.argv[1:]
+    want_x = "--x" in sys.argv[1:]          # 新規生成した総括/見どころの X 下書きを X へ自動投稿 (鍵があるときだけ)
     mf = json.loads((ROOT / "site" / "data" / "manifest.json").read_text(encoding="utf-8"))
     if args:
         dates = args
     else:
         dates = [d["date"] for d in mf.get("dates", []) if not d.get("has_results")][:2] + \
                 [d["date"] for d in mf.get("dates", []) if d.get("has_results")][:2]
-    print(f"[kaiko_warm] {dates}{' +discord' if want_discord else ''}")
+    print(f"[kaiko_warm] {dates}{' +discord' if want_discord else ''}{' +x' if want_x else ''}")
     tot_made = tot_failed = 0
     created: list = []
     for d in dates:
@@ -127,6 +174,10 @@ def main() -> int:
             msg = f"{head}\n{it.get('text', '')}\n\n> X 下書き: {x}\n{BASE}/kaiko#{date}"
             ok = discord(msg)
             print(f"  [discord] {date} {rid}: {'sent' if ok else 'skip'}")
+    if want_x:
+        for date, rid, it in created:
+            ok = x_post(_x_text(date, rid, it))
+            print(f"  [x] {date} {rid}: {'posted' if ok else 'skip'}")
     return 0 if tot_failed == 0 else 2
 
 

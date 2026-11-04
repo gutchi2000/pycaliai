@@ -151,7 +151,7 @@ P0-1（騎手/調教師stats）・P0-2（着度数CSV列数）・P0-4（Ｒ全�
 3. `export_weekly_marks.py --model v6` → `reports/cowork_input/{date}_bundle.json` **★これが Cowork のキー入力**
 4. `build_course_stats.py` → `data/course_stats.json`（コース分析タブ用）
 5. `git push origin master` → `sync-hf.ps1`（旧 NiceGUI Space）→ `sync-hf-umami.ps1`（**本番 静的サイト**、`build_site.py` で再生成して push）
-6. `[4/3]` 今日の見どころ 生成（`scripts/kaiko_warm.py --discord`、best-effort。Worker が発走前記事を書き Discord へ投稿）
+6. `[4/3]` 今日の見どころ 生成（`scripts/kaiko_warm.py --discord`、best-effort。Worker が発走前記事を書き Discord へ投稿。`--x` を足すと X 下書きを X へ自動投稿できる（2026-11-04 実装、鍵は `notify_config.json` の x_api_key 等）が、**週次スクリプトには付けていない**＝X 投稿はユーザーが明示的に有効化する）
 
 ### Phase B — 土曜昼（Cowork が買い目を返してきたら）
 ```
@@ -319,6 +319,8 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 | `worker/index.js` + `worker/tools.js` + `worker/prompt.js` | **相談AI（2026-11-03 公開）**: pycaliai.com の Cloudflare Worker。`POST /api/soudan` が Claude（Sonnet 5.5、全体 1 日 150 問超で Haiku 5.5、IP 別 30 問/日、月 $90 で停止、KV カウンタ）を中継。数字は公開済み `site/data/{date}.json` だけ（オッズ・EV 不在）。UI は `app.js renderSoudan()` の「💬 相談AI」タブ。鍵は `npx wrangler secret put ANTHROPIC_API_KEY`（Max の月次 API クレジット）。確認 `GET /api/soudan/health`。テスト `node --test worker/tools.test.mjs`。`assistant/chat.py`（Ollama 版）は未改修 |
 | `worker/kaiko.js` + `site/kaiko.html` + `scripts/kaiko_warm.py` | **回顧記事「負けた理由まで書く AI」（2026-11-04 公開）**: 結果のある開催日の全レースを「予想→結果→ズレた理由→教訓」で Claude が文章化、日の総括と X 下書き付き。**今日の見どころ**（`race_id="preview"`、発走前: 堅い 3 鞍・AI と人気が割れる鞍・見送り寄り・重賞・注目 1 鞍）も同じ経路。facts は公開 JSON だけ、記事は KV に永続（1 件 1 回）。生成経路: Phase A `[4/3]`（見どころ）／Phase C `[1f/3]`（回顧）＝`kaiko_warm.py --discord` が Worker に依頼し新規分を Discord（`notify_config.json` の webhook）へ／cron 土日 05:00・月曜 03:00 JST／ページ閲覧時の lazy 生成。一覧 `GET /api/kaiko?date=`、生成 `POST /api/kaiko/gen`、RSS `GET /kaiko.xml` |
 | `build_report_card.py` + `site/tsushinbo.html` | **AI の通信簿（2026-11-04 公開）**: 公開済み `site/data/{date}.json` から条件別（クラス・芝ダ距離・混戦度百分位・◎の朝人気・◎勝率帯・頭数・競馬場・月）の ◎勝率/複勝圏率（Wilson 95% CI）と表示買い目の回収率を `site/data/report_card.json` に集計（`build_site.py` 末尾で毎ビルド）。LLM 不使用。相談AI のツール `ai_track_record` が同じ JSON をレース条件で引く |
+| `build_share_cards.py` + `site/r/` + `site/og/` | **レース共有カード（2026-11-04）**: 公開 JSON から各レースの固定 URL `https://pycaliai.com/r/{race_id16}`（OG/Twitter カード meta → `/#race={rid}` へリダイレクト）と OG 画像 `site/og/{rid}.png`（結果待ち + 結果ありの直近 2 開催日だけ生成、他は削除）。`app.js` は `#race=` で表紙を飛ばして直接開き、レースヘッダに「𝕏 で共有」「URL をコピー」。`build_site.py` 末尾で毎ビルド |
+| `build_horse_pages.py` + `site/horse.html` + `site/js/horse.js` | **馬ページ（2026-11-04）**: `horse.html?name=馬名`。2026 年の出走ごとの印・AI順・勝率・3着内率・人気・着順、近走、血統、馬レベル、出世予測リンク。データは `site/data/h/{id[:2]}.json`（id = 馬名の FNV-1a×2、256 シャード）+ 検索用 `_index.json`。出走表の詳細パネルと全ページのナビ「馬」から |
 | `export_weekly_marks.py` | unified_rank_v6 → bundle.json |
 | `build_course_stats.py` | コース分析タブ用統計 |
 | `weekly_nicegui.ps1` | 週次ワークフロー 3 フェーズ統合（sync-hf + sync-hf-umami 両方を叩く） |
@@ -383,7 +385,7 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 - 注: 上の「ファイル役割マップ」内の一部実験スクリプト（`backtest_v2.py` `train_catboost.py` 等）は `lab/` 配下へ移動済み
 
 **残タスク**：
-- `models/` 配下の日付付き pkl（`*_20260313_*.pkl` 等）→ `models/archive/` へ
+- ~~`models/` 配下の日付付き pkl（`*_20260313_*.pkl` 等）→ `models/archive/` へ~~ **2026-11-04 完了**（残っていた `pl_calibrators_v6_serve_2026*` 3 本も archive へ。`models/` 直下に日付付き pkl は 0）
 - 互換用旧マスター `data/master_20130105-20251228.csv` は v5 が `master_v2_*` を使うので削除候補
 - `models/expert_*_rejected.pkl`（命名通り不採用）/ `models/lgbm_*_20260319_*.pkl` 中間 dump → archive 行き
 
@@ -444,7 +446,7 @@ v6 + cowork_prompt 改修（節 11）でこの弱点改善を狙う。
    - 中長期は v6 統一して旧側を `legacy/` に隔離
 2. **`models/` ディレクトリ肥大化**: 41 ファイル (dated pkl 退避済み)、まだ整理余地あり
 3. **ルート Python 93 本**: 整理進めたが `backtest_*` `train_*` の重複版残あり
-4. **wide_kekka.csv 週次更新の運用化**: 現状ユーザー手動配置、weekly_post.ps1 への組込み検討
+4. **wide_kekka.csv 週次更新の運用化**: TARGET からのエクスポート自体は手動のまま。**2026-11-04**: `weekly_post.ps1` Step 2.8 が最終日付を検査し今週より古ければ警告（10/24〜11/01 の 4 開催日が未反映のまま公開されていた）、変更があれば Phase C の commit に同乗（それまで誰も commit しておらず 240 行が未コミットだった）
 
 ### 🟢 P2
 5. **`strategy_weights.json` の位置づけ曖昧**: Streamlit 用なのか、廃止予定なのか書面化されていない
