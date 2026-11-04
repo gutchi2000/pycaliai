@@ -17,8 +17,9 @@
    ============================================================ */
 import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM, TOOLS } from "./prompt.js";
-import { dispatch, findRace, raceLabel, rosterLines } from "./tools.js";
+import { dispatch, findHorse, findRace, raceLabel, rosterLines } from "./tools.js";
 import { handleFeed, handleGen, handleList, warmLatest } from "./kaiko.js";
+import { horseKaiko, horsePage } from "./horse.js";
 import { cors, json, jstParts, kvNum, kvSet, loadDay, loadReportCard, microUsd, num, originOk, sha256Hex } from "./util.js";
 
 const MAX_TURNS = 10;          // クライアントから受け取る履歴の上限（user+assistant 合計）
@@ -34,6 +35,8 @@ export default {
     if (url.pathname === "/api/kaiko/gen") return handleGen(request, env, ctx);
     if (url.pathname === "/kaiko.xml" || url.pathname === "/api/kaiko/feed") return handleFeed(request, env);
     if (url.pathname.startsWith("/api/")) return json({ error: "not found" }, 404);
+    // 馬ページ: OG メタ差し込み (/horse?name=) と短縮 URL (/h/{id16} → 302)。wrangler.jsonc run_worker_first に登録済み
+    if (url.pathname === "/horse" || url.pathname === "/horse.html" || /^\/h\/[0-9a-f]{16}$/.test(url.pathname)) return horsePage(request, env);
     return env.ASSETS.fetch(request);
   },
   async scheduled(event, env, ctx) {
@@ -41,6 +44,18 @@ export default {
     ctx.waitUntil(warmLatest(env, "https://pycaliai.com/", 2).then((r) => console.log("kaiko warm", JSON.stringify(r))));
   },
 };
+
+/* horse_kaiko: 馬番/馬名 → 馬を特定 → 過去の回顧記事 (KV) からその馬の段落を返す。 */
+async function horseKaikoTool(env, url, race, args) {
+  const key = (args || {}).umaban_or_name;
+  const h = findHorse(race, key);
+  if (!h) return { error: `'${key}' に該当する馬が見つかりません`, roster: rosterLines(race) };
+  try {
+    return await horseKaiko(env, url, race, h);
+  } catch (e) {
+    return { error: `回顧の取得に失敗: ${String(e).slice(0, 120)}` };
+  }
+}
 
 /* GET /api/soudan/health: 秘密の値は返さず「設定されているか・形が正しいか」と本日の消費だけ（運用確認用）。 */
 async function health(env) {
@@ -128,10 +143,13 @@ async function soudan(request, env, ctx) {
       const uses = res.content.filter((b) => b.type === "tool_use");
       if (stop === "tool_use" && uses.length) {
         conv.push({ role: "assistant", content: res.content });
-        conv.push({ role: "user", content: uses.map((u) => {
+        conv.push({ role: "user", content: await Promise.all(uses.map(async (u) => {
           toolsUsed.push(u.name);
-          return { type: "tool_result", tool_use_id: u.id, content: JSON.stringify(dispatch(day, race, u.name, u.input, { reportCard })) };
-        }) });
+          const out = u.name === "horse_kaiko"
+            ? await horseKaikoTool(env, request.url, race, u.input)          // KV を読む非同期ツール (回顧の教訓)
+            : dispatch(day, race, u.name, u.input, { reportCard });
+          return { type: "tool_result", tool_use_id: u.id, content: JSON.stringify(out) };
+        })) });
         continue;
       }
       if (stop === "pause_turn") { conv.push({ role: "assistant", content: res.content }); continue; }

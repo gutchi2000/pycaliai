@@ -11,7 +11,7 @@
     "directory": "./site",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/kaiko.xml"]
+    "run_worker_first": ["/api/*", "/kaiko.xml", "/horse", "/horse.html", "/h/*"]
   },
   "kv_namespaces": [
     { "binding": "SOUDAN_KV", "id": "cdc7e8c706bb4875b2490a63f13b8c33" }
