@@ -10,7 +10,11 @@ sync-hf-umami.ps1（wrangler deploy）で当日の site/data/{date}.json が本�
 使い方:
     venv311\\Scripts\\python.exe scripts\\kaiko_warm.py [YYYYMMDD ...] [--discord] [--x]
     引数なし: site/data/manifest.json の開催日のうち、結果待ちの日（見どころ）と結果ありの直近 2 日（回顧）。
-    --discord: この実行で新しく生成した総括・見どころを Discord（notify_config.json の webhook）へ投稿する。
+    --discord: この実行で新しく生成した総括・見どころを Discord へ投稿する (2026-11-05 公開サーバー対応)。
+               見どころ → notify_config.json の discord_midokoro_webhook、回顧(総括) → discord_kaiko_webhook
+               (公開サーバー。本文 + サイトリンク、X 下書き行は付けない)。私用の discord_webhook には 1 行の要約だけ。
+               公開用キーが無ければ従来どおり私用へ全文。
+    --test-discord: 公開 3 チャンネル (お知らせ/見どころ/回顧) へ接続テストを 1 通ずつ送る。
     --x:       同じものの X 下書き（+ kaiko リンク）を X へ自動投稿する（2026-11-04）。鍵は notify_config.json の
                x_api_key / x_api_secret / x_access_token / x_access_secret（X Developer Portal の
                Free プラン、Read and Write 権限で発行）。無ければ黙ってスキップ。
@@ -45,21 +49,28 @@ def _req(method: str, path: str, body: dict | None = None, timeout: int = 150):
             return e.code, {"error": str(e)}
 
 
-def _webhook_url() -> str:
-    url = os.environ.get("PYCALIAI_DISCORD_WEBHOOK", "").strip()
-    if url:
-        return url
+WEBHOOK_KEYS = {"private": "discord_webhook", "public": "discord_public_webhook",
+                "midokoro": "discord_midokoro_webhook", "kaiko": "discord_kaiko_webhook"}
+
+
+def _webhook_url(kind: str = "private") -> str:
+    """kind: private (運用通知) / public (#お知らせ) / midokoro (#見どころ) / kaiko (#回顧)。鍵は notify_config.json。"""
+    if kind == "private":
+        url = os.environ.get("PYCALIAI_DISCORD_WEBHOOK", "").strip()
+        if url:
+            return url
     try:
-        return str(json.loads(NOTIFY_CFG.read_text(encoding="utf-8")).get("discord_webhook", "") or "").strip()
+        cfg = json.loads(NOTIFY_CFG.read_text(encoding="utf-8"))
+        return str(cfg.get(WEBHOOK_KEYS.get(kind, "discord_webhook"), "") or "").strip()
     except (OSError, ValueError):
         return ""
 
 
-def discord(text: str) -> bool:
-    """Discord webhook へ送信（2000 字上限）。未設定/失敗は非致命。"""
-    url = _webhook_url()
+def discord(text: str, kind: str = "private") -> bool:
+    """Discord webhook へ送信（2000 字上限）。未設定/失敗は非致命。kind は _webhook_url 参照。"""
+    url = _webhook_url(kind)
     if not url:
-        print("  [discord] webhook 未設定 (notify_config.json)")
+        print(f"  [discord:{kind}] webhook 未設定 (notify_config.json の {WEBHOOK_KEYS.get(kind)})")
         return False
     body = json.dumps({"content": text[:1990]}).encode("utf-8")
     req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json", "User-Agent": "PyCaLiAI-kaiko (private bot)"})
@@ -153,6 +164,11 @@ def main() -> int:
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     want_discord = "--discord" in sys.argv[1:]
     want_x = "--x" in sys.argv[1:]          # 新規生成した総括/見どころの X 下書きを X へ自動投稿 (鍵があるときだけ)
+    if "--test-discord" in sys.argv[1:]:    # 公開サーバーの接続テスト (本番投稿はしない)
+        for kind, label in (("public", "#お知らせ"), ("midokoro", "#見どころ"), ("kaiko", "#回顧")):
+            ok = discord(f"PyCaLiAI からの接続テストです（{label}）。土日は発走前の見どころ、日曜夜〜月曜に回顧記事が自動で届きます。\n{BASE}/", kind)
+            print(f"  [test] {label}: {'sent' if ok else 'skip'}")
+        return 0
     mf = json.loads((ROOT / "site" / "data" / "manifest.json").read_text(encoding="utf-8"))
     if args:
         dates = args
@@ -169,11 +185,19 @@ def main() -> int:
     print(f"[kaiko_warm] made={tot_made} failed={tot_failed}")
     if want_discord:
         for date, rid, it in created:
+            kind = "kaiko" if rid == "day" else "midokoro"
             head = f"**{_fmt(date)} {'回顧' if rid == 'day' else '今日の見どころ'}**"
-            x = it.get("x_post") or ""
-            msg = f"{head}\n{it.get('text', '')}\n\n> X 下書き: {x}\n{BASE}/kaiko#{date}"
-            ok = discord(msg)
-            print(f"  [discord] {date} {rid}: {'sent' if ok else 'skip'}")
+            link = f"{BASE}/kaiko#{date}"
+            if _webhook_url(kind):
+                # 公開サーバー: 本文 + サイトリンク (X 下書きは付けない)。私用には要約 1 行。
+                ok = discord(f"{head}\n{it.get('text', '')}\n{link}", kind)
+                print(f"  [discord:{kind}] {date} {rid}: {'sent' if ok else 'skip'}")
+                discord(f"{head} を公開サーバーへ投稿 ({'sent' if ok else 'skip'}) {link}", "private")
+            else:
+                x = it.get("x_post") or ""
+                msg = f"{head}\n{it.get('text', '')}\n\n> X 下書き: {x}\n{link}"
+                ok = discord(msg)
+                print(f"  [discord] {date} {rid}: {'sent' if ok else 'skip'}")
     if want_x:
         for date, rid, it in created:
             ok = x_post(_x_text(date, rid, it))
