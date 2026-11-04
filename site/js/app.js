@@ -1167,6 +1167,7 @@ function openDrawer(umaban) {
       ${wk(h)}
       <span class="dw-mark mark ${markCls(h.mark)}">${h.mark || ""}</span>
       <span class="dw-name">${esc(h.name)}</span>
+      <a class="dw-hlink" href="horse.html?name=${encodeURIComponent(h.name)}" title="この馬の AI 評価履歴（馬ページ）">馬ページ ↗</a>
       ${h.scratched ? `<i class="scrbadge">${esc(h.scratched)}</i>` : ""}
       ${resPos != null ? posBadge(resPos) : ""}
       <span class="dw-sub2">${esc(h.sex)}${h.age ?? ""} ・ ${h.ninki ?? "—"}番人気 ・ AIランク #${h.ai_rank ?? "—"}</span>

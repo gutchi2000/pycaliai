@@ -1474,6 +1474,14 @@ def main() -> None:
     except Exception as e:
         print(f"[share_cards skip] {e}")
 
+    # 馬ページ (horse.html?name=馬名) 用データ site/data/h/{id}.json + _index.json
+    try:
+        from build_horse_pages import build as _build_horse_pages
+        _hs = _build_horse_pages()
+        print(f"horse pages: {_hs['horses']} 頭 / {_hs['shards']} シャード, 更新 {_hs['written']}, 削除 {_hs['removed']}")
+    except Exception as e:
+        print(f"[horse_pages skip] {e}")
+
     # 分析カードの manifest (explain.html 用)
     try:
         from explain_card import write_explain_manifest

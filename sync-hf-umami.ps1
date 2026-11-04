@@ -174,6 +174,7 @@ if ($RebuildCalibration) {
 #                                    baba_today.json, realized_bias.json
 #       build_horse_career.py    -> site/data/career_{8-digit-date}.json  (called by build_site.py)
 #       build_share_cards.py     -> site/r/{rid16}.html, site/og/{rid16}.png, site/og/default.png (called by build_site.py)
+#       build_horse_pages.py     -> site/data/h/{id2}.json (256 shards), site/data/h/_index.json (called by build_site.py)
 #       build_forecast_history.py-> site/data/forecast_history/**/*.json  (step 1.2, -Date only)
 #       build_calibration.py     -> site/data/calibration.json            (step 1.3, -RebuildCalibration only)
 #     Explicitly NOT this pipeline's output (must never be swept in even if dirty):
@@ -197,7 +198,10 @@ $SiteAllowPatterns = @(
     # build_share_cards.py (called by build_site.py): per-race share page + OG image (2026-11-04)
     '^site/r/\d{16}\.html$',
     '^site/og/\d{16}\.png$',
-    '^site/og/default\.png$'
+    '^site/og/default\.png$',
+    # build_horse_pages.py (called by build_site.py): per-horse data for horse.html (2026-11-04)
+    '^site/data/h/[0-9a-f]{2}\.json$',
+    '^site/data/h/_index\.json$'
 )
 #     --untracked-files=all: without this, git collapses a brand-new directory
 #     (e.g. a first-ever site/data/forecast_history/{date}/ from build_forecast_history.py)

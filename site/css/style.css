@@ -1706,3 +1706,7 @@ body.drawer-open { overflow: hidden; }
 .share-btn { font: inherit; font-size: 13px; color: var(--tx2); background: rgba(255,255,255,.02); border: 1px solid var(--line2); border-radius: var(--r-pill); padding: 2px 11px; text-decoration: none; cursor: pointer; line-height: 1.6; white-space: nowrap; }
 .share-btn:hover { color: var(--gold2); border-color: var(--gold); }
 @media (max-width: 620px) { .share { margin-left: 0; } }
+
+/* 馬ページへのリンク (詳細パネル, 2026-11-04) */
+.dw-hlink { font-size: 12.5px; color: var(--tx2); border: 1px solid var(--line2); border-radius: var(--r-pill); padding: 1px 9px; text-decoration: none; white-space: nowrap; align-self: center; }
+.dw-hlink:hover { color: var(--gold2); border-color: var(--gold); }
