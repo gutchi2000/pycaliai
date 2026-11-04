@@ -3,7 +3,8 @@
 > **このファイルの位置づけ**: 次に触る人（含む将来の自分）が 5 分で全体像を掴めるようにする。
 > 詳細仕様は `docs/` 配下、運用フローは `WORKFLOW.md` を参照。
 >
-> 最終更新: 2026-07-01（**ルート整理**: 実験・研究スクリプト 97 本を `lab/<theme>/` へ集約し root .py を 237→139 に。巨大生成物/スクラッチを `.gitignore`。詳細は下記「✅ ルート整理済み」節と `lab/README.md`）
+> 最終更新: 2026-11-04（**A〜S スプリント**: serve 特徴復元 `serve_feature_recovery.py`（間隔の列対応バグ発見、CB_SERVE_RECOVER で有効化、A/B は下記）／週次フローの WARNING を Discord 転送／収集待ち台帳の Gate 自動判定／T-10・T-20 起動監視／較正ドリフト監視／旧 NiceGUI 同期と hosei 生成を既定 OFF／サイト: 騎手・調教師ページ、通信簿の週次推移と見送り成績、馬ページチャート、開催日カード、sitemap/JSON-LD、馬ページ OG（Worker）、相談AI の回顧参照、Discord ナビ枠）
+> 旧: 2026-07-01（**ルート整理**: 実験・研究スクリプト 97 本を `lab/<theme>/` へ集約し root .py を 237→139 に。巨大生成物/スクラッチを `.gitignore`。詳細は下記「✅ ルート整理済み」節と `lab/README.md`）
 > 旧: 2026-06-24（**現状整理**: cowork_results は修復済み＝壊れていない／Cowork 78% 表は v5 期の歴史値で現在値ではない／「これ以上強くする」の本筋は予測 v7 や EV 閾値ではなく **検証済み未配線 ROI の回収**＝下記「強化の本筋」参照）
 > 旧: 2026-06-16（**本番表示を静的サイト pycaliai-umami に移行**、週次フローに sync-hf-umami 組込み、predict デフォルト skip / 見送りガードを反映）
 > 旧: 2026-05-20（NiceGUI + Cowork パラダイムに全面改訂、**v6 本番投入**、cowork_results 集計修復）
@@ -146,11 +147,11 @@ P0-1（騎手/調教師stats）・P0-2（着度数CSV列数）・P0-4（Ｒ全�
 # または .\weekly_nicegui.ps1 20260516
 ```
 自動で（デフォルト model=**v6**）：
-1. `make_weekly_hosei.py` → `data/hosei/H_{date}.csv`
+1. `make_weekly_hosei.py` → **デフォルト SKIP**（2026-11-04。TARGET の補正タイム供給は 2026-09-19 で恒久停止しヘッダだけを量産していた。prev_hosei は推定器 `CB_HOSEI_PROXY=1`。再開は `-WithHosei`）
 2. `predict_weekly.py` → **デフォルト SKIP**（2026-06-11 audit P1-1。旧8モデルは重く NiceGUI/Cowork に不要）。Streamlit 用に欲しい週だけ `-WithPredict`
-3. `export_weekly_marks.py --model v6` → `reports/cowork_input/{date}_bundle.json` **★これが Cowork のキー入力**
+3. `export_weekly_marks.py --model v6` → `reports/cowork_input/{date}_bundle.json` **★これが Cowork のキー入力**（2026-11-04〜 `scripts/run_notify.py` 経由: 出力を `logs/export_{date}.log` に残し、WARNING 以上・serve canary 行だけ Discord へ。exit code はそのまま）
 4. `build_course_stats.py` → `data/course_stats.json`（コース分析タブ用）
-5. `git push origin master` → `sync-hf.ps1`（旧 NiceGUI Space）→ `sync-hf-umami.ps1`（**本番 静的サイト**、`build_site.py` で再生成して push）
+5. `git push origin master` → `sync-hf-umami.ps1`（**本番 静的サイト**、`build_site.py` で再生成して push。旧 NiceGUI Space の `sync-hf.ps1` は 2026-11-04 退役＝`-WithNiceGUI` のときだけ）
 6. `[4/3]` 今日の見どころ 生成（`scripts/kaiko_warm.py --discord`、best-effort。Worker が発走前記事を書き Discord へ投稿。`--x` を足すと X 下書きを X へ自動投稿できる（2026-11-04 実装、鍵は `notify_config.json` の x_api_key 等）が、**週次スクリプトには付けていない**＝X 投稿はユーザーが明示的に有効化する）
 
 ### Phase B — 土曜昼（Cowork が買い目を返してきたら）
@@ -162,7 +163,7 @@ P0-1（騎手/調教師stats）・P0-2（着度数CSV列数）・P0-4（Ｒ全�
 ```
 内部で：
 1. `validate_cowork_bets.py --apply` で**見送りガード**を強制（絶対禁則の4条件。Cowork が見送るべき race に買い目を付けても bets:[] に矯正）。ガード自体が実行不能なら **fail-closed で停止**（未検証 bets を本番に出さない）。どうしても push したい時のみ `-Force`
-2. `git push origin master` → `sync-hf.ps1` → `sync-hf-umami.ps1`
+2. `git push origin master` → `sync-hf-umami.ps1`（旧 NiceGUI は `-WithNiceGUI` のみ）
 
 ### Phase C — 日曜夜（TARGET 結果エクスポート後）
 ```powershell
@@ -170,12 +171,14 @@ P0-1（騎手/調教師stats）・P0-2（着度数CSV列数）・P0-4（Ｒ全�
 .\weekly_nicegui.ps1 -Post
 ```
 内部で：
-1. `weekly_post.ps1`（失敗したら **fail-hard** して HF 同期を中止）
+1. `weekly_post.ps1`（失敗したら **fail-hard** して HF 同期を中止。2026-11-04〜 出力は `logs/weekly_post_{date}.log` に残り、終了後に `scripts/run_notify.py --scan` が WARNING/Error 行を Discord へ）
    - `generate_results.py` → `data/results.json` / `data/cowork_results.json`（**集計凍結対策で必ず commit**）
    - `update_live_results.py` → `data/live_results_2026.csv`
    - `git push` + `reports/cowork_bets/{date}/`
    - `cowork_results.json` の `generated_at` が当日かチェック（凍結検知）
-2. `sync-hf.ps1`（旧 NiceGUI）→ `sync-hf-umami.ps1`（**本番 静的サイト**）
+   - Step 2.8 `wide_kekka.csv` 鮮度 / Step 2.9 `analysis/collection_wait_gate.py --notify`（収集待ち台帳 CW-01/02/03/09/10/11 を正本から数え直し、Gate 到達・減少・消失・停滞のときだけ Discord。現況 `docs/research/COLLECTION_WAIT_STATUS.md` 自動生成）
+   - settle 直後に `analysis/calibration_drift_check.py --notify`（現行較正器の直近 8 週 ECE を前全週の参照と比較、超えたときだけ Discord。再 fit は手動）
+2. `sync-hf-umami.ps1`（**本番 静的サイト**。旧 NiceGUI `sync-hf.ps1` は `-WithNiceGUI` のみ）
 3. 日曜 + 月初 1〜7 日なら `retrain_value_model.py` 自動実行
 4. 日曜なら `run_audit.ps1` 自動実行（週次監査）
 5. `[1e/3]` 出世予測 AI 更新（`analysis.shusse.extend_2026` → `predict_live`、best-effort。失敗は Warn のみで本番に影響なし。`build_site.py` が `site/data/shusse/` へ反映）
@@ -320,8 +323,19 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 | `worker/kaiko.js` + `site/kaiko.html` + `scripts/kaiko_warm.py` | **回顧記事「負けた理由まで書く AI」（2026-11-04 公開）**: 結果のある開催日の全レースを「予想→結果→ズレた理由→教訓」で Claude が文章化、日の総括と X 下書き付き。**今日の見どころ**（`race_id="preview"`、発走前: 堅い 3 鞍・AI と人気が割れる鞍・見送り寄り・重賞・注目 1 鞍）も同じ経路。facts は公開 JSON だけ、記事は KV に永続（1 件 1 回）。生成経路: Phase A `[4/3]`（見どころ）／Phase C `[1f/3]`（回顧）＝`kaiko_warm.py --discord` が Worker に依頼し新規分を Discord（`notify_config.json` の webhook）へ／cron 土日 05:00・月曜 03:00 JST／ページ閲覧時の lazy 生成。一覧 `GET /api/kaiko?date=`、生成 `POST /api/kaiko/gen`、RSS `GET /kaiko.xml` |
 | `build_report_card.py` + `site/tsushinbo.html` | **AI の通信簿（2026-11-04 公開）**: 公開済み `site/data/{date}.json` から条件別（クラス・芝ダ距離・混戦度百分位・◎の朝人気・◎勝率帯・頭数・競馬場・月）の ◎勝率/複勝圏率（Wilson 95% CI）と表示買い目の回収率を `site/data/report_card.json` に集計（`build_site.py` 末尾で毎ビルド）。LLM 不使用。相談AI のツール `ai_track_record` が同じ JSON をレース条件で引く |
 | `build_share_cards.py` + `site/r/` + `site/og/` | **レース共有カード（2026-11-04）**: 公開 JSON から各レースの固定 URL `https://pycaliai.com/r/{race_id16}`（OG/Twitter カード meta → `/#race={rid}` へリダイレクト）と OG 画像 `site/og/{rid}.png`（結果待ち + 結果ありの直近 2 開催日だけ生成、他は削除）。`app.js` は `#race=` で表紙を飛ばして直接開き、レースヘッダに「𝕏 で共有」「URL をコピー」。`build_site.py` 末尾で毎ビルド |
+| `build_jt_pages.py` + `site/jt.html` + `site/js/jt.js` | **騎手・調教師ページ（2026-11-04）**: `jt.html?j=騎手名` / `?t=調教師名`。2026 年の出走・KPI（勝率/3着内率/AI◎時/AI1位時）・月別・クラス別・検索。データ `site/data/jt/{jockeys,trainers,_index}.json`（コンパクト配列）。全ページのナビ「騎手」 |
+| `build_sitemap.py` | **sitemap.xml 生成（2026-11-04）**: 静的ページ + `/r/{rid}` + `/r/d/{date}` + 馬ページ（`horse?name=`）+ 騎手/調教師。約 11,600 URL。`build_site.py` 末尾 |
+| `worker/horse.js` | **馬ページ OG（2026-11-04）**: `/horse?name=` の応答に HTMLRewriter でその馬の title/description/og/canonical を差し込む（静的 9,339 ファイルは Workers assets 上限）。`/h/{id16}` → 302。相談AI ツール `horse_kaiko`（直近 3 走の回顧記事からその馬の段落）。`wrangler.jsonc` run_worker_first に `/horse`, `/horse.html`, `/h/*`。テスト `node --test worker/horse.test.mjs` |
+| `site/js/site_config.js` | **Discord ナビ枠（2026-11-04）**: `discord_invite` に公開サーバーの招待 URL を入れると全ページのナビに「Discord」が出る（空なら非表示）。X の代わりの無料配信チャネル |
+| `build_report_card.py` + `report_card_miokuri.py` + `site/tsushinbo.html` | **通信簿 拡張（2026-11-04）**: 週ごとの ◎勝率/複勝圏率（Wilson CI）と回収率の推移チャート、見送りレースを「買っていたら」の比較（参戦 vs 見送り、race-cluster bootstrap CI、`a95_all` 由来、集計値のみ） |
 | `build_horse_pages.py` + `site/horse.html` + `site/js/horse.js` | **馬ページ（2026-11-04）**: `horse.html?name=馬名`。2026 年の出走ごとの印・AI順・勝率・3着内率・人気・着順、近走、血統、馬レベル、出世予測リンク。データは `site/data/h/{id[:2]}.json`（id = 馬名の FNV-1a×2、256 シャード）+ 検索用 `_index.json`。出走表の詳細パネルと全ページのナビ「馬」から |
 | `export_weekly_marks.py` | unified_rank_v6 → bundle.json |
+| `serve_feature_recovery.py` | **serve 特徴復元（2026-11-04）**: `CB_SERVE_RECOVER=1/2` のときだけ有効（既定 OFF）。間隔（週次 CSV の列対応が「1走前の前走間隔」で誤っていた→kako5 の現走間隔で置換）／前走日付／休み明け～戦目／血統タイプ（`data/pedigree_type_map.json`）／L2 で 斤量体重比 代理。`export_weekly_marks.py` と `analysis/measure_serve_coverage.py` が同じ関数を呼ぶ。有効化判断は `analysis/replay_serve_2026` + `analysis/replay_ab_compare` の A/B（下記「強化の本筋」末尾） |
+| `scripts/run_notify.py` | 週次フローの出力保存 + WARNING 以上/serve canary 行の Discord 転送（exec モード / `--scan` モード） |
+| `scripts/task_watchdog.py` + `watchdog_register.ps1` | 土日 09:10 に `PyCaLiAI_T10` / `PyCaLiAI_T20_Site` の起動・結果・レース毎タスク・bundle を確認し失敗時だけ Discord。タスク登録は `watchdog_register.ps1`（**未登録、ユーザー実行**） |
+| `analysis/collection_wait_gate.py` | 収集待ち台帳の Gate 自動判定（Phase C Step 2.9） |
+| `analysis/calibration_drift_check.py` | 較正ドリフト監視（Phase C settle 直後） |
+| `analysis/replay_ab_compare.py` | replay 作業ディレクトリ 2 つを同一レース集合で比較（AI1位 1着/3着内、◎3着内、開催日 bootstrap CI） |
 | `build_course_stats.py` | コース分析タブ用統計 |
 | `weekly_nicegui.ps1` | 週次ワークフロー 3 フェーズ統合（sync-hf + sync-hf-umami 両方を叩く） |
 | `nicegui_app.py` | NiceGUI 本体（v11、旧本番）。`sync-hf.ps1` でまだ併行更新 |
@@ -441,9 +455,7 @@ v6 + cowork_prompt 改修（節 11）でこの弱点改善を狙う。
 ## 既知の問題
 
 ### 🟡 P1
-1. **モデル 2 系統並走**: v6 marks stack と 旧アンサンブル両方を `weekly_nicegui.ps1` で生成中
-   - `predict_weekly.py` は重く、`-SkipPredict` 推奨
-   - 中長期は v6 統一して旧側を `legacy/` に隔離
+1. **モデル 2 系統並走**: v6 marks stack と 旧アンサンブル。退役計画 `docs/LEGACY_RETIREMENT_PLAN_20261004.md`（段階 1 読み込み部の切り出し → 2 週次から外す → 3 `legacy/` へ移動）。2026-11-04: 段階 2 のうち旧 NiceGUI 同期を既定 OFF。段階 1/3 の進捗は同文書末尾
 2. **`models/` ディレクトリ肥大化**: 41 ファイル (dated pkl 退避済み)、まだ整理余地あり
 3. **ルート Python 93 本**: 整理進めたが `backtest_*` `train_*` の重複版残あり
 4. **wide_kekka.csv 週次更新の運用化**: TARGET からのエクスポート自体は手動のまま。**2026-11-04**: `weekly_post.ps1` Step 2.8 が最終日付を検査し今週より古ければ警告（10/24〜11/01 の 4 開催日が未反映のまま公開されていた）、変更があれば Phase C の commit に同乗（それまで誰も commit しておらず 240 行が未コミットだった）
