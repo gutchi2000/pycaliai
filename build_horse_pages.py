@@ -127,8 +127,13 @@ def build() -> dict:
     pi = OUT / "_index.json"
     if not pi.exists() or pi.read_bytes() != blob:
         pi.write_bytes(blob)
+    # 表紙 (index.html 07) 用の件数。_index.json (370KB) を表紙で読まずに済ませる
+    meta = json.dumps({"horses": len(horses), "days": len(days)}, ensure_ascii=False).encode("utf-8")
+    pm = OUT / "_meta.json"
+    if not pm.exists() or pm.read_bytes() != meta:
+        pm.write_bytes(meta)
     # 消えた馬（データ修正でレース自体が消えた場合）のファイルを掃除
-    keep = {f"{k}.json" for k in shards} | {"_index.json"}
+    keep = {f"{k}.json" for k in shards} | {"_index.json", "_meta.json"}
     n_removed = 0
     for f in OUT.glob("*.json"):
         if f.name not in keep:

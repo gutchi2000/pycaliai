@@ -31,7 +31,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=optional" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=optional" rel="stylesheet"></noscript>
-<link rel="stylesheet" href="css/style.css?v=20261105-m1">
+<link rel="stylesheet" href="css/style.css?v=20261105-lp2">
 <style>
 /* CLS対策: 初期描画は動的セクションを不可視にし、全データ描画後に1フレームで表示
    (未描画要素の移動はCLSに計上されないため、babaBias等の後入れ押し下げシフトが消える)。
@@ -274,6 +274,58 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
       </div>
     </div>
   </section>
+
+  <section class="lp-sec lp-alt" id="lpKaiko">
+    <div class="lp-in lp-grid">
+      <div class="lp-txt">
+        <p class="lp-eyebrow">06 — RECAP</p>
+        <h2 class="lp-h2">負けた理由まで、<br>AIが書きます</h2>
+        <p class="lp-copy">結果が出た開催日の全レースを「予想 → 結果 → ズレた理由 → 教訓」の形で文章にします。当たったレースだけでなく、外したレースほど丁寧に。発走前には「今日の見どころ」として、堅い鞍・AI と人気が割れる鞍・見送り寄りの鞍を朝のうちに出します。</p>
+        <div class="hero-cta" style="margin-top:22px"><a class="btn-prime" href="kaiko.html">回顧を読む</a><a class="btn-ghost" href="kaiko.xml">RSS</a></div>
+        <p class="lp-note">記事は公開している予想と結果の数字だけから書いています。土日の朝に見どころ、日曜夜〜月曜に回顧。Discord にも同じものが届きます。</p>
+      </div>
+      <div class="lp-stats">
+        <div class="lp-stat">
+          <span class="k">対象 <small>EVERY RACE, EVERY DAY</small></span>
+          <span class="v txt">全レース</span>
+        </div>
+        <div class="lp-stat">
+          <span class="k">書く順番 <small>FORECAST → RESULT → WHY → LESSON</small></span>
+          <span class="v txt">予想 → 結果 → 理由 → 教訓</span>
+        </div>
+        <div class="lp-stat">
+          <span class="k">更新 <small>MORNING PREVIEW / SUNDAY NIGHT RECAP</small></span>
+          <span class="v txt">毎開催</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lp-sec" id="lpLookup">
+    <div class="lp-in lp-grid">
+      <div class="lp-txt">
+        <p class="lp-eyebrow">07 — REPORT CARD &amp; LOOKUP</p>
+        <h2 class="lp-h2">どこで当たり、<br>どこで外すかも公開</h2>
+        <p class="lp-copy">「AI の通信簿」は、クラス・芝ダ距離・混戦度・◎の人気帯・競馬場・月ごとに、◎の勝率と複勝圏率を信頼区間つきで並べたページです。得意な条件も苦手な条件も隠しません。馬ごと・騎手ごと・調教師ごとに AI 評価と実際の着順を並べたページ、予想について質問できる相談AI もあります。</p>
+        <div class="hero-cta" style="margin-top:22px"><a class="btn-prime" href="tsushinbo.html">通信簿を見る</a><a class="btn-ghost" href="horse.html">馬ページ</a><a class="btn-ghost" href="jt.html">騎手・調教師</a></div>
+        <p class="lp-note">相談AI は予想画面の「💬 相談AI」タブから。公開している数字だけを根拠に答え、オッズや買い目の助言はしません。Discord の公開サーバーは上のナビから。</p>
+      </div>
+      <div class="lp-stats">
+        <div class="lp-stat">
+          <span class="k">通信簿の条件 <small id="lpDimsSub">CONDITIONS — クラス・距離・混戦度・人気帯・場・月</small></span>
+          <span class="v num"><span id="lpDims">8</span><small>軸</small></span>
+        </div>
+        <div class="lp-stat">
+          <span class="k">馬ページ <small>HORSES WITH 2026 RECORD</small></span>
+          <span class="v num"><span id="lpHorses">9,339</span><small>頭</small></span>
+        </div>
+        <div class="lp-stat">
+          <span class="k">騎手・調教師ページ <small>JOCKEYS &amp; TRAINERS</small></span>
+          <span class="v num"><span id="lpJt">366</span><small>人</small></span>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 
 <nav class="venues" id="venueTabs" aria-label="開催場"></nav>
@@ -322,6 +374,16 @@ addEventListener('DOMContentLoaded',function(){
     if($('lpStatTop3Sub')&&o.top3_lo!=null)$('lpStatTop3Sub').textContent='HONMEI TOP-3 HIT / LIVE・95% CI '+o.top3_lo.toFixed(1)+'–'+o.top3_hi.toFixed(1)+'・勝率 '+o.win_rate.toFixed(1)+'%';
     if($('lpStatRoi')&&o.roi!=null)$('lpStatRoi').textContent=o.roi.toFixed(1);
     if($('lpStatRoiSub')&&o.bets_n!=null)$('lpStatRoiSub').textContent='SITE BETS ROI / LIVE・'+o.bets_n.toLocaleString('ja-JP')+' 点・外れも全部込み';
+  }).catch(function(){});
+  /* 07 の件数: 通信簿の軸数 / 馬ページ数 / 騎手・調教師数 (2026-11-05) */
+  fetch('data/report_card.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():null}).then(function(d){
+    var e=document.getElementById('lpDims'); if(d&&Array.isArray(d.dims)&&e)e.textContent=d.dims.length;
+  }).catch(function(){});
+  fetch('data/h/_meta.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():null}).then(function(d){
+    var e=document.getElementById('lpHorses'); if(d&&d.horses&&e)e.textContent=d.horses.toLocaleString('ja-JP');
+  }).catch(function(){});
+  fetch('data/jt/_index.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():null}).then(function(d){
+    var e=document.getElementById('lpJt'); if(Array.isArray(d)&&e)e.textContent=d.length.toLocaleString('ja-JP');
   }).catch(function(){});
   // 他ページのナビから index.html#app / #results で来たら表紙を飛ばしてアプリへ（#results は app.js boot が成績モードにする）
   if(location.hash==='#app'||location.hash==='#results'||/^#race=\d{16}$/.test(location.hash)||/^#day=\d{8}$/.test(location.hash)){showApp();}

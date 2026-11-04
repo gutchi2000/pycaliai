@@ -205,6 +205,7 @@ $SiteAllowPatterns = @(
     # build_horse_pages.py (called by build_site.py): per-horse data for horse.html (2026-11-04)
     '^site/data/h/[0-9a-f]{2}\.json$',
     '^site/data/h/_index\.json$',
+    '^site/data/h/_meta\.json$',
     # build_share_cards.py: per-date share page + OG image (2026-11-04)
     '^site/r/d/\d{8}\.html$',
     '^site/og/d/\d{8}\.png$',
