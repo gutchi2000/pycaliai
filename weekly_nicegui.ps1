@@ -394,6 +394,20 @@ if ($Post) {
             Warn "sync-hf-umami.ps1 not found; skipping umami push"
         }
     }
+    
+    # [1f/3] 回顧記事 (2026-11-04): 鍵を持つ pycaliai.com の Worker に生成させる (best-effort、失敗は Warn のみ)。
+    #   sync-hf-umami.ps1 (wrangler deploy) で当日の site/data が本番に乗った後でないと生成できないので、この位置。
+    if (-not $SkipHF) {
+        Step "[1f/3] 回顧記事 生成 (Worker /api/kaiko/gen)"
+        try {
+            $prevExitKK = $LASTEXITCODE
+            $env:PYTHONIOENCODING = "utf-8"
+            & .\venv311\Scripts\python.exe scripts\kaiko_warm.py 2>&1 | Select-Object -Last 4 | ForEach-Object { Write-Host "    $_" }
+            if ($LASTEXITCODE -ne 0) { Warn "kaiko_warm が exit $LASTEXITCODE (未生成分はページ閲覧時と月曜 03:00 の cron で埋まる)" }
+            else { OK "回顧記事 生成 (https://pycaliai.com/kaiko)" }
+            $global:LASTEXITCODE = $prevExitKK
+        } catch { Warn "回顧記事 生成 例外 (本番には影響なし): $($_.Exception.Message)" }
+    }
     Write-Host ""
     Write-Host "Done." -ForegroundColor Green
     exit 0

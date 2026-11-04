@@ -71,3 +71,43 @@ test("dispatch: 未知ツールと見つからない馬はエラー＋名簿", {
   assert.ok(r.error && Array.isArray(r.roster));
   assert.equal(dispatch(day, race, "race_advice", {}).race.length > 0, true);
 });
+
+// ---- 2026-11-04: 日横断ツールと回顧 facts ----
+import { dayRaces } from "./tools.js";
+import { dayFacts, kaikoFacts } from "./kaiko.js";
+
+test("day_races: 全レース・堅い順・◎が人気薄の一覧", { skip: !race && "site/data なし" }, () => {
+  const d = dayRaces(day, race.race_id);
+  assert.equal(d.n_races, day.races.length);
+  assert.ok(d.most_solid.length >= 1 && d.most_chaotic.length >= 1);
+  assert.ok(d.races.some((r) => r.current === true));
+  const chaosSorted = [...d.races].sort((a, b) => a.chaos - b.chaos);
+  assert.ok(d.most_solid[0].includes(`${chaosSorted[0].place}${chaosSorted[0].rno}R`));
+  assert.ok(!FORBIDDEN.test(JSON.stringify(d)));
+});
+
+test("kaiko: facts は結果のあるレースだけ、数字は公開 JSON と一致、禁止語なし", { skip: !day && "site/data なし" }, () => {
+  const done = day.races.filter((r) => r.result && r.result.top3);
+  const notDone = day.races.find((r) => !r.result || !r.result.top3);
+  if (notDone) assert.equal(kaikoFacts(day, notDone), null);
+  if (!done.length) return;
+  const r = done[0];
+  const f = kaikoFacts(day, r);
+  assert.equal(f.result_top3.length, r.result.top3.length);
+  assert.equal(f.result_top3[0].umaban, r.result.top3[0]);
+  assert.equal(f.result_top3[0].result_pos, 1);
+  const hon = r.horses.find((h) => h.mark === "◎");
+  if (hon) {
+    assert.equal(f.marks[0].umaban, hon.umaban);
+    assert.equal(f.honmei_result_pos, r.result.order[String(hon.umaban)]);
+    assert.equal(f.honmei_in_top3, r.result.order[String(hon.umaban)] <= 3);
+  }
+  assert.equal(f.site_bets_n, f.site_bets.length);
+  assert.ok(f.site_bets_hit <= f.site_bets_n);
+  assert.ok(!FORBIDDEN.test(JSON.stringify(f)), "公開 JSON に無いはずの数字が出ている");
+  const df = dayFacts(day);
+  assert.equal(df.n_races, done.length);
+  assert.ok(df.honmei_top3 >= df.honmei_win);
+  assert.equal(df.races.length, done.length);
+  assert.ok(!FORBIDDEN.test(JSON.stringify(df)));
+});

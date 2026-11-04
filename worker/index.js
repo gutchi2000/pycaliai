@@ -1,97 +1,55 @@
 /* ============================================================
    pycaliai.com Cloudflare Worker
      - 静的サイト (site/) は ASSETS binding で配信（従来どおり）
-     - POST /api/soudan : 相談AI（Claude API 中継。鍵は secret ANTHROPIC_API_KEY）
+     - POST /api/soudan            : 相談AI（Claude API 中継。鍵は secret ANTHROPIC_API_KEY）
+     - GET  /api/soudan/health     : 鍵の有無・本日の消費（値は返さない）
+     - GET  /api/kaiko?date=       : 回顧記事一覧（worker/kaiko.js）
+     - POST /api/kaiko/gen         : 回顧記事を 1 件生成（KV に永続）
+     - scheduled (cron)            : 月曜 03:00 JST に直近開催の回顧を埋める
 
    相談AI の守り（2026-11-03 ユーザー承認: Sonnet、全体 1 日 150 問まで、超えたら Haiku）:
      1. Origin 許可リスト（pycaliai.com / HF Space / localhost）以外は 403
      2. IP ごと 1 日 PER_IP_DAY 問（KV カウンタ、IP は日替わり salt で SHA-256 ハッシュ化、生 IP は保存しない）
      3. 全体 1 日 DAILY_SONNET 問までは Sonnet 5.5、以降 DAILY_HARD 問までは Haiku 5.5、超えたら 429
-     4. 月の推定支出が MONTH_USD_CAP を超えたら 429（クレジット枯渇前に自分で止める）
+     4. 月の推定支出が MONTH_USD_CAP を超えたら 429（クレジット枯渇前に自分で止める。回顧記事と同じ財布）
      5. 数字の供給元は公開済み site/data/{date}.json だけ（scrub_public 済み＝オッズ・EV が存在しない）
    日付境界は JST。カウンタは KV（結果整合なので数問の誤差は許容）。
    ============================================================ */
 import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM, TOOLS } from "./prompt.js";
 import { dispatch, findRace, raceLabel, rosterLines } from "./tools.js";
+import { handleGen, handleList, warmLatest } from "./kaiko.js";
+import { cors, json, jstParts, kvNum, kvSet, loadDay, microUsd, num, originOk, sha256Hex } from "./util.js";
 
-const ALLOWED_ORIGINS = new Set([
-  "https://pycaliai.com", "https://www.pycaliai.com",
-  "https://gutchi15300-pycaliai-umami.hf.space",
-]);
-const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-
-// USD per 1M tokens（Claude API 一次料金、2026-10 時点）。推定支出の上限判定にだけ使う。
-const PRICE = {
-  "claude-sonnet-5-5": { in: 2.0, out: 10.0 },
-  "claude-haiku-5-5": { in: 0.10, out: 0.50 },
-};
 const MAX_TURNS = 10;          // クライアントから受け取る履歴の上限（user+assistant 合計）
 const MAX_CHARS = 400;         // 1 発話の上限
 const MAX_TOOL_ROUNDS = 5;
-const DAY_CACHE_MS = 10 * 60 * 1000;
-const dayCache = new Map();    // date -> {at, day}
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/api/soudan") return soudan(request, env, ctx);
     if (url.pathname === "/api/soudan/health") return health(env);
+    if (url.pathname === "/api/kaiko") return handleList(request, env);
+    if (url.pathname === "/api/kaiko/gen") return handleGen(request, env, ctx);
     if (url.pathname.startsWith("/api/")) return json({ error: "not found" }, 404);
     return env.ASSETS.fetch(request);
   },
+  async scheduled(event, env, ctx) {
+    // cron は wrangler.jsonc の triggers.crons。ASSETS の URL は本番ドメインで解決する。
+    ctx.waitUntil(warmLatest(env, "https://pycaliai.com/", 2).then((r) => console.log("kaiko warm", JSON.stringify(r))));
+  },
 };
-
-/* ---------------- helpers ---------------- */
-function json(obj, status = 200, extra = {}) {
-  return new Response(JSON.stringify(obj), {
-    status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extra },
-  });
-}
-function cors(origin) {
-  return origin ? { "access-control-allow-origin": origin, "access-control-allow-methods": "POST, OPTIONS",
-    "access-control-allow-headers": "content-type", "access-control-max-age": "600", vary: "origin" } : {};
-}
-function originOk(origin) {
-  return !!origin && (ALLOWED_ORIGINS.has(origin) || LOCAL_ORIGIN.test(origin));
-}
-function jstParts(d = new Date()) {
-  const t = new Date(d.getTime() + 9 * 3600 * 1000);
-  const y = t.getUTCFullYear(), m = String(t.getUTCMonth() + 1).padStart(2, "0"), day = String(t.getUTCDate()).padStart(2, "0");
-  return { ymd: `${y}${m}${day}`, ym: `${y}${m}` };
-}
-async function sha256Hex(s) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-const num = (v, dflt) => (v == null || v === "" || Number.isNaN(+v) ? dflt : +v);
-
-async function kvNum(kv, key) {
-  try { const v = await kv.get(key); return v ? +v || 0 : 0; } catch { return 0; }
-}
-async function kvSet(kv, key, val, ttlSec) {
-  try { await kv.put(key, String(val), { expirationTtl: ttlSec }); } catch { /* 結果整合・失敗は許容 */ }
-}
-
-async function loadDay(env, request, date) {
-  const hit = dayCache.get(date);
-  if (hit && Date.now() - hit.at < DAY_CACHE_MS) return hit.day;
-  const res = await env.ASSETS.fetch(new Request(new URL(`/data/${date}.json`, request.url), { method: "GET" }));
-  if (!res.ok) return null;
-  const day = await res.json();
-  dayCache.set(date, { at: Date.now(), day });
-  return day;
-}
 
 /* GET /api/soudan/health: 秘密の値は返さず「設定されているか・形が正しいか」と本日の消費だけ（運用確認用）。 */
 async function health(env) {
   const key = String(env.ANTHROPIC_API_KEY || "");
   const { ymd, ym } = jstParts();
   const kv = env.SOUDAN_KV;
-  const [g, spend] = kv ? await Promise.all([kvNum(kv, `g:${ymd}`), kvNum(kv, `spend:${ym}`)]) : [0, 0];
+  const [g, gk, spend] = kv ? await Promise.all([kvNum(kv, `g:${ymd}`), kvNum(kv, `g_kaiko:${ymd}`), kvNum(kv, `spend:${ym}`)]) : [0, 0, 0];
   return json({
     ok: key.trim().length > 20, key_set: key.length > 0, key_len: key.length, key_prefix_ok: key.startsWith("sk-ant-"),
-    kv: !!kv, today_jst: ymd, questions_today: g, est_spend_month_usd: +(spend / 1e6).toFixed(3),
+    kv: !!kv, today_jst: ymd, questions_today: g, kaiko_generated_today: gk, est_spend_month_usd: +(spend / 1e6).toFixed(3),
     model: env.SOUDAN_MODEL || "claude-sonnet-5-5", daily_sonnet: num(env.SOUDAN_DAILY_SONNET, 150), daily_hard: num(env.SOUDAN_DAILY_HARD, 600),
   });
 }
@@ -138,7 +96,7 @@ async function soudan(request, env, ctx) {
   const model = gCount < dailySonnet ? (env.SOUDAN_MODEL || "claude-sonnet-5-5") : (env.SOUDAN_FALLBACK_MODEL || "claude-haiku-5-5");
 
   // --- レース文脈（公開 JSON のみ） ---
-  const day = await loadDay(env, request, date);
+  const day = await loadDay(env, request.url, date);
   if (!day) return json({ error: "その日のデータがありません", code: "no_day" }, 404, C);
   const race = findRace(day, raceId);
   if (!race) return json({ error: "そのレースが見つかりません", code: "no_race" }, 404, C);
@@ -148,7 +106,8 @@ async function soudan(request, env, ctx) {
     { type: "text", text:
       `【今見ているレース】${raceLabel(race)}（${date.slice(0, 4)}/${+date.slice(4, 6)}/${+date.slice(6, 8)}）` +
       (finished ? "。このレースは終了済み（結果あり）。" : "。発走前または結果未反映。") +
-      `\n出走馬一覧（馬番 馬名 [印] AI順位 勝率 複勝率 朝の人気）:\n` + rosterLines(race).join("\n") },
+      `\n出走馬一覧（馬番 馬名 [印] AI順位 勝率 複勝率 朝の人気）:\n` + rosterLines(race).join("\n") +
+      `\n\n同じ日の他レース（${(day.races || []).length}R: ${(day.places || []).join("・")}）の横断的な質問は day_races を呼ぶ。` },
   ];
 
   // --- Claude（手動ツールループ、最大 MAX_TOOL_ROUNDS 往復） ---
@@ -188,8 +147,7 @@ async function soudan(request, env, ctx) {
   if (!answer) answer = stop === "max_tokens" ? "（回答が長くなりすぎました。質問を分けてもう一度どうぞ）" : "（うまく答えを作れませんでした。言い方を変えてもう一度どうぞ）";
 
   // --- カウンタ更新（レスポンス後） ---
-  const price = PRICE[model] || PRICE["claude-haiku-5-5"];
-  const micro = Math.round((inTok * price.in + outTok * price.out));   // tokens × USD/1M = micro-USD
+  const micro = microUsd(model, inTok, outTok);
   if (kv) {
     ctx.waitUntil(Promise.all([
       kvSet(kv, ipKey, ipCount + 1, 2 * 86400),

@@ -213,11 +213,41 @@ export function courseBias(day, race) {
   };
 }
 
+/** その日の全レースの横断一覧（堅い/荒れる/◎が人気薄/結果）。「今日いちばん堅いのは？」に答えるため。 */
+export function dayRaces(day, currentRaceId) {
+  const rows = (day.races || []).map((r) => {
+    const c = r.confidence || {};
+    const chaos = c.field_chaos_score ?? 0;
+    const h = (r.horses || []).find((x) => x.mark === "◎") || [...(r.horses || [])].sort((x, y) => (x.ai_rank ?? 99) - (y.ai_rank ?? 99))[0] || null;
+    const res = r.result && r.result.top3 ? r.result.top3 : null;
+    return {
+      race_id: r.race_id, place: r.place, rno: r.rno, course: r.course, klass: r.klass, race_name: r.race_name || null,
+      start_time: r.start_time || null, field_size: r.field_size, current: String(r.race_id) === String(currentRaceId) || undefined,
+      chaos: +chaos.toFixed(2), verdict: chaos >= CHAOS_PASS ? "見送り寄り" : chaos >= CHAOS_WARN ? "妙味次第" : "勝負可",
+      top1_dominance: c.top1_dominance ?? null,
+      honmei: h ? { umaban: h.umaban, name: h.name, p_win_pct: pct(h.p_win), p_plc_pct: pct(h.p_plc), ninki_morning: h.ninki ?? null, is_morning_favorite: h.ninki === 1 } : null,
+      site_headline: (r.judgment || {}).headline || null,
+      result_top3: res,
+      honmei_result_pos: res && h && r.result.order ? r.result.order[String(h.umaban)] ?? null : null,
+    };
+  });
+  const byChaos = [...rows].sort((a, b) => a.chaos - b.chaos);
+  return {
+    date: day.date, n_races: rows.length, places: day.places || [],
+    most_solid: byChaos.slice(0, 3).map((x) => `${x.place}${x.rno}R(混戦度${x.chaos}, ◎${x.honmei ? `${x.honmei.name} 勝率${x.honmei.p_win_pct}%` : "-"})`),
+    most_chaotic: byChaos.slice(-3).reverse().map((x) => `${x.place}${x.rno}R(混戦度${x.chaos})`),
+    honmei_not_favorite: rows.filter((x) => x.honmei && x.honmei.ninki_morning && x.honmei.ninki_morning !== 1).map((x) => `${x.place}${x.rno}R ◎${x.honmei.name}(朝${x.honmei.ninki_morning}人気)`),
+    races: rows,
+    note: "他レースの個別の馬の詳細は、そのレースを開いて相談してもらう。",
+  };
+}
+
 /** LLM のツール呼び出しを橋渡し。戻り値は JSON 化可能な実値。 */
 export function dispatch(day, race, name, args) {
   const a = args || {};
   try {
     switch (name) {
+      case "day_races": return dayRaces(day, race.race_id);
       case "horse_info": {
         const h = findHorse(race, a.umaban_or_name);
         if (!h) return { error: `'${a.umaban_or_name}' に該当する馬が見つかりません`, roster: rosterLines(race) };

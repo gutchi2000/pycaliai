@@ -23,7 +23,12 @@
     "SOUDAN_DAILY_SONNET": "150",
     "SOUDAN_DAILY_HARD": "600",
     "SOUDAN_PER_IP_DAY": "30",
-    "SOUDAN_MONTH_USD_CAP": "90"
+    "SOUDAN_MONTH_USD_CAP": "90",
+    // 回顧記事（2026-11-04）: 1 レース 1 回だけ生成して KV に永続。1 日の生成上限と、相談AI と共通の月額上限
+    "KAIKO_MODEL": "claude-sonnet-5-5",
+    "KAIKO_DAILY_GEN": "150"
   },
+  // 月曜 03:00 JST (= 日曜 18:00 UTC): Phase C 後の直近 2 開催日の回顧を埋める（ページを開いた人の端末からも lazy 生成される）
+  "triggers": { "crons": ["0 18 * * 0"] },
   "observability": { "enabled": true }
 }

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyCaLiAI — 回顧（負けた理由まで書く AI）</title>
+<meta name="description" content="毎開催のAI予想を全レース回顧。当たったレースも外したレースも、予想→結果→ズレた理由をAIが同じ重さで書きます。オッズや払戻は使わず、サイトの公開データだけが根拠です。">
+<link rel="canonical" href="https://pycaliai.com/kaiko.html">
+<meta property="og:title" content="PyCaLiAI — 回顧">
+<meta property="og:description" content="外したレースほど読める。AI予想の全レース回顧。">
+<meta property="og:url" content="https://pycaliai.com/kaiko.html">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pycaliai.com/apple-touch-icon.png">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#070b14">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=20261104-kaiko1">
+<style>
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:var(--pad);}
+  .ehead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 14px;}
+  .ehead h1{font-family:var(--disp);font-weight:600;font-size:1.4rem;margin:0;color:var(--tx);}
+  .badge{display:inline-block;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--r-pill);padding:2px 8px;font-size:.75rem;color:var(--tx2);vertical-align:middle;}
+  .backlink{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:var(--r-pill);padding:6px 12px;text-decoration:none;font-family:var(--sans);font-size:.85rem;font-weight:500;}
+  .backlink:hover{border-color:var(--gold);color:var(--gold2);}
+  .panel{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 18px;box-shadow:var(--shadow-card);}
+  .panel h2{font-size:.95rem;font-weight:700;color:var(--tx2);letter-spacing:.08em;margin:0 0 8px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+  .panel h2::before{content:"";width:3px;height:14px;border-radius:2px;background:linear-gradient(180deg,var(--gold2),var(--gold));}
+  .panel p{color:var(--tx2);font-size:.9rem;line-height:1.8;margin:0 0 8px;}
+  .panel p:last-child{margin-bottom:0;}
+  .panel b{color:var(--tx);}
+  .intro{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:14px;margin:0 0 14px;}
+  @media(max-width:860px){.intro{grid-template-columns:1fr;}}
+  .ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;}
+  .ctrl label{color:var(--tx3);font-size:.85rem;}
+  .ctrl select{font:inherit;font-size:.95rem;color:var(--tx);background:var(--bg2);border:1px solid var(--line2);border-radius:var(--r-input);padding:8px 12px;}
+  .ctrl .st{color:var(--tx3);font-size:.82rem;margin-left:auto;}
+  /* 日の総括 */
+  .daycard{margin:0 0 16px;padding:18px 20px;}
+  .daycard h2{font-size:1.05rem;color:var(--tx);}
+  .daycard h2 .d{font-family:var(--disp);color:var(--gold2);font-weight:500;}
+  .stats{display:flex;gap:8px 14px;flex-wrap:wrap;margin:4px 0 12px;}
+  .stat{display:inline-flex;align-items:baseline;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:var(--r-pill);padding:4px 12px;font-size:.84rem;color:var(--tx2);}
+  .stat b{font-family:var(--disp);font-size:1.05rem;color:var(--gold2);font-weight:600;}
+  .art{white-space:pre-line;color:var(--tx);font-size:.98rem;line-height:1.9;}
+  .art .lesson{display:block;margin-top:8px;color:var(--gold2);font-weight:700;}
+  .xbox{margin-top:12px;border-top:1px dashed var(--line2);padding-top:10px;}
+  .xbox .xt{font-size:.78rem;color:var(--tx3);letter-spacing:.08em;margin-bottom:6px;display:flex;align-items:center;gap:10px;}
+  .xbox pre{white-space:pre-wrap;font-family:var(--sans);font-size:.88rem;color:var(--tx2);background:var(--card2);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 12px;margin:0;}
+  .cpy{font-size:.75rem;color:var(--tx2);border:1px solid var(--line2);border-radius:var(--r-pill);padding:2px 10px;cursor:pointer;}
+  .cpy:hover{border-color:var(--gold);color:var(--gold2);}
+  /* レースカード */
+  .place-h{font-family:var(--disp);font-size:1.1rem;color:var(--tx);letter-spacing:.08em;margin:18px 0 8px;display:flex;align-items:center;gap:10px;}
+  .place-h small{font-family:var(--sans);font-size:.78rem;color:var(--tx3);letter-spacing:0;}
+  .rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:10px;}
+  @media(max-width:900px){.rgrid{grid-template-columns:1fr;}}
+  .rc{padding:14px 16px 12px;display:flex;flex-direction:column;gap:8px;}
+  .rc-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+  .rc-h .rno{font-family:var(--disp);font-weight:600;font-size:1.05rem;color:var(--gold2);}
+  .rc-h .nm{font-weight:700;color:var(--tx);}
+  .rc-h .cl{font-size:.8rem;color:var(--tx3);}
+  .rc-h .hit{margin-left:auto;font-size:.74rem;border-radius:var(--r-pill);padding:2px 9px;border:1px solid var(--line2);color:var(--tx3);}
+  .rc-h .hit.on{color:var(--teal2);border-color:rgba(45,212,168,.5);background:rgba(45,212,168,.1);}
+  .rc-h .hit.miss{color:var(--tx3);}
+  .line{display:flex;gap:6px 12px;flex-wrap:wrap;font-size:.84rem;color:var(--tx2);}
+  .line .k{color:var(--tx3);}
+  .mk{font-weight:700;}
+  .mk.m1{color:#f5b942;} .mk.m2{color:#d9e2f2;} .mk.m3{color:#d08b4c;} .mk.m4{color:#8d9cba;}
+  .pos{font-family:var(--disp);font-weight:600;}
+  .pos.p1{color:#f5b942;} .pos.p2{color:#d9e2f2;} .pos.p3{color:#d08b4c;}
+  .rc .art{font-size:.92rem;line-height:1.85;border-top:1px solid var(--line);padding-top:8px;}
+  .gen{color:var(--tx3);font-size:.86rem;display:inline-flex;align-items:center;gap:8px;}
+  .dots{display:inline-flex;gap:4px;}
+  .dots i{width:6px;height:6px;border-radius:50%;background:var(--tx3);animation:kb 1.1s infinite ease-in-out;}
+  .dots i:nth-child(2){animation-delay:.18s;} .dots i:nth-child(3){animation-delay:.36s;}
+  @keyframes kb{0%,80%,100%{opacity:.25;transform:translateY(0);}40%{opacity:1;transform:translateY(-3px);}}
+  .note{color:var(--tx3);font-size:.8rem;line-height:1.7;margin:14px 0 0;}
+  .err{color:var(--red);}
+</style>
+</head>
+<body>
+<div class="track-stripe"></div>
+<div class="wrap">
+  <div class="ehead">
+    <a href="index.html" class="backlink">← 予想に戻る</a>
+    <h1>回顧 <span class="badge">負けた理由まで書く AI</span></h1>
+  </div>
+
+  <div class="intro">
+    <section class="panel">
+      <h2>このページについて</h2>
+      <p>毎開催の AI 予想を <b>全レース</b> 回顧します。当たったレースも外したレースも、「予想 → 結果 → ズレた理由」を同じ重さで。外した日は外した日として書きます。</p>
+      <p>文章は Claude が書きますが、根拠はこのサイトが公開している AI 評価（印・勝率・複勝率・近走・コース傾向・結果）だけです。オッズ・払戻・道中の不利など、サイトに無い情報は書きません。</p>
+    </section>
+    <section class="panel">
+      <h2>読み方</h2>
+      <p>各レースの最後の「教訓:」は、その週の外し方から次に活かせる 1 行です。日の総括には X 投稿用の下書きも付きます。</p>
+      <p>記事はレースごとに 1 回だけ生成して保存します。開いたときにまだ無いレースは、その場で生成します（数秒〜十数秒）。</p>
+    </section>
+  </div>
+
+  <div class="ctrl">
+    <label for="dateSel">開催日</label>
+    <select id="dateSel"></select>
+    <span class="st" id="st"></span>
+  </div>
+
+  <section class="panel daycard" id="dayCard"><span class="gen">読み込み中…</span></section>
+  <div id="races"></div>
+  <p class="note">AI 予測は参考情報です。的中・利益を保証しません。馬券の購入はご自身の判断と責任で。回顧文の生成には Anthropic 社の API を使用しています（<a href="legal.html#soudan">詳細</a>）。</p>
+</div>
+<footer class="site-legal">
+  <a href="legal.html">免責事項・プライバシーポリシー</a>
+  <a href="mailto:contact@pycaliai.com">お問い合わせ</a>
+  <span>© 2026 PyCaLiAI</span>
+</footer>
+<script defer src="js/kaiko.js?v=20261104-kaiko1"></script>
+<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+</body>
+</html>

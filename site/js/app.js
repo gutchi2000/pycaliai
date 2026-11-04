@@ -1241,6 +1241,7 @@ const SOUDAN_CHIPS = [
   { t: "見送るべき？", q: () => "このレースは見送るべき？堅い？荒れる？" },
   { t: "内枠外枠どっち？", q: () => "このコースは内枠と外枠どっちが有利？脚質の傾向も。" },
   { t: "◎-〇の馬連率", q: (r) => { const a = honmeiHorse(r), b = maruHorse(r); return a && b ? `${a.umaban}番と${b.umaban}番の馬連・ワイドの確率は？` : "AI上位2頭の馬連・ワイドの確率は？"; } },
+  { t: "今日いちばん堅いのは？", q: () => "今日の全レースで、AIがいちばん堅いと見ているレースと、見送り寄りのレースはどれ？◎が朝の1番人気でないレースも教えて。" },
 ];
 function soudanState(r) {
   state.soudan = state.soudan || {};
