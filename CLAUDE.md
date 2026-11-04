@@ -178,6 +178,7 @@ P0-1（騎手/調教師stats）・P0-2（着度数CSV列数）・P0-4（Ｒ全�
 3. 日曜 + 月初 1〜7 日なら `retrain_value_model.py` 自動実行
 4. 日曜なら `run_audit.ps1` 自動実行（週次監査）
 5. `[1e/3]` 出世予測 AI 更新（`analysis.shusse.extend_2026` → `predict_live`、best-effort。失敗は Warn のみで本番に影響なし。`build_site.py` が `site/data/shusse/` へ反映）
+6. `[1f/3]` 回顧記事 生成（HF 同期の後に `scripts/kaiko_warm.py` が pycaliai.com の Worker に当週分の生成を依頼。best-effort、鍵はローカルに無い。失敗しても月曜 03:00 の cron とページ閲覧時に埋まる）
 
 ---
 
@@ -315,6 +316,7 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 | `sync-hf-umami.ps1` | ★**本番**デプロイ: `build_site.py` → Docker Space `pycaliai-umami` へ push |
 | `site/shusse.html` + `analysis/shusse/site_export.py` | 出世予測 AI（ファン向け読み物、馬券非転用、2026-10-31 公開）。データ `site/data/shusse/{index,YYYY}.json`。更新は Phase C の [1e/3]。詳細 `analysis/shusse/README.md` |
 | `worker/index.js` + `worker/tools.js` + `worker/prompt.js` | **相談AI（2026-11-03 公開）**: pycaliai.com の Cloudflare Worker。`POST /api/soudan` が Claude（Sonnet 5.5、全体 1 日 150 問超で Haiku 5.5、IP 別 30 問/日、月 $90 で停止、KV カウンタ）を中継。数字は公開済み `site/data/{date}.json` だけ（オッズ・EV 不在）。UI は `app.js renderSoudan()` の「💬 相談AI」タブ。鍵は `npx wrangler secret put ANTHROPIC_API_KEY`（Max の月次 API クレジット）。確認 `GET /api/soudan/health`。テスト `node --test worker/tools.test.mjs`。`assistant/chat.py`（Ollama 版）は未改修 |
+| `worker/kaiko.js` + `site/kaiko.html` + `scripts/kaiko_warm.py` | **回顧記事「負けた理由まで書く AI」（2026-11-04 公開）**: 結果のある開催日の全レースを「予想→結果→ズレた理由→教訓」で Claude が文章化、日の総括と X 下書き付き。facts は公開 JSON だけ、記事は KV に永続（1 レース 1 回）。生成経路は 3 つ: Phase C `[1f/3]`（`kaiko_warm.py` が Worker に依頼）／月曜 03:00 JST の cron／ページ閲覧時の lazy 生成。一覧 `GET /api/kaiko?date=`、生成 `POST /api/kaiko/gen` |
 | `export_weekly_marks.py` | unified_rank_v6 → bundle.json |
 | `build_course_stats.py` | コース分析タブ用統計 |
 | `weekly_nicegui.ps1` | 週次ワークフロー 3 フェーズ統合（sync-hf + sync-hf-umami 両方を叩く） |

@@ -28,3 +28,12 @@ node --test worker/tools.test.mjs
 
 ## 費用の目安（1 問 約 5K in / 0.3K out）
 Sonnet 5.5 ≈ $0.013、Haiku 5.5 ≈ $0.0007。150 問/日を Sonnet で使い切っても月 $60 弱。
+
+## 回顧記事（2026-11-04、`kaiko.js`）
+「負けた理由まで書く AI」。結果のある開催日の全レースについて、facts（◎〇▲の評価と着順・1〜3 着の AI 順位と人気・
+サイト買い目の的中・混戦度・コース枠/脚質傾向・◎の根拠ラベル）を公開 JSON から機械的に組み、Claude が
+「予想→結果→ズレた理由→教訓:」を 5〜8 行で書く。日の総括（◎の勝利/複勝圏数、目立った的中と外し、X 下書き 140 字）も 1 本。
+- `GET /api/kaiko?date=YYYYMMDD` 一覧（KV の記事 + 未生成 race_id）、`POST /api/kaiko/gen {date, race_id|"day"}` 1 件生成
+- 記事は KV `kaiko:v1:{date}:{race_id}` に永続（1 レース 1 回。再生成したいときは KV のキーを消す）
+- 生成経路: Phase C `[1f/3]`（`scripts/kaiko_warm.py`）／cron 月曜 03:00 JST（`triggers.crons`）／`site/kaiko.html` 閲覧時の lazy 生成
+- 上限: `KAIKO_DAILY_GEN`(150 件/日) と相談AI と共通の `SOUDAN_MONTH_USD_CAP`。費用は 1 レース ≈ $0.01、1 開催日 ≈ $0.3
