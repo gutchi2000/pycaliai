@@ -31,7 +31,13 @@
   },
   "prospective": {
     "experiment_id": "P2-A95-EQUAL-LIVE-2026",
-    "start_date": 20261003,
-    "minimum_bets": 500
-  }
+    "start_date": 20261107,
+    "minimum_bets": 500,
+    "previous_start_dates": [
+      20261003,
+      20261024
+    ]
+  },
+  "serve_path_version": "sp-20261004-1",
+  "serve_path_note": "2026-11-04 serve-repro-sp1 反映 (D1 順序キー全順序 / D2 day-start 同定 / 引用符正規化)。prospective.start_date は新版の最初の運用日 (案 B)。旧 cohort 10/24〜11/01 は記述専用。"
 }

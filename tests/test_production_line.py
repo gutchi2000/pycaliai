@@ -7,6 +7,7 @@
 データファイル非依存 (合成入力のみ)。
 """
 import sys
+from serve_history_feats import SERVE_PATH_VERSION as _SPV
 import json
 from pathlib import Path
 
@@ -85,6 +86,7 @@ class TestTopdownBudget:
             })
         race = {
             "race_id": "2099010101010101",
+            "input_quality": {"serve_path_version": _SPV, "bet_eligible": True},  # 2026-11-04: policy が予測経路の版を宣言
             "race_meta": {
                 "race_id": "2099010101010101",
                 "place": "東京",

@@ -27,7 +27,16 @@ sys.path.insert(0, str(BASE / "scripts"))
 
 STATUS_JSON = BASE / "data" / "collection_wait_status.json"
 STATUS_MD = BASE / "docs" / "research" / "COLLECTION_WAIT_STATUS.md"
-A95_START = "20261024"          # CW-10/11 再起算日 (C1 再配置後の最初の開催日)
+def _a95_start() -> str:
+    """CW-10/11 の起算日 = data/production_policy.json の prospective.start_date (案 B で版が変わるたびに更新される)。"""
+    try:
+        d = json.loads((BASE / "data" / "production_policy.json").read_text(encoding="utf-8"))
+        return str(d["prospective"]["start_date"])
+    except Exception:  # noqa: BLE001
+        return "20261024"
+
+
+A95_START = _a95_start()        # CW-10/11 再起算日 (production_policy.json 由来)
 STALE_DAYS = 10
 
 
@@ -76,11 +85,11 @@ def cw03_exp05f() -> dict:
 
 
 def cw09_trio() -> dict:
-    files = [p for p in (BASE / "data" / "forward_prices").glob("2026????/*trio_t10*") if p.is_file()]
-    dates = sorted({p.parent.name for p in files})
-    return {"id": "CW-09", "name": "三連複 0B35 500R (本番記録のみ、Dry は数えない)", "current": len({p.name.split("_")[0] for p in files}),
-            "target": 500, "unit": "race", "latest": dates[-1] if dates else None,
-            "note": "Stage 0 未通過なら 0 のまま (CW-07/08 Dry 継続)", "source": "data/forward_prices/*/*trio_t10*"}
+    # 三連複 500R は Stage 0 通過窓の初日以降だけを数える契約で、カウントは analysis.obs_guard の管轄
+    # (無断の性能経路を静的検査が検出する)。本スクリプトは数えず、状態だけを載せる。
+    return {"id": "CW-09", "name": "三連複 500R (§5.3 初回棄却専用)", "current": None, "target": 500, "unit": "race",
+            "latest": None, "note": "Stage 0 未通過 (CW-07/08 Dry 継続)。カウントは obs_guard 管轄、ここでは数えない",
+            "source": "analysis/obs_guard.py"}
 
 
 def cw10_shadow_a95() -> dict:
@@ -164,8 +173,8 @@ def render_md(rows: list[dict], alerts: list[str], now: str) -> str:
             out.append(f"| {r['id']} | {r['name']} | — | — | **正本なし** | — | {r['missing']} |")
             continue
         cur, tgt = r.get("current"), r.get("target")
-        prog = f"{100*cur/tgt:.1f}%" if tgt else "(Gate なし)"
-        out.append(f"| {r['id']} | {r['name']} | {cur} {r.get('unit','')} | {tgt or '—'} | {prog} | {r.get('latest') or '—'} | `{r.get('source','')}` |")
+        prog = (f"{100*cur/tgt:.1f}%" if (tgt and cur is not None) else ("(Gate なし)" if not tgt else r.get("note", "—")))
+        out.append(f"| {r['id']} | {r['name']} | {cur if cur is not None else '—'} {r.get('unit','') if cur is not None else ''} | {tgt or '—'} | {prog} | {r.get('latest') or '—'} | `{r.get('source','')}` |")
     out += ["", "## 今回の通知", ""] + ([f"- {a}" for a in alerts] or ["- なし"]) + [""]
     return "\n".join(out)
 

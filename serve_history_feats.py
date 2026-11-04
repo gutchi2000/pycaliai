@@ -23,6 +23,12 @@ data/_horse_history.parquet (build_horse_history.py 生成) を馬名で JOIN �
 同名馬の曖昧性解消: 父名 (種牡馬) 一致 or 生年 (レース年-年齢) ±1 一致。
 解消不能 (複数候補が残る) → 従来通り NaN (安全側)。
 未知の馬名 (新馬等) → 学習と同じく n_prev=0 / rate,hist は NaN。
+
+馬同定は開催日 day-start 時点の情報に限る (2026-10-04 再現性修正 D2):
+候補は「その馬名で date < レース日 の行を 1 行以上持つ個体」、照合する父名・生年は
+「date < レース日 の行のうち最新の行」の値。結果は、履歴を date < レース日 で切り落として
+索引を作り直した場合と完全一致する (tests/test_serve_repro_invariance.py の T3)。
+旧実装は全期間の最終行 (後日の出走表の登録情報) で照合していた。
 """
 from __future__ import annotations
 
@@ -39,6 +45,52 @@ BASE = Path(__file__).parent
 HIST_PARQUET = BASE / "data" / "_horse_history.parquet"
 CODE_MAPS = BASE / "data" / "serve_code_maps.json"
 
+# 予測経路の版 (serve_path.py が bundle へ刻む)。この module の挙動を変えたら必ず上げる。
+# 仕様: docs/research/SERVE_REPRODUCIBILITY_FIX_SPEC_20261004.md §7
+#   sp-20261004-0: 旧経路 (日付だけの不安定ソート、全期間の最終行で同定)
+#   sp-20261004-1: 再現性修正 (順序キーの全順序 → 同定の day-start 限定 → 引用符の正規化)
+SERVE_PATH_VERSION = "sp-20261004-1"
+ROLLING_ORDER_KEY = "date,post_time,race_id,umaban"   # 騎手・調教師の直近集計の並び (全順序)
+IDENTITY_MODE = "asof-day-start"                # 馬同定: date < レース日 の行だけで候補・照合属性
+NAME_NORMALIZATION = "fullwidth-space+strip+outer-quotes"   # 馬名・父名の正規化 (_clean_name)
+
+# 直近集計の順序キー K。学習側 build_dataset.add_rolling_stats の並び
+# (日付, 発走時刻, レースID(新/馬番無), 馬番) と同じ。1 走を一意に指すので同順位は無い。
+ORDER_COLUMNS = ("date", "post_time", "race_id", "umaban")
+
+
+class HistorySchemaError(RuntimeError):
+    """履歴 parquet が順序キーの契約を満たさない (列が無い・欠損がある・重複がある)。
+
+    黙って旧挙動 (日付だけの並び) に落とさず、ここで止める (spec §2.2、9/11 の
+    「race_id 列なしで無言 fallback」の再発防止)。発走時刻の欠損は 0 件しか許さない。
+    """
+
+
+def validate_history(hist: pd.DataFrame) -> dict:
+    """順序キー K の列・欠損・重複・発走時刻の形を検査する。違反は HistorySchemaError。"""
+    missing = [c for c in ORDER_COLUMNS if c not in hist.columns]
+    if missing:
+        raise HistorySchemaError(
+            f"履歴 parquet に順序キーの列が無い: {missing} "
+            "(python build_horse_history.py で作り直す)")
+    pt = pd.to_numeric(hist["post_time"], errors="coerce")
+    ub = pd.to_numeric(hist["umaban"], errors="coerce")
+    n_pt_na, n_ub_na = int(pt.isna().sum()), int(ub.isna().sum())
+    if n_pt_na or n_ub_na:
+        raise HistorySchemaError(
+            f"順序キーに欠損: post_time {n_pt_na} 行 / umaban {n_ub_na} 行 (許容 0 件)")
+    bad_pt = ~((pt // 100).between(0, 23) & (pt % 100).between(0, 59))
+    if bad_pt.any():
+        raise HistorySchemaError(
+            f"post_time が HHMM でない: {int(bad_pt.sum())} 行 (例 {pt[bad_pt].head(3).tolist()})")
+    rid = hist["race_id"].astype(str)
+    n_dup = int(pd.DataFrame({"date": hist["date"], "post_time": pt, "race_id": rid, "umaban": ub})
+                .duplicated().sum())
+    if n_dup:
+        raise HistorySchemaError(f"順序キー K の重複 {n_dup} 行 (1 走を一意に指していない)")
+    return {"rows": int(len(hist)), "post_time_missing": 0, "umaban_missing": 0, "order_key_duplicates": 0}
+
 # 埋める特徴 (v6 feature_cols 名)
 NUM_FEATS = [
     "hist_same_cond_best_pos", "hist_same_cond_top3_rate",
@@ -50,6 +102,7 @@ NUM_FEATS = [
     "trainer_fuku30", "trainer_fuku90",
 ]
 CAT_FEATS = ["騎手コード", "調教師コード"]
+IDENTITY_STATUS_COL = "_serve_identity_status"   # fill_history_features が馬ごとの同定状態を書く列
 
 _SURF = {"芝": "芝", "ダ": "ダ", "ダート": "ダ"}
 
@@ -69,22 +122,43 @@ def _dist_band(d) -> str:
 
 
 def _clean_name(s) -> str:
-    return str(s).replace("　", "").strip()
+    """馬名・父名・騎手名・調教師名の正規化 (履歴生成時と配信時で同じものを通す)。
+
+    全角空白の除去・前後空白の除去に加え、外側の引用符 1 組を外す (2026-10-04 再現性修正 §3.2)。
+    出走表 CSV は空白を含む外国産の父名を引用符つきで出す ("American Pharoah")。master 由来の
+    履歴は引用符なしなので、外さないと同じ父名が不一致になる。実データで引用符が付くのは
+    父名だけ (2026 年の出走表 887 行・履歴 843 行。馬名・騎手名・調教師名・コード表は 0 件)。
+    """
+    s = str(s).replace("　", "").strip()
+    if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+        s = s[1:-1].strip()
+    return s
 
 
 class _HistoryIndex:
-    """馬名 → [entity] の索引。entity = 1頭分の全走 (numpy 配列)。"""
+    """馬名 → [entity] の索引。entity = 1頭分の全走 (numpy 配列)。
+
+    馬名・父名・生年は行ごとに持ち、同定では date < レース日 の最新行の値を使う (as-of)。
+    by_name には、その個体がどこかの行で名乗った名前すべてから引けるよう登録し、
+    resolve() がレース日時点の名前で絞る。
+    """
 
     def __init__(self, hist: pd.DataFrame):
         self.by_name: dict[str, list[dict]] = {}
         hist = hist.sort_values(["ped_id", "date"])
         for ped_id, g in hist.groupby("ped_id", sort=False):
-            name = str(g["name"].iloc[-1])
+            # 履歴生成時 (build_horse_history) と同じ正規化を索引側でも通す (旧 parquet 対策)
+            names = [_clean_name(v) for v in g["name"]]
+            sires = [_clean_name(v) if pd.notna(v) else "" for v in g["sire"]]
+            birth_years = [int(v) if pd.notna(v) else None for v in g["birth_year"]]
             ent = {
                 "ped_id": int(ped_id),
-                "sire": str(g["sire"].iloc[-1]) if pd.notna(g["sire"].iloc[-1]) else "",
-                "birth_year": (int(g["birth_year"].iloc[-1])
-                               if pd.notna(g["birth_year"].iloc[-1]) else None),
+                "names": names,
+                "sires": sires,
+                "birth_years": birth_years,
+                # 全期間の最終行の値 (race_date を渡さない旧来の呼び出し元・監査スクリプト用)
+                "sire": sires[-1],
+                "birth_year": birth_years[-1],
                 "date": g["date"].to_numpy(np.int32),
                 "place": g["place"].astype(str).to_numpy(),
                 "surface": g["surface"].astype(str).to_numpy(),
@@ -92,7 +166,8 @@ class _HistoryIndex:
                 "pos": pd.to_numeric(g["pos"], errors="coerce").to_numpy(np.float64),
                 "jockey": pd.to_numeric(g["jockey_code"], errors="coerce").to_numpy(np.float64),
             }
-            self.by_name.setdefault(name, []).append(ent)
+            for name in dict.fromkeys(names):
+                self.by_name.setdefault(name, []).append(ent)
         self.by_jockey = self._build_code_index(hist, "jockey_code")
         self.by_trainer = self._build_code_index(hist, "trainer_code")
 
@@ -114,16 +189,24 @@ class _HistoryIndex:
         過去レースで同一主体の複数頭が異なる結果(的中/不的中等)だった場合、
         それは実際に起きた2つの別事実でありリークではない。レース単位集約
         (旧C2実装)はこれを1つの値に握りつぶしてしまっていた。
+
+        並び (2026-10-04 再現性修正 D1): 主体ごとの行を順序キー K = (date, post_time,
+        race_id, umaban) の全順序で並べる (学習側と同じ並び)。旧実装は日付だけの不安定
+        ソートで、窓の端が同じ日付の行の途中に落ちると、その日のどの行を含めるかが
+        入力配列 (履歴の追加・行順) で変わった。K は 1 走を一意に指すので結果は入力順に
+        依らないが、取り違え防止のため安定ソートを明示する。
         """
-        if code_col not in hist.columns:
-            return {}
-        work = hist[["date", "pos", code_col]].copy()
+        missing = [c for c in (code_col, "pos", *ORDER_COLUMNS) if c not in hist.columns]
+        if missing:
+            raise HistorySchemaError(f"直近集計に必要な列が無い: {missing}")
+        work = hist[["pos", code_col, *ORDER_COLUMNS]].copy()
         work["code"] = pd.to_numeric(work[code_col], errors="coerce")
         work = work.dropna(subset=["date", "code"])
         work["flag"] = (pd.to_numeric(work["pos"], errors="coerce") <= 3).astype(float)
+        work["race_id"] = work["race_id"].astype(str)
+        work = work.sort_values(["code", *ORDER_COLUMNS], kind="mergesort")
         out: dict[int, tuple[np.ndarray, np.ndarray]] = {}
         for code, g in work.groupby("code", sort=False):
-            g = g.sort_values("date")
             out[int(code)] = (
                 g["date"].to_numpy(np.int32),
                 g["flag"].to_numpy(np.float64),
@@ -148,9 +231,31 @@ class _HistoryIndex:
         return float(np.mean(flags))
 
 
-    def resolve(self, name: str, sire: str, birth_year) -> tuple[dict | None, str]:
-        """→ (entity or None, status)  status: hit/new/ambiguous"""
-        cands = self.by_name.get(name)
+    def candidates(self, name: str, race_date: int | None) -> list[dict]:
+        """候補: date < race_date の行を持ち、その最新行の馬名が name の個体。
+
+        戻り値の要素は {"ent", "sire", "birth_year"} (照合属性は date < race_date の最新行の値)。
+        race_date=None は旧来の「全期間の最終行」(配信経路では使わない。EXP05-F の
+        live_history など race_date を渡さない呼び出し元の挙動をそのまま保つため)。
+        """
+        out = []
+        for ent in self.by_name.get(name, ()):
+            k = (len(ent["date"]) if race_date is None
+                 else int(np.searchsorted(ent["date"], int(race_date), side="left")))
+            if k == 0 or ent["names"][k - 1] != name:
+                continue
+            out.append({"ent": ent, "sire": ent["sires"][k - 1],
+                        "birth_year": ent["birth_years"][k - 1]})
+        return out
+
+    def resolve(self, name: str, sire: str, birth_year,
+                race_date: int | None = None) -> tuple[dict | None, str]:
+        """→ (entity or None, status)  status: hit/new/ambiguous
+
+        race_date (YYYYMMDD) を渡すと、その日より前の行だけで候補と照合属性を作る
+        (day-start 限定)。配信経路 (fill_history_features) は必ず渡す。
+        """
+        cands = self.candidates(name, race_date)
         if not cands:
             return None, "new"
         if len(cands) == 1:
@@ -165,7 +270,7 @@ class _HistoryIndex:
             if (sire_known and not sire_ok) or (by_known and not by_ok):
                 # 片方だけ不一致 → 判定不能。安全側で曖昧扱い
                 return None, "ambiguous"
-            return c, "hit"
+            return c["ent"], "hit"
         hit = [c for c in cands
                if (sire and c["sire"] and c["sire"] == sire)
                or (birth_year is not None and c["birth_year"] is not None
@@ -176,7 +281,7 @@ class _HistoryIndex:
                    and birth_year is not None and c["birth_year"] is not None
                    and abs(c["birth_year"] - int(birth_year)) <= 1]
         if len(hit) == 1:
-            return hit[0], "hit"
+            return hit[0]["ent"], "hit"
         return None, "ambiguous"
 
 
@@ -193,6 +298,7 @@ def _load(base: Path):
         raise FileNotFoundError(
             f"{hist_path} 未生成 (python build_horse_history.py を先に実行)")
     hist = pd.read_parquet(hist_path)
+    validate_history(hist)          # 列不足・欠損・重複は HistorySchemaError (無言 fallback しない)
     idx = _HistoryIndex(hist)
     maps = {"jockey": {}, "trainer": {}}
     if maps_path.exists():
@@ -200,7 +306,9 @@ def _load(base: Path):
             raw = json.load(f)
         maps["jockey"] = raw.get("jockey", {})
         maps["trainer"] = raw.get("trainer", {})
-    meta = {"n_rows": len(hist), "max_date": int(hist["date"].max())}
+    meta = {"n_rows": len(hist), "max_date": int(hist["date"].max()),
+            "columns": sorted(str(c) for c in hist.columns),
+            "path": str(hist_path), "maps_path": str(maps_path)}
     _CACHE[key] = (idx, maps, meta)
     return _CACHE[key]
 
@@ -327,8 +435,11 @@ def fill_history_features(df: pd.DataFrame, base: Path = BASE,
     num_out = {c: np.full(n, np.nan) for c in NUM_FEATS}
     jockey_code_col = np.array(["__NaN__"] * n, dtype=object)
     trainer_code_col = np.array(["__NaN__"] * n, dtype=object)
+    identity_col = np.array(["bad_date"] * n, dtype=object)
     stats = {"hit": 0, "new": 0, "ambiguous": 0, "bad_date": 0,
-             "jockey_code": 0, "trainer_code": 0, "hist_max_date": meta["max_date"]}
+             "jockey_code": 0, "trainer_code": 0, "hist_max_date": meta["max_date"],
+             "hist_rows": meta["n_rows"], "hist_columns": meta["columns"],
+             "hist_path": meta["path"], "maps_path": meta["maps_path"]}
 
     names = df["馬名"].map(_clean_name) if "馬名" in df.columns else pd.Series([""] * n)
     sires = (df["種牡馬"].map(_clean_name) if "種牡馬" in df.columns
@@ -377,8 +488,9 @@ def fill_history_features(df: pd.DataFrame, base: Path = BASE,
 
         age = ages.loc[ix]
         birth_year = int(race_date // 10000 - age) if pd.notna(age) else None
-        ent, status = idx.resolve(name, sires.loc[ix], birth_year)
+        ent, status = idx.resolve(name, sires.loc[ix], birth_year, race_date=race_date)
         stats[status] += 1
+        identity_col[i] = status
         if status == "ambiguous":
             continue  # 従来通り NaN (安全側)
 
@@ -391,6 +503,8 @@ def fill_history_features(df: pd.DataFrame, base: Path = BASE,
         df[c] = num_out[c]
     df["騎手コード"] = jockey_code_col
     df["調教師コード"] = trainer_code_col
+    # 馬ごとの同定状態 (hit / new / ambiguous / bad_date)。bundle と品質ゲートが使う。
+    df[IDENTITY_STATUS_COL] = identity_col
 
     stats["coverage"] = {c: round(float(pd.Series(num_out[c]).notna().mean()), 3)
                          for c in NUM_FEATS}

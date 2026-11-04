@@ -408,6 +408,16 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
                 "is_jump": _el["is_jump"],
                 "eligibility_determination": _el["determination"],
                 "bets": []}
+    # --- 予測入力の品質ゲート (2026-10-04 再現性修正 spec §3.3) ---
+    #   馬同定が判別不能の馬を含むレース、および policy が宣言した予測経路の版と
+    #   bundle の版が違うレースは見送る (a95_all の検証用併記も作らない)。
+    from input_quality import race_skip_reason
+    from production_policy import load_policy as _load_policy
+    _iq_why = race_skip_reason(race, _load_policy().get("serve_path_version"))
+    if _iq_why:
+        return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                "race_reason": f"{_iq_why} のため見送り。",
+                "input_quality_gate": _iq_why, "bets": []}
     budget = int(budget) // 100 * 100
     if budget < MIN_BET:
         return {"race_id": rid, "race_label": label, "race_nature": "見送り",
@@ -1106,10 +1116,13 @@ def main():
             print("[ERROR] bundle 名から日付 (YYYYMMDD) を特定できず --apply 中止", file=sys.stderr)
             return 1
         mode = "fuku_hit" if args.fuku_hit else "plan" if args.plan else "default"
+        from serve_path import stamp_fields as _serve_path_stamp
         run_stamp = {**policy_stamp(),
             "model": d.get("model") if isinstance(d, dict) else None,
             "engine": "compute_bets", "engine_version": ENGINE_VERSION,
-            "bet_engine": _eng, "mode": mode, "live": bool(live_dir)}
+            "bet_engine": _eng, "mode": mode, "live": bool(live_dir),
+            # 予測経路の版 (spec §7)。bundle に記録が無ければ旧版 sp-20261004-0。
+            **_serve_path_stamp(d if isinstance(d, dict) else None)}
         if live_dir is not None:
             try:
                 from forward_price_integration import archive_compute_decisions

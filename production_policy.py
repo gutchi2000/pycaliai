@@ -233,6 +233,10 @@ def policy_stamp() -> dict:
     rm = p.get("real_money") or {}
     if not rm.get("enabled", True):
         stamp["real_money_stopped_on"] = rm.get("stopped_on")
+    # 予測経路の版 (spec §7)。policy がこの cohort の入力経路を宣言しているときだけ刻む。
+    # bundle 側の実際の版 (serve_path_version) と区別するため別名にする。
+    if p.get("serve_path_version"):
+        stamp["policy_serve_path_version"] = str(p["serve_path_version"])
     hashes = {}
     for name, rel in (p.get("artifacts") or {}).items():
         hashes[name] = sha256_file(BASE / str(rel))

@@ -1,0 +1,2653 @@
+{
+ "module": "C:\\Users\\gutch\\AppData\\Local\\Temp\\claude\\E--PyCaLiAI\\39ff8c26-6e3d-452e-aa10-395903a5d84c\\scratchpad\\serve_repro\\stages\\v0\\serve_history_feats.py",
+ "serve_path_version": "sp-20261004-0",
+ "history_sha256": "15ce1f9b7c91d4f7286dbe52bea7f9b122775c92f5b927dac3956da0177e8699",
+ "history_rows": 660598,
+ "history_max_date": 20260927,
+ "dates": {
+  "20260524": {
+   "n_horses": 513,
+   "identity_full": {
+    "hit": 513
+   },
+   "T1_T3_truncated_vs_full": {
+    "n": 513,
+    "any": 319,
+    "rolling4": 312,
+    "horse_feats": 1,
+    "codes": 0,
+    "identity": 14,
+    "rolling4_max_abs": 0.066667,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": [
+     {
+      "rid": "2026052404010801",
+      "umaban": 5,
+      "name": "ピコバレット",
+      "ref": [
+       "hit",
+       -93443670
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026052404010802",
+      "umaban": 12,
+      "name": "ナムラカメコ",
+      "ref": [
+       "hit",
+       -761977234
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026052404010805",
+      "umaban": 11,
+      "name": "ミョンソクコムドリ",
+      "ref": [
+       "hit",
+       -501698773
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026052404010806",
+      "umaban": 8,
+      "name": "フィオリータ",
+      "ref": [
+       "hit",
+       -1534129059
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026052405021001",
+      "umaban": 14,
+      "name": "プロスペラスナイン",
+      "ref": [
+       "hit",
+       -3416054766
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026052405021004",
+      "umaban": 1,
+      "name": "ウインテラジーナ",
+      "ref": [
+       "hit",
+       -2806633288
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026052405021004",
+      "umaban": 2,
+      "name": "クイーンズパーク",
+      "ref": [
+       "hit",
+       -1157481377
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026052405021004",
+      "umaban": 3,
+      "name": "リリーサー",
+      "ref": [
+       "hit",
+       -1731878498
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026052405021004",
+      "umaban": 12,
+      "name": "ロジタイガー",
+      "ref": [
+       "hit",
+       -3869407876
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026052405021004",
+      "umaban": 15,
+      "name": "ソレム",
+      "ref": [
+       "hit",
+       -3433730607
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026052408031002",
+      "umaban": 6,
+      "name": "ラヴィアンコール",
+      "ref": [
+       "hit",
+       -2661374820
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026052408031002",
+      "umaban": 10,
+      "name": "シギーコルエンド",
+      "ref": [
+       "hit",
+       -2063315074
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026052408031003",
+      "umaban": 8,
+      "name": "ピンクパンサー",
+      "ref": [
+       "hit",
+       -2240849866
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026052408031012",
+      "umaban": 9,
+      "name": "アメリカンビーチ",
+      "ref": [
+       "hit",
+       2022103728
+      ],
+      "other": [
+       "ambiguous",
+       "<NA>"
+      ]
+     }
+    ]
+   },
+   "identity_truncated": {
+    "hit": 499,
+    "new": 13,
+    "ambiguous": 1
+   },
+   "T2_shuffle_seed0": {
+    "n": 513,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed1": {
+    "n": 513,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed2": {
+    "n": 513,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed3": {
+    "n": 513,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed4": {
+    "n": 513,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   }
+  },
+  "20260614": {
+   "n_horses": 485,
+   "identity_full": {
+    "hit": 485
+   },
+   "T1_T3_truncated_vs_full": {
+    "n": 485,
+    "any": 323,
+    "rolling4": 306,
+    "horse_feats": 1,
+    "codes": 0,
+    "identity": 48,
+    "rolling4_max_abs": 0.066667,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": [
+     {
+      "rid": "2026061402010201",
+      "umaban": 16,
+      "name": "アルマフレイヤ",
+      "ref": [
+       "hit",
+       -1490837225
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061402010205",
+      "umaban": 1,
+      "name": "ガーシュウィン",
+      "ref": [
+       "hit",
+       -4137219221
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061402010205",
+      "umaban": 2,
+      "name": "アイシテルヨナオミ",
+      "ref": [
+       "hit",
+       -2400163594
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061402010205",
+      "umaban": 3,
+      "name": "セタキト",
+      "ref": [
+       "hit",
+       -3396331458
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061402010205",
+      "umaban": 4,
+      "name": "スケルツォテソーロ",
+      "ref": [
+       "hit",
+       -304179272
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061402010205",
+      "umaban": 5,
+      "name": "シークレットタワー",
+      "ref": [
+       "hit",
+       -2799911618
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061402010205",
+      "umaban": 6,
+      "name": "タイフーンナイン",
+      "ref": [
+       "hit",
+       -3175894037
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061402010205",
+      "umaban": 7,
+      "name": "テイクケア",
+      "ref": [
+       "hit",
+       -1320372481
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061402010205",
+      "umaban": 8,
+      "name": "パンジャケリー",
+      "ref": [
+       "hit",
+       -1524652686
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061402010206",
+      "umaban": 16,
+      "name": "レジオンポレール",
+      "ref": [
+       "hit",
+       -2361933698
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061405030401",
+      "umaban": 2,
+      "name": "イナンナ",
+      "ref": [
+       "hit",
+       -775132710
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061405030401",
+      "umaban": 9,
+      "name": "ノアソノマ",
+      "ref": [
+       "hit",
+       -698313987
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061405030401",
+      "umaban": 14,
+      "name": "ヌビアン",
+      "ref": [
+       "hit",
+       -3810720028
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061405030404",
+      "umaban": 1,
+      "name": "ユイノキャッツアイ",
+      "ref": [
+       "hit",
+       -3405174891
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061405030404",
+      "umaban": 2,
+      "name": "テムファイア",
+      "ref": [
+       "hit",
+       -552291029
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061405030404",
+      "umaban": 3,
+      "name": "ボードゥロレーヌ",
+      "ref": [
+       "hit",
+       -4139967845
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061405030404",
+      "umaban": 4,
+      "name": "ディルイーヤ",
+      "ref": [
+       "hit",
+       -3449495389
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061405030404",
+      "umaban": 5,
+      "name": "ケンシロウワールド",
+      "ref": [
+       "hit",
+       -1304465625
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061405030404",
+      "umaban": 6,
+      "name": "ハイトラクション",
+      "ref": [
+       "hit",
+       -3445439752
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026061405030404",
+      "umaban": 7,
+      "name": "シュネルアステリア",
+      "ref": [
+       "hit",
+       -3223112733
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     }
+    ]
+   },
+   "identity_truncated": {
+    "hit": 437,
+    "new": 47,
+    "ambiguous": 1
+   },
+   "T2_shuffle_seed0": {
+    "n": 485,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed1": {
+    "n": 485,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed2": {
+    "n": 485,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed3": {
+    "n": 485,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed4": {
+    "n": 485,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   }
+  },
+  "20260712": {
+   "n_horses": 456,
+   "identity_full": {
+    "hit": 456
+   },
+   "T1_T3_truncated_vs_full": {
+    "n": 456,
+    "any": 301,
+    "rolling4": 277,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 65,
+    "rolling4_max_abs": 0.066667,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": [
+     {
+      "rid": "2026071202011005",
+      "umaban": 1,
+      "name": "ジオ",
+      "ref": [
+       "hit",
+       -2256029329
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071202011005",
+      "umaban": 2,
+      "name": "トルネードサンダー",
+      "ref": [
+       "hit",
+       -337797578
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071202011005",
+      "umaban": 3,
+      "name": "リラカリス",
+      "ref": [
+       "hit",
+       -3914087226
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071202011005",
+      "umaban": 4,
+      "name": "デアグランツ",
+      "ref": [
+       "hit",
+       -1776358380
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071202011005",
+      "umaban": 5,
+      "name": "イッペイ",
+      "ref": [
+       "hit",
+       -1620356793
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071202011005",
+      "umaban": 6,
+      "name": "アオイノリプー",
+      "ref": [
+       "hit",
+       -2380175910
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071202011005",
+      "umaban": 7,
+      "name": "アルデシンザン",
+      "ref": [
+       "hit",
+       -488085645
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071202011005",
+      "umaban": 8,
+      "name": "ニーナラルゴ",
+      "ref": [
+       "hit",
+       -1650882883
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071202011005",
+      "umaban": 9,
+      "name": "トムクリオーザ",
+      "ref": [
+       "hit",
+       -854004326
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071202011005",
+      "umaban": 10,
+      "name": "ブラッグス",
+      "ref": [
+       "hit",
+       -3375212799
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071203020602",
+      "umaban": 9,
+      "name": "ディメンシア",
+      "ref": [
+       "hit",
+       -1262910745
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071203020602",
+      "umaban": 10,
+      "name": "ペイシャオーヴァル",
+      "ref": [
+       "hit",
+       -298983463
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071203020602",
+      "umaban": 11,
+      "name": "ルストラーレ",
+      "ref": [
+       "hit",
+       -3928120622
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071203020603",
+      "umaban": 4,
+      "name": "ヤマニンリンキング",
+      "ref": [
+       "hit",
+       -3198334993
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071203020603",
+      "umaban": 10,
+      "name": "ホウオウショパン",
+      "ref": [
+       "hit",
+       -3516755330
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071203020603",
+      "umaban": 12,
+      "name": "レイナエヴィータ",
+      "ref": [
+       "hit",
+       -4187735317
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071203020603",
+      "umaban": 14,
+      "name": "スティールシップ",
+      "ref": [
+       "hit",
+       -952133745
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071203020604",
+      "umaban": 1,
+      "name": "ジェントルアイズ",
+      "ref": [
+       "hit",
+       -1155681063
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071203020604",
+      "umaban": 2,
+      "name": "エコロテラ",
+      "ref": [
+       "hit",
+       -3194199142
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026071203020604",
+      "umaban": 3,
+      "name": "ウカテンセイ",
+      "ref": [
+       "hit",
+       -2437394493
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     }
+    ]
+   },
+   "identity_truncated": {
+    "hit": 391,
+    "new": 65
+   },
+   "T2_shuffle_seed0": {
+    "n": 456,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed1": {
+    "n": 456,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed2": {
+    "n": 456,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed3": {
+    "n": 456,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed4": {
+    "n": 456,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   }
+  },
+  "20260809": {
+   "n_horses": 482,
+   "identity_full": {
+    "hit": 482
+   },
+   "T1_T3_truncated_vs_full": {
+    "n": 482,
+    "any": 269,
+    "rolling4": 246,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 47,
+    "rolling4_max_abs": 0.066667,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": [
+     {
+      "rid": "2026080901010605",
+      "umaban": 1,
+      "name": "ガザニア",
+      "ref": [
+       "hit",
+       -4247386312
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080901010605",
+      "umaban": 2,
+      "name": "アブリコース",
+      "ref": [
+       "hit",
+       -3223980118
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080901010605",
+      "umaban": 3,
+      "name": "アスコットペスカ",
+      "ref": [
+       "hit",
+       -494575788
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080901010605",
+      "umaban": 4,
+      "name": "ヌーベルフィズ",
+      "ref": [
+       "hit",
+       -1999124009
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080901010605",
+      "umaban": 5,
+      "name": "チェッリーニ",
+      "ref": [
+       "hit",
+       -963019311
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080901010605",
+      "umaban": 6,
+      "name": "ソーハッピー",
+      "ref": [
+       "hit",
+       -2881948515
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080901010605",
+      "umaban": 7,
+      "name": "ルイスイメル",
+      "ref": [
+       "hit",
+       -76989913
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080901010605",
+      "umaban": 8,
+      "name": "インサイドストーム",
+      "ref": [
+       "hit",
+       -2308577333
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080901010605",
+      "umaban": 9,
+      "name": "バタフライ",
+      "ref": [
+       "hit",
+       -276074983
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080901010605",
+      "umaban": 10,
+      "name": "アヴレディール",
+      "ref": [
+       "hit",
+       -396294923
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080901010605",
+      "umaban": 11,
+      "name": "ウィエダンド",
+      "ref": [
+       "hit",
+       -1517447613
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080901010605",
+      "umaban": 12,
+      "name": "セイレイカ",
+      "ref": [
+       "hit",
+       -2811065022
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080901010605",
+      "umaban": 13,
+      "name": "フォルトゥナロッサ",
+      "ref": [
+       "hit",
+       -2561142669
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080904020602",
+      "umaban": 1,
+      "name": "クリガーレ",
+      "ref": [
+       "hit",
+       -732205341
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080904020602",
+      "umaban": 2,
+      "name": "アーバンアート",
+      "ref": [
+       "hit",
+       -1678205578
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080904020602",
+      "umaban": 3,
+      "name": "ルブラッシュノモー",
+      "ref": [
+       "hit",
+       -3266361387
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080904020602",
+      "umaban": 4,
+      "name": "ワイズジュエル",
+      "ref": [
+       "hit",
+       -2927263134
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080904020602",
+      "umaban": 5,
+      "name": "エスシークザン",
+      "ref": [
+       "hit",
+       -177174181
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080904020602",
+      "umaban": 6,
+      "name": "イスクメル",
+      "ref": [
+       "hit",
+       -751648254
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026080904020602",
+      "umaban": 7,
+      "name": "メジェグレイス",
+      "ref": [
+       "hit",
+       -1397221652
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     }
+    ]
+   },
+   "identity_truncated": {
+    "hit": 435,
+    "new": 47
+   },
+   "T2_shuffle_seed0": {
+    "n": 482,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed1": {
+    "n": 482,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed2": {
+    "n": 482,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed3": {
+    "n": 482,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed4": {
+    "n": 482,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   }
+  },
+  "20260906": {
+   "n_horses": 484,
+   "identity_full": {
+    "hit": 483,
+    "new": 1
+   },
+   "T1_T3_truncated_vs_full": {
+    "n": 484,
+    "any": 343,
+    "rolling4": 332,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 46,
+    "rolling4_max_abs": 0.033333,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": [
+     {
+      "rid": "2026090601020602",
+      "umaban": 3,
+      "name": "ソフィーサンライズ",
+      "ref": [
+       "hit",
+       -3535959040
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090601020602",
+      "umaban": 4,
+      "name": "アオイゲート",
+      "ref": [
+       "hit",
+       -2266858598
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090601020602",
+      "umaban": 8,
+      "name": "バトルナイト",
+      "ref": [
+       "hit",
+       -4218820302
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090601020610",
+      "umaban": 7,
+      "name": "プレアレジェンド",
+      "ref": [
+       "hit",
+       -1583517344
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090601020610",
+      "umaban": 13,
+      "name": "ファーマドール",
+      "ref": [
+       "hit",
+       -4037985588
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040202",
+      "umaban": 2,
+      "name": "ヒーローシー",
+      "ref": [
+       "hit",
+       -4274891038
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 1,
+      "name": "ハンサム",
+      "ref": [
+       "hit",
+       -2853808105
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 2,
+      "name": "ピクシーブラスト",
+      "ref": [
+       "hit",
+       -1042978377
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 3,
+      "name": "ムービーマジック",
+      "ref": [
+       "hit",
+       -1726076092
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 4,
+      "name": "タッカーヴィーチェ",
+      "ref": [
+       "hit",
+       -1883099940
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 5,
+      "name": "アッティーヤ",
+      "ref": [
+       "hit",
+       -2132057456
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 6,
+      "name": "ビシット",
+      "ref": [
+       "hit",
+       -3741517722
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 7,
+      "name": "オシゴリ",
+      "ref": [
+       "hit",
+       -3811982296
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 8,
+      "name": "イズミル",
+      "ref": [
+       "hit",
+       -1791597491
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 9,
+      "name": "ゴールデンパルス",
+      "ref": [
+       "hit",
+       -753614778
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 10,
+      "name": "ローザヴェローナ",
+      "ref": [
+       "hit",
+       -1632575874
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 11,
+      "name": "レイナクリューソス",
+      "ref": [
+       "hit",
+       -1193755463
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 12,
+      "name": "ハナビ",
+      "ref": [
+       "hit",
+       -1498910992
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 13,
+      "name": "ロイヤルガンモ",
+      "ref": [
+       "hit",
+       -4161690512
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026090606040205",
+      "umaban": 14,
+      "name": "アイムオンアロール",
+      "ref": [
+       "hit",
+       -1154387811
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     }
+    ]
+   },
+   "identity_truncated": {
+    "hit": 437,
+    "new": 47
+   },
+   "T2_shuffle_seed0": {
+    "n": 484,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed1": {
+    "n": 484,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed2": {
+    "n": 484,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed3": {
+    "n": 484,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed4": {
+    "n": 484,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   }
+  },
+  "20260919": {
+   "n_horses": 275,
+   "identity_full": {
+    "hit": 275
+   },
+   "T1_T3_truncated_vs_full": {
+    "n": 275,
+    "any": 197,
+    "rolling4": 171,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 67,
+    "rolling4_max_abs": 0.066667,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": [
+     {
+      "rid": "2026091906040502",
+      "umaban": 6,
+      "name": "ロンドンコーリング",
+      "ref": [
+       "hit",
+       -4277968840
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040503",
+      "umaban": 2,
+      "name": "セイウンウィルド",
+      "ref": [
+       "hit",
+       -3199278284
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 1,
+      "name": "ロジパンドラ",
+      "ref": [
+       "hit",
+       -1901912178
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 2,
+      "name": "ゼーゲルン",
+      "ref": [
+       "hit",
+       -57993602
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 3,
+      "name": "シウンハゴロモ",
+      "ref": [
+       "hit",
+       -299189065
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 4,
+      "name": "サンエルディーケー",
+      "ref": [
+       "hit",
+       -2631037748
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 5,
+      "name": "シルバーノリダー",
+      "ref": [
+       "hit",
+       -4053442485
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 6,
+      "name": "ルナロマンティカ",
+      "ref": [
+       "hit",
+       -2248499261
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 7,
+      "name": "アマルレイナ",
+      "ref": [
+       "hit",
+       -1626931303
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 8,
+      "name": "スヴァラ",
+      "ref": [
+       "hit",
+       -4241741450
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 9,
+      "name": "ニホンノヨアケゼヨ",
+      "ref": [
+       "hit",
+       -2975019049
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 10,
+      "name": "フクチャンヨシ",
+      "ref": [
+       "hit",
+       -4248759187
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 11,
+      "name": "プリマラクーン",
+      "ref": [
+       "hit",
+       -3268385267
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 12,
+      "name": "ニシノハナカケル",
+      "ref": [
+       "hit",
+       -2751644134
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 13,
+      "name": "シクラメン",
+      "ref": [
+       "hit",
+       -3013545578
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 14,
+      "name": "ペルラビアンカ",
+      "ref": [
+       "hit",
+       -3406394794
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 15,
+      "name": "イキデイナセ",
+      "ref": [
+       "hit",
+       -2920579516
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040504",
+      "umaban": 16,
+      "name": "キャンディメモリー",
+      "ref": [
+       "hit",
+       -3586059171
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040505",
+      "umaban": 1,
+      "name": "ディヴァンパーレ",
+      "ref": [
+       "hit",
+       -1534501667
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026091906040505",
+      "umaban": 2,
+      "name": "レインボーフライト",
+      "ref": [
+       "hit",
+       -2624382106
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     }
+    ]
+   },
+   "identity_truncated": {
+    "hit": 208,
+    "new": 67
+   },
+   "T2_shuffle_seed0": {
+    "n": 275,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed1": {
+    "n": 275,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed2": {
+    "n": 275,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed3": {
+    "n": 275,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed4": {
+    "n": 275,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   }
+  },
+  "20260920": {
+   "n_horses": 322,
+   "identity_full": {
+    "hit": 322
+   },
+   "T1_T3_truncated_vs_full": {
+    "n": 322,
+    "any": 232,
+    "rolling4": 208,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 63,
+    "rolling4_max_abs": 0.1,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": [
+     {
+      "rid": "2026092006040603",
+      "umaban": 12,
+      "name": "タッカーヴィーナス",
+      "ref": [
+       "hit",
+       -3942815639
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 1,
+      "name": "ロードベラヴィータ",
+      "ref": [
+       "hit",
+       -2114130689
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 2,
+      "name": "ワンダーマーベル",
+      "ref": [
+       "hit",
+       -880105211
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 3,
+      "name": "マートングレイス",
+      "ref": [
+       "hit",
+       -1440822002
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 4,
+      "name": "シャローオネスト",
+      "ref": [
+       "hit",
+       -2319562132
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 5,
+      "name": "レガシーマインド",
+      "ref": [
+       "hit",
+       -1026022022
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 6,
+      "name": "アフォーダビリティ",
+      "ref": [
+       "hit",
+       -3378201826
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 7,
+      "name": "ルバルマン",
+      "ref": [
+       "hit",
+       -434423621
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 8,
+      "name": "アイファーニキーヤ",
+      "ref": [
+       "hit",
+       -397764987
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 9,
+      "name": "フレイムオブキング",
+      "ref": [
+       "hit",
+       -3567268739
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 10,
+      "name": "ブリスブリンク",
+      "ref": [
+       "hit",
+       -709225677
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 11,
+      "name": "グランレーヴ",
+      "ref": [
+       "hit",
+       -3405486679
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 12,
+      "name": "パウンドザロック",
+      "ref": [
+       "hit",
+       -711149243
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 13,
+      "name": "エコロガレル",
+      "ref": [
+       "hit",
+       -2747026767
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 14,
+      "name": "エマルタ",
+      "ref": [
+       "hit",
+       -1387830039
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 15,
+      "name": "サクシードシチー",
+      "ref": [
+       "hit",
+       -659942924
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040604",
+      "umaban": 16,
+      "name": "ディスクリートサム",
+      "ref": [
+       "hit",
+       -2070754564
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040605",
+      "umaban": 1,
+      "name": "ファンタジーゲーム",
+      "ref": [
+       "hit",
+       -4198192242
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040605",
+      "umaban": 2,
+      "name": "マイバーゲン",
+      "ref": [
+       "hit",
+       -3556957490
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092006040605",
+      "umaban": 3,
+      "name": "テルケンレンジシ",
+      "ref": [
+       "hit",
+       -871921123
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     }
+    ]
+   },
+   "identity_truncated": {
+    "hit": 259,
+    "new": 63
+   },
+   "T2_shuffle_seed0": {
+    "n": 322,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed1": {
+    "n": 322,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed2": {
+    "n": 322,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed3": {
+    "n": 322,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed4": {
+    "n": 322,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   }
+  },
+  "20260927": {
+   "n_horses": 295,
+   "identity_full": {
+    "hit": 295
+   },
+   "T1_T3_truncated_vs_full": {
+    "n": 295,
+    "any": 202,
+    "rolling4": 181,
+    "horse_feats": 2,
+    "codes": 0,
+    "identity": 59,
+    "rolling4_max_abs": 0.066667,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": [
+     {
+      "rid": "2026092706040901",
+      "umaban": 11,
+      "name": "ジェミニディウ",
+      "ref": [
+       "hit",
+       -3692683470
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040901",
+      "umaban": 12,
+      "name": "ノーブルパラス",
+      "ref": [
+       "hit",
+       -315236747
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040902",
+      "umaban": 5,
+      "name": "カシノデスティニー",
+      "ref": [
+       "hit",
+       -318400617
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 1,
+      "name": "リゼスカーレット",
+      "ref": [
+       "hit",
+       -2773510565
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 2,
+      "name": "アイファーティアラ",
+      "ref": [
+       "hit",
+       -2880548297
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 3,
+      "name": "マルジョレーヌ",
+      "ref": [
+       "hit",
+       -4075119128
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 4,
+      "name": "ジョワリヴレ",
+      "ref": [
+       "hit",
+       -2412643806
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 5,
+      "name": "ミエノヴィヴィッド",
+      "ref": [
+       "hit",
+       -646112675
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 6,
+      "name": "アッパレヤ",
+      "ref": [
+       "hit",
+       -2244547034
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 7,
+      "name": "ピンクダイアモンド",
+      "ref": [
+       "hit",
+       -1961045315
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 8,
+      "name": "ナムラジョン",
+      "ref": [
+       "hit",
+       -265399131
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 9,
+      "name": "ダブルスプリング",
+      "ref": [
+       "hit",
+       -2932844293
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 10,
+      "name": "ブランカバローズ",
+      "ref": [
+       "hit",
+       -3675957167
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 11,
+      "name": "コックコート",
+      "ref": [
+       "hit",
+       -1947997683
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 12,
+      "name": "フレンチネイル",
+      "ref": [
+       "hit",
+       -1715628540
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 13,
+      "name": "エコロヴィータ",
+      "ref": [
+       "hit",
+       -1924659066
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 14,
+      "name": "ユーサイコー",
+      "ref": [
+       "hit",
+       -2155917363
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040904",
+      "umaban": 15,
+      "name": "リオビーチ",
+      "ref": [
+       "hit",
+       -3826775635
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040905",
+      "umaban": 1,
+      "name": "タイセイパーシスト",
+      "ref": [
+       "hit",
+       -3953927471
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     },
+     {
+      "rid": "2026092706040905",
+      "umaban": 2,
+      "name": "ケルンミッチー",
+      "ref": [
+       "hit",
+       -783507449
+      ],
+      "other": [
+       "new",
+       "<NA>"
+      ]
+     }
+    ]
+   },
+   "identity_truncated": {
+    "hit": 236,
+    "new": 57,
+    "ambiguous": 2
+   },
+   "T2_shuffle_seed0": {
+    "n": 295,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed1": {
+    "n": 295,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed2": {
+    "n": 295,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed3": {
+    "n": 295,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   },
+   "T2_shuffle_seed4": {
+    "n": 295,
+    "any": 0,
+    "rolling4": 0,
+    "horse_feats": 0,
+    "codes": 0,
+    "identity": 0,
+    "rolling4_max_abs": 0.0,
+    "horse_feats_max_abs": 0.0,
+    "identity_examples": []
+   }
+  }
+ },
+ "history_checks": {
+  "T5_order_key_duplicates": null,
+  "T5_columns_present": [
+   "date",
+   "race_id"
+  ],
+  "T6_without_post_time": "column absent in this history",
+  "T6_without_umaban": "column absent in this history"
+ },
+ "totals": {
+  "T1_any": 2186,
+  "T1_rolling4": 2033,
+  "T1_horse_feats": 4,
+  "T3_identity": 409,
+  "T2_any": 0,
+  "n": 3312
+ },
+ "verdict": {
+  "T1": "FAIL",
+  "T2": "PASS",
+  "T3": "FAIL"
+ }
+}

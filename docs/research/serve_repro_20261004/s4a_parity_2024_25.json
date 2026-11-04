@@ -1,0 +1,657 @@
+{
+ "module": "C:\\Users\\gutch\\AppData\\Local\\Temp\\claude\\E--PyCaLiAI\\39ff8c26-6e3d-452e-aa10-395903a5d84c\\scratchpad\\serve_repro\\stages\\final\\serve_history_feats.py",
+ "serve_path_version": "sp-20261004-1",
+ "history_row_set": {
+  "master_rows": 626774,
+  "history_master_rows": 626774,
+  "only_in_master": 0,
+  "only_in_history": 0,
+  "identical": true
+ },
+ "identity": {
+  "rows": 94249,
+  "resolved_to_true_ped": 84356,
+  "status": {
+   "hit": 84356,
+   "new": 9891,
+   "ambiguous": 2
+  }
+ },
+ "features": {
+  "jockey_fuku90": {
+   "gain_pct": 6.787,
+   "all_rows": {
+    "n": 94249,
+    "exact": 16434,
+    "exact_pct": 17.437,
+    "match_tol1e-9": 49127,
+    "match_tol_pct": 52.125,
+    "both_missing": 199,
+    "missing_mismatch": 53,
+    "diff_median": 8.326672684688674e-17,
+    "diff_p95": 0.02222222222222231
+   },
+   "no_sameday_prior vs 格納値": {
+    "n": 23160,
+    "exact": 6012,
+    "exact_pct": 25.959,
+    "match_tol1e-9": 18967,
+    "match_tol_pct": 81.896,
+    "both_missing": 92,
+    "missing_mismatch": 0,
+    "diff_median": 5.551115123125783e-17,
+    "diff_p95": 0.01111111111111121
+   },
+   "sameday_prior (定義差) vs 格納値": {
+    "n": 71089,
+    "exact": 10422,
+    "exact_pct": 14.66,
+    "match_tol1e-9": 30160,
+    "match_tol_pct": 42.426,
+    "both_missing": 107,
+    "missing_mismatch": 53,
+    "diff_median": 0.011111111111111072,
+    "diff_p95": 0.02222222222222231
+   },
+   "no_sameday_prior vs 学習定義の再計算 (完全一致を要求)": {
+    "n": 23160,
+    "match_tol1e-9": 23160,
+    "match_tol_pct": 100.0,
+    "missing_mismatch": 0
+   }
+  },
+  "hist_same_cond_top3_rate": {
+   "gain_pct": 5.063,
+   "all_rows": {
+    "n": 94249,
+    "exact": 86922,
+    "exact_pct": 92.226,
+    "match_tol1e-9": 94249,
+    "match_tol_pct": 100.0,
+    "both_missing": 21728,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 5.551115123125783e-17
+   },
+   "identity_resolved_to_true_ped vs 格納値": {
+    "n": 84356,
+    "exact": 77029,
+    "exact_pct": 91.314,
+    "match_tol1e-9": 84356,
+    "match_tol_pct": 100.0,
+    "both_missing": 11835,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 5.551115123125783e-17
+   },
+   "identity_not_resolved vs 格納値": {
+    "n": 9893,
+    "exact": 9893,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 9893,
+    "match_tol_pct": 100.0,
+    "both_missing": 9893,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   }
+  },
+  "trainer_fuku90": {
+   "gain_pct": 1.921,
+   "all_rows": {
+    "n": 94249,
+    "exact": 20368,
+    "exact_pct": 21.611,
+    "match_tol1e-9": 59133,
+    "match_tol_pct": 62.741,
+    "both_missing": 147,
+    "missing_mismatch": 15,
+    "diff_median": 5.551115123125783e-17,
+    "diff_p95": 0.0222222222222222
+   },
+   "no_sameday_prior_block_first vs 格納値": {
+    "n": 35971,
+    "exact": 10540,
+    "exact_pct": 29.301,
+    "match_tol1e-9": 30132,
+    "match_tol_pct": 83.767,
+    "both_missing": 116,
+    "missing_mismatch": 0,
+    "diff_median": 5.551115123125783e-17,
+    "diff_p95": 0.011111111111111183
+   },
+   "sameday_prior (定義差) vs 格納値": {
+    "n": 55057,
+    "exact": 9146,
+    "exact_pct": 16.612,
+    "match_tol1e-9": 26963,
+    "match_tol_pct": 48.973,
+    "both_missing": 30,
+    "missing_mismatch": 15,
+    "diff_median": 0.011111111111111016,
+    "diff_p95": 0.022222222222222254
+   },
+   "block_nonfirst (P0-5 修正前の混入) vs 格納値": {
+    "n": 3221,
+    "exact": 682,
+    "exact_pct": 21.174,
+    "match_tol1e-9": 2038,
+    "match_tol_pct": 63.272,
+    "both_missing": 1,
+    "missing_mismatch": 0,
+    "diff_median": 5.551115123125783e-17,
+    "diff_p95": 0.0222222222222222
+   },
+   "no_sameday_prior_block_first vs 学習定義の再計算 (完全一致を要求)": {
+    "n": 35971,
+    "match_tol1e-9": 35971,
+    "match_tol_pct": 100.0,
+    "missing_mismatch": 0
+   }
+  },
+  "jockey_fuku30": {
+   "gain_pct": 1.323,
+   "all_rows": {
+    "n": 94249,
+    "exact": 22334,
+    "exact_pct": 23.697,
+    "match_tol1e-9": 53938,
+    "match_tol_pct": 57.229,
+    "both_missing": 199,
+    "missing_mismatch": 53,
+    "diff_median": 5.551115123125783e-17,
+    "diff_p95": 0.06666666666666671
+   },
+   "no_sameday_prior vs 格納値": {
+    "n": 23160,
+    "exact": 8763,
+    "exact_pct": 37.837,
+    "match_tol1e-9": 21445,
+    "match_tol_pct": 92.595,
+    "both_missing": 92,
+    "missing_mismatch": 0,
+    "diff_median": 2.7755575615628914e-17,
+    "diff_p95": 0.033333333333333326
+   },
+   "sameday_prior (定義差) vs 格納値": {
+    "n": 71089,
+    "exact": 13571,
+    "exact_pct": 19.09,
+    "match_tol1e-9": 32493,
+    "match_tol_pct": 45.707,
+    "both_missing": 107,
+    "missing_mismatch": 53,
+    "diff_median": 0.03333333333333327,
+    "diff_p95": 0.06666666666666671
+   },
+   "no_sameday_prior vs 学習定義の再計算 (完全一致を要求)": {
+    "n": 23160,
+    "match_tol1e-9": 23160,
+    "match_tol_pct": 100.0,
+    "missing_mismatch": 0
+   }
+  },
+  "horse_fuku10": {
+   "gain_pct": 1.316,
+   "all_rows": {
+    "n": 94249,
+    "exact": 90114,
+    "exact_pct": 95.613,
+    "match_tol1e-9": 92551,
+    "match_tol_pct": 98.198,
+    "both_missing": 27271,
+    "missing_mismatch": 143,
+    "diff_median": 0.0,
+    "diff_p95": 5.551115123125783e-17
+   },
+   "identity_resolved_to_true_ped vs 格納値": {
+    "n": 84356,
+    "exact": 80221,
+    "exact_pct": 95.098,
+    "match_tol1e-9": 82658,
+    "match_tol_pct": 97.987,
+    "both_missing": 17378,
+    "missing_mismatch": 143,
+    "diff_median": 0.0,
+    "diff_p95": 5.551115123125783e-17
+   },
+   "identity_not_resolved vs 格納値": {
+    "n": 9893,
+    "exact": 9893,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 9893,
+    "match_tol_pct": 100.0,
+    "both_missing": 9893,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_resolved_to_true_ped vs 学習定義の再計算 (完全一致を要求)": {
+    "n": 84356,
+    "match_tol1e-9": 84356,
+    "match_tol_pct": 100.0,
+    "missing_mismatch": 0
+   }
+  },
+  "horse_fuku30": {
+   "gain_pct": 0.686,
+   "all_rows": {
+    "n": 94249,
+    "exact": 77275,
+    "exact_pct": 81.99,
+    "match_tol1e-9": 90883,
+    "match_tol_pct": 96.429,
+    "both_missing": 40495,
+    "missing_mismatch": 168,
+    "diff_median": 0.0,
+    "diff_p95": 0.010822510822510872
+   },
+   "identity_resolved_to_true_ped vs 格納値": {
+    "n": 84356,
+    "exact": 67382,
+    "exact_pct": 79.878,
+    "match_tol1e-9": 80990,
+    "match_tol_pct": 96.01,
+    "both_missing": 30602,
+    "missing_mismatch": 168,
+    "diff_median": 0.0,
+    "diff_p95": 0.010822510822510872
+   },
+   "identity_not_resolved vs 格納値": {
+    "n": 9893,
+    "exact": 9893,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 9893,
+    "match_tol_pct": 100.0,
+    "both_missing": 9893,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_resolved_to_true_ped vs 学習定義の再計算 (完全一致を要求)": {
+    "n": 84356,
+    "match_tol1e-9": 84356,
+    "match_tol_pct": 100.0,
+    "missing_mismatch": 0
+   }
+  },
+  "hist_same_cond_count": {
+   "gain_pct": 0.605,
+   "all_rows": {
+    "n": 94249,
+    "exact": 94249,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 94249,
+    "match_tol_pct": 100.0,
+    "both_missing": 21728,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_resolved_to_true_ped vs 格納値": {
+    "n": 84356,
+    "exact": 84356,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 84356,
+    "match_tol_pct": 100.0,
+    "both_missing": 11835,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_not_resolved vs 格納値": {
+    "n": 9893,
+    "exact": 9893,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 9893,
+    "match_tol_pct": 100.0,
+    "both_missing": 9893,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   }
+  },
+  "trainer_fuku30": {
+   "gain_pct": 0.551,
+   "all_rows": {
+    "n": 94249,
+    "exact": 26530,
+    "exact_pct": 28.149,
+    "match_tol1e-9": 65627,
+    "match_tol_pct": 69.632,
+    "both_missing": 147,
+    "missing_mismatch": 15,
+    "diff_median": 5.551115123125783e-17,
+    "diff_p95": 0.03333333333333341
+   },
+   "no_sameday_prior_block_first vs 格納値": {
+    "n": 35971,
+    "exact": 13891,
+    "exact_pct": 38.617,
+    "match_tol1e-9": 33946,
+    "match_tol_pct": 94.37,
+    "both_missing": 116,
+    "missing_mismatch": 0,
+    "diff_median": 2.7755575615628914e-17,
+    "diff_p95": 0.033333333333333326
+   },
+   "sameday_prior (定義差) vs 格納値": {
+    "n": 55057,
+    "exact": 11752,
+    "exact_pct": 21.345,
+    "match_tol1e-9": 29452,
+    "match_tol_pct": 53.494,
+    "both_missing": 30,
+    "missing_mismatch": 15,
+    "diff_median": 6.938893903907228e-17,
+    "diff_p95": 0.06666666666666665
+   },
+   "block_nonfirst (P0-5 修正前の混入) vs 格納値": {
+    "n": 3221,
+    "exact": 887,
+    "exact_pct": 27.538,
+    "match_tol1e-9": 2229,
+    "match_tol_pct": 69.202,
+    "both_missing": 1,
+    "missing_mismatch": 0,
+    "diff_median": 5.551115123125783e-17,
+    "diff_p95": 0.03333333333333341
+   },
+   "no_sameday_prior_block_first vs 学習定義の再計算 (完全一致を要求)": {
+    "n": 35971,
+    "match_tol1e-9": 35971,
+    "match_tol_pct": 100.0,
+    "missing_mismatch": 0
+   }
+  },
+  "jockey_top3_rate": {
+   "gain_pct": 0.458,
+   "all_rows": {
+    "n": 94249,
+    "exact": 93077,
+    "exact_pct": 98.756,
+    "match_tol1e-9": 94249,
+    "match_tol_pct": 100.0,
+    "both_missing": 50178,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_resolved_to_true_ped vs 格納値": {
+    "n": 84356,
+    "exact": 83184,
+    "exact_pct": 98.611,
+    "match_tol1e-9": 84356,
+    "match_tol_pct": 100.0,
+    "both_missing": 40285,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_not_resolved vs 格納値": {
+    "n": 9893,
+    "exact": 9893,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 9893,
+    "match_tol_pct": 100.0,
+    "both_missing": 9893,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   }
+  },
+  "course_top3_rate": {
+   "gain_pct": 0.406,
+   "all_rows": {
+    "n": 94249,
+    "exact": 93564,
+    "exact_pct": 99.273,
+    "match_tol1e-9": 94249,
+    "match_tol_pct": 100.0,
+    "both_missing": 52503,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_resolved_to_true_ped vs 格納値": {
+    "n": 84356,
+    "exact": 83671,
+    "exact_pct": 99.188,
+    "match_tol1e-9": 84356,
+    "match_tol_pct": 100.0,
+    "both_missing": 42610,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_not_resolved vs 格納値": {
+    "n": 9893,
+    "exact": 9893,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 9893,
+    "match_tol_pct": 100.0,
+    "both_missing": 9893,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   }
+  },
+  "hist_same_place_best_pos": {
+   "gain_pct": 0.337,
+   "all_rows": {
+    "n": 94249,
+    "exact": 94249,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 94249,
+    "match_tol_pct": 100.0,
+    "both_missing": 38682,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_resolved_to_true_ped vs 格納値": {
+    "n": 84356,
+    "exact": 84356,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 84356,
+    "match_tol_pct": 100.0,
+    "both_missing": 28789,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_not_resolved vs 格納値": {
+    "n": 9893,
+    "exact": 9893,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 9893,
+    "match_tol_pct": 100.0,
+    "both_missing": 9893,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   }
+  },
+  "jockey_win_rate": {
+   "gain_pct": 0.268,
+   "all_rows": {
+    "n": 94249,
+    "exact": 92330,
+    "exact_pct": 97.964,
+    "match_tol1e-9": 94249,
+    "match_tol_pct": 100.0,
+    "both_missing": 50178,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_resolved_to_true_ped vs 格納値": {
+    "n": 84356,
+    "exact": 82437,
+    "exact_pct": 97.725,
+    "match_tol1e-9": 84356,
+    "match_tol_pct": 100.0,
+    "both_missing": 40285,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_not_resolved vs 格納値": {
+    "n": 9893,
+    "exact": 9893,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 9893,
+    "match_tol_pct": 100.0,
+    "both_missing": 9893,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   }
+  },
+  "jockey_n_prev": {
+   "gain_pct": 0.235,
+   "all_rows": {
+    "n": 94249,
+    "exact": 94247,
+    "exact_pct": 99.998,
+    "match_tol1e-9": 94247,
+    "match_tol_pct": 99.998,
+    "both_missing": 0,
+    "missing_mismatch": 2,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_resolved_to_true_ped vs 格納値": {
+    "n": 84356,
+    "exact": 84356,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 84356,
+    "match_tol_pct": 100.0,
+    "both_missing": 0,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_not_resolved vs 格納値": {
+    "n": 9893,
+    "exact": 9891,
+    "exact_pct": 99.98,
+    "match_tol1e-9": 9891,
+    "match_tol_pct": 99.98,
+    "both_missing": 0,
+    "missing_mismatch": 2,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   }
+  },
+  "course_win_rate": {
+   "gain_pct": 0.232,
+   "all_rows": {
+    "n": 94249,
+    "exact": 93129,
+    "exact_pct": 98.812,
+    "match_tol1e-9": 94249,
+    "match_tol_pct": 100.0,
+    "both_missing": 52503,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_resolved_to_true_ped vs 格納値": {
+    "n": 84356,
+    "exact": 83236,
+    "exact_pct": 98.672,
+    "match_tol1e-9": 84356,
+    "match_tol_pct": 100.0,
+    "both_missing": 42610,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_not_resolved vs 格納値": {
+    "n": 9893,
+    "exact": 9893,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 9893,
+    "match_tol_pct": 100.0,
+    "both_missing": 9893,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   }
+  },
+  "course_n_prev": {
+   "gain_pct": 0.143,
+   "all_rows": {
+    "n": 94249,
+    "exact": 94247,
+    "exact_pct": 99.998,
+    "match_tol1e-9": 94247,
+    "match_tol_pct": 99.998,
+    "both_missing": 0,
+    "missing_mismatch": 2,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_resolved_to_true_ped vs 格納値": {
+    "n": 84356,
+    "exact": 84356,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 84356,
+    "match_tol_pct": 100.0,
+    "both_missing": 0,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_not_resolved vs 格納値": {
+    "n": 9893,
+    "exact": 9891,
+    "exact_pct": 99.98,
+    "match_tol1e-9": 9891,
+    "match_tol_pct": 99.98,
+    "both_missing": 0,
+    "missing_mismatch": 2,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   }
+  },
+  "hist_same_cond_best_pos": {
+   "gain_pct": 0.1,
+   "all_rows": {
+    "n": 94249,
+    "exact": 94249,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 94249,
+    "match_tol_pct": 100.0,
+    "both_missing": 21728,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_resolved_to_true_ped vs 格納値": {
+    "n": 84356,
+    "exact": 84356,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 84356,
+    "match_tol_pct": 100.0,
+    "both_missing": 11835,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   },
+   "identity_not_resolved vs 格納値": {
+    "n": 9893,
+    "exact": 9893,
+    "exact_pct": 100.0,
+    "match_tol1e-9": 9893,
+    "match_tol_pct": 100.0,
+    "both_missing": 9893,
+    "missing_mismatch": 0,
+    "diff_median": 0.0,
+    "diff_p95": 0.0
+   }
+  }
+ },
+ "days": 215
+}

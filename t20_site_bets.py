@@ -212,6 +212,11 @@ def a95_site_tickets(race: dict, market: dict, rid: str) -> tuple[list[dict], st
         el = evaluate_race(rid)
     if not el["bet_eligible"]:
         return [], "対象外レースのため見送り", True
+    # 予測入力の品質ゲート (馬同定が判別不能・予測経路の版不一致)。T-10 本線と同じ判定。
+    from input_quality import race_skip_reason
+    from production_policy import load_policy
+    if race_skip_reason(race, load_policy().get("serve_path_version")):
+        return [], "予測入力の品質ゲートで見送り", True
 
     tan = {int(k): v for k, v in (market.get("tansho") or {}).items()}
     horses = []

@@ -102,6 +102,11 @@ def test_fill_history_features_restores_asof_rolling_rates(tmp_path):
             "jockey_code": [10] * 7,
             "trainer_code": [20] * 7,
             "src": ["test"] * 7,
+            # 直近集計の順序キー (serve_history_feats.ORDER_COLUMNS、2026-10-04 再現性修正で必須化)
+            "race_id": [f"{d}05010101" for d in (20240101, 20240102, 20240103, 20240104,
+                                                  20240105, 20240106, 20240201)],
+            "post_time": [1000] * 7,
+            "umaban": [1, 1, 1, 1, 1, 2, 1],
         }
     )
     hist.to_parquet(data_dir / "_horse_history.parquet", index=False)

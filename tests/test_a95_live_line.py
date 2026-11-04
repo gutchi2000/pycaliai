@@ -52,12 +52,18 @@ def test_order_is_raw_pwin_not_marks():
 
 
 # ---------------------------------------------------------------- compute_bets
+from serve_history_feats import SERVE_PATH_VERSION as _SERVE_PATH_VERSION
+
+
 def _race(chaos=0.50):
     return {"race_id": "2026100305040101",
             "race_meta": {"field_size": 12, "place": "東京", "R": 1, "course": "芝1600"},
             "race_confidence": {"field_chaos_score": chaos, "top1_dominance": 0.1,
                                 "top2_concentration": 0.5, "ai_market_agreement": 0.5},
-            "eligibility": None, "horses": _horses(4.0)}
+            "eligibility": None, "horses": _horses(4.0),
+            # 2026-11-04 serve-repro-sp1: policy が予測経路の版を宣言しているので、bundle 側の版も揃える
+            # (無いと input_quality.race_skip_reason が「版不一致」で見送りにする = 設計どおり)
+            "input_quality": {"serve_path_version": _SERVE_PATH_VERSION, "bet_eligible": True}}
 
 
 def test_compute_bets_a95_engine_keeps_participation_guards(monkeypatch):

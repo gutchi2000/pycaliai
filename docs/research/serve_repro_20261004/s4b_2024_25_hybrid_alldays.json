@@ -1,0 +1,22 @@
+{
+ "train:final": {
+  "races": 6909,
+  "horses": 94249,
+  "days": 215,
+  "top1_changed_races": 267,
+  "p_win_abs_diff": {
+   "median": 0.0,
+   "p95": 0.011856879503938322,
+   "max": 0.19453494198359733,
+   "n_changed": 27100
+  },
+  "hon_top3": {
+   "a_pct": 62.06,
+   "b_pct": 62.14,
+   "b_minus_a_ci95": [
+    -0.28,
+    0.44
+   ]
+  }
+ }
+}
