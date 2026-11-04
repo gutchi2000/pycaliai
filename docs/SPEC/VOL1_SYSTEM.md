@@ -325,7 +325,7 @@ master_v2 の 132 列 − LEAK_COLS 12 列 = **120 特徴**。
 ### 4.2 三元表 — 特徴 × gain × serve カバレッジ
 
 以下は **本番モデル `models/unified_rank_v6.pkl` の実測 gain 寄与率** と
-**`data/serve_feature_baseline.json` の実測 serve カバレッジ**（2026-07-18〜07-26 の 4 週中央値）
+**`data/serve_feature_baseline.json` の実測 serve カバレッジ**（下表は 2026-07-18〜07-26 の 4 週中央値。現行ファイルは 2026-10-24〜11-01 の 4 開催日で再生成済み、Vol. III §5.1y）
 を突き合わせたもの。**この表が本仕様書で最も重要な表である。**
 
 #### 集計（実測 2026-08-23）

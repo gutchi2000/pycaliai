@@ -6,7 +6,7 @@ serve 経路(parse_csv + _SERVE_RENAME)が、v6の各モデル特徴を実際ど
 直近の週次CSVで実測。「生きてる/死んでる」をファミリー別に出し、カナリア用の
 ベースライン(data/serve_feature_baseline.json)を生成する。
 """
-import sys, io, json
+import sys, io, json, os
 from pathlib import Path
 import numpy as np, pandas as pd, joblib
 
@@ -45,7 +45,23 @@ gain = np.asarray(model["model"].feature_importance(importance_type="gain"), dty
 gain_total = float(gain.sum())
 gain_pct = {f: (float(v) / gain_total * 100.0 if gain_total else 0.0)
             for f, v in zip(feats, gain)}
-WEEKS = ["20260726","20260725","20260719","20260718"]
+# 週の既定は「bundle を実配信した直近 4 開催日」。固定リストだと古い週で baseline を
+# 上書きしてしまう (2026-09-27 に 7 月週で再生成され canary 基準が巻き戻った事故)。
+import argparse
+_ap = argparse.ArgumentParser(description="serve 特徴カバレッジ baseline の再生成")
+_ap.add_argument("--weeks", nargs="*", default=None,
+                 help="YYYYMMDD... 省略時は reports/cowork_input に bundle がある直近 4 開催日")
+_ap.add_argument("--out", default=None,
+                 help="出力先 (省略時は本番 data/serve_feature_baseline.json)。診断は別パスへ")
+_args = _ap.parse_args()
+if _args.weeks:
+    WEEKS = list(_args.weeks)
+else:
+    _b = sorted(p.name[:8] for p in (BASE/"reports"/"cowork_input").glob("2026*_bundle.json")
+                if (BASE/"data"/"weekly"/f"{p.name[:8]}.csv").exists())
+    WEEKS = _b[-4:][::-1]
+OUT_PATH = Path(_args.out) if _args.out else (BASE/"data"/"serve_feature_baseline.json")
+print(f"[weeks] {WEEKS}  → {OUT_PATH}")
 
 baseline = {}   # feat -> median coverage across weeks
 percol = {f: [] for f in feats}
@@ -57,9 +73,17 @@ for wk in WEEKS:
     # serve 履歴特徴の回収 (export_weekly_marks と同じ経路) を再現してから測る
     try:
         from serve_history_feats import fill_history_features
-        from export_weekly_marks import ensure_date_column
+        from export_weekly_marks import ensure_date_column, apply_hosei_proxy
         df = ensure_date_column(df)
         fill_history_features(df)
+        # 本番 (weekly_nicegui.ps1 は CB_HOSEI_PROXY=1) と同じ経路で prev_hosei を埋める。
+        # 環境変数が無いと本番より低い充足率を baseline に焼き込むので明示的に出す。
+        if os.environ.get("CB_HOSEI_PROXY", "0") == "1":
+            filled = apply_hosei_proxy(df, model["encoders"])
+            print(f"  [hosei proxy] 適用: " + ", ".join(f"{k}={v*100:.0f}%" for k, v in filled.items()))
+        else:
+            print("  [hosei proxy] CB_HOSEI_PROXY 未設定 → prev_hosei は本番より低く測られる "
+                  "(本番は weekly_nicegui.ps1 が =1 で起動)")
     except Exception as e:
         print(f"  [warn] serve history fill 失敗 (履歴特徴は0%扱い): {e}")
     # canary と同一定義の実効カバレッジ ("__NaN__"/空文字=欠損, 定数列=0.0) で測る。
@@ -123,5 +147,21 @@ out = {"model":"v6","weeks":WEEKS,"baseline_cov":baseline,
        "regression_candidates": regression_rows,
        "dead_gain_pct": round(dead_gain_pct, 4),
        "dead_gain_threshold_pct": 35.0}
-(BASE/"data"/"serve_feature_baseline.json").write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding="utf-8")
-print(f"[saved] data/serve_feature_baseline.json")
+# 学習時充足率 (absolute canary の基準, analysis/add_train_cov_baseline.py が書く) は
+# serve 週の再測定で消してはいけない。既存ファイルにあれば引き継ぐ。
+_prod = BASE/"data"/"serve_feature_baseline.json"
+if _prod.exists():
+    try:
+        _old = json.loads(_prod.read_text(encoding="utf-8"))
+        for k in ("train_cov", "gain_pct", "train_cov_note"):
+            if k in _old and k not in out:
+                out[k] = _old[k]
+        if "train_cov" in out:
+            print(f"[keep] train_cov {len(out['train_cov'])} 特徴を既存 baseline から引き継ぎ")
+        else:
+            print("[warn] 既存 baseline に train_cov が無い → python -m analysis.add_train_cov_baseline を実行すること")
+    except Exception as e:
+        print(f"[warn] 既存 baseline 読込失敗 ({e})")
+OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+OUT_PATH.write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding="utf-8")
+print(f"[saved] {OUT_PATH}")

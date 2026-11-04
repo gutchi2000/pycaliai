@@ -189,7 +189,9 @@ def build_odds_from_od_csv(date_str: str):
 # (baseline は多条件週の中央値で 100% なので閾値側では救えない)
 # 2026-09-22: 祝日開催などで1会場のみの週次CSV (例: 9/22中山単独) では 開催/場所 も
 # 全行同一値になるのが正常。同じ定数誤検知で品質ゲートが誤って止まっていた。
-CONST_OK_COLS = {"馬場状態", "天気", "開催", "場所"}
+# コース区分 (A/B/C) も開催日単位では 1 種類になりうる (2 場開催で片方が無印の週など)。
+# 定数扱いで 0% にすると baseline が「死」と誤記録し canary の監視対象から外れる (2026-11-04)。
+CONST_OK_COLS = {"馬場状態", "天気", "開催", "場所", "コース区分"}
 
 
 def feature_coverage(s: pd.Series, allow_constant: bool = False) -> float:
@@ -235,6 +237,50 @@ def ensure_date_column(df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         df["日付"] = df["日付S"].apply(_to_yyyymmdd)
     return df
+
+
+def apply_hosei_proxy(df: pd.DataFrame, encs: dict) -> dict[str, float]:
+    """prev_hosei / prev_hosei9 の欠損馬を推定器で埋める (CB_HOSEI_PROXY=1 のときだけ)。
+
+    TARGET の補正タイムは 2026-05-31 で止まっており (再エクスポート不可と確定 2026-09-18)、
+    それ以降に前走がある馬は prev_hosei (v6 gain 第2位 7.47%) が欠損する。前走着差タイム/
+    前走確定着順/前走上り3F 等 (週次CSV の生の事実、補正指数とは独立) から学習した推定器で
+    欠損馬だけ埋める。本物の値がある馬には触らない。
+    採用ゲート (analysis/prev_hosei_proxy.py, offline 10,365R): test R²=0.954、
+    ◎勝率 欠損 27.87% → 本物+欠損だけ推定 29.34% (本物 29.58%)、McNemar p=0.0001。
+    2026-06〜09 実レース 885R では効果非有意 (+0.34pt, p=0.80) だったが、本物の供給が
+    恒久的に止まった以上「永久に0%の欠損」より推定の方が優位と判断し weekly_nicegui.ps1 が
+    CB_HOSEI_PROXY=1 で有効化している (2026-09-18 本採用)。
+    df は in-place で更新。戻り値は {列: 充足率} (ログ/baseline 用)。
+    """
+    out: dict[str, float] = {}
+    proxy_path = BASE / "models" / "prev_hosei_proxy.pkl"
+    if os.environ.get("CB_HOSEI_PROXY", "0") != "1" or not proxy_path.exists():
+        return out
+    try:
+        from backtest_pl_ev import apply_encoders
+        pb = joblib.load(proxy_path)
+        xc = pb["xcols"]
+        Xp = apply_encoders(df[[c for c in xc]].copy(), encs)
+        Xp = Xp[xc].apply(pd.to_numeric, errors="coerce")
+        for t, reg in pb["models"].items():
+            if t not in df.columns:
+                df[t] = np.nan
+            cur = pd.to_numeric(df[t], errors="coerce")
+            na = cur.isna().to_numpy()
+            # 推定の根拠 (前走着差タイム) が無い馬は埋めない = 新馬などは欠損のまま
+            basis = Xp["前走着差タイム"].notna().to_numpy() if "前走着差タイム" in Xp else na
+            fill = na & basis
+            if fill.any():
+                cur = cur.to_numpy(dtype=float, copy=True)
+                cur[fill] = reg.predict(Xp[fill])
+                df[t] = cur
+            out[t] = float(((~na) | fill).mean())
+            logger.info(f"[hosei proxy] {t}: 本物 {100*(~na).mean():.0f}% + 推定 "
+                        f"{100*fill.mean():.0f}% → 充足 {100*((~na)|fill).mean():.0f}%")
+    except Exception as e:
+        logger.warning(f"[hosei proxy] 失敗 → prev_hosei は欠損のまま: {e}")
+    return out
 
 
 def main() -> int:
@@ -499,38 +545,8 @@ def main() -> int:
         logger.warning(f"[serve history] 失敗 → 履歴特徴は従来どおり欠損: {e}")
 
     # ------ prev_hosei 代替推定 (2026-09-18) ------
-    # TARGET の補正タイムは 2026-05-31 で止まっており、それ以降に前走がある馬は
-    # prev_hosei (v6 gain 第2位 7.47%) が欠損する。前走着差タイム/前走確定着順/前走上り3F
-    # 等 (週次CSV の生の事実、補正指数とは独立) から学習した推定器で欠損馬だけ埋める。
-    # 採用ゲート (analysis/prev_hosei_proxy.py, offline 10,365R): test R²=0.954、
-    # ◎勝率 欠損 27.87% → 本物+欠損だけ推定 29.34% (本物 29.58%)、McNemar p=0.0001。
-    # 本物の値がある馬には触らない。
-    # ★既定OFF: 2026-06〜09 実レース 885R では効果を確認できず (◎勝率 +0.34pt, top3 -0.56pt,
-    #   McNemar p=0.80, analysis/validate_hosei_proxy_live.py)。CB_HOSEI_PROXY=1 で有効化。
-    proxy_path = BASE / "models" / "prev_hosei_proxy.pkl"
-    if os.environ.get("CB_HOSEI_PROXY", "0") == "1" and proxy_path.exists():
-        try:
-            from backtest_pl_ev import apply_encoders
-            pb = joblib.load(proxy_path)
-            xc = pb["xcols"]
-            Xp = apply_encoders(df[[c for c in xc]].copy(), encs)
-            Xp = Xp[xc].apply(pd.to_numeric, errors="coerce")
-            for t, reg in pb["models"].items():
-                if t not in df.columns:
-                    df[t] = np.nan
-                cur = pd.to_numeric(df[t], errors="coerce")
-                na = cur.isna().to_numpy()
-                # 推定の根拠 (前走着差タイム) が無い馬は埋めない = 新馬などは欠損のまま
-                basis = Xp["前走着差タイム"].notna().to_numpy() if "前走着差タイム" in Xp else na
-                fill = na & basis
-                if fill.any():
-                    cur = cur.to_numpy(dtype=float, copy=True)
-                    cur[fill] = reg.predict(Xp[fill])
-                    df[t] = cur
-                logger.info(f"[hosei proxy] {t}: 本物 {100*(~na).mean():.0f}% + 推定 "
-                            f"{100*fill.mean():.0f}% → 充足 {100*((~na)|fill).mean():.0f}%")
-        except Exception as e:
-            logger.warning(f"[hosei proxy] 失敗 → prev_hosei は欠損のまま: {e}")
+    # 実装は apply_hosei_proxy() (baseline 再測定 analysis/measure_serve_coverage.py と共用)。
+    apply_hosei_proxy(df, encs)
 
     # ------ kako5 history + horse facts (advisor + 出走表 表示用) ------
     from kako5_summary import build_histories, build_horse_facts
@@ -831,7 +847,22 @@ def main() -> int:
             _bj = json.load(open(baseline_path, encoding="utf-8")) or {}
             _tcov, _gain = _bj.get("train_cov", {}), _bj.get("gain_pct", {})
         except Exception:
-            _tcov, _gain = {}, {}
+            _bj, _tcov, _gain = {}, {}, {}
+        # 2026-09-27 に baseline が 7 月週で再生成され train_cov が消えた事故 (絶対 canary が
+        # 「劣化なし」と誤表示し、prev_hosei 0% を 1 か月以上見逃した)。基準の欠落と古さは
+        # 黙って通さず WARN で出す。
+        if not _tcov:
+            logger.warning("[serve 絶対canary] baseline に train_cov が無い → 絶対基準の監視は不能。"
+                           "python -m analysis.add_train_cov_baseline で再付与すること")
+        try:
+            _bweeks = [str(w) for w in (_bj.get("weeks") or []) if str(w).isdigit()]
+            if _bweeks:
+                _age = (pd.Timestamp(date_str) - pd.Timestamp(max(_bweeks))).days
+                if _age > 120:
+                    logger.warning(f"[serve canary] baseline が古い (最新週 {max(_bweeks)}, {_age} 日前)。"
+                                   "python -m analysis.measure_serve_coverage で直近週から再生成すること")
+        except Exception:
+            pass
         _degraded, _lost_gain = [], 0.0
         for col in feats:
             t = _tcov.get(col)
