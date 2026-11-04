@@ -124,3 +124,16 @@ test("preview: 結果を使わず全レース、堅い/割れる/荒れる の�
   const solid = f.races.find((x) => f.most_solid[0].startsWith(`${x.place}${x.rno}R`));
   assert.ok(solid && solid.chaos === Math.min(...f.races.map((x) => x.chaos)));
 });
+
+// ---- 2026-11-04: 通信簿ツール ----
+import { trackRecord, chaosVerdict } from "./tools.js";
+test("ai_track_record: report_card.json をこのレースの条件で引く", { skip: !race && "site/data なし" }, () => {
+  const rcPath = path.join(DATA, "report_card.json");
+  if (!fs.existsSync(rcPath)) return;
+  const rc = JSON.parse(fs.readFileSync(rcPath, "utf8"));
+  const t = trackRecord(rc, race);
+  assert.ok(t.overall.n_races > 0 && t.this_race_conditions.length >= 3);
+  for (const c of t.this_race_conditions) assert.ok(c.n_races > 0 && c.honmei_top3_rate_pct >= 0 && c.honmei_top3_rate_pct <= 100);
+  assert.ok(["見送り寄り", "妙味次第", "勝負可"].includes(chaosVerdict(race)));
+  assert.ok(trackRecord(null, race).error);
+});

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyCaLiAI — AI の通信簿（条件別の的中率と回収率）</title>
+<meta name="description" content="AI本命（◎）の勝率・複勝圏率と、サイトに表示した買い目の回収率を、クラス・芝ダ距離・混戦度・人気・頭数・競馬場・月ごとに信頼区間つきで公開。AIがどこで強く、どこで外すかをそのまま載せます。">
+<link rel="canonical" href="https://pycaliai.com/tsushinbo.html">
+<meta property="og:title" content="PyCaLiAI — AI の通信簿">
+<meta property="og:description" content="AI がどこで当たり、どこで外すか。条件別の成績を信頼区間つきで公開。">
+<meta property="og:url" content="https://pycaliai.com/tsushinbo.html">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pycaliai.com/apple-touch-icon.png">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#070b14">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=20261104-tsushinbo1">
+<style>
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:var(--pad);}
+  .ehead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 14px;}
+  .ehead h1{font-family:var(--disp);font-weight:600;font-size:1.4rem;margin:0;color:var(--tx);}
+  .badge{display:inline-block;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--r-pill);padding:2px 8px;font-size:.75rem;color:var(--tx2);vertical-align:middle;}
+  .backlink{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:var(--r-pill);padding:6px 12px;text-decoration:none;font-family:var(--sans);font-size:.85rem;font-weight:500;}
+  .backlink:hover{border-color:var(--gold);color:var(--gold2);}
+  .panel{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 18px;box-shadow:var(--shadow-card);}
+  .panel h2{font-size:.95rem;font-weight:700;color:var(--tx2);letter-spacing:.08em;margin:0 0 8px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+  .panel h2::before{content:"";width:3px;height:14px;border-radius:2px;background:linear-gradient(180deg,var(--gold2),var(--gold));}
+  .panel h2 small{font-weight:400;font-size:.75rem;color:var(--tx3);letter-spacing:0;}
+  .panel p{color:var(--tx2);font-size:.9rem;line-height:1.8;margin:0 0 8px;}
+  .panel p:last-child{margin-bottom:0;}
+  .panel b{color:var(--tx);}
+  .intro{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:14px;margin:0 0 14px;}
+  @media(max-width:860px){.intro{grid-template-columns:1fr;}}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 16px;}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;}
+  .kpi .l{font-size:.74rem;color:var(--tx3);letter-spacing:.08em;}
+  .kpi .v{font-family:var(--disp);font-size:1.7rem;font-weight:600;color:var(--gold2);line-height:1.2;margin:4px 0 2px;}
+  .kpi .s{font-size:.74rem;color:var(--tx3);}
+  .kpi.neg .v{color:var(--uncertain);}
+  .dim{margin:0 0 14px;padding:14px 16px 10px;}
+  table.rc{width:100%;border-collapse:collapse;font-size:.86rem;}
+  .rc th,.rc td{padding:7px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line);}
+  .rc th{color:var(--tx3);font-weight:500;font-size:.76rem;letter-spacing:.04em;position:sticky;top:0;background:var(--bg2);}
+  .rc td.l,.rc th.l{text-align:left;}
+  .rc tr.thin td{color:var(--tx3);}
+  .rc td.l b{font-weight:700;color:var(--tx);}
+  .bar{position:relative;display:inline-block;width:120px;height:12px;background:var(--card2);border:1px solid var(--line);border-radius:3px;vertical-align:middle;margin-right:6px;overflow:hidden;}
+  .bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--teal),var(--teal2));opacity:.85;}
+  .bar u{position:absolute;top:0;bottom:0;background:rgba(255,255,255,.18);}
+  .bar.roi i{background:linear-gradient(90deg,#5ba0f5,#8fc3ff);}
+  .bar.roi.ok i{background:linear-gradient(90deg,var(--gold),var(--gold2));}
+  .bar.roi::after{content:"";position:absolute;top:0;bottom:0;left:calc(var(--mark) * 1%);width:1px;background:var(--tx3);}
+  .num{font-family:var(--disp);}
+  .best td.l::after{content:"▲";color:var(--teal2);font-size:.7rem;margin-left:6px;}
+  .worst td.l::after{content:"▼";color:var(--uncertain);font-size:.7rem;margin-left:6px;}
+  .tw{overflow-x:auto;}
+  .note{color:var(--tx3);font-size:.8rem;line-height:1.7;margin:14px 0 0;}
+  .err{color:var(--red);}
+  @media(max-width:620px){.bar{width:70px;}.rc th,.rc td{padding:6px 5px;}}
+</style>
+</head>
+<body>
+<div class="track-stripe"></div>
+<div class="wrap">
+  <div class="ehead">
+    <a href="index.html" class="backlink">← 予想に戻る</a>
+    <h1>AI の通信簿 <span class="badge">どこで当たり、どこで外すか</span></h1>
+  </div>
+
+  <div class="intro">
+    <section class="panel">
+      <h2>このページについて</h2>
+      <p>AI 本命（◎）が <b>条件ごとに</b> どれだけ勝ち、どれだけ 3 着以内に入ったかを、2026 年の全公開レースから集計しています。信頼区間（Wilson 95%）を付けているので、件数が少ない条件の「たまたま」と、件数が多い条件の「傾向」を区別できます。</p>
+      <p>あわせて、サイトに表示した買い目（表示専用、実弾ではありません）の的中率と回収率も出します。回収率が 80% 前後なら控除率どおり、それを大きく下回る条件は「AI が苦手な場面」です。</p>
+    </section>
+    <section class="panel">
+      <h2>読み方</h2>
+      <p><b>▲</b> はその次元で複勝圏率が最も高い条件、<b>▼</b> は最も低い条件（件数 40 以上のみ）。薄い行は件数 30 未満で、まだ結論を出せません。</p>
+      <p>回収率バーの縦線は 80%（控除率の目安）。オッズや払戻額そのものは掲載しません。</p>
+    </section>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+  <div id="dims"><span class="note">読み込み中…</span></div>
+  <p class="note" id="note"></p>
+</div>
+<footer class="site-legal">
+  <a href="legal.html">免責事項・プライバシーポリシー</a>
+  <a href="mailto:contact@pycaliai.com">お問い合わせ</a>
+  <span>© 2026 PyCaLiAI</span>
+</footer>
+<script defer src="js/tsushinbo.js?v=20261104-tsushinbo1"></script>
+<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+</body>
+</html>

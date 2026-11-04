@@ -151,6 +151,7 @@ P0-1（騎手/調教師stats）・P0-2（着度数CSV列数）・P0-4（Ｒ全�
 3. `export_weekly_marks.py --model v6` → `reports/cowork_input/{date}_bundle.json` **★これが Cowork のキー入力**
 4. `build_course_stats.py` → `data/course_stats.json`（コース分析タブ用）
 5. `git push origin master` → `sync-hf.ps1`（旧 NiceGUI Space）→ `sync-hf-umami.ps1`（**本番 静的サイト**、`build_site.py` で再生成して push）
+6. `[4/3]` 今日の見どころ 生成（`scripts/kaiko_warm.py --discord`、best-effort。Worker が発走前記事を書き Discord へ投稿）
 
 ### Phase B — 土曜昼（Cowork が買い目を返してきたら）
 ```
@@ -316,7 +317,8 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 | `sync-hf-umami.ps1` | ★**本番**デプロイ: `build_site.py` → Docker Space `pycaliai-umami` へ push |
 | `site/shusse.html` + `analysis/shusse/site_export.py` | 出世予測 AI（ファン向け読み物、馬券非転用、2026-10-31 公開）。データ `site/data/shusse/{index,YYYY}.json`。更新は Phase C の [1e/3]。詳細 `analysis/shusse/README.md` |
 | `worker/index.js` + `worker/tools.js` + `worker/prompt.js` | **相談AI（2026-11-03 公開）**: pycaliai.com の Cloudflare Worker。`POST /api/soudan` が Claude（Sonnet 5.5、全体 1 日 150 問超で Haiku 5.5、IP 別 30 問/日、月 $90 で停止、KV カウンタ）を中継。数字は公開済み `site/data/{date}.json` だけ（オッズ・EV 不在）。UI は `app.js renderSoudan()` の「💬 相談AI」タブ。鍵は `npx wrangler secret put ANTHROPIC_API_KEY`（Max の月次 API クレジット）。確認 `GET /api/soudan/health`。テスト `node --test worker/tools.test.mjs`。`assistant/chat.py`（Ollama 版）は未改修 |
-| `worker/kaiko.js` + `site/kaiko.html` + `scripts/kaiko_warm.py` | **回顧記事「負けた理由まで書く AI」（2026-11-04 公開）**: 結果のある開催日の全レースを「予想→結果→ズレた理由→教訓」で Claude が文章化、日の総括と X 下書き付き。facts は公開 JSON だけ、記事は KV に永続（1 レース 1 回）。生成経路は 3 つ: Phase C `[1f/3]`（`kaiko_warm.py` が Worker に依頼）／月曜 03:00 JST の cron／ページ閲覧時の lazy 生成。一覧 `GET /api/kaiko?date=`、生成 `POST /api/kaiko/gen` |
+| `worker/kaiko.js` + `site/kaiko.html` + `scripts/kaiko_warm.py` | **回顧記事「負けた理由まで書く AI」（2026-11-04 公開）**: 結果のある開催日の全レースを「予想→結果→ズレた理由→教訓」で Claude が文章化、日の総括と X 下書き付き。**今日の見どころ**（`race_id="preview"`、発走前: 堅い 3 鞍・AI と人気が割れる鞍・見送り寄り・重賞・注目 1 鞍）も同じ経路。facts は公開 JSON だけ、記事は KV に永続（1 件 1 回）。生成経路: Phase A `[4/3]`（見どころ）／Phase C `[1f/3]`（回顧）＝`kaiko_warm.py --discord` が Worker に依頼し新規分を Discord（`notify_config.json` の webhook）へ／cron 土日 05:00・月曜 03:00 JST／ページ閲覧時の lazy 生成。一覧 `GET /api/kaiko?date=`、生成 `POST /api/kaiko/gen`、RSS `GET /kaiko.xml` |
+| `build_report_card.py` + `site/tsushinbo.html` | **AI の通信簿（2026-11-04 公開）**: 公開済み `site/data/{date}.json` から条件別（クラス・芝ダ距離・混戦度百分位・◎の朝人気・◎勝率帯・頭数・競馬場・月）の ◎勝率/複勝圏率（Wilson 95% CI）と表示買い目の回収率を `site/data/report_card.json` に集計（`build_site.py` 末尾で毎ビルド）。LLM 不使用。相談AI のツール `ai_track_record` が同じ JSON をレース条件で引く |
 | `export_weekly_marks.py` | unified_rank_v6 → bundle.json |
 | `build_course_stats.py` | コース分析タブ用統計 |
 | `weekly_nicegui.ps1` | 週次ワークフロー 3 フェーズ統合（sync-hf + sync-hf-umami 両方を叩く） |

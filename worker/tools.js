@@ -23,6 +23,19 @@ const UMAMI_JA = { S: "妙味S(最上位)", A: "妙味A", B: "妙味B", C: "妙�
 
 export function pct(v, d = 1) { return v == null ? null : +(v * 100).toFixed(d); }
 
+/** 混戦度の判定。judgment.chaos_pct（その日までの百分位、0=最も堅い）があればそれで、無ければ生スコアの閾値で。
+    生スコアは較正器差し替えで分布が動く（2026 年は 7 割が 0.85 超）ので、百分位を優先する。 */
+export function chaosVerdict(race) {
+  const j = race.judgment || {};
+  if (j.chaos_pct != null) return j.chaos_pct >= 0.75 ? "見送り寄り" : j.chaos_pct >= 0.5 ? "妙味次第" : "勝負可";
+  const c = (race.confidence || {}).field_chaos_score ?? 0;
+  return c >= CHAOS_PASS ? "見送り寄り" : c >= CHAOS_WARN ? "妙味次第" : "勝負可";
+}
+export function chaosPctLabel(race) {
+  const p = (race.judgment || {}).chaos_pct;
+  return p == null ? null : `混戦度は今年の全レース中 上位${Math.round((1 - p) * 100)}%（${p >= 0.75 ? "荒れやすい側" : p < 0.25 ? "堅い側" : "中位"}）`;
+}
+
 export function findRace(day, raceId) {
   return (day.races || []).find((r) => String(r.race_id) === String(raceId)) || null;
 }
@@ -163,7 +176,7 @@ export function raceLabel(race) {
 export function raceAdvice(race) {
   const c = race.confidence || {};
   const chaos = c.field_chaos_score ?? 0;
-  const verdict = chaos >= CHAOS_PASS ? "見送り寄り" : chaos >= CHAOS_WARN ? "妙味次第（厚張りしない）" : "勝負可";
+  const verdict = chaosVerdict(race);
   const top = [...(race.horses || [])].sort((x, y) => (x.ai_rank ?? 99) - (y.ai_rank ?? 99)).slice(0, 3)
     .map((h) => describeHorse(race, h.umaban));
   const j = race.judgment || {};
@@ -171,7 +184,7 @@ export function raceAdvice(race) {
     .map((b) => `${b.type} ${b.selection}`);
   const res = race.result && race.result.top3 ? race.result.top3 : null;
   return {
-    race: raceLabel(race), verdict,
+    race: raceLabel(race), verdict, chaos_rank: chaosPctLabel(race),
     chaos: +chaos.toFixed(2), top1_dominance: c.top1_dominance ?? null, ai_market_agreement: c.ai_market_agreement ?? null,
     site_judgment: j.headline ? { headline: j.headline, detail: j.detail || null, hardness: j.hardness || null, category: j.category || null } : null,
     top3_by_ai: top.map((h) => ({ umaban: h.umaban, name: h.name, mark: h.mark, p_win_pct: h.p_win_pct, p_plc_pct: h.p_plc_pct, market_view: h.market_view })),
@@ -223,7 +236,7 @@ export function dayRaces(day, currentRaceId) {
     return {
       race_id: r.race_id, place: r.place, rno: r.rno, course: r.course, klass: r.klass, race_name: r.race_name || null,
       start_time: r.start_time || null, field_size: r.field_size, current: String(r.race_id) === String(currentRaceId) || undefined,
-      chaos: +chaos.toFixed(2), verdict: chaos >= CHAOS_PASS ? "見送り寄り" : chaos >= CHAOS_WARN ? "妙味次第" : "勝負可",
+      chaos: +chaos.toFixed(2), chaos_pct: (r.judgment || {}).chaos_pct ?? null, verdict: chaosVerdict(r),
       top1_dominance: c.top1_dominance ?? null,
       honmei: h ? { umaban: h.umaban, name: h.name, p_win_pct: pct(h.p_win), p_plc_pct: pct(h.p_plc), ninki_morning: h.ninki ?? null, is_morning_favorite: h.ninki === 1 } : null,
       site_headline: (r.judgment || {}).headline || null,
@@ -242,12 +255,62 @@ export function dayRaces(day, currentRaceId) {
   };
 }
 
-/** LLM のツール呼び出しを橋渡し。戻り値は JSON 化可能な実値。 */
-export function dispatch(day, race, name, args) {
+/* ---- AI の通信簿（site/data/report_card.json、build_report_card.py）をこのレースの条件で引く ---- */
+function klassGroup(k) {
+  k = k || "";
+  if (/G[123]|JG/.test(k)) return "重賞";
+  if (k.startsWith("OP") || k.includes("オープン")) return "OP";
+  for (const g of ["新馬", "未勝利", "1勝", "2勝", "3勝"]) if (k.startsWith(g)) return g;
+  return "その他";
+}
+function surfaceDist(course) {
+  const m = /^(芝|ダート|ダ|障害)[^\d]*(\d+)/.exec(course || "");
+  if (!m || m[1] === "障害") return null;
+  const d = +m[2];
+  return `${m[1] === "芝" ? "芝" : "ダ"} ${d <= 1400 ? "〜1400" : d <= 1800 ? "1500〜1800" : d <= 2200 ? "1900〜2200" : "2300〜"}`;
+}
+const ninkiBand = (n) => (n == null ? "不明" : n === 1 ? "1番人気" : n <= 3 ? "2〜3番人気" : n <= 6 ? "4〜6番人気" : "7番人気以下");
+const pwinBand = (p) => (p == null ? "不明" : (p *= 100) < 15 ? "〜15%" : p < 25 ? "15〜25%" : p < 35 ? "25〜35%" : "35%〜");
+const fieldBand = (n) => (n == null ? "不明" : n <= 10 ? "〜10頭" : n <= 14 ? "11〜14頭" : "15頭〜");
+const chaosBand = (p) => (p == null ? "不明" : p < 0.25 ? "低（下位25%）" : p < 0.5 ? "やや低" : p < 0.75 ? "やや高" : "高（上位25%）");
+
+export function trackRecord(rc, race) {
+  if (!rc || !rc.dims) return { error: "通信簿データがありません" };
+  const hon = (race.horses || []).find((h) => h.mark === "◎") || null;
+  const want = {
+    klass: klassGroup(race.klass), surface_dist: surfaceDist(race.course),
+    chaos: chaosBand((race.judgment || {}).chaos_pct),
+    honmei_ninki: hon ? ninkiBand(hon.ninki) : null, honmei_pwin: hon ? pwinBand(hon.p_win) : null,
+    field: fieldBand(race.field_size), place: race.place,
+  };
+  const fmt = (r, dim) => ({
+    condition: `${dim.label}=${r.key}`, n_races: r.n, honmei_win_rate_pct: r.win_rate, honmei_top3_rate_pct: r.top3_rate,
+    top3_ci95: [r.top3_lo, r.top3_hi], site_bets_roi_pct: r.roi, site_bets_n: r.bets_n,
+    reliability: r.n >= 100 ? "十分" : r.n >= 30 ? "参考" : "少なすぎ",
+  });
+  const rows = [];
+  for (const dim of rc.dims) {
+    const k = want[dim.key];
+    if (!k) continue;
+    const r = dim.rows.find((x) => x.key === k);
+    if (r) rows.push(fmt(r, dim));
+  }
+  const o = rc.overall || {};
+  return {
+    period: rc.period, race: raceLabel(race),
+    overall: { n_races: o.n, honmei_win_rate_pct: o.win_rate, honmei_top3_rate_pct: o.top3_rate, site_bets_roi_pct: o.roi },
+    this_race_conditions: rows,
+    note: "回収率はサイト表示の買い目（表示専用）の合計。80% 前後が控除率どおり。件数が少ない条件は結論にしない。",
+  };
+}
+
+/** LLM のツール呼び出しを橋渡し。戻り値は JSON 化可能な実値。extra = {reportCard} */
+export function dispatch(day, race, name, args, extra = {}) {
   const a = args || {};
   try {
     switch (name) {
       case "day_races": return dayRaces(day, race.race_id);
+      case "ai_track_record": return trackRecord(extra.reportCard, race);
       case "horse_info": {
         const h = findHorse(race, a.umaban_or_name);
         if (!h) return { error: `'${a.umaban_or_name}' に該当する馬が見つかりません`, roster: rosterLines(race) };

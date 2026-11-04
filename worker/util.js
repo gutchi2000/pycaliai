@@ -63,6 +63,17 @@ export async function loadDay(env, baseUrl, date) {
   dayCache.set(date, { at: Date.now(), day });
   return day;
 }
+let rcCache = null;   // {at, rc}
+/** AI の通信簿（site/data/report_card.json）。無ければ null。10 分キャッシュ。 */
+export async function loadReportCard(env, baseUrl) {
+  if (rcCache && Date.now() - rcCache.at < DAY_CACHE_MS) return rcCache.rc;
+  try {
+    const res = await env.ASSETS.fetch(new Request(new URL("/data/report_card.json", baseUrl), { method: "GET" }));
+    const rc = res.ok ? await res.json() : null;
+    rcCache = { at: Date.now(), rc };
+    return rc;
+  } catch { return null; }
+}
 export async function loadManifest(env, baseUrl) {
   const res = await env.ASSETS.fetch(new Request(new URL("/data/manifest.json", baseUrl), { method: "GET" }));
   return res.ok ? res.json() : null;

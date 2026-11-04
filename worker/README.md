@@ -37,3 +37,10 @@ Sonnet 5.5 ≈ $0.013、Haiku 5.5 ≈ $0.0007。150 問/日を Sonnet で使い�
 - 記事は KV `kaiko:v1:{date}:{race_id}` に永続（1 レース 1 回。再生成したいときは KV のキーを消す）
 - 生成経路: Phase C `[1f/3]`（`scripts/kaiko_warm.py`）／cron 月曜 03:00 JST（`triggers.crons`）／`site/kaiko.html` 閲覧時の lazy 生成
 - 上限: `KAIKO_DAILY_GEN`(150 件/日) と相談AI と共通の `SOUDAN_MONTH_USD_CAP`。費用は 1 レース ≈ $0.01、1 開催日 ≈ $0.3
+
+## 見どころ・RSS・Discord（2026-11-04）
+- `POST /api/kaiko/gen {date, race_id:"preview"}`: 発走前の「今日の見どころ」（結果を使わない `previewFacts()`）。結果待ちの日は一覧 API の `missing` が `["preview"]` になり、ページ閲覧でも生成される。
+- `GET /kaiko.xml`（`/api/kaiko/feed`）: 直近 12 開催日の総括と見どころの RSS 2.0（KV にあるものだけ、10 分キャッシュ）。`run_worker_first` に `/kaiko.xml` を入れてあるので assets の SPA フォールバックに食われない。
+- cron: `0 18 * * SUN`（月曜 03:00 JST、回顧）/ `0 20 * * FRI,SAT`（土日 05:00 JST、見どころ）。どちらも `warmLatest()`。
+- Discord: `scripts/kaiko_warm.py --discord` がこの実行で**新しく生成した**総括・見どころだけを `notify_config.json` の webhook へ投稿（T-10 と同じ設定ファイル。未設定なら skip）。
+- 相談AI のツール `ai_track_record`: `site/data/report_card.json`（`build_report_card.py`、AI の通信簿）をそのレースの条件で引く。

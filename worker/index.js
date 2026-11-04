@@ -19,7 +19,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM, TOOLS } from "./prompt.js";
 import { dispatch, findRace, raceLabel, rosterLines } from "./tools.js";
 import { handleFeed, handleGen, handleList, warmLatest } from "./kaiko.js";
-import { cors, json, jstParts, kvNum, kvSet, loadDay, microUsd, num, originOk, sha256Hex } from "./util.js";
+import { cors, json, jstParts, kvNum, kvSet, loadDay, loadReportCard, microUsd, num, originOk, sha256Hex } from "./util.js";
 
 const MAX_TURNS = 10;          // クライアントから受け取る履歴の上限（user+assistant 合計）
 const MAX_CHARS = 400;         // 1 発話の上限
@@ -102,6 +102,7 @@ async function soudan(request, env, ctx) {
   const race = findRace(day, raceId);
   if (!race) return json({ error: "そのレースが見つかりません", code: "no_race" }, 404, C);
   const finished = !!(race.result && race.result.top3);
+  const reportCard = await loadReportCard(env, request.url);   // AI の通信簿（無ければ null → ツールがその旨を返す）
   const system = [
     { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
     { type: "text", text:
@@ -129,7 +130,7 @@ async function soudan(request, env, ctx) {
         conv.push({ role: "assistant", content: res.content });
         conv.push({ role: "user", content: uses.map((u) => {
           toolsUsed.push(u.name);
-          return { type: "tool_result", tool_use_id: u.id, content: JSON.stringify(dispatch(day, race, u.name, u.input)) };
+          return { type: "tool_result", tool_use_id: u.id, content: JSON.stringify(dispatch(day, race, u.name, u.input, { reportCard })) };
         }) });
         continue;
       }

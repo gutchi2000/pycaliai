@@ -188,6 +188,7 @@ $SiteAllowPatterns = @(
     '^site/data/explain/.*\.json$',
     '^site/data/baba_today\.json$',
     '^site/data/realized_bias\.json$',
+    '^site/data/report_card\.json$',
     '^site/data/career_\d{8}\.json$',
     '^site/data/forecast_history/.*\.json$',
     '^site/data/calibration\.json$',

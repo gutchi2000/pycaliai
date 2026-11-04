@@ -1525,6 +1525,13 @@ def main() -> None:
     except Exception as e:
         print(f"[shusse skip] {e}")
 
+    # AI の通信簿 (2026-11-04): 公開済み site/data/{date}.json から条件別の ◎成績・買い目回収率を集計 → site/data/report_card.json
+    try:
+        import build_report_card as _brc
+        _brc.build()
+    except Exception as e:
+        print(f"[report_card skip] {e}")
+
 
 if __name__ == "__main__":
     main()

@@ -9,7 +9,7 @@
    記事は KV に永続（キー kaiko:v1:{date}:{race_id}）。生成は 1 レース 1 回だけ（コストは月数ドル）。
    ============================================================ */
 import Anthropic from "@anthropic-ai/sdk";
-import { courseBias, horseByUma, raceLabel } from "./tools.js";
+import { chaosPctLabel, chaosVerdict, courseBias, horseByUma, raceLabel } from "./tools.js";
 import { cors, json, jstParts, kvJson, kvNum, kvSet, loadDay, loadManifest, microUsd, num, originOk } from "./util.js";
 
 const VER = "v2";   // v1: 2026-11-04 初版（facts のキー名が本文に漏れたため v2 で文体規則を追加して再生成）
@@ -108,7 +108,7 @@ export function kaikoFacts(day, race) {
   return {
     race: raceLabel(race), date: day.date, baba: (race.baba || "").replace("(暫定)", ""), weather: (race.weather || "").replace("(暫定)", ""),
     ai_view: {
-      chaos: +chaos.toFixed(2), chaos_verdict: chaos >= 0.85 ? "見送り寄り" : chaos >= 0.6 ? "妙味次第" : "勝負可",
+      chaos: +chaos.toFixed(2), chaos_verdict: chaosVerdict(race), chaos_rank: chaosPctLabel(race),
       top1_dominance: c.top1_dominance ?? null, ai_market_agreement: c.ai_market_agreement ?? null,
       site_headline: j.headline || null, site_detail: j.detail || null,
     },
@@ -163,7 +163,7 @@ export function previewFacts(day) {
     const graded = /G[123]/.test(`${r.klass || ""} ${r.race_name || ""}`);
     return {
       place: r.place, rno: r.rno, klass: r.klass, race_name: r.race_name || null, course: r.course, start_time: r.start_time || null, field_size: r.field_size,
-      chaos: +chaos.toFixed(2), verdict: chaos >= 0.85 ? "見送り寄り" : chaos >= 0.6 ? "妙味次第" : "勝負可",
+      chaos: +chaos.toFixed(2), chaos_pct: (r.judgment || {}).chaos_pct ?? null, verdict: chaosVerdict(r),
       top1_dominance: c.top1_dominance ?? null, ai_market_agreement: c.ai_market_agreement ?? null,
       honmei: hon ? { umaban: hon.umaban, name: hon.name, p_win_pct: pct(hon.p_win), p_plc_pct: pct(hon.p_plc), ninki_morning: hon.ninki ?? null, market_view: hon.vs_market || null, style: hon.style || null, waku: hon.waku ?? null,
         reasons: (hon.why || []).slice(0, 3).map((w) => `${w.label}${(w.contrib ?? 0) >= 0 ? "(＋)" : "(－)"}`) } : null,
@@ -173,7 +173,8 @@ export function previewFacts(day) {
       graded,
     };
   });
-  const byChaos = [...rows].sort((a, b) => a.chaos - b.chaos || ((b.honmei?.p_win_pct ?? 0) - (a.honmei?.p_win_pct ?? 0)));
+  const cv = (x) => (x.chaos_pct != null ? x.chaos_pct : x.chaos);   // 百分位があればそれで並べる
+  const byChaos = [...rows].sort((a, b) => cv(a) - cv(b) || ((b.honmei?.p_win_pct ?? 0) - (a.honmei?.p_win_pct ?? 0)));
   const label = (x) => `${x.place}${x.rno}R${x.race_name ? `(${x.race_name})` : ""}`;
   const split = rows.filter((x) => x.honmei && (x.honmei.market_view === "under" || (x.honmei.ninki_morning ?? 1) >= 3))
     .sort((a, b) => (b.honmei.p_win_pct ?? 0) - (a.honmei.p_win_pct ?? 0)).slice(0, 3);
