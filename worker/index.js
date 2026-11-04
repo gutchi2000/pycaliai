@@ -18,7 +18,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM, TOOLS } from "./prompt.js";
 import { dispatch, findRace, raceLabel, rosterLines } from "./tools.js";
-import { handleGen, handleList, warmLatest } from "./kaiko.js";
+import { handleFeed, handleGen, handleList, warmLatest } from "./kaiko.js";
 import { cors, json, jstParts, kvNum, kvSet, loadDay, microUsd, num, originOk, sha256Hex } from "./util.js";
 
 const MAX_TURNS = 10;          // クライアントから受け取る履歴の上限（user+assistant 合計）
@@ -32,6 +32,7 @@ export default {
     if (url.pathname === "/api/soudan/health") return health(env);
     if (url.pathname === "/api/kaiko") return handleList(request, env);
     if (url.pathname === "/api/kaiko/gen") return handleGen(request, env, ctx);
+    if (url.pathname === "/kaiko.xml" || url.pathname === "/api/kaiko/feed") return handleFeed(request, env);
     if (url.pathname.startsWith("/api/")) return json({ error: "not found" }, 404);
     return env.ASSETS.fetch(request);
   },

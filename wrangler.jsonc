@@ -11,7 +11,7 @@
     "directory": "./site",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/kaiko.xml"]
   },
   "kv_namespaces": [
     { "binding": "SOUDAN_KV", "id": "cdc7e8c706bb4875b2490a63f13b8c33" }
@@ -29,6 +29,7 @@
     "KAIKO_DAILY_GEN": "150"
   },
   // 月曜 03:00 JST (= 日曜 18:00 UTC): Phase C 後の直近 2 開催日の回顧を埋める（ページを開いた人の端末からも lazy 生成される）
-  "triggers": { "crons": ["0 18 * * SUN"] },
+  // 土日 05:00 JST (= 金土 20:00 UTC): 結果待ちの開催日の「今日の見どころ」を埋める（Phase A が未実行でも出走表が公開済みなら生成）
+  "triggers": { "crons": ["0 18 * * SUN", "0 20 * * FRI,SAT"] },
   "observability": { "enabled": true }
 }

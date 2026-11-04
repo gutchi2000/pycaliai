@@ -272,6 +272,16 @@ if ($BetsOnly) {
         } else {
             Warn "sync-hf-umami.ps1 not found; skipping umami push"
         }
+        # [4/3] 今日の見どころ (2026-11-04): 出走表が本番に乗った後、Worker に発走前記事を生成させ Discord へ (best-effort)
+        Step "[4/3] 見どころ 生成 (Worker /api/kaiko/gen preview) + Discord"
+        try {
+            $prevExitKP = $LASTEXITCODE
+            $env:PYTHONIOENCODING = "utf-8"
+            & .\venv311\Scripts\python.exe scripts\kaiko_warm.py --discord 2>&1 | Select-Object -Last 5 | ForEach-Object { Write-Host "    $_" }
+            if ($LASTEXITCODE -ne 0) { Warn "kaiko_warm が exit $LASTEXITCODE (見どころは土日 05:00 の cron とページ閲覧時にも生成される)" }
+            else { OK "見どころ 生成 (https://pycaliai.com/kaiko)" }
+            $global:LASTEXITCODE = $prevExitKP
+        } catch { Warn "見どころ 生成 例外 (本番には影響なし): $($_.Exception.Message)" }
     }
     Write-Host ""
     Write-Host "Done. NiceGUI 'Cowork buy' tab will show the bets after rebuild." -ForegroundColor Green
@@ -398,11 +408,11 @@ if ($Post) {
     # [1f/3] 回顧記事 (2026-11-04): 鍵を持つ pycaliai.com の Worker に生成させる (best-effort、失敗は Warn のみ)。
     #   sync-hf-umami.ps1 (wrangler deploy) で当日の site/data が本番に乗った後でないと生成できないので、この位置。
     if (-not $SkipHF) {
-        Step "[1f/3] 回顧記事 生成 (Worker /api/kaiko/gen)"
+        Step "[1f/3] 回顧記事 生成 (Worker /api/kaiko/gen) + Discord"
         try {
             $prevExitKK = $LASTEXITCODE
             $env:PYTHONIOENCODING = "utf-8"
-            & .\venv311\Scripts\python.exe scripts\kaiko_warm.py 2>&1 | Select-Object -Last 4 | ForEach-Object { Write-Host "    $_" }
+            & .\venv311\Scripts\python.exe scripts\kaiko_warm.py --discord 2>&1 | Select-Object -Last 5 | ForEach-Object { Write-Host "    $_" }
             if ($LASTEXITCODE -ne 0) { Warn "kaiko_warm が exit $LASTEXITCODE (未生成分はページ閲覧時と月曜 03:00 の cron で埋まる)" }
             else { OK "回顧記事 生成 (https://pycaliai.com/kaiko)" }
             $global:LASTEXITCODE = $prevExitKK

@@ -12,6 +12,7 @@
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://pycaliai.com/apple-touch-icon.png">
 <meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="PyCaLiAI 回顧・見どころ" href="https://pycaliai.com/kaiko.xml">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -87,12 +88,13 @@
   <div class="ehead">
     <a href="index.html" class="backlink">← 予想に戻る</a>
     <h1>回顧 <span class="badge">負けた理由まで書く AI</span></h1>
+    <a href="https://pycaliai.com/kaiko.xml" class="backlink" title="RSS（総括と見どころ）">RSS</a>
   </div>
 
   <div class="intro">
     <section class="panel">
       <h2>このページについて</h2>
-      <p>毎開催の AI 予想を <b>全レース</b> 回顧します。当たったレースも外したレースも、「予想 → 結果 → ズレた理由」を同じ重さで。外した日は外した日として書きます。</p>
+      <p>開催日の朝は「<b>今日の見どころ</b>」（AI が堅いと見る鞍、人気と割れる鞍、見送り寄りの鞍）、結果が出た後は <b>全レース</b> の回顧。当たったレースも外したレースも、「予想 → 結果 → ズレた理由」を同じ重さで。外した日は外した日として書きます。</p>
       <p>文章は Claude が書きますが、根拠はこのサイトが公開している AI 評価（印・勝率・複勝率・近走・コース傾向・結果）だけです。オッズ・払戻・道中の不利など、サイトに無い情報は書きません。</p>
     </section>
     <section class="panel">
@@ -108,6 +110,7 @@
     <span class="st" id="st"></span>
   </div>
 
+  <section class="panel daycard" id="prevCard" hidden></section>
   <section class="panel daycard" id="dayCard"><span class="gen">読み込み中…</span></section>
   <div id="races"></div>
   <p class="note">AI 予測は参考情報です。的中・利益を保証しません。馬券の購入はご自身の判断と責任で。回顧文の生成には Anthropic 社の API を使用しています（<a href="legal.html#soudan">詳細</a>）。</p>

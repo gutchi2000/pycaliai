@@ -48,6 +48,21 @@ const SYSTEM_DAY = `あなたは JRA 中央競馬 AI 予想サイト「PyCaLiAI�
 2 部: 区切り行「---X---」の後に、X 投稿用の下書きを 140 字以内で 1 本。1 行目は日付と「回顧」、
   ◎の成績と目立ったレース 1 つ、ハッシュタグ無し、末尾に pycaliai.com/kaiko 。`;
 
+const SYSTEM_PREVIEW = `あなたは JRA 中央競馬 AI 予想サイト「PyCaLiAI」のライター。
+与えられた facts（JSON）だけを根拠に、その開催日の「今日の見どころ」（発走前の予告）を書く。
+
+【厳守】
+- 数字は facts にある値だけ（勝率・複勝率・混戦度・朝の人気順位・枠別複勝率）。オッズ・払戻・期待値は無いので書かない。
+- facts のキー名（chaos, market_view, ai_rank など）やローマ字の値を本文に書かない。「混戦度」「AI 評価が人気より高い」「AI n 位」と日本語で。
+- 「買え」「勝負」「鉄板」「おいしい」など購入を促す言葉は使わない。「AI の評価上は」「数字の上では」の言い方。
+- 見出し・箇条書き・絵文字なし。常体。全体で 500 字以内。
+
+出力形式（この 2 部構成を厳守）:
+1 部: 本文 7〜11 行。1 行目は日付・開催場・レース数と最初の発走時刻。
+  次に「AI が堅いと見る 3 鞍」（場所 R、◎馬名、勝率、混戦度）、「AI と人気が割れる鞍」（◎が朝の人気で何番手か、AI 評価が人気より高い理由を根拠ラベルから 1 つ）、
+  「見送り寄りの鞍」（混戦度が高い）。重賞があればその◎と根拠を 1 行。最後の行は「注目:」で始める 1 文（その日いちばん見るべき 1 鞍と理由）。
+2 部: 区切り行「---X---」の後に X 投稿用の下書きを 140 字以内で 1 本。1 行目は日付と「見どころ」、堅い鞍 1 つと割れる鞍 1 つ、ハッシュタグ無し、末尾に pycaliai.com/kaiko 。`;
+
 /* ---------------- facts ---------------- */
 /** 着順。order が 0 でも top3 に居れば同着（build_site の order は同着を 0 にする）→ top3 の位置。
     どちらにも無ければ出走取消・除外・競走中止 → null。 */
@@ -137,6 +152,40 @@ export function dayFacts(day) {
   };
 }
 
+/** 発走前の「今日の見どころ」用 facts（結果は使わない）。 */
+export function previewFacts(day) {
+  const rows = (day.races || []).map((r) => {
+    const c = r.confidence || {};
+    const chaos = c.field_chaos_score ?? 0;
+    const hon = (r.horses || []).find((h) => h.mark === "◎") || null;
+    const maru = (r.horses || []).find((h) => h.mark === "〇" || h.mark === "○") || null;
+    const cb = courseBias(day, r);
+    const graded = /G[123]/.test(`${r.klass || ""} ${r.race_name || ""}`);
+    return {
+      place: r.place, rno: r.rno, klass: r.klass, race_name: r.race_name || null, course: r.course, start_time: r.start_time || null, field_size: r.field_size,
+      chaos: +chaos.toFixed(2), verdict: chaos >= 0.85 ? "見送り寄り" : chaos >= 0.6 ? "妙味次第" : "勝負可",
+      top1_dominance: c.top1_dominance ?? null, ai_market_agreement: c.ai_market_agreement ?? null,
+      honmei: hon ? { umaban: hon.umaban, name: hon.name, p_win_pct: pct(hon.p_win), p_plc_pct: pct(hon.p_plc), ninki_morning: hon.ninki ?? null, market_view: hon.vs_market || null, style: hon.style || null, waku: hon.waku ?? null,
+        reasons: (hon.why || []).slice(0, 3).map((w) => `${w.label}${(w.contrib ?? 0) >= 0 ? "(＋)" : "(－)"}`) } : null,
+      maru: maru ? { umaban: maru.umaban, name: maru.name, p_win_pct: pct(maru.p_win) } : null,
+      site_headline: (r.judgment || {}).headline || null,
+      course_bias_verdict: cb.error ? null : cb.verdict,
+      graded,
+    };
+  });
+  const byChaos = [...rows].sort((a, b) => a.chaos - b.chaos || ((b.honmei?.p_win_pct ?? 0) - (a.honmei?.p_win_pct ?? 0)));
+  const label = (x) => `${x.place}${x.rno}R${x.race_name ? `(${x.race_name})` : ""}`;
+  const split = rows.filter((x) => x.honmei && (x.honmei.market_view === "under" || (x.honmei.ninki_morning ?? 1) >= 3))
+    .sort((a, b) => (b.honmei.p_win_pct ?? 0) - (a.honmei.p_win_pct ?? 0)).slice(0, 3);
+  const starts = rows.map((x) => x.start_time).filter(Boolean).sort();
+  return {
+    date: day.date, places: day.places || [], n_races: rows.length, first_start: starts[0] || null,
+    most_solid: byChaos.slice(0, 3).map(label), most_chaotic: byChaos.slice(-3).reverse().map(label),
+    ai_vs_market_split: split.map(label), graded_races: rows.filter((x) => x.graded).map(label),
+    races: rows,
+  };
+}
+
 /* ---------------- generation ---------------- */
 const key = (date, rid) => `kaiko:${VER}:${date}:${rid}`;
 
@@ -174,6 +223,10 @@ export async function generateOne(env, baseUrl, date, rid, ctx) {
     facts = dayFacts(day);
     if (!facts.n_races) return { error: "結果のあるレースがありません", code: "no_result" };
     system = SYSTEM_DAY; maxTokens = 900;
+  } else if (rid === "preview") {
+    facts = previewFacts(day);
+    if (!facts.n_races) return { error: "出走表がありません", code: "no_race" };
+    system = SYSTEM_PREVIEW; maxTokens = 1000;
   } else {
     const race = (day.races || []).find((r) => String(r.race_id) === String(rid));
     if (!race) return { error: "そのレースが見つかりません", code: "no_race" };
@@ -186,10 +239,12 @@ export async function generateOne(env, baseUrl, date, rid, ctx) {
   catch (e) { return { error: "生成に失敗しました（上流）", code: "upstream", status: e && e.status || null }; }
   if (!out.text) return { error: "生成結果が空でした", code: "empty" };
   let item;
-  if (rid === "day") {
+  if (rid === "day" || rid === "preview") {
     const [body, x] = out.text.split(/\n-{3}X-{3}\n?/);
-    item = { date, race_id: "day", text: (body || "").trim(), x_post: (x || "").trim().slice(0, 140), model: out.model, generated_at: iso, usage: out.usage,
-      stats: { n_races: facts.n_races, honmei_win: facts.honmei_win, honmei_top3: facts.honmei_top3, site_bets_hit: facts.site_bets_hit, site_bets_n: facts.site_bets_n } };
+    item = { date, race_id: rid, text: (body || "").trim(), x_post: (x || "").trim().slice(0, 140), model: out.model, generated_at: iso, usage: out.usage,
+      stats: rid === "day"
+        ? { n_races: facts.n_races, honmei_win: facts.honmei_win, honmei_top3: facts.honmei_top3, site_bets_hit: facts.site_bets_hit, site_bets_n: facts.site_bets_n }
+        : { n_races: facts.n_races, n_graded: facts.graded_races.length, first_start: facts.first_start } };
   } else {
     item = { date, race_id: rid, text: out.text, model: out.model, generated_at: iso, usage: out.usage,
       honmei_in_top3: facts.honmei_in_top3, honmei_result_pos: facts.honmei_result_pos, site_bets_hit: facts.site_bets_hit, site_bets_n: facts.site_bets_n };
@@ -211,13 +266,14 @@ export async function listKaiko(env, baseUrl, date) {
   if (!day) return null;
   const kv = env.SOUDAN_KV;
   const races = (day.races || []).filter((r) => r.result && r.result.top3);
-  const items = await Promise.all([kvJson(kv, key(date, "day")), ...races.map((r) => kvJson(kv, key(date, r.race_id)))]);
-  const dayItem = items[0];
+  const upcoming = races.length === 0;
+  const items = await Promise.all([kvJson(kv, key(date, "day")), kvJson(kv, key(date, "preview")), ...races.map((r) => kvJson(kv, key(date, r.race_id)))]);
+  const dayItem = items[0], previewItem = items[1];
   const out = races.map((r, i) => {
     const order = r.result.order || {};
     const marks = (r.horses || []).filter((h) => h.mark && MARK_TIER[h.mark]).sort((a, b) => MARK_TIER[a.mark] - MARK_TIER[b.mark]);
     const h = marks[0] || null;
-    const it = items[i + 1];
+    const it = items[i + 2];
     return {
       race_id: r.race_id, place: r.place, rno: r.rno, race_name: r.race_name || "", klass: r.klass, course: r.course, start_time: r.start_time || "",
       honmei: h ? { umaban: h.umaban, name: h.name, p_win_pct: pct(h.p_win), ninki: h.ninki ?? null, pos: posOf(order, h.umaban, r.result.top3) } : null,
@@ -227,11 +283,44 @@ export async function listKaiko(env, baseUrl, date) {
       text: it ? it.text : null, model: it ? it.model : null, generated_at: it ? it.generated_at : null,
     };
   });
+  // missing: 結果がある日は day + 未生成レース。結果が無い日（これから走る日）は preview だけ。
+  const missing = upcoming
+    ? (previewItem ? [] : ["preview"])
+    : [...(dayItem ? [] : ["day"]), ...out.filter((x) => !x.text).map((x) => x.race_id)];
   return {
-    date, places: day.places || [], n_races: out.length,
-    day: dayItem, races: out,
-    missing: [...(dayItem ? [] : ["day"]), ...out.filter((x) => !x.text).map((x) => x.race_id)],
+    date, places: day.places || [], n_races: out.length, n_total: (day.races || []).length, upcoming,
+    day: dayItem, preview: previewItem, races: out, missing,
   };
+}
+
+/** RSS 2.0: 直近の総括と見どころ（KV にあるものだけ）。 */
+export async function handleFeed(request, env) {
+  const mf = await loadManifest(env, request.url);
+  const kv = env.SOUDAN_KV;
+  const dates = (mf && mf.dates ? mf.dates : []).slice(0, 12).map((d) => d.date);
+  const got = await Promise.all(dates.flatMap((d) => [kvJson(kv, key(d, "day")), kvJson(kv, key(d, "preview"))]));
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmt = (d8) => `${+d8.slice(4, 6)}/${+d8.slice(6, 8)}`;
+  const rfc = (iso) => { const d = new Date((iso || "2026-01-01 00:00").replace(" ", "T") + ":00+09:00"); return Number.isNaN(d.getTime()) ? new Date().toUTCString() : d.toUTCString(); };
+  const items = [];
+  got.forEach((it, i) => {
+    if (!it) return;
+    const d = dates[Math.floor(i / 2)];
+    const isDay = it.race_id === "day";
+    const s = it.stats || {};
+    const title = isDay ? `${fmt(d)} 回顧 — ◎${s.honmei_win ?? "?"}勝／複勝圏${s.honmei_top3 ?? "?"}／${s.n_races ?? "?"}R` : `${fmt(d)} 今日の見どころ`;
+    items.push({ title, link: `https://pycaliai.com/kaiko#${d}`, guid: `kaiko-${d}-${it.race_id}`, pub: rfc(it.generated_at), desc: it.text });
+  });
+  items.sort((a, b) => new Date(b.pub) - new Date(a.pub));
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+<title>PyCaLiAI 回顧・見どころ</title>
+<link>https://pycaliai.com/kaiko</link>
+<description>AI 競馬予想 PyCaLiAI の毎開催の見どころと、全レース回顧（負けた理由まで書く AI）。</description>
+<language>ja</language>
+${items.map((x) => `<item><title>${esc(x.title)}</title><link>${esc(x.link)}</link><guid isPermaLink="false">${esc(x.guid)}</guid><pubDate>${x.pub}</pubDate><description>${esc(x.desc)}</description></item>`).join("\n")}
+</channel></rss>`;
+  return new Response(xml, { status: 200, headers: { "content-type": "application/rss+xml; charset=utf-8", "cache-control": "public, max-age=600" } });
 }
 
 /* ---------------- HTTP handlers ---------------- */
@@ -256,18 +345,23 @@ export async function handleGen(request, env, ctx) {
   let body;
   try { body = await request.json(); } catch { return json({ error: "bad json" }, 400, C); }
   const date = String(body.date || ""), rid = String(body.race_id || "");
-  if (!/^\d{8}$/.test(date) || !(rid === "day" || /^\d{16}$/.test(rid))) return json({ error: "bad date/race_id" }, 400, C);
+  if (!/^\d{8}$/.test(date) || !(rid === "day" || rid === "preview" || /^\d{16}$/.test(rid))) return json({ error: "bad date/race_id" }, 400, C);
   const r = await generateOne(env, request.url, date, rid, ctx);
   if (r.error) return json(r, r.code === "daily_limit" || r.code === "month_limit" ? 429 : r.code === "busy" ? 409 : r.code === "upstream" ? 502 : 404, C);
   return json({ item: r.item, created: r.created, stored: r.created ? r.stored : true }, 200, C);
 }
 
-/** cron: 直近 2 開催日（結果あり）の未生成分を順に埋める。 */
+/** cron: 結果待ちの開催日は「見どころ」を、直近 2 開催日（結果あり）は未生成の回顧を順に埋める。 */
 export async function warmLatest(env, baseUrl, maxDates = 2) {
   const mf = await loadManifest(env, baseUrl);
   if (!mf) return { error: "no manifest" };
-  const dates = (mf.dates || []).filter((d) => d.has_results).slice(0, maxDates).map((d) => d.date);
   const log = [];
+  for (const d of (mf.dates || []).filter((x) => !x.has_results).slice(0, 2)) {
+    const r = await generateOne(env, baseUrl, d.date, "preview", null);
+    log.push(`${d.date}: preview ${r.error ? `NG(${r.code})` : r.created ? "made" : "exists"}`);
+    if (r.error && (r.code === "daily_limit" || r.code === "month_limit" || r.code === "no_key")) return { log };
+  }
+  const dates = (mf.dates || []).filter((d) => d.has_results).slice(0, maxDates).map((d) => d.date);
   for (const date of dates) {
     const lst = await listKaiko(env, baseUrl, date);
     if (!lst) continue;

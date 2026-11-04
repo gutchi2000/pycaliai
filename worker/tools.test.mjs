@@ -111,3 +111,16 @@ test("kaiko: facts は結果のあるレースだけ、数字は公開 JSON と�
   assert.equal(df.races.length, done.length);
   assert.ok(!FORBIDDEN.test(JSON.stringify(df)));
 });
+
+// ---- 2026-11-04: 見どころ facts ----
+import { previewFacts } from "./kaiko.js";
+test("preview: 結果を使わず全レース、堅い/割れる/荒れる の一覧、禁止語なし", { skip: !day && "site/data なし" }, () => {
+  const f = previewFacts(day);
+  assert.equal(f.n_races, day.races.length);
+  assert.equal(f.races.length, day.races.length);
+  assert.ok(f.most_solid.length >= 1 && f.most_chaotic.length >= 1);
+  assert.ok(!JSON.stringify(f).includes("result_pos"), "見どころは結果を含めない");
+  assert.ok(!FORBIDDEN.test(JSON.stringify(f)));
+  const solid = f.races.find((x) => f.most_solid[0].startsWith(`${x.place}${x.rno}R`));
+  assert.ok(solid && solid.chaos === Math.min(...f.races.map((x) => x.chaos)));
+});
