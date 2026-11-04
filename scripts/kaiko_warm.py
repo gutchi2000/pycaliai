@@ -26,8 +26,10 @@ ORIGIN = "https://pycaliai.com"
 
 def _req(method: str, path: str, body: dict | None = None, timeout: int = 120):
     data = json.dumps(body).encode("utf-8") if body is not None else None
+    # Cloudflare は既定の Python-urllib UA を 403 で弾くので、識別できる UA を名乗る
     req = urllib.request.Request(BASE + path, data=data, method=method,
-                                 headers={"content-type": "application/json", "origin": ORIGIN})
+                                 headers={"content-type": "application/json", "origin": ORIGIN,
+                                          "user-agent": "PyCaLiAI-kaiko-warm/1.0 (+https://pycaliai.com)"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return r.status, json.loads(r.read().decode("utf-8"))
