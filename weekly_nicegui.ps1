@@ -4,11 +4,11 @@
 # Purpose:
 #   One script that handles three phases:
 #     [A] PRE-RACE  (default)  : hosei + bundle.json + push
-#                                 + sync-hf.ps1 (NiceGUI) + sync-hf-umami.ps1 (static 本番)
+#                                 + sync-hf-umami.ps1 (static 本番; 旧 NiceGUI Space は -WithNiceGUI のときだけ)
 #     [B] BETS-ONLY (-BetsOnly): push reports/cowork_output/ only
 #                                 (after Cowork returns the bets JSON)
-#                                 + sync-hf.ps1 + sync-hf-umami.ps1
-#     [C] POST-RACE (-Post)    : run weekly_post.ps1 + sync-hf.ps1 + sync-hf-umami.ps1
+#                                 + sync-hf-umami.ps1
+#     [C] POST-RACE (-Post)    : run weekly_post.ps1 + sync-hf-umami.ps1
 #
 # Typical week:
 #   TARGET から出したら data\_inbox\ に全部放り込む (出走表=S / 過去5走=K を先頭に)
@@ -31,11 +31,11 @@
 #
 # Phase A steps (default):
 #   0. place_weekly.py          -> data\_inbox\ の CSV を weekly/kako5/kekka/training/bias へ振り分け
-#   1. make_weekly_hosei.py     -> data/hosei/H_{date}.csv
+#   1. make_weekly_hosei.py     -> data/hosei/H_{date}.csv  (2026-11-04〜 既定 SKIP、-WithHosei で実行)
 #   2. predict_weekly.py        -> reports/pred_{date}.csv  (Streamlit)
 #   3. export_weekly_marks.py   -> reports/cowork_input/{date}_bundle.json
 #   4. git add + commit + push origin master  (Streamlit Cloud)
-#   5. sync-hf.ps1                            (HuggingFace Spaces)
+#   5. sync-hf-umami.ps1                      (本番 静的サイト。旧 NiceGUI Space は -WithNiceGUI)
 ##############################################################
 param(
     [string]$Date = "",
@@ -47,6 +47,8 @@ param(
     [switch]$BetsOnly,
     [switch]$Post,
     [switch]$SkipIntake,  # data\_inbox\ の自動振り分け (place_weekly.py) をスキップ
+    [switch]$WithNiceGUI, # 旧 NiceGUI Space (sync-hf.ps1) も同期する。2026-11-04 に既定 OFF (退役)
+    [switch]$WithHosei,   # make_weekly_hosei.py を実行する。TARGET の補正タイム供給停止 (2026-09-19) 後は既定 SKIP
     [switch]$Force   # 見送りガードが実行できなくても続行する明示バイパス (fail-closed の解除)
 )
 
@@ -260,8 +262,12 @@ if ($BetsOnly) {
         }
     }
     if (-not $SkipHF) {
-        Step "[2/3] sync-hf.ps1 (NiceGUI Space)"
-        & .\sync-hf.ps1
+        if ($WithNiceGUI) {
+            Step "[2/3] sync-hf.ps1 (旧 NiceGUI Space, -WithNiceGUI)"
+            & .\sync-hf.ps1
+        } else {
+            Step "[2/3] sync-hf.ps1 SKIPPED (旧 NiceGUI Space は 2026-11-04 退役。必要なら -WithNiceGUI)"
+        }
         Step "[3/3] sync-hf-umami.ps1 (static 本番サイト pycaliai-umami)"
         if (Test-Path 'sync-hf-umami.ps1') {
             # -Date without -Live: Phase A already captured the ledger (or should have).
@@ -301,7 +307,13 @@ if ($Post) {
         Fail "weekly_post.ps1 not found"
     }
     Step "[1/2] weekly_post.ps1 $Date"
-    & .\weekly_post.ps1 $Date
+    # 2026-11-04 (N): 出力を logs\weekly_post_{date}.log に残し、終了後に WARNING/Error 行を Discord へ (best-effort)
+    if (-not (Test-Path 'logs')) { New-Item -ItemType Directory -Path 'logs' | Out-Null }
+    $postLog = "logs\weekly_post_$Date.log"
+    & .\weekly_post.ps1 $Date 2>&1 | Tee-Object -FilePath $postLog
+    $rcPost = $LASTEXITCODE
+    python scripts\run_notify.py --tag "Phase C weekly_post $Date" --scan $postLog --rc $rcPost
+    $global:LASTEXITCODE = $rcPost
     # weekly_post の失敗 (generate_results / git push 等) を握りつぶして HF 同期に
     # 進むと、結果更新漏れのまま緑の Done が出て翌週まで気付けない。失敗は伝搬させる。
     if ($LASTEXITCODE -ne 0) { Fail "weekly_post.ps1 failed (exit $LASTEXITCODE)。HF 同期を中止します。" }
@@ -325,6 +337,13 @@ if ($Post) {
     #    settle は全週分を毎回re-チェックする設計なので --weeks 指定は不要
     #    (結果未着分は自然に未決済のまま残り、次回実行時に再試行される)。
     Invoke-ShadowStep -Label "settle" -PyArgs @("settle") -TimeoutSec 120
+    # 2026-11-04 (O): 現行較正器の 2026 実配信 ECE が fit 時参照から離れていないか (離れたときだけ Discord、再 fit は手動)
+    try {
+        $prevExitDr = $LASTEXITCODE
+        & .\venv311\Scripts\python.exe -m analysis.calibration_drift_check --notify 2>&1 | Select-Object -Last 4 | ForEach-Object { Write-Host "    $_" }
+        if ($LASTEXITCODE -ne 0) { Warn "calibration_drift_check が exit $LASTEXITCODE (監視のみ、本番には影響なし)" }
+        $global:LASTEXITCODE = $prevExitDr
+    } catch { Warn "calibration_drift_check 例外 (監視のみ): $($_.Exception.Message)" }
 
     # --- wide residual shadow (v3 前向き, 実弾0円) の決済品質チェック -----------
     # シャドーは本番ラインではないので Fail させない。ただし「ワイド払戻CSVの
@@ -390,8 +409,12 @@ if ($Post) {
     } catch { Warn "出世予測 AI 更新 例外 (本番には影響なし): $($_.Exception.Message)" }
 
     if (-not $SkipHF) {
-        Step "[2/3] sync-hf.ps1 (NiceGUI Space)"
-        & .\sync-hf.ps1
+        if ($WithNiceGUI) {
+            Step "[2/3] sync-hf.ps1 (旧 NiceGUI Space, -WithNiceGUI)"
+            & .\sync-hf.ps1
+        } else {
+            Step "[2/3] sync-hf.ps1 SKIPPED (旧 NiceGUI Space は 2026-11-04 退役。必要なら -WithNiceGUI)"
+        }
         Step "[3/3] sync-hf-umami.ps1 (static 本番サイト pycaliai-umami)"
         if (Test-Path 'sync-hf-umami.ps1') {
             # -RebuildCalibration: weekly_post.ps1 above already landed this week's kekka,
@@ -442,12 +465,18 @@ Write-Host "  weekly_nicegui [Pre] : $Date  (model=$Model)" -ForegroundColor Gre
 Write-Host "============================================================" -ForegroundColor Green
 
 # -- Step 1: hosei --
-Step "[1/5] make_weekly_hosei.py"
-python make_weekly_hosei.py --csv $csvPath
-if ($LASTEXITCODE -ne 0) {
-    Warn "hosei generation failed (continuing without)"
+if ($WithHosei) {
+    Step "[1/5] make_weekly_hosei.py (-WithHosei)"
+    python make_weekly_hosei.py --csv $csvPath
+    if ($LASTEXITCODE -ne 0) {
+        Warn "hosei generation failed (continuing without)"
+    } else {
+        OK "data\hosei\H_$Date.csv"
+    }
 } else {
-    OK "data\hosei\H_$Date.csv"
+    # 2026-11-04 (R): TARGET の補正タイム供給は 2026-09-19 で恒久停止し、H_{date}.csv はヘッダだけを量産していた。
+    # prev_hosei/prev_hosei9 は Step 3 の推定器 (CB_HOSEI_PROXY=1) が埋める。供給が戻ったら -WithHosei。
+    Step "[1/5] make_weekly_hosei.py SKIPPED (補正タイム供給停止、prev_hosei は推定器。再開は -WithHosei)"
 }
 
 # -- Step 2: predict (Streamlit only, optional) --
@@ -471,7 +500,10 @@ if ($WithPredict -and -not $SkipPredict) {
 # (analysis/prev_hosei_proxy.py、本物の値がある馬には触らない)。
 Step "[3/5] export_weekly_marks.py (model=$Model) -> bundle.json"
 $env:CB_HOSEI_PROXY = "1"
-python export_weekly_marks.py --csv $csvPath --model $Model
+# 2026-11-04 (N): 出力を logs\export_{date}.log に残し、WARNING 以上と serve canary 行だけ Discord へ転送する
+# (scripts\run_notify.py、best-effort)。exit code は export のものがそのまま返る。
+if (-not (Test-Path 'logs')) { New-Item -ItemType Directory -Path 'logs' | Out-Null }
+python scripts\run_notify.py --tag "Phase A export $Date" --log "logs\export_$Date.log" -- python export_weekly_marks.py --csv $csvPath --model $Model
 Remove-Item Env:\CB_HOSEI_PROXY -ErrorAction SilentlyContinue
 if ($LASTEXITCODE -ne 0) {
     Fail "export_weekly_marks.py failed. NiceGUI needs the bundle."

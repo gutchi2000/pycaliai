@@ -1,0 +1,81 @@
+{
+ "generated_at": "2026-11-04 22:17",
+ "latest_weekly": "20261101",
+ "rows": [
+  {
+   "id": "CW-01",
+   "name": "EXP19 当日馬体重 W経路 (T−28 完全率)",
+   "current": 1,
+   "target": 4,
+   "unit": "開催日",
+   "status": "収集中 (歴史 Stage 1 入口: T-28 観測 1/4 開催日)",
+   "latest": "20260926",
+   "source": "analysis\\mcond\\exp19_bodyweight_track_condition_dev\\out\\forward_parity.json"
+  },
+  {
+   "id": "CW-02",
+   "name": "障害履歴 forward-only collector",
+   "current": 20,
+   "target": null,
+   "unit": "開催日",
+   "latest": "20261101",
+   "source": "data\\history_only\\jump\\manifest.json"
+  },
+  {
+   "id": "CW-03",
+   "name": "EXP05-F T−35 前向き市場観測 (valid primary)",
+   "current": 391,
+   "target": 6600,
+   "unit": "race",
+   "latest": "20261101",
+   "market": 403,
+   "source": "analysis.mcond.exp05_forward_shadow.observation_report --cumulative"
+  },
+  {
+   "id": "CW-09",
+   "name": "三連複 0B35 500R (本番記録のみ、Dry は数えない)",
+   "current": 0,
+   "target": 500,
+   "unit": "race",
+   "latest": null,
+   "note": "Stage 0 未通過なら 0 のまま (CW-07/08 Dry 継続)",
+   "source": "data/forward_prices/*/*trio_t10*"
+  },
+  {
+   "id": "CW-10",
+   "name": "shadow a95_equal_v1 (紙上台帳・全レース)",
+   "current": 113,
+   "target": 500,
+   "unit": "race",
+   "latest": "20261101",
+   "since": "20261024",
+   "source": "data/shadow_ledger/a95_equal_v1/settlements"
+  },
+  {
+   "id": "CW-11",
+   "name": "本線 a95_equal_v1 前向き cohort (参戦ガード通過・決済済)",
+   "current": 70,
+   "target": 500,
+   "unit": "race",
+   "latest": "20261101",
+   "since": "20261024",
+   "source": "reports/cowork_output/*_bets.json (a95_all.guard_passed) × data/kekka"
+  }
+ ],
+ "alerts": [
+  "CW-01 停滞: 最終 20260926 だが開催は 20261101 まで進んでいる (EXP19 当日馬体重 W経路 (T−28 完全率))"
+ ],
+ "history": [
+  {
+   "at": "2026-11-04 22:17",
+   "counts": {
+    "CW-01": 1,
+    "CW-02": 20,
+    "CW-03": 391,
+    "CW-09": 0,
+    "CW-10": 113,
+    "CW-11": 70
+   }
+  }
+ ]
+}

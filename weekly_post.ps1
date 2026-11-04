@@ -92,6 +92,15 @@ if (Test-Path $wideCsv) {
     Write-Warning "$wideCsv が無い (ワイド決済は未決済のまま公開される)"
 }
 
+# -- Step 2.9: 収集待ち台帳の Gate 判定 (2026-11-04) --
+# docs/research/COLLECTION_WAIT_REGISTRY.md の各行 (a95 500R、EXP05-F 6600R、EXP19 4日 等) を正本から数え直し、
+# Gate 到達・減少・消失・停滞のときだけ Discord へ。現況は docs/research/COLLECTION_WAIT_STATUS.md (自動生成)。non-fatal。
+Write-Host "[2.9/4] collection_wait_gate ..." -ForegroundColor Cyan
+python -m analysis.collection_wait_gate --notify
+if ($LASTEXITCODE -ne 0) {
+    Write-Warning "collection_wait_gate failed (non-fatal, continuing...)"
+}
+
 # -- Step 2.7: 決済ドリフト係数の鮮度管理 (SettleAI Phase 0, 2026-07-31) --
 # reports/settle_drift.json が 28 日より古ければ live_odds 全量で再実測、
 # 毎週は --check で compute_bets の SETTLE_DRIFT_* 配線値との乖離を警告 (non-fatal)。
