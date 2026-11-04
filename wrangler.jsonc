@@ -29,6 +29,6 @@
     "KAIKO_DAILY_GEN": "150"
   },
   // 月曜 03:00 JST (= 日曜 18:00 UTC): Phase C 後の直近 2 開催日の回顧を埋める（ページを開いた人の端末からも lazy 生成される）
-  "triggers": { "crons": ["0 18 * * 0"] },
+  "triggers": { "crons": ["0 18 * * SUN"] },
   "observability": { "enabled": true }
 }
