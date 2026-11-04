@@ -267,9 +267,9 @@ def write_html(day: dict, race: dict, has_png: bool) -> bool:
     html = HTML_TPL.format(title=_esc(race_title(race) + (f" {race['race_name']}" if race.get("race_name") else "")),
                            desc=_esc(description(day, race)), url=url, img=img, rid=rid)
     p = R_DIR / f"{rid}.html"
-    if p.exists() and p.read_text(encoding="utf-8") == html:
+    if p.exists() and p.read_bytes() == html.encode("utf-8"):
         return False
-    p.write_text(html, encoding="utf-8")
+    p.write_bytes(html.encode("utf-8"))   # LF 固定 (Windows の text mode で CRLF にしない)
     return True
 
 
