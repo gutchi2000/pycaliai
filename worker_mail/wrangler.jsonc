@@ -1,0 +1,12 @@
+{
+  // pycaliai-mail — contact@pycaliai.com の受信を Discord（私用サーバー）に知らせる Email Worker（2026-11-05）。
+  //   サイト用の pycaliai Worker（../wrangler.jsonc）とは別。HTTP は受けない（workers.dev も無効）。
+  //   有効化は Cloudflare ダッシュボード → Email → Email Routing → contact@ のルールの動作を「Worker に送信 → pycaliai-mail」。
+  //   秘密 FORWARD_TO / DISCORD_WEBHOOK は `npx wrangler secret put <名前> -c worker_mail/wrangler.jsonc`。
+  "name": "pycaliai-mail",
+  "main": "index.js",
+  "compatibility_date": "2026-07-25",
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true }
+}
