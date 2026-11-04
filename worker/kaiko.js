@@ -12,7 +12,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { courseBias, horseByUma, raceLabel } from "./tools.js";
 import { cors, json, jstParts, kvJson, kvNum, kvSet, loadDay, loadManifest, microUsd, num, originOk } from "./util.js";
 
-const VER = "v1";
+const VER = "v2";   // v1: 2026-11-04 初版（facts のキー名が本文に漏れたため v2 で文体規則を追加して再生成）
 const MARK_TIER = { "◎": 1, "〇": 2, "○": 2, "▲": 3, "△": 4 };
 const pct = (v) => (v == null ? null : +(v * 100).toFixed(1));
 
@@ -26,7 +26,11 @@ const SYSTEM_RACE = `あなたは JRA 中央競馬 AI 予想サイト「PyCaLiAI
   脚質と course_bias の傾向、枠、◎の近走の不安定さ（avg_pos / last_run）、混戦度（chaos）、勝ち馬の AI 順位と人気。
 - 当たったときも持ち上げすぎない。「AI 評価どおり」で済ませ、根拠を 1 つ添える。
 - 馬券の購入を促す言葉（買え・勝負・鉄板・おいしい）は使わない。
-- 文体は常体。見出し・箇条書き・絵文字なし。5〜8 行、各行は 1 文か 2 文。
+- facts のキー名（market_view, chaos, top1_dominance, umami, ai_rank, p_win_pct など）やローマ字の値を本文に書かない。
+  必ず日本語に言い換える: market_view over＝「人気が AI 評価より先行」/ under＝「AI 評価が人気より高い」/ fair＝「人気と AI 評価が一致」、
+  chaos＝「混戦度」、top1_dominance＝「本命優位」、umami 罠＝「人気薄で見かけ上おいしく見えるが AI は推さない馬」、
+  ai_rank＝「AI n 位」、p_win_pct＝「勝率 n%」、ninki_morning＝「朝の n 番人気」。
+- 文体は常体。見出し・箇条書き・絵文字なし。5〜8 行、各行は 1 文か 2 文。全体で 400 字以内。
 - 1 行目は「予想」（◎と評価）、2 行目は「結果」（1〜3 着と◎の着順）、3 行目以降が理由。最後の行は「教訓:」で始める 1 文。`;
 
 const SYSTEM_DAY = `あなたは JRA 中央競馬 AI 予想サイト「PyCaLiAI」の回顧記事ライター。
@@ -36,6 +40,7 @@ const SYSTEM_DAY = `あなたは JRA 中央競馬 AI 予想サイト「PyCaLiAI�
 - 数字は facts にある値だけ。レース数・◎の勝利数と複勝圏数・買い目の的中数・固有名は facts から。
 - 良かった点と悪かった点を同じ重さで書く。外れた日は外れた日として書く。言い訳をしない。
 - オッズ・払戻金・収支額は facts に無いので書かない。
+- facts のキー名（ai_rank, ninki_morning, chaos など）やローマ字の値を本文に書かない。「AI n 位」「朝の n 番人気」「混戦度」と日本語で書く。
 - 馬券の購入を促す言葉は使わない。見出し・箇条書き・絵文字なし。常体。
 
 出力形式（この 2 部構成を厳守）:
