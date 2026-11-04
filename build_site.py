@@ -1465,6 +1465,15 @@ def main() -> None:
         json.dump(manifest, f, ensure_ascii=False, indent=1)
     print(f"manifest: {len(manifest_entries)} dates")
 
+    # レース共有カード (固定 URL /r/{rid} + OG 画像)。失敗しても本体には影響させない
+    try:
+        from build_share_cards import build as _build_share_cards
+        _st = _build_share_cards(manifest_entries)
+        print(f"share cards: html {_st['html_written']}/{_st['html_total']} 更新, "
+              f"png {_st['png_written']} 生成 / {_st['png_removed']} 削除, font={'OK' if _st['font'] else '無し'}")
+    except Exception as e:
+        print(f"[share_cards skip] {e}")
+
     # 分析カードの manifest (explain.html 用)
     try:
         from explain_card import write_explain_manifest

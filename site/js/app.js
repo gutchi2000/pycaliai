@@ -81,10 +81,62 @@ async function boot() {
   $("#modeNav").querySelectorAll("button").forEach((b) => {
     b.onclick = () => setMode(b.dataset.mode);
   });
-  if (mf.dates.length) loadDay(mf.dates[0].date);
+  // 共有 URL (/r/{rid} → /#race={rid}) から来たときはそのレースを直接開く (2026-11-04)。
+  // 日付が manifest に無ければ最新日へフォールバック。
+  const deep = parseRaceHash();
+  if (deep && mf.dates.some((d) => d.date === deep.slice(0, 8))) {
+    pendingRaceId = deep;
+    loadDay(deep.slice(0, 8));
+  } else if (mf.dates.length) {
+    loadDay(mf.dates[0].date);
+  }
   // 他ページのナビ「成績」(index.html#results) から来たときは成績モードで開く（表紙は index.html 側の inline script が外す）
   if (location.hash === "#results") setMode("results");
+  // 戻る/進む・手入力の #race= にも追従する
+  addEventListener("hashchange", () => {
+    const rid = parseRaceHash();
+    if (!rid || rid === state.raceId) return;
+    if (state.mode !== "races") setMode("races");
+    if (state.day && state.day.races.some((r) => r.race_id === rid)) selectRace(rid);
+    else if (state.manifest.dates.some((d) => d.date === rid.slice(0, 8))) { pendingRaceId = rid; loadDay(rid.slice(0, 8)); }
+  });
 }
+
+/* ---------------- 共有 URL (#race={rid16}) ---------------- */
+let pendingRaceId = null;   // 読み込み中の日付で開くべき race_id (deep link)
+function parseRaceHash() {
+  const m = location.hash.match(/^#race=(\d{16})$/);
+  return m ? m[1] : null;
+}
+function syncHash() {
+  // URL をいま見ているレースに揃える (履歴は増やさない)。表紙 skip 判定も #race= を見る。
+  if (state.mode !== "races" || !state.raceId) return;
+  const want = `#race=${state.raceId}`;
+  if (location.hash !== want) history.replaceState(null, "", want);
+}
+function shareUrl(r) { return `https://pycaliai.com/r/${r.race_id}`; }
+function shareText(r) {
+  const honmei = r.horses.find((h) => h.mark === "◎");
+  const date = state.day ? fmtDate(state.day.date) : "";
+  const pick = honmei ? ` ◎${honmei.name}(勝率${pct(honmei.p_win)}%)` : "";
+  return `${date} ${r.place}${r.rno}R ${r.course} ${r.klass} AI予想${pick} #PyCaLiAI #競馬AI`;
+}
+function shareHtml(r) {
+  const url = shareUrl(r);
+  const x = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText(r))}&url=${encodeURIComponent(url)}`;
+  return `<div class="share">
+    <a class="share-btn" href="${x}" target="_blank" rel="noopener" title="X に投稿">𝕏 で共有</a>
+    <button type="button" class="share-btn" data-copy="${esc(url)}" title="このレースの URL をコピー">URL をコピー</button>
+  </div>`;
+}
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("button[data-copy]");
+  if (!b) return;
+  try {
+    await navigator.clipboard.writeText(b.dataset.copy);
+    const t = b.textContent; b.textContent = "コピーしました"; setTimeout(() => { b.textContent = t; }, 1400);
+  } catch (err) { prompt("URL", b.dataset.copy); }
+});
 
 /* ---------------- 予想 / 成績 モード ---------------- */
 function setMode(mode) {
@@ -92,6 +144,7 @@ function setMode(mode) {
   $("#modeNav").querySelectorAll("button").forEach((b) =>
     b.classList.toggle("on", b.dataset.mode === mode));
   const isResults = mode === "results";
+  if (isResults && location.hash !== "#results") history.replaceState(null, "", "#results");
   ["#venueTabs", "#raceStrip", "#main"].forEach((s) => { $(s).hidden = isResults; });
   $("#resultsMain").hidden = !isResults;
   $("#dateWrap").style.visibility = isResults ? "hidden" : "";
@@ -100,7 +153,7 @@ function setMode(mode) {
   if (bb) bb.hidden = true;
   closeDrawer();
   if (isResults) renderResults();
-  else if (window.renderBabaBias) window.renderBabaBias();
+  else { syncHash(); if (window.renderBabaBias) window.renderBabaBias(); }
 }
 
 async function loadDay(date) {
@@ -146,6 +199,11 @@ async function loadDay(date) {
   state.place = day.places[0] ?? null;
   const first = racesOf(state.place)[0];
   state.raceId = first ? first.race_id : null;
+  if (pendingRaceId) {
+    const want = day.races.find((r) => r.race_id === pendingRaceId);
+    if (want) { state.raceId = want.race_id; state.place = want.place; }
+    pendingRaceId = null;
+  }
   // 初回revealの前に馬場バイアスのデータ到着を待つ(上限800ms)。reveal後の後入れ挿入=CLSを防ぐ
   if (document.body.classList.contains("js-booting") && window.__babaReady) {
     try { await Promise.race([window.__babaReady, new Promise((r) => setTimeout(r, 800))]); } catch (e) { /* noop */ }
@@ -418,6 +476,7 @@ function renderHeader(r) {
         <span class="mchip">${esc(r.klass)}</span>
         <span class="mchip">${r.field_size}頭</span>
         ${baba ? `<span class="mchip">${esc(weather)} / ${esc(baba)}</span>` : ""}
+        ${shareHtml(r)}
       </div>
       ${cmdPickHtml(honmei)}
       ${cmdStateHtml(j, conf, r.field_size)}
@@ -2352,6 +2411,7 @@ window.addEventListener("resize", () => { charts.forEach((c) => { try { c.resize
 
 /* ---------------- compose ---------------- */
 function renderRace() {
+  syncHash();
   const r = currentRace();
   if (!r) {
     $("#raceHeader").innerHTML = `<div class="err">レースがありません</div>`;

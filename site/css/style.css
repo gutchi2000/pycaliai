@@ -1700,3 +1700,9 @@ body.drawer-open { overflow: hidden; }
 .topbar.gnav .modenav > a { display: flex; flex: 0 0 auto; }
 .topbar.gnav .modenav button { white-space: nowrap; }
 .topbar.gnav + .wrap .ehead { margin-top: 14px; }
+
+/* 共有 (2026-11-04): レース固定 URL /r/{rid} を X / クリップボードへ */
+.share { display: inline-flex; gap: 6px; margin-left: auto; }
+.share-btn { font: inherit; font-size: 13px; color: var(--tx2); background: rgba(255,255,255,.02); border: 1px solid var(--line2); border-radius: var(--r-pill); padding: 2px 11px; text-decoration: none; cursor: pointer; line-height: 1.6; white-space: nowrap; }
+.share-btn:hover { color: var(--gold2); border-color: var(--gold); }
+@media (max-width: 620px) { .share { margin-left: 0; } }

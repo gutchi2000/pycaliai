@@ -16,6 +16,15 @@ mimetypes.add_type("image/x-icon", ".ico")
 
 
 class Handler(SimpleHTTPRequestHandler):
+    def translate_path(self, path):
+        # /r/{race_id} のような拡張子なしの共有 URL を /r/{race_id}.html に解決する
+        # (pycaliai.com の Workers assets と同じ挙動。build_share_cards.py 参照)。
+        fs = super().translate_path(path)
+        bare = fs.split("?", 1)[0]
+        if not os.path.exists(bare) and not os.path.splitext(bare)[1] and os.path.isfile(bare + ".html"):
+            return bare + ".html"
+        return fs
+
     def end_headers(self):
         p = self.path.split("?", 1)[0]
         if p == "/" or p.endswith(".html"):
