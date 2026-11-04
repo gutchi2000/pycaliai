@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 BASE = Path(__file__).parent
 
 # 既存ロジックを再利用 (parse_csv で週次CSVを DF 化, export_race で JSON 構築)
-from predict_weekly import parse_csv
+from weekly_parse import parse_csv
 import backtest_pl_ev as be
 from backtest_pl_ev import COL_RID, COL_BAN
 from export_marks_json import export_race

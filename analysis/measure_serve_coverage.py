@@ -12,7 +12,7 @@ import numpy as np, pandas as pd, joblib
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", line_buffering=True)
 BASE = Path(r"E:\PyCaLiAI"); sys.path.insert(0, str(BASE))
-from predict_weekly import parse_csv
+from weekly_parse import parse_csv
 
 # export_weekly_marks の _SERVE_RENAME と同一
 _SERVE_RENAME = {

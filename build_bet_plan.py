@@ -62,7 +62,7 @@ MARGIN_BONUS_W = 0.08
 def load_margins(date):
     """weekly CSV から (rid16, 馬番) → (前走確定着順, 前走着差タイム)。無ければ空。"""
     try:
-        from predict_weekly import parse_csv
+        from weekly_parse import parse_csv
         import pandas as pd
         p = BASE / "data" / "weekly" / f"{date}.csv"
         if not p.exists():

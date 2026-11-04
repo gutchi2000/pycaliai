@@ -53,7 +53,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # -- Step 2: generate pred CSV --
 Write-Host "[2/4] Running predict_weekly.py ..." -ForegroundColor Cyan
-python predict_weekly.py --csv $csvPath
+python -m legacy.predict_weekly --csv $csvPath
 if ($LASTEXITCODE -ne 0) {
     Write-Error "predict_weekly.py failed."
     exit 1

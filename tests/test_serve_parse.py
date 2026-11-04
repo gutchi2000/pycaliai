@@ -10,7 +10,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import predict_weekly as pw
+import weekly_parse as pw
 from serve_history_feats import _CACHE, fill_history_features
 
 

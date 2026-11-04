@@ -301,7 +301,7 @@ if __name__ == "__main__":   # 手動検査: python serve_feature_recovery.py 20
     import sys
     import logging as _lg
     _lg.disable(_lg.CRITICAL)
-    from predict_weekly import parse_csv
+    from weekly_parse import parse_csv
     d8 = sys.argv[1]
     _df = parse_csv(Path(f"data/weekly/{d8}.csv"))
     _lg.disable(_lg.NOTSET)

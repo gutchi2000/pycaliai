@@ -5,7 +5,7 @@
 #   .\weekly_post.ps1              # auto-detect latest uncommitted kekka CSV
 #   .\weekly_post.ps1 20260322     # specify date
 ##############################################################
-param([string]$Date = "")
+param([string]$Date = "", [switch]$WithValueModel)   # -WithValueModel: 旧系統 value_model の月次再学習 (2026-11-04 既定 OFF)
 
 Set-Location 'E:\PyCaLiAI'
 
@@ -208,9 +208,10 @@ Write-Host "Streamlit Cloud results page will update in a few seconds." -Foregro
 $dow = (Get-Date).DayOfWeek   # Sunday=0
 $dayOfMonth = (Get-Date).Day
 
-if ($dow -eq 0 -and $dayOfMonth -le 7) {
+# value_model は旧 8 モデル系統 (Streamlit) 専用。2026-11-04 から既定 OFF (-WithValueModel で従来どおり月初日曜に再学習)。
+if ($WithValueModel -and $dow -eq 0 -and $dayOfMonth -le 7) {
     Write-Host ""
-    Write-Host "=== Value Model月次再学習 ===" -ForegroundColor Yellow
+    Write-Host "=== Value Model月次再学習 (-WithValueModel) ===" -ForegroundColor Yellow
     $endDate = (Get-Date -Format "yyyyMMdd")
     python retrain_value_model.py --end-date $endDate
     if ($LASTEXITCODE -ne 0) {

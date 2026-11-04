@@ -55,7 +55,7 @@ KISYU_CODE  = EXT_DIR / "kisyu_code.csv"
 TRAINER_SRC = EXT_DIR / "2026POG" / "２歳戦_調教師.csv"
 
 # 週次CSV 行フォーマット (predict_weekly.py と同期)
-from predict_weekly import (RACE_COLS, HORSE_COLS_33, HORSE_COLS_46,
+from weekly_parse import (RACE_COLS, HORSE_COLS_33, HORSE_COLS_46,
                             HORSE_COLS_48, HORSE_COLS_49, HORSE_COLS_99)
 
 _HORSE_COLS = {33: HORSE_COLS_33, 46: HORSE_COLS_46, 48: HORSE_COLS_48,

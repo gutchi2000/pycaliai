@@ -107,3 +107,14 @@ analysis/ 13 本・logs/ 4 本（研究・診断）──parse_csv      ├─ �
 - 段階 1 で `parse_csv` の中身を整理・改善しない（移動と改善を混ぜると出力不変の検証が意味を失う）。
 - モデル・較正器・特徴定義には触れない。
 - ファイル削除はしない（段階 3 でも移動のみ）。
+
+## 6. 実施記録（2026-11-04）
+
+- **段階 1 実施**: `weekly_parse.py`（predict_weekly.py 122〜729 行の読み込み部を無改変で移動、import 先だけ `training_join`）、`training_join.py`（optuna_lgbm.py 143〜274 行の `load_chukyo` / `merge_chukyo`）。本番 3 本（export_weekly_marks / build_bet_plan / build_horse_history）と `tests/test_serve_parse.py`（monkeypatch 先を weekly_parse へ）、`analysis/measure_serve_coverage.py`、`serve_feature_recovery.py` の import 先を変更。optuna_lgbm.py / predict_weekly.py は同名を再 export。
+  - 受け入れ #1: `analysis/legacy_parse_baseline.py` で 2026 年の週次 CSV 93 本の `parse_csv` 出力を切り出し前後で比較（結果は本節末尾）。
+  - 受け入れ #2: 2026-11-01 を隔離出力し、切り出し前（同日の sp-20261004-1 出力）と全 305 頭の `p_win` 差 0、印差 0、履歴 sha 一致。
+  - 受け入れ #6: pytest 521 passed。#7: `predict_weekly.parse_csv is weekly_parse.parse_csv` 真。#8: `import weekly_parse` 直後の `sys.modules` に optuna / ev_filter / lightgbm / catboost / torch なし。
+  - #3（馬履歴）/#4（T-10 空実行）/#5（調教カバレッジ）は #2 の bundle 一致（trnH_* を含む全特徴から出る p_win が一致）で代替。
+- **段階 2 実施（一部）**: `weekly_post.ps1` の月次 `retrain_value_model.py` を `-WithValueModel` のときだけに（既定 OFF）。`weekly_nicegui.ps1` の旧 NiceGUI Space 同期 `sync-hf.ps1` を `-WithNiceGUI` のときだけに。`-WithPredict` と `weekly_pre.ps1` / `batch_predict.ps1` は `python -m legacy.predict_weekly` を呼ぶ形で残置。
+- **段階 3 実施（縮小）**: `legacy/` へ移動 = predict_weekly.py（[B] 本体）、ev_filter.py、precompute_buylist.py、build_strategy_walkforward.py、build_strategy_stable.py、simulate_patterns.py。root の `predict_weekly.py` は shim（weekly_parse の再 export + PEP 562 で legacy へ転送）。`legacy/__init__.py` が自身のディレクトリを sys.path の末尾に足す。
+  - 動かしていないもの: app.py（Streamlit Cloud が root を見る）、betting.py / kelly.py（report.py / tests が参照）、旧学習群 optuna_lgbm / optuna_catboost / train_lgbm / stacking / calibrate / optuna_transformer* / train_transformer / optimize_weights / train_value_model / retrain_value_model（backtest.py 等の root モジュールが import）。旧モデル pkl と strategy_weights.json も未移動。
