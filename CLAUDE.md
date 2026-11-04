@@ -329,8 +329,9 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 | `site/js/site_config.js` | **Discord ナビ枠（2026-11-04）**: `discord_invite` に公開サーバーの招待 URL を入れると全ページのナビに「Discord」が出る（空なら非表示）。X の代わりの無料配信チャネル |
 | `build_report_card.py` + `report_card_miokuri.py` + `site/tsushinbo.html` | **通信簿 拡張（2026-11-04）**: 週ごとの ◎勝率/複勝圏率（Wilson CI）と回収率の推移チャート、見送りレースを「買っていたら」の比較（参戦 vs 見送り、race-cluster bootstrap CI、`a95_all` 由来、集計値のみ） |
 | `build_horse_pages.py` + `site/horse.html` + `site/js/horse.js` | **馬ページ（2026-11-04）**: `horse.html?name=馬名`。2026 年の出走ごとの印・AI順・勝率・3着内率・人気・着順、近走、血統、馬レベル、出世予測リンク。データは `site/data/h/{id[:2]}.json`（id = 馬名の FNV-1a×2、256 シャード）+ 検索用 `_index.json`。出走表の詳細パネルと全ページのナビ「馬」から |
-| `export_weekly_marks.py` | unified_rank_v6 → bundle.json |
-| `serve_feature_recovery.py` | **serve 特徴復元（2026-11-04）**: `CB_SERVE_RECOVER=1/2` のときだけ有効（既定 OFF）。間隔（週次 CSV の列対応が「1走前の前走間隔」で誤っていた→kako5 の現走間隔で置換）／前走日付／休み明け～戦目／血統タイプ（`data/pedigree_type_map.json`）／L2 で 斤量体重比 代理。`export_weekly_marks.py` と `analysis/measure_serve_coverage.py` が同じ関数を呼ぶ。有効化判断は `analysis/replay_serve_2026` + `analysis/replay_ab_compare` の A/B（下記「強化の本筋」末尾） |
+| `export_weekly_marks.py` | unified_rank_v6 → bundle.json（**2026-11-04〜 予測経路 `sp-20261004-1`**: serve-repro-sp1 反映。順序キー全順序の騎手/調教師集計、day-start 馬同定、`serve_path` と `input_quality`（馬同定が判別不能のレースは下流が見送り、2% 超の日は不合格）を bundle に刻む。`data/production_policy.json` の `serve_path_version` と版が違う bundle は compute_bets / t20 / shadow_a95 が見送る＝bundle は必ず現行コードで作り直す） |
+| `weekly_parse.py` + `training_join.py` | 週次 CSV の読み込み部 `parse_csv` と調教 JOIN（2026-11-04 に predict_weekly / optuna_lgbm から無改変で切り出し。本番はこちらを import） |
+| `serve_feature_recovery.py` | **serve 特徴復元（2026-11-04）**: `CB_SERVE_RECOVER=1/2` のときだけ有効（既定 OFF）。間隔（週次 CSV の列対応が「1走前の前走間隔」で誤っていた→kako5 の現走間隔で置換）／前走日付／休み明け～戦目／血統タイプ（`data/pedigree_type_map.json`）／L2 で 斤量体重比 代理。`export_weekly_marks.py` と `analysis/measure_serve_coverage.py` が同じ関数を呼ぶ。**2026-11-04 A/B（2026 全 59 開催日 1,809R、OFF vs ON、同一レース）**: AI1位 3着内 +0.17pt [-1.23,+1.56]、◎3着内 +0.44pt [-0.75,+1.74] = 害なし。定義の正しさで **L1 を 2026-11-07 から本番有効**（`weekly_nicegui.ps1` が `CB_SERVE_RECOVER=1`）。baseline も同条件で再生成（dead gain 7.42%→下記）。L2 は未採用。較正器は再 fit せず `calibration_drift_check` で監視 |
 | `scripts/run_notify.py` | 週次フローの出力保存 + WARNING 以上/serve canary 行の Discord 転送（exec モード / `--scan` モード） |
 | `scripts/task_watchdog.py` + `watchdog_register.ps1` | 土日 09:10 に `PyCaLiAI_T10` / `PyCaLiAI_T20_Site` の起動・結果・レース毎タスク・bundle を確認し失敗時だけ Discord。タスク登録は `watchdog_register.ps1`（**未登録、ユーザー実行**） |
 | `analysis/collection_wait_gate.py` | 収集待ち台帳の Gate 自動判定（Phase C Step 2.9） |
@@ -455,7 +456,7 @@ v6 + cowork_prompt 改修（節 11）でこの弱点改善を狙う。
 ## 既知の問題
 
 ### 🟡 P1
-1. **モデル 2 系統並走**: v6 marks stack と 旧アンサンブル。退役計画 `docs/LEGACY_RETIREMENT_PLAN_20261004.md`（段階 1 読み込み部の切り出し → 2 週次から外す → 3 `legacy/` へ移動）。2026-11-04: 段階 2 のうち旧 NiceGUI 同期を既定 OFF。段階 1/3 の進捗は同文書末尾
+1. **モデル 2 系統並走**: 退役計画 `docs/LEGACY_RETIREMENT_PLAN_20261004.md`。**2026-11-04 実施**: 段階 1（読み込み部を `weekly_parse.py` / `training_join.py` へ切り出し、本番は predict_weekly に依存しなくなった）、段階 2 の一部（value_model 月次再学習と旧 NiceGUI 同期を既定 OFF）、段階 3 縮小（predict_weekly 本体・ev_filter・precompute_buylist・strategy 系 3 本を `legacy/`、root は shim）。残: app.py・旧学習群・pkl（同文書 §6）
 2. **`models/` ディレクトリ肥大化**: 41 ファイル (dated pkl 退避済み)、まだ整理余地あり
 3. **ルート Python 93 本**: 整理進めたが `backtest_*` `train_*` の重複版残あり
 4. **wide_kekka.csv 週次更新の運用化**: TARGET からのエクスポート自体は手動のまま。**2026-11-04**: `weekly_post.ps1` Step 2.8 が最終日付を検査し今週より古ければ警告（10/24〜11/01 の 4 開催日が未反映のまま公開されていた）、変更があれば Phase C の commit に同乗（それまで誰も commit しておらず 240 行が未コミットだった）

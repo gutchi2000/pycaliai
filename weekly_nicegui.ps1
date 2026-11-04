@@ -484,7 +484,7 @@ if ($WithHosei) {
 # NiceGUI/Cowork ラインには不要。Streamlit 用に欲しい週だけ -WithPredict を付ける。
 if ($WithPredict -and -not $SkipPredict) {
     Step "[2/5] predict_weekly.py (for Streamlit, -WithPredict)"
-    python predict_weekly.py --csv $csvPath
+    python -m legacy.predict_weekly --csv $csvPath   # 旧系統は legacy/ (2026-11-04)
     if ($LASTEXITCODE -ne 0) {
         Warn "predict_weekly failed (NiceGUI doesn't need this, continuing)"
     } else {
@@ -500,11 +500,16 @@ if ($WithPredict -and -not $SkipPredict) {
 # (analysis/prev_hosei_proxy.py、本物の値がある馬には触らない)。
 Step "[3/5] export_weekly_marks.py (model=$Model) -> bundle.json"
 $env:CB_HOSEI_PROXY = "1"
+# CB_SERVE_RECOVER=1 (2026-11-04, A): serve_feature_recovery.py で 間隔 (週次CSV の列対応が「1走前の前走間隔」で誤っていた) /
+# 前走日付 / 休み明け～戦目 / 血統タイプ を学習定義どおりに復元する。2026 全 59 開催日の replay A/B (OFF vs ON、同一レース):
+# AI1位 3着内 +0.17pt [-1.23,+1.56]、◎3着内 +0.44pt [-0.75,+1.74] = 害なし・定義の正しさで採用。L2 (斤量体重比 代理) は未採用。
+$env:CB_SERVE_RECOVER = "1"
 # 2026-11-04 (N): 出力を logs\export_{date}.log に残し、WARNING 以上と serve canary 行だけ Discord へ転送する
 # (scripts\run_notify.py、best-effort)。exit code は export のものがそのまま返る。
 if (-not (Test-Path 'logs')) { New-Item -ItemType Directory -Path 'logs' | Out-Null }
 python scripts\run_notify.py --tag "Phase A export $Date" --log "logs\export_$Date.log" -- python export_weekly_marks.py --csv $csvPath --model $Model
 Remove-Item Env:\CB_HOSEI_PROXY -ErrorAction SilentlyContinue
+Remove-Item Env:\CB_SERVE_RECOVER -ErrorAction SilentlyContinue
 if ($LASTEXITCODE -ne 0) {
     Fail "export_weekly_marks.py failed. NiceGUI needs the bundle."
 }

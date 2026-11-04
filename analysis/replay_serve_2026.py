@@ -76,7 +76,8 @@ def cmd_run(a):
         code = _CHILD.format(base=str(BASE), csv=str(BASE / "data" / "weekly" / f"{d}.csv"), out=str(out / d),
                              served=str(SERVED / f"{d}_bundle.json"), trunc=bool(a.truncate), date=int(d),
                              nogate=bool(a.ignore_gate))
-        env = dict(os.environ, CB_HOSEI_PROXY="1" if a.proxy else "0", PYTHONIOENCODING="utf-8")
+        env = dict(os.environ, CB_HOSEI_PROXY="1" if a.proxy else "0", PYTHONIOENCODING="utf-8",
+                   CB_SERVE_RECOVER=str(a.recover))
         r = subprocess.run([sys.executable, "-c", code], cwd=str(BASE), capture_output=True, env=env,
                            text=True, encoding="utf-8", errors="replace")
         (out / f"{d}.log").write_text((r.stdout or "") + (r.stderr or ""), encoding="utf-8")
@@ -213,6 +214,8 @@ def main():
         s.add_argument("--since", default="20260101"); s.add_argument("--until", default="20261231")
         s.add_argument("--proxy", action="store_true",
                        help="補正タイム推定を有効化 (CB_HOSEI_PROXY=1)。本番の週次フローはこの設定")
+        s.add_argument("--recover", type=int, default=0, choices=[0, 1, 2],
+                       help="serve 特徴復元 CB_SERVE_RECOVER (0=なし, 1=本番 2026-11-07〜, 2=+斤量体重比 代理)")
         s.add_argument("--ignore-gate", action="store_true",
                        help="現行の品質ゲートで不合格の日も作業ディレクトリへ書き出す (報告では別枠)")
         s.add_argument("--truncate", action="store_true",
