@@ -106,6 +106,13 @@ def main() -> int:
     cmd = [c for c in a.cmd if c != "--"]
     if not cmd:
         ap.error("実行するコマンドを -- の後に指定するか --scan を使う")
+    # 素の "python" は親と同じインタプリタに差し替える (2026-11-06)。
+    # Windows の venv の python.exe は基底インタプリタを起動する中継で、子の "python" は
+    # CreateProcess が「親の実体 exe のディレクトリ」を最初に探すため、venv ではなく
+    # 基底 Python (Store 版 3.11、pyarrow/shap 無し) が動いていた。11/07 Phase A で
+    # export が parquet を読めず全頭「馬同定 unknown」→ 品質ゲート不合格になった原因。
+    if Path(cmd[0]).name.lower() in ("python", "python.exe", "python3", "python3.exe"):
+        cmd[0] = sys.executable
     env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
     log_path = Path(a.log) if a.log else None
     if log_path:
