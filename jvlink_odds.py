@@ -245,7 +245,7 @@ def main():
     ap.add_argument("--race", required=True, help="16桁 race_key（例 2026060705030211）")
     ap.add_argument("--validate", help="bundle.json パスを渡すと単勝を照合表示")
     ap.add_argument("--stage", choices=("t10", "t20", "vote", "close", "close_late", "manual",
-                                        "exp05fs_t35"),
+                                        "exp05fs_t35", "am9"),
                     default="manual", help="前向き価格ログの観測時点 (close は close_late として保存)")
     ap.add_argument("--out-dir", default=None,
                     help="{race}.json の出力先 (既定 reports/live_odds)。学生大会の "

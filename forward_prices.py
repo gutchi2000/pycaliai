@@ -27,8 +27,9 @@ _JST = timezone(timedelta(hours=9))
 # 書込時・読込時とも別名解決する (v1 録のファイル名は改名しない)。
 # final_rt_candidate / final_stock_candidate は stream 別の `final` 候補 raw であり、
 # `final` の認定 (§2.3 の 3 条件) はこのモジュールでは行わない。
+# am9 (2026-11-13, CW-14): 開催日の朝 9 時に全レースを 1 回だけ記録する読取専用 stage。本番経路ではない。
 STAGES = frozenset({"t10", "t20", "vote", "close_late", "manual", "exp05fs_t35",
-                    "t2_candidate", "trio_t10", "final_rt_candidate", "final_stock_candidate"})
+                    "t2_candidate", "trio_t10", "final_rt_candidate", "final_stock_candidate", "am9"})
 STAGE_ALIASES = {"close": "close_late"}
 
 

@@ -163,7 +163,21 @@ def cw13_pool_ratio() -> dict:
         return {"id": "CW-13", "name": "複勝票数/単勝票数 ゲートの前向き確認 (T-10)", "missing": f"{type(e).__name__}: {e}"[:200]}
 
 
-COUNTERS = [cw01_exp19, cw02_jump, cw03_exp05f, cw09_trio, cw10_shadow_a95, cw11_live_a95, cw13_pool_ratio]
+def cw14_morning_drift() -> dict:
+    """朝 9 時 → 発走前に売れなくなった馬の前向き確認。広い条件の点数 (Gate A 300) を数える。記述のみ。"""
+    try:
+        from analysis import morning_drift_forward as mdf
+        d = mdf.collect()
+        x = (mdf.cells(d, "t20") if len(d) else {}) or {}
+        n_a = int((x.get("wide_rule") or {}).get("n", 0)); n_b = int((x.get("cell_a") or {}).get("n", 0))
+        return {"id": "CW-14", "name": "朝 9 時 → 発走前の動き 前向き確認 (Gate A 広い条件)", "current": n_a, "target": mdf.TARGET_A, "unit": "点",
+                "latest": str(d.date.max()) if len(d) else None, "since": mdf.START,
+                "source": "data/forward_prices (am9 × t20) × data/kekka", "note": f"Gate B セル A {n_b}/{mdf.TARGET_B} 点。朝 9 時の記録はタスク PyCaLiAI_AM9"}
+    except Exception as e:  # noqa: BLE001
+        return {"id": "CW-14", "name": "朝 9 時 → 発走前の動き 前向き確認", "missing": f"{type(e).__name__}: {e}"[:200]}
+
+
+COUNTERS = [cw01_exp19, cw02_jump, cw03_exp05f, cw09_trio, cw10_shadow_a95, cw11_live_a95, cw13_pool_ratio, cw14_morning_drift]
 
 
 # ---------------------------------------------------------------- 判定
