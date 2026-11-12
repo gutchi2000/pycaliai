@@ -99,6 +99,12 @@ function Invoke-PowerRating {
         } else {
             OK "強さスコア 更新 (reports\power_rating\ratings.csv)"
         }
+        # ローカル閲覧用ページ (reports\power_rating\site\index.html)。site\ の外 = 公開サイトには載らない。
+        $siteArgs = @('power_rating.py', 'site')
+        if ($CardDate -ne "") { $siteArgs += @('--date', $CardDate) }
+        & .\venv311\Scripts\python.exe @siteArgs 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { Warn "power_rating site が exit $LASTEXITCODE (ローカルページは前回のまま)" }
+        else { OK "強さスコア ローカルページ: reports\power_rating\site\index.html" }
         $global:LASTEXITCODE = $prevExitPR
     } catch { Warn "強さスコア 更新 例外 (本番には影響なし): $($_.Exception.Message)" }
 }

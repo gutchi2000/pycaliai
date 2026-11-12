@@ -129,3 +129,20 @@ def test_form_model_recovers_planted_effect() -> None:
     assert pr.form_label(m, pr.form_pred(m, ("cls:same",))) == ""
     assert pr.form_label(m, pr.form_pred(m, ("cls:up",))) == "凡走注意"
     assert pr.form_label(m, None) == ""
+
+
+def test_site_refuses_public_site_dir(tmp_path, monkeypatch) -> None:
+    """非公開ページを公開サイト (site/) の中へ書こうとしたら、何も書かずに止まる。"""
+    import power_rating_site as ps
+
+    target = pr.BASE / "site" / "_power_rating_should_not_exist"
+    assert ps.build(None, target) == 2
+    assert not target.exists()
+
+
+def test_site_page_has_no_external_data_fetch() -> None:
+    """ページは data.js を script で読むだけ（file:// で開ける・外部へデータを送らない）。"""
+    import power_rating_site as ps
+
+    assert "fetch(" not in ps.HTML and "XMLHttpRequest" not in ps.HTML
+    assert 'content="noindex,nofollow"' in ps.HTML

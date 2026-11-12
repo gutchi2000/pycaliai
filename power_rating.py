@@ -22,6 +22,7 @@ power_rating.py — 全馬共通ものさしの「強さスコア」（非公開
   python power_rating.py card 20261108               # その日の出走表を強さ順に + 好走気配/凡走注意
   python power_rating.py card 20261108 --out reports/power_rating/card_20261108.txt
   python power_rating.py chart クロワデュノール ダノンデサイル   # スコア推移の PNG（要 matplotlib）
+  python power_rating.py site                        # ローカル閲覧用ページ（公開サイトには載らない）
   python power_rating.py tune                        # K の格子探索（master がある環境で）
   python power_rating.py ablate                      # 好走/凡走モデルの条件ごとの効き方を比較
   python power_rating.py selftest                    # 合成データで復元性を検算
@@ -1139,20 +1140,39 @@ def _card(args: argparse.Namespace) -> int:
     if meta["asof"] >= f"{args.date[:4]}-{args.date[4:6]}-{args.date[6:]}":
         print("※ このレーティングは当日以降の結果を含みます（回顧用。事前評価には使えません）。"
               f"事前の状態で見るには build --until {args.date} で作り直してください")
-    day = datetime.strptime(args.date, "%Y%m%d").date()
-    fm_path = OUT_DIR / "form_model.json"
-    fm = json.loads(fm_path.read_text(encoding="utf-8")) if fm_path.exists() else {}
+    fm = load_form_model()
     if not fm:
         print("※ 好走/凡走モデルなし（データ不足）。スコアだけ表示します")
-    for race in read_weekly(wk):
-        if is_jump(race["klass"], race["surface"]):
-            continue
-        if args.place and race["place"] != args.place:
-            continue
-        if args.rno and str(race["rno"]) != str(args.rno):
-            continue
+    for race in card_races(args.date, table, fm, args.place, args.rno):
         print(f"\n{race['place']}{race['rno']}R {race['klass']} "
               f"{race['surface'] or ''}{race['dist']} {race['name']}")
+        for x in race["rows"]:
+            s = f"{x['score']:>6.1f}" if x["score"] is not None else "    --"
+            p3 = (f"{x['p3']:>4.0%}{'?' if x['score'] is None else ' '}"
+                  if x["p3"] is not None else "     ")
+            print(f"  {x['ban']:>2} {pad(x['name'], 20)}{s}  3着内{p3} "
+                  f"{x['n']:>2}走 信頼{confidence(x['n']) if x['n'] else '-'}  "
+                  f"{x['label']}{x['reason']}")
+    return 0
+
+
+def card_races(date_str: str, table: dict[str, dict], fm: dict,
+               place: str | None = None, rno: str | None = None) -> list[dict]:
+    """その日の出走表を、強さスコア順の行つきで返す（card 表示とローカルページの共通部）。
+
+    Returns:
+        [{race_id, place, rno, klass, surface, dist, name,
+          rows: [{ban, name, score, n, p3, label, reason}]}]  rows は score 降順、未収録馬は末尾。
+    """
+    day = datetime.strptime(date_str, "%Y%m%d").date()
+    out: list[dict] = []
+    for race in read_weekly(WEEKLY_DIR / f"{date_str}.csv"):
+        if is_jump(race["klass"], race["surface"]):
+            continue
+        if place and race["place"] != place:
+            continue
+        if rno and str(race["rno"]) != str(rno):
+            continue
         rows = []
         for ban, nm, jk, kn in race["horses"]:
             r = table.get(nm)
@@ -1171,10 +1191,12 @@ def _card(args: argparse.Namespace) -> int:
                 ft = pre_features(h, day, race["klass"], race["surface"], to_int(race["dist"]),
                                   race["place"], jk, kn)
                 fp = form_pred(fm, ft)
+            lab = form_label(fm, fp) if fm else ""
             rows.append({"score": float(r["score"]) if r else None, "ban": ban, "name": nm,
                          "n": int(r["出走数"]) if r else 0,
-                         "rating": float(r["rating"]) if r else None, "fp": fp, "ft": ft})
-        # 3 着内率: 未収録馬はそのレースの収録馬の平均で仮置き（"?" を付ける）
+                         "rating": float(r["rating"]) if r else None, "fp": fp, "p3": None,
+                         "label": lab, "reason": form_reason(fm, ft, lab) if fm else ""})
+        # 3 着内率: 未収録馬はそのレースの収録馬の平均で仮置き（表示側で "?" を付ける）
         known = [x["rating"] for x in rows if x["rating"] is not None]
         if known:
             fill = sum(known) / len(known)
@@ -1184,14 +1206,20 @@ def _card(args: argparse.Namespace) -> int:
             for x, p3 in zip(rows, top3_probs(adj, fm.get("temp", 1.0) if fm else 1.0)):
                 x["p3"] = p3
         rows.sort(key=lambda x: (x["score"] is None, -(x["score"] or 0)))
-        for x in rows:
-            s = f"{x['score']:>6.1f}" if x["score"] is not None else "    --"
-            p3 = f"{x['p3']:>4.0%}{'?' if x['score'] is None else ' '}" if "p3" in x else "     "
-            lab = form_label(fm, x["fp"]) if fm else ""
-            lab += form_reason(fm, x["ft"], lab) if fm else ""
-            print(f"  {x['ban']:>2} {pad(x['name'], 20)}{s}  3着内{p3} "
-                  f"{x['n']:>2}走 信頼{confidence(x['n']) if x['n'] else '-'}  {lab}")
-    return 0
+        out.append({**{k: race[k] for k in ("race_id", "place", "rno", "klass", "surface",
+                                             "dist", "name")}, "rows": rows})
+    return out
+
+
+def load_form_model() -> dict:
+    fm_path = OUT_DIR / "form_model.json"
+    return json.loads(fm_path.read_text(encoding="utf-8")) if fm_path.exists() else {}
+
+
+def cmd_site(args: argparse.Namespace) -> int:
+    import power_rating_site  # ページ生成は別ファイル（HTML テンプレートが長いため）
+
+    return power_rating_site.build(args.date, Path(args.out) if args.out else None)
 
 
 # ---------------------------------------------------------------- 検算
@@ -1285,6 +1313,10 @@ def build_parser() -> argparse.ArgumentParser:
     ch.add_argument("names", nargs="+")
     ch.add_argument("--out", default=None, help="PNG の保存先")
     sub.add_parser("selftest")
+    st = sub.add_parser("site")
+    st.add_argument("--date", action="append", default=None,
+                    help="出走表を載せる日 YYYYMMDD（複数可。省略時は直近 2 開催日）")
+    st.add_argument("--out", default=None, help="出力先フォルダ（既定 reports/power_rating/site）")
     return ap
 
 
@@ -1299,7 +1331,7 @@ def main(argv: list[str] | None = None) -> int:
             pass
     cmd = {"build": cmd_build, "tune": cmd_tune, "compare": cmd_compare, "top": cmd_top,
            "card": cmd_card, "selftest": cmd_selftest, "ablate": cmd_ablate,
-           "chart": cmd_chart}[args.cmd]
+           "chart": cmd_chart, "site": cmd_site}[args.cmd]
     try:
         return cmd(args)
     except (FileNotFoundError, KeyError) as e:
