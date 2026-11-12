@@ -44,3 +44,34 @@ def test_score_scale_and_win_prob() -> None:
     assert pr.to_score(1000.0, 1000.0, 2000.0) == 0.0
     assert abs(pr.win_prob(50.0, 50.0, 10.0) - 0.5) < 1e-12
     assert pr.win_prob(60.0, 50.0, 10.0) > 0.5
+
+
+def test_top3_probs_sum_to_three_and_ordered() -> None:
+    p = pr.top3_probs([1700.0, 1600.0, 1500.0, 1500.0, 1400.0, 1300.0])
+    assert abs(sum(p) - 3.0) < 1e-9
+    assert p[0] > p[1] > p[2] == p[3] > p[4] > p[5]
+    assert pr.top3_probs([1500.0, 1500.0]) == [1.0, 1.0]
+
+
+def test_pre_features_none_for_debut_and_no_future_use() -> None:
+    assert pr.pre_features(pr.Horse(rating=1500.0), date(2026, 1, 4), "1勝", "芝", 1600) is None
+    h = pr.Horse(rating=1500.0, n=2, last_day=date(2026, 1, 4), last_class="未勝利",
+                 last_surface="芝", last_dist=1600, resids=[0.3, -0.1])
+    ft = pr.pre_features(h, date(2026, 2, 1), "1勝", "ダ", 1200)
+    assert ft == ("lay:15-28", "cls:up", "surf:芝>ダ", "dist:short", "r1:good", "r3:mid", "n:2")
+
+
+def test_form_model_recovers_planted_effect() -> None:
+    """昇級で下振れ・降級で上振れする合成データ → 係数の向きとラベルが合う。"""
+    import random
+
+    rng = random.Random(0)
+    rows = []
+    for _ in range(4000):
+        c = rng.choice(["cls:up", "cls:same", "cls:down"])
+        eff = {"cls:up": -0.05, "cls:same": 0.0, "cls:down": 0.05}[c]
+        rows.append(((c, rng.choice(["n:1", "n:2"])), eff + rng.gauss(0.0, 0.2)))
+    m = pr.fit_form(rows)
+    assert m["coef"]["cls:down"] > m["coef"]["cls:same"] > m["coef"]["cls:up"]
+    assert pr.form_label(m, pr.form_pred(m, ("cls:down", "n:1"))) == "好走気配"
+    assert pr.form_label(m, pr.form_pred(m, ("cls:up", "n:1"))) == "凡走注意"
