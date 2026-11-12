@@ -20,7 +20,10 @@ power_rating.py — 全馬共通ものさしの「強さスコア」（非公開
   python power_rating.py compare クロワデュノール ホウオウビスケッツ
   python power_rating.py top --n 30                  # 現役上位
   python power_rating.py card 20261108               # その日の出走表を強さ順に + 好走気配/凡走注意
+  python power_rating.py card 20261108 --out reports/power_rating/card_20261108.txt
+  python power_rating.py chart クロワデュノール ダノンデサイル   # スコア推移の PNG（要 matplotlib）
   python power_rating.py tune                        # K の格子探索（master がある環境で）
+  python power_rating.py ablate                      # 好走/凡走モデルの条件ごとの効き方を比較
   python power_rating.py selftest                    # 合成データで復元性を検算
 
 スコアの読み方:
@@ -31,8 +34,9 @@ power_rating.py — 全馬共通ものさしの「強さスコア」（非公開
 
 好走気配 / 凡走注意（card に表示）:
   各走の「上振れ」= 実績 S − 期待 E（スコアから見込まれる着順より上か下か）を、発走前に
-  分かる条件（間隔・昇級/降級・芝ダ替わり・距離変更・前走と近 3 走の上振れ・キャリア）の
-  区分ごとの平均で説明する ridge 回帰。予測上振れが学習期間の上位 15% なら「好走気配」、
+  分かる条件（間隔・昇級/降級の段数・芝ダ替わり・距離変更・前走と近 3 走の上振れ・キャリア・
+  乗り替わり・斤量増減・その馬自身の芝ダ/距離帯/競馬場での過去の上振れ）の区分ごとの平均で
+  説明する ridge 回帰。予測上振れが学習期間の上位 15% なら「好走気配」、
   下位 15% なら「凡走注意」。3着内率はスコア（+ 上振れ補正）から Harville 式で計算する。
   build のたびに「検証期間で本当に上振れ/下振れしたか」を出すので、効いていなければ分かる。
 """
@@ -81,6 +85,11 @@ CLASS_LEVEL: dict[str, int] = {
 }
 FORM_RIDGE = 50.0           # 好走/凡走モデルの ridge 係数
 FORM_Q = 0.15               # 上位/下位この割合にラベルを付ける
+# 好走/凡走モデルが使う条件。hd（距離帯の実績）・hp（競馬場の実績）は 2026 年データの検証で
+# 効かなかったので既定では外す（history.csv には全条件を残す。`ablate` で再比較できる）
+FORM_BASE = ("lay", "cls", "surf", "dist", "r1", "r3", "n")
+FORM_EXTRA = ("jk", "kin", "hs", "hd", "hp")
+FORM_DEFAULT = FORM_BASE + ("jk", "kin", "hs")
 
 
 @dataclass
@@ -106,6 +115,9 @@ class Race:
     surface: str | None
     runners: list[tuple[str, int]]
     dist: int | None = None
+    place: str | None = None
+    # 馬名 → (騎手キー, 斤量)。騎手キーは "n:名前"（出走表）か "c:コード"（master）
+    extra: dict[str, tuple[str | None, float | None]] = field(default_factory=dict)
 
 
 @dataclass
@@ -120,6 +132,10 @@ class Horse:
     last_surface: str | None = None
     last_dist: int | None = None
     resids: list[float] = field(default_factory=list)  # 直近 3 走の上振れ (S−E)、新しい順
+    last_jockey: str | None = None
+    last_kinryo: float | None = None
+    # 条件別の上振れ累計: "s:芝" / "d:短" / "p:東京" → [合計, 走数]
+    apt: dict[str, list[float]] = field(default_factory=dict)
 
 
 @dataclass
@@ -225,8 +241,43 @@ def to_int(v: object) -> int | None:
         return None
 
 
+def to_float(v: object) -> float | None:
+    try:
+        return float(str(v).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def dist_band(dist: int | None) -> str | None:
+    if dist is None:
+        return None
+    return "短" if dist <= 1400 else "マ" if dist <= 1800 else "中" if dist <= 2200 else "長"
+
+
+def apt_keys(surface: str | None, dist: int | None, place: str | None) -> list[str]:
+    keys = []
+    if surface in ("芝", "ダ"):
+        keys.append(f"s:{surface}")
+    if dist_band(dist):
+        keys.append(f"d:{dist_band(dist)}")
+    if place:
+        keys.append(f"p:{place}")
+    return keys
+
+
+def _apt_bin(h: "Horse", key: str | None) -> str:
+    if key is None:
+        return "unk"
+    v = h.apt.get(key)
+    if not v or v[1] < 1:
+        return "none"
+    m = v[0] / v[1]
+    return "good" if m > 0.1 else "bad" if m < -0.1 else "mid"
+
+
 def pre_features(h: Horse, day: date, klass: str | None, surface: str | None,
-                 dist: int | None) -> tuple[str, ...] | None:
+                 dist: int | None, place: str | None = None, jockey: str | None = None,
+                 kinryo: float | None = None) -> tuple[str, ...] | None:
     """発走前に分かる条件だけで作る区分特徴。出走歴の無い馬は None（判定しない）。"""
     if h.n < 1 or h.last_day is None or not h.resids:
         return None
@@ -234,7 +285,12 @@ def pre_features(h: Horse, day: date, klass: str | None, surface: str | None,
     lay_b = ("<=14" if lay <= 14 else "15-28" if lay <= 28 else "29-63" if lay <= 63
              else "64-119" if lay <= 119 else "120-239" if lay <= 239 else "240+")
     a, b = CLASS_LEVEL.get(h.last_class or ""), CLASS_LEVEL.get(klass or "")
-    cls_b = "unk" if a is None or b is None else ("up" if b > a else "down" if b < a else "same")
+    if a is None or b is None:
+        cls_b = "unk"
+    else:
+        d = b - a
+        cls_b = ("up2" if d >= 2 else "up1" if d == 1 else "same" if d == 0
+                 else "down1" if d == -1 else "down2")
     if not surface or not h.last_surface:
         surf_b = "unk"
     elif surface == h.last_surface:
@@ -251,8 +307,23 @@ def pre_features(h: Horse, day: date, klass: str | None, surface: str | None,
         return "bad" if x < -0.15 else "good" if x > 0.15 else "mid"
 
     n_b = "1" if h.n == 1 else "2" if h.n == 2 else "3-5" if h.n <= 5 else "6-10" if h.n <= 10 else "11+"
+    # 乗り替わり: 同じ種類のキー（名前同士 / コード同士）のときだけ比較する
+    if jockey and h.last_jockey and jockey[:2] == h.last_jockey[:2]:
+        jk_b = "same" if jockey == h.last_jockey else "change"
+    else:
+        jk_b = "unk"
+    if kinryo is None or h.last_kinryo is None:
+        kin_b = "unk"
+    else:
+        dk = kinryo - h.last_kinryo
+        kin_b = "up" if dk >= 1.0 else "down" if dk <= -1.0 else "same"
+    db = dist_band(dist)
     return (f"lay:{lay_b}", f"cls:{cls_b}", f"surf:{surf_b}", f"dist:{dist_b}",
-            f"r1:{rb(h.resids[0])}", f"r3:{rb(sum(h.resids) / len(h.resids))}", f"n:{n_b}")
+            f"r1:{rb(h.resids[0])}", f"r3:{rb(sum(h.resids) / len(h.resids))}", f"n:{n_b}",
+            f"jk:{jk_b}", f"kin:{kin_b}",
+            f"hs:{_apt_bin(h, f's:{surface}' if surface in ('芝', 'ダ') else None)}",
+            f"hd:{_apt_bin(h, f'd:{db}' if db else None)}",
+            f"hp:{_apt_bin(h, f'p:{place}' if place else None)}")
 
 
 # ---------------------------------------------------------------- 読み込み
@@ -264,7 +335,7 @@ def load_master(path: Path = MASTER) -> list[Race]:
     import pandas as pd  # 遅延 import（compare/top は pandas 不要）
 
     cols = ["日付", "レースID(新/馬番無)", "馬名", "クラス名", "トラックコード(JV)", "着順", "芝・ダ",
-            "距離"]
+            "距離", "場所", "騎手", "騎手コード", "斤量"]
     head = pd.read_csv(path, nrows=0, encoding="utf-8-sig").columns
     use = [c for c in cols if c in head]
     missing = sorted(set(cols[:3] + ["着順"]) - set(use))
@@ -283,9 +354,19 @@ def load_master(path: Path = MASTER) -> list[Race]:
         surf = norm_surface(g["芝・ダ"].iloc[0]) if "芝・ダ" in g else None
         if is_jump(klass, surf):
             continue
+        names = list(g["馬名"].map(nfkc))
+        if "騎手" in g:
+            jks = [f"n:{nfkc(v)}" if nfkc(v) else None for v in g["騎手"]]
+        elif "騎手コード" in g:
+            jks = [f"c:{v}" if str(v) not in ("", "nan") else None for v in g["騎手コード"]]
+        else:
+            jks = [None] * len(names)
+        kins = [to_float(v) for v in g["斤量"]] if "斤量" in g else [None] * len(names)
         races.append(Race(g["day"].iloc[0], str(rid), klass, surf,
-                          list(zip(g["馬名"].map(nfkc), g["pos"])),
-                          to_int(g["距離"].iloc[0]) if "距離" in g else None))
+                          list(zip(names, g["pos"])),
+                          to_int(g["距離"].iloc[0]) if "距離" in g else None,
+                          nfkc(g["場所"].iloc[0]) if "場所" in g else None,
+                          {nm: (jk, kn) for nm, jk, kn in zip(names, jks, kins)}))
     log.info("master: %d レース (%s 〜 %s)", len(races),
              min(r.day for r in races), max(r.day for r in races))
     return races
@@ -302,7 +383,8 @@ def _decode(path: Path) -> str:
 
 
 def read_weekly(path: Path) -> list[dict]:
-    """週次出走表 CSV → [{race_id, klass, surface, place, rno, name, horses:[(馬番, 馬名)]}]。"""
+    """週次出走表 CSV → [{race_id, klass, surface, place, rno, name,
+    horses:[(馬番, 馬名, 騎手キー, 斤量)]}]。同名列（前走の騎手・斤量）は先頭＝今走を使う。"""
     out: list[dict] = []
     cur: dict | None = None
     hcols: list[str] = []
@@ -321,7 +403,10 @@ def read_weekly(path: Path) -> list[dict]:
             try:
                 i_name = hcols.index("馬名S")
                 i_ban = hcols.index("番") if "番" in hcols else hcols.index("馬番")
-                cur["horses"].append((int(c[i_ban]), nfkc(c[i_name])))
+                jk = nfkc(c[hcols.index("騎手")]) if "騎手" in hcols else ""
+                kn = to_float(c[hcols.index("斤量")]) if "斤量" in hcols else None
+                cur["horses"].append((int(c[i_ban]), nfkc(c[i_name]),
+                                      f"n:{jk}" if jk else None, kn))
             except (ValueError, IndexError):
                 continue
     return out
@@ -340,6 +425,7 @@ def load_2026(after: date | None) -> list[Race]:
         if wk.exists():
             meta = {r["race_id"]: r for r in read_weekly(wk)}
         by_race: dict[str, list[tuple[str, int]]] = {}
+        place_of: dict[str, str] = {}
         rows = csv.DictReader(_decode(f).splitlines())
         for row in rows:
             rid18 = (row.get("レースID(新)") or "").strip()
@@ -350,6 +436,7 @@ def load_2026(after: date | None) -> list[Race]:
             if len(rid18) < 16 or pos < 1:
                 continue
             by_race.setdefault(rid18[:16], []).append((nfkc(row.get("馬名")), pos))
+            place_of[rid18[:16]] = nfkc(row.get("場所"))
         for rid, runners in by_race.items():
             m = meta.get(rid)
             klass, surf = (m["klass"], m["surface"]) if m else (None, None)
@@ -358,7 +445,9 @@ def load_2026(after: date | None) -> list[Race]:
                 n_noclass += 1
             if is_jump(klass, surf):
                 continue
-            races.append(Race(day, rid, klass, surf, runners, dist))
+            extra = {nm: (jk, kn) for _, nm, jk, kn in m["horses"]} if m else {}
+            races.append(Race(day, rid, klass, surf, runners, dist,
+                              place_of.get(rid) or None, extra))
     if races:
         log.info("kekka: %d レース (%s 〜 %s)、クラス不明 %d", len(races),
                  min(r.day for r in races), max(r.day for r in races), n_noclass)
@@ -414,8 +503,10 @@ def run_ratings(
                 horses[nm] = Horse(rating=init, peak=init)
         pre = [horses[nm].rating for nm, _ in rn]
         pos = [p for _, p in rn]
-        feats = [pre_features(horses[nm], race.day, race.klass, race.surface, race.dist)
+        feats = [pre_features(horses[nm], race.day, race.klass, race.surface, race.dist,
+                              race.place, *race.extra.get(nm, (None, None)))
                  for nm, _ in rn]
+        akeys = apt_keys(race.surface, race.dist, race.place)
         if eval_from and race.day >= eval_from and all(known):
             acc.add_race(pre, pos)
         scale = math.sqrt(n - 1)
@@ -444,6 +535,13 @@ def run_ratings(
             h.last_surface = race.surface or h.last_surface
             h.last_dist = race.dist or h.last_dist
             h.resids = [rs] + h.resids[:2]
+            jk, kn = race.extra.get(nm, (None, None))
+            h.last_jockey = jk or h.last_jockey
+            h.last_kinryo = kn if kn is not None else h.last_kinryo
+            for ak in akeys:
+                v = h.apt.setdefault(ak, [0.0, 0])
+                v[0] += rs
+                v[1] += 1
             if history is not None:
                 history.append((race.day.isoformat(), race.race_id, nm, race.klass or "",
                                 race.surface or "", p, n, round(r0, 1), round(h.rating, 1),
@@ -470,10 +568,17 @@ def to_score(rating: float, lo: float, hi: float) -> float:
 
 
 # ---------------------------------------------------------------- 好走気配 / 凡走注意
-def fit_form(rows: list[tuple[tuple[str, ...], float]]) -> dict:
-    """区分特徴 → 上振れ (S−E) の ridge 回帰。rows = [(特徴, 上振れ)]。"""
+def fit_form(rows: list[tuple[tuple[str, ...], float]],
+             prefixes: tuple[str, ...] | None = None) -> dict:
+    """区分特徴 → 上振れ (S−E) の ridge 回帰。rows = [(特徴, 上振れ)]。
+
+    prefixes を渡すと、その条件（"lay" "cls" …）だけを使う。予測側は係数に無いキーを
+    0 として扱うので、ここで絞れば学習・予測の両方が絞られる。
+    """
     import numpy as np
 
+    if prefixes is not None:
+        rows = [(tuple(k for k in ft if k.split(":", 1)[0] in prefixes), y) for ft, y in rows]
     keys = sorted({k for ft, _ in rows for k in ft})
     idx = {k: i + 1 for i, k in enumerate(keys)}
     x = np.zeros((len(rows), len(keys) + 1))
@@ -492,6 +597,7 @@ def fit_form(rows: list[tuple[tuple[str, ...], float]]) -> dict:
         "q_lo": float(np.quantile(pred, FORM_Q)),
         "q_hi": float(np.quantile(pred, 1 - FORM_Q)),
         "n_train": len(rows),
+        "features": list(prefixes) if prefixes is not None else None,
     }
 
 
@@ -510,7 +616,15 @@ def form_label(model: dict, pred: float | None) -> str:
 _FACTOR_JP = {
     "lay:<=14": "連闘〜中1週", "lay:15-28": "中2〜3週", "lay:29-63": "中4〜8週",
     "lay:64-119": "2〜4か月ぶり", "lay:120-239": "4〜8か月ぶり", "lay:240+": "8か月以上ぶり",
-    "cls:up": "昇級", "cls:down": "降級", "cls:same": "同クラス",
+    "cls:up1": "昇級", "cls:up2": "2段以上の昇級", "cls:down1": "降級",
+    "cls:down2": "2段以上の降級", "cls:same": "同クラス",
+    "jk:same": "継続騎乗", "jk:change": "乗り替わり",
+    "kin:up": "斤量増", "kin:down": "斤量減", "kin:same": "斤量据え置き",
+    "hs:good": "この芝ダで上振れ実績", "hs:bad": "この芝ダで下振れ実績", "hs:none": "この芝ダは初",
+    "hd:good": "この距離帯で上振れ実績", "hd:bad": "この距離帯で下振れ実績",
+    "hd:none": "この距離帯は初",
+    "hp:good": "この競馬場で上振れ実績", "hp:bad": "この競馬場で下振れ実績",
+    "hp:none": "この競馬場は初",
     "surf:same": "同じ芝ダ", "surf:芝>ダ": "芝→ダ", "surf:ダ>芝": "ダ→芝",
     "dist:short": "距離短縮", "dist:long": "距離延長", "dist:same": "同距離帯",
     "r1:good": "前走上振れ", "r1:bad": "前走下振れ", "r1:mid": "前走相応",
@@ -531,7 +645,10 @@ def form_reason(model: dict, ft: tuple[str, ...] | None, label: str) -> str:
 
 
 def top3_probs(ratings: list[float], temp: float = 1.0) -> list[float]:
-    """Harville 式の 3 着内率。強さ = 10^(R/(400×temp))。"""
+    """Harville 式の 3 着内率（O(N²)）。強さ = 10^(R/(400×temp))。
+
+    P(i が 3 着内) = p_i + Σ_j p_j·p_i/(1−p_j) + Σ_j Σ_k p_j·p_k/(1−p_j)·p_i/(1−p_j−p_k)
+    """
     n = len(ratings)
     if n <= 3:
         return [1.0] * n
@@ -539,20 +656,18 @@ def top3_probs(ratings: list[float], temp: float = 1.0) -> list[float]:
     st = [10.0 ** ((r - m) / (ELO_SCALE * temp)) for r in ratings]
     tot = sum(st)
     p = [v / tot for v in st]
+    eps = 1e-12
+    # t[j] = Σ_{k≠j} p_k / (1 − p_j − p_k)
+    t = [sum(p[k] / max(1.0 - p[j] - p[k], eps) for k in range(n) if k != j) for j in range(n)]
     out = []
     for i in range(n):
         p2 = p3 = 0.0
         for j in range(n):
             if j == i:
                 continue
-            a = p[j] / (1.0 - p[j])
-            p2 += p[j] * p[i] / (1.0 - p[j])
-            rest = 1.0 - p[j] - p[i]
-            # Σ_k≠i,j p_k/(1−p_j−p_k) × p_i を k で回す
-            for k in range(n):
-                if k == i or k == j:
-                    continue
-                p3 += a * p[k] / (1.0 - p[j] - p[k]) * p[i] if rest > 0 else 0.0
+            a_j = p[j] / max(1.0 - p[j], eps)
+            p2 += a_j * p[i]
+            p3 += a_j * p[i] * (t[j] - p[i] / max(1.0 - p[j] - p[i], eps))
         out.append(min(1.0, p[i] + p2 + p3))
     return out
 
@@ -568,8 +683,8 @@ def _hist_races(history: list[tuple]) -> Iterator[list[tuple]]:
         yield cur
 
 
-def _race_metrics(races: list[list[tuple]], model: dict | None, gamma: float, temp: float
-                  ) -> dict:
+def _race_metrics(races: list[list[tuple]], model: dict | None, gamma: float, temp: float,
+                  want: str = "both") -> dict:
     """ペア logloss と 3 着内 logloss（補正 gamma・温度 temp を掛けた場合）。"""
     pl = pn = tl = tn = 0.0
     for race in races:
@@ -579,76 +694,116 @@ def _race_metrics(races: list[list[tuple]], model: dict | None, gamma: float, te
             fp = form_pred(model, ft) if model else None
             adj.append(row[7] + gamma * (fp or 0.0))
         pos = [row[5] for row in race]
-        for i in range(len(race)):
-            for j in range(i + 1, len(race)):
-                if pos[i] == pos[j]:
-                    continue
-                q = min(max(expected(adj[i], adj[j]), 1e-6), 1 - 1e-6)
-                pl -= math.log(q if pos[i] < pos[j] else 1 - q)
-                pn += 1
-        for q, ps in zip(top3_probs(adj, temp), pos):
-            q = min(max(q, 1e-6), 1 - 1e-6)
-            tl -= math.log(q if ps <= 3 else 1 - q)
-            tn += 1
+        if want in ("both", "pair"):
+            for i in range(len(race)):
+                for j in range(i + 1, len(race)):
+                    if pos[i] == pos[j]:
+                        continue
+                    q = min(max(expected(adj[i], adj[j]), 1e-6), 1 - 1e-6)
+                    pl -= math.log(q if pos[i] < pos[j] else 1 - q)
+                    pn += 1
+        if want in ("both", "top3"):
+            for q, ps in zip(top3_probs(adj, temp), pos):
+                q = min(max(q, 1e-6), 1 - 1e-6)
+                tl -= math.log(q if ps <= 3 else 1 - q)
+                tn += 1
     return {"pair_logloss": pl / max(pn, 1), "top3_logloss": tl / max(tn, 1)}
 
 
-def build_form(history: list[tuple], eval_from: date) -> tuple[dict, dict]:
+def _cluster_ci(per_race: list[tuple[float, int]], reps: int = 300, seed: int = 42
+                ) -> list[float]:
+    """レース単位の再標本化による平均の 95% CI。per_race = [(合計, 頭数)]。"""
+    rng = random.Random(seed)
+    m = len(per_race)
+    if m < 2:
+        return [float("nan"), float("nan")]
+    means = []
+    for _ in range(reps):
+        sm = cn = 0.0
+        for _ in range(m):
+            a, b = per_race[rng.randrange(m)]
+            sm += a
+            cn += b
+        means.append(sm / max(cn, 1))
+    means.sort()
+    return [round(means[int(0.025 * (reps - 1))], 4), round(means[int(0.975 * (reps - 1))], 4)]
+
+
+def build_form(history: list[tuple], eval_from: date,
+               prefixes: tuple[str, ...] = FORM_DEFAULT) -> tuple[dict, dict]:
     """学習期間（eval_from より前）で fit → 検証期間で前向きに確認 → 全期間で fit し直して返す。
+
+    学習・ラベル検証は「条件特徴のある馬（=出走歴のある馬）」すべて。logloss は全レースで、
+    特徴の無い馬は補正 0 として扱う。
 
     Returns:
         (card が使うモデル, 検証結果)
     """
     cut = eval_from.isoformat()
-    # 全馬に条件特徴がある（=全馬に出走歴がある）レースだけを使う
-    races = [r for r in _hist_races(history) if all(row[10] for row in r)]
+    races = [r for r in _hist_races(history) if len(r) >= 2]
     tr = [r for r in races if r[0][0] < cut]
     te = [r for r in races if r[0][0] >= cut]
 
     def flat(rs: list[list[tuple]]) -> list[tuple[tuple[str, ...], float]]:
-        return [(tuple(row[10].split("|")), row[9]) for r in rs for row in r]
+        return [(tuple(row[10].split("|")), row[9]) for r in rs for row in r if row[10]]
 
-    if len(tr) < 50 or len(te) < 30:
-        log.warning("好走/凡走モデル: データ不足（学習 %d / 検証 %d レース）", len(tr), len(te))
+    if len(flat(tr)) < 500 or len(flat(te)) < 300:
+        log.warning("好走/凡走モデル: データ不足（学習 %d / 検証 %d 頭）",
+                    len(flat(tr)), len(flat(te)))
         return {}, {"note": "insufficient data"}
-    m = fit_form(flat(tr))
-    # 補正の強さ gamma と 3 着内率の温度 temp は学習期間だけで選ぶ
-    gamma = min((0.0, 200.0, 400.0, 800.0, 1200.0, 1600.0, 2400.0),
-                key=lambda g: _race_metrics(tr, m, g, 1.0)["pair_logloss"])
+    m = fit_form(flat(tr), prefixes)
+    # 3 着内率の温度 temp と補正の強さ gamma は学習期間だけで選ぶ（gamma=0 は「補正しない」）。
+    # card の 3 着内率に使うので、選ぶ基準は 3 着内 logloss
     temp = min((0.4, 0.5, 0.65, 0.8, 1.0, 1.25, 1.5, 2.0),
-               key=lambda t: _race_metrics(tr, m, gamma, t)["top3_logloss"])
+               key=lambda t: _race_metrics(tr, None, 0.0, t, "top3")["top3_logloss"])
+    gamma = min((0.0, 200.0, 400.0, 800.0, 1200.0, 1600.0),
+                key=lambda g: _race_metrics(tr, m, g, temp, "top3")["top3_logloss"])
     base = _race_metrics(te, None, 0.0, temp)
     adj = _race_metrics(te, m, gamma, temp)
     # ラベル別に「実際に上振れしたか」と 3 着内率（スコアだけの見込み vs 実際）
-    groups: dict[str, list[tuple[float, float, int]]] = {"好走気配": [], "凡走注意": [], "": []}
+    labs = ("好走気配", "", "凡走注意")
+    tot = {k: [0, 0.0, 0.0, 0] for k in labs}            # 頭数, 上振れ, 見込み3着内, 実際3着内
+    per_race: dict[str, list[tuple[float, int]]] = {k: [] for k in labs}
     for race in te:
         exp3 = top3_probs([row[7] for row in race], temp)
+        acc_r = {k: [0.0, 0] for k in labs}
         for row, e3 in zip(race, exp3):
+            if not row[10]:
+                continue
             lab = form_label(m, form_pred(m, tuple(row[10].split("|"))))
-            groups[lab].append((row[9], e3, int(row[5] <= 3)))
+            t = tot[lab]
+            t[0] += 1
+            t[1] += row[9]
+            t[2] += e3
+            t[3] += int(row[5] <= 3)
+            acc_r[lab][0] += row[9]
+            acc_r[lab][1] += 1
+        for k in labs:
+            if acc_r[k][1]:
+                per_race[k].append((acc_r[k][0], acc_r[k][1]))
     ev: dict = {
-        "train_races": len(tr), "test_races": len(te), "gamma": gamma, "temp": temp,
+        "features": list(prefixes),
+        "train_races": len(tr), "test_races": len(te),
+        "train_rows": len(flat(tr)), "test_rows": len(flat(te)),
+        "gamma": gamma, "temp": temp,
         "test_pair_logloss_base": round(base["pair_logloss"], 5),
         "test_pair_logloss_adj": round(adj["pair_logloss"], 5),
         "test_top3_logloss_base": round(base["top3_logloss"], 5),
         "test_top3_logloss_adj": round(adj["top3_logloss"], 5),
         "labels": {},
     }
-    for lab, v in groups.items():
-        if not v:
+    for lab in labs:
+        n = tot[lab][0]
+        if not n:
             continue
-        n = len(v)
-        mean = sum(x[0] for x in v) / n
-        sd = math.sqrt(sum((x[0] - mean) ** 2 for x in v) / max(n - 1, 1))
         ev["labels"][lab or "無印"] = {
             "n": n,
-            "mean_resid": round(mean, 4),
-            "resid_ci95": [round(mean - 1.96 * sd / math.sqrt(n), 4),
-                           round(mean + 1.96 * sd / math.sqrt(n), 4)],
-            "top3_expected": round(sum(x[1] for x in v) / n, 4),
-            "top3_actual": round(sum(x[2] for x in v) / n, 4),
+            "mean_resid": round(tot[lab][1] / n, 4),
+            "resid_ci95": _cluster_ci(per_race[lab]),
+            "top3_expected": round(tot[lab][2] / n, 4),
+            "top3_actual": round(tot[lab][3] / n, 4),
         }
-    final = fit_form(flat(races))
+    final = fit_form(flat(races), prefixes)
     final.update({"gamma": gamma, "temp": temp})
     return final, ev
 
@@ -664,14 +819,18 @@ def write_outputs(horses: dict[str, Horse], acc: EvalAcc, params: Params,
     with (OUT_DIR / "ratings.csv").open("w", encoding="utf-8-sig", newline="") as fp:
         w = csv.writer(fp)
         w.writerow(["馬名", "score", "rating", "peak_score", "出走数", "芝", "ダ",
-                    "最終出走", "最終クラス", "現役", "最終芝ダ", "最終距離", "近走上振れ"])
+                    "最終出走", "最終クラス", "現役", "最終芝ダ", "最終距離", "近走上振れ",
+                    "最終騎手", "最終斤量", "適性"])
         for nm, h in rows:
             w.writerow([nm, round(to_score(h.rating, lo, hi), 1), round(h.rating, 1),
                         round(to_score(h.peak, lo, hi), 1), h.n, h.n_turf, h.n_dirt,
                         h.last_day.isoformat() if h.last_day else "", h.last_class or "",
                         int(bool(h.last_day and h.last_day >= cut)),
                         h.last_surface or "", h.last_dist or "",
-                        "/".join(f"{x:.4f}" for x in h.resids)])
+                        "/".join(f"{x:.4f}" for x in h.resids),
+                        h.last_jockey or "", h.last_kinryo if h.last_kinryo is not None else "",
+                        json.dumps({k: [round(v[0], 4), v[1]] for k, v in h.apt.items()},
+                                   ensure_ascii=False, separators=(",", ":"))])
     with (OUT_DIR / "history.csv").open("w", encoding="utf-8-sig", newline="") as fp:
         w = csv.writer(fp)
         w.writerow(["日付", "race_id", "馬名", "クラス", "芝ダ", "着順", "頭数", "R前", "R後",
@@ -742,7 +901,11 @@ def cmd_build(args: argparse.Namespace) -> int:
     history: list[tuple] = []
     horses, acc = run_ratings(races, params, eval_from, history)
     asof = max(r.day for r in races)
-    form_model, form_ev = build_form(history, eval_from)
+    prefixes = tuple(x for x in args.form_features.split(",") if x)
+    bad = sorted(set(prefixes) - set(FORM_BASE + FORM_EXTRA))
+    if bad:
+        raise KeyError(f"--form-features に未知の条件: {bad}（使えるのは {FORM_BASE + FORM_EXTRA}）")
+    form_model, form_ev = build_form(history, eval_from, prefixes)
     write_outputs(horses, acc, params, asof, eval_from, len(races), history, form_ev)
     (OUT_DIR / "form_model.json").write_text(
         json.dumps(form_model, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -763,9 +926,9 @@ def cmd_build(args: argparse.Namespace) -> int:
     else:
         print("  検証対象レースなし（データ期間が短い）")
     if form_ev.get("labels"):
-        print(f"\n好走気配/凡走注意の前向き検証（学習 {form_ev['train_races']:,} / "
-              f"検証 {form_ev['test_races']:,} レース）")
-        print("  ラベル      頭数   上振れ平均 [CI95]            3着内: 見込み → 実際")
+        print(f"\n好走気配/凡走注意の前向き検証（学習 {form_ev['train_rows']:,} 頭 / "
+              f"検証 {form_ev['test_rows']:,} 頭・{form_ev['test_races']:,} レース）")
+        print("  ラベル      頭数   上振れ平均 [レース単位 CI95]   3着内: 見込み → 実際")
         for lab in ("好走気配", "無印", "凡走注意"):
             v = form_ev["labels"].get(lab)
             if v:
@@ -805,6 +968,82 @@ def cmd_tune(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ablate(args: argparse.Namespace) -> int:
+    """好走/凡走モデルの条件を 1 つずつ足して、検証期間での効き方を比べる。"""
+    races = load_all()
+    eval_from = (datetime.strptime(args.eval_from, "%Y-%m-%d").date()
+                 if args.eval_from else default_eval_from(races))
+    history: list[tuple] = []
+    run_ratings(races, Params(k0=args.k0, floor_ratio=args.floor_ratio, tau=args.tau),
+                None, history)
+    cut = eval_from.isoformat()
+    rows = [(tuple(r[10].split("|")), r[9], r[0]) for r in history if r[10]]
+    tr = [(a, b) for a, b, d in rows if d < cut]
+    te = [(a, b) for a, b, d in rows if d >= cut]
+    print(f"学習 {len(tr):,} 頭 / 検証 {len(te):,} 頭（{eval_from} 以降）")
+    print(f"{pad('条件セット', 26)}  相関    好走気配の上振れ   凡走注意の上振れ")
+    sets = [("基本7条件", FORM_BASE)]
+    sets += [(f"基本+{x}", FORM_BASE + (x,)) for x in FORM_EXTRA]
+    sets += [("既定", FORM_DEFAULT), ("全条件", FORM_BASE + FORM_EXTRA)]
+    for name, pf in sets:
+        m = fit_form(tr, pf)
+        ps = [form_pred(m, a) or 0.0 for a, _ in te]
+        ys = [b for _, b in te]
+        mp, my = sum(ps) / len(ps), sum(ys) / len(ys)
+        cov = sum((x - mp) * (y - my) for x, y in zip(ps, ys))
+        den = math.sqrt(sum((x - mp) ** 2 for x in ps) * sum((y - my) ** 2 for y in ys))
+        hi = [y for x, y in zip(ps, ys) if x >= m["q_hi"]]
+        lo = [y for x, y in zip(ps, ys) if x <= m["q_lo"]]
+        print(f"{pad(name, 26)}  {cov / den if den else 0.0:.4f}  "
+              f"{sum(hi) / max(len(hi), 1):+.4f} (n={len(hi):,})  "
+              f"{sum(lo) / max(len(lo), 1):+.4f} (n={len(lo):,})")
+    return 0
+
+
+def cmd_chart(args: argparse.Namespace) -> int:
+    """history.csv からスコア推移の折れ線を PNG に保存する。"""
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("matplotlib がありません: pip install matplotlib")
+        return 2
+    table, meta = read_outputs()
+    lo = float(meta["anchors"]["rating_lo"])
+    hi = float(meta["anchors"]["rating_hi"])
+    names = [k for k in (_resolve(table, nm) for nm in args.names) if k]
+    if not names:
+        print("該当する馬がいません")
+        return 1
+    series: dict[str, list[tuple[date, float]]] = {n: [] for n in names}
+    with (OUT_DIR / "history.csv").open(encoding="utf-8-sig", newline="") as fp:
+        for r in csv.DictReader(fp):
+            if r["馬名"] in series:
+                series[r["馬名"]].append((datetime.strptime(r["日付"], "%Y-%m-%d").date(),
+                                          to_score(float(r["R後"]), lo, hi)))
+    # 日本語フォント: Windows は Yu Gothic / Meiryo、Linux は IPAGothic / Noto を順に試す
+    plt.rcParams["font.family"] = ["Yu Gothic", "Meiryo", "MS Gothic", "IPAGothic",
+                                   "Noto Sans CJK JP", "sans-serif"]
+    logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
+    fig, ax = plt.subplots(figsize=(9, 5))
+    for nm in names:
+        if series[nm]:
+            xs, ys = zip(*series[nm])
+            ax.plot(xs, ys, marker="o", label=nm)
+    ax.set_ylabel("強さスコア（現在のものさし）")
+    ax.set_title(f"強さスコアの推移（基準日 {meta['asof']}）")
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+    fig.autofmt_xdate()
+    out = Path(args.out) if args.out else OUT_DIR / f"chart_{'_'.join(names)[:60]}.png"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=150, bbox_inches="tight")
+    print(f"保存: {out}")
+    return 0
+
+
 def _resolve(table: dict[str, dict], name: str) -> str | None:
     q = nfkc(name)
     if q in table:
@@ -837,6 +1076,16 @@ def cmd_compare(args: argparse.Namespace) -> int:
               f"{int(r['出走数']):>3}  {confidence(int(r['出走数']))}  "
               f"{pad(r['最終出走'], 11)} {r['最終クラス']}"
               f"{'' if r['現役'] == '1' else '  (1年以上出走なし)'}")
+    print("\n条件別の上振れ（スコアの見込みに対する着順の上下。+ が得意、カッコ内は走数）")
+    for r in found:
+        apt = json.loads(r.get("適性") or "{}")
+        parts = []
+        for key, lab in (("s:芝", "芝"), ("s:ダ", "ダ"), ("d:短", "〜1400"), ("d:マ", "〜1800"),
+                         ("d:中", "〜2200"), ("d:長", "2300〜")):
+            v = apt.get(key)
+            if v and v[1]:
+                parts.append(f"{lab} {v[0] / v[1]:+.2f}({int(v[1])})")
+        print(f"  {pad(r['馬名'], 20)}{'  '.join(parts) if parts else '記録なし'}")
     if len(found) >= 2:
         print("\n同じレースで先着する確率（条件・斤量は平均的と仮定）")
         for i in range(len(found)):
@@ -864,6 +1113,24 @@ def cmd_top(args: argparse.Namespace) -> int:
 
 
 def cmd_card(args: argparse.Namespace) -> int:
+    if not args.out:
+        return _card(args)
+    import contextlib
+    import io
+
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = _card(args)
+    text = buf.getvalue()
+    print(text, end="")
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text, encoding="utf-8")
+    log.info("保存: %s", out)
+    return rc
+
+
+def _card(args: argparse.Namespace) -> int:
     table, meta = read_outputs()
     wk = WEEKLY_DIR / f"{args.date}.csv"
     if not wk.exists():
@@ -887,7 +1154,7 @@ def cmd_card(args: argparse.Namespace) -> int:
         print(f"\n{race['place']}{race['rno']}R {race['klass']} "
               f"{race['surface'] or ''}{race['dist']} {race['name']}")
         rows = []
-        for ban, nm in race["horses"]:
+        for ban, nm, jk, kn in race["horses"]:
             r = table.get(nm)
             fp = ft = None
             if r and fm:
@@ -897,8 +1164,12 @@ def cmd_card(args: argparse.Namespace) -> int:
                           last_class=r["最終クラス"] or None,
                           last_surface=r.get("最終芝ダ") or None,
                           last_dist=to_int(r.get("最終距離")),
-                          resids=[float(x) for x in (r.get("近走上振れ") or "").split("/") if x])
-                ft = pre_features(h, day, race["klass"], race["surface"], to_int(race["dist"]))
+                          resids=[float(x) for x in (r.get("近走上振れ") or "").split("/") if x],
+                          last_jockey=r.get("最終騎手") or None,
+                          last_kinryo=to_float(r.get("最終斤量")),
+                          apt=json.loads(r.get("適性") or "{}"))
+                ft = pre_features(h, day, race["klass"], race["surface"], to_int(race["dist"]),
+                                  race["place"], jk, kn)
                 fp = form_pred(fm, ft)
             rows.append({"score": float(r["score"]) if r else None, "ban": ban, "name": nm,
                          "n": int(r["出走数"]) if r else 0,
@@ -988,7 +1259,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description="強さスコア（レース横断レーティング、ローカル専用）")
     ap.add_argument("-v", "--verbose", action="store_true", help="DEBUG ログ")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("build", "tune"):
+    for name in ("build", "tune", "ablate"):
         b = sub.add_parser(name)
         b.add_argument("--k0", type=float, default=Params.k0)
         b.add_argument("--floor-ratio", type=float, default=Params.floor_ratio)
@@ -996,6 +1267,8 @@ def build_parser() -> argparse.ArgumentParser:
         b.add_argument("--eval-from", default=None, help="検証開始日 YYYY-MM-DD")
         b.add_argument("--until", default=None,
                        help="YYYYMMDD より前のレースだけで作る（その日の事前評価用）")
+        b.add_argument("--form-features", default=",".join(FORM_DEFAULT),
+                       help="好走/凡走モデルに使う条件（カンマ区切り）")
     c = sub.add_parser("compare")
     c.add_argument("names", nargs="+")
     t = sub.add_parser("top")
@@ -1007,6 +1280,10 @@ def build_parser() -> argparse.ArgumentParser:
     k.add_argument("date", help="YYYYMMDD")
     k.add_argument("--place", default=None)
     k.add_argument("--rno", default=None)
+    k.add_argument("--out", default=None, help="表示内容をこのテキストファイルにも保存")
+    ch = sub.add_parser("chart")
+    ch.add_argument("names", nargs="+")
+    ch.add_argument("--out", default=None, help="PNG の保存先")
     sub.add_parser("selftest")
     return ap
 
@@ -1020,8 +1297,9 @@ def main(argv: list[str] | None = None) -> int:
             stream.reconfigure(encoding="utf-8")  # Windows コンソールの cp932 対策
         except (AttributeError, ValueError):
             pass
-    cmd = {"build": cmd_build, "tune": cmd_tune, "compare": cmd_compare,
-           "top": cmd_top, "card": cmd_card, "selftest": cmd_selftest}[args.cmd]
+    cmd = {"build": cmd_build, "tune": cmd_tune, "compare": cmd_compare, "top": cmd_top,
+           "card": cmd_card, "selftest": cmd_selftest, "ablate": cmd_ablate,
+           "chart": cmd_chart}[args.cmd]
     try:
         return cmd(args)
     except (FileNotFoundError, KeyError) as e:

@@ -58,7 +58,59 @@ def test_pre_features_none_for_debut_and_no_future_use() -> None:
     h = pr.Horse(rating=1500.0, n=2, last_day=date(2026, 1, 4), last_class="未勝利",
                  last_surface="芝", last_dist=1600, resids=[0.3, -0.1])
     ft = pr.pre_features(h, date(2026, 2, 1), "1勝", "ダ", 1200)
-    assert ft == ("lay:15-28", "cls:up", "surf:芝>ダ", "dist:short", "r1:good", "r3:mid", "n:2")
+    assert ft[:7] == ("lay:15-28", "cls:up1", "surf:芝>ダ", "dist:short", "r1:good", "r3:mid",
+                      "n:2")
+    # 騎手・斤量・場所を渡していない → 不明 / 実績なし
+    assert ft[7:] == ("jk:unk", "kin:unk", "hs:none", "hd:none", "hp:unk")
+
+
+def test_pre_features_class_steps_jockey_weight_aptitude() -> None:
+    h = pr.Horse(rating=1500.0, n=3, last_day=date(2026, 1, 4), last_class="3勝",
+                 last_surface="芝", last_dist=2000, resids=[0.0],
+                 last_jockey="n:武豊", last_kinryo=56.0,
+                 apt={"s:芝": [0.6, 3], "d:中": [-0.45, 3], "p:東京": [0.0, 1]})
+    ft = pr.pre_features(h, date(2026, 2, 1), "G1", "芝", 2000, "東京", "n:ルメール", 58.0)
+    assert "cls:up2" in ft and "jk:change" in ft and "kin:up" in ft
+    assert "hs:good" in ft and "hd:bad" in ft and "hp:mid" in ft
+    # master の騎手コードと出走表の騎手名は比べない（境目で偽の乗り替わりを出さない）
+    ft2 = pr.pre_features(h, date(2026, 2, 1), "3勝", "芝", 2000, "東京", "c:01234", 56.5)
+    assert "jk:unk" in ft2 and "kin:same" in ft2 and "cls:same" in ft2
+
+
+def test_run_ratings_tracks_jockey_weight_and_aptitude() -> None:
+    r1 = pr.Race(date(2026, 1, 4), "R1", "1勝", "芝", [("A", 1), ("B", 2)], 1600, "中山",
+                 {"A": ("n:X", 55.0), "B": ("n:Y", 57.0)})
+    r2 = pr.Race(date(2026, 2, 1), "R2", "1勝", "芝", [("A", 2), ("B", 1)], 1600, "中山",
+                 {"A": ("n:Z", 56.0), "B": ("n:Y", 57.0)})
+    hist: list[tuple] = []
+    horses, _ = pr.run_ratings([r1, r2], pr.Params(), None, hist)
+    assert horses["A"].last_jockey == "n:Z" and horses["A"].last_kinryo == 56.0
+    assert horses["A"].apt["s:芝"][1] == 2 and horses["A"].apt["p:中山"][1] == 2
+    assert hist[0][10] == ""                       # 1 走目は条件なし
+    a2 = hist[2][10].split("|")                     # A の 2 走目は発走前の状態だけで作る
+    assert "jk:change" in a2 and "kin:up" in a2 and "hs:good" in a2
+
+
+def test_fit_form_prefix_filter() -> None:
+    rows = [(("cls:up1", "hp:good"), 0.1), (("cls:same", "hp:bad"), -0.1)] * 50
+    m = pr.fit_form(rows, ("cls",))
+    assert all(k.startswith("cls:") for k in m["coef"])
+    assert pr.form_pred(m, ("cls:up1", "hp:bad")) == pr.form_pred(m, ("cls:up1", "hp:good"))
+
+
+def test_top3_probs_matches_bruteforce() -> None:
+    import itertools
+
+    r = [1650.0, 1580.0, 1500.0, 1470.0, 1400.0]
+    st = [10 ** (x / 400.0) for x in r]
+    want = [0.0] * len(r)
+    for a, b, c in itertools.permutations(range(len(r)), 3):
+        tot = sum(st)
+        pr_ = st[a] / tot * st[b] / (tot - st[a]) * st[c] / (tot - st[a] - st[b])
+        for i in (a, b, c):
+            want[i] += pr_
+    got = pr.top3_probs(r)
+    assert all(abs(x - y) < 1e-9 for x, y in zip(got, want))
 
 
 def test_form_model_recovers_planted_effect() -> None:
