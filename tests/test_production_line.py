@@ -80,7 +80,7 @@ class TestTopdownBudget:
                 "mark": marks.get(ban, ""),
                 "p_win": 0.30 if ban == 1 else 0.10,
                 "p_sho": 0.70 if ban == 1 else 0.25,
-                "tansho_odds": 4.0 + ban,
+                "tansho_odds": 1.5 if ban == 1 else 4.0 + ban,   # 2026-11-12 sniper: ◎≤1.9
                 "fuku_odds_low": 1.5 + ban / 10,
                 "fuku_odds_high": 1.7 + ban / 10,
             })
@@ -222,8 +222,11 @@ class TestSkipReasons:
 
     def test_no_skip_when_healthy(self):
         r = skip_reasons({"field_size": 16}, {"field_chaos_score": 0.5},
-                         {"tansho_odds": 3.0, "p_win": 0.3})
+                         {"tansho_odds": 1.5, "p_win": 0.3})      # 2026-11-12 sniper: ◎≤1.9
         assert r == []
+        r2 = skip_reasons({"field_size": 16}, {"field_chaos_score": 0.5},
+                          {"tansho_odds": 3.0, "p_win": 0.3})
+        assert any("オッズが基準" in s for s in r2) and all("3.0" not in s for s in r2)   # 生のオッズは文面に出さない
 
     def test_low_pwin_skip(self):
         r = skip_reasons({"field_size": 16}, {"field_chaos_score": 0.5},

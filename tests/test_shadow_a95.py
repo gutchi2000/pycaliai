@@ -15,7 +15,7 @@ def pol():
 
 
 def test_policy_sha_self_check_and_tamper(tmp_path, pol):
-    assert pol["policy_id"] == "a95_equal_v1" and pol["real_money"] is False
+    assert pol["policy_id"] in ("a95_equal_v1", "a95_sniper_v2") and pol["real_money"] is False   # 2026-11-12〜 本線は v2
     bad = dict(pol); bad["cap_per_race_yen"] = 20000
     p = tmp_path / "p.json"; p.write_text(json.dumps(bad, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(SystemExit):

@@ -54,7 +54,7 @@ def _market():
         for j in range(i + 1, 9)
     }
     return {"ok": True, "race_id": RID, "fetched": "2026-08-29T10:00:00",
-            "tansho": {str(i): 3.0 + i for i in range(1, 9)}, "wide": pairs}
+            "tansho": {str(i): (1.5 if i == 1 else 3.0 + i) for i in range(1, 9)}, "wide": pairs}   # 2026-11-12 sniper: ◎≤1.9
 
 
 def _pair_probs(_horses):

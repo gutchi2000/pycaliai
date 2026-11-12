@@ -126,7 +126,8 @@ def test_shadow_a95_cohort_follows_production_policy(policy_with_version):
             if _actual.get("serve_path_version") else (LEGACY_VERSION, str(pol["registration"]["start_date"])))
     assert shadow_a95.cohort(pol) == _exp
     policy_with_version("sp-20261004-1", 20261010)
-    assert shadow_a95.cohort(pol) == ("sp-20261004-1", "20261010")
+    # 起算日は 方策の登録起算日 と production_policy の prospective.start_date の遅い方
+    assert shadow_a95.cohort(pol) == ("sp-20261004-1", max(str(pol["registration"]["start_date"]), "20261010"))
 
 
 def test_shadow_a95_report_never_pools_versions(tmp_path, monkeypatch, policy_with_version, capsys):
@@ -134,7 +135,8 @@ def test_shadow_a95_report_never_pools_versions(tmp_path, monkeypatch, policy_wi
     monkeypatch.setattr(shadow_a95, "LEDGER", tmp_path)
     (tmp_path / "settlements").mkdir()
     arm = {"valid": True, "stake": 10000, "ret": 0.0, "hit": False, "by_kind": {}}
-    for date, ver in (("20261004", None), ("20261011", "sp-20261004-1")):
+    _fwd = str(int(max(str(pol["registration"]["start_date"]), "20261010")) + 7)   # 起算日より後の日付
+    for date, ver in (("20261004", None), (_fwd, "sp-20261004-1")):
         rec = {"policy_sha256": pol["policy_sha256"], "date": date, "preregistered": True,
                "races": [{"valid": True, "band": "<2倍", "arms": {"a95_equal": dict(arm)}}]}
         if ver:
@@ -143,7 +145,7 @@ def test_shadow_a95_report_never_pools_versions(tmp_path, monkeypatch, policy_wi
     policy_with_version("sp-20261004-1", 20261010)
     rows = shadow_a95._collect(pol)
     assert [(r["date"], r["fwd"], r["version"]) for r in rows] == [
-        ("20261004", False, LEGACY_VERSION), ("20261011", True, "sp-20261004-1")]
+        ("20261004", False, LEGACY_VERSION), (_fwd, True, "sp-20261004-1")]
     shadow_a95.cmd_report(pol)
     text = capsys.readouterr().out
     assert f"旧版 cohort {LEGACY_VERSION}" in text

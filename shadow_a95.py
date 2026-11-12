@@ -27,8 +27,20 @@ from pathlib import Path
 import numpy as np
 
 BASE = Path(__file__).resolve().parent
-POLICY_PATH = BASE / "data" / "shadow_policies" / "a95_equal_v1.json"
-LEDGER = BASE / "data" / "shadow_ledger" / "a95_equal_v1"
+def _active_policy_path() -> Path:
+    """本線が宣言する方策ファイル (production_policy.json artifacts.bet_policy)。無ければ v1。2026-11-12〜 v2 (sniper)。"""
+    try:
+        d = json.loads((BASE / "data" / "production_policy.json").read_text(encoding="utf-8"))
+        rel = (d.get("artifacts") or {}).get("bet_policy")
+        if rel and (BASE / str(rel)).exists():
+            return BASE / str(rel)
+    except (OSError, ValueError):
+        pass
+    return BASE / "data" / "shadow_policies" / "a95_equal_v1.json"
+
+
+POLICY_PATH = _active_policy_path()
+LEDGER = BASE / "data" / "shadow_ledger" / POLICY_PATH.stem       # 方策ごとに台帳を分ける (v1 と v2 を混ぜない)
 KEKKA_DIR = BASE / "data" / "kekka"
 BUNDLE_DIR = BASE / "reports" / "cowork_input"
 JST = timezone(timedelta(hours=9))

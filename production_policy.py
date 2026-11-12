@@ -169,6 +169,19 @@ def hard_skip_reasons(race_meta: dict, race_conf: dict,
         return reasons
     if cfg.get("require_hon_tansho_odds", True) and hon.get("tansho_odds") is None:
         reasons.append("◎ tansho_odds欠損")
+    # 2026-11-12 見送りガチ強化: ◎の単勝オッズが上限を超えたら見送り (docs/research/SKIP_RULE_SEARCH_20261108.md)。
+    # 文面にオッズの生値は出さない (サイト公開規約)。閾値だけを書く。
+    mx = cfg.get("hon_tansho_odds_max")
+    if mx is not None:
+        try:
+            o_num = float(hon.get("tansho_odds")) if hon.get("tansho_odds") is not None else None
+        except (TypeError, ValueError):
+            o_num = None
+        if o_num is None or not math.isfinite(o_num):
+            if fail_closed and not (cfg.get("require_hon_tansho_odds", True) and hon.get("tansho_odds") is None):
+                reasons.append("◎ tansho_odds変換不能")
+        elif o_num > float(mx):
+            reasons.append(f"◎オッズが基準({float(mx):.1f}倍)超")
     pw = hon.get("p_win")
     try:
         pw_num = float(pw) if pw is not None else None

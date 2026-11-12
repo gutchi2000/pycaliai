@@ -14,7 +14,7 @@ from production_policy import (
 def _valid_inputs():
     raw = raw_at_percentile(0.50)
     return ({"field_size": 12}, {"field_chaos_score": raw},
-            {"mark": "◎", "p_win": 0.20, "tansho_odds": 4.0})
+            {"mark": "◎", "p_win": 0.20, "tansho_odds": 1.5})   # 2026-11-12 sniper: ◎≤1.9
 
 
 def test_policy_and_quantile_reference_are_pinned():

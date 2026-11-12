@@ -30,7 +30,7 @@ def test_engine_tickets_and_selection_formats():
 
 
 def test_engine_bands_budget_and_errors():
-    assert [t["kind_jp"] for t in a95_engine.build(_horses(1.5))["tickets"]] == ["馬連"]
+    assert [t["kind_jp"] for t in a95_engine.build(_horses(1.5))["tickets"]] == ["複勝"]   # 2026-11-12 sniper: <2倍 は複勝
     five8 = a95_engine.build(_horses(6.0))
     assert [t["kind_jp"] for t in five8["tickets"]] == ["馬単", "ワイド", "枠連", "三連複", "三連単"]
     wk = next(t for t in five8["tickets"] if t["kind_jp"] == "枠連")["selection"]
@@ -60,7 +60,7 @@ def _race(chaos=0.50):
             "race_meta": {"field_size": 12, "place": "東京", "R": 1, "course": "芝1600"},
             "race_confidence": {"field_chaos_score": chaos, "top1_dominance": 0.1,
                                 "top2_concentration": 0.5, "ai_market_agreement": 0.5},
-            "eligibility": None, "horses": _horses(4.0),
+            "eligibility": None, "horses": _horses(1.5),   # 2026-11-12 sniper: ◎≤1.9 でないと見送り
             # 2026-11-04 serve-repro-sp1: policy が予測経路の版を宣言しているので、bundle 側の版も揃える
             # (無いと input_quality.race_skip_reason が「版不一致」で見送りにする = 設計どおり)
             "input_quality": {"serve_path_version": _SERVE_PATH_VERSION, "bet_eligible": True}}
@@ -78,7 +78,7 @@ def test_compute_bets_a95_engine_keeps_participation_guards(monkeypatch):
                                                                "field_chaos_score": low}},
                                budget=10000, engine="a95")
     assert out["race_nature"] == "a95"
-    assert {b["馬券種"] for b in out["bets"]} == {"馬連", "馬単", "三連複", "三連単"}
+    assert {b["馬券種"] for b in out["bets"]} == {"複勝"}   # sniper: <2倍 帯は複勝 1 点
     assert sum(b["購入額"] for b in out["bets"]) == 10000
     assert all("倍" not in b["理由"] for b in out["bets"]) and "倍" not in out["race_reason"]
     # 混戦度の hard 見送りは a95 でも維持される (参戦ガードは topdown と同一)
@@ -171,7 +171,7 @@ def test_guard_skipped_race_records_would_have_tickets_but_no_bets(monkeypatch):
     assert out["bets"] == [] and out["race_nature"] == "見送り"          # ガードはそのまま効く
     aa = out["a95_all"]
     assert aa["guard_passed"] is False and sum(t["stake"] for t in aa["tickets"]) == 10000
-    assert [t["kind_jp"] for t in aa["tickets"]] == ["馬連", "馬単", "三連複", "三連単"]
+    assert [t["kind_jp"] for t in aa["tickets"]] == ["複勝"]
     lo = {**_race(), "race_confidence": {**_race()["race_confidence"],
                                          "field_chaos_score": raw_at_percentile(max(limit - 0.3, 0.01))}}
     out2 = cb.compute_race_bets(lo, budget=10000, engine="a95")
