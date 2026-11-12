@@ -71,6 +71,45 @@ function Fail($msg) {
 }
 
 # =================================================================
+# 強さスコア (power_rating.py、2026-11-12) の週次フック。非公開・ローカル専用。
+#   出力は reports\power_rating\ (.gitignore) だけで、bundle / 買い目 / サイトには一切触れない。
+#   失敗しても本番の出力・終了コードには影響させない (Warn のみ)。
+#   -CardDate を渡すとその日の出走表を card_{date}.txt に保存する。
+#   -Until を付けると CardDate より前の結果だけで作る (= 発走前の状態。Phase A 用)。
+# =================================================================
+function Invoke-PowerRating {
+    param(
+        [string]$CardDate = "",
+        [switch]$Until
+    )
+    try {
+        $prevExitPR = $LASTEXITCODE
+        $env:PYTHONIOENCODING = "utf-8"
+        Step "[power] 強さスコア 更新 (power_rating.py、ローカル専用・本番結果には影響しません)"
+        $buildArgs = @('power_rating.py', 'build')
+        if ($Until -and ($CardDate -ne "")) { $buildArgs += @('--until', $CardDate) }
+        & .\venv311\Scripts\python.exe @buildArgs 2>&1 | Select-Object -Last 3 | ForEach-Object { Write-Host "    $_" }
+        if ($LASTEXITCODE -ne 0) {
+            Warn "power_rating build が exit $LASTEXITCODE (強さスコアは前回のまま)"
+        } elseif ($CardDate -ne "") {
+            $cardOut = "reports\power_rating\card_$CardDate.txt"
+            & .\venv311\Scripts\python.exe power_rating.py card $CardDate --out $cardOut 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { Warn "power_rating card が exit $LASTEXITCODE" }
+            else { OK "強さスコア 出走表: $cardOut" }
+        } else {
+            OK "強さスコア 更新 (reports\power_rating\ratings.csv)"
+        }
+        # ローカル閲覧用ページ (reports\power_rating\site\index.html)。site\ の外 = 公開サイトには載らない。
+        $siteArgs = @('power_rating.py', 'site')
+        if ($CardDate -ne "") { $siteArgs += @('--date', $CardDate) }
+        & .\venv311\Scripts\python.exe @siteArgs 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { Warn "power_rating site が exit $LASTEXITCODE (ローカルページは前回のまま)" }
+        else { OK "強さスコア ローカルページ: reports\power_rating\site\index.html" }
+        $global:LASTEXITCODE = $prevExitPR
+    } catch { Warn "強さスコア 更新 例外 (本番には影響なし): $($_.Exception.Message)" }
+}
+
+# =================================================================
 # calibrator_shadow_eval.py の週次フック (P0-3 確認試験用シャドー処理)
 #   本番のbundle/kekka生成が終わった直後に score/settle を呼ぶだけ。
 #   本番の出力・終了コードには一切影響させない (fail-open)。
@@ -389,6 +428,9 @@ if ($Post) {
         $global:LASTEXITCODE = $prevExitSH
     } catch { Warn "serve_health 例外 (本番には影響なし): $($_.Exception.Message)" }
 
+    # -- 強さスコア (ローカル専用): 今週の結果まで取り込んで作り直す。失敗は Warn のみ。
+    Invoke-PowerRating
+
     # -- 出世予測 AI (ファン向け読み物、馬券非転用) の週次更新: 今週の出走表/結果を取り込み
     #    → 現役馬を再推論 → サイト用 JSON (analysis/shusse/out_v2/live/site/)。続く
     #    sync-hf-umami.ps1 内の build_site.py が site/data/shusse/ に取り込む。
@@ -569,6 +611,10 @@ if ($masterCsv) {
 }
 
 # -- Step 4: git add + commit + push origin --
+# -- 強さスコア (ローカル専用): $Date より前の結果だけで作り、当日の出走表を
+#    reports\power_rating\card_{date}.txt に保存する (好走気配/凡走注意つき)。失敗は Warn のみ。
+Invoke-PowerRating -CardDate $Date -Until
+
 if ($SkipGit) {
     Step "[4/5] git push SKIPPED (-SkipGit)"
 } else {
