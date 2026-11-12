@@ -339,6 +339,7 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 | `analysis/calibration_drift_check.py` | 較正ドリフト監視（Phase C settle 直後） |
 | `analysis/replay_ab_compare.py` | replay 作業ディレクトリ 2 つを同一レース集合で比較（AI1位 1着/3着内、◎3着内、開催日 bootstrap CI） |
 | `build_course_stats.py` | コース分析タブ用統計 |
+| `power_rating.py` | **強さスコア（2026-11-12、非公開・ローカル専用）**: 全レースの着順だけで多頭数 Elo を逐次更新し、現役最上位=100 の線形スケールにしたレース横断の能力値（「この馬とこの馬どっちが強い?」用）。`build` / `compare 馬A 馬B` / `top` / `card YYYYMMDD` / `tune` / `selftest`。入力は master（あれば 2013〜）+ `data/kekka` + `data/weekly`。出力 `reports/power_rating/`（.gitignore）。**サイト・bundle・買い目には未配線**、馬券用ではない。K の既定値は 2026 年データだけで選んだ暫定値＝master のある環境で `tune` し直す |
 | `weekly_nicegui.ps1` | 週次ワークフロー 3 フェーズ統合（sync-hf + sync-hf-umami 両方を叩く） |
 | `nicegui_app.py` | NiceGUI 本体（v11、旧本番）。`sync-hf.ps1` でまだ併行更新 |
 | `sync-hf.ps1` | （旧）master → hf-spaces orphan → NiceGUI Space へ push |
