@@ -92,10 +92,25 @@ def cw09_trio() -> dict:
             "source": "analysis/obs_guard.py"}
 
 
+def _a95_ledger_dir() -> Path:
+    """本線が宣言する方策ファイル名 = 台帳ディレクトリ名 (shadow_a95.LEDGER と同じ規則)。"""
+    try:
+        d = json.loads((BASE / "data" / "production_policy.json").read_text(encoding="utf-8"))
+        rel = (d.get("artifacts") or {}).get("bet_policy")
+        if rel:
+            return BASE / "data" / "shadow_ledger" / Path(str(rel)).stem
+    except Exception:  # noqa: BLE001
+        pass
+    return BASE / "data" / "shadow_ledger" / "a95_equal_v1"
+
+
 def cw10_shadow_a95() -> dict:
-    d = BASE / "data/shadow_ledger/a95_equal_v1/settlements"
+    d = _a95_ledger_dir() / "settlements"       # 2026-11-12: 台帳は方策ごと (a95_sniper_v2 等)。固定パスだと切替後に 0 のまま止まる
     if not d.exists():
-        return {"id": "CW-10", "name": "shadow a95_equal_v1 (紙上台帳・全レース)", "missing": str(d)}
+        if A95_START > dt.datetime.now().strftime("%Y%m%d") or not any((BASE / "data" / "kekka").glob(f"{A95_START[:6]}*.csv")):
+            return {"id": "CW-10", "name": f"shadow {d.parent.name} (紙上台帳・全レース)", "current": 0, "target": 500, "unit": "race",
+                    "latest": None, "since": A95_START, "source": str(d.relative_to(BASE)).replace(chr(92), "/"), "note": "起算日前 (台帳未作成)"}
+        return {"id": "CW-10", "name": f"shadow {d.parent.name} (紙上台帳・全レース)", "missing": str(d)}
     n = 0
     dates = []
     for p in sorted(d.glob("2026????.json")):
@@ -109,8 +124,8 @@ def cw10_shadow_a95() -> dict:
         if k:
             n += k
             dates.append(p.stem)
-    return {"id": "CW-10", "name": "shadow a95_equal_v1 (紙上台帳・全レース)", "current": n, "target": 500, "unit": "race",
-            "latest": dates[-1] if dates else None, "since": A95_START, "source": "data/shadow_ledger/a95_equal_v1/settlements"}
+    return {"id": "CW-10", "name": f"shadow {d.parent.name} (紙上台帳・全レース)", "current": n, "target": 500, "unit": "race",
+            "latest": dates[-1] if dates else None, "since": A95_START, "source": str(d.relative_to(BASE)).replace(chr(92), "/")}
 
 
 def cw11_live_a95() -> dict:
@@ -129,12 +144,26 @@ def cw11_live_a95() -> dict:
         if k:
             n += k
             dates.append(date)
-    return {"id": "CW-11", "name": "本線 a95_equal_v1 前向き cohort (参戦ガード通過・決済済)", "current": n, "target": 500,
+    return {"id": "CW-11", "name": "本線 a95 前向き cohort (参戦ガード通過・決済済)", "current": n, "target": 500,
             "unit": "race", "latest": dates[-1] if dates else None, "since": A95_START,
             "source": "reports/cowork_output/*_bets.json (a95_all.guard_passed) × data/kekka"}
 
 
-COUNTERS = [cw01_exp19, cw02_jump, cw03_exp05f, cw09_trio, cw10_shadow_a95, cw11_live_a95]
+def cw13_pool_ratio() -> dict:
+    """複勝票数/単勝票数 ≥ 2.19 かつ 1 番人気 単勝 ≤1.9 (T-10) の決済済みレース数。記述のみ、買い目ではない。"""
+    try:
+        from analysis import pool_ratio_forward as prf
+        d = prf.collect()
+        s = prf.summarize(d) if len(d) else {}
+        x = s.get("t10") or {}
+        return {"id": "CW-13", "name": "複勝票数/単勝票数 ゲートの前向き確認 (T-10)", "current": int(x.get("n_hit_rule", 0)), "target": prf.TARGET,
+                "unit": "race", "latest": str(d.date.max()) if len(d) else None, "since": prf.START,
+                "source": "data/forward_prices (schema v2 votes_total) × data/kekka", "note": "docs/research/PINNED_FLOOR_SEARCH_20261112.md"}
+    except Exception as e:  # noqa: BLE001
+        return {"id": "CW-13", "name": "複勝票数/単勝票数 ゲートの前向き確認 (T-10)", "missing": f"{type(e).__name__}: {e}"[:200]}
+
+
+COUNTERS = [cw01_exp19, cw02_jump, cw03_exp05f, cw09_trio, cw10_shadow_a95, cw11_live_a95, cw13_pool_ratio]
 
 
 # ---------------------------------------------------------------- 判定
