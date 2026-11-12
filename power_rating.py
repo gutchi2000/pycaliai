@@ -65,6 +65,8 @@ MASTER = BASE / "data" / "master_v2_20130105-20251228.csv"
 KEKKA_DIR = BASE / "data" / "kekka"
 WEEKLY_DIR = BASE / "data" / "weekly"
 OUT_DIR = BASE / "reports" / "power_rating"
+# 登録抹消（引退）馬の一覧。power_rating_retired.py が JV-Link から作る（無ければ使わない）
+RETIRED_CSV = OUT_DIR / "retired.csv"
 
 log = logging.getLogger("power_rating")
 
@@ -475,6 +477,41 @@ def load_2026(after: date | None) -> list[Race]:
     return races
 
 
+def load_retired(path: Path | None = None) -> dict[str, date | None]:
+    """登録抹消馬 {馬名: 抹消日（不明なら None）}。ファイルが無ければ空。"""
+    path = path or RETIRED_CSV
+    if not path.exists():
+        log.info("抹消馬リストなし（%s）→ 引退馬も 1 年以内に走っていれば現役扱いになります。"
+                 "py -3.12-32 power_rating_retired.py で作れます", path.name)
+        return {}
+    out: dict[str, date | None] = {}
+    with path.open(encoding="utf-8-sig", newline="") as f:
+        for r in csv.DictReader(f):
+            try:
+                d = datetime.strptime(r.get("抹消日") or "", "%Y%m%d").date()
+            except ValueError:
+                d = None
+            out[nfkc(r.get("馬名"))] = d
+    log.info("抹消馬リスト: %d 頭", len(out))
+    return out
+
+
+def retired_on(retired: dict[str, date | None], name: str, h: "Horse", asof: date) -> date | None:
+    """その馬が基準日時点で抹消済みなら抹消日（日付不明は基準日）を返す。現役なら None。
+
+    抹消日がその馬の最終出走より前なら同名の別馬（馬名の再使用）なので現役扱い。
+    抹消日が基準日より後（--until で過去の状態を作るとき）も現役扱い。
+    """
+    if name not in retired:
+        return None
+    d = retired[name]
+    if d is None:
+        return asof
+    if d > asof or (h.last_day and d < h.last_day):
+        return None
+    return d
+
+
 def load_all() -> list[Race]:
     master = load_master()
     last = max((r.day for r in master), default=None)
@@ -585,13 +622,15 @@ def run_ratings(
     return horses, acc
 
 
-def scale_anchors(horses: dict[str, Horse], asof: date, surface: str) -> tuple[float, float]:
+def scale_anchors(horses: dict[str, Horse], asof: date, surface: str,
+                  retired: dict[str, date | None] | None = None) -> tuple[float, float]:
     """その芝ダの (R_lo, R_hi)。R_hi = 現役最上位、R_lo = 現役の下位 1% 点。
 
-    現役 = その芝ダで基準日から 1 年以内に出走し、その芝ダで 3 走以上。
+    現役 = その芝ダで基準日から 1 年以内に出走し、その芝ダで 3 走以上、登録抹消されていない。
     """
     cut = asof - timedelta(days=ACTIVE_DAYS)
-    states = [h.sr[surface] for h in horses.values() if surface in h.sr]
+    states = [h.sr[surface] for nm, h in horses.items() if surface in h.sr
+              and not (retired and retired_on(retired, nm, h, asof))]
     act = sorted(st[0] for st in states
                  if st[3] and st[3] >= cut and st[1] >= MIN_STARTS_FOR_SCALE)
     if len(act) < 20:
@@ -866,7 +905,8 @@ def write_outputs(horses: dict[str, Horse], acc: EvalAcc, params: Params,
                   asof: date, eval_from: date | None, n_races: int,
                   history: list[tuple], form: dict | None = None) -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    anc = {sf: scale_anchors(horses, asof, sf) for sf in SURFACES}
+    retired = load_retired()
+    anc = {sf: scale_anchors(horses, asof, sf, retired) for sf in SURFACES}
     cut = asof - timedelta(days=ACTIVE_DAYS)
 
     def main_score(h: Horse) -> float:
@@ -881,8 +921,11 @@ def write_outputs(horses: dict[str, Horse], acc: EvalAcc, params: Params,
             head += [f"score_{sf}", f"rating_{sf}", f"peak_{sf}", f"走_{sf}", f"最終_{sf}",
                      f"現役_{sf}"]
         w.writerow(head + ["出走数", "最終出走", "最終クラス", "最終芝ダ", "最終距離",
-                           "近走上振れ", "最終騎手", "最終斤量", "適性"])
+                           "近走上振れ", "最終騎手", "最終斤量", "適性", "抹消日"])
+        n_ret = 0
         for nm, h in rows:
+            ret = retired_on(retired, nm, h, asof)
+            n_ret += int(bool(ret and h.last_day and h.last_day >= cut))
             row: list = [nm, h.main_surface() or ""]
             for sf in SURFACES:
                 st = h.sr.get(sf)
@@ -890,7 +933,7 @@ def write_outputs(horses: dict[str, Horse], acc: EvalAcc, params: Params,
                     row += [round(to_score(st[0], *anc[sf]), 1), round(st[0], 1),
                             round(to_score(st[2], *anc[sf]), 1), st[1],
                             st[3].isoformat() if st[3] else "",
-                            int(bool(st[3] and st[3] >= cut))]
+                            int(bool(st[3] and st[3] >= cut and not ret))]
                 else:
                     row += ["", "", "", 0, "", 0]
             w.writerow(row + [
@@ -899,7 +942,10 @@ def write_outputs(horses: dict[str, Horse], acc: EvalAcc, params: Params,
                 "/".join(f"{x:.4f}" for x in h.resids),
                 h.last_jockey or "", h.last_kinryo if h.last_kinryo is not None else "",
                 json.dumps({k: [round(v[0], 4), v[1]] for k, v in h.apt.items()},
-                           ensure_ascii=False, separators=(",", ":"))])
+                           ensure_ascii=False, separators=(",", ":")),
+                ret.isoformat() if ret else ""])
+    if retired:
+        log.info("1 年以内に出走があるが登録抹消済みのため現役から外した馬: %d 頭", n_ret)
     with (OUT_DIR / "history.csv").open("w", encoding="utf-8-sig", newline="") as fp:
         w = csv.writer(fp)
         w.writerow(["日付", "race_id", "馬名", "クラス", "芝ダ", "着順", "頭数", "R前", "R後",
@@ -942,7 +988,7 @@ def surf_row(r: dict, surface: str) -> dict | None:
         return None
     return {"score": float(r[f"score_{surface}"]), "rating": float(r[f"rating_{surface}"]),
             "peak": float(r[f"peak_{surface}"]), "n": n, "last": r[f"最終_{surface}"],
-            "active": r[f"現役_{surface}"] == "1"}
+            "active": r[f"現役_{surface}"] == "1", "retired": r.get("抹消日") or ""}
 
 
 def win_prob(score_a: float, score_b: float, elo_per_point: float) -> float:
@@ -1170,7 +1216,8 @@ def cmd_compare(args: argparse.Namespace) -> int:
         for r, v in rows:
             print(f"{pad(r['馬名'], 20)}{v['score']:>6.1f} {v['peak']:>6.1f} {v['n']:>3}  "
                   f"{confidence(v['n'])}  {pad(v['last'], 11)}"
-                  f"{'' if v['active'] else f' ({sname}は1年以上出走なし)'}")
+                  + (f" (引退・{v['retired']} 抹消)" if v["retired"] else
+                     "" if v["active"] else f" ({sname}は1年以上出走なし)"))
         if len(rows) >= 2:
             print("  同じレースで先着する確率（条件・斤量は平均的と仮定）")
             for i in range(len(rows)):

@@ -86,6 +86,13 @@ function Invoke-PowerRating {
         $prevExitPR = $LASTEXITCODE
         $env:PYTHONIOENCODING = "utf-8"
         Step "[power] 強さスコア 更新 (power_rating.py、ローカル専用・本番結果には影響しません)"
+        # 登録抹消 (引退) 馬の一覧を JV-Link から足し込む (32-bit Python 必須)。取れなくても前回分で続行。
+        #   初回 (retired.csv 無し) は 420 日分、以降は直近 45 日分の更新だけ読む。
+        try {
+            $retDays = if (Test-Path 'reports\power_rating\retired.csv') { 45 } else { 420 }
+            & py -3.12-32 power_rating_retired.py --days $retDays --timeout 600 2>&1 | Select-Object -Last 1 | ForEach-Object { Write-Host "    $_" }
+            if ($LASTEXITCODE -ne 0) { Warn "power_rating_retired が exit $LASTEXITCODE (抹消馬リストは前回のまま)" }
+        } catch { Warn "抹消馬リスト 取得 例外 (前回分で続行): $($_.Exception.Message)" }
         $buildArgs = @('power_rating.py', 'build')
         if ($Until -and ($CardDate -ne "")) { $buildArgs += @('--until', $CardDate) }
         & .\venv311\Scripts\python.exe @buildArgs 2>&1 | Select-Object -Last 3 | ForEach-Object { Write-Host "    $_" }
