@@ -570,6 +570,25 @@ if (Test-Path $bundlePath) {
     Fail "bundle.json not created at $bundlePath"
 }
 
+# -- Shadow: v7 候補 (v6 + JRDB 過去走特徴 59 列、2026-11-13)。同じ出走表から別フォルダへ bundle を作るだけ。
+#    公開・買い目・本線には一切触れない (reports/shadow_v7/ は .gitignore、サイトにも出ない)。失敗しても本番は止めない。
+#    比較: python -m analysis.shadow_v7_report。経緯: docs/research/V7_JRDB_CANDIDATE_20261113.md
+if (Test-Path 'models/unified_rank_v7.pkl') {
+    try {
+        $env:CB_HOSEI_PROXY = "1"
+        $env:CB_SERVE_RECOVER = "1"
+        python export_weekly_marks.py --csv $csvPath --model v7 --shap-topk 0 --out-dir "reports/shadow_v7/$Date" *> "logs/export_v7_$Date.log"
+        if ($LASTEXITCODE -eq 0) { OK "shadow v7 bundle -> reports/shadow_v7/${Date}_bundle.json" }
+        else { Write-Host "  [warn] shadow v7 export rc=$LASTEXITCODE (本番には影響なし: logs/export_v7_$Date.log)" -ForegroundColor Yellow }
+    } catch {
+        Write-Host "  [warn] shadow v7 export 例外 (本番には影響なし): $_" -ForegroundColor Yellow
+    } finally {
+        Remove-Item Env:CB_HOSEI_PROXY -ErrorAction SilentlyContinue
+        Remove-Item Env:CB_SERVE_RECOVER -ErrorAction SilentlyContinue
+        $global:LASTEXITCODE = 0
+    }
+}
+
 # -- Shadow: この日付の bundle が今まさに書き終わった直後にだけ score する。
 #    Fail() は即 exit するため、上のどちらかで失敗していればここには到達しない
 #    (=前段が失敗した日付で古いbundleを代用してscoreすることはない)。

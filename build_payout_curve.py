@@ -127,6 +127,10 @@ def main():
         from course_affinity_feats import add_course_affinity_feats
         df = add_course_affinity_feats(df, mode=ca_mode)
         print(f"  + course_affinity_feats(mode={ca_mode})")
+    if bundle.get("jrdb_mode"):
+        from jrdb_features import add_jrdb_feats
+        df = add_jrdb_feats(df, mode=bundle["jrdb_mode"])
+        print(f"  + jrdb_feats(mode={bundle['jrdb_mode']})")
     tv = df[df["split"].isin(["train", "valid"])].copy()
     print(f"[data] train+valid rows={len(tv):,}  races={tv[COL_RID].nunique():,}")
 

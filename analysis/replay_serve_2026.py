@@ -53,7 +53,7 @@ if {trunc}:
             df = df[df['date'].astype(int) < {date}].copy()      # 当日朝より後の行を物理的に落とす
         return df
     _pd.read_parquet = _read
-sys.argv = ['export_weekly_marks.py', '--csv', r'{csv}', '--shap-topk', '0', '--out-dir', r'{out}']
+sys.argv = ['export_weekly_marks.py', '--csv', r'{csv}', '--shap-topk', '0', '--out-dir', r'{out}', '--model', '{model}']
 runpy.run_path(r'{base}\export_weekly_marks.py', run_name='__main__')
 """
 
@@ -75,7 +75,7 @@ def cmd_run(a):
             continue
         code = _CHILD.format(base=str(BASE), csv=str(BASE / "data" / "weekly" / f"{d}.csv"), out=str(out / d),
                              served=str(SERVED / f"{d}_bundle.json"), trunc=bool(a.truncate), date=int(d),
-                             nogate=bool(a.ignore_gate))
+                             nogate=bool(a.ignore_gate), model=getattr(a, 'model', 'v6'))
         env = dict(os.environ, CB_HOSEI_PROXY="1" if a.proxy else "0", PYTHONIOENCODING="utf-8",
                    CB_SERVE_RECOVER=str(a.recover))
         r = subprocess.run([sys.executable, "-c", code], cwd=str(BASE), capture_output=True, env=env,
@@ -212,6 +212,7 @@ def main():
         s = sp.add_parser(name)
         s.add_argument("--out", required=True)
         s.add_argument("--since", default="20260101"); s.add_argument("--until", default="20261231")
+        s.add_argument("--model", default="v6", help="モデル tag (v7 = JRDB 過去走特徴つき候補)")
         s.add_argument("--proxy", action="store_true",
                        help="補正タイム推定を有効化 (CB_HOSEI_PROXY=1)。本番の週次フローはこの設定")
         s.add_argument("--recover", type=int, default=0, choices=[0, 1, 2],

@@ -567,6 +567,33 @@ def main() -> int:
     except Exception as e:  # noqa: BLE001  fail-open: 従来どおりの値のまま
         logger.warning(f"[serve recover] 失敗 → 復元なし: {e}")
 
+    # ------ JRDB 過去走特徴 (v7 候補、2026-11-13。bundle に jrdb_mode があるモデルだけ) ------
+    # 学習と同じ関数 jrdb_features.past_run_features を通す。キーは馬同定 (hit) の血統登録番号。
+    # 成績ファイルが古い / 埋まりが悪い日は bundle を不合格にする (走順がずれた特徴で予想しない)。
+    jrdb_gate_error = None
+    if bundle.get("jrdb_mode"):
+        try:
+            import jrdb_features as jf
+            from serve_history_feats import PED_ID_COL
+            if PED_ID_COL not in df.columns:
+                jrdb_gate_error = "馬同定が無く JRDB 特徴を作れない"
+            else:
+                # 仮番号 (2026 年初出走で履歴に登録番号が無い馬) は、同定が hit の行に限り馬名で引き直す
+                from serve_history_feats import IDENTITY_STATUS_COL as _ISC
+                _nm = df["馬名"].where(df[_ISC] == "hit") if ("馬名" in df.columns and _ISC in df.columns) else None
+                _jf = jf.past_run_features(df[PED_ID_COL], pd.Series(int(date_str), index=df.index), name=_nm)
+                for _c in jf.FEATURES:
+                    df[_c] = _jf[_c].values
+                _stale, _cov = jf.staleness_days(date_str), jf.coverage(df)
+                logger.info(f"[jrdb] 過去走特徴 {len(jf.FEATURES)} 列  前走あり {_cov*100:.0f}%  成績の最終から {_stale} 日")
+                if _stale > 9:
+                    jrdb_gate_error = (f"JRDB 成績が古い (最終から {_stale} 日)。先週ぶんが未取込で過去走の順番がずれる。"
+                                       "python scripts/jrdb_refresh.py を実行")
+                elif _cov < 0.50:
+                    jrdb_gate_error = f"JRDB 過去走特徴の埋まりが {_cov*100:.0f}% (通常 80% 台)。馬同定か成績ファイルを確認"
+        except Exception as e:  # noqa: BLE001
+            jrdb_gate_error = f"JRDB 特徴の生成に失敗: {type(e).__name__}: {e}"
+
     # ------ kako5 history + horse facts (advisor + 出走表 表示用) ------
     from kako5_summary import build_histories, build_horse_facts
     kako5_path = BASE / "data" / "kako5" / f"{date_str}.csv"
@@ -776,6 +803,8 @@ def main() -> int:
     # bundle は書き出した上で (デバッグ用に成果物は残す)、閾値割れなら非0 exit して
     # weekly_nicegui.ps1 側の git push / sync-hf を止める。
     gate_errors: list[str] = []
+    if jrdb_gate_error:
+        gate_errors.append(jrdb_gate_error)
 
     # ------ 予測入力の品質ゲート: 馬同定 (2026-10-04 再現性修正 spec §3.3) ------
     # 判別不能が出走馬の 2% を超えた開催日は全体を不合格 (同定状態が作れない日も含む)。

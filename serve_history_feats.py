@@ -102,6 +102,7 @@ NUM_FEATS = [
     "trainer_fuku30", "trainer_fuku90",
 ]
 CAT_FEATS = ["騎手コード", "調教師コード"]
+PED_ID_COL = "_serve_ped_id"                      # 同定できた馬 (hit) の血統登録番号。JRDB 過去走特徴 (jrdb_features.py) が引くキー
 IDENTITY_STATUS_COL = "_serve_identity_status"   # fill_history_features が馬ごとの同定状態を書く列
 
 _SURF = {"芝": "芝", "ダ": "ダ", "ダート": "ダ"}
@@ -436,6 +437,7 @@ def fill_history_features(df: pd.DataFrame, base: Path = BASE,
     jockey_code_col = np.array(["__NaN__"] * n, dtype=object)
     trainer_code_col = np.array(["__NaN__"] * n, dtype=object)
     identity_col = np.array(["bad_date"] * n, dtype=object)
+    ped_col = np.full(n, np.nan)
     stats = {"hit": 0, "new": 0, "ambiguous": 0, "bad_date": 0,
              "jockey_code": 0, "trainer_code": 0, "hist_max_date": meta["max_date"],
              "hist_rows": meta["n_rows"], "hist_columns": meta["columns"],
@@ -493,6 +495,8 @@ def fill_history_features(df: pd.DataFrame, base: Path = BASE,
         identity_col[i] = status
         if status == "ambiguous":
             continue  # 従来通り NaN (安全側)
+        if status == "hit" and ent is not None and ent.get("ped_id") is not None:
+            ped_col[i] = float(ent["ped_id"])
 
         feats = compute_row_feats(ent, race_date, places.loc[ix],
                                   surfs.loc[ix], dists.loc[ix], jc)
@@ -505,6 +509,7 @@ def fill_history_features(df: pd.DataFrame, base: Path = BASE,
     df["調教師コード"] = trainer_code_col
     # 馬ごとの同定状態 (hit / new / ambiguous / bad_date)。bundle と品質ゲートが使う。
     df[IDENTITY_STATUS_COL] = identity_col
+    df[PED_ID_COL] = ped_col
 
     stats["coverage"] = {c: round(float(pd.Series(num_out[c]).notna().mean()), 3)
                          for c in NUM_FEATS}

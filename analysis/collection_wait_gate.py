@@ -177,7 +177,28 @@ def cw14_morning_drift() -> dict:
         return {"id": "CW-14", "name": "朝 9 時 → 発走前の動き 前向き確認", "missing": f"{type(e).__name__}: {e}"[:200]}
 
 
-COUNTERS = [cw01_exp19, cw02_jump, cw03_exp05f, cw09_trio, cw10_shadow_a95, cw11_live_a95, cw13_pool_ratio, cw14_morning_drift]
+def cw15_shadow_v7() -> dict:
+    """v7 候補 (v6 + JRDB 過去走特徴) の紙上 bundle と本番 bundle を、結果の出た同じレースで比べられる数。記述のみ。"""
+    try:
+        from analysis.replay_ab_compare import load
+        from analysis.replay_serve_2026 import _kekka
+        since = "20261114"
+        a = load(BASE / "reports" / "cowork_input", since, "20991231"); b = load(BASE / "reports" / "shadow_v7", since, "20991231")
+        n = 0; dates = []
+        for d in sorted(set(a) & set(b)):
+            if not _kekka_exists(d):
+                continue
+            k = len(set(a[d][0]) & set(b[d][0]))
+            if k:
+                n += k; dates.append(d)
+        return {"id": "CW-15", "name": "v7 候補 (JRDB 過去走特徴) の紙上比較", "current": n, "target": 1000, "unit": "race",
+                "latest": dates[-1] if dates else None, "since": since, "source": "reports/shadow_v7 × reports/cowork_input × data/kekka",
+                "note": "比較: python -m analysis.replay_ab_compare --a reports/cowork_input --b reports/shadow_v7 --since 20261114"}
+    except Exception as e:  # noqa: BLE001
+        return {"id": "CW-15", "name": "v7 候補 (JRDB 過去走特徴) の紙上比較", "missing": f"{type(e).__name__}: {e}"[:200]}
+
+
+COUNTERS = [cw01_exp19, cw02_jump, cw03_exp05f, cw09_trio, cw10_shadow_a95, cw11_live_a95, cw13_pool_ratio, cw14_morning_drift, cw15_shadow_v7]
 
 
 # ---------------------------------------------------------------- 判定

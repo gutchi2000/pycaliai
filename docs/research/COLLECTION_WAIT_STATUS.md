@@ -1,4 +1,4 @@
-# 収集待ち 現況 (自動生成 2026-11-13 00:34)
+# 収集待ち 現況 (自動生成 2026-11-13 01:31)
 
 `python -m analysis.collection_wait_gate` が Phase C で生成。台帳本体は `COLLECTION_WAIT_REGISTRY.md`（人が書く）。
 通知は Gate 到達・減少・消失・停滞のときだけ。
@@ -13,6 +13,7 @@
 | CW-11 | 本線 a95 前向き cohort (参戦ガード通過・決済済) | 0 race | 500 | 0.0% | — | `reports/cowork_output/*_bets.json (a95_all.guard_passed) × data/kekka` |
 | CW-13 | 複勝票数/単勝票数 ゲートの前向き確認 (T-10) | 19 race | 100 | 19.0% | 20261108 | `data/forward_prices (schema v2 votes_total) × data/kekka` |
 | CW-14 | 朝 9 時 → 発走前の動き 前向き確認 (Gate A 広い条件) | 0 点 | 300 | 0.0% | — | `data/forward_prices (am9 × t20) × data/kekka` |
+| CW-15 | v7 候補 (JRDB 過去走特徴) の紙上比較 | 0 race | 1000 | 0.0% | — | `reports/shadow_v7 × reports/cowork_input × data/kekka` |
 
 ## 今回の通知
 

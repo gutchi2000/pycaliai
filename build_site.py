@@ -1358,7 +1358,8 @@ def scrub_public(day: dict) -> dict:
             if isinstance(why, list):
                 h["why"] = [w for w in why
                             if not (isinstance(w, dict)
-                                    and w.get("feat") in _WHY_BLOCK_FEATS)]
+                                    and (w.get("feat") in _WHY_BLOCK_FEATS
+                                         or str(w.get("feat", "")).startswith("j1_")))]   # j1_ = JRDB 由来 (規約で非公開)
             um = h.get("umami")
             if isinstance(um, dict):
                 h["umami"] = {k: um[k] for k in ("grade", "side") if k in um}

@@ -144,6 +144,9 @@ def _to_2d_shap(sv) -> np.ndarray:
     raise ValueError(f"unexpected shap_values ndim={arr.ndim}")
 
 
+_PRIVATE_PREFIXES = ("j1_",)   # jrdb_features.JRDB_FEATURE_PREFIX。bundle の why[] に書かない
+
+
 def race_contribs(explainer, X, feats, g_rows: pd.DataFrame, topk: int = 6):
     """1 レース分の SHAP 寄与を馬ごとに整形して返す。
 
@@ -178,6 +181,8 @@ def race_contribs(explainer, X, feats, g_rows: pd.DataFrame, topk: int = 6):
             if len(items) >= topk:
                 break
             f = feats[j]
+            if f.startswith(_PRIVATE_PREFIXES):
+                continue  # JRDB 由来の特徴は値も寄与も公開物に出さない (規約)
             raw = grow.get(f) if f in cols else None
             try:
                 val = _fmt_value(raw)

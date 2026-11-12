@@ -215,6 +215,9 @@ def score_test(include_valid=False):
     if gf_mode:
         from grade_feats import add_grade_feats
         df = add_grade_feats(df, mode=gf_mode)
+    if bundle.get("jrdb_mode"):
+        from jrdb_features import add_jrdb_feats
+        df = add_jrdb_feats(df, mode=bundle["jrdb_mode"])
     if include_valid:
         te = df[df["split"].isin(["test", "valid"])].copy()
     else:

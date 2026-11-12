@@ -114,6 +114,16 @@ def cmd_capture(args):
         saved += 1
         print(f"saved {name} pre_race={pre} revised={rec['revised']}")
     print(f"capture: 新規保存 {saved} 本")
+    # 成績 (SED) の今年ぶんも取り直す (v7 候補の過去走特徴用、2026-11-13)。失敗しても capture の結果は変えない。
+    try:
+        import subprocess
+        rr = subprocess.run([sys.executable, str(jf.ROOT / "scripts" / "jrdb_refresh.py")], cwd=str(jf.ROOT), capture_output=True,
+                            text=True, encoding="utf-8", errors="replace", timeout=900)
+        print((rr.stdout or "").strip().splitlines()[-1] if (rr.stdout or "").strip() else f"jrdb_refresh rc={rr.returncode}")
+        if rr.returncode != 0 and args.notify:
+            notify("⚠️ JRDB 成績 (SED) の更新に失敗。v7 の過去走特徴が 1 週古くなります: python scripts/jrdb_refresh.py")
+    except Exception as e:  # noqa: BLE001
+        print(f"jrdb_refresh 失敗: {type(e).__name__}: {e}")
     today = now.strftime("%Y%m%d")
     if args.notify and (jf.ROOT / f"data/weekly/{today}.csv").exists() and today not in last:
         notify(f"⚠️ JRDB 前日ファイル KYI{today[2:]} が発走前に保存できていません")
