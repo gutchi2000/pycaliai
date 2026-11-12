@@ -175,3 +175,46 @@ def test_scale_anchors_per_surface() -> None:
     for sf, top in (("芝", "A"), ("ダ", "C")):
         lo, hi = pr.scale_anchors(horses, date(2026, 1, 4), sf)
         assert abs(pr.to_score(horses[top].sr[sf][0], lo, hi) - 100.0) < 1e-9
+
+
+def test_retired_on_handles_name_reuse_and_asof() -> None:
+    h = pr.Horse(rating=1500.0, peak=1500.0)
+    h.last_day = date(2026, 3, 29)
+    ret = {"A": date(2026, 9, 17), "B": date(2020, 1, 1), "C": None}
+    assert pr.retired_on(ret, "A", h, date(2026, 11, 8)) == date(2026, 9, 17)
+    assert pr.retired_on(ret, "A", h, date(2026, 6, 1)) is None      # 基準日より後の抹消
+    assert pr.retired_on(ret, "B", h, date(2026, 11, 8)) is None     # 最終出走より前 = 同名の別馬
+    assert pr.retired_on(ret, "C", h, date(2026, 11, 8)) == date(2026, 11, 8)
+    assert pr.retired_on(ret, "Z", h, date(2026, 11, 8)) is None
+
+
+def test_scale_anchors_skip_retired() -> None:
+    races = [pr.Race(date(2026, 1, d), f"T{d}", "G1", "芝",
+                     [(nm, i + 1) for i, nm in enumerate("ABCDEFGHIJKLMNOPQRSTUVWX")])
+             for d in (4, 5, 6)]
+    horses, _ = pr.run_ratings(races, pr.Params())
+    asof = date(2026, 1, 6)
+    _, hi_all = pr.scale_anchors(horses, asof, "芝")
+    _, hi_ret = pr.scale_anchors(horses, asof, "芝", {"A": date(2026, 1, 6)})
+    assert hi_all == horses["A"].sr["芝"][0]
+    assert hi_ret == horses["B"].sr["芝"][0]
+
+
+def test_parse_um_record() -> None:
+    import power_rating_retired as rt
+    name = "サトノレーヴ".ljust(18, "　")
+    buf = "UM1" + "20260918" + "2019101700" + "1" + "20210610" + "20260917" + "20190327" + name + "X" * 50
+    assert rt.parse_um(buf) == ("2019101700", "サトノレーヴ", "1", "20260917")
+    active = buf[:21] + "0" + buf[22:30] + "00000000" + buf[38:]
+    assert rt.parse_um(active) == ("2019101700", "サトノレーヴ", "0", "")
+    assert rt.parse_um("RA" + buf[2:]) is None
+
+
+def test_parse_um_repairs_mojibake() -> None:
+    import power_rating_retired as rt
+    name = "ビダーヤ".ljust(18, "　")
+    good = "UM9" + "20261105" + "2021105537" + "1" + "20230928" + "20261104" + "20210303" + name + "ﾋﾞ"
+    bad = "".join(bytes([b]).decode("cp1252") if b not in (0x81, 0x8D, 0x8F, 0x90, 0x9D) else chr(b)
+                  for b in good.encode("cp932"))
+    assert bad != good
+    assert rt.parse_um(bad) == rt.parse_um(good) == ("2021105537", "ビダーヤ", "1", "20261104")

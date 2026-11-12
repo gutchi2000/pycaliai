@@ -521,7 +521,7 @@ function viewRank(){
   var list = PR.horses.filter(function(h){ var v = sv(h, sf); return v && v[4] && v[2] >= state.minN; })
     .sort(function(a, b){ return sv(b, sf)[0] - sv(a, sf)[0]; }).slice(0, 100);
   var sec = el("section", {class:"panel"});
-  sec.appendChild(el("h2", null, [SNAME[sf] + "の現役上位 100", el("small", {text:SNAME[sf] + "で 1 年以内に出走した馬。走数は" + SNAME[sf] + "での走数。基準日 " + M.asof})]));
+  sec.appendChild(el("h2", null, [SNAME[sf] + "の現役上位 100", el("small", {text:SNAME[sf] + "で 1 年以内に出走した馬（登録抹消＝引退した馬は除く）。走数は" + SNAME[sf] + "での走数。基準日 " + M.asof})]));
   var t = el("table"), tb = el("tbody");
   t.appendChild(el("thead", null, [el("tr", null, [el("th", {class:"n", text:"順位"}), el("th", {text:"馬名"}),
     el("th", {text:SNAME[sf] + "スコア"}), el("th", {class:"n", text:"走数"}), el("th", {text:"信頼"}),
