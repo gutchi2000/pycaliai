@@ -91,18 +91,24 @@ CLASS_LEVEL: dict[str, int] = {
 }
 FORM_RIDGE = 50.0           # 好走/凡走モデルの ridge 係数
 FORM_Q = 0.15               # 上位/下位この割合にラベルを付ける
-# 好走/凡走モデルが使う条件。hd（距離帯の実績）・hp（競馬場の実績）は 2026 年データの検証で
-# 効かなかったので既定では外す（history.csv には全条件を残す。`ablate` で再比較できる）
+# 好走/凡走モデルが使う条件。既定は全条件（2026-11-12、master 込みで 2023 年を検証にして選定:
+# 予測上振れと実績の相関 基本 0.162 → +hs 0.188 → 全条件 0.197。2024 年以降でも 0.163 → 0.198）。
+# 効きの大半は hs（その芝ダでの実績）。jk は単独では効かない（±0）が害も無いので残す。
+# `ablate --eval-from 2023-01-01 --until 20240101` で選び直せる
 FORM_BASE = ("lay", "cls", "surf", "dist", "r1", "r3", "n")
 FORM_EXTRA = ("jk", "kin", "hs", "hd", "hp")
-FORM_DEFAULT = FORM_BASE + ("jk", "kin", "hs")
+FORM_DEFAULT = FORM_BASE + FORM_EXTRA
 
 
 @dataclass
 class Params:
-    """更新パラメータ。K は出走数とともに k0 → k0×floor_ratio へ減衰する。"""
+    """更新パラメータ。K は出走数とともに k0 → k0×floor_ratio へ減衰する。
 
-    k0: float = 96.0
+    既定値は master 込みで 2023 年のペア logloss 最小（2026-11-12 選定）。最適域は平坦で、
+    k0=96〜160・tau=3〜6 の差は logloss 0.002 以内。
+    """
+
+    k0: float = 128.0
     floor_ratio: float = 0.25
     tau: float = 6.0
 
@@ -627,9 +633,17 @@ def fit_form(rows: list[tuple[tuple[str, ...], float]],
     reg[0, 0] = 0.0
     w = np.linalg.solve(x.T @ x + reg, x.T @ y)
     pred = x @ w
+    # 理由表示用: 条件ごとに「学習データの平均的な馬」からの差に直した係数。生の係数は区分の
+    # 基準の取り方で全体が上下にずれる（例: hs:none が大きく負 → 他の hs 区分が全部正に見える）
+    freq = x.mean(axis=0)
+    base: dict[str, float] = {}
+    for k, i in idx.items():
+        p = k.split(":", 1)[0]
+        base[p] = base.get(p, 0.0) + float(w[i]) * float(freq[i])
     return {
         "intercept": float(w[0]),
         "coef": {k: round(float(w[i]), 5) for k, i in idx.items()},
+        "coef_c": {k: round(float(w[i]) - base[k.split(":", 1)[0]], 5) for k, i in idx.items()},
         "q_lo": float(np.quantile(pred, FORM_Q)),
         "q_hi": float(np.quantile(pred, 1 - FORM_Q)),
         "n_train": len(rows),
@@ -656,11 +670,13 @@ _FACTOR_JP = {
     "cls:down2": "2段以上の降級", "cls:same": "同クラス",
     "jk:same": "継続騎乗", "jk:change": "乗り替わり",
     "kin:up": "斤量増", "kin:down": "斤量減", "kin:same": "斤量据え置き",
-    "hs:good": "この芝ダで上振れ実績", "hs:bad": "この芝ダで下振れ実績", "hs:none": "この芝ダは初",
+    # hs:bad は係数が正（下振れ続きでスコアが下がり過ぎ → 戻す方向）なので、その向きで書く
+    "hs:good": "この芝ダで上振れ実績", "hs:bad": "この芝ダで下振れ続きの反動",
+    "hs:mid": "この芝ダで実績相応", "hs:none": "この芝ダは初",
     "hd:good": "この距離帯で上振れ実績", "hd:bad": "この距離帯で下振れ実績",
-    "hd:none": "この距離帯は初",
+    "hd:mid": "この距離帯で実績相応", "hd:none": "この距離帯は初",
     "hp:good": "この競馬場で上振れ実績", "hp:bad": "この競馬場で下振れ実績",
-    "hp:none": "この競馬場は初",
+    "hp:mid": "この競馬場で実績相応", "hp:none": "この競馬場は初",
     "surf:same": "同じ芝ダ", "surf:芝>ダ": "芝→ダ", "surf:ダ>芝": "ダ→芝",
     "dist:short": "距離短縮", "dist:long": "距離延長", "dist:same": "同距離帯",
     "r1:good": "前走上振れ", "r1:bad": "前走下振れ", "r1:mid": "前走相応",
@@ -675,7 +691,8 @@ def form_reason(model: dict, ft: tuple[str, ...] | None, label: str) -> str:
     if not ft or not label:
         return ""
     sign = 1.0 if label == "好走気配" else -1.0
-    c = sorted(((sign * model["coef"].get(k, 0.0), k) for k in ft), reverse=True)
+    coef = model.get("coef_c") or model["coef"]
+    c = sorted(((sign * coef.get(k, 0.0), k) for k in ft), reverse=True)
     why = [_FACTOR_JP.get(k, k) for v, k in c[:2] if v >= 0.008]
     return f"（{'・'.join(why)}）" if why else ""
 
@@ -1016,7 +1033,7 @@ def cmd_tune(args: argparse.Namespace) -> int:
         races = [r for r in races if r.day <= upto]
     print(f"探索期間: {eval_from} 〜 {upto or max(r.day for r in races)}（ペア logloss 最小を選ぶ）")
     best: tuple[float, Params] | None = None
-    for k0 in (12.0, 16.0, 24.0, 32.0, 48.0, 64.0, 96.0, 128.0):
+    for k0 in (32.0, 48.0, 64.0, 96.0, 128.0, 160.0, 200.0, 256.0):
         for fr in (0.25, 0.4, 0.6, 1.0):
             p = Params(k0=k0, floor_ratio=fr, tau=args.tau)
             _, acc = run_ratings(races, p, eval_from)
@@ -1036,6 +1053,9 @@ def cmd_tune(args: argparse.Namespace) -> int:
 def cmd_ablate(args: argparse.Namespace) -> int:
     """好走/凡走モデルの条件を 1 つずつ足して、検証期間での効き方を比べる。"""
     races = load_all()
+    if args.until:   # 条件選び用: --eval-from 2023-01-01 --until 20240101 で 2023 年だけを検証に使う
+        until = datetime.strptime(args.until, "%Y%m%d").date()
+        races = [r for r in races if r.day < until]
     eval_from = (datetime.strptime(args.eval_from, "%Y-%m-%d").date()
                  if args.eval_from else default_eval_from(races))
     history: list[tuple] = []
