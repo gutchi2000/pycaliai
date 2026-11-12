@@ -146,3 +146,32 @@ def test_site_page_has_no_external_data_fetch() -> None:
 
     assert "fetch(" not in ps.HTML and "XMLHttpRequest" not in ps.HTML
     assert 'content="noindex,nofollow"' in ps.HTML
+
+
+def test_turf_and_dirt_have_separate_ratings() -> None:
+    """芝とダートは別レーティング: 芝の結果はダートの値を動かさない。"""
+    turf = pr.Race(date(2026, 1, 4), "T1", "1勝", "芝", [("A", 1), ("B", 2)])
+    dirt = pr.Race(date(2026, 1, 11), "D1", "1勝", "ダ", [("A", 2), ("B", 1)])
+    horses, _ = pr.run_ratings([turf, dirt], pr.Params())
+    a, b = horses["A"], horses["B"]
+    assert a.sr["芝"][0] > b.sr["芝"][0] and a.sr["ダ"][0] < b.sr["ダ"][0]
+    assert a.sr["芝"][1] == 1 and a.sr["ダ"][1] == 1 and a.n == 2
+    # ダート初出走の時点では芝の勝ち負けを持ち込まない（2 頭とも同じ初期値から）
+    only_turf, _ = pr.run_ratings([turf], pr.Params())
+    assert only_turf["A"].sr["芝"][0] == a.sr["芝"][0]
+    assert "ダ" not in only_turf["A"].sr
+
+
+def test_unknown_surface_race_is_skipped() -> None:
+    r = pr.Race(date(2026, 1, 4), "X1", None, None, [("A", 1), ("B", 2)])
+    horses, _ = pr.run_ratings([r], pr.Params())
+    assert horses == {}
+
+
+def test_scale_anchors_per_surface() -> None:
+    races = [pr.Race(date(2026, 1, 4), "T1", "G1", "芝", [("A", 1), ("B", 2)]),
+             pr.Race(date(2026, 1, 4), "D1", "未勝利", "ダ", [("C", 1), ("D", 2)])]
+    horses, _ = pr.run_ratings(races, pr.Params())
+    for sf, top in (("芝", "A"), ("ダ", "C")):
+        lo, hi = pr.scale_anchors(horses, date(2026, 1, 4), sf)
+        assert abs(pr.to_score(horses[top].sr[sf][0], lo, hi) - 100.0) < 1e-9

@@ -39,18 +39,22 @@ def _default_dates() -> list[str]:
     return days[-2:]
 
 
-def _history(names: set[str], lo: float, hi: float) -> dict[str, list[list]]:
-    out: dict[str, list[list]] = {}
+def _history(names: set[str], anchors: dict) -> dict[str, dict[str, list[list]]]:
+    """馬名 → {芝ダ: [[日付, スコア, クラス, 着順, 頭数], …]}（その芝ダのものさしで換算）。"""
+    out: dict[str, dict[str, list[list]]] = {}
     path = pr.OUT_DIR / "history.csv"
     if not path.exists():
         return out
     with path.open(encoding="utf-8-sig", newline="") as fp:
         for r in csv.DictReader(fp):
-            if r["馬名"] in names:
-                out.setdefault(r["馬名"], []).append(
-                    [r["日付"], round(pr.to_score(float(r["R後"]), lo, hi), 1),
+            sf = r["芝ダ"]
+            if r["馬名"] in names and sf in anchors:
+                a = anchors[sf]
+                out.setdefault(r["馬名"], {}).setdefault(sf, []).append(
+                    [r["日付"], round(pr.to_score(float(r["R後"]), a["rating_lo"],
+                                                  a["rating_hi"]), 1),
                      r["クラス"], int(r["着順"]), int(r["頭数"])])
-    return {k: v[-HIST_MAX:] for k, v in out.items()}
+    return {k: {sf: v[-HIST_MAX:] for sf, v in d.items()} for k, d in out.items()}
 
 
 def build(dates: list[str] | None = None, out_dir: Path | None = None) -> int:
@@ -62,7 +66,7 @@ def build(dates: list[str] | None = None, out_dir: Path | None = None) -> int:
         return 2
     table, meta = pr.read_outputs()
     fm = pr.load_form_model()
-    lo, hi = float(meta["anchors"]["rating_lo"]), float(meta["anchors"]["rating_hi"])
+    anchors = meta["anchors"]
 
     cards = []
     in_cards: set[str] = set()
@@ -82,17 +86,23 @@ def build(dates: list[str] | None = None, out_dir: Path | None = None) -> int:
         # 基準日がその日以降 = 結果を含んだ値（回顧用）
         cards.append({"date": iso, "stale": meta["asof"] >= iso, "races": races})
 
-    keep = {nm for nm, r in table.items() if r["現役"] == "1" or nm in in_cards}
-    hist = _history(keep, lo, hi)
+    def sv(r: dict, sf: str) -> list | None:
+        v = pr.surf_row(r, sf)
+        return [round(v["score"], 1), round(v["peak"], 1), v["n"], v["last"],
+                int(v["active"])] if v else None
+
+    keep = {nm for nm, r in table.items()
+            if nm in in_cards or any(r[f"現役_{sf}"] == "1" for sf in pr.SURFACES)}
+    hist = _history(keep, anchors)
     horses = []
-    for nm in sorted(keep, key=lambda k: -float(table[k]["score"])):
+    for nm in sorted(keep):
         r = table[nm]
         apt = {k: [round(v[0] / v[1], 3), int(v[1])]
                for k, v in json.loads(r.get("適性") or "{}").items()
                if v[1] and k[:2] in ("s:", "d:")}
-        horses.append([nm, round(float(r["score"]), 1), round(float(r["peak_score"]), 1),
-                       int(r["出走数"]), int(r["芝"]), int(r["ダ"]), r["最終出走"],
-                       r["最終クラス"], int(r["現役"]), apt, hist.get(nm, [])])
+        # [馬名, 主戦, 芝[score,peak,走数,最終,現役], ダ[…], 最終クラス, 適性, 芝の推移, ダの推移]
+        horses.append([nm, r["主戦"], sv(r, "芝"), sv(r, "ダ"), r["最終クラス"], apt,
+                       hist.get(nm, {}).get("芝", []), hist.get(nm, {}).get("ダ", [])])
 
     data = {
         "meta": {
@@ -100,7 +110,7 @@ def build(dates: list[str] | None = None, out_dir: Path | None = None) -> int:
             "built_at": datetime.now().isoformat(timespec="seconds"),
             "n_races": meta["n_races"],
             "n_horses": meta["n_horses"],
-            "elo_per_point": meta["elo_per_point"],
+            "elo_per_point": {sf: anchors[sf]["elo_per_point"] for sf in pr.SURFACES},
             "params": meta["params"],
             "eval_from": meta.get("eval_from"),
             "eval": meta.get("eval") or {},
@@ -127,7 +137,7 @@ HTML = r"""<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>強さスコア（ローカル専用）— PyCaLiAI</title>
+<title>強さスコア（芝・ダート別、ローカル専用）— PyCaLiAI</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -225,10 +235,12 @@ ul.plain li{margin:2px 0}
 var PR = window.PR, main = document.getElementById("main");
 if(!PR){ main.textContent = "data.js が読めません。python power_rating.py site を実行してください。"; return; }
 var M = PR.meta, EPP = M.elo_per_point;
+var SI = {"芝":2, "ダ":3}, HI = {"芝":6, "ダ":7}, SNAME = {"芝":"芝", "ダ":"ダート"};
 var COLORS = ["var(--s1)","var(--s2)","var(--s3)","var(--s4)"], MAXSEL = 4;
-// horses: [name, score, peak, n, turf, dirt, last, klass, active, apt, hist]
+// horses: [馬名, 主戦, 芝[score,peak,走数,最終,現役]|null, ダ[…]|null, クラス, 適性, 芝の推移, ダの推移]
 var H = {}; PR.horses.forEach(function(h){ H[h[0]] = h; });
-var state = { tab:"card", card:0, place:null, sel:[], colorOf:{}, surf:"all", minN:3 };
+var state = { tab:"card", card:0, place:null, sel:[], colorOf:{}, surf:"芝", csurf:"芝", minN:3 };
+function sv(h, sf){ return h[SI[sf]]; }
 
 function el(tag, attrs, kids){
   var e = document.createElement(tag);
@@ -248,10 +260,11 @@ function svg(tag, attrs){
 function f1(x){ return x === null || x === undefined ? "--" : x.toFixed(1); }
 function pct(x){ return x === null || x === undefined ? "--" : Math.round(x * 100) + "%"; }
 function conf(n){ return n >= 8 ? "高" : n >= 4 ? "中" : n >= 1 ? "低" : "-"; }
-function winProb(a, b){ return 1 / (1 + Math.pow(10, -((a - b) * EPP) / 400)); }
+function winProb(a, b, sf){ return 1 / (1 + Math.pow(10, -((a - b) * EPP[sf]) / 400)); }
 
 function addSel(name){
   if(!H[name] || state.sel.indexOf(name) >= 0) return;
+  if(!state.sel.length && H[name][1]) state.csurf = H[name][1];   // 1 頭目の主戦に合わせる
   if(state.sel.length >= MAXSEL){ var out = state.sel.shift(); delete state.colorOf[out]; }
   // 色は馬に固定する（他の馬を外しても塗り直さない）
   var used = state.sel.map(function(n){ return state.colorOf[n]; });
@@ -298,10 +311,10 @@ function viewCard(){
     sec.appendChild(el("h3", null, [
       el("span", {class:"rn", text:r.rno + "R"}),
       r.name || r.klass,
-      el("small", {text:(r.name ? r.klass + "・" : "") + (r.surface || "") + r.dist + "m・" + r.rows.length + "頭"})]));
+      el("small", {text:(r.name ? r.klass + "・" : "") + (r.surface || "") + r.dist + "m・" + r.rows.length + "頭・" + (SNAME[r.surface] || "") + "スコアで表示"})]));
     var t = el("table"), tb = el("tbody");
     t.appendChild(el("thead", null, [el("tr", null, [
-      el("th", {class:"n", text:"馬番"}), el("th", {text:"馬名"}), el("th", {text:"強さスコア"}),
+      el("th", {class:"n", text:"馬番"}), el("th", {text:"馬名"}), el("th", {text:(SNAME[r.surface] || "") + "スコア"}),
       el("th", {class:"n", text:"3着内率"}), el("th", {class:"n", text:"走数"}),
       el("th", {text:"信頼"}), el("th", {text:"気配"})])]));
     r.rows.forEach(function(x){
@@ -311,33 +324,34 @@ function viewCard(){
       tb.appendChild(el("tr", null, [
         el("td", {class:"n", text:String(x.ban)}), el("td", null, [nameBtn(x.name)]), sc,
         el("td", {class:"n", text: x.p3 === null ? "--" : pct(x.p3) + (x.score === null ? "?" : "")}),
-        el("td", {class:"n", text:String(x.n)}), el("td", {text:conf(x.n)}), labelCell(x)]));
+        el("td", {class:"n", text: x.score === null && x.n_all ? "0（別" + x.n_all + "）" : String(x.n)}),
+        el("td", {text:conf(x.n)}), labelCell(x)]));
     });
     t.appendChild(tb);
     sec.appendChild(el("div", {class:"scroll"}, [t]));
     box.appendChild(sec);
   });
   box.appendChild(el("p", {class:"note",
-    text:"3着内率はスコア（+ 条件補正）からの計算値で、オッズは見ていません。「?」は未収録馬（レース平均で仮置き）。馬名を押すと比較に追加します。"}));
+    text:"芝のレースは芝スコア、ダートのレースはダートスコアで並べています。3着内率はスコア（+ 条件補正）からの計算値で、オッズは見ていません。「?」はその芝ダが初めての馬（レース平均で仮置き）、「0（別N）」はもう一方の芝ダで N 走している馬です。馬名を押すと比較に追加します。"}));
   return box;
 }
 
 // ---------------------------------------------------------------- 比較
-function lineChart(names){
+function lineChart(names, sf){
   var W = 920, Hh = 340, mL = 44, mR = 196, mT = 14, mB = 30;
   var pts = [], series = names.map(function(n){
-    var s = (H[n][10] || []).map(function(p){ return {t:new Date(p[0]).getTime(), v:p[1], d:p[0], k:p[2], pos:p[3], n:p[4], name:n}; });
+    var s = (H[n][HI[sf]] || []).map(function(p){ return {t:new Date(p[0]).getTime(), v:p[1], d:p[0], k:p[2], pos:p[3], n:p[4], name:n}; });
     pts = pts.concat(s); return {name:n, pts:s, ci:state.colorOf[n]};
   });
   var wrap = el("div", {class:"chartbox"});
-  if(!pts.length){ wrap.appendChild(el("p", {class:"note", text:"推移データがありません。"})); return wrap; }
+  if(!pts.length){ wrap.appendChild(el("p", {class:"note", text:SNAME[sf] + "の推移データがありません。"})); return wrap; }
   var t0 = Math.min.apply(null, pts.map(function(p){ return p.t; })), t1 = Math.max.apply(null, pts.map(function(p){ return p.t; }));
   if(t1 === t0){ t0 -= 864e5 * 15; t1 += 864e5 * 15; }
   var v0 = Math.floor((Math.min.apply(null, pts.map(function(p){ return p.v; })) - 3) / 5) * 5;
   var v1 = Math.ceil((Math.max.apply(null, pts.map(function(p){ return p.v; })) + 3) / 5) * 5;
   function X(t){ return mL + (t - t0) / (t1 - t0) * (W - mL - mR); }
   function Y(v){ return mT + (v1 - v) / (v1 - v0) * (Hh - mT - mB); }
-  var s = svg("svg", {viewBox:"0 0 " + W + " " + Hh, role:"img", "aria-label":"強さスコアの推移"});
+  var s = svg("svg", {viewBox:"0 0 " + W + " " + Hh, role:"img", "aria-label":SNAME[sf] + "の強さスコアの推移"});
   var step = (v1 - v0) > 40 ? 10 : 5;
   for(var v = v0; v <= v1; v += step){
     s.appendChild(svg("line", {x1:mL, x2:W - mR, y1:Y(v), y2:Y(v), stroke:"#1e2b4a", "stroke-width":1}));
@@ -403,8 +417,9 @@ function viewCmp(){
     if(!q){ sug.hidden = true; return; }
     var hit = PR.horses.filter(function(h){ return h[0].indexOf(q) >= 0; }).slice(0, 14);
     hit.forEach(function(h){
+      var t = ["芝","ダ"].filter(function(k){ return sv(h, k); }).map(function(k){ return k + " " + f1(sv(h, k)[0]); }).join("／");
       sug.appendChild(el("button", {onclick:function(){ addSel(h[0]); render(); }}, [
-        el("span", {text:h[0]}), el("small", {text:f1(h[1]) + "・" + h[3] + "走"})]));
+        el("span", {text:h[0]}), el("small", {text:t})]));
     });
     if(!hit.length) sug.appendChild(el("button", {disabled:"", text:"該当なし（現役馬と出走表の馬だけ収録）"}));
     sug.hidden = false;
@@ -422,38 +437,50 @@ function viewCmp(){
     box.appendChild(el("p", {class:"note", text:"出走表やランキングの馬名を押しても追加できます。"}));
     return box;
   }
-  var rows = state.sel.map(function(n){ return H[n]; }).sort(function(a, b){ return b[1] - a[1]; });
+  var sf = state.csurf, other = sf === "芝" ? "ダ" : "芝";
+  var srow = el("div", {class:"row"});
+  ["芝","ダ"].forEach(function(k){
+    srow.appendChild(el("button", {class:"chip", "aria-pressed": String(k === sf), text:SNAME[k] + "で比べる",
+      onclick:function(){ state.csurf = k; render(); }}));
+  });
+  srow.appendChild(el("span", {class:"note", text:"芝とダートは別のものさしです（数字同士は比べられません）"}));
+  box.appendChild(srow);
+  var all = state.sel.map(function(n){ return H[n]; });
+  var rows = all.filter(function(h){ return sv(h, sf); }).sort(function(a, b){ return sv(b, sf)[0] - sv(a, sf)[0]; });
+  var none = all.filter(function(h){ return !sv(h, sf); });
   var t = el("table"), tb = el("tbody");
   t.appendChild(el("thead", null, [el("tr", null, [
-    el("th", {text:"馬名"}), el("th", {class:"n", text:"スコア"}), el("th", {class:"n", text:"最高"}),
+    el("th", {text:"馬名"}), el("th", {class:"n", text:SNAME[sf] + "スコア"}), el("th", {class:"n", text:"最高"}),
     el("th", {class:"n", text:"走数"}), el("th", {text:"信頼"}), el("th", {text:"最終出走"}),
-    el("th", {text:"クラス"}), el("th", {text:"条件別の上振れ（走数）"})])]));
+    el("th", {class:"n", text:"（" + SNAME[other] + "）"}), el("th", {text:"条件別の上振れ（走数）"})])]));
   var APT = [["s:芝","芝"],["s:ダ","ダ"],["d:短","〜1400"],["d:マ","〜1800"],["d:中","〜2200"],["d:長","2300〜"]];
-  rows.forEach(function(h){
-    var apt = APT.filter(function(a){ return h[9][a[0]]; }).map(function(a){
-      var v = h[9][a[0]]; return a[1] + " " + (v[0] >= 0 ? "+" : "") + v[0].toFixed(2) + "(" + v[1] + ")"; }).join("　");
+  rows.concat(none).forEach(function(h){
+    var v = sv(h, sf), o = sv(h, other);
+    var apt = APT.filter(function(a){ return h[5][a[0]]; }).map(function(a){
+      var q = h[5][a[0]]; return a[1] + " " + (q[0] >= 0 ? "+" : "") + q[0].toFixed(2) + "(" + q[1] + ")"; }).join("　");
     tb.appendChild(el("tr", null, [
       el("td", null, [el("span", {class:"sw", style:"display:inline-block;margin-right:8px;background:var(--s" + (state.colorOf[h[0]] + 1) + ")"}), h[0]]),
-      el("td", {class:"n", text:f1(h[1])}), el("td", {class:"n", text:f1(h[2])}),
-      el("td", {class:"n", text:String(h[3])}), el("td", {text:conf(h[3])}),
-      el("td", {text:h[6] + (h[8] ? "" : "（1年以上出走なし）")}), el("td", {text:h[7]}),
+      el("td", {class:"n", text: v ? f1(v[0]) : "--"}), el("td", {class:"n", text: v ? f1(v[1]) : "--"}),
+      el("td", {class:"n", text: v ? String(v[2]) : "0"}), el("td", {text: v ? conf(v[2]) : "-"}),
+      el("td", {text: v ? v[3] + (v[4] ? "" : "（1年以上なし）") : SNAME[sf] + "は未出走"}),
+      el("td", {class:"n", text: o ? f1(o[0]) : "--"}),
       el("td", {class:"note", text:apt || "記録なし"})]));
   });
   t.appendChild(tb);
   var p2 = el("section", {class:"panel"});
-  p2.appendChild(el("h2", null, ["強さスコア", el("small", {text:"現役最上位 = 100。基準日 " + M.asof})]));
+  p2.appendChild(el("h2", null, [SNAME[sf] + "の強さスコア", el("small", {text:SNAME[sf] + "の現役最上位 = 100。基準日 " + M.asof})]));
   p2.appendChild(el("div", {class:"scroll"}, [t]));
   box.appendChild(p2);
   if(rows.length >= 2){
     var p3 = el("section", {class:"panel"});
-    p3.appendChild(el("h2", null, ["同じレースで先着する確率", el("small", {text:"行の馬が列の馬に先着。条件・斤量は平均的と仮定"})]));
+    p3.appendChild(el("h2", null, ["同じ" + SNAME[sf] + "のレースで先着する確率", el("small", {text:"行の馬が列の馬に先着。条件・斤量は平均的と仮定"})]));
     var mt = el("table"), hr = el("tr", null, [el("th")]);
     rows.forEach(function(h){ hr.appendChild(el("th", {class:"n", text:h[0]})); });
     mt.appendChild(el("thead", null, [hr]));
     var mb = el("tbody");
     rows.forEach(function(a){
       var tr = el("tr", null, [el("td", {text:a[0]})]);
-      rows.forEach(function(b){ tr.appendChild(el("td", {class:"n", text: a === b ? "—" : pct(winProb(a[1], b[1]))})); });
+      rows.forEach(function(b){ tr.appendChild(el("td", {class:"n", text: a === b ? "—" : pct(winProb(sv(a, sf)[0], sv(b, sf)[0], sf))})); });
       mb.appendChild(tr);
     });
     mt.appendChild(mb); p3.appendChild(el("div", {class:"scroll"}, [mt]));
@@ -462,13 +489,13 @@ function viewCmp(){
     box.appendChild(p3);
   }
   var p4 = el("section", {class:"panel"});
-  p4.appendChild(el("h2", null, ["スコアの推移", el("small", {text:"各走の直後の値（今のものさしで換算）"})]));
-  p4.appendChild(lineChart(state.sel));
+  p4.appendChild(el("h2", null, [SNAME[sf] + "スコアの推移", el("small", {text:SNAME[sf] + "の各走の直後の値（今のものさしで換算）"})]));
+  p4.appendChild(lineChart(state.sel, sf));
   var det = el("details"); det.appendChild(el("summary", {text:"数値の表を見る"}));
   var ht = el("table"), hb = el("tbody");
   ht.appendChild(el("thead", null, [el("tr", null, [el("th", {text:"馬名"}), el("th", {text:"日付"}), el("th", {text:"クラス"}),
     el("th", {class:"n", text:"着順"}), el("th", {class:"n", text:"頭数"}), el("th", {class:"n", text:"スコア"})])]));
-  state.sel.forEach(function(n){ (H[n][10] || []).forEach(function(q){
+  state.sel.forEach(function(n){ (H[n][HI[sf]] || []).forEach(function(q){
     hb.appendChild(el("tr", null, [el("td", {text:n}), el("td", {text:q[0]}), el("td", {text:q[2]}),
       el("td", {class:"n", text:String(q[3])}), el("td", {class:"n", text:String(q[4])}), el("td", {class:"n", text:q[1].toFixed(1)})]));
   }); });
@@ -480,7 +507,7 @@ function viewCmp(){
 // ---------------------------------------------------------------- ランキング
 function viewRank(){
   var box = el("div"), row = el("div", {class:"row"});
-  [["all","すべて"],["芝","芝が主"],["ダ","ダートが主"]].forEach(function(o){
+  [["芝","芝"],["ダ","ダート"]].forEach(function(o){
     row.appendChild(el("button", {class:"chip", "aria-pressed": String(state.surf === o[0]), text:o[1],
       onclick:function(){ state.surf = o[0]; render(); }}));
   });
@@ -490,23 +517,21 @@ function viewRank(){
       onclick:function(){ state.minN = n; render(); }}));
   });
   box.appendChild(row);
-  var list = PR.horses.filter(function(h){
-    if(!h[8] || h[3] < state.minN) return false;
-    if(state.surf === "芝") return h[4] * 2 > h[3];
-    if(state.surf === "ダ") return h[5] * 2 > h[3];
-    return true;
-  }).slice(0, 100);
+  var sf = state.surf;
+  var list = PR.horses.filter(function(h){ var v = sv(h, sf); return v && v[4] && v[2] >= state.minN; })
+    .sort(function(a, b){ return sv(b, sf)[0] - sv(a, sf)[0]; }).slice(0, 100);
   var sec = el("section", {class:"panel"});
-  sec.appendChild(el("h2", null, ["現役上位 100", el("small", {text:"1 年以内に出走した馬。基準日 " + M.asof})]));
+  sec.appendChild(el("h2", null, [SNAME[sf] + "の現役上位 100", el("small", {text:SNAME[sf] + "で 1 年以内に出走した馬。走数は" + SNAME[sf] + "での走数。基準日 " + M.asof})]));
   var t = el("table"), tb = el("tbody");
   t.appendChild(el("thead", null, [el("tr", null, [el("th", {class:"n", text:"順位"}), el("th", {text:"馬名"}),
-    el("th", {text:"強さスコア"}), el("th", {class:"n", text:"走数"}), el("th", {text:"信頼"}),
+    el("th", {text:SNAME[sf] + "スコア"}), el("th", {class:"n", text:"走数"}), el("th", {text:"信頼"}),
     el("th", {text:"最終出走"}), el("th", {text:"クラス"})])]));
   list.forEach(function(h, i){
-    var sc = el("td", {class:"barcell"}, [el("span", {style:"font-family:var(--disp)", text:f1(h[1])}),
-      el("span", {class:"bar", style:"width:" + Math.max(0, Math.min(100, h[1])) * 1.2 + "px"})]);
+    var v = sv(h, sf);
+    var sc = el("td", {class:"barcell"}, [el("span", {style:"font-family:var(--disp)", text:f1(v[0])}),
+      el("span", {class:"bar", style:"width:" + Math.max(0, Math.min(100, v[0])) * 1.2 + "px"})]);
     tb.appendChild(el("tr", null, [el("td", {class:"n", text:String(i + 1)}), el("td", null, [nameBtn(h[0])]), sc,
-      el("td", {class:"n", text:String(h[3])}), el("td", {text:conf(h[3])}), el("td", {text:h[6]}), el("td", {text:h[7]})]));
+      el("td", {class:"n", text:String(v[2])}), el("td", {text:conf(v[2])}), el("td", {text:v[3]}), el("td", {text:h[4]})]));
   });
   t.appendChild(tb); sec.appendChild(el("div", {class:"scroll"}, [t])); box.appendChild(sec);
   return box;
@@ -522,7 +547,7 @@ function viewVal(){
     [["スコア1位の勝率", pct(E.top_win_rate), "無作為 " + pct(E.random_win_rate) + "｜CI95 " + pct(E.top_win_ci95[0]) + "〜" + pct(E.top_win_ci95[1])],
      ["スコア1位の3着内率", pct(E.top_in3_rate), "無作為 " + pct(E.random_in3_rate) + "｜CI95 " + pct(E.top_in3_ci95[0]) + "〜" + pct(E.top_in3_ci95[1])],
      ["2頭の先着を当てた率", (E.pair_concordance * 100).toFixed(1) + "%", E.pairs.toLocaleString() + " ペア"],
-     ["対象レース", E.races.toLocaleString(), "全馬に出走歴のあるレース"]].forEach(function(x){
+     ["対象レース", E.races.toLocaleString(), "全馬がその芝ダで出走歴のあるレース"]].forEach(function(x){
       k.appendChild(el("div", {class:"kpi"}, [el("span", {text:x[0]}), el("b", {text:x[1]}), el("em", {text:x[2]})]));
     });
     s1.appendChild(k);
@@ -561,8 +586,9 @@ function viewVal(){
   s3.appendChild(el("h2", null, ["読み方と限界"]));
   var ul = el("ul", {class:"plain"});
   ["着順だけから作った能力値です。オッズ・人気・時計は使っていません。馬券用の指標ではなく、買い目やサイト本体には一切つないでいません。",
-   "スコアは線形です。1 点 ≒ " + EPP.toFixed(1) + " Elo。10 点差で先着率 約 " + pct(winProb(10, 0)) + "、20 点差で 約 " + pct(winProb(20, 0)) + "。",
-   "走数 3 以下は値が荒れます（信頼「低」）。芝・ダート・距離・斤量の違いはスコア本体では区別していません。",
+   "芝とダートは別々のレーティングです（芝の現役最上位 = 100、ダートの現役最上位 = 100）。芝スコアとダートスコアの数字同士は比べられません。",
+   "スコアは線形です。芝は 10 点差で先着率 約 " + pct(winProb(10, 0, "芝")) + "、20 点差で 約 " + pct(winProb(20, 0, "芝")) + "。ダートは 10 点差で 約 " + pct(winProb(10, 0, "ダ")) + "、20 点差で 約 " + pct(winProb(20, 0, "ダ")) + "。",
+   "その芝ダでの走数が 3 以下だと値が荒れます（信頼「低」）。距離・斤量の違いはスコア本体では区別していません。",
    "好走気配／凡走注意は、予測上振れの上位／下位 " + Math.round((M.form_q || 0.15) * 100) + "%。「スコアの見込みより少し上／下に来やすい」程度の目印です。",
    "集計: " + M.n_races.toLocaleString() + " レース・" + M.n_horses.toLocaleString() + " 頭、基準日 " + M.asof + "、ページ生成 " + M.built_at + "。"]
     .forEach(function(x){ ul.appendChild(el("li", {text:x})); });
