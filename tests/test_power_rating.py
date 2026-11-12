@@ -68,10 +68,12 @@ def test_form_model_recovers_planted_effect() -> None:
     rng = random.Random(0)
     rows = []
     for _ in range(4000):
-        c = rng.choice(["cls:up", "cls:same", "cls:down"])
+        c = rng.choices(["cls:up", "cls:same", "cls:down"], weights=[2, 6, 2])[0]
         eff = {"cls:up": -0.05, "cls:same": 0.0, "cls:down": 0.05}[c]
-        rows.append(((c, rng.choice(["n:1", "n:2"])), eff + rng.gauss(0.0, 0.2)))
+        rows.append(((c,), eff + rng.gauss(0.0, 0.2)))
     m = pr.fit_form(rows)
     assert m["coef"]["cls:down"] > m["coef"]["cls:same"] > m["coef"]["cls:up"]
-    assert pr.form_label(m, pr.form_pred(m, ("cls:down", "n:1"))) == "好走気配"
-    assert pr.form_label(m, pr.form_pred(m, ("cls:up", "n:1"))) == "凡走注意"
+    assert pr.form_label(m, pr.form_pred(m, ("cls:down",))) == "好走気配"
+    assert pr.form_label(m, pr.form_pred(m, ("cls:same",))) == ""
+    assert pr.form_label(m, pr.form_pred(m, ("cls:up",))) == "凡走注意"
+    assert pr.form_label(m, None) == ""
