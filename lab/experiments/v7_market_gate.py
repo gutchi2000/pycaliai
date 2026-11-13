@@ -142,6 +142,9 @@ def main() -> int:
         a, b = fit_blend(lm_v, dv["lk"].values, cv, nv, wv); res["blend"][tag] = {"a": a, "b": b}
         lm_t = race_logsoftmax(beta * dt[f"s_{tag}"].values, ct, nt)
         lp[tag] = lm_t
+        sc = OUT.parent / "v7_gate_test_logp.parquet"          # 他の分析 (予測可能性の天井) と同じ物差しで比べる用
+        prev_df = pd.read_parquet(sc) if (sc.exists() and tag != "v6") else dt[["rid_s", "ban"]].copy()
+        prev_df[f"logp_{tag}"] = lm_t; prev_df.to_parquet(sc)
         lp[f"{tag}+mkt"] = race_logsoftmax(a * lm_t + b * dt["lk"].values, ct, nt)
         log(f"[fit] {tag}: β={beta:.3f}  合成 a={a:.4f} b={b:.4f}")
 
