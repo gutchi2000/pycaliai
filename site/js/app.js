@@ -1230,7 +1230,7 @@ function openDrawer(umaban) {
     <div class="dw-hsum">直近 <b class="num">${career.cur}</b> ・ 最高 <b class="num">${career.best}</b>
       ${career.rank ? ` ・ 現役ランキング <b class="num">${career.rank}</b> 位 <small>/ ${career.n_rank.toLocaleString()}頭</small>` : ""}</div>
     <div id="dwCareerChart" style="height:230px;margin:4px 0 2px"></div>` : ""}
-    <div class="dw-note">勝率・複勝圏は v6 calibrator 補正後の Plackett-Luce 確率。馬レベル・指数推移は各走の着順・人気(公開データ)から算出した 0-100 の相対指数。</div>`;
+    <div class="dw-note">勝率・複勝圏は calibrator 補正後の Plackett-Luce 確率。馬レベル・指数推移は各走の着順・人気(公開データ)から算出した 0-100 の相対指数。</div>`;
 
   if (career) drawCareerChart(career);
   $("#dwClose").onclick = closeDrawer;

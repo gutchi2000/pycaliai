@@ -92,11 +92,21 @@ def expected_calibration_error(probs, labels, n_bins=10):
     return float(ece), bin_stats
 
 
+def bundle_model(date: str) -> str:
+    """その開催日の bundle を作ったモデル (reports/cowork_input の model 欄)。読めなければ v6 (V6_START 以降の既定)。"""
+    try:
+        m = json.loads((BASE / "reports" / "cowork_input" / f"{date}_bundle.json").read_text(encoding="utf-8")).get("model")
+    except (OSError, ValueError):
+        return "v6"
+    return m if isinstance(m, str) and m else "v6"
+
+
 def collect() -> tuple[list[float], list[int], list[float], list[int], dict]:
     files = sorted(glob.glob(str(SITE_DATA / "2026*.json")))
     files = [f for f in files if re.fullmatch(r"\d{8}\.json", Path(f).name)]
     win_p, win_y, sho_p, sho_y = [], [], [], []
     dates_used, races_used = [], 0
+    by_model: dict[str, dict] = {}      # モデルごとの開催日数・レース数 (本番モデルが替わっても表記が嘘にならないように)
     for f in files:
         date = Path(f).stem
         if date < V6_START:
@@ -106,6 +116,7 @@ def collect() -> tuple[list[float], list[int], list[float], list[int], dict]:
         except (OSError, ValueError):
             continue
         day_had_settled = False
+        mdl = bundle_model(date)
         for r in day.get("races", []):
             res = r.get("result")
             if not res or not res.get("order"):
@@ -127,10 +138,16 @@ def collect() -> tuple[list[float], list[int], list[float], list[int], dict]:
                 sho_p.append(float(h["p_sho"])); sho_y.append(1 if int(pos) <= 3 else 0)
                 day_had_settled = True
             races_used += 1
+            bm = by_model.setdefault(mdl, {"n_dates": 0, "n_races": 0, "dates": set()})
+            bm["n_races"] += 1; bm["dates"].add(date)
         if day_had_settled:
             dates_used.append(date)
+    for bm in by_model.values():
+        ds = sorted(bm.pop("dates")); bm["n_dates"] = len(ds); bm["date_from"] = ds[0]; bm["date_to"] = ds[-1]
+    models = sorted(by_model, key=lambda k: by_model[k]["date_from"])
     meta = {
-        "model_version": "v6",
+        "model_version": " + ".join(models) if models else "v6",
+        "by_model": {k: by_model[k] for k in models},
         "date_from": dates_used[0] if dates_used else None,
         "date_to": dates_used[-1] if dates_used else None,
         "n_dates": len(dates_used),
@@ -187,7 +204,7 @@ def main() -> int:
         "sho": {"ece": ece_sho, "bins": bins_sho},
     }
 
-    print(f"[calibration] v6 {meta['date_from']}〜{meta['date_to']} "
+    print(f"[calibration] {meta['model_version']} {meta['date_from']}〜{meta['date_to']} "
           f"({meta['n_dates']}日 / {meta['n_races']}R / 馬{len(win_p)}頭)")
     print(f"  WIN  ECE={ece_win:.4f}")
     for b in bins_win:

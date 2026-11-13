@@ -1411,6 +1411,21 @@ def _production_model_tag() -> str:
         return "v6"
 
 
+def _latest_bundle_model(dates) -> str:
+    """ヘッダに出すモデル表記 = 最新開催日の bundle を実際に作ったモデル (v7 が作れず v6 に戻った日は v6 と出る)。
+    bundle に model が無ければ方策ファイルの model。"""
+    for d in sorted(dates, reverse=True):
+        try:
+            with open(ROOT / "reports" / "cowork_input" / f"{d}_bundle.json", encoding="utf-8") as f:
+                m = json.load(f).get("model")
+        except (OSError, ValueError):
+            continue
+        if isinstance(m, str) and m:
+            return m
+        break
+    return _production_model_tag()
+
+
 _WHY_BLOCK_FEATS = frozenset({
     "prev_hosei", "prev_hosei9",                       # TARGET 補正タイム (独自指数)
     "trnH_Time1", "trnH_Time4", "trnH_Lap4",           # 坂路 調教タイム
@@ -1625,7 +1640,7 @@ def main() -> None:
     manifest_entries.sort(key=lambda e: e["date"], reverse=True)
     manifest = {
         "built_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "model": _production_model_tag(),
+        "model": _latest_bundle_model([e["date"] for e in manifest_entries]),
         "dates": manifest_entries,
     }
     with open(SITE_DATA_DIR / "manifest.json", "w", encoding="utf-8") as f:

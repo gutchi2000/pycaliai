@@ -128,7 +128,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
     <div class="brand">
       <img class="brand-logo" src="icons/icon-96.png" alt="" width="30" height="30">
       <span class="brand-mark">Py<b>CaLi</b>AI</span>
-      <span class="brand-ver">v6 marks</span>
+      <span class="brand-ver" id="brandVer">AI marks</span>
     </div>
     <nav class="modenav" id="modeNav">
       <button data-mode="races" class="on">予想</button>
@@ -199,7 +199,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
       <div class="lp-stats">
         <!-- 数値は data/report_card.json (build_site.py が毎ビルド集計) から下の script が差し替える。ここは最終ビルド時の値 (2026-11-01 まで) -->
         <div class="lp-stat">
-          <span class="k">検証レース数 <small id="lpStatNSub">MODEL v6 LIVE / 2026.4.18–11.1・公開した全レース</small></span>
+          <span class="k">検証レース数 <small id="lpStatNSub">LIVE RECORD / 2026.4.18–11.1・公開した全レース</small></span>
           <span class="v num"><span id="lpStatN">1,809</span><small>R</small></span>
         </div>
         <div class="lp-stat">
@@ -356,7 +356,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 <aside id="drawer" aria-label="馬詳細"></aside>
 
 <script defer src="js/baba.js?v=20260902a"></script>
-<script defer src="js/app.js?v=20261105-m1"></script>
+<script defer src="js/app.js?v=20261113-m1"></script>
 <script defer id="echartsJs" src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <script>
 /* 表紙シート ⇔ アプリシートの切替 (初回=表紙のみ表示、CTA/レース行→アプリ、ロゴ→表紙) */
@@ -369,7 +369,7 @@ addEventListener('DOMContentLoaded',function(){
     var f=function(x){return x?x.slice(0,4)+'.'+(+x.slice(4,6))+'.'+(+x.slice(6,8)):''};
     var $=function(id){return document.getElementById(id)};
     if($('lpStatN'))$('lpStatN').textContent=(o.n||0).toLocaleString('ja-JP');
-    if($('lpStatNSub')&&p.from)$('lpStatNSub').textContent='MODEL v6 LIVE / '+f(p.from)+'–'+f(p.to)+'・公開した全レース';
+    if($('lpStatNSub')&&p.from)$('lpStatNSub').textContent='LIVE RECORD / '+f(p.from)+'–'+f(p.to)+'・公開した全レース';
     if($('lpStatTop3')&&o.top3_rate!=null)$('lpStatTop3').textContent=o.top3_rate.toFixed(1);
     if($('lpStatTop3Sub')&&o.top3_lo!=null)$('lpStatTop3Sub').textContent='HONMEI TOP-3 HIT / LIVE・95% CI '+o.top3_lo.toFixed(1)+'–'+o.top3_hi.toFixed(1)+'・勝率 '+o.win_rate.toFixed(1)+'%';
     if($('lpStatRoi')&&o.roi!=null)$('lpStatRoi').textContent=o.roi.toFixed(1);
@@ -514,6 +514,8 @@ addEventListener('DOMContentLoaded',function(){
     }).catch(function(){});
   }
   window.__mfP.then(function(mf){var d=mf.dates&&mf.dates[0];if(d)loadLanding(d.date)}).catch(function(){});
+  /* ヘッダのモデル表記は manifest.model (最新開催日の bundle を作ったモデル) から。固定文字にしない (2026-11-13) */
+  window.__mfP.then(function(mf){var e=document.getElementById('brandVer');if(e&&mf&&/^v\d+$/.test(mf.model||''))e.textContent=mf.model+' marks'}).catch(function(){});
   // 右上の開催日セレクタに追従
   document.addEventListener('change',function(e){
     if(e.target&&e.target.id==='dateSel'&&e.target.value)loadLanding(e.target.value);
