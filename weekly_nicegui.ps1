@@ -39,7 +39,7 @@
 ##############################################################
 param(
     [string]$Date = "",
-    [string]$Model = "v6",
+    [string]$Model = "",    # 省略時は本番 (data\production_policy.json の model)。2026-11-13〜
     [switch]$SkipHF,
     [switch]$SkipPredict,   # 旧互換 (現在はデフォルトで skip)
     [switch]$WithPredict,   # 旧8モデルアンサンブル (Streamlit 用) を回したい週だけ opt-in
@@ -54,6 +54,13 @@ param(
 
 $ErrorActionPreference = "Continue"
 Set-Location 'E:\PyCaLiAI'
+
+# 本番モデルの tag は方策ファイルが正本。-Model で明示したときだけそれを使う。
+if (-not $Model) {
+    try { $Model = (Get-Content 'data\production_policy.json' -Raw -Encoding UTF8 | ConvertFrom-Json).model } catch { $Model = "" }
+    if (-not $Model) { $Model = "v6" }
+}
+$FallbackModel = "v6"     # 本番モデルの bundle が作れなかった日に戻る先 (JRDB 成績が古い等)
 
 function Step($msg) {
     Write-Host ""
@@ -505,7 +512,12 @@ if (-not (Test-Path $csvPath)) {
 # -- Verify model --
 $modelPath = "models\unified_rank_$Model.pkl"
 if (-not (Test-Path $modelPath)) {
-    Fail "$modelPath not found. v5 trained model is required."
+    if ($Model -ne $FallbackModel -and (Test-Path "models\unified_rank_$FallbackModel.pkl")) {
+        Warn "$modelPath not found -> fall back to $FallbackModel for today"
+        $Model = $FallbackModel
+    } else {
+        Fail "$modelPath not found. trained model is required."
+    }
 }
 
 Write-Host ""
@@ -557,11 +569,23 @@ $env:CB_SERVE_RECOVER = "1"
 # (scripts\run_notify.py、best-effort)。exit code は export のものがそのまま返る。
 if (-not (Test-Path 'logs')) { New-Item -ItemType Directory -Path 'logs' | Out-Null }
 python scripts\run_notify.py --tag "Phase A export $Date" --log "logs\export_$Date.log" -- python export_weekly_marks.py --csv $csvPath --model $Model
+$rcExport = $LASTEXITCODE
+# 2026-11-13: 本番モデル (v7 = JRDB 過去走特徴つき) で bundle が作れなかった日は、その日だけ v6 で作り直す。
+# 例: JRDB 成績ファイルが古い / 取得失敗。v6 は JRDB に依存しない。失敗理由は上の run_notify が Discord へ出している。
+$UsedModel = $Model
+if ($rcExport -ne 0 -and $Model -ne $FallbackModel) {
+    Warn "export (model=$Model) failed rc=$rcExport -> retry with $FallbackModel for today (see logs\export_$Date.log)"
+    Copy-Item "logs\export_$Date.log" "logs\export_${Date}_$Model.failed.log" -Force -ErrorAction SilentlyContinue
+    python scripts\run_notify.py --tag "Phase A export $Date FALLBACK $FallbackModel" --log "logs\export_$Date.log" -- python export_weekly_marks.py --csv $csvPath --model $FallbackModel
+    $rcExport = $LASTEXITCODE
+    $UsedModel = $FallbackModel
+}
 Remove-Item Env:\CB_HOSEI_PROXY -ErrorAction SilentlyContinue
 Remove-Item Env:\CB_SERVE_RECOVER -ErrorAction SilentlyContinue
-if ($LASTEXITCODE -ne 0) {
+if ($rcExport -ne 0) {
     Fail "export_weekly_marks.py failed. NiceGUI needs the bundle."
 }
+if ($UsedModel -ne $Model) { Warn "today's bundle was built with $UsedModel (fallback), not $Model" }
 $bundlePath = "reports\cowork_input\${Date}_bundle.json"
 if (Test-Path $bundlePath) {
     $size = [math]::Round((Get-Item $bundlePath).Length / 1024, 1)
@@ -570,18 +594,20 @@ if (Test-Path $bundlePath) {
     Fail "bundle.json not created at $bundlePath"
 }
 
-# -- Shadow: v7 候補 (v6 + JRDB 過去走特徴 59 列、2026-11-13)。同じ出走表から別フォルダへ bundle を作るだけ。
-#    公開・買い目・本線には一切触れない (reports/shadow_v7/ は .gitignore、サイトにも出ない)。失敗しても本番は止めない。
-#    比較: python -m analysis.shadow_v7_report。経緯: docs/research/V7_JRDB_CANDIDATE_20261113.md
-if (Test-Path 'models/unified_rank_v7.pkl') {
+# -- Shadow: 「本番でない方」のモデルで、同じ出走表から別フォルダへ bundle を作るだけ (2026-11-13)。
+#    本番が v7 のあいだは v6 を reports/shadow_v6/ に、v6 に戻した日は v7 を reports/shadow_v7/ に作る。
+#    公開・買い目・本線には一切触れない (.gitignore、サイトにも出ない)。失敗しても本番は止めない。
+#    比較: python -m analysis.replay_ab_compare --a reports/cowork_input --b reports/shadow_v6 --since 20261114 (CW-15)
+$ShadowModel = if ($UsedModel -eq "v7") { "v6" } else { "v7" }
+if (Test-Path "models/unified_rank_$ShadowModel.pkl") {
     try {
         $env:CB_HOSEI_PROXY = "1"
         $env:CB_SERVE_RECOVER = "1"
-        python export_weekly_marks.py --csv $csvPath --model v7 --shap-topk 0 --out-dir "reports/shadow_v7/$Date" *> "logs/export_v7_$Date.log"
-        if ($LASTEXITCODE -eq 0) { OK "shadow v7 bundle -> reports/shadow_v7/${Date}_bundle.json" }
-        else { Write-Host "  [warn] shadow v7 export rc=$LASTEXITCODE (本番には影響なし: logs/export_v7_$Date.log)" -ForegroundColor Yellow }
+        python export_weekly_marks.py --csv $csvPath --model $ShadowModel --shap-topk 0 --out-dir "reports/shadow_$ShadowModel/$Date" *> "logs/export_shadow_${ShadowModel}_$Date.log"
+        if ($LASTEXITCODE -eq 0) { OK "shadow $ShadowModel bundle -> reports/shadow_$ShadowModel/${Date}_bundle.json" }
+        else { Write-Host "  [warn] shadow $ShadowModel export rc=$LASTEXITCODE (本番には影響なし: logs/export_shadow_${ShadowModel}_$Date.log)" -ForegroundColor Yellow }
     } catch {
-        Write-Host "  [warn] shadow v7 export 例外 (本番には影響なし): $_" -ForegroundColor Yellow
+        Write-Host "  [warn] shadow $ShadowModel export 例外 (本番には影響なし): $_" -ForegroundColor Yellow
     } finally {
         Remove-Item Env:CB_HOSEI_PROXY -ErrorAction SilentlyContinue
         Remove-Item Env:CB_SERVE_RECOVER -ErrorAction SilentlyContinue
@@ -678,7 +704,7 @@ if ($SkipGit) {
         Write-Host "    no changes to commit" -ForegroundColor Yellow
     } else {
         $y = $Date.Substring(0,4); $m = $Date.Substring(4,2); $d = $Date.Substring(6,2)
-        git commit -m "weekly $y-$m-$d (NiceGUI bundle, model=$Model)"
+        git commit -m "weekly $y-$m-$d (NiceGUI bundle, model=$UsedModel)"
         if ($LASTEXITCODE -ne 0) {
             Warn "git commit failed"
         } else {

@@ -39,7 +39,15 @@ def fam(c):
     if c.startswith(("jockey_fuku","trainer_fuku")): return "騎手厩舎30/90"
     return "その他(当日条件/血統等)"
 
-model = joblib.load(BASE/"models/unified_rank_v6.pkl")
+def _model_tag():
+    # argparse より前に必要なので手で拾う。省略時は本番 (policy の model)
+    if "--model" in sys.argv:
+        return sys.argv[sys.argv.index("--model") + 1]
+    from production_policy import production_model_tag
+    return production_model_tag()
+
+MODEL_TAG = _model_tag()
+model = joblib.load(BASE/f"models/unified_rank_{MODEL_TAG}.pkl")
 feats = model["feature_cols"]
 gain = np.asarray(model["model"].feature_importance(importance_type="gain"), dtype=float)
 gain_total = float(gain.sum())
@@ -51,6 +59,7 @@ import argparse
 _ap = argparse.ArgumentParser(description="serve 特徴カバレッジ baseline の再生成")
 _ap.add_argument("--weeks", nargs="*", default=None,
                  help="YYYYMMDD... 省略時は reports/cowork_input に bundle がある直近 4 開催日")
+_ap.add_argument("--model", default=None, help="モデル tag (省略時は本番 = policy の model)")
 _ap.add_argument("--out", default=None,
                  help="出力先 (省略時は本番 data/serve_feature_baseline.json)。診断は別パスへ")
 _args = _ap.parse_args()
@@ -88,13 +97,17 @@ for wk in WEEKS:
         from serve_feature_recovery import recover_serve_features, format_stats
         _rec = recover_serve_features(df, p.stem)
         print("  " + format_stats(_rec))
+        if model.get("jrdb_mode"):
+            import jrdb_features as jf
+            _js = jf.add_serve_feats(df, p.stem)
+            print(f"  [jrdb] 前走あり {_js['coverage']*100:.0f}%  成績の最終から {_js['stale_days']} 日")
     except Exception as e:
         print(f"  [warn] serve history fill 失敗 (履歴特徴は0%扱い): {e}")
     # canary と同一定義の実効カバレッジ ("__NaN__"/空文字=欠損, 定数列=0.0) で測る。
     # 定義が食い違うと baseline 比較が無意味になるので必ず export 側の関数を使う。
-    from export_weekly_marks import feature_coverage, CONST_OK_COLS
+    from export_weekly_marks import feature_coverage, CONST_OK_COLS, coverage_series
     for f in feats:
-        cov = (feature_coverage(df[f], allow_constant=(f in CONST_OK_COLS))
+        cov = (feature_coverage(coverage_series(df, f), allow_constant=(f in CONST_OK_COLS))
                if f in df.columns else 0.0)
         percol[f].append(cov)
     print(f"[{wk}] parsed {len(df):,}頭 / {df['レースID(新/馬番無)'].nunique()}R")
@@ -120,9 +133,12 @@ dead_gain_pct = float(regression["gain_pct"].sum())
 # master_v2 照合: serve死だが master では生 = serve-skew / master でも死 = 常時死
 mcov = {}
 if deadnames:
+    _in_master = [c for c in deadnames if not c.startswith("j1_")]      # j1_* は master に無い (JRDB 由来)
     m = pd.read_csv(BASE/"data/master_v2_20130105-20251228.csv", encoding="utf-8-sig",
-                    usecols=[c for c in deadnames], low_memory=False)
+                    usecols=_in_master, low_memory=False) if _in_master else pd.DataFrame()
     for c in deadnames:
+        if c not in m.columns:
+            mcov[c] = float("nan"); continue
         s = m[c].replace("", np.nan) if m[c].dtype == object else m[c]
         mcov[c] = float(s.notna().mean())
 
@@ -145,7 +161,7 @@ for _, r in regression.head(15).iterrows():
     print(f"   gain={r['gain_pct']:5.2f}% / cov={r['coverage']*100:4.0f}%  {r['feat']}")
 regression_rows = [{"feature": r["feat"], "coverage": round(float(r["coverage"]), 3),
                     "gain_pct": round(float(r["gain_pct"]), 4)} for _, r in regression.iterrows()]
-out = {"model":"v6","weeks":WEEKS,"baseline_cov":baseline,
+out = {"model":MODEL_TAG,"weeks":WEEKS,"baseline_cov":baseline,
        "serve_dead":deadnames,"serve_skew_recoverable":sorted(serveskew),
        "always_dead_harmless":sorted(alwaysdead),
        "regression_candidates": regression_rows,

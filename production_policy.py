@@ -195,6 +195,19 @@ def hard_skip_reasons(race_meta: dict, race_conf: dict,
     return reasons
 
 
+def production_model_tag() -> str:
+    """本番モデルの tag (例 "v7")。policy の model。"""
+    return str(load_policy().get("model") or "v6")
+
+
+def artifact_path(name: str) -> Path:
+    """policy.artifacts の成果物パス (rank_model / serve_calibrator / serve_feature_baseline / bet_policy)。"""
+    rel = (load_policy().get("artifacts") or {}).get(name)
+    if not rel:
+        raise PolicyError(f"policy.artifacts.{name} が無い")
+    return BASE / str(rel)
+
+
 PINS_PATH = BASE / "data" / "artifact_pins.json"
 
 

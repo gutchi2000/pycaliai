@@ -1254,6 +1254,14 @@ def build_results_json() -> dict:
 # SHAP 根拠 (why[].value) に出してはいけない特徴。
 #   TARGET 独自指数 (補正タイム) / 調教タイム / 上り3F・着差などの計時データ。
 #   ※ 順位・回数・率は公知事実の加工なので残す (前走上り3F順 など)。
+def _production_model_tag() -> str:
+    try:
+        from production_policy import production_model_tag
+        return production_model_tag()
+    except Exception:  # noqa: BLE001
+        return "v6"
+
+
 _WHY_BLOCK_FEATS = frozenset({
     "prev_hosei", "prev_hosei9",                       # TARGET 補正タイム (独自指数)
     "trnH_Time1", "trnH_Time4", "trnH_Lap4",           # 坂路 調教タイム
@@ -1459,7 +1467,7 @@ def main() -> None:
     manifest_entries.sort(key=lambda e: e["date"], reverse=True)
     manifest = {
         "built_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "model": "v6",
+        "model": _production_model_tag(),
         "dates": manifest_entries,
     }
     with open(SITE_DATA_DIR / "manifest.json", "w", encoding="utf-8") as f:
