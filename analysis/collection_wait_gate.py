@@ -183,7 +183,11 @@ def cw15_shadow_v7() -> dict:
         from analysis.replay_ab_compare import load
         from analysis.replay_serve_2026 import _kekka
         since = "20261114"
-        a = load(BASE / "reports" / "cowork_input", since, "20991231"); b = load(BASE / "reports" / "shadow_v7", since, "20991231")
+        a = load(BASE / "reports" / "cowork_input", since, "20991231")
+        b = {}
+        for sd in ("shadow_v7", "shadow_v6"):      # 本番が v6 の間は shadow_v7、v7 に切り替えた後は shadow_v6
+            if (BASE / "reports" / sd).exists():
+                b.update(load(BASE / "reports" / sd, since, "20991231"))
         n = 0; dates = []
         for d in sorted(set(a) & set(b)):
             if not _kekka_exists(d):
@@ -192,7 +196,7 @@ def cw15_shadow_v7() -> dict:
             if k:
                 n += k; dates.append(d)
         return {"id": "CW-15", "name": "v7 候補 (JRDB 過去走特徴) の紙上比較", "current": n, "target": 1000, "unit": "race",
-                "latest": dates[-1] if dates else None, "since": since, "source": "reports/shadow_v7 × reports/cowork_input × data/kekka",
+                "latest": dates[-1] if dates else None, "since": since, "source": "reports/shadow_v{6,7} × reports/cowork_input × data/kekka",
                 "note": "比較: python -m analysis.replay_ab_compare --a reports/cowork_input --b reports/shadow_v7 --since 20261114"}
     except Exception as e:  # noqa: BLE001
         return {"id": "CW-15", "name": "v7 候補 (JRDB 過去走特徴) の紙上比較", "missing": f"{type(e).__name__}: {e}"[:200]}

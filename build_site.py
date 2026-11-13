@@ -315,7 +315,7 @@ LIVE_CLASS_PRIOR: dict[str, dict] = {}   # date → {class: live prior}。main()
 
 
 def build_live_class_prior(dates: list[str]) -> dict[str, dict]:
-    """クラス別の印の実績を、2026 本番の v6 bundle (発走前の版と確認済み) から as-of で集計する。
+    """クラス別の印の実績を、2026 本番の v6 / v7 bundle (発走前の版と確認済み、v5 期は除く) から as-of で集計する。
     日付 D の値は D より前の開催日だけ。bundle の class_prior (オフライン 2024-25 test の率) は
     本番より ◎複勝圏率が約 7.6pt 高かった (2026-11-13 監査) ので、並べて表示するために使う。"""
     from bundle_provenance import model_era, resolve_for_scoring
@@ -339,7 +339,7 @@ def build_live_class_prior(dates: list[str]) -> dict[str, dict]:
             b = json.loads(Path(bp).read_text(encoding="utf-8"))
         except Exception:
             continue
-        if not model_era(d8, b).startswith("v6"):
+        if not model_era(d8, b).startswith(("v6", "v7")):
             continue
         res_all = parse_kekka(d8, {})
         for race in b.get("races", []):
@@ -1403,6 +1403,14 @@ def build_results_json() -> dict:
 # SHAP 根拠 (why[].value) に出してはいけない特徴。
 #   TARGET 独自指数 (補正タイム) / 調教タイム / 上り3F・着差などの計時データ。
 #   ※ 順位・回数・率は公知事実の加工なので残す (前走上り3F順 など)。
+def _production_model_tag() -> str:
+    try:
+        from production_policy import production_model_tag
+        return production_model_tag()
+    except Exception:  # noqa: BLE001
+        return "v6"
+
+
 _WHY_BLOCK_FEATS = frozenset({
     "prev_hosei", "prev_hosei9",                       # TARGET 補正タイム (独自指数)
     "trnH_Time1", "trnH_Time4", "trnH_Lap4",           # 坂路 調教タイム
@@ -1617,7 +1625,7 @@ def main() -> None:
     manifest_entries.sort(key=lambda e: e["date"], reverse=True)
     manifest = {
         "built_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "model": "v6",
+        "model": _production_model_tag(),
         "dates": manifest_entries,
     }
     with open(SITE_DATA_DIR / "manifest.json", "w", encoding="utf-8") as f:

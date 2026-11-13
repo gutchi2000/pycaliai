@@ -12,7 +12,7 @@ bundle_provenance.py — 公開・採点に使う bundle の来歴 (2026-11-13 �
      live の reports/cowork_input/ は従来どおり (T-10 などが読む)。
   2. resolve_for_scoring: サイトの採点・表示に使う bundle。凍結版があればそれ、無ければ live に
      「未検証」の印を付けて返す。
-  3. model_era: その日の予測を作ったモデルの世代 (v5 / v6-C0 / v6-C1 / 不明)。
+  3. model_era: その日の予測を作ったモデルの世代 (v5 / v6-C0 / v6-C1 / v7 / 不明)。
      bundle の serve_path.model.sha256 があればそれで、無い旧 bundle は記録済みの切替日で決める
      (docs/research/PROD_MODEL_GENERATION_REGRESSION_20261021.md)。
 """
@@ -33,18 +33,34 @@ SNAP_DIR = BASE / "reports" / "serve_path_snapshots"
 MODEL_SHA_ERA = {
     "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5": "v6-C1",
     "0a040c4e": "v6-C0",   # 先頭一致で照合
+    "936fed71673dd073fce44f8cc878c0e2549f847005c751304e98d0a04a6c8626": "v7",   # 2026-11-14 開催から本番
 }
 # sha を刻んでいない旧 bundle 用。開催日 (YYYYMMDD) の範囲 → 世代。
 # v6 本番化 0517 / C1 切替 0911 (0912 開催から) / 0920 10:42 に C0 へ退行 (0921 開催から) /
 # 1022 に C1 再配置 (1024 開催から)。0920 開催の bundle は 0919 23:13 作成で C1 側。
+# 1114 開催から v7 (JRDB 過去走特徴つき)。v7 で作れなかった日は v6 C1 に戻るが、その bundle は sha を刻むので sha で決まる。
 DATE_ERAS = [
     ("00000000", "20260516", "v5"),
     ("20260517", "20260911", "v6-C0"),
     ("20260912", "20260920", "v6-C1"),
     ("20260921", "20261023", "v6-C0"),
-    ("20261024", "99999999", "v6-C1"),
+    ("20261024", "20261113", "v6-C1"),
+    ("20261114", "99999999", "v7"),
 ]
-CURRENT_ERA = "v6-C1"
+# production_policy.json の model → 世代
+TAG_ERA = {"v5": "v5", "v6": "v6-C1", "v7": "v7"}
+# 本番モデルの bundle が作れなかった日に戻る先 (weekly_nicegui.ps1 の $FallbackModel)。この bundle も凍結する
+FALLBACK_MODELS = ("v6",)
+
+
+def production_model() -> str:
+    try:
+        return str(json.loads((BASE / "data" / "production_policy.json").read_text(encoding="utf-8")).get("model") or "v6")
+    except Exception:  # noqa: BLE001
+        return "v6"
+
+
+CURRENT_ERA = TAG_ERA.get(production_model(), "unknown")
 
 
 def _sha256_bytes(b: bytes) -> str:

@@ -31,8 +31,17 @@ sys.path.insert(0, str(BASE))
 sys.path.insert(0, str(BASE / "scripts"))
 
 SETTLED = BASE / "reports" / "calibrator_shadow_scores_settled.parquet"
-REF = BASE / "reports" / "calibrators_v6_serve_eval.json"
-CUR_CAL = BASE / "models" / "pl_calibrators_v6_serve.pkl"
+def _policy_bits():
+    """(配信用較正器のパス, 参考値 json, モデル切替日 YYYYMMDD or None)。policy が読めなければ従来の v6。"""
+    try:
+        from production_policy import artifact_path, load_policy, production_model_tag
+        pol = load_policy(); tag = production_model_tag()
+        return artifact_path("serve_calibrator"), BASE / "reports" / f"calibrators_{tag}_serve_eval.json", pol.get("model_effective_from")
+    except Exception:  # noqa: BLE001
+        return BASE / "models" / "pl_calibrators_v6_serve.pkl", BASE / "reports" / "calibrators_v6_serve_eval.json", None
+
+
+CUR_CAL, REF, MODEL_FROM = _policy_bits()
 OUT = BASE / "reports" / "calibration_drift_latest.json"
 MIN_HORSES = 1500
 
@@ -82,6 +91,9 @@ def main() -> int:
     from analysis.calibrator_shadow_eval import _apply_calibrators  # 本番と同じ適用関数
     settled = pd.read_parquet(SETTLED)
     settled = settled[settled["jyun"].notna()] if "jyun" in settled else settled
+    if MODEL_FROM:
+        # モデルを切り替えた日より前の週は別モデルのスコア。現行の較正器を当てても意味が無いので除く (2026-11-13)。
+        settled = settled[settled["week"].astype(str) >= str(MODEL_FROM)]
     weeks = sorted(settled["week"].astype(str).unique())
     recent_weeks = weeks[-a.window:]
     sub = settled[settled["week"].astype(str).isin(recent_weeks)].copy()

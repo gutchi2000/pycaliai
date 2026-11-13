@@ -306,3 +306,8 @@ reports/am9_odds/
 # 監査の行データ (再生成可能)
 /audit/*/out/*.parquet
 /reports/shadow_c2/
+# v7 (JRDB 学習) の成果物の控え。公開リポジトリに置かない
+models/production_backup/20261113_v7/
+reports/shadow_v6/
+reports/_requant_bundles_v7_20261113/
+models/production_backup/policy_history/

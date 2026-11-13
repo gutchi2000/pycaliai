@@ -15,10 +15,10 @@
 
 `audit/correctness_20261113/AUDIT_REPORT.md`（判定・品質ゲート・再現コマンド）。修正済み:
 - **サイトの採点**: kekka の着順 0 (取消/除外/中止) を 1 着扱いしていた → `build_site.parse_kekka` は top3 から外し、単勝欄が空 (発売前の取消) は返還、最終オッズのある着順 0 (中止 or 発売後の除外、区別不能) を含む買い目は決済不能として集計外。同着は JRA ルールで的中組を列挙 (`_winning_combos`)。`generate_results.py` も同じ規則 (以前は中止も返還していた)。
-- **凍結版 bundle**: `bundle_provenance.py`。export が最初の発走前に `reports/cowork_input_frozen/` へ写し、発走後は書き換えない。サイトの採点・表示は凍結版。過去分は `scripts/backfill_frozen_bundles.py` で git の発走前版から作成 (54 日、7 日は発走前の版が無く「未検証」)。export は履歴 parquet と未 commit の .py 差分を `reports/serve_path_snapshots/` に保存し `serve_path.snapshots` に刻む。
-- **通信簿**: 見出しは現行モデル (v6 C1) × 凍結版の日だけ。「予測モデルの版」(v5 / v6 C0 / v6 C1) と「予測の来歴」の表を追加。クラス実績は 2026 本番の as-of 実績 (`class_prior_live`) を先に、過去検証 2024-25 を併記。
+- **凍結版 bundle**: `bundle_provenance.py`。export が最初の発走前に `reports/cowork_input_frozen/` へ写し、発走後は書き換えない（本番モデルと、作れない日に戻る v6 の bundle だけ。影は凍結しない）。サイトの採点・表示は凍結版。過去分は `scripts/backfill_frozen_bundles.py` で git の発走前版から作成 (54 日、7 日は発走前の版が無く「未検証」)。export は履歴 parquet と未 commit の .py 差分を `reports/serve_path_snapshots/` に保存し `serve_path.snapshots` に刻む。
+- **通信簿**: 見出しは本番モデル (`production_policy.json` の model の世代、11/14 から v7) × 凍結版の日だけ。切替直後でその世代の日が無いあいだは直前の世代を版名付きで出す。「予測モデルの版」(v5 / v6 C0 / v6 C1 / v7) と「予測の来歴」の表を追加。クラス実績は 2026 本番の as-of 実績 (`class_prior_live`) を先に、過去検証 2024-25 を併記。
 - **配信を v6 の学習定義に合わせた**: kako5 上がりの 1 走ずれと過去走人気なし (`build_from_kako5(agari_window, use_ninki)`)、調教日数の単位 (YYYYMMDD 差)、調教 JOIN は当日より前・期限なし、prev_pos_rel の分母は前走頭数。モデル bundle の `kako5_agari_window` / `trn_days_unit` で切替 (宣言なし = v6 の定義)。
-- **C2 候補** (学習側を直して再学習、本番は v6 のまま): `docs/research/C2_FEATURE_FIX_CANDIDATE_20261113.md`。Phase A が `reports/shadow_c2/` に紙上 bundle、比較は `analysis/shadow_compare.py`。
+- **C2 候補** (v6 の学習側を直して再学習、本番には入れていない): `docs/research/C2_FEATURE_FIX_CANDIDATE_20261113.md`。Phase A が `reports/shadow_c2/` に紙上 bundle、判定は同じ作り方の v6 影との比較 `analysis/shadow_compare.py --shadow-dir reports/shadow_c2 --base-dir reports/shadow_v6`。良ければ同じ直し方を v7 に当てる。
 - **評価規則**: `docs/hypothesis_registry.md` EVAL-RULE-20261113 (公表値は本番の前向き実績だけ、test 2024-25 は「過去検証」)。
 
 ## 📘 完全仕様書（2026-08-23 新設）
@@ -112,7 +112,13 @@ P0-1（騎手/調教師stats）・P0-2（着度数CSV列数）・P0-4（Ｒ全�
 
 ---
 
-## 現役モデル（**v6 marks stack が本番**）
+## 現役モデル（**2026-11-14〜 v7 が本番**、v6 は戻り先）
+
+> **2026-11-13 切替**: 本番の予測モデルは `data/production_policy.json` の `model` が正本（現在 **v7** = v6 と同じ作り方 + JRDB 過去走特徴 59 列）。
+> 成果物 `models/unified_rank_v7.pkl` / `pl_calibrators_v7(_serve).pkl` / `data/pl_payout_curve_v7.pkl` / `data/class_prior_v7.json` は **JRDB 規約のため git 管理外（リポジトリは公開設定）**、
+> このマシンにのみ存在（控え `models/production_backup/20261113_v7/`）。照合は `data/artifact_pins.json`（v7 と v6 の両方）。
+> v7 で bundle が作れない日は Phase A がその日だけ v6 で作り直す。戻すのは `python scripts/switch_production_model.py --to v6 --start <次の開催日>`、状態は `--status`。
+> 経緯・検証・残作業: `docs/research/V7_JRDB_CANDIDATE_20261113.md` §7-8。以下の v6 の記述は「戻り先」としてそのまま有効。
 
 ### NiceGUI / Cowork 主導の本番ライン（unified_rank_v6）
 
@@ -156,7 +162,7 @@ P0-1（騎手/調教師stats）・P0-2（着度数CSV列数）・P0-4（Ｒ全�
 .\weekly_nicegui.ps1                  # 最新 data/weekly/*.csv を自動検出
 # または .\weekly_nicegui.ps1 20260516
 ```
-自動で（デフォルト model=**v6**）：
+自動で（モデルは `data/production_policy.json` の `model`。2026-11-14〜 **v7**、作れない日は v6 に自動で戻る。`-Model v6` で明示も可）：
 1. `make_weekly_hosei.py` → **デフォルト SKIP**（2026-11-04。TARGET の補正タイム供給は 2026-09-19 で恒久停止しヘッダだけを量産していた。prev_hosei は推定器 `CB_HOSEI_PROXY=1`。再開は `-WithHosei`）
 2. `predict_weekly.py` → **デフォルト SKIP**（2026-06-11 audit P1-1。旧8モデルは重く NiceGUI/Cowork に不要）。Streamlit 用に欲しい週だけ `-WithPredict`
 3. `export_weekly_marks.py --model v6` → `reports/cowork_input/{date}_bundle.json` **★これが Cowork のキー入力**（2026-11-04〜 `scripts/run_notify.py` 経由: 出力を `logs/export_{date}.log` に残し、WARNING 以上・serve canary 行だけ Discord へ。exit code はそのまま）
@@ -344,7 +350,7 @@ E:\競馬過去走データ\                  プロジェクト外（TARGET フ
 | `weekly_parse.py` + `training_join.py` | 週次 CSV の読み込み部 `parse_csv` と調教 JOIN（2026-11-04 に predict_weekly / optuna_lgbm から無改変で切り出し。本番はこちらを import） |
 | `serve_feature_recovery.py` | **serve 特徴復元（2026-11-04）**: `CB_SERVE_RECOVER=1/2` のときだけ有効（既定 OFF）。間隔（週次 CSV の列対応が「1走前の前走間隔」で誤っていた→kako5 の現走間隔で置換）／前走日付／休み明け～戦目／血統タイプ（`data/pedigree_type_map.json`）／L2 で 斤量体重比 代理。`export_weekly_marks.py` と `analysis/measure_serve_coverage.py` が同じ関数を呼ぶ。**2026-11-04 A/B（2026 全 59 開催日 1,809R、OFF vs ON、同一レース）**: AI1位 3着内 +0.17pt [-1.23,+1.56]、◎3着内 +0.44pt [-0.75,+1.74] = 害なし。定義の正しさで **L1 を 2026-11-07 から本番有効**（`weekly_nicegui.ps1` が `CB_SERVE_RECOVER=1`）。baseline も同条件で再生成（dead gain 7.42%→下記）。L2 は未採用。較正器は再 fit せず `calibration_drift_check` で監視 |
 | `scripts/run_notify.py` | 週次フローの出力保存 + WARNING 以上/serve canary 行の Discord 転送（exec モード / `--scan` モード） |
-| `jrdb_features.py` + `train_v7_jrdb.py` + `run_v7_pipeline.py` + `scripts/jrdb_refresh.py` | **v7 候補（2026-11-13、本番は v6 のまま）**: v6 と同じ作り方に JRDB 過去走特徴 59 列（`j1_*`: 1-3 走前の IDM・上がり/テン/ペース指数・位置取り補正・不利・出遅 等、5 日以上前の走だけ）を足した候補。test 2024-25 ◎3着内 +0.5〜+1.6pt（3 seed 平均 +1.0pt）。配信経路は bundle の `jrdb_mode` で切替（`export_weekly_marks.py --model v7`）、馬同定 hit の登録番号で引き、仮番号は馬名で引き直す。Phase A が毎週 `reports/shadow_v7/` に紙上 bundle を作る（公開・本線に不干渉、CW-15）。SED 更新は `PyCaLiAI_JRDB_Snapshot` タスクの後ろで自動。**`j1_*` は規約で公開不可**（根拠表示から除外済み）。切替手順と残作業は `docs/research/V7_JRDB_CANDIDATE_20261113.md` §5（JRDB 規約の確認はユーザー判断） |
+| `jrdb_features.py` + `train_v7_jrdb.py` + `run_v7_pipeline.py` + `scripts/jrdb_refresh.py` + `scripts/switch_production_model.py` | **v7（2026-11-13 作成、同日に本番へ切替・起算 11/14）**: v6 と同じ作り方に JRDB 過去走特徴 59 列（`j1_*`: 1-3 走前の IDM・上がり/テン/ペース指数・位置取り補正・不利・出遅 等、5 日以上前の走だけ）を足した候補。test 2024-25 ◎3着内 +0.5〜+1.6pt（3 seed 平均 +1.0pt）。配信経路は bundle の `jrdb_mode` で切替（`export_weekly_marks.py --model v7`）、馬同定 hit の登録番号で引き、仮番号は馬名で引き直す。切替後は Phase A が毎週、本番でない方 (v6) の紙上 bundle を `reports/shadow_v6/` に作る（公開・本線に不干渉、CW-15）。SED 更新は `PyCaLiAI_JRDB_Snapshot` タスクの後ろで自動。**`j1_*` は規約で公開不可**（根拠表示から除外済み）。切替手順と残作業は `docs/research/V7_JRDB_CANDIDATE_20261113.md` §5（JRDB 規約の確認はユーザー判断） |
 | `scripts/am9_snapshot.py` + `am9_register.ps1` | **朝 9 時オッズの収集（2026-11-13, CW-14）**: 土日 09:00 にタスク `PyCaLiAI_AM9` が全レースの単複オッズを stage `am9` で 1 回保存（`data/forward_prices`、`reports/am9_odds/`。読取のみ・本番経路に不干渉）。「朝 9 時に売れていて発走前に売れなくなった馬」（発走前 3〜4.9 倍・朝比 +35% の単勝が 2020-25 の 6 年連続 100% 超、`docs/research/POSTCOVID_SEARCH_20261113.md`）の前向き確認用。集計 `analysis/morning_drift_forward.py`。タスク登録は `am9_register.ps1`（**ユーザー実行**）。祝日開催は手動 |
 | `scripts/task_watchdog.py` + `watchdog_register.ps1` | 土日 09:10 に `PyCaLiAI_T10` / `PyCaLiAI_T20_Site` の起動・結果・レース毎タスク・bundle を確認し失敗時だけ Discord。タスク登録は `watchdog_register.ps1`（**未登録、ユーザー実行**） |
 | `analysis/collection_wait_gate.py` | 収集待ち台帳の Gate 自動判定（Phase C Step 2.9） |

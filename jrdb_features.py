@@ -163,3 +163,40 @@ def staleness_days(race_ymd: str | int, history: dict | None = None) -> int:
 def coverage(df: pd.DataFrame) -> float:
     """j1_idm_1 (前走 IDM) が埋まっている割合。"""
     return float(df["j1_idm_1"].notna().mean()) if "j1_idm_1" in df.columns and len(df) else 0.0
+
+
+STALE_MAX_DAYS = 9      # 成績の最終日からレース日まで。これを超えると先週ぶんが未取込
+COVERAGE_MIN = 0.50     # 前走 IDM の埋まり (通常 80% 台)
+
+
+def add_serve_feats(df: pd.DataFrame, date_str: str | int, history: dict | None = None) -> dict:
+    """配信経路 (出走表の frame) に j1_* 列を in-place で足す。export_weekly_marks と基準づくりの各スクリプトが共通で呼ぶ。
+
+    キーは serve_history_feats が出す同定済みの血統登録番号。2026 年初出走の仮番号は、同定が hit の行に限り馬名で引き直す。
+    戻り値: {"stale_days", "coverage", "error"}。error が None でなければ、その日の JRDB 特徴は信用できない。
+    """
+    from serve_history_feats import IDENTITY_STATUS_COL, PED_ID_COL
+    if PED_ID_COL not in df.columns:
+        return {"stale_days": None, "coverage": 0.0, "error": "馬同定が無く JRDB 特徴を作れない"}
+    name = df["馬名"].where(df[IDENTITY_STATUS_COL] == "hit") if ("馬名" in df.columns and IDENTITY_STATUS_COL in df.columns) else None
+    f = past_run_features(df[PED_ID_COL], pd.Series(int(date_str), index=df.index), history, name=name)
+    for c in FEATURES:
+        df[c] = f[c].values
+    stale, cov = staleness_days(date_str, history), coverage(df)
+    err = None
+    if stale > STALE_MAX_DAYS:
+        err = (f"JRDB 成績が古い (最終から {stale} 日)。先週ぶんが未取込で過去走の順番がずれる。python scripts/jrdb_refresh.py を実行")
+    elif cov < COVERAGE_MIN:
+        err = f"JRDB 過去走特徴の埋まりが {cov * 100:.0f}% (通常 80% 台)。馬同定か成績ファイルを確認"
+    return {"stale_days": stale, "coverage": cov, "error": err}
+
+
+def coverage_column(feat: str) -> str:
+    """特徴 feat の『埋まり』を測るべき列。j1_{項目}_{k} は j1_idm_{k} (その走があるか) で測る。
+
+    不利・出遅・位置取り補正は、何も無かった走では空欄 (学習でも欠損扱い) なので、列そのものの非欠損率は 2〜19% しかない。
+    それを『配信で死んでいる特徴』と数えると、基準づくりと較正器のマスクが誤る。
+    """
+    if feat.startswith(JRDB_FEATURE_PREFIX) and len(feat) > 2 and feat[-2] == "_" and feat[-1] in "123":
+        return f"j1_idm_{feat[-1]}"
+    return feat

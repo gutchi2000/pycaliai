@@ -34,10 +34,15 @@ def main():
                     help="再生成bundleの出力先。版ごとに新しいdirを使う")
     ap.add_argument("--force", action="store_true",
                     help="既存bundleも再生成する（履歴dirの指定時は注意）")
+    ap.add_argument("--model", default=None, help="モデル tag (省略時は本番 = policy の model)")
     ap.add_argument("--jobs", type=int, default=1,
                     help="並列export数。各日付は独立した出力先を使う")
     args = ap.parse_args()
     out_root = Path(args.out_root)
+    if not args.model:
+        sys.path.insert(0, str(BASE))
+        from production_policy import production_model_tag
+        args.model = production_model_tag()
     csvs = sorted(p for p in WEEKLY.glob("*.csv")
                   if p.stem.isdigit() and len(p.stem) == 8)
     out_root.mkdir(parents=True, exist_ok=True)
@@ -50,7 +55,7 @@ def main():
             return "ok", f"  [{i}/{len(csvs)}] {date} skip (済)"
         r = subprocess.run(
             [sys.executable, "export_weekly_marks.py",
-             "--csv", str(csv), "--model", "v6",
+             "--csv", str(csv), "--model", args.model,
              "--out-dir", str(out_root / date), "--shap-topk", "0"],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             cwd=BASE)

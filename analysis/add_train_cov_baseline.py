@@ -28,7 +28,9 @@ from backtest_pl_ev import apply_encoders, COL_JYUN, COL_RID  # noqa: E402
 
 
 def main() -> None:
-    be.MODEL_PKL = BASE / "models/unified_rank_v6.pkl"
+    from production_policy import production_model_tag
+    tag = sys.argv[sys.argv.index("--model") + 1] if "--model" in sys.argv else production_model_tag()
+    be.MODEL_PKL = BASE / f"models/unified_rank_{tag}.pkl"
     bundle = joblib.load(be.MODEL_PKL)
     feats, encs = bundle["feature_cols"], bundle["encoders"]
     gains = bundle["model"].feature_importance(importance_type="gain")
@@ -43,8 +45,14 @@ def main() -> None:
                          ("grade_feats_mode", "grade_feats", "add_grade_feats")]:
         if bundle.get(key):
             df = getattr(__import__(mod), fn)(df, mode=bundle[key])
+    if bundle.get("jrdb_mode"):
+        from jrdb_features import add_jrdb_feats
+        df = add_jrdb_feats(df, mode=bundle["jrdb_mode"])
     tr = apply_encoders(df[df["split"] == "train"].copy(), encs)[feats]
     cov = tr.apply(pd.to_numeric, errors="coerce").notna().mean()
+    if bundle.get("jrdb_mode"):
+        from jrdb_features import coverage_column
+        cov = pd.Series({f: cov[coverage_column(f)] if coverage_column(f) in cov.index else cov[f] for f in feats})
 
     p = BASE / "data/serve_feature_baseline.json"
     d = json.loads(p.read_text(encoding="utf-8"))

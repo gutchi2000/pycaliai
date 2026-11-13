@@ -1,6 +1,6 @@
 # C2 候補: v6 の学習特徴の不具合を直して再学習（2026-11-13）
 
-本番は **v6 (C1) のまま**。C2 は候補で、採否は 2026-11-14 以降の前向き開催日で決める（`docs/hypothesis_registry.md` EVAL-RULE-20261113）。
+本番の予測モデルは 2026-11-14 から **v7**（v6 と同じ作り方 + JRDB 過去走特徴 59 列）。C2 は v6 の作り方を直した候補で、採否は 2026-11-14 以降の前向き開催日で決める（`docs/hypothesis_registry.md` EVAL-RULE-20261113）。
 
 ## 何を直したか（監査 `audit/correctness_20261113/AUDIT_REPORT.md` §C）
 
@@ -47,10 +47,11 @@ valid 2023（3,456R）: c2b の ◎3着内 +1.23pt [+0.19, +2.26]、−log p_win
 
 ## 前向きの比較（2026-11-14 から）
 - `weekly_nicegui.ps1` が `models/unified_rank_c2b.pkl` を見つけたら、`reports/shadow_c2/` に紙上 bundle を作る（公開・買い目・凍結版には触れない）。
-- 集計: `python analysis/shadow_compare.py --shadow-dir reports/shadow_c2 --since 20261114`。本番側は凍結版だけ、影側は発走前に作った bundle だけを数える。
-- 判定の目安（事前に決める）: 500R で ◎3着内の差の CI 下限が 0 を超えたら切替を検討する。下回ったら c2 は閉じる。間は記述。
+- 判定に使う比較（直した効果を見る）: `python analysis/shadow_compare.py --shadow-dir reports/shadow_c2 --base-dir reports/shadow_v6 --since 20261114`。相手は同じ作り方の v6（本番が v7 のあいだ Phase A が `reports/shadow_v6/` に作る）。どちらも発走前に作った bundle だけを数える。
+- 参考の比較（本番との差）: `python analysis/shadow_compare.py --shadow-dir reports/shadow_c2 --since 20261114`。相手は本番の凍結版（v7）。
+- 判定の目安（事前に決める）: 500R で c2 − v6 の ◎3着内の差の CI 下限が 0 を超えたら、同じ直し方を v7 に当てた候補（v7 + C2 の修正）を作る。下回ったら c2 は閉じる。間は記述。
 
-## 切り替えるときにやること（ユーザー判断）
+## 切り替えるときにやること（ユーザー判断。v7 が本番のあいだは、同じ直し方を v7 に当てた候補で行う）
 1. `models/unified_rank_c2b.pkl`（seed 42）を本番名で置く。較正器を c2b のスコアで作り直す（`build_pl_calibrators_serve.py` の MODEL_PKL を差し替え。valid 2023 で fit）。
 2. `data/chaos_quantiles.json` を新しい p_win 分布で作り直す（混戦度しきい値が動く）。`class_prior` を作り直す。
 3. `data/artifact_pins.json` と `data/production_policy.json`（model、policy id、起算日）を同じ commit で更新する。a95 の cohort は再起算。

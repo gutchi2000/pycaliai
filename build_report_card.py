@@ -128,7 +128,7 @@ class Acc:
         }
 
 
-ERA_LABEL = {"v5": "v5（〜5/16）", "v6-C0": "v6 旧版 C0", "v6-C1": "v6 現行版 C1", "unknown": "不明"}
+ERA_LABEL = {"v5": "v5（〜5/16）", "v6-C0": "v6 旧版 C0", "v6-C1": "v6 C1", "v7": "v7（JRDB 特徴つき）", "unknown": "不明"}
 
 DIMS = [
     ("era", "予測モデルの版"), ("verified", "予測の来歴"),
@@ -175,8 +175,15 @@ def weekly_series(weeks: dict[str, "Acc"]) -> dict:
 def build(write: bool = True) -> dict:
     files = sorted(SITE_DATA.glob("2026????.json"))
     overall = Acc()
-    current = Acc()          # 現行モデル (v6-C1) かつ 発走前の版と確認できた日だけ
-    cur_dates: list[str] = []
+    # 見出し用: 発走前の版と確認できた日を、予測モデルの世代ごとに数える。
+    # 見出しは本番モデル (production_policy.json) の世代。その世代の開催日がまだ無いあいだ
+    # (切替直後) は、確認済みの日がある最後の世代を出し、どの版かを明示する。
+    by_era: dict[str, Acc] = defaultdict(Acc)
+    era_dates: dict[str, list[str]] = defaultdict(list)
+    try:
+        from bundle_provenance import CURRENT_ERA, model_era
+    except Exception:   # noqa: BLE001
+        CURRENT_ERA, model_era = "unknown", (lambda d, b: "unknown")
     acc: dict[str, dict[str, Acc]] = {k: defaultdict(Acc) for k, _ in DIMS}
     weeks: dict[str, Acc] = defaultdict(Acc)
     n_days = 0
@@ -185,13 +192,8 @@ def build(write: bool = True) -> dict:
         day = json.loads(fp.read_text(encoding="utf-8"))
         used = False
         prov = day.get("provenance") or {}
-        try:
-            from bundle_provenance import CURRENT_ERA, model_era
-        except Exception:   # noqa: BLE001
-            CURRENT_ERA, model_era = "v6-C1", (lambda d, b: "unknown")
         era = prov.get("model_era") or model_era(day["date"], {})
         verified = bool(prov.get("verified_pre_race"))
-        is_current = era == CURRENT_ERA and verified
         for r in day.get("races", []):
             res = r.get("result") or {}
             if not res.get("top3") or not res.get("order"):
@@ -227,10 +229,10 @@ def build(write: bool = True) -> dict:
                 "month": f"{day['date'][:4]}-{day['date'][4:6]}",
             }
             overall.add(win, top3, fav, bets)
-            if is_current:
-                current.add(win, top3, fav, bets)
-                if not cur_dates or cur_dates[-1] != day["date"]:
-                    cur_dates.append(day["date"])
+            if verified and era != "unknown":
+                by_era[era].add(win, top3, fav, bets)
+                if not era_dates[era] or era_dates[era][-1] != day["date"]:
+                    era_dates[era].append(day["date"])
             for k, v in keys.items():
                 acc[k][v].add(win, top3, fav, bets)
             weeks[week_key(day["date"])].add(win, top3, fav, bets)
@@ -257,6 +259,13 @@ def build(write: bool = True) -> dict:
             keys = sorted(rows, key=lambda x: -rows[x].n)
         return [rows[x].row(x) for x in keys]
 
+    head_era = CURRENT_ERA if by_era[CURRENT_ERA].n else max(
+        (e for e in era_dates if by_era[e].n), key=lambda e: era_dates[e][-1], default=CURRENT_ERA)
+    hd = era_dates.get(head_era) or []
+    head = {**by_era[head_era].row("発走前確認済み"), "era": head_era, "era_label": ERA_LABEL.get(head_era, head_era),
+            "is_production": head_era == CURRENT_ERA,
+            "production_era_label": ERA_LABEL.get(CURRENT_ERA, CURRENT_ERA),
+            "from": hd[0] if hd else None, "to": hd[-1] if hd else None, "n_days": len(hd)}
     out = {
         "built_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "period": {"from": dates[0] if dates else None, "to": dates[-1] if dates else None, "n_days": n_days},
@@ -264,16 +273,15 @@ def build(write: bool = True) -> dict:
         "overall": overall.row("全体"),
         # 見出し用: いまの本番モデル (v6-C1) で、発走前の版と確認できた日だけ。
         # 全体 (overall) は v5 期・旧版 C0 期・作り直した日を含む (2026-11-13 監査)。
-        "current": {**current.row("現行モデル・発走前確認済み"),
-                    "from": cur_dates[0] if cur_dates else None, "to": cur_dates[-1] if cur_dates else None,
-                    "n_days": len(cur_dates)},
+        "current": head,
         "dims": [{"key": k, "label": lbl, "rows": order_rows(k, acc[k])} for k, lbl in DIMS],
         "weekly": weekly_series(weeks),
         "note": ("◎の勝率・複勝圏率は AI 本命（◎）の結果。CI は Wilson 95%。回収率はサイトに表示した買い目（表示専用、実弾ではない）の"
                  "合計払戻 ÷ 合計購入額。障害レースと◎無しのレースは除外。同着は着順どおりに扱う。"
                  "◎が発売前に取消になったレースは除外し、競走中止・発売後の除外は圏外として数える。"
                  "取消馬を含む買い目は返還、中止か除外か分からない馬を含む買い目は集計から外す。"
-                 "見出しは現行モデル（v6 C1）で発走前の版と確認できた日だけ。「予測モデルの版」「予測の来歴」の表で内訳を示す。"),
+                 "見出しは本番の予測モデルで発走前の版と確認できた日だけ（切替直後でその版の開催日がまだ無いときは直前の版）。"
+                 "「予測モデルの版」「予測の来歴」の表で内訳を示す。"),
     }
     # 見送り判断の成績（参戦 vs 買っていたら）。入力（cowork_output の a95_all / kekka）が無くても本体は壊さない。
     try:

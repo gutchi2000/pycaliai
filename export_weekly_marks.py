@@ -239,6 +239,16 @@ def ensure_date_column(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def coverage_series(df: pd.DataFrame, col: str) -> pd.Series:
+    """特徴 col のカバレッジを測る列を返す。JRDB の不利・出遅など『空欄 = 何も無かった』列は同じ走の IDM で測る。"""
+    if col.startswith("j1_"):
+        from jrdb_features import coverage_column
+        cc = coverage_column(col)
+        if cc in df.columns:
+            return df[cc]
+    return df[col]
+
+
 def apply_hosei_proxy(df: pd.DataFrame, encs: dict) -> dict[str, float]:
     """prev_hosei / prev_hosei9 の欠損馬を推定器で埋める (CB_HOSEI_PROXY=1 のときだけ)。
 
@@ -287,9 +297,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", required=True,
                     help="週次CSV (例: data/weekly/20260426.csv)")
-    ap.add_argument("--model", default="v6",
-                    help="モデル tag (default: v6 = 本番)。手動実行で誤って退役 v5 の "
-                         "bundle を生成しないよう本番モデルを既定にする")
+    ap.add_argument("--model", default=None,
+                    help="モデル tag。省略時は本番 (data/production_policy.json の model)。"
+                         "手動実行で誤って退役モデルの bundle を作らないよう本番を既定にする")
     ap.add_argument("--out-dir", default=None,
                     help="出力ディレクトリ "
                          "(default: reports/cowork_input/{YYYYMMDD}/)")
@@ -315,6 +325,9 @@ def main() -> int:
     #   全 Gate PASS 後に atomic replace する (transactional fail)。
 
     # ------ モデル & calibrator ロード ------
+    if not args.model:
+        from production_policy import production_model_tag
+        args.model = production_model_tag()
     tag = args.model
     be.MODEL_PKL = BASE / f"models/unified_rank_{tag}.pkl"
     be.CAL_PKL   = BASE / f"models/pl_calibrators_{tag}.pkl"
@@ -330,8 +343,9 @@ def main() -> int:
     if not be.MODEL_PKL.exists():
         logger.error(f"モデル未存在: {be.MODEL_PKL}")
         return 1
-    if tag == "v6":
-        # 本番成果物が期待版か照合 (2026-09-20 の C0 退行の再発防止)。
+    if True:
+        # 本番成果物が期待版か照合 (2026-09-20 の C0 退行の再発防止)。2026-11-13: tag によらず常時
+        # (pins は本番 v7 と、失敗時に戻る先の v6 の両方を持つ)。
         from production_policy import PolicyError, verify_artifact_pins
         try:
             pin = verify_artifact_pins()
@@ -612,23 +626,9 @@ def main() -> int:
     if bundle.get("jrdb_mode"):
         try:
             import jrdb_features as jf
-            from serve_history_feats import PED_ID_COL
-            if PED_ID_COL not in df.columns:
-                jrdb_gate_error = "馬同定が無く JRDB 特徴を作れない"
-            else:
-                # 仮番号 (2026 年初出走で履歴に登録番号が無い馬) は、同定が hit の行に限り馬名で引き直す
-                from serve_history_feats import IDENTITY_STATUS_COL as _ISC
-                _nm = df["馬名"].where(df[_ISC] == "hit") if ("馬名" in df.columns and _ISC in df.columns) else None
-                _jf = jf.past_run_features(df[PED_ID_COL], pd.Series(int(date_str), index=df.index), name=_nm)
-                for _c in jf.FEATURES:
-                    df[_c] = _jf[_c].values
-                _stale, _cov = jf.staleness_days(date_str), jf.coverage(df)
-                logger.info(f"[jrdb] 過去走特徴 {len(jf.FEATURES)} 列  前走あり {_cov*100:.0f}%  成績の最終から {_stale} 日")
-                if _stale > 9:
-                    jrdb_gate_error = (f"JRDB 成績が古い (最終から {_stale} 日)。先週ぶんが未取込で過去走の順番がずれる。"
-                                       "python scripts/jrdb_refresh.py を実行")
-                elif _cov < 0.50:
-                    jrdb_gate_error = f"JRDB 過去走特徴の埋まりが {_cov*100:.0f}% (通常 80% 台)。馬同定か成績ファイルを確認"
+            _js = jf.add_serve_feats(df, date_str)
+            logger.info(f"[jrdb] 過去走特徴 {len(jf.FEATURES)} 列  前走あり {_js['coverage']*100:.0f}%  成績の最終から {_js['stale_days']} 日")
+            jrdb_gate_error = _js["error"]
         except Exception as e:  # noqa: BLE001
             jrdb_gate_error = f"JRDB 特徴の生成に失敗: {type(e).__name__}: {e}"
 
@@ -955,7 +955,7 @@ def main() -> int:
                 # 配信で値が消えても学習と同じ状態に戻っただけなので止めない (2026-11-13 監査)。
                 continue
             monitored += 1
-            cur = (feature_coverage(df[col], allow_constant=(col in CONST_OK_COLS))
+            cur = (feature_coverage(coverage_series(df, col), allow_constant=(col in CONST_OK_COLS))
                    if col in df.columns else 0.0)
             if cur < 0.20 and cur < exp * 0.40:
                 silent_deaths.append(f"{col}({exp*100:.0f}%→{cur*100:.0f}%)")
@@ -1008,7 +1008,7 @@ def main() -> int:
             t = _tcov.get(col)
             if not t or t < 0.40:
                 continue
-            cur = (feature_coverage(df[col], allow_constant=(col in CONST_OK_COLS))
+            cur = (feature_coverage(coverage_series(df, col), allow_constant=(col in CONST_OK_COLS))
                    if col in df.columns else 0.0)
             if cur < 0.70 * t:
                 g = float(_gain.get(col, 0.0))
@@ -1031,7 +1031,7 @@ def main() -> int:
         dead_gain = 0.0
         current_dead: list[str] = []
         for col, g in zip(feats, gain):
-            cur = (feature_coverage(df[col], allow_constant=(col in CONST_OK_COLS))
+            cur = (feature_coverage(coverage_series(df, col), allow_constant=(col in CONST_OK_COLS))
                    if col in df.columns else 0.0)
             if g > 0 and cur < 0.40:
                 current_dead.append(col)
@@ -1064,14 +1064,11 @@ def main() -> int:
     # 発走前なら採点用の凍結版を作る/更新する。最初の発走を過ぎたら凍結版は書き換えない
     # (サイトの成績は凍結版で採点する。2026-11-13 監査: 発走後の作り直しで過去成績が変わっていた)
     try:
-        from bundle_provenance import LIVE_DIR, first_post_time, freeze_if_pre_race
+        from bundle_provenance import (FALLBACK_MODELS, LIVE_DIR, first_post_time, freeze_if_pre_race,
+                                       production_model)
         _fp = first_post_time(date_str, df["発走時刻"].tolist() if "発走時刻" in df.columns else None)
-        try:
-            _prod_model = json.loads((BASE / "data" / "production_policy.json").read_text(encoding="utf-8")).get("model")
-        except Exception:  # noqa: BLE001
-            _prod_model = "v6"
-        if Path(bundle_path).resolve().parent != LIVE_DIR.resolve() or tag != _prod_model:
-            # shadow (reports/shadow_v7 等) や --out-dir 指定の作り直しは凍結しない
+        if Path(bundle_path).resolve().parent != LIVE_DIR.resolve() or tag not in (production_model(), *FALLBACK_MODELS):
+            # shadow (reports/shadow_v6 等) や --out-dir 指定の作り直し、本番でも戻り先でもないモデルは凍結しない
             _fz = {"frozen": False, "skipped": "not_production_bundle", "first_post": _fp.isoformat(),
                    "frozen_exists": False}
         else:

@@ -45,10 +45,19 @@ warnings.filterwarnings("ignore")
 # PYTHONUTF8=1 で実行する前提とし、ここではラップしない。
 
 BASE = Path(__file__).parent
-MODEL_PKL = BASE / "models/unified_rank_v6.pkl"
-PROD_CAL_PKL = BASE / "models/pl_calibrators_v6.pkl"
-OUT_PKL = BASE / "models/pl_calibrators_v6_serve.pkl"
-OUT_JSON = BASE / "reports/calibrators_v6_serve_eval.json"
+def _tag() -> str:
+    """--model <tag> か、省略時は本番 (policy の model)。2026-11-13: v7 対応。"""
+    if "--model" in sys.argv:
+        return sys.argv[sys.argv.index("--model") + 1]
+    from production_policy import production_model_tag
+    return production_model_tag()
+
+
+TAG = _tag()
+MODEL_PKL = BASE / f"models/unified_rank_{TAG}.pkl"
+PROD_CAL_PKL = BASE / f"models/pl_calibrators_{TAG}.pkl"
+OUT_PKL = BASE / f"models/pl_calibrators_{TAG}_serve.pkl"
+OUT_JSON = BASE / f"reports/calibrators_{TAG}_serve_eval.json"
 
 COL_RID = "レースID(新/馬番無)"
 COL_JYUN = "着順"
@@ -74,6 +83,10 @@ def main():
     df = df.dropna(subset=[COL_JYUN, COL_RID, "split"]).copy()
     df = df[df["split"].isin(["valid", "test"])].copy()
     df["year"] = df[COL_RID].astype(str).str[:4].astype(int)
+    if bundle.get("jrdb_mode"):
+        from jrdb_features import add_jrdb_feats
+        df = add_jrdb_feats(df, mode=bundle["jrdb_mode"])
+        print(f"  + jrdb_feats(mode={bundle['jrdb_mode']})")
 
     def serve_scores(frame: pd.DataFrame) -> np.ndarray:
         d = frame.copy()

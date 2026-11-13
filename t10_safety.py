@@ -5,6 +5,14 @@ import time
 from typing import Callable
 
 
+def _model_tag() -> str:
+    try:
+        from production_policy import production_model_tag
+        return production_model_tag()
+    except Exception:  # noqa: BLE001
+        return "v6"
+
+
 def force_skip(date_str: str, rid16: str, label: str, reason: str,
                notify_fn: Callable[[str], bool] | None = None) -> None:
     """取得・計算・validatorのどこで失敗しても、古い買い目を空に置換する。"""
@@ -15,7 +23,7 @@ def force_skip(date_str: str, rid16: str, label: str, reason: str,
         "race_nature": "見送り",
         "race_reason": reason + " (fail-closed)",
         "bets": [],
-    }], stamp={"model": "v6", "engine": "t10_fail_closed",
+    }], stamp={"model": _model_tag(), "engine": "t10_fail_closed",
               "engine_version": ENGINE_VERSION})
     if notify_fn:
         notify_fn(f"⚠ {label} **見送り** — {reason}")

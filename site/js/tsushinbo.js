@@ -18,12 +18,16 @@ function roiBar(v) {
 }
 
 function kpis(d) {
-  // 見出しは現行モデル (v6 C1) で発走前の版と確認できた日だけ。全体は下に併記 (2026-11-13 監査)。
+  // 見出しは本番の予測モデルで発走前の版と確認できた日だけ。切替直後でその版の開催日が無いときは直前の版。
+  // 全体は下に併記 (2026-11-13 監査)。
   const cur = d.current && d.current.n ? d.current : null;
   const o = cur || d.overall;
   const all = d.overall;
+  const who = cur && cur.era_label
+    ? (cur.is_production ? `現行モデル（${cur.era_label}）` : `${cur.era_label}（${cur.production_era_label} に切替前）`)
+    : "現行モデル";
   const scope = cur
-    ? `現行モデル（v6 C1）・発走前の版と確認済み ${fmtD(cur.from)}〜${fmtD(cur.to)}・${cur.n_days} 開催日`
+    ? `${who}・発走前の版と確認済み ${fmtD(cur.from)}〜${fmtD(cur.to)}・${cur.n_days} 開催日`
     : `${fmtD(d.period.from)}〜${fmtD(d.period.to)}・${d.period.n_days} 開催日`;
   const allNote = cur ? `<div class="s">全期間（v5・旧版を含む）: ${all.n.toLocaleString()}R ◎勝率 ${all.win_rate}% ・複勝圏率 ${all.top3_rate}%</div>` : "";
   $("#kpis").innerHTML = `

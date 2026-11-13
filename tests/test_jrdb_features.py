@@ -108,3 +108,61 @@ def test_site_scrub_drops_jrdb_reasons():
     import build_site
     src = inspect.getsource(build_site)
     assert 'startswith("j1_")' in src
+
+
+# ---- 配信用の 1 関数と、カバレッジの測り方 (v7 本番化、2026-11-13) ----
+def test_coverage_column_maps_sparse_columns_to_run_presence():
+    assert jf.coverage_column("j1_furi_1") == "j1_idm_1"
+    assert jf.coverage_column("j1_deokure_3") == "j1_idm_3"
+    assert jf.coverage_column("j1_idm_2") == "j1_idm_2"
+    assert jf.coverage_column("j1_idm_mean5") == "j1_idm_mean5"
+    assert jf.coverage_column("kako5_avg_pos") == "kako5_avg_pos"
+
+
+def test_export_coverage_series_uses_run_presence_for_jrdb_columns():
+    from export_weekly_marks import coverage_series, feature_coverage
+    df = pd.DataFrame({"j1_idm_1": [50.0, 60.0, np.nan, 55.0], "j1_furi_1": [np.nan, 2.0, np.nan, np.nan], "x": [1.0, 2.0, np.nan, np.nan]})
+    assert feature_coverage(coverage_series(df, "j1_furi_1")) == pytest.approx(0.75)     # 不利の記録は 1 頭だけだが、走は 3 頭ある
+    assert feature_coverage(coverage_series(df, "x")) == pytest.approx(0.5)
+
+
+def test_add_serve_feats_flags_missing_identity_and_stale_history(hist):
+    from serve_history_feats import IDENTITY_STATUS_COL, PED_ID_COL
+    df = pd.DataFrame({"馬名": ["アルファ"]})
+    assert "馬同定" in jf.add_serve_feats(df, "20260312", hist)["error"]
+    df = pd.DataFrame({"馬名": ["アルファ", "ベータ"], PED_ID_COL: [2010100001.0, -5.0], IDENTITY_STATUS_COL: ["hit", "hit"]})
+    ok = jf.add_serve_feats(df, "20260312", hist)
+    assert ok["error"] is None and ok["stale_days"] == 5 and ok["coverage"] == 1.0
+    assert df.j1_idm_1.tolist() == [65.0, 40.0]                      # 2 頭目は仮番号 → 馬名で引き直し
+    stale = jf.add_serve_feats(df, "20260328", hist)                 # 成績の最終 3/07 から 21 日
+    assert stale["stale_days"] == 21 and "古い" in stale["error"]
+
+
+def test_add_serve_feats_does_not_use_name_for_unidentified_rows(hist):
+    from serve_history_feats import IDENTITY_STATUS_COL, PED_ID_COL
+    df = pd.DataFrame({"馬名": ["ベータ", "ベータ"], PED_ID_COL: [np.nan, np.nan], IDENTITY_STATUS_COL: ["ambiguous", "new"]})
+    r = jf.add_serve_feats(df, "20260312", hist)
+    assert df.j1_idm_1.isna().all() and "埋まり" in r["error"]
+
+
+def test_production_model_tag_and_switch_table_are_consistent():
+    import json
+    from pathlib import Path
+    import production_policy as pp
+    sys_path = Path(pp.__file__).resolve().parent
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("switch_production_model", sys_path / "scripts" / "switch_production_model.py")
+    sw = importlib.util.module_from_spec(spec); spec.loader.exec_module(sw)
+    pp.clear_policy_caches()
+    pol = pp.load_policy()
+    tag = pp.production_model_tag()
+    assert tag in sw.MODELS
+    assert pol["artifacts"]["rank_model"] == sw.MODELS[tag]["rank_model"]
+    assert pol["artifacts"]["serve_calibrator"] == sw.MODELS[tag]["serve_calibrator"]
+    assert pp.artifact_path("rank_model").name == f"unified_rank_{tag}.pkl"
+    pins = json.loads((sys_path / "data" / "artifact_pins.json").read_text(encoding="utf-8"))["pins"]
+    for rel in (pol["artifacts"]["rank_model"], pol["artifacts"]["serve_calibrator"]):
+        assert rel in pins, f"本番成果物 {rel} が artifact_pins に無い"
+    # 混戦度の基準分布は方策が宣言する版と一致していること
+    q = json.loads((sys_path / "data" / "chaos_quantiles.json").read_text(encoding="utf-8"))
+    assert q["reference_id"] == pol["chaos_reference"]["reference_id"]

@@ -59,19 +59,26 @@ def hon(bundle: dict) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--shadow-dir", required=True)
+    ap.add_argument("--base-dir", default=None,
+                    help="比べる相手。省略時は本番の凍結版 (reports/cowork_input_frozen)。"
+                         "影同士 (例: reports/shadow_v6) を指定したときは相手も発走前に作った bundle だけを数える")
     ap.add_argument("--since", default="20261114")
     ap.add_argument("--boot", type=int, default=2000)
     a = ap.parse_args()
     sdir = ROOT / a.shadow_dir if not Path(a.shadow_dir).is_absolute() else Path(a.shadow_dir)
+    bdir = None if a.base_dir is None else (ROOT / a.base_dir if not Path(a.base_dir).is_absolute() else Path(a.base_dir))
+
+    def pre_race(path: Path, d: str) -> bool:
+        return datetime.fromtimestamp(os.path.getmtime(path)) < datetime.strptime(d + "0930", "%Y%m%d%H%M")
     rows = []
     for sp in sorted(sdir.glob("*_bundle.json")):
         d = sp.name[:8]
         if d < a.since:
             continue
-        if datetime.fromtimestamp(os.path.getmtime(sp)) >= datetime.strptime(d + "0930", "%Y%m%d%H%M"):
+        if not pre_race(sp, d):
             continue
-        fp = ROOT / "reports" / "cowork_input_frozen" / f"{d}_bundle.json"
-        if not fp.exists():
+        fp = (bdir or ROOT / "reports" / "cowork_input_frozen") / f"{d}_bundle.json"
+        if not fp.exists() or (bdir is not None and not pre_race(fp, d)):
             continue
         res = kekka(d)
         hs, hp = hon(json.loads(sp.read_text(encoding="utf-8"))), hon(json.loads(fp.read_text(encoding="utf-8")))
@@ -101,6 +108,7 @@ def main() -> int:
 
     out = {"n_races": len(rows), "n_days": int(len(ud)), "from": str(ud[0]), "to": str(ud[-1]),
            "shadow": {"hon_win_pct": round(arr[:, 0].mean() * 100, 2), "hon_top3_pct": round(arr[:, 1].mean() * 100, 2)},
+           "base": str(bdir.relative_to(ROOT) if bdir and bdir.is_relative_to(ROOT) else (bdir or "reports/cowork_input_frozen")),
            "production": {"hon_win_pct": round(arr[:, 2].mean() * 100, 2), "hon_top3_pct": round(arr[:, 3].mean() * 100, 2)},
            "diff_top3_pt": round((arr[:, 1].mean() - arr[:, 3].mean()) * 100, 2), "diff_top3_ci95": ci(1, 3),
            "diff_win_pt": round((arr[:, 0].mean() - arr[:, 2].mean()) * 100, 2), "diff_win_ci95": ci(0, 2)}
