@@ -1,0 +1,659 @@
+{
+ "root": "E:\\PyCaLiAI",
+ "files": {
+  "models/unified_rank_v6.pkl": {
+   "sha256": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+   "size": 3555195,
+   "mtime": 1792676738.1012144,
+   "pinned": "db2ffe65ee27fb9014dcd78724851e77d292fcaf5d77aa33e40b83f3b186d0d5",
+   "pin_match": true
+  },
+  "models/pl_calibrators_v6.pkl": {
+   "sha256": "a08da05124c489c0d72c416bf17bf70c1c3829ffda2a381cc62e66007cad9221",
+   "size": 17942,
+   "mtime": 1792676738.1276243,
+   "pinned": "a08da05124c489c0d72c416bf17bf70c1c3829ffda2a381cc62e66007cad9221",
+   "pin_match": true
+  },
+  "models/pl_calibrators_v6_serve.pkl": {
+   "sha256": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+   "size": 18609,
+   "mtime": 1790475458.0,
+   "pinned": "90318635646a277aeda48bc1a37b48d31e43ae7d13f6a6f9ce1aa25650eaf50b",
+   "pin_match": true
+  },
+  "models/prev_hosei_proxy.pkl": {
+   "sha256": "821aa867f5099d826399dd09d2270b8e6d5cf6d5962cd00fcbcb645b33c4809e",
+   "size": 46275489,
+   "mtime": 1789725370.0,
+   "pinned": null,
+   "pin_match": null
+  },
+  "data/pl_payout_curve_v6.pkl": {
+   "sha256": "52b0edf639203453b350265566ea172bbd3c9a967c6cd46fdc86c3283d2095e0",
+   "size": 4829,
+   "mtime": 1790475458.0,
+   "pinned": "52b0edf639203453b350265566ea172bbd3c9a967c6cd46fdc86c3283d2095e0",
+   "pin_match": true
+  },
+  "data/serve_feature_baseline.json": {
+   "sha256": "c218bd68dce296d94aeab2d0592c69c19ddf4e588ca888f6c4f28d86293859c4",
+   "size": 13994,
+   "mtime": 1793803511.920228,
+   "pinned": null,
+   "pin_match": null
+  },
+  "data/_horse_history.parquet": {
+   "sha256": "5552b36448657cf174676d7bb9dd8bb70ca858ddebd80944767d9727b6dd0490",
+   "size": 8750113,
+   "mtime": 1794495937.3254678,
+   "pinned": null,
+   "pin_match": null
+  },
+  "data/class_prior_v6.json": {
+   "sha256": "9962502ba4c47a3877ff712f516775dc37e8ea6a565349067f51a08c3c7b82ac",
+   "size": 4179,
+   "mtime": 1785252700.0,
+   "pinned": null,
+   "pin_match": null
+  },
+  "data/master_v2_20130105-20251228.csv": {
+   "sha256": "b8032d1bd78176a939b615921fa4fd25faadbf493f685e44a06e7f2e9e780a76",
+   "size": 518835750,
+   "mtime": 1789133562.0,
+   "pinned": null,
+   "pin_match": null
+  },
+  "data/serve_code_maps.json": {
+   "sha256": "b23bf81b9c3f84e725b88556092a5475dac046b5916917a16e20d1e79f869e2d",
+   "size": 10006,
+   "mtime": 1794495943.3766065,
+   "pinned": null,
+   "pin_match": null
+  },
+  "data/chaos_quantiles.json": {
+   "sha256": "1a06401c4a82b199d7689eafcfa61d25a4efff7f5d3461f1ca57374afd20ccae",
+   "size": 4350,
+   "mtime": 1787655178.0,
+   "pinned": null,
+   "pin_match": null
+  }
+ },
+ "model": {
+  "seed": 42,
+  "variant": "C1_v2venv311_weightfixed",
+  "base_lgbm_params": {
+   "objective": "lambdarank",
+   "lambdarank_truncation_level": 5,
+   "metric": "ndcg",
+   "eval_at": [
+    1,
+    3,
+    5
+   ],
+   "learning_rate": 0.05083158501542684,
+   "num_leaves": 59,
+   "max_depth": 12,
+   "min_data_in_leaf": 197,
+   "feature_fraction": 0.876098829427658,
+   "bagging_fraction": 0.7031707810405968,
+   "bagging_freq": 5,
+   "lambda_l1": 0.0011077902520957399,
+   "lambda_l2": 7.537933313450104,
+   "verbose": -1,
+   "n_jobs": -1,
+   "seed": 42,
+   "deterministic": true,
+   "force_col_wise": true,
+   "feature_pre_filter": false
+  },
+  "num_boost_round": 515,
+  "sample_weight_alpha": 0.03083978412534253,
+  "env": {
+   "python": "3.11.9",
+   "executable": "E:\\PyCaLiAI\\venv311\\Scripts\\python.exe",
+   "pandas": "2.3.3",
+   "numpy": "2.4.2",
+   "lightgbm": "4.6.0",
+   "sklearn": "1.8.0",
+   "expected": {
+    "python": "3.11.9",
+    "pandas": "2.3.3",
+    "numpy": "2.4.2",
+    "lightgbm": "4.6.0",
+    "sklearn": "1.8.0"
+   },
+   "problems": [],
+   "ok": true
+  },
+  "note": "2026-09-11 重み欠落バグ修正版。旧(全件weight=1.0)版は models/UNWEIGHTED_BUG_reference_only/ に参考値として保持。",
+  "n_feats": 120,
+  "feature_cols": [
+   "開催",
+   "場所",
+   "Ｒ",
+   "枠番",
+   "馬番",
+   "芝・ダ",
+   "距離",
+   "コース区分",
+   "芝(内・外)",
+   "馬場状態",
+   "天気",
+   "クラス名",
+   "トラックコード(JV)",
+   "前走走破タイム",
+   "前走着差タイム",
+   "前1角",
+   "前2角",
+   "前3角",
+   "前4角",
+   "前走上り3F",
+   "前走上り3F順",
+   "前走確定着順",
+   "前走日付",
+   "前走場所",
+   "前芝・ダ",
+   "前距離",
+   "前走馬場状態",
+   "前走出走頭数",
+   "前走競走種別",
+   "前走トラックコード(JV)",
+   "前走斤量",
+   "前走馬体重",
+   "前走馬体重増減",
+   "前走Ave-3F",
+   "前PCI",
+   "前好走",
+   "前走PCI3",
+   "前走RPCI",
+   "前走平均1Fタイム",
+   "前走レースID(新)",
+   "前走レースID(新/馬番無)",
+   "種牡馬",
+   "父タイプ名",
+   "母馬",
+   "母父馬",
+   "母父タイプ名",
+   "毛色",
+   "騎手コード",
+   "調教師コード",
+   "馬主(最新/仮想)",
+   "生産者",
+   "年齢限定",
+   "限定",
+   "性別限定",
+   "指定条件",
+   "重量種別",
+   "性別",
+   "年齢",
+   "斤量",
+   "馬齢斤量差",
+   "斤量体重比",
+   "ブリンカー",
+   "間隔",
+   "休み明け～戦目",
+   "出走頭数",
+   "フルゲート頭数",
+   "騎手年齢",
+   "調教師年齢",
+   "jockey_fuku30",
+   "jockey_fuku90",
+   "trainer_fuku30",
+   "trainer_fuku90",
+   "horse_fuku10",
+   "horse_fuku30",
+   "prev_pos_rel",
+   "closing_power",
+   "kako5_avg_pos",
+   "kako5_std_pos",
+   "kako5_best_pos",
+   "kako5_avg_ninki",
+   "kako5_pos_vs_ninki",
+   "kako5_avg_agari3f",
+   "kako5_best_agari3f",
+   "kako5_same_td_ratio",
+   "kako5_same_dist_ratio",
+   "kako5_same_place_ratio",
+   "kako5_pos_trend",
+   "kako5_race_count",
+   "kako5_expected_good_count",
+   "kako5_upset_good_count",
+   "kako5_hidden_good_count",
+   "kako5_same_cond_best_pos",
+   "hist_same_cond_best_pos",
+   "hist_same_cond_top3_rate",
+   "hist_same_cond_count",
+   "hist_same_place_best_pos",
+   "prev_hosei",
+   "prev_hosei9",
+   "trnH_Time1",
+   "trnH_Time2",
+   "trnH_Time3",
+   "trnH_Time4",
+   "trnH_Lap1",
+   "trnH_Lap2",
+   "trnH_Lap3",
+   "trnH_Lap4",
+   "trnH_days_ago",
+   "trnW_5F",
+   "trnW_4F",
+   "trnW_3F",
+   "trnW_Lap1",
+   "trnW_Lap2",
+   "trnW_Lap3",
+   "trnW_days_ago",
+   "course_n_prev",
+   "course_win_rate",
+   "course_top3_rate",
+   "jockey_n_prev",
+   "jockey_win_rate",
+   "jockey_top3_rate"
+  ],
+  "cat_cols_encoded": [
+   "クラス名",
+   "コース区分",
+   "ブリンカー",
+   "前好走",
+   "前芝・ダ",
+   "前走場所",
+   "前走競走種別",
+   "前走馬場状態",
+   "場所",
+   "天気",
+   "年齢限定",
+   "性別",
+   "性別限定",
+   "指定条件",
+   "母父タイプ名",
+   "母父馬",
+   "毛色",
+   "父タイプ名",
+   "生産者",
+   "種牡馬",
+   "芝(内・外)",
+   "芝・ダ",
+   "調教師コード",
+   "重量種別",
+   "限定",
+   "馬主(最新/仮想)",
+   "馬場状態",
+   "騎手コード"
+  ],
+  "best_iteration": 0,
+  "num_trees": 515,
+  "gain_top40": [
+   [
+    "kako5_avg_pos",
+    13.193
+   ],
+   [
+    "前走確定着順",
+    12.317
+   ],
+   [
+    "prev_hosei",
+    7.469
+   ],
+   [
+    "jockey_fuku90",
+    6.844
+   ],
+   [
+    "hist_same_cond_top3_rate",
+    5.251
+   ],
+   [
+    "kako5_best_pos",
+    2.275
+   ],
+   [
+    "trainer_fuku90",
+    1.949
+   ],
+   [
+    "前走着差タイム",
+    1.556
+   ],
+   [
+    "prev_hosei9",
+    1.55
+   ],
+   [
+    "生産者",
+    1.384
+   ],
+   [
+    "間隔",
+    1.362
+   ],
+   [
+    "種牡馬",
+    1.325
+   ],
+   [
+    "jockey_fuku30",
+    1.318
+   ],
+   [
+    "horse_fuku10",
+    1.291
+   ],
+   [
+    "前走上り3F",
+    1.261
+   ],
+   [
+    "前走馬体重",
+    1.253
+   ],
+   [
+    "馬主(最新/仮想)",
+    1.243
+   ],
+   [
+    "kako5_avg_agari3f",
+    1.212
+   ],
+   [
+    "調教師コード",
+    1.081
+   ],
+   [
+    "斤量体重比",
+    1.07
+   ],
+   [
+    "kako5_pos_trend",
+    1.059
+   ],
+   [
+    "年齢",
+    1.035
+   ],
+   [
+    "kako5_std_pos",
+    0.983
+   ],
+   [
+    "母父馬",
+    0.974
+   ],
+   [
+    "騎手コード",
+    0.948
+   ],
+   [
+    "前PCI",
+    0.889
+   ],
+   [
+    "前距離",
+    0.873
+   ],
+   [
+    "前走平均1Fタイム",
+    0.828
+   ],
+   [
+    "前走RPCI",
+    0.828
+   ],
+   [
+    "Ｒ",
+    0.756
+   ],
+   [
+    "前走上り3F順",
+    0.749
+   ],
+   [
+    "前走Ave-3F",
+    0.72
+   ],
+   [
+    "kako5_best_agari3f",
+    0.719
+   ],
+   [
+    "前走出走頭数",
+    0.71
+   ],
+   [
+    "horse_fuku30",
+    0.697
+   ],
+   [
+    "前3角",
+    0.644
+   ],
+   [
+    "調教師年齢",
+    0.625
+   ],
+   [
+    "騎手年齢",
+    0.604
+   ],
+   [
+    "hist_same_cond_count",
+    0.599
+   ],
+   [
+    "クラス名",
+    0.594
+   ]
+  ],
+  "params": {
+   "objective": "lambdarank",
+   "lambdarank_truncation_level": 5,
+   "metric": "ndcg",
+   "eval_at": [
+    1,
+    3,
+    5
+   ],
+   "learning_rate": 0.05083158501542684,
+   "num_leaves": 59,
+   "max_depth": 12,
+   "min_data_in_leaf": 197,
+   "feature_fraction": 0.876098829427658,
+   "bagging_fraction": 0.7031707810405968,
+   "bagging_freq": 5,
+   "lambda_l1": 0.0011077902520957399,
+   "lambda_l2": 7.537933313450104,
+   "verbose": -1,
+   "n_jobs": -1,
+   "seed": 42,
+   "deterministic": true,
+   "force_col_wise": true,
+   "feature_pre_filter": false,
+   "num_iterations": 515
+  }
+ },
+ "pl_calibrators_v6.pkl": {
+  "source_model": "unified_rank_v6.pkl",
+  "fit_split": "valid=2023",
+  "n_races": 3456,
+  "seed": 42,
+  "keys": [
+   "fukusho",
+   "sanrenpuku",
+   "sanrentan",
+   "tansho",
+   "umaren",
+   "umatan",
+   "wide"
+  ],
+  "iso": {
+   "tansho": {
+    "n_thresholds": 106,
+    "x_min": 0.0006748947697019446,
+    "x_max": 0.7985660249725192,
+    "y_max": 1.0,
+    "n_distinct_y": 53
+   },
+   "fukusho": {
+    "n_thresholds": 156,
+    "x_min": 0.0023535342824601933,
+    "x_max": 0.9968844322231847,
+    "y_max": 1.0,
+    "n_distinct_y": 78
+   },
+   "umatan": {
+    "n_thresholds": 132,
+    "x_min": 7.953587652516698e-07,
+    "x_max": 0.4271388209991694,
+    "y_max": 0.6666666666666666,
+    "n_distinct_y": 66
+   },
+   "umaren": {
+    "n_thresholds": 127,
+    "x_min": 1.5907229815906732e-06,
+    "x_max": 0.7894936907622719,
+    "y_max": 1.0,
+    "n_distinct_y": 64
+   },
+   "wide": {
+    "n_thresholds": 186,
+    "x_min": 6.143446320941577e-06,
+    "x_max": 0.9898171302110087,
+    "y_max": 1.0,
+    "n_distinct_y": 93
+   },
+   "sanrentan": {
+    "n_thresholds": 162,
+    "x_min": 9.837940635321988e-10,
+    "x_max": 0.34237607443000034,
+    "y_max": 0.125,
+    "n_distinct_y": 81
+   },
+   "sanrenpuku": {
+    "n_thresholds": 132,
+    "x_min": 5.9048148269035336e-09,
+    "x_max": 0.8447302387269098,
+    "y_max": 0.5,
+    "n_distinct_y": 66
+   }
+  }
+ },
+ "pl_calibrators_v6_serve.pkl": {
+  "source_model": "unified_rank_v6.pkl",
+  "fit_split": "valid=2023 (serve マスクスコア)",
+  "serve_mask_numeric": [
+   "前走走破タイム",
+   "前走日付",
+   "前走トラックコード(JV)",
+   "前PCI",
+   "前走PCI3",
+   "前走RPCI",
+   "前走平均1Fタイム",
+   "前走レースID(新)",
+   "前走レースID(新/馬番無)",
+   "斤量体重比",
+   "休み明け～戦目"
+  ],
+  "serve_mask_cat": [
+   "芝(内・外)",
+   "前走競走種別",
+   "前好走",
+   "父タイプ名",
+   "限定",
+   "性別限定",
+   "指定条件",
+   "ブリンカー"
+  ],
+  "serve_baseline_weeks": [
+   "20260906",
+   "20260905"
+  ],
+  "serve_baseline_dead_gain_pct": 6.7014,
+  "n_races": 3456,
+  "seed": 42,
+  "keys": [
+   "fukusho",
+   "sanrenpuku",
+   "sanrentan",
+   "tansho",
+   "umaren",
+   "umatan",
+   "wide"
+  ],
+  "iso": {
+   "tansho": {
+    "n_thresholds": 114,
+    "x_min": 0.0008354543152594937,
+    "x_max": 0.7099256006779171,
+    "y_max": 1.0,
+    "n_distinct_y": 57
+   },
+   "fukusho": {
+    "n_thresholds": 156,
+    "x_min": 0.003252797686258152,
+    "x_max": 0.9953086685079416,
+    "y_max": 1.0,
+    "n_distinct_y": 78
+   },
+   "umatan": {
+    "n_thresholds": 135,
+    "x_min": 8.38960488551127e-07,
+    "x_max": 0.4380958856971926,
+    "y_max": 1.0,
+    "n_distinct_y": 68
+   },
+   "umaren": {
+    "n_thresholds": 121,
+    "x_min": 1.6780619829426588e-06,
+    "x_max": 0.8020496130806694,
+    "y_max": 1.0,
+    "n_distinct_y": 61
+   },
+   "wide": {
+    "n_thresholds": 170,
+    "x_min": 6.560171309085391e-06,
+    "x_max": 0.9896145102400001,
+    "y_max": 1.0,
+    "n_distinct_y": 85
+   },
+   "sanrentan": {
+    "n_thresholds": 152,
+    "x_min": 1.5807784046485217e-09,
+    "x_max": 0.3418547453289158,
+    "y_max": 0.2,
+    "n_distinct_y": 76
+   },
+   "sanrenpuku": {
+    "n_thresholds": 162,
+    "x_min": 9.494612020331554e-09,
+    "x_max": 0.8160421255772401,
+    "y_max": 0.42857142857142855,
+    "n_distinct_y": 81
+   }
+  }
+ },
+ "serve_mask_sync": {
+  "baseline_weeks": [
+   "20261101",
+   "20261031",
+   "20261025",
+   "20261024"
+  ],
+  "baseline_generated": null,
+  "calibrator_fit_baseline_weeks": [
+   "20260906",
+   "20260905"
+  ],
+  "n_dead_now": 21,
+  "n_dead_at_fit": 19,
+  "dead_now_not_masked_at_fit": [
+   "closing_power",
+   "prev_pos_rel",
+   "前1角",
+   "前2角"
+  ],
+  "masked_at_fit_but_alive_now": [
+   "休み明け～戦目",
+   "前走日付"
+  ]
+ }
+}

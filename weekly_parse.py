@@ -409,7 +409,10 @@ def parse_csv(path: Path) -> pd.DataFrame:
 
     # 脚質特徴量：前走コーナー通過順位から計算（モデルと同じ定義）
     if "前1角" in df.columns and "前4角" in df.columns:
-        n = df["出走頭数"].clip(lower=2)
+        # 学習 (build_dataset.add_pace_features) は前走の頭数で割る。以前はここだけ今走の頭数で
+        # 割っていた (2026-11-13 監査)。前走頭数が無い行だけ今走の頭数で代用する。
+        n_prev = pd.to_numeric(df["前走出走頭数"], errors="coerce") if "前走出走頭数" in df.columns else None
+        n = (n_prev.fillna(df["出走頭数"]) if n_prev is not None else df["出走頭数"]).clip(lower=2)
         df["prev_pos_rel"]   = (df["前1角"] - 1) / (n - 1)
         df["closing_power"]  = (df["前1角"] - df["前4角"]) / (n - 1)
 
@@ -595,7 +598,7 @@ def parse_csv(path: Path) -> pd.DataFrame:
             df["日付"] = df["日付S"].apply(
                 lambda s: "{:04d}{:02d}{:02d}".format(*[int(x) for x in str(s).split(".")])
             )
-        df = merge_chukyo(df, hanro, wc)
+        df = merge_chukyo(df, hanro, wc, max_age_days=None, include_race_day=False)
     except Exception as e:
         logger.warning(f"調教JOIN失敗（スキップ）: {e}")
         for col in ["trn_hanro_4f","trn_hanro_3f","trn_hanro_2f","trn_hanro_1f",

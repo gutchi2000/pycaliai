@@ -454,6 +454,44 @@ def main() -> int:
                     ", ".join(f"{k}={v:.0f}%" for k, v in sorted(revived.items())[:6]) +
                     (" ..." if len(revived) > 6 else ""))
 
+    # ------ 学習時の定義に合わせる (2026-11-13 監査 §C) ------
+    # モデル bundle が定義を宣言していなければ v6 (C1) の学習定義 = legacy とみなす。
+    #   kako5_agari_window: "legacy" = 学習 master の 1 走ずれ / "own" = 各走自身の上がり
+    #   trn_days_unit:      "yyyymmdd_diff" = 学習 master の整数差 / "days" = 実日数
+    # 過去走の人気は学習 master に無いので、どのモデルでも使わない。
+    _agari_window = bundle.get("kako5_agari_window", "legacy")
+    _days_unit = bundle.get("trn_days_unit", "yyyymmdd_diff")
+    _k5p = BASE / "data" / "kako5" / f"{date_str}.csv"
+    if _k5p.exists():
+        try:
+            from parse_kako5 import build_from_kako5, KAKO5_COLS
+            _k5 = build_from_kako5(_k5p, agari_window=_agari_window, use_ninki=False)
+            if not _k5.empty:
+                _k5 = _k5.copy()
+                _k5["レースID(新)"] = _k5["レースID(新)"].astype(str).str[:16]
+                _k5 = _k5.rename(columns={"レースID(新)": COL_RID}).drop_duplicates([COL_RID, COL_BAN])
+                _cols = [c for c in KAKO5_COLS if c in _k5.columns]
+                _key = df[[COL_RID, COL_BAN]].astype({COL_RID: str})
+                _key[COL_BAN] = pd.to_numeric(_key[COL_BAN], errors="coerce")
+                _k5[COL_BAN] = pd.to_numeric(_k5[COL_BAN], errors="coerce")
+                _m = _key.merge(_k5[[COL_RID, COL_BAN] + _cols], on=[COL_RID, COL_BAN], how="left")
+                for _c in _cols:
+                    df[_c] = _m[_c].to_numpy()
+                logger.info(f"[train-def] kako5 を学習定義で再計算 (agari={_agari_window}, 人気なし): "
+                            f"kako5_avg_pos 充足 {df['kako5_avg_pos'].notna().mean()*100:.0f}%")
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"[train-def] kako5 再計算に失敗 → parse_csv の値のまま: {e}")
+    if _days_unit == "yyyymmdd_diff":
+        _rd = pd.to_datetime(df["日付"].astype(str), format="%Y%m%d", errors="coerce")
+        for _c in ("trnH_days_ago", "trnW_days_ago"):
+            if _c in df.columns:
+                _days = pd.to_numeric(df[_c], errors="coerce")
+                _td = _rd - pd.to_timedelta(_days, unit="D")
+                _legacy = (_rd.dt.strftime("%Y%m%d").astype(float)
+                           - _td.dt.strftime("%Y%m%d").astype(float))
+                df[_c] = _legacy.where(_days.notna())
+        logger.info("[train-def] 調教の日数を学習と同じ YYYYMMDD 差に変換")
+
     # ------ serve skew 対策2 (2026-09-19発見): カテゴリ表記のゆれ ------
     # 週次CSV (parse_csv) の生カテゴリ文字列が、学習時 (build_master_v2.py, master_v2.csv)
     # の表記と食い違う列がある。encs[col] (LabelEncoder, master由来のclasses_) は正規化前の
@@ -780,6 +818,15 @@ def main() -> int:
         hosei_proxy=(os.environ.get("CB_HOSEI_PROXY", "0") == "1"
                      and (BASE / "models" / "prev_hosei_proxy.pkl").exists()),
         history_stats=hist_stats)
+    # 過去日を作り直せるよう、読んだ履歴 parquet と未 commit の .py 差分を保存して刻む (2026-11-13 監査)
+    try:
+        from bundle_provenance import snapshot_serve_inputs, model_era
+        _hp = Path((hist_stats or {}).get("hist_path") or (BASE / "data" / "_horse_history.parquet"))
+        serve_path["snapshots"] = snapshot_serve_inputs(date_str, _hp, serve_path.get("git") or {}, base=BASE)
+        serve_path["train_definitions"] = {"kako5_agari_window": _agari_window, "trn_days_unit": _days_unit,
+                                           "jockey_window": bundle.get("jockey_window", "same_day_inclusive")}
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"[serve path] snapshot 失敗: {e}")
     logger.info(f"[serve path] {serve_path['version']} commit="
                 f"{(serve_path['git'].get('commit') or '?')[:10]} "
                 f"history={str(serve_path['history'].get('sha256') or '?')[:12]}")
@@ -895,10 +942,18 @@ def main() -> int:
             base_cov = {}
             logger.warning(f"[serve canary] baseline 読込失敗 ({e}) → 監視スキップ")
         monitored, silent_deaths = 0, []
+        try:
+            _train_cov = (json.load(open(baseline_path, encoding="utf-8")) or {}).get("train_cov", {})
+        except Exception:
+            _train_cov = {}
         for col in feats:
             exp = base_cov.get(col)
             if exp is None or exp < 0.40:
                 continue   # 既知 dead / 監視対象外
+            if _train_cov.get(col) is not None and _train_cov[col] < 0.40:
+                # 学習で死んでいた特徴 (例: kako5 の人気系は学習 master に過去走の人気が無い)。
+                # 配信で値が消えても学習と同じ状態に戻っただけなので止めない (2026-11-13 監査)。
+                continue
             monitored += 1
             cur = (feature_coverage(df[col], allow_constant=(col in CONST_OK_COLS))
                    if col in df.columns else 0.0)
@@ -1006,6 +1061,30 @@ def main() -> int:
 
     # ★全 Gate PASS → ここで初めて atomic に本番へ差し替える
     publish.commit()
+    # 発走前なら採点用の凍結版を作る/更新する。最初の発走を過ぎたら凍結版は書き換えない
+    # (サイトの成績は凍結版で採点する。2026-11-13 監査: 発走後の作り直しで過去成績が変わっていた)
+    try:
+        from bundle_provenance import LIVE_DIR, first_post_time, freeze_if_pre_race
+        _fp = first_post_time(date_str, df["発走時刻"].tolist() if "発走時刻" in df.columns else None)
+        try:
+            _prod_model = json.loads((BASE / "data" / "production_policy.json").read_text(encoding="utf-8")).get("model")
+        except Exception:  # noqa: BLE001
+            _prod_model = "v6"
+        if Path(bundle_path).resolve().parent != LIVE_DIR.resolve() or tag != _prod_model:
+            # shadow (reports/shadow_v7 等) や --out-dir 指定の作り直しは凍結しない
+            _fz = {"frozen": False, "skipped": "not_production_bundle", "first_post": _fp.isoformat(),
+                   "frozen_exists": False}
+        else:
+            _fz = freeze_if_pre_race(date_str, bundle_path, _fp)
+        if _fz.get("skipped"):
+            logger.info("[freeze] 本番の bundle ではないので凍結しない")
+        elif _fz.get("frozen"):
+            logger.info(f"[freeze] 採点用に凍結 (最初の発走 {_fz['first_post']})")
+        else:
+            logger.warning(f"[freeze] 最初の発走 ({_fz['first_post']}) を過ぎているので凍結版は更新しない "
+                           f"(凍結版 {'あり' if _fz['frozen_exists'] else 'なし'})。サイトの採点は凍結版のまま")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"[freeze] 失敗: {e}")
     print(f"=== Cowork 入力 JSON 出力完了 (atomic publish) ===")
     print(f"  個別: {out_dir}/")
     print(f"  集約: {bundle_path}")

@@ -1,0 +1,89 @@
+{
+ "cand_sha": "b8032d1bd78176a939b615921fa4fd25faadbf493f685e44a06e7f2e9e780a76",
+ "live_sha": "b8032d1bd78176a939b615921fa4fd25faadbf493f685e44a06e7f2e9e780a76",
+ "same_master": true,
+ "missing_cols": [],
+ "n_rows": 626774,
+ "n_races": 44907,
+ "date_vs_rid8_mismatch": 0,
+ "split_ranges": [
+  {
+   "split": "test",
+   "min": "20240106",
+   "max": "20251228",
+   "count": "94249"
+  },
+  {
+   "split": "train",
+   "min": "20130105",
+   "max": "20221228",
+   "count": "485252"
+  },
+  {
+   "split": "valid",
+   "min": "20230105",
+   "max": "20231228",
+   "count": "47273"
+  }
+ ],
+ "split_na_rows": 0,
+ "races_spanning_splits": 0,
+ "split_vs_date_rule_mismatch": 0,
+ "jyun_non_numeric_values": {},
+ "jyun_non_numeric_rows": 0,
+ "jyun_zero_rows": 0,
+ "dead_heat_groups": 1261,
+ "dead_heat_by_position": {
+  "1.0": 66,
+  "2.0": 82,
+  "3.0": 117,
+  "4.0": 108,
+  "5.0": 120
+ },
+ "dead_heat_races_top3": 265,
+ "races_without_winner": 13,
+ "races_lt3_finishers": 0,
+ "dup_race_umaban": 0,
+ "dup_race_horse": 0,
+ "fukusho_flag_vs_top3_mismatch": 0,
+ "fukusho_flag_rate": 0.21509826508438448,
+ "finisher_field_size_dist": {
+  "4": 3,
+  "5": 74,
+  "6": 192,
+  "7": 532,
+  "8": 1220,
+  "9": 1798,
+  "10": 2444,
+  "11": 2925,
+  "12": 3600,
+  "13": 3611,
+  "14": 4377,
+  "15": 5848,
+  "16": 14133,
+  "17": 1010,
+  "18": 3140
+ },
+ "races_le7_finishers": 801,
+ "races_shusso_le7": 747,
+ "races_shusso_le7_by_split": {
+  "train": 461,
+  "test": 212,
+  "valid": 74
+ },
+ "races_by_year": {
+  "2013": 3454,
+  "2014": 3451,
+  "2015": 3454,
+  "2016": 3454,
+  "2017": 3455,
+  "2018": 3454,
+  "2019": 3452,
+  "2020": 3456,
+  "2021": 3456,
+  "2022": 3456,
+  "2023": 3456,
+  "2024": 3454,
+  "2025": 3455
+ }
+}

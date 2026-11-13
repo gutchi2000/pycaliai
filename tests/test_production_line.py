@@ -254,6 +254,17 @@ class TestGetCancelled:
         kk = _kekka_frame([(1, "1"), (2, "2"), (3, "3")])
         assert get_cancelled(kk) == set()
 
+    def test_odds_present_zero_is_unknown_not_refund(self):
+        """2026-11-13 監査: 単勝欄に最終オッズのある着順 0 (中止 or 発売後の除外) は返還確定ではない。"""
+        from generate_results import get_unknown_out
+        kk = pd.DataFrame(
+            [["d", "東京", "1", "1", 1, "a", "1", "rid", "480"],
+             ["d", "東京", "1", "2", 5, "b", "0", "rid", ""],
+             ["d", "東京", "1", "3", 6, "c", "0", "rid", "(23.4)"]],
+            columns=["日付", "場所", "R", "枠番", "馬番", "馬名", "確定着順", "レースID(新)", "単勝配当"])
+        assert get_cancelled(kk) == {5}
+        assert get_unknown_out(kk) == {6}
+
 
 class TestBetCis:
     def _settled(self, n, hit_every, pay=200.0, cost=1000.0):

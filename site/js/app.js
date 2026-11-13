@@ -416,24 +416,35 @@ function runCounters(scope) {
 }
 
 function priorStrip(r) {
-  const cp = r.class_prior;
-  if (!cp) return "";
-  return `<div class="prior">
-    <span class="pr-t">クラス実績<small>${esc(r.klass)} n=${(cp.n_samples ?? 0).toLocaleString()}</small></span>
-    <span class="pr-i"><b class="m1c">◎</b> 勝${num(cp.hon_1st_pct, 1)}% 連${num(cp.hon_top2_pct, 1)}% 複${num(cp.hon_top3_pct, 1)}%</span>
-    <span class="pr-i"><b>〇</b> 複${num(cp.tai_top3_pct, 1)}%</span>
-    <span class="pr-i"><b>▲</b> 複${num(cp.san_top3_pct, 1)}%</span>
-    <span class="pr-i"><b>△</b> 複${num(cp.del1_top3_pct, 1)}%</span>
-  </div>`;
+  // クラス単位の経験率 (このレース・この馬の確率ではない)。
+  // 過去検証 (2024-25 年の過去データでの検証) は 2026 本番より◎複勝圏率が約 8pt 高かったので、
+  // 本番の実績 (このレースより前の開催日だけ) を先に出す (2026-11-13 監査)。
+  const cp = r.class_prior, lv = r.class_prior_live;
+  if (!cp && !lv) return "";
+  const live = lv ? `<span class="pr-t">2026 本番の実績<small>${esc(r.klass)} ${(lv.n_races ?? 0).toLocaleString()}R</small></span>
+    <span class="pr-i"><b class="m1c">◎</b> 勝${num(lv.hon_1st_pct, 1)}% 複${num(lv.hon_top3_pct, 1)}%</span>
+    <span class="pr-i"><b>〇</b> 複${num(lv.tai_top3_pct, 1)}%</span>
+    <span class="pr-i"><b>▲</b> 複${num(lv.san_top3_pct, 1)}%</span>
+    <span class="pr-i"><b>△</b> 複${num(lv.del1_top3_pct, 1)}%</span>` : "";
+  const off = cp ? `<span class="pr-t">過去検証 2024-25<small>${esc(r.klass)} n=${(cp.n_samples ?? 0).toLocaleString()}</small></span>
+    <span class="pr-i"><b class="m1c">◎</b> 勝${num(cp.hon_1st_pct, 1)}% 複${num(cp.hon_top3_pct, 1)}%</span>` : "";
+  return `<div class="prior" title="クラス全体の印の実績。このレース・この馬の確率ではありません">${live}${off}</div>`;
+}
+
+// 着順 0 の馬: 発売前の取消 (返還) / 競走中止または発売後の除外 (kekka では区別できない)
+function outLabel(res, umaban) {
+  const u = +umaban;
+  if ((res.scratched || []).some((x) => +x === u)) return "取消";
+  if ((res.no_finish || []).some((x) => +x === u)) return "中止・除外";
+  return "";
 }
 
 function resultBanner(r) {
   const res = r.result;
   if (!res) return "";
-  const byPos = {};
-  Object.entries(res.order).forEach(([u, p]) => { byPos[p] = +u; });
-  const top = [1, 2, 3].map((p) => {
-    const u = byPos[p];
+  // 3 着以内は top3 (着順 0 = 取消/除外/中止は含まない) を着順どおりに。同着は同じ着順で並べる。
+  const top = (res.top3 || []).map((u) => {
+    const p = res.order[String(u)];
     const h = r.horses.find((x) => x.umaban === u);
     if (!h) return "";
     return `<span class="res-h">${posBadge(p)}${wk(h)}
@@ -442,7 +453,9 @@ function resultBanner(r) {
   }).join("");
   const honmei = r.horses.find((h) => h.mark === "◎");
   const hPos = honmei ? res.order[String(honmei.umaban)] : null;
-  const hitChip = hPos === 1 ? `<span class="hitchip">◎ 1着的中</span>`
+  const hOut = honmei ? outLabel(res, honmei.umaban) : "";
+  const hitChip = hOut ? `<span class="hitchip miss">◎ ${hOut}</span>`
+    : hPos === 1 ? `<span class="hitchip">◎ 1着的中</span>`
     : hPos != null && hPos <= 3 ? `<span class="hitchip">◎ 複勝圏 (${hPos}着)</span>`
     : honmei ? `<span class="hitchip miss">◎ ${hPos ?? "—"}着</span>` : "";
   return `<div class="resbar">
@@ -2675,9 +2688,9 @@ function resultTableHtml(r) {
   const top3 = res.top3 || [];
   const nin = (u) => { const h = horseByUma(r, u); return h && h.ninki != null ? `${h.ninki}番人気` : ""; };
 
-  const finish = top3.map((u, i) => {
+  const finish = top3.map((u) => {
     const h = horseByUma(r, u);
-    return `<span class="rt2-fin">${posBadge(i + 1)}${h ? wk(h) : ""}<b>${esc(h ? h.name : u)}</b>${h && h.mark ? `<span class="mark ${markCls(h.mark)}">${h.mark}</span>` : ""}<small style="color:#8a97b5;margin-left:4px">${nin(u)}</small></span>`;
+    return `<span class="rt2-fin">${posBadge(res.order[String(u)])}${h ? wk(h) : ""}<b>${esc(h ? h.name : u)}</b>${h && h.mark ? `<span class="mark ${markCls(h.mark)}">${h.mark}</span>` : ""}<small style="color:#8a97b5;margin-left:4px">${nin(u)}</small></span>`;
   }).join("");
 
   return `<div class="card rs-result">

@@ -18,9 +18,16 @@ function roiBar(v) {
 }
 
 function kpis(d) {
-  const o = d.overall;
+  // 見出しは現行モデル (v6 C1) で発走前の版と確認できた日だけ。全体は下に併記 (2026-11-13 監査)。
+  const cur = d.current && d.current.n ? d.current : null;
+  const o = cur || d.overall;
+  const all = d.overall;
+  const scope = cur
+    ? `現行モデル（v6 C1）・発走前の版と確認済み ${fmtD(cur.from)}〜${fmtD(cur.to)}・${cur.n_days} 開催日`
+    : `${fmtD(d.period.from)}〜${fmtD(d.period.to)}・${d.period.n_days} 開催日`;
+  const allNote = cur ? `<div class="s">全期間（v5・旧版を含む）: ${all.n.toLocaleString()}R ◎勝率 ${all.win_rate}% ・複勝圏率 ${all.top3_rate}%</div>` : "";
   $("#kpis").innerHTML = `
-    <div class="kpi"><div class="l">集計レース</div><div class="v num">${o.n.toLocaleString()}</div><div class="s">${fmtD(d.period.from)}〜${fmtD(d.period.to)}・${d.period.n_days} 開催日</div></div>
+    <div class="kpi"><div class="l">集計レース</div><div class="v num">${o.n.toLocaleString()}</div><div class="s">${scope}</div>${allNote}</div>
     <div class="kpi"><div class="l">◎ 勝率</div><div class="v num">${o.win_rate}<small>%</small></div><div class="s">95% CI ${o.win_lo}〜${o.win_hi}%</div></div>
     <div class="kpi"><div class="l">◎ 複勝圏率</div><div class="v num">${o.top3_rate}<small>%</small></div><div class="s">95% CI ${o.top3_lo}〜${o.top3_hi}%</div></div>
     <div class="kpi"><div class="l">◎ が朝 1 番人気</div><div class="v num">${o.fav_rate}<small>%</small></div><div class="s">市場と一致した割合</div></div>

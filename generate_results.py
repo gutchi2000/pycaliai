@@ -243,16 +243,41 @@ def _bet_cis(settled: pd.DataFrame, n_boot: int = 2000, seed: int = 42) -> dict:
     }
 
 
-def get_cancelled(race_kk: pd.DataFrame) -> set[int]:
-    """出走取消・競走除外・競走中止の馬番セット。
+class RefundUnknown(Exception):
+    """返還の有無が kekka から決められない馬を含む買い目 (集計から外す)。"""
 
-    TARGET の kekka CSV は取消・除外・中止馬を着順 "0" で出力する
-    (2026 年全 kekka で 138 行確認、文字列マーカーは存在しない)。
-    現実の JRA では取消馬絡みの馬券は返還されるため、これを全額損失と
-    計上すると券種別 ROI が系統的に過小になる (audit 2026-06-11)。
+
+def _zero_rows(race_kk: pd.DataFrame) -> pd.DataFrame:
+    return race_kk[race_kk.iloc[:, 6].astype(str).str.strip() == "0"]
+
+
+def get_cancelled(race_kk: pd.DataFrame) -> set[int]:
+    """返還が確定している馬 (発売前の出走取消) の馬番セット。
+
+    TARGET の kekka CSV は取消・除外・中止馬を着順 "0" で出力する (文字列マーカーは無い)。
+    単勝欄が空 = 発売前に取り消された馬で、絡む馬券は返還。
+    2026-11-13 監査: 以前は着順 0 を全部返還にしていたが、競走中止は返還されない。
+    最終オッズ "(xx.x)" の付いた着順 0 馬 (発売後の除外=返還 / 競走中止=返還なし) は
+    get_unknown_out() に分け、買い目の照合では決済不能として集計から外す。
     """
-    rows = race_kk[race_kk.iloc[:, 6].astype(str).str.strip() == "0"]
-    return {to_int(x) for x in rows.iloc[:, 4].tolist() if to_int(x) is not None}
+    rows = _zero_rows(race_kk)
+    blank = _tansho_blank(rows)
+    return {to_int(x) for x in rows[blank].iloc[:, 4].tolist() if to_int(x) is not None}
+
+
+def _tansho_blank(rows: pd.DataFrame) -> pd.Series:
+    """単勝配当欄 (9 列目) が空か。列が無い形式では従来どおり全部「空」= 返還扱い。"""
+    if rows.shape[1] <= 8:
+        return pd.Series(True, index=rows.index)
+    col = rows.iloc[:, 8]
+    return col.isna() | col.astype(str).str.strip().isin(["", "nan"])
+
+
+def get_unknown_out(race_kk: pd.DataFrame) -> set[int]:
+    """着順 0 で最終オッズがある馬 (発売後の除外か競走中止か区別できない)。"""
+    rows = _zero_rows(race_kk)
+    blank = _tansho_blank(rows)
+    return {to_int(x) for x in rows[~blank].iloc[:, 4].tolist() if to_int(x) is not None}
 
 
 def get_payout_rengo(race_kk: pd.DataFrame) -> float:
@@ -482,6 +507,11 @@ def match_cowork_bet(bet: dict, race_kk: pd.DataFrame,
     top3 = get_top3(race_kk)
     top3_ordered = get_top3_ordered(race_kk)
     cancelled = get_cancelled(race_kk)
+    unknown = get_unknown_out(race_kk)
+    if unknown and btype != "枠連":
+        import re as _re
+        if {int(x) for x in _re.findall(r"\d+", sel)} & unknown:
+            raise RefundUnknown(sorted(unknown))
 
     def _split_pairs(unordered: bool):
         out = []
@@ -1032,6 +1062,9 @@ def aggregate_cowork_bets(kekka_cache: dict) -> dict:
                         b, race_kk,
                         date_key=date_key, place=place_name, race_no=str(r_num),
                     )
+                except RefundUnknown as e:
+                    log.info(f"返還不明 (中止か発売後の除外か不明な馬を含む) {rid} {btype} {sel}: {e}")
+                    settlement = "返還不明"
                 except Exception as e:
                     log.warning(f"bet 照合失敗 {rid} {btype} {sel}: {e}")
                     settlement = "照合失敗"

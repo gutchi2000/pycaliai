@@ -90,8 +90,15 @@ def load_chukyo():
     return hanro, wc
 
 
-def merge_chukyo(df: pd.DataFrame, hanro, wc) -> pd.DataFrame:
-    """グループ別searchsortedで最終追い切り（レース14日前以内）をJOIN。"""
+def merge_chukyo(df: pd.DataFrame, hanro, wc, max_age_days: int | None = 14,
+                 include_race_day: bool = True) -> pd.DataFrame:
+    """グループ別searchsortedで最終追い切りをJOIN。
+
+    既定 (max_age_days=14, include_race_day=True) は旧学習スクリプト (optuna_lgbm) と同じ。
+    v6 の学習 master (build_master_v2._latest_before) は「レース当日より前・期限なし」なので、
+    配信 (weekly_parse) は max_age_days=None, include_race_day=False で呼ぶ (2026-11-13 監査)。
+    days 列は実日数。v6 の学習値は YYYYMMDD の整数差なので、単位合わせは export_weekly_marks が行う。
+    """
     import numpy as np
 
     df = df.copy()
@@ -131,9 +138,12 @@ def merge_chukyo(df: pd.DataFrame, hanro, wc) -> pd.DataFrame:
             race_idxs = race_rows.index.values
             race_dates = race_rows["_race_dt"].values
 
-            positions = np.searchsorted(trn_dates, race_dates, side="right") - 1
-            cutoffs   = race_dates - np.timedelta64(14, "D")
-            valid     = (positions >= 0) & (trn_dates[np.maximum(positions, 0)] >= cutoffs)
+            positions = np.searchsorted(trn_dates, race_dates,
+                                        side="right" if include_race_day else "left") - 1
+            valid     = positions >= 0
+            if max_age_days is not None:
+                cutoffs = race_dates - np.timedelta64(int(max_age_days), "D")
+                valid   = valid & (trn_dates[np.maximum(positions, 0)] >= cutoffs)
 
             vp = positions[valid]
             vi = race_idxs[valid]

@@ -11,6 +11,16 @@
 
 ---
 
+## 🔎 正しさ・検証の監査（2026-11-13）と修正
+
+`audit/correctness_20261113/AUDIT_REPORT.md`（判定・品質ゲート・再現コマンド）。修正済み:
+- **サイトの採点**: kekka の着順 0 (取消/除外/中止) を 1 着扱いしていた → `build_site.parse_kekka` は top3 から外し、単勝欄が空 (発売前の取消) は返還、最終オッズのある着順 0 (中止 or 発売後の除外、区別不能) を含む買い目は決済不能として集計外。同着は JRA ルールで的中組を列挙 (`_winning_combos`)。`generate_results.py` も同じ規則 (以前は中止も返還していた)。
+- **凍結版 bundle**: `bundle_provenance.py`。export が最初の発走前に `reports/cowork_input_frozen/` へ写し、発走後は書き換えない。サイトの採点・表示は凍結版。過去分は `scripts/backfill_frozen_bundles.py` で git の発走前版から作成 (54 日、7 日は発走前の版が無く「未検証」)。export は履歴 parquet と未 commit の .py 差分を `reports/serve_path_snapshots/` に保存し `serve_path.snapshots` に刻む。
+- **通信簿**: 見出しは現行モデル (v6 C1) × 凍結版の日だけ。「予測モデルの版」(v5 / v6 C0 / v6 C1) と「予測の来歴」の表を追加。クラス実績は 2026 本番の as-of 実績 (`class_prior_live`) を先に、過去検証 2024-25 を併記。
+- **配信を v6 の学習定義に合わせた**: kako5 上がりの 1 走ずれと過去走人気なし (`build_from_kako5(agari_window, use_ninki)`)、調教日数の単位 (YYYYMMDD 差)、調教 JOIN は当日より前・期限なし、prev_pos_rel の分母は前走頭数。モデル bundle の `kako5_agari_window` / `trn_days_unit` で切替 (宣言なし = v6 の定義)。
+- **C2 候補** (学習側を直して再学習、本番は v6 のまま): `docs/research/C2_FEATURE_FIX_CANDIDATE_20261113.md`。Phase A が `reports/shadow_c2/` に紙上 bundle、比較は `analysis/shadow_compare.py`。
+- **評価規則**: `docs/hypothesis_registry.md` EVAL-RULE-20261113 (公表値は本番の前向き実績だけ、test 2024-25 は「過去検証」)。
+
 ## 📘 完全仕様書（2026-08-23 新設）
 
 外部 AI へのレビュー依頼・新規参画者の把握には **`docs/SPEC/`** を使う（本ファイルは要約）。
@@ -26,7 +36,7 @@
 **新発見（要対応、2026-09-10更新）**: 本番 v6 は学習 gain の **28.15%** を serve で失っていた（2026-06時点）。
 P0-1（騎手/調教師stats）・P0-2（着度数CSV列数）・P0-4（Ｒ全角）は **2026-09-10 実データ再検証で解消確認済み**
 （Vol. III §5.1a、2026-07-29コミット済みの修正が本番経路に既に乗っていた）。旧見積りの「約20.8%回収可能」は
-その前の baseline を基準にした値のため要再計算。**2026-11-04**: baseline を直近4開催日で再生成（serve 死 gain **7.42%**/22特徴、prev_hosei は推定器で 81%）し P0-3 の較正器マスクが同期していることを確認（Vol. III §5.1y、再 fit 不要）。同時に 9/27 の研究コミットで baseline が 7 月週へ巻き戻り学習基準（train_cov）が消えて絶対 canary が沈黙していた事故を修復（`measure_serve_coverage.py --weeks/--out`、train_cov 引き継ぎ、古い baseline / train_cov 欠落は WARN）。
+その前の baseline を基準にした値のため要再計算。**2026-11-04**: baseline を直近4開催日で再生成（serve 死 gain **7.42%**/22特徴、prev_hosei は推定器で 81%）し P0-3 の較正器マスクが同期していることを確認（Vol. III §5.1y、再 fit 不要）。**2026-11-13 監査で訂正**: serve 較正器 (fit は 0905/0906 週の baseline) は今の死亡特徴 4 つ (closing_power・prev_pos_rel・前1角・前2角) をマスクせず、生きている 2 つ (休み明け～戦目・前走日付) をマスクしている＝同期していない。確率の層の作り直しは v7 の判断待ちで保留 (ユーザー指示)。同時に 9/27 の研究コミットで baseline が 7 月週へ巻き戻り学習基準（train_cov）が消えて絶対 canary が沈黙していた事故を修復（`measure_serve_coverage.py --weeks/--out`、train_cov 引き継ぎ、古い baseline / train_cov 欠落は WARN）。
 
 ---
 

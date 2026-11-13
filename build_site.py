@@ -267,7 +267,8 @@ def parse_kekka(date_str: str, wide_data: dict) -> dict[str, dict]:
             continue
         r = races.setdefault(rid16, {
             "place": str(row[1]).strip(), "rno": _int(row[2]),
-            "order": {}, "fuku": {}, "waku": {},
+            "order": {}, "fuku": {}, "waku": {}, "by_row": {},
+            "scratched": [], "no_finish": [],
             "pays": {"wakuren": None, "umaren": None, "umatan": None,
                      "sanrenpuku": None, "sanrentan": None},
         })
@@ -275,26 +276,142 @@ def parse_kekka(date_str: str, wide_data: dict) -> dict[str, dict]:
         if _int(row[3]) is not None:
             r["waku"][str(uma)] = _int(row[3])      # 枠連の決済用 (上位馬の枠番)
         tan_raw = str(row[8]).strip()
+        if pos == 0:
+            # kekka は 取消/除外/中止 をすべて着順 0 で書く (2026-11-13 監査)。
+            # 単勝欄が空 = 投票開始前の取消 → 返還が確定。最終オッズ "(xx.x)" がある馬は
+            # 発売後の除外 (返還) か競走中止 (返還なし) で、このファイルでは区別できない。
+            (r["scratched"] if not tan_raw else r["no_finish"]).append(uma)
+            continue
         if pos == 1 and tan_raw and not tan_raw.startswith("("):
-            r["pays"]["tan"] = _int(tan_raw)
+            r["pays"]["tan"] = r["pays"].get("tan") or _int(tan_raw)
+            r["pays"].setdefault("tan_by", {})[str(uma)] = _int(tan_raw)
         if pos <= 3 and _int(row[9]) is not None:
             r["fuku"][str(uma)] = _int(row[9])
         for key, i in [("wakuren", 10), ("umaren", 11), ("umatan", 12),
                        ("sanrenpuku", 13), ("sanrentan", 14)]:
             v = _int(row[i]) if i < len(row) else None
-            if v is not None and r["pays"].get(key) is None:
-                r["pays"][key] = v
+            if v is not None:
+                r["by_row"].setdefault(key, {})[str(uma)] = v   # 同着時は行ごとに配当が違う
+                if r["pays"].get(key) is None:
+                    r["pays"][key] = v
 
     for rid16, r in races.items():
-        top = sorted(((int(u), p) for u, p in r["order"].items()),
+        # 着順 0 (取消/除外/中止) は top3 に入れない。以前は sorted の先頭に来て
+        # 「1 着」扱いになっていた (単勝の誤払い・◎の誤的中、2026 年 149R)。
+        top = sorted(((int(u), p) for u, p in r["order"].items() if p and p > 0),
                      key=lambda t: t[1])
         r["top3"] = [u for u, p in top if p <= 3]
+        r["n_finishers"] = len(top)
         wkey = (int(rid16[:4]), int(rid16[4:6]), int(rid16[6:8]),
                 r["place"], r["rno"] or 0)
         r["pays"]["wide"] = wide_data.get(wkey) or {}
         r["pays"]["fuku"] = r.pop("fuku")
+        r["pays"]["by_row"] = r.pop("by_row")
         del r["place"], r["rno"]
     return races
+
+
+LIVE_CLASS_PRIOR: dict[str, dict] = {}   # date → {class: live prior}。main() が埋める
+
+
+def build_live_class_prior(dates: list[str]) -> dict[str, dict]:
+    """クラス別の印の実績を、2026 本番の v6 bundle (発走前の版と確認済み) から as-of で集計する。
+    日付 D の値は D より前の開催日だけ。bundle の class_prior (オフライン 2024-25 test の率) は
+    本番より ◎複勝圏率が約 7.6pt 高かった (2026-11-13 監査) ので、並べて表示するために使う。"""
+    from bundle_provenance import model_era, resolve_for_scoring
+    acc: dict[str, dict[str, list[int]]] = {}
+    out: dict[str, dict] = {}
+    keys = {"◎": "hon", "〇": "tai", "▲": "san"}
+    for d8 in sorted(dates):
+        snap = {}
+        for cls, a in acc.items():
+            n = a["hon"][1]
+            if n:
+                pct = lambda k, i: round(a[k][i] / a[k][1] * 100, 1) if a[k][1] else None  # noqa: E731
+                snap[cls] = {"n_races": n, "hon_1st_pct": pct("hon", 2), "hon_top3_pct": pct("hon", 0),
+                             "tai_top3_pct": pct("tai", 0), "san_top3_pct": pct("san", 0),
+                             "del1_top3_pct": pct("del", 0)}
+        out[d8] = snap
+        bp, prov = resolve_for_scoring(d8)
+        if bp is None or not prov.get("verified_pre_race"):
+            continue
+        try:
+            b = json.loads(Path(bp).read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not model_era(d8, b).startswith("v6"):
+            continue
+        res_all = parse_kekka(d8, {})
+        for race in b.get("races", []):
+            res = res_all.get(str(race.get("race_id", ""))[:16])
+            if not res or not res.get("top3"):
+                continue
+            cls = (race.get("race_meta") or {}).get("class") or ""
+            a = acc.setdefault(cls, {k: [0, 0, 0] for k in ("hon", "tai", "san", "del")})
+            seen_del = False
+            for h in race.get("horses", []):
+                mk = h.get("mark") or ""
+                k = keys.get(mk)
+                if mk == "△" and not seen_del:
+                    k, seen_del = "del", True
+                if not k:
+                    continue
+                u = int(h.get("umaban", 0))
+                if u in (res.get("scratched") or []):
+                    continue
+                pos = (res.get("order") or {}).get(str(u)) or 0
+                a[k][0] += int(0 < pos <= 3)
+                a[k][1] += 1
+                a[k][2] += int(pos == 1)
+    return out
+
+
+def _place_groups(res: dict) -> list[list[int]]:
+    """着順ごとの馬番リスト (同着は同じ組)。着順 0 は含めない。"""
+    groups: dict[int, list[int]] = {}
+    order = res.get("order") or {}
+    if not order:   # 着順表が無い (古い形式・テスト) → top3 の並びを 1,2,3 着とみなす
+        order = {str(u): i + 1 for i, u in enumerate(res.get("top3") or [])}
+    for u, p in order.items():
+        if p and p > 0:
+            groups.setdefault(int(p), []).append(int(u))
+    return [sorted(groups[k]) for k in sorted(groups)]
+
+
+def _winning_combos(res: dict, n: int, ordered: bool) -> set[tuple]:
+    """JRA の同着ルールで的中組を列挙。上位 n 頭の席を、着順の組を順に埋めて作る。
+    組の中は順不同 (馬単/三連単でも同着馬はどちらの順でも的中)。"""
+    from itertools import combinations, permutations, product
+    slots: list[list[int]] = []
+    need = n
+    for grp in _place_groups(res):
+        if need <= 0:
+            break
+        take = min(need, len(grp))
+        slots.append((grp, take))
+        need -= take
+    if need > 0:
+        return set()
+    parts = [list(combinations(grp, take)) for grp, take in slots]
+    out = set()
+    for choice in product(*parts):
+        if ordered:
+            seqs = [list(permutations(c)) for c in choice]
+            for s in product(*seqs):
+                out.add(tuple(x for c in s for x in c))
+        else:
+            out.add(tuple(sorted(x for c in choice for x in c)))
+    return out
+
+
+def _combo_pay(res: dict, key: str, combo: tuple):
+    """組に属する馬のうち最も着順の低い馬の行の配当 (同着で行ごとに違うため)。"""
+    by = ((res.get("pays") or {}).get("by_row") or {}).get(key) or {}
+    order = res.get("order") or {}
+    for u in sorted(combo, key=lambda x: -(order.get(str(x)) or 0)):
+        if by.get(str(u)) is not None:
+            return by[str(u)]
+    return (res.get("pays") or {}).get(key)
 
 
 # ---------------------------------------------------------------- Cowork 出力
@@ -759,86 +876,103 @@ def build_tact(mv_entry: dict | None) -> dict | None:
 
 def settle_bet(btype: str, selection: str, cost: float, res: dict) -> dict:
     """1 bet を決済。返り値 {is_win, payout(配当/100円), received, profit, settled}。
-    settled=False は決済不能 (ワイド払戻未取込等) で集計外。compute_bet_pl と同ロジック。"""
+    settled=False は決済不能 (ワイド払戻未取込、返還の有無が分からない馬を含む等) で集計外。
+
+    2026-11-13 監査の修正:
+      - 着順 0 (取消/除外/中止) を 1 着扱いしない (top3 から除外済み)。
+      - 取消 (単勝欄が空 = 発売前) を含む組は返還 (購入額を戻す)。
+      - 最終オッズのある着順 0 馬 (発売後の除外=返還 か 競走中止=返還なし、区別不能) を含む組は
+        決済不能 (settled=False, reason=refund_unknown) にして集計から外す。
+      - 同着: JRA の同着ルールで的中組を列挙し、配当は行ごとの値を使う。
+      - 複勝: 配当の付いた馬だけ的中 (7 頭以下の 3 着は払われない)。
+    """
     btype = (btype or "").strip()
     # 馬単/三連単は "7→3" / "7→3→1" と書かれる (a95 本線)。_combos は "-" 区切り前提。
     selection = (str(selection or "").strip()
                  .replace("→", "-").replace("＞", "-").replace(">", "-").replace("－", "-"))
     pays = res.get("pays") or {}
-    top3 = res.get("top3") or []
+    scratched = {int(u) for u in res.get("scratched") or []}
+    unknown = {int(u) for u in res.get("no_finish") or []}
     miss = {"is_win": False, "payout": 0, "received": 0.0, "profit": -cost, "settled": True}
+    unsettled = {"is_win": False, "payout": 0, "received": 0.0, "profit": None, "settled": False}
     if cost <= 0:
         return {"is_win": False, "payout": 0, "received": 0.0, "profit": 0.0, "settled": True}
 
-    def win(pay, unit):
-        recv = unit * (pay or 0) / 100.0
-        return {"is_win": True, "payout": pay or 0, "received": recv,
-                "profit": recv - cost, "settled": True}
+    spec = {"単勝": (1, False), "複勝": (1, False), "馬連": (2, False), "馬単": (2, True),
+            "ワイド": (2, False), "枠連": (2, False), "三連複": (3, False), "三連単": (3, True)}
+    if btype not in spec:
+        return miss
+    n, ordered = spec[btype]
+    if n == 1:
+        try:
+            combos = [(int(selection),)]
+        except ValueError:
+            return miss
+    else:
+        combos = _combos(selection, n, ordered)
+    if not combos:
+        return miss
+    unit = cost / len(combos)
 
-    if btype == "単勝":
-        try:
-            u = int(selection)
-        except ValueError:
+    if btype == "枠連":
+        # 枠連は枠番の組。返還は「その枠の全馬が取消」のときだけなので、ここでは扱わない。
+        waku = res.get("waku") or {}
+        top = res.get("top3") or []
+        if len(top) < 2:
             return miss
-        return win(pays.get("tan"), cost) if (top3 and u == top3[0]) else miss
-    if btype == "複勝":
-        try:
-            u = int(selection)
-        except ValueError:
-            return miss
-        if u in top3:
-            return win((pays.get("fuku") or {}).get(str(u)), cost)
+        win_waku = set()
+        for c in _winning_combos(res, 2, False):
+            w = [waku.get(str(u)) for u in c]
+            if None in w:
+                return unsettled          # 枠番未取込 → 決済不能 (集計外)
+            win_waku.add(tuple(sorted(w)))
+        recv, best, nhit = 0.0, 0, 0
+        for c in combos:
+            if c in win_waku:
+                p = pays.get("wakuren") or 0
+                recv += unit * p / 100.0
+                best, nhit = max(best, p), nhit + 1
+        if nhit:
+            return {"is_win": True, "payout": best, "received": recv, "profit": recv - cost, "settled": True}
         return miss
-    if btype in ("馬連", "馬単"):
-        ordered = btype == "馬単"
-        combos = _combos(selection, 2, ordered)
-        if not combos or len(top3) < 2:
-            return miss
-        w = (top3[0], top3[1]) if ordered else tuple(sorted([top3[0], top3[1]]))
-        if w in combos:
-            return win(pays.get("umatan" if ordered else "umaren"), cost / len(combos))
-        return miss
+
     if btype == "ワイド":
-        combos = _combos(selection, 2, False)
-        if not combos:
-            return miss
         wide = pays.get("wide") or {}
         if not wide:  # 払戻未取込 → 決済不能 (集計外)
-            return {"is_win": False, "payout": 0, "received": 0.0, "profit": None, "settled": False}
-        unit = cost / len(combos)
-        recv, best, nhit = 0.0, 0, 0
-        for a, b in combos:
-            p = wide.get(f"{a}-{b}")
-            if p:
-                recv += unit * p / 100.0
-                best = max(best, p)
-                nhit += 1
-        if nhit:
-            return {"is_win": True, "payout": best, "received": recv,
-                    "profit": recv - cost, "settled": True}
-        return miss
-    if btype == "枠連":
-        # 買い目は枠番 2 つ (同枠ゾロ目 "3-3" もあり得る)。1・2 着馬の枠番と照合。
-        combos = _combos(selection, 2, False)
-        waku = res.get("waku") or {}
-        if not combos or len(top3) < 2:
-            return miss
-        w1, w2 = waku.get(str(top3[0])), waku.get(str(top3[1]))
-        if w1 is None or w2 is None:      # 枠番未取込 → 決済不能 (集計外)
-            return {"is_win": False, "payout": 0, "received": 0.0, "profit": None, "settled": False}
-        if tuple(sorted((w1, w2))) in combos:
-            return win(pays.get("wakuren"), cost / len(combos))
-        return miss
-    if btype in ("三連複", "三連単"):
-        ordered = btype == "三連単"
-        combos = _combos(selection, 3, ordered)
-        if not combos or len(top3) < 3:
-            return miss
-        w = tuple(top3[:3]) if ordered else tuple(sorted(top3[:3]))
-        if w in combos:
-            return win(pays.get("sanrentan" if ordered else "sanrenpuku"), cost / len(combos))
-        return miss
-    return miss
+            return dict(unsettled)
+
+    recv, best, nhit, n_refund = 0.0, 0, 0, 0
+    win_set = None
+    if btype in ("馬連", "馬単", "三連複", "三連単"):
+        win_set = _winning_combos(res, n, ordered)
+    for c in combos:
+        members = set(c)
+        if members & unknown:
+            return dict(unsettled, reason="refund_unknown")
+        if members & scratched:
+            recv += unit          # 返還
+            n_refund += 1
+            continue
+        p = None
+        if btype == "単勝":
+            p = ((pays.get("tan_by") or {}).get(str(c[0])) if (pays.get("tan_by"))
+                 else (pays.get("tan") if c[0] in (res.get("top3") or [])[:1] else None))
+        elif btype == "複勝":
+            p = (pays.get("fuku") or {}).get(str(c[0]))
+        elif btype == "ワイド":
+            p = (pays.get("wide") or {}).get(f"{min(c)}-{max(c)}")
+        else:
+            key = {"馬連": "umaren", "馬単": "umatan", "三連複": "sanrenpuku", "三連単": "sanrentan"}[btype]
+            if c in win_set:
+                p = _combo_pay(res, key, c)
+        if p:
+            recv += unit * p / 100.0
+            best, nhit = max(best, p), nhit + 1
+    out = {"is_win": bool(nhit), "payout": best, "received": recv,
+           "profit": recv - cost, "settled": True}
+    if n_refund:
+        out["refunded"] = n_refund
+    return out
 
 
 # ---------------------------------------------------------------- 馬/メンバーレベル
@@ -941,6 +1075,19 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
         bundle = json.load(f)
 
     date_str = path.name[:8]
+    from bundle_provenance import model_era, resolve_for_scoring
+    _rp, _prov = resolve_for_scoring(date_str)
+    provenance = {
+        "model_era": model_era(date_str, bundle),
+        "model": bundle.get("model"),
+        "model_sha256": (((bundle.get("serve_path") or {}).get("model") or {}).get("sha256")),
+        "calibrator": (((bundle.get("serve_path") or {}).get("calibrator") or {}).get("path")),
+        "serve_path_version": (bundle.get("serve_path") or {}).get("version"),
+        # 実際に読んだ版が凍結版か (resolve と同じ判定)
+        "verified_pre_race": bool(_prov.get("verified_pre_race")) and _rp is not None
+                             and Path(_rp).resolve() == Path(path).resolve(),
+        "source": _prov.get("source") or _prov.get("source_path"),
+    }
     race_extra, horse_extra = parse_weekly(date_str)
     results = parse_kekka(date_str, wide_data)
     hanro_map = parse_training_file(pick_training_file("H", date_str), "hanro")
@@ -1057,6 +1204,7 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
             "weather": rext.get("weather", ""),
             "field_size": field_size,
             "class_prior": meta.get("class_prior"),
+            "class_prior_live": (LIVE_CLASS_PRIOR.get(date_str) or {}).get(meta.get("class") or ""),
             "member_level": compute_member_level(
                 meta.get("class", ""), [h["level"] for h in horses]),
             "confidence": race.get("race_confidence", {}),
@@ -1153,6 +1301,7 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
 
     return deep_zen({
         "date": date_str,
+        "provenance": provenance,
         "odds_asof": odds_asof,
         "places": places,
         "races": races_out,
@@ -1390,7 +1539,16 @@ def main() -> None:
     except Exception as e:
         print(f"[level_norms skip] {e}")
 
-    bundles = sorted(BUNDLE_DIR.glob("*_bundle.json"))
+    # 採点・公開には発走前に凍結した版を使う (bundle_provenance、2026-11-13 監査)。
+    # 凍結版の無い日は live の bundle を「未検証」として使う。
+    from bundle_provenance import FROZEN_DIR, resolve_for_scoring
+    _dates = sorted({p.name[:8] for d in (BUNDLE_DIR, FROZEN_DIR) if d.exists()
+                     for p in d.glob("*_bundle.json")})
+    bundles = [bp for bp in (resolve_for_scoring(d8)[0] for d8 in _dates) if bp is not None]
+    try:
+        LIVE_CLASS_PRIOR.update(build_live_class_prior(_dates))
+    except Exception as e:  # noqa: BLE001
+        print(f"[class_prior_live skip] {e}")
     if not bundles:
         print(f"bundle が見つかりません: {BUNDLE_DIR}")
         sys.exit(1)

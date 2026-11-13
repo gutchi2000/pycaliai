@@ -570,6 +570,26 @@ if (Test-Path $bundlePath) {
     Fail "bundle.json not created at $bundlePath"
 }
 
+# -- Shadow: C2 候補 (v6 の学習特徴の不具合を直して再学習、2026-11-13 監査)。v7 と同じく別フォルダへ bundle を作るだけ。
+#    公開・買い目・本線・凍結版には触れない。失敗しても本番は止めない。
+#    比較 (2026-11-14 以降の前向き): python analysis/shadow_compare.py --shadow-dir reports/shadow_c2 --since 20261114
+#    経緯: docs/research/C2_FEATURE_FIX_CANDIDATE_20261113.md
+if (Test-Path 'models/unified_rank_c2b.pkl') {
+    try {
+        $env:CB_HOSEI_PROXY = "1"
+        $env:CB_SERVE_RECOVER = "1"
+        python export_weekly_marks.py --csv $csvPath --model c2b --shap-topk 0 --out-dir "reports/shadow_c2/$Date" *> "logs/export_c2_$Date.log"
+        if ($LASTEXITCODE -eq 0) { OK "shadow c2 bundle -> reports/shadow_c2/${Date}_bundle.json" }
+        else { Write-Host "  [warn] shadow c2 export rc=$LASTEXITCODE (本番には影響なし: logs/export_c2_$Date.log)" -ForegroundColor Yellow }
+    } catch {
+        Write-Host "  [warn] shadow c2 export 例外 (本番には影響なし): $_" -ForegroundColor Yellow
+    } finally {
+        Remove-Item Env:CB_HOSEI_PROXY -ErrorAction SilentlyContinue
+        Remove-Item Env:CB_SERVE_RECOVER -ErrorAction SilentlyContinue
+        $global:LASTEXITCODE = 0
+    }
+}
+
 # -- Shadow: v7 候補 (v6 + JRDB 過去走特徴 59 列、2026-11-13)。同じ出走表から別フォルダへ bundle を作るだけ。
 #    公開・買い目・本線には一切触れない (reports/shadow_v7/ は .gitignore、サイトにも出ない)。失敗しても本番は止めない。
 #    比較: python -m analysis.shadow_v7_report。経緯: docs/research/V7_JRDB_CANDIDATE_20261113.md
@@ -652,6 +672,12 @@ if ($SkipGit) {
     if (Test-Path $hoseiPath) { git add $hoseiPath 2>$null }
 
     if (Test-Path $bundlePath) { git add $bundlePath 2>$null }
+    # 採点用の凍結版 (発走前に作った版。export_weekly_marks が書く、2026-11-13 監査)
+    $frozenPath = "reports\cowork_input_frozen\${Date}_bundle.json"
+    if (Test-Path $frozenPath) {
+        git add $frozenPath 2>$null
+        git add "reports\cowork_input_frozen\${Date}_bundle.provenance.json" 2>$null
+    }
 
     # shadow a95 の事前凍結買い目 (レース前 commit が事前登録の証拠になる)
     if (Test-Path $a95Decisions) { git add $a95Decisions 2>$null }

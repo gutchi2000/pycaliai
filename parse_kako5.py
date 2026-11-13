@@ -340,8 +340,17 @@ def build_from_master(master_path: Path, output_path: Path) -> pd.DataFrame:
 # =========================================================
 # Mode 2: 週次 kako5 CSV から特徴量生成
 # =========================================================
-def build_from_kako5(kako5_path: Path, weekly_csv_path: Path | None = None) -> pd.DataFrame:
+def build_from_kako5(kako5_path: Path, weekly_csv_path: Path | None = None,
+                     agari_window: str = "own", use_ninki: bool = True) -> pd.DataFrame:
     """kako5 CSV を読み込み、馬ごとに過去5走特徴量を生成する。
+
+    agari_window: "own"    = 各過去走自身の上がり 3F (正しい定義、既定)
+                  "legacy" = 学習 master (parse_kako5 --mode master) と同じ 1 走ずれ。
+                             master モードは各過去走行の「前走上り3F」(= その 1 つ前の走の上がり)
+                             を使っていた。v6 はこの定義で学習されているので、配信も合わせる。
+    use_ninki:    False なら過去走の人気を使わない。学習 master には過去走の人気が無く、
+                  expected_good は「着順<=3」、avg_ninki 等は欠損で学習されている。
+    (2026-11-13 監査: 学習と配信の定義差の修正。既定値は従来どおり)
 
     Returns: DataFrame with columns [レースID(新), 馬番, ...kako5特徴量]
     """
@@ -398,13 +407,18 @@ def build_from_kako5(kako5_path: Path, weekly_csv_path: Path | None = None) -> p
                         continue
                     past_races.append({
                         "着順": pos,
-                        "人気": _safe_int(row[ninki_i]),
+                        "人気": _safe_int(row[ninki_i]) if use_ninki else None,
                         "上り3F": _safe_float(row[agari_i]),
                         "TD": row[td_offsets[i]] if td_offsets[i] < len(row) else "",
                         "距離": _safe_float(row[dist_offsets[i]]) if dist_offsets[i] < len(row) else None,
                         "場所": row[place_i] if place_i < len(row) else "",
                     })
 
+                if agari_window == "legacy":
+                    # 新しい順の i 番目の走に、1 つ古い走の上がりを付ける (学習 master と同じずれ)
+                    ag = [r["上り3F"] for r in past_races][1:] + [None]
+                    for r, a in zip(past_races, ag):
+                        r["上り3F"] = a
                 feats = _compute_features(
                     past_races,
                     current_td=current_td,
