@@ -82,7 +82,9 @@ def scores():
     out = pd.DataFrame({"rid_s": df[ovm.COL_RID].astype(str).str[:16].values,
                         "ban": pd.to_numeric(df["馬番"], errors="coerce").values,
                         "jyun": df[ovm.COL_JYUN].values, "split": df["split"].values,
-                        "date": df["日付"].astype(str).values})
+                        "date": df["日付"].astype(str).values,
+                        "prev_date": df["前走日付"].astype(str).values,
+                        "has_j1": df[jf.FEATURES[0]].notna().values})
     for tag in ("v6", "v7"):
         b = joblib.load(ROOT / "models" / f"unified_rank_{tag}.pkl")
         enc = BT.apply_encoders(df, b["encoders"])
@@ -174,6 +176,27 @@ def main() -> int:
                              for k, (a, b) in (("v7+市場−市場", ("v7+mkt", "mkt")), ("v6+市場−市場", ("v6+mkt", "mkt")),
                                                ("v7+市場−v6+市場", ("v7+mkt", "v6+mkt")))}
         log(f"[year {y}] n={int(m.sum())} " + "  ".join(f"{k} {v:+.5f}" for k, v in res["by_year"][y].items()))
+    # 上乗せの出どころ (勝ち馬の属性で分解、記述のみ): 情報の半減期 = 前走からの間隔、人気帯、JRDB 前走の有無
+    wrow = dt.iloc[win_idx].reset_index(drop=True)
+    d0 = pd.to_datetime(wrow["date"].str[:8], format="%Y%m%d", errors="coerce")
+    pdn = pd.to_numeric(wrow["prev_date"], errors="coerce")            # master の前走日付は YYMMDD (float)
+    d1 = pd.to_datetime("20" + pdn.fillna(-1).astype(int).astype(str).str.zfill(6), format="%Y%m%d", errors="coerce")
+    days = (d0 - d1).dt.days.values
+    ib = np.select([np.isnan(days), days <= 35, days <= 63, days <= 175], ["初出走/不明", "〜5週", "6〜9週", "10〜25週"], "26週〜")
+    ob = pd.cut(wrow["odds"].values, [0, 3, 7, 15, 1e9], labels=["〜2.9倍", "3〜6.9倍", "7〜14.9倍", "15倍〜"]).astype(str)
+    jb = np.where(wrow["has_j1"].values, "JRDB前走あり", "JRDB前走なし")
+    diff76 = (nll["v7+mkt"] - nll["v6+mkt"]).values; diff7m = (nll["v7+mkt"] - nll["mkt"]).values
+    res["by_winner"] = {}
+    for name, lab in (("間隔", ib), ("人気帯", ob), ("JRDB", jb)):
+        for k in sorted(set(lab)):
+            mk = lab == k
+            s = by_date(pd.Series(np.where(mk, diff76, 0.0))); c = np.bincount(dcode, weights=mk.astype(float), minlength=len(ud))
+            v = s[I].sum(1) / np.maximum(c[I].sum(1), 1)
+            r = {"n": int(mk.sum()), "v7mkt_minus_v6mkt": [float(diff76[mk].mean()), float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5))],
+                 "v7mkt_minus_mkt": float(diff7m[mk].mean())}
+            res["by_winner"][f"{name}:{k}"] = r
+            log(f"[勝ち馬 {name}:{k}] n={r['n']:5d}  v7+市場−v6+市場 {r['v7mkt_minus_v6mkt'][0]:+.5f} "
+                f"[{r['v7mkt_minus_v6mkt'][1]:+.5f},{r['v7mkt_minus_v6mkt'][2]:+.5f}]  v7+市場−市場 {r['v7mkt_minus_mkt']:+.5f}")
     d7 = res["diff"]["v7+市場−市場"]; d76 = res["diff"]["v7+市場−v6+市場"]
     res["verdict"] = "PASS" if (d7[2] < 0 and d76[2] < 0) else "FAIL"
     log(f"[verdict] {res['verdict']}  (n test races {res['n_races']['test']:,})")
