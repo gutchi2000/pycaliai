@@ -73,7 +73,9 @@ def main() -> int:
     old_model, old_id = d.get("model"), d["policy_id"]
     if old_model == a.to:
         print(f"既に {a.to}。変更しない"); return status()
-    shutil.copy2(POLICY, POLICY.with_suffix(f".json.bak_{datetime.now():%Y%m%dT%H%M%S}"))
+    hist = BASE / "models" / "production_backup" / "policy_history"
+    hist.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(POLICY, hist / f"production_policy_{datetime.now():%Y%m%dT%H%M%S}_{old_model}.json")
     q = json.loads(ref.read_text(encoding="utf-8"))
     shutil.copy2(ref, CHAOS)
     d["model"] = a.to

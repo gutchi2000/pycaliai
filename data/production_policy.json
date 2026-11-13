@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
-  "policy_id": "a95-sniper-v2-odds19-20261112",
+  "policy_id": "a95-sniper-v2-odds19-v7-20261113",
   "effective_from": "2026-11-14",
-  "model": "v6",
+  "model": "v7",
   "engine": "a95",
   "engine_version": "2026-11-12",
-  "engine_note": "2026-11-12 見送りガチ強化 (前 policy a95-equal-v1-serve34-p667-20260930)。参戦は ◎の T-10 単勝オッズ ≤ 1.9 のレースだけ (hard_skip.hon_tansho_odds_max)。混戦度・頭数・◎p_win のガードは従来どおり。券種は <2倍 帯を 複勝 1 点 (a95_sniper_v2.json)。期待は複勝 90% 前後 (黒字ではない、最も負けない線)。見送ったレースの a95_all 併記は継続。 | 旧: 2026-09-30 ユーザー指示で本線を topdown から a95_equal_v1 へ切替。生の p_win 順の上位馬で、AI1位の単勝オッズ帯ごとの採用券種を1点ずつ、1R 1万円を均等配分(100円格子)。方策の正本は artifacts.bet_policy。参戦ガード(hard_skip: 混戦度 percentile・頭数・◎p_win・◎オッズ、障害 P0 gate)は topdown 期と同一で変更なし。旧 policy: topdown-serve34-p667-20260825。",
+  "engine_note": "2026-11-13 予測モデルを v6 → v7 (v7 (v6 + JRDB 過去走特徴 59 列)) に切替 (前 policy a95-sniper-v2-odds19-20261112)。買い方 (sniper: ◎ T-10 オッズ ≤1.9 のみ参戦・◎複勝 1 点) は不変。混戦度の基準分布は serve-v7-jrdb-20261113。 | 旧: 2026-11-12 見送りガチ強化 (前 policy a95-equal-v1-serve34-p667-20260930)。参戦は ◎の T-10 単勝オッズ ≤ 1.9 のレースだけ (hard_skip.hon_tansho_odds_max)。混戦度・頭数・◎p_win のガードは従来どおり。券種は <2倍 帯を 複勝 1 点 (a95_sniper_v2.json)。期待は複勝 90% 前後 (黒字ではない、最も負けない線)。見送ったレースの a95_all 併記は継続。 | 旧: 2026-09-30 ユーザー指示で本線を topdown から a95_equal_v1 へ切替。生の p_win 順の上位馬で、AI1位の単勝オッズ帯ごとの採用券種を1点ずつ、1R 1万円を均等配分(100円格子)。方策の正本は artifacts.bet_policy。参戦ガード(hard_skip: 混戦度 percentile・頭数・◎p_win・◎オッズ、障害 P0 gate)は topdown 期と同一で変更なし。旧 policy: topdown-serve34-p667-20260825。",
   "chaos_reference": {
     "path": "data/chaos_quantiles.json",
-    "reference_id": "serve34-forward-policy-20260825",
+    "reference_id": "serve-v7-jrdb-20261113",
     "skip_percentile": 0.667
   },
   "real_money": {
@@ -26,8 +26,8 @@
     "hon_tansho_odds_max_note": "◎の単勝オッズ (T-10 ライブ / T-20 は市場 / 紙上台帳は朝) がこれを超えたら見送り。docs/research/SKIP_RULE_SEARCH_20261108.md"
   },
   "artifacts": {
-    "rank_model": "models/unified_rank_v6.pkl",
-    "serve_calibrator": "models/pl_calibrators_v6_serve.pkl",
+    "rank_model": "models/unified_rank_v7.pkl",
+    "serve_calibrator": "models/pl_calibrators_v7_serve.pkl",
     "serve_feature_baseline": "data/serve_feature_baseline.json",
     "bet_policy": "data/shadow_policies/a95_sniper_v2.json"
   },
@@ -43,5 +43,6 @@
     "note": "見送り基準 ◎≤1.9 倍 + 複勝 1 点。500R は的中率での棄却判定 (従来基準) に加え、複勝回収率の 95% CI 下限が 85% を割ったら設計を見直す (記述)。"
   },
   "serve_path_version": "sp-20261004-1",
-  "serve_path_note": "2026-11-04 serve-repro-sp1 反映 (D1 順序キー全順序 / D2 day-start 同定 / 引用符正規化)。prospective.start_date は新版の最初の運用日 (案 B)。旧 cohort 10/24〜11/01 は記述専用。"
+  "serve_path_note": "2026-11-04 serve-repro-sp1 反映 (D1 順序キー全順序 / D2 day-start 同定 / 引用符正規化)。prospective.start_date は新版の最初の運用日 (案 B)。旧 cohort 10/24〜11/01 は記述専用。",
+  "model_effective_from": 20261114
 }
