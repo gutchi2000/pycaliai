@@ -9,6 +9,8 @@ am9_snapshot.py — 開催日の朝 9 時に全レースの単勝・複勝オッ
   - 出力は reports/am9_odds/{date}/{rid}.json と data/forward_prices/{date}/*_am9_*.json.gz (schema v2、票数計つき)。
   - 本番の reports/live_odds・買い目・投票には一切書かない (--out-dir を分けている)。読むだけの収集。
   - 失敗したレースは 1 回だけ再試行。全滅または 2 割以上失敗なら Discord (私用) に 1 通。正常時は無言。
+  - 収集のあと scripts/morning_hosei.py を呼び、朝の補正印 (v7 × 朝 9 時オッズ) を私用 Discord とローカルに出す
+    (2026-11-14。公開サイトには出さない。--no-hosei で止められる。失敗しても収集の成否は変えない)。
 実行: タスク PyCaLiAI_AM9 (土日 09:00、am9_register.ps1 で登録)。手動: python scripts/am9_snapshot.py [--date YYYYMMDD] [--dry]
 """
 from __future__ import annotations
@@ -78,11 +80,27 @@ def discord(msg: str) -> None:
         print(f"[am9] discord 送信失敗: {type(e).__name__}")
 
 
+def morning_hosei(date: str) -> None:
+    """朝の補正印 (v7 × いま保存した朝 9 時オッズ) を私用 Discord とローカルに出す。失敗しても収集の結果は変えない。
+    公開サイト・公開 Discord には出さない (scripts/morning_hosei.py の冒頭を参照)。"""
+    try:
+        r = subprocess.run([sys.executable, str(ROOT / "scripts" / "morning_hosei.py"), "--date", date, "--discord"], cwd=str(ROOT),
+                           env=dict(os.environ, PYTHONUTF8="1"), capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+        tail = [ln for ln in (r.stdout or r.stderr or "").splitlines() if "[morning_hosei]" in ln]
+        for ln in tail[-3:]:
+            print(ln)
+        if not tail:
+            print(f"[am9] 朝の補正印: 出力なし (exit {r.returncode})")
+    except Exception as e:  # noqa: BLE001
+        print(f"[am9] 朝の補正印に失敗 (収集には影響なし): {type(e).__name__}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", default=dt.date.today().strftime("%Y%m%d"))
     ap.add_argument("--dry", action="store_true", help="レース一覧を表示するだけ (JV-Link を呼ばない)")
     ap.add_argument("--limit", type=int, default=0, help="先頭 N レースだけ (テスト用)")
+    ap.add_argument("--no-hosei", action="store_true", help="朝の補正印 (私用 Discord) を出さない")
     a = ap.parse_args()
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -111,6 +129,8 @@ def main() -> int:
             failed.append(rid)
         time.sleep(0.3)
     print(f"[am9] 終了 {dt.datetime.now():%H:%M:%S}  成功 {len(rids) - len(failed)} / {len(rids)}")
+    if not a.no_hosei and not a.limit and len(failed) < len(rids):
+        morning_hosei(a.date)
     if failed and len(failed) >= max(1, len(rids) // 5):
         discord(f"**⚠ 朝 9 時オッズの保存に失敗 {a.date}**: {len(failed)} / {len(rids)} レース。CW-14 の前向き確認から今日の分が欠けます。"
                 f"手動: `python scripts\\am9_snapshot.py --date {a.date}` (9:30 までなら有効)")
