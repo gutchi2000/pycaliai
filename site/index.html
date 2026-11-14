@@ -356,7 +356,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 <aside id="drawer" aria-label="馬詳細"></aside>
 
 <script defer src="js/baba.js?v=20260902a"></script>
-<script defer src="js/app.js?v=20261113-m1"></script>
+<script defer src="js/app.js?v=20261114-d1"></script>
 <script defer id="echartsJs" src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <script>
 /* 表紙シート ⇔ アプリシートの切替 (初回=表紙のみ表示、CTA/レース行→アプリ、ロゴ→表紙) */
@@ -398,7 +398,9 @@ addEventListener('DOMContentLoaded',function(){
     if(a){
       e.preventDefault();showApp();
       var rid=a.dataset.rid;
-      if(rid&&typeof selectRace==='function'){try{selectRace(rid)}catch(err){}}
+      // 再読み込みで URL の #race= に前日のレースが残っていると、アプリは前日のまま。表紙と同じ日へ揃えてから開く (2026-11-14)
+      if(window.__lpDate&&typeof openDayFromLanding==='function'){try{openDayFromLanding(window.__lpDate,rid)}catch(err){}}
+      else if(rid&&typeof selectRace==='function'){try{selectRace(rid)}catch(err){}}
     }
   });
   var rbtn=document.getElementById('heroResults');
@@ -414,6 +416,7 @@ addEventListener('DOMContentLoaded',function(){
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
   var ratingsP=fetch('data/race_ratings.json').then(function(r){return r.json()}).catch(function(){return null});
   function loadLanding(dateStr){
+    window.__lpDate=dateStr;  // 表紙が見せている開催日。CTA/レース行はこの日をアプリで開く
     return Promise.all([fetch('data/'+dateStr+'.json?t='+Date.now()).then(function(r){return r.json()}),ratingsP]).then(function(res){
       var day=res[0], ratings=res[1];
       var races=day.races||[];

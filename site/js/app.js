@@ -173,6 +173,19 @@ function setMode(mode) {
   else { syncHash(); if (window.renderBabaBias) window.renderBabaBias(); }
 }
 
+// 表紙 (index.html) の「今週の出走表を見る」/レース行から呼ばれる。表紙が見せている日 (date) と
+// アプリの日が違えば (URL の #race= に前日が残っていた等) その日を読み込み直す (2026-11-14)
+function openDayFromLanding(date, rid) {
+  if (state.mode !== "races") setMode("races");
+  if (state.day && state.day.date === date) { if (rid) selectRace(rid); return; }
+  if (!state.manifest || !state.manifest.dates.some((d) => d.date === date)) {
+    if (rid && state.day && state.day.races.some((r) => r.race_id === rid)) selectRace(rid);
+    return;
+  }
+  pendingRaceId = rid || null;
+  loadDay(date);
+}
+
 async function loadDay(date) {
   $("#raceHeader").innerHTML = `<div class="card skel">
     <div class="skel-bar" style="width:34%"></div>
@@ -212,6 +225,10 @@ async function loadDay(date) {
   }
   await loadChanges(date, day);
   armChangesPolling(date, day);
+  // 右上の開催日セレクタを表示中の日に揃える。#race= の共有/再読み込みで別の日を開いたとき、
+  // セレクタだけ最新日のまま (中身は前日) になっていた (2026-11-14)
+  const ds = $("#dateSel");
+  if (ds && ds.value !== date) ds.value = date;
   state.day = day;
   state.place = day.places[0] ?? null;
   const first = racesOf(state.place)[0];
