@@ -599,10 +599,12 @@ function subLine(h) {
 /* ---------------- スピード指数 (speed_index.py, 100 基準) ---------------- */
 // 予測指数 = 過去の実走指数(走破タイムを基準タイム・斤量・馬場差・ペースで補正)から今回を予測した値。
 // 100 = 古馬1〜2勝クラスの基準タイム水準。今回の斤量込み。オッズは不使用。解説: speed.html
+// レース内順位の色: 1位=黄 / 2位=水色 / 3位=オレンジ（各指数の数字に付ける）
+function rkc(rk) { return rk === 1 ? "rk1" : rk === 2 ? "rk2" : rk === 3 ? "rk3" : ""; }
 function siCell(h) {
   const s = h.speed;
   if (!s || s.v == null) return `<span class="c-si num ta-r"><span class="si-na">—</span></span>`;
-  return `<span class="c-si num ta-r ${s.rk === 1 ? "top" : ""}">${s.v.toFixed(1)}<small>#${s.rk}</small></span>`;
+  return `<span class="c-si num ta-r ${rkc(s.rk)}">${s.v.toFixed(1)}<small>#${s.rk}</small></span>`;
 }
 // 推定妙味 = AI の勝率 × 推定オッズ ÷ 0.8 × 100（推定の市場から見た期待値。100 = AI と推定の市場が同じ見立て）。
 // 推定オッズは当日オッズを使わない市場予測（speed_index.py market-train）。2026 の検証ではどの帯も単勝回収率
@@ -620,12 +622,12 @@ function raceRanks(r, f) {
 }
 function pwCell(h, rk) {
   if (h.pw == null) return `<span class="c-pw num ta-r"><span class="si-na">—</span></span>`;
-  return `<span class="c-pw num ta-r ${rk === 1 ? "top" : ""}" title="強さスコア（芝・ダート別に現役最上位=100）">${Math.round(h.pw)}<small>#${rk}</small></span>`;
+  return `<span class="c-pw num ta-r ${rkc(rk)}" title="強さスコア（芝・ダート別に現役最上位=100）">${Math.round(h.pw)}<small>#${rk}</small></span>`;
 }
-function svCell(h) {
+function svCell(h, rk) {
   const v = savr(h);
   if (v == null) return `<span class="c-sv num ta-r"><span class="si-na">—</span></span>`;
-  return `<span class="c-sv num ta-r" title="推定妙味 = AI勝率 × 推定オッズ（100 = AI と推定の市場が同じ見立て）">${v}</span>`;
+  return `<span class="c-sv num ta-r ${rkc(rk)}" title="推定妙味 = AI勝率 × 推定オッズ（100 = AI と推定の市場が同じ見立て）">${v}</span>`;
 }
 function umCell(h) {
   const g = h.umami?.grade;
@@ -635,7 +637,7 @@ function umCell(h) {
 function siChip(h) {
   const s = h.speed;
   if (!s || s.v == null) return "";
-  return `<span class="sichip ${s.rk === 1 ? "top" : ""}" title="スピード指数（予測・100基準）">指${Math.round(s.v)}<i>#${s.rk}</i></span>`;
+  return `<span class="sichip ${rkc(s.rk)}" title="スピード指数（予測・100基準）">指${Math.round(s.v)}<i>#${s.rk}</i></span>`;
 }
 
 /* ---------------- レベル (近走成績ベース, 公開データのみ, 非蓄積) ---------------- */
@@ -736,6 +738,7 @@ function renderTable(r, flip = false) {
     (s.key(a) - s.key(b)) * s.dir * (state.sortAsc ? 1 : -1));
 
   const pwRk = raceRanks(r, (h) => h.pw);
+  const svRk = raceRanks(r, savr);
   const rows = hs.map((h, i) => {
     const isHonmei = h.mark === "◎";
     const isValue = valueSet.has(h.umaban) || h.vs_market === "under";
@@ -754,13 +757,13 @@ function renderTable(r, flip = false) {
       </span>
       <span class="c-ninki num ta-c">${h.ninki ?? "—"}</span>
       <span class="pbar c-ai">
-        <span class="aidx num ${h.ai_rank === 1 ? "top" : ""}">${idx}</span>
+        <span class="aidx num ${rkc(h.ai_rank)}">${idx}</span>
         <span class="bar"><i style="width:${idx === "—" ? 0 : idx}%;--i:${i}"></i></span>
         <span class="rk">#${h.ai_rank ?? "—"}</span>
       </span>
       ${siCell(h)}
       ${pwCell(h, pwRk.get(h.umaban))}
-      ${svCell(h)}
+      ${svCell(h, svRk.get(h.umaban))}
       ${umCell(h)}
       <span class="pwin num ta-r">${pct(h.p_win)}<small>%</small></span>
       <span class="psho num ta-r c-sho">${pct(h.p_sho, 0)}<small>%</small></span>
@@ -1565,11 +1568,11 @@ function umamiTableHtml(r) {
   const hs = [...r.horses].sort((a, b) => SORTS[key](b) - SORTS[key](a));
   const sb = (k, label) => `<button class="usort ${key === k ? "on" : ""}" data-uk="${k}">${label}${key === k ? " ▼" : ""}</button>`;
   const rk = {
-    ai: raceRanks(r, aiIdx), si: raceRanks(r, (h) => h.speed?.v), pw: raceRanks(r, (h) => h.pw),
+    ai: new Map(r.horses.filter((h) => h.ai_rank != null).map((h) => [h.umaban, h.ai_rank])), si: raceRanks(r, (h) => h.speed?.v), pw: raceRanks(r, (h) => h.pw),
     sv: raceRanks(r, savr),
   };
   const cell = (v, k, h, fmt) => (v == null ? `<span class="num ta-r si-na">—</span>`
-    : `<span class="num ta-r ${rk[k].get(h.umaban) === 1 ? "ix-top" : ""}">${fmt(v)}<small>#${rk[k].get(h.umaban)}</small></span>`);
+    : `<span class="num ta-r ${rkc(rk[k].get(h.umaban))}">${fmt(v)}<small>#${rk[k].get(h.umaban)}</small></span>`);
 
   const rows = hs.map((h) => {
     const u = h.umami || {};

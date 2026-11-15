@@ -1795,6 +1795,15 @@ body.drawer-open { overflow: hidden; }
 .ix-row .num { font-size: 15.5px; white-space: nowrap; }
 .ix-row .num small { font-size: 10px; color: var(--tx3); margin-left: 2px; }
 .ix-row .num.ix-top { color: var(--gold2); font-weight: 600; }
+/* レース内順位の色（指数の数字）: 1位=黄 / 2位=水色 / 3位=オレンジ */
+.rk1, .rk2, .rk3 { font-weight: 700; }
+.aidx.rk1, .c-si.rk1, .c-pw.rk1, .c-sv.rk1, .ix-row .num.rk1 { color: #ffd84a; }
+.aidx.rk2, .c-si.rk2, .c-pw.rk2, .c-sv.rk2, .ix-row .num.rk2 { color: #62d4f5; }
+.aidx.rk3, .c-si.rk3, .c-pw.rk3, .c-sv.rk3, .ix-row .num.rk3 { color: #ff9a3d; }
+.rk1 small, .rk2 small, .rk3 small { color: inherit; opacity: .75; }
+.sichip.rk1 { color: #ffd84a; background: rgba(255,216,74,.12); border-color: rgba(255,216,74,.4); }
+.sichip.rk2 { color: #62d4f5; background: rgba(98,212,245,.12); border-color: rgba(98,212,245,.4); }
+.sichip.rk3 { color: #ff9a3d; background: rgba(255,154,61,.12); border-color: rgba(255,154,61,.4); }
 .ix-row .ix-eo { display: block; font-style: normal; font-size: 10.5px; color: var(--tx3); }
 .ix-note { font-size: 11.5px; color: var(--tx3); line-height: 1.6; margin: 8px 4px 2px; }
 .an-t small a { color: var(--tx2); }
