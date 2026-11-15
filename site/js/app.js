@@ -187,6 +187,8 @@ function openDayFromLanding(date, rid) {
 }
 
 async function loadDay(date) {
+  const bl = $("#boardLink");
+  if (bl) bl.href = "board.html?date=" + date;
   $("#raceHeader").innerHTML = `<div class="card skel">
     <div class="skel-bar" style="width:34%"></div>
     <div class="skel-bar" style="width:72%"></div>

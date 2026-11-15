@@ -1822,6 +1822,13 @@ def main() -> None:
     except Exception as e:
         print(f"[report_card skip] {e}")
 
+    # デイリーボード (2026-11-16): ◎と速度1位/PW1位/推定1番人気の一致数ごとの ◎成績 → site/data/board_stats.json
+    try:
+        import build_board_stats as _bbs
+        _bbs.build()
+    except Exception as e:
+        print(f"[board_stats skip] {e}")
+
 
 if __name__ == "__main__":
     main()

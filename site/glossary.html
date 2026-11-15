@@ -18,7 +18,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#070b14">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261116-um">
+<link rel="stylesheet" href="css/style.css?v=20261116-bd">
 <style>
   .wrap{max-width:960px;margin:0 auto;padding:var(--pad);}
   .ehead{margin:8px 0 12px;}
@@ -62,6 +62,7 @@
     </a>
     <nav class="modenav" aria-label="サイト内ナビ">
       <a href="index.html#app" style="text-decoration:none"><button type="button">予想</button></a>
+      <a href="board.html" style="text-decoration:none"><button type="button">ボード</button></a>
       <a href="index.html#results" style="text-decoration:none"><button type="button">成績</button></a>
       <a href="kaiko.html" style="text-decoration:none"><button type="button">回顧</button></a>
       <a href="tsushinbo.html" style="text-decoration:none"><button type="button">通信簿</button></a>
@@ -111,6 +112,7 @@ var GLOSSARY = [
     ["pw", "強さスコア（PW）", "power rating", "全レースの着順だけから、勝った・負けた相手の強さを積み上げて計算するレーティング（Elo 型）。芝とダートは別々で、それぞれ現役最上位の馬を 100 にしています。芝の数字とダートの数字は比べられません。結果のある日は「そのレース前」の値を出します。"],
     ["est-ninki", "推定人気・推定オッズ", "", "当日のオッズを一切使わず、過去走の成績・過去走の人気・騎手の成績などから「この馬は何番人気になりそうか」を予測した値。実際のオッズではありません。2024〜25 年の検証で、人気順の一致（順位相関）0.86、1 番人気を当てた率 66%。"],
     ["suimyo", "推妙（推定妙味）", "", "AI の勝率 × 推定オッズ ÷ 0.8 × 100。100 なら AI と推定の市場が同じ見立て、大きいほど AI の方が高く見ている。人気薄の馬ほど大きく出ます。2026 年の検証では、どの帯でも単勝の回収率は 100% を超えていないので、「この帯なら買い」という意味はありません。<a class='see' href='speed.html#suimyo'>検証 →</a>"],
+    ["board-agree", "一致（デイリーボード）", "", "速度 1 位・強さスコア PW 1 位・推定 1 番人気のうち、AI の◎と同じ馬だった数（0〜3）。作り方の違う物差しがそろうほど◎はよく来ていて、2026 年は 0/3 で◎の 3着内率 37%、3/3 で 75% でした。回収率は見ていません。<a class='see' href='board.html'>デイリーボード →</a>"],
     ["speed-pred", "予測指数", "", "過去の実走指数・間隔・距離や芝ダの替わり・年齢などから、今回の実走指数を予測した値（今回の斤量込み）。出走表の「速度」列。レース内の順位を # で添えます。"]
   ]},
   { id: "prob", name: "確率", lead: "AI が出す数字の中心。", terms: [
