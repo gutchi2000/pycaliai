@@ -2,7 +2,7 @@
  "inputs": {
   "races": 4365,
   "baseline": 0.725,
-  "bands": {
+  "bands_with_published_roi": {
    "600-1200": {
     "roi": 0.831,
     "odds_rep": 848.5281374238571
@@ -12,438 +12,607 @@
     "odds_rep": 1732.0508075688772
    }
   },
-  "nbar_grid": [
-   25,
-   50,
-   100,
-   200,
-   400,
-   800
-  ],
+  "appendix_A3_combinations": {
+   "13-34": 10686,
+   "34-89": 63026,
+   "89-150": 86885,
+   "150-300": 212526,
+   "300-600": 359976,
+   "600-1200": 557115,
+   "1200-2500": 848502,
+   "2500-5000": 1068084,
+   "5000-15000": 2221267
+  },
+  "appendix_A3_combinations_per_race": {
+   "13-34": 2.448109965635739,
+   "34-89": 14.438946162657503,
+   "89-150": 19.904925544100802,
+   "150-300": 48.68865979381443,
+   "300-600": 82.46872852233678,
+   "600-1200": 127.63230240549828,
+   "1200-2500": 194.3876288659794,
+   "2500-5000": 244.69278350515464,
+   "5000-15000": 508.88132875143185
+  },
+  "unit_note": "counts are the published combination counts (組合せ数), not vote counts; combinations in the same race are not independent samples, so they enter only through n-bar per race",
   "design_effect_grid": [
    1.0,
    1.5,
    2.0
   ],
-  "k_bands_grid": [
+  "k_primary": 9,
+  "k_sensitivity": [
+   9,
    10,
    15
-  ],
-  "note": "n-bar (tickets per race in band) is unknown without the original table; treated as a parameter"
+  ]
  },
  "z_thresholds_one_sided": {
+  "9": 2.539184813651313,
   "10": 2.5758293035489004,
   "15": 2.7130518884727213
  },
- "table": {
+ "published_nbar": {
   "600-1200": {
+   "nbar": 127.63230240549828,
    "rows": {
-    "nbar=25|deff=1.0": {
-     "se": 0.0803843506108714,
+    "deff=1.0": {
+     "se": 0.03557633534313362,
      "ci95": [
-      0.673446672802692,
-      0.9885533271973079
+      0.7612703827274581,
+      0.9007296172725419
      ],
-     "z_vs_baseline": 1.318664630546437,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=25|deff=1.5": {
-     "se": 0.09845032115080811,
-     "ci95": [
-      0.638037370544416,
-      1.023962629455584
-     ],
-     "z_vs_baseline": 1.0766851622314886,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=25|deff=2.0": {
-     "se": 0.11368063883644833,
-     "ci95": [
-      0.6081859478805612,
-      1.0538140521194386
-     ],
-     "z_vs_baseline": 0.9324367023702388,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=50|deff=1.0": {
-     "se": 0.056840319418224164,
-     "ci95": [
-      0.7195929739402807,
-      0.9424070260597193
-     ],
-     "z_vs_baseline": 1.8648734047404776,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=50|deff=1.5": {
-     "se": 0.06961488969572979,
-     "ci95": [
-      0.6945548161963696,
-      0.9674451838036303
-     ],
-     "z_vs_baseline": 1.5226627588336474,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=50|deff=2.0": {
-     "se": 0.0803843506108714,
-     "ci95": [
-      0.673446672802692,
-      0.9885533271973079
-     ],
-     "z_vs_baseline": 1.318664630546437,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=100|deff=1.0": {
-     "se": 0.0401921753054357,
-     "ci95": [
-      0.752223336401346,
-      0.909776663598654
-     ],
-     "z_vs_baseline": 2.637329261092874,
-     "passes_bonferroni_k10": true,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=100|deff=1.5": {
-     "se": 0.049225160575404055,
-     "ci95": [
-      0.734518685272208,
-      0.9274813147277919
-     ],
-     "z_vs_baseline": 2.153370324462977,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=100|deff=2.0": {
-     "se": 0.056840319418224164,
-     "ci95": [
-      0.7195929739402807,
-      0.9424070260597193
-     ],
-     "z_vs_baseline": 1.8648734047404776,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=200|deff=1.0": {
-     "se": 0.028420159709112082,
-     "ci95": [
-      0.7752964869701403,
-      0.8867035130298596
-     ],
-     "z_vs_baseline": 3.729746809480955,
+     "z_vs_baseline": 2.9795086811958114,
+     "passes_bonferroni_k9": true,
      "passes_bonferroni_k10": true,
      "passes_bonferroni_k15": true,
      "ci95_lower_above_1": false
     },
-    "nbar=200|deff=1.5": {
-     "se": 0.034807444847864896,
+    "deff=1.5": {
+     "se": 0.04357193425441023,
      "ci95": [
-      0.7627774080981847,
-      0.8992225919018152
+      0.7455990088613559,
+      0.916400991138644
      ],
-     "z_vs_baseline": 3.045325517667295,
-     "passes_bonferroni_k10": true,
-     "passes_bonferroni_k15": true,
-     "ci95_lower_above_1": false
-    },
-    "nbar=200|deff=2.0": {
-     "se": 0.0401921753054357,
-     "ci95": [
-      0.752223336401346,
-      0.909776663598654
-     ],
-     "z_vs_baseline": 2.637329261092874,
-     "passes_bonferroni_k10": true,
+     "z_vs_baseline": 2.432758651040858,
+     "passes_bonferroni_k9": false,
+     "passes_bonferroni_k10": false,
      "passes_bonferroni_k15": false,
      "ci95_lower_above_1": false
     },
-    "nbar=400|deff=1.0": {
-     "se": 0.02009608765271785,
+    "deff=2.0": {
+     "se": 0.050312535941792844,
      "ci95": [
-      0.791611668200673,
-      0.870388331799327
+      0.732387429554086,
+      0.9296125704459139
      ],
-     "z_vs_baseline": 5.274658522185748,
-     "passes_bonferroni_k10": true,
-     "passes_bonferroni_k15": true,
-     "ci95_lower_above_1": false
-    },
-    "nbar=400|deff=1.5": {
-     "se": 0.024612580287702027,
-     "ci95": [
-      0.782759342636104,
-      0.8792406573638959
-     ],
-     "z_vs_baseline": 4.306740648925954,
-     "passes_bonferroni_k10": true,
-     "passes_bonferroni_k15": true,
-     "ci95_lower_above_1": false
-    },
-    "nbar=400|deff=2.0": {
-     "se": 0.028420159709112082,
-     "ci95": [
-      0.7752964869701403,
-      0.8867035130298596
-     ],
-     "z_vs_baseline": 3.729746809480955,
-     "passes_bonferroni_k10": true,
-     "passes_bonferroni_k15": true,
-     "ci95_lower_above_1": false
-    },
-    "nbar=800|deff=1.0": {
-     "se": 0.014210079854556041,
-     "ci95": [
-      0.8031482434850701,
-      0.8588517565149298
-     ],
-     "z_vs_baseline": 7.45949361896191,
-     "passes_bonferroni_k10": true,
-     "passes_bonferroni_k15": true,
-     "ci95_lower_above_1": false
-    },
-    "nbar=800|deff=1.5": {
-     "se": 0.017403722423932448,
-     "ci95": [
-      0.7968887040490924,
-      0.8651112959509075
-     ],
-     "z_vs_baseline": 6.09065103533459,
-     "passes_bonferroni_k10": true,
-     "passes_bonferroni_k15": true,
-     "ci95_lower_above_1": false
-    },
-    "nbar=800|deff=2.0": {
-     "se": 0.02009608765271785,
-     "ci95": [
-      0.791611668200673,
-      0.870388331799327
-     ],
-     "z_vs_baseline": 5.274658522185748,
-     "passes_bonferroni_k10": true,
-     "passes_bonferroni_k15": true,
+     "z_vs_baseline": 2.1068307930777452,
+     "passes_bonferroni_k9": false,
+     "passes_bonferroni_k10": false,
+     "passes_bonferroni_k15": false,
      "ci95_lower_above_1": false
     }
    },
-   "nbar_needed_for_bonferroni_k15_deff1": 105.82480900164546,
-   "nbar_needed_for_bonferroni_k15_deff2": 211.64961800329093
+   "nbar_needed_k9": {
+    "deff=1.0": 92.69577022201688,
+    "deff=1.5": 139.04365533302533,
+    "deff=2.0": 185.39154044403375
+   },
+   "nbar_needed_k15": {
+    "deff=1.0": 105.82480900164546,
+    "deff=1.5": 158.7372135024682,
+    "deff=2.0": 211.64961800329093
+   },
+   "meets_needed_k9": {
+    "deff=1.0": true,
+    "deff=1.5": false,
+    "deff=2.0": false
+   },
+   "meets_needed_k15": {
+    "deff=1.0": true,
+    "deff=1.5": false,
+    "deff=2.0": false
+   }
   },
   "1200-2500": {
+   "nbar": 194.3876288659794,
    "rows": {
-    "nbar=25|deff=1.0": {
-     "se": 0.11408409760374873,
+    "deff=1.0": {
+     "se": 0.04091295090216704,
      "ci95": [
-      0.5963951686966524,
-      1.0436048313033475
+      0.7398106162317526,
+      0.9001893837682473
      ],
-     "z_vs_baseline": 0.8327190379325781,
+     "z_vs_baseline": 2.322003128720009,
+     "passes_bonferroni_k9": false,
      "passes_bonferroni_k10": false,
      "passes_bonferroni_k15": false,
      "ci95_lower_above_1": false
     },
-    "nbar=25|deff=1.5": {
-     "se": 0.13972391344752874,
+    "deff=1.5": {
+     "se": 0.05010792679092496,
      "ci95": [
-      0.5461411296428436,
-      1.0938588703571563
+      0.721788463489787,
+      0.9182115365102129
      ],
-     "z_vs_baseline": 0.6799122473453754,
+     "z_vs_baseline": 1.89590761550337,
+     "passes_bonferroni_k9": false,
      "passes_bonferroni_k10": false,
      "passes_bonferroni_k15": false,
      "ci95_lower_above_1": false
     },
-    "nbar=25|deff=2.0": {
-     "se": 0.16133927808231738,
+    "deff=2.0": {
+     "se": 0.05785965004254918,
      "ci95": [
-      0.503775014958658,
-      1.136224985041342
+      0.7065950859166036,
+      0.9334049140833963
      ],
-     "z_vs_baseline": 0.5888212785452638,
+     "z_vs_baseline": 1.6419041582542981,
+     "passes_bonferroni_k9": false,
      "passes_bonferroni_k10": false,
      "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=50|deff=1.0": {
-     "se": 0.08066963904115869,
-     "ci95": [
-      0.6618875074793289,
-      0.978112492520671
-     ],
-     "z_vs_baseline": 1.1776425570905276,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=50|deff=1.5": {
-     "se": 0.0987997266926698,
-     "ci95": [
-      0.6263525356823672,
-      1.0136474643176328
-     ],
-     "z_vs_baseline": 0.9615411214194003,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=50|deff=2.0": {
-     "se": 0.11408409760374873,
-     "ci95": [
-      0.5963951686966524,
-      1.0436048313033475
-     ],
-     "z_vs_baseline": 0.8327190379325781,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=100|deff=1.0": {
-     "se": 0.057042048801874363,
-     "ci95": [
-      0.7081975843483262,
-      0.9318024156516737
-     ],
-     "z_vs_baseline": 1.6654380758651561,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=100|deff=1.5": {
-     "se": 0.06986195672376437,
-     "ci95": [
-      0.6830705648214218,
-      0.9569294351785781
-     ],
-     "z_vs_baseline": 1.3598244946907507,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=100|deff=2.0": {
-     "se": 0.08066963904115869,
-     "ci95": [
-      0.6618875074793289,
-      0.978112492520671
-     ],
-     "z_vs_baseline": 1.1776425570905276,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=200|deff=1.0": {
-     "se": 0.040334819520579344,
-     "ci95": [
-      0.7409437537396645,
-      0.8990562462603354
-     ],
-     "z_vs_baseline": 2.355285114181055,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=200|deff=1.5": {
-     "se": 0.0493998633463349,
-     "ci95": [
-      0.7231762678411835,
-      0.9168237321588164
-     ],
-     "z_vs_baseline": 1.9230822428388006,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=200|deff=2.0": {
-     "se": 0.057042048801874363,
-     "ci95": [
-      0.7081975843483262,
-      0.9318024156516737
-     ],
-     "z_vs_baseline": 1.6654380758651561,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=400|deff=1.0": {
-     "se": 0.028521024400937182,
-     "ci95": [
-      0.7640987921741631,
-      0.8759012078258368
-     ],
-     "z_vs_baseline": 3.3308761517303123,
-     "passes_bonferroni_k10": true,
-     "passes_bonferroni_k15": true,
-     "ci95_lower_above_1": false
-    },
-    "nbar=400|deff=1.5": {
-     "se": 0.034930978361882185,
-     "ci95": [
-      0.7515352824107109,
-      0.888464717589289
-     ],
-     "z_vs_baseline": 2.7196489893815015,
-     "passes_bonferroni_k10": true,
-     "passes_bonferroni_k15": true,
-     "ci95_lower_above_1": false
-    },
-    "nbar=400|deff=2.0": {
-     "se": 0.040334819520579344,
-     "ci95": [
-      0.7409437537396645,
-      0.8990562462603354
-     ],
-     "z_vs_baseline": 2.355285114181055,
-     "passes_bonferroni_k10": false,
-     "passes_bonferroni_k15": false,
-     "ci95_lower_above_1": false
-    },
-    "nbar=800|deff=1.0": {
-     "se": 0.020167409760289672,
-     "ci95": [
-      0.7804718768698322,
-      0.8595281231301677
-     ],
-     "z_vs_baseline": 4.71057022836211,
-     "passes_bonferroni_k10": true,
-     "passes_bonferroni_k15": true,
-     "ci95_lower_above_1": false
-    },
-    "nbar=800|deff=1.5": {
-     "se": 0.02469993167316745,
-     "ci95": [
-      0.7715881339205918,
-      0.8684118660794081
-     ],
-     "z_vs_baseline": 3.846164485677601,
-     "passes_bonferroni_k10": true,
-     "passes_bonferroni_k15": true,
-     "ci95_lower_above_1": false
-    },
-    "nbar=800|deff=2.0": {
-     "se": 0.028521024400937182,
-     "ci95": [
-      0.7640987921741631,
-      0.8759012078258368
-     ],
-     "z_vs_baseline": 3.3308761517303123,
-     "passes_bonferroni_k10": true,
-     "passes_bonferroni_k15": true,
      "ci95_lower_above_1": false
     }
    },
-   "nbar_needed_for_bonferroni_k15_deff1": 265.37451961248996,
-   "nbar_needed_for_bonferroni_k15_deff2": 530.7490392249799
+   "nbar_needed_k9": {
+    "deff=1.0": 232.45112110143276,
+    "deff=1.5": 348.67668165214917,
+    "deff=2.0": 464.9022422028655
+   },
+   "nbar_needed_k15": {
+    "deff=1.0": 265.37451961248996,
+    "deff=1.5": 398.06177941873494,
+    "deff=2.0": 530.7490392249799
+   },
+   "meets_needed_k9": {
+    "deff=1.0": false,
+    "deff=1.5": false,
+    "deff=2.0": false
+   },
+   "meets_needed_k15": {
+    "deff=1.0": false,
+    "deff=1.5": false,
+    "deff=2.0": false
+   }
   }
  },
- "grading": "Point estimates 0.831 / 0.820 are below break-even (1.0) under every n-bar and design effect in the grid (CI95 upper < 1 unless n-bar is tiny). Whether the +10pt uplift over the 0.725 takeout baseline survives best-band selection depends on n-bar: see nbar_needed_*. The claim remains a single-period (2025-2026), terminal-price, post-hoc band selection; EXP21 cannot replicate it because no trifecta price source passes G0."
+ "parametric_nbar_grid": {
+  "600-1200": {
+   "nbar=25|deff=1.0": {
+    "se": 0.0803843506108714,
+    "ci95": [
+     0.673446672802692,
+     0.9885533271973079
+    ],
+    "z_vs_baseline": 1.318664630546437,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=25|deff=1.5": {
+    "se": 0.09845032115080811,
+    "ci95": [
+     0.638037370544416,
+     1.023962629455584
+    ],
+    "z_vs_baseline": 1.0766851622314886,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=25|deff=2.0": {
+    "se": 0.11368063883644833,
+    "ci95": [
+     0.6081859478805612,
+     1.0538140521194386
+    ],
+    "z_vs_baseline": 0.9324367023702388,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=50|deff=1.0": {
+    "se": 0.056840319418224164,
+    "ci95": [
+     0.7195929739402807,
+     0.9424070260597193
+    ],
+    "z_vs_baseline": 1.8648734047404776,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=50|deff=1.5": {
+    "se": 0.06961488969572979,
+    "ci95": [
+     0.6945548161963696,
+     0.9674451838036303
+    ],
+    "z_vs_baseline": 1.5226627588336474,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=50|deff=2.0": {
+    "se": 0.0803843506108714,
+    "ci95": [
+     0.673446672802692,
+     0.9885533271973079
+    ],
+    "z_vs_baseline": 1.318664630546437,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=100|deff=1.0": {
+    "se": 0.0401921753054357,
+    "ci95": [
+     0.752223336401346,
+     0.909776663598654
+    ],
+    "z_vs_baseline": 2.637329261092874,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=100|deff=1.5": {
+    "se": 0.049225160575404055,
+    "ci95": [
+     0.734518685272208,
+     0.9274813147277919
+    ],
+    "z_vs_baseline": 2.153370324462977,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=100|deff=2.0": {
+    "se": 0.056840319418224164,
+    "ci95": [
+     0.7195929739402807,
+     0.9424070260597193
+    ],
+    "z_vs_baseline": 1.8648734047404776,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=200|deff=1.0": {
+    "se": 0.028420159709112082,
+    "ci95": [
+     0.7752964869701403,
+     0.8867035130298596
+    ],
+    "z_vs_baseline": 3.729746809480955,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": true,
+    "ci95_lower_above_1": false
+   },
+   "nbar=200|deff=1.5": {
+    "se": 0.034807444847864896,
+    "ci95": [
+     0.7627774080981847,
+     0.8992225919018152
+    ],
+    "z_vs_baseline": 3.045325517667295,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": true,
+    "ci95_lower_above_1": false
+   },
+   "nbar=200|deff=2.0": {
+    "se": 0.0401921753054357,
+    "ci95": [
+     0.752223336401346,
+     0.909776663598654
+    ],
+    "z_vs_baseline": 2.637329261092874,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=400|deff=1.0": {
+    "se": 0.02009608765271785,
+    "ci95": [
+     0.791611668200673,
+     0.870388331799327
+    ],
+    "z_vs_baseline": 5.274658522185748,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": true,
+    "ci95_lower_above_1": false
+   },
+   "nbar=400|deff=1.5": {
+    "se": 0.024612580287702027,
+    "ci95": [
+     0.782759342636104,
+     0.8792406573638959
+    ],
+    "z_vs_baseline": 4.306740648925954,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": true,
+    "ci95_lower_above_1": false
+   },
+   "nbar=400|deff=2.0": {
+    "se": 0.028420159709112082,
+    "ci95": [
+     0.7752964869701403,
+     0.8867035130298596
+    ],
+    "z_vs_baseline": 3.729746809480955,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": true,
+    "ci95_lower_above_1": false
+   },
+   "nbar=800|deff=1.0": {
+    "se": 0.014210079854556041,
+    "ci95": [
+     0.8031482434850701,
+     0.8588517565149298
+    ],
+    "z_vs_baseline": 7.45949361896191,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": true,
+    "ci95_lower_above_1": false
+   },
+   "nbar=800|deff=1.5": {
+    "se": 0.017403722423932448,
+    "ci95": [
+     0.7968887040490924,
+     0.8651112959509075
+    ],
+    "z_vs_baseline": 6.09065103533459,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": true,
+    "ci95_lower_above_1": false
+   },
+   "nbar=800|deff=2.0": {
+    "se": 0.02009608765271785,
+    "ci95": [
+     0.791611668200673,
+     0.870388331799327
+    ],
+    "z_vs_baseline": 5.274658522185748,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": true,
+    "ci95_lower_above_1": false
+   }
+  },
+  "1200-2500": {
+   "nbar=25|deff=1.0": {
+    "se": 0.11408409760374873,
+    "ci95": [
+     0.5963951686966524,
+     1.0436048313033475
+    ],
+    "z_vs_baseline": 0.8327190379325781,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=25|deff=1.5": {
+    "se": 0.13972391344752874,
+    "ci95": [
+     0.5461411296428436,
+     1.0938588703571563
+    ],
+    "z_vs_baseline": 0.6799122473453754,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=25|deff=2.0": {
+    "se": 0.16133927808231738,
+    "ci95": [
+     0.503775014958658,
+     1.136224985041342
+    ],
+    "z_vs_baseline": 0.5888212785452638,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=50|deff=1.0": {
+    "se": 0.08066963904115869,
+    "ci95": [
+     0.6618875074793289,
+     0.978112492520671
+    ],
+    "z_vs_baseline": 1.1776425570905276,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=50|deff=1.5": {
+    "se": 0.0987997266926698,
+    "ci95": [
+     0.6263525356823672,
+     1.0136474643176328
+    ],
+    "z_vs_baseline": 0.9615411214194003,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=50|deff=2.0": {
+    "se": 0.11408409760374873,
+    "ci95": [
+     0.5963951686966524,
+     1.0436048313033475
+    ],
+    "z_vs_baseline": 0.8327190379325781,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=100|deff=1.0": {
+    "se": 0.057042048801874363,
+    "ci95": [
+     0.7081975843483262,
+     0.9318024156516737
+    ],
+    "z_vs_baseline": 1.6654380758651561,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=100|deff=1.5": {
+    "se": 0.06986195672376437,
+    "ci95": [
+     0.6830705648214218,
+     0.9569294351785781
+    ],
+    "z_vs_baseline": 1.3598244946907507,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=100|deff=2.0": {
+    "se": 0.08066963904115869,
+    "ci95": [
+     0.6618875074793289,
+     0.978112492520671
+    ],
+    "z_vs_baseline": 1.1776425570905276,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=200|deff=1.0": {
+    "se": 0.040334819520579344,
+    "ci95": [
+     0.7409437537396645,
+     0.8990562462603354
+    ],
+    "z_vs_baseline": 2.355285114181055,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=200|deff=1.5": {
+    "se": 0.0493998633463349,
+    "ci95": [
+     0.7231762678411835,
+     0.9168237321588164
+    ],
+    "z_vs_baseline": 1.9230822428388006,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=200|deff=2.0": {
+    "se": 0.057042048801874363,
+    "ci95": [
+     0.7081975843483262,
+     0.9318024156516737
+    ],
+    "z_vs_baseline": 1.6654380758651561,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=400|deff=1.0": {
+    "se": 0.028521024400937182,
+    "ci95": [
+     0.7640987921741631,
+     0.8759012078258368
+    ],
+    "z_vs_baseline": 3.3308761517303123,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": true,
+    "ci95_lower_above_1": false
+   },
+   "nbar=400|deff=1.5": {
+    "se": 0.034930978361882185,
+    "ci95": [
+     0.7515352824107109,
+     0.888464717589289
+    ],
+    "z_vs_baseline": 2.7196489893815015,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": true,
+    "ci95_lower_above_1": false
+   },
+   "nbar=400|deff=2.0": {
+    "se": 0.040334819520579344,
+    "ci95": [
+     0.7409437537396645,
+     0.8990562462603354
+    ],
+    "z_vs_baseline": 2.355285114181055,
+    "passes_bonferroni_k9": false,
+    "passes_bonferroni_k10": false,
+    "passes_bonferroni_k15": false,
+    "ci95_lower_above_1": false
+   },
+   "nbar=800|deff=1.0": {
+    "se": 0.020167409760289672,
+    "ci95": [
+     0.7804718768698322,
+     0.8595281231301677
+    ],
+    "z_vs_baseline": 4.71057022836211,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": true,
+    "ci95_lower_above_1": false
+   },
+   "nbar=800|deff=1.5": {
+    "se": 0.02469993167316745,
+    "ci95": [
+     0.7715881339205918,
+     0.8684118660794081
+    ],
+    "z_vs_baseline": 3.846164485677601,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": true,
+    "ci95_lower_above_1": false
+   },
+   "nbar=800|deff=2.0": {
+    "se": 0.028521024400937182,
+    "ci95": [
+     0.7640987921741631,
+     0.8759012078258368
+    ],
+    "z_vs_baseline": 3.3308761517303123,
+    "passes_bonferroni_k9": true,
+    "passes_bonferroni_k10": true,
+    "passes_bonferroni_k15": true,
+    "ci95_lower_above_1": false
+   }
+  }
+ },
+ "grading": "With the published appendix-A3 combination counts, 600-1200x has 127.6 combinations/race and 1200-2500x 194.4. 600-1200x clears the best-band Bonferroni threshold only with design effect 1.0 (needed 105.8 at k=15, fewer at k=9) and fails at 1.5-2.0; 1200-2500x fails even at 1.0 (needed 265.4 at k=15). Both point estimates stay below break-even. The claim remains a single-period (2025-2026), terminal-price, post-hoc band selection that EXP21 cannot replicate (no trifecta price source passes G0)."
 }
