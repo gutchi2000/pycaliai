@@ -1,6 +1,6 @@
 {
- "generated_at": "2026-11-04 23:32",
- "latest_weekly": "20261101",
+ "generated_at": "2026-11-13 10:44",
+ "latest_weekly": "20261108",
  "rows": [
   {
    "id": "CW-01",
@@ -15,20 +15,20 @@
   {
    "id": "CW-02",
    "name": "障害履歴 forward-only collector",
-   "current": 20,
+   "current": 22,
    "target": null,
    "unit": "開催日",
-   "latest": "20261101",
+   "latest": "20261108",
    "source": "data\\history_only\\jump\\manifest.json"
   },
   {
    "id": "CW-03",
    "name": "EXP05-F T−35 前向き市場観測 (valid primary)",
-   "current": 391,
+   "current": 460,
    "target": 6600,
    "unit": "race",
-   "latest": "20261101",
-   "market": 403,
+   "latest": "20261108",
+   "market": 472,
    "source": "analysis.mcond.exp05_forward_shadow.observation_report --cumulative"
   },
   {
@@ -43,29 +43,61 @@
   },
   {
    "id": "CW-10",
-   "name": "shadow a95_equal_v1 (紙上台帳・全レース)",
+   "name": "shadow a95_sniper_v2 (紙上台帳・全レース)",
    "current": 0,
    "target": 500,
    "unit": "race",
    "latest": null,
-   "since": "20261107",
-   "source": "data/shadow_ledger/a95_equal_v1/settlements"
+   "since": "20261114",
+   "source": "data/shadow_ledger/a95_sniper_v2/settlements",
+   "note": "起算日前 (台帳未作成)"
   },
   {
    "id": "CW-11",
-   "name": "本線 a95_equal_v1 前向き cohort (参戦ガード通過・決済済)",
+   "name": "本線 a95 前向き cohort (参戦ガード通過・決済済)",
    "current": 0,
    "target": 500,
    "unit": "race",
    "latest": null,
-   "since": "20261107",
+   "since": "20261114",
    "source": "reports/cowork_output/*_bets.json (a95_all.guard_passed) × data/kekka"
+  },
+  {
+   "id": "CW-13",
+   "name": "複勝票数/単勝票数 ゲートの前向き確認 (T-10)",
+   "current": 19,
+   "target": 100,
+   "unit": "race",
+   "latest": "20261108",
+   "since": "20261003",
+   "source": "data/forward_prices (schema v2 votes_total) × data/kekka",
+   "note": "docs/research/PINNED_FLOOR_SEARCH_20261112.md"
+  },
+  {
+   "id": "CW-14",
+   "name": "朝 9 時 → 発走前の動き 前向き確認 (Gate A 広い条件)",
+   "current": 0,
+   "target": 300,
+   "unit": "点",
+   "latest": null,
+   "since": "20261114",
+   "source": "data/forward_prices (am9 × t20) × data/kekka",
+   "note": "Gate B セル A 0/100 点。朝 9 時の記録はタスク PyCaLiAI_AM9"
+  },
+  {
+   "id": "CW-15",
+   "name": "v7 候補 (JRDB 過去走特徴) の紙上比較",
+   "current": 0,
+   "target": 1000,
+   "unit": "race",
+   "latest": null,
+   "since": "20261114",
+   "source": "reports/shadow_v{6,7} × reports/cowork_input × data/kekka",
+   "note": "比較: python -m analysis.replay_ab_compare --a reports/cowork_input --b reports/shadow_v7 --since 20261114"
   }
  ],
  "alerts": [
-  "CW-01 停滞: 最終 20260926 だが開催は 20261101 まで進んでいる (EXP19 当日馬体重 W経路 (T−28 完全率))",
-  "CW-10 現在量が減少 113 → 0 (shadow a95_equal_v1 (紙上台帳・全レース))",
-  "CW-11 現在量が減少 70 → 0 (本線 a95_equal_v1 前向き cohort (参戦ガード通過・決済済))"
+  "CW-01 停滞: 最終 20260926 だが開催は 20261108 まで進んでいる (EXP19 当日馬体重 W経路 (T−28 完全率))"
  ],
  "history": [
   {
@@ -88,6 +120,105 @@
     "CW-09": null,
     "CW-10": 0,
     "CW-11": 0
+   }
+  },
+  {
+   "at": "2026-11-12 23:11",
+   "counts": {
+    "CW-01": 1,
+    "CW-02": 22,
+    "CW-03": 460,
+    "CW-09": null,
+    "CW-10": 0,
+    "CW-11": 0
+   }
+  },
+  {
+   "at": "2026-11-12 23:21",
+   "counts": {
+    "CW-01": 1,
+    "CW-02": 22,
+    "CW-03": 460,
+    "CW-09": null,
+    "CW-10": 0,
+    "CW-11": 0
+   }
+  },
+  {
+   "at": "2026-11-12 23:44",
+   "counts": {
+    "CW-01": 1,
+    "CW-02": 22,
+    "CW-03": 460,
+    "CW-09": null,
+    "CW-10": null,
+    "CW-11": 0,
+    "CW-13": 19
+   }
+  },
+  {
+   "at": "2026-11-12 23:44",
+   "counts": {
+    "CW-01": 1,
+    "CW-02": 22,
+    "CW-03": 460,
+    "CW-09": null,
+    "CW-10": 0,
+    "CW-11": 0,
+    "CW-13": 19
+   }
+  },
+  {
+   "at": "2026-11-13 00:05",
+   "counts": {
+    "CW-01": 1,
+    "CW-02": 22,
+    "CW-03": 460,
+    "CW-09": null,
+    "CW-10": 0,
+    "CW-11": 0,
+    "CW-13": 19
+   }
+  },
+  {
+   "at": "2026-11-13 00:34",
+   "counts": {
+    "CW-01": 1,
+    "CW-02": 22,
+    "CW-03": 460,
+    "CW-09": null,
+    "CW-10": 0,
+    "CW-11": 0,
+    "CW-13": 19,
+    "CW-14": 0
+   }
+  },
+  {
+   "at": "2026-11-13 01:31",
+   "counts": {
+    "CW-01": 1,
+    "CW-02": 22,
+    "CW-03": 460,
+    "CW-09": null,
+    "CW-10": 0,
+    "CW-11": 0,
+    "CW-13": 19,
+    "CW-14": 0,
+    "CW-15": 0
+   }
+  },
+  {
+   "at": "2026-11-13 10:44",
+   "counts": {
+    "CW-01": 1,
+    "CW-02": 22,
+    "CW-03": 460,
+    "CW-09": null,
+    "CW-10": 0,
+    "CW-11": 0,
+    "CW-13": 19,
+    "CW-14": 0,
+    "CW-15": 0
    }
   }
  ]

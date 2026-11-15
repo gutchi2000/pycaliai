@@ -1,45 +1,45 @@
 {
   "weekly": {
-    "files": 92,
+    "files": 95,
     "unmatched_widths": {},
-    "race_rows": 2860,
-    "horse_rows": 39404,
+    "race_rows": 2956,
+    "horse_rows": 40720,
     "horse_rows_by_width": {
-      "46": 29019,
+      "46": 30335,
       "49": 10224,
       "44": 161
     }
   },
   "kekka": {
-    "files": 91,
-    "rows": 39543,
-    "rows_pos0_or_nan(取消/除外/中止)": 303,
+    "files": 95,
+    "rows": 41164,
+    "rows_pos0_or_nan(取消/除外/中止)": 314,
     "date_from_filename_equals_日付": true,
-    "rows_ran": 39240,
-    "races": 2874,
+    "rows_ran": 40850,
+    "races": 2994,
     "dup_rid16_umaban": 0
   },
-  "weekly_races": 2860,
+  "weekly_races": 2956,
   "weekly_jump_races": {
-    "surface_障": 50
+    "surface_障": 54
   },
   "join": {
-    "kekka_ran_rows": 39240,
-    "race_in_weekly": 38670,
+    "kekka_ran_rows": 40850,
+    "race_in_weekly": 40280,
     "races_kekka_only(assumed_jump)": 50,
-    "horse_row_matched": 38670,
-    "horse_row_name_agree": 38669,
+    "horse_row_matched": 40280,
+    "horse_row_name_agree": 40279,
     "horse_row_name_disagree": 1,
     "in_weekly_race_but_no_horse_row": 0
   },
   "excluded_jump_rows_by_reason": {
-    "surface_障": 527
+    "surface_障": 575
   },
   "excluded_flat_rows_without_horse_row_or_name_mismatch": 1,
   "unmapped_class_names": {},
   "surface_values_after_norm": {
-    "芝": 19081,
-    "ダ": 19061
+    "芝": 19875,
+    "ダ": 19829
   },
   "place_values": [
     "中京",
@@ -53,43 +53,43 @@
     "福島",
     "阪神"
   ],
-  "jockey_code_mapped_rate": 0.99578,
-  "trainer_code_mapped_rate": 0.97609,
+  "jockey_code_mapped_rate": 0.99577,
+  "trainer_code_mapped_rate": 0.97564,
   "trainer_unmapped_top": {
-    "柴田卓": 144,
-    "橋田宜長": 139,
-    "室井潔": 128,
-    "平岩大典": 116,
-    "手塚貴徳": 108,
-    "秋本大介": 107,
-    "松尾卓哉": 103,
-    "古賀大生": 40,
-    "荒山勝徳": 6,
-    "五十嵐冬": 4
+    "柴田卓": 153,
+    "橋田宜長": 145,
+    "室井潔": 137,
+    "平岩大典": 121,
+    "手塚貴徳": 113,
+    "秋本大介": 111,
+    "松尾卓哉": 108,
+    "古賀大生": 46,
+    "三樹祐輔": 8,
+    "荒山勝徳": 6
   },
-  "sire_name_in_master_rate": 0.98196,
-  "sire_type_missing_rate_rows": 0.90189,
-  "bms_type_missing_rate_rows": 0.12414,
-  "weight_available_rate_rows": 0.25937,
+  "sire_name_in_master_rate": 0.97983,
+  "sire_type_missing_rate_rows": 0.90276,
+  "bms_type_missing_rate_rows": 0.12528,
+  "weight_available_rate_rows": 0.24917,
   "ped": {
     "ped_src_counts": {
-      "horse_history": 38142
+      "horse_history": 39704
     },
     "rows_unified_within_name": 0,
-    "horses_total": 10430,
-    "horses_in_master": 6642,
-    "horses_synthetic": 3788
+    "horses_total": 10705,
+    "horses_in_master": 6656,
+    "horses_synthetic": 4049
   },
   "margin_fill": {
-    "rows": 38142,
-    "next_start_row_found": 27695,
-    "pos_agree": 27693,
+    "rows": 39704,
+    "next_start_row_found": 28736,
+    "pos_agree": 28734,
     "pos_disagree_nulled": 2,
-    "fill_rate": 0.72605,
+    "fill_rate": 0.72371,
     "margin_describe": {
-      "count": 27693.0,
-      "mean": 1.206,
-      "std": 1.209,
+      "count": 28734.0,
+      "mean": 1.202,
+      "std": 1.208,
       "min": -0.0,
       "25%": 0.4,
       "50%": 0.9,
@@ -97,43 +97,43 @@
       "max": 41.8
     }
   },
-  "rows_2026_flat": 38142,
+  "rows_2026_flat": 39704,
   "dup_horse_date_rows": 0,
   "missing_rate_2026_rows": {
-    "margin": 0.27395,
-    "agari3f": 0.27395,
-    "agari_rank": 0.27395,
-    "weight": 0.74063,
-    "父タイプ名": 0.90189,
-    "母父タイプ名": 0.12414,
-    "生産者": 0.26118,
-    "birth_date": 0.26118,
-    "前走確定着順": 0.09695
+    "margin": 0.27629,
+    "agari3f": 0.27629,
+    "agari_rank": 0.27629,
+    "weight": 0.75083,
+    "父タイプ名": 0.90276,
+    "母父タイプ名": 0.12528,
+    "生産者": 0.27088,
+    "birth_date": 0.27088,
+    "前走確定着順": 0.09954
   },
   "unknown_code_rate": {
-    "騎手コード": 0.00422,
-    "調教師コード": 0.02391
+    "騎手コード": 0.00423,
+    "調教師コード": 0.02436
   },
-  "elapsed_build_sec": 3.2,
+  "elapsed_build_sec": 2.7,
   "extend": {
-    "rows_total": 646177,
+    "rows_total": 647739,
     "rows_master": 608035,
-    "rows_2026": 38142,
-    "data_end_ext": "2026-10-25",
-    "horses_total": 71524,
-    "horses_new_2026": 3788,
-    "horses_new_true_debut": 3698,
+    "rows_2026": 39704,
+    "data_end_ext": "2026-11-08",
+    "horses_total": 71785,
+    "horses_new_2026": 4049,
+    "horses_new_true_debut": 3952,
     "horses_new_age3_first_race_not_shinba(kept)": 835,
     "horses_new_debut_age_counts": {
-      "2": 2189,
-      "3": 1581,
-      "4": 15,
+      "2": 2446,
+      "3": 1584,
+      "4": 16,
       "5": 2,
       "7": 1
     },
-    "horses_new_sire_type_missing": 0.94271,
+    "horses_new_sire_type_missing": 0.94344,
     "jky_prior_g": 0.21362914963776755,
-    "jky_unknown_code_rows_2026": 161
+    "jky_unknown_code_rows_2026": 168
   },
-  "elapsed_sec": 5.5
+  "elapsed_sec": 4.8
 }
