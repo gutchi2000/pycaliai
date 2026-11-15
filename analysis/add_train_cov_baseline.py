@@ -48,6 +48,9 @@ def main() -> None:
     if bundle.get("jrdb_mode"):
         from jrdb_features import add_jrdb_feats
         df = add_jrdb_feats(df, mode=bundle["jrdb_mode"])
+    if bundle.get("kyi_mode"):
+        from jrdb_kyi_features import add_master_feats as add_kyi_feats   # v8 候補 (JRDB 前日 KYI + 外厩)
+        df = add_kyi_feats(df, mode=bundle["kyi_mode"])
     tr = apply_encoders(df[df["split"] == "train"].copy(), encs)[feats]
     cov = tr.apply(pd.to_numeric, errors="coerce").notna().mean()
     if bundle.get("jrdb_mode"):

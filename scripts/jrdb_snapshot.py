@@ -74,6 +74,61 @@ def notify(msg):
         print(f"notify failed: {type(e).__name__}")
 
 
+TM_PAGE = "https://www.jrdb.com/member/jrdvsp/gk/gaikyu.html"
+TM_SNAP = jf.ROOT / "data/jrdb/snapshots/targetmark"
+TM_MANIFEST = TM_SNAP / "manifest.jsonl"
+TM_DAILY = re.compile(r'href="(\.\./\.\./targetmark/([a-z]+)_(\d{8})\.zip)"', re.I)
+TM_CURRENT = re.compile(r'href="(\.\./\.\./targetmark/((?:joc|tn)rank)\.csv)"', re.I)
+
+
+def capture_targetmark(s, since, now):
+    """JRDB 会員ページの TARGET 取り込みデータ (外厩・外厩コメント・厩舎/騎手ランク ほか) の日付単位ファイルを保存する (2026-11-15)。
+
+    外厩は v8 候補の特徴 (jrdb_kyi_features)。厩舎/騎手ランクは過去分の配布が無いので、ここで貯めたものだけが学習に使える。
+    KYI とは別の manifest (data/jrdb/snapshots/targetmark/manifest.jsonl) に書く (verify は KYI だけを見る)。
+    """
+    from urllib.parse import urljoin
+    r = s.get(TM_PAGE, timeout=60)
+    if r.status_code != 200:
+        raise RuntimeError(f"TARGET 取り込みページ HTTP {r.status_code}")
+    html = r.content.decode("utf-8", errors="replace")
+    TM_SNAP.mkdir(parents=True, exist_ok=True)
+    last = {}
+    if TM_MANIFEST.exists():
+        for x in TM_MANIFEST.read_text(encoding="utf-8").splitlines():
+            if x.strip():
+                m = json.loads(x)
+                last[(m["kind"], m["race_date"])] = m["sha256"]
+    want = []
+    for rel, kind, ymd in TM_DAILY.findall(html):
+        if dt.datetime.strptime(ymd, "%Y%m%d").date() >= since:
+            want.append((rel, kind.lower(), ymd))
+    for rel, kind in TM_CURRENT.findall(html):            # 日付の無い「現在の」ランク表は取得日で記録する
+        want.append((rel, kind.lower() + "_current", now.strftime("%Y%m%d")))
+    saved = 0
+    for rel, kind, ymd in want:
+        rr = s.get(urljoin(TM_PAGE, rel), timeout=120)
+        time.sleep(0.5)
+        if rr.status_code != 200:
+            print(f"{rel}: HTTP {rr.status_code}")
+            continue
+        sha = hashlib.sha256(rr.content).hexdigest()
+        if last.get((kind, ymd)) == sha:
+            continue
+        ext = rel.rsplit(".", 1)[-1]
+        name = f"{kind}_{ymd}__{now.strftime('%Y%m%dT%H%M%S')}.{ext}"
+        (TM_SNAP / name).write_bytes(rr.content)
+        d = dt.datetime.strptime(ymd, "%Y%m%d").date()
+        rec = {"kind": kind, "race_date": ymd, "captured_at": now.isoformat(timespec="seconds"),
+               "pre_race": bool(now < dt.datetime.combine(d, dt.time(PRE_RACE_HOUR, 0))), "sha256": sha,
+               "bytes": len(rr.content), "file": name, "revised": (kind, ymd) in last}
+        with open(TM_MANIFEST, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        last[(kind, ymd)] = sha
+        saved += 1
+    print(f"targetmark: 新規保存 {saved} 本 (対象 {len(want)})")
+
+
 def cmd_capture(args):
     now = dt.datetime.now()
     since = dt.datetime.strptime(args.since, "%Y%m%d").date() if args.since else now.date()
@@ -114,6 +169,12 @@ def cmd_capture(args):
         saved += 1
         print(f"saved {name} pre_race={pre} revised={rec['revised']}")
     print(f"capture: 新規保存 {saved} 本")
+    try:
+        capture_targetmark(s, since, now)
+    except Exception as e:  # noqa: BLE001  外厩などの保存の失敗で KYI の結果は変えない
+        print(f"targetmark 保存失敗: {type(e).__name__}: {e}")
+        if args.notify:
+            notify(f"⚠️ JRDB 外厩・厩舎/騎手ランクの保存に失敗 ({type(e).__name__})")
     # 成績 (SED) の今年ぶんも取り直す (v7 候補の過去走特徴用、2026-11-13)。失敗しても capture の結果は変えない。
     try:
         import subprocess

@@ -218,6 +218,9 @@ def score_test(include_valid=False):
     if bundle.get("jrdb_mode"):
         from jrdb_features import add_jrdb_feats
         df = add_jrdb_feats(df, mode=bundle["jrdb_mode"])
+    if bundle.get("kyi_mode"):
+        from jrdb_kyi_features import add_master_feats as add_kyi_feats   # v8 候補 (JRDB 前日 KYI + 外厩)
+        df = add_kyi_feats(df, mode=bundle["kyi_mode"])
     if include_valid:
         te = df[df["split"].isin(["test", "valid"])].copy()
     else:

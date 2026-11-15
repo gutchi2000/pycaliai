@@ -631,6 +631,20 @@ def main() -> int:
             jrdb_gate_error = _js["error"]
         except Exception as e:  # noqa: BLE001
             jrdb_gate_error = f"JRDB 特徴の生成に失敗: {type(e).__name__}: {e}"
+    # ------ JRDB 前日 KYI + 外厩 (v8 候補、2026-11-15。bundle に kyi_mode があるモデルだけ) ------
+    # 学習と同じ jrdb_kyi_features.make_features を通す。発走前保存 (data/jrdb/snapshots) を優先、無ければアーカイブ。
+    # KYI が無い / 埋まりが悪い日は bundle を不合格にする。外厩コメントが無い日は外厩なしとして続ける (警告のみ)。
+    if bundle.get("kyi_mode"):
+        try:
+            import jrdb_kyi_features as kf
+            _ks = kf.add_serve_feats(df, date_str)
+            logger.info(f"[kyi] 前日 KYI {_ks['kyi_file']}  埋まり {_ks['coverage']*100:.0f}%  外厩あり {_ks['gaikyu']*100:.0f}% ({_ks['gaikyu_file']})")
+            if not _ks["gaikyu_file"]:
+                logger.warning("[kyi] 外厩コメントが無い → 外厩なしとして予測 (python scripts/jrdb_snapshot.py capture)")
+            if _ks["error"]:
+                jrdb_gate_error = (jrdb_gate_error + " / " if jrdb_gate_error else "") + _ks["error"]
+        except Exception as e:  # noqa: BLE001
+            jrdb_gate_error = (jrdb_gate_error + " / " if jrdb_gate_error else "") + f"KYI 特徴の生成に失敗: {type(e).__name__}: {e}"
 
     # ------ kako5 history + horse facts (advisor + 出走表 表示用) ------
     from kako5_summary import build_histories, build_horse_facts

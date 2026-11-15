@@ -101,6 +101,10 @@ for wk in WEEKS:
             import jrdb_features as jf
             _js = jf.add_serve_feats(df, p.stem)
             print(f"  [jrdb] 前走あり {_js['coverage']*100:.0f}%  成績の最終から {_js['stale_days']} 日")
+        if model.get("kyi_mode"):
+            import jrdb_kyi_features as kf
+            _ks = kf.add_serve_feats(df, p.stem)
+            print(f"  [kyi] 前日 KYI 埋まり {_ks['coverage']*100:.0f}%  外厩あり {_ks['gaikyu']*100:.0f}%")
     except Exception as e:
         print(f"  [warn] serve history fill 失敗 (履歴特徴は0%扱い): {e}")
     # canary と同一定義の実効カバレッジ ("__NaN__"/空文字=欠損, 定数列=0.0) で測る。

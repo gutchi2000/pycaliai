@@ -35,6 +35,7 @@ COL_BAN  = "馬番"
 
 
 JRDB_MODE: str | None = None   # main() が bundle の jrdb_mode を入れる (v7 候補)
+KYI_MODE: str | None = None    # main() が bundle の kyi_mode を入れる (v8 候補)
 
 
 def load_valid(race_relative_mode: str | None = None,
@@ -56,6 +57,10 @@ def load_valid(race_relative_mode: str | None = None,
         from jrdb_features import add_jrdb_feats
         df = add_jrdb_feats(df, mode=JRDB_MODE)
         print(f"  + jrdb_feats(mode={JRDB_MODE})")
+    if KYI_MODE:
+        from jrdb_kyi_features import add_master_feats as add_kyi_feats
+        df = add_kyi_feats(df, mode=KYI_MODE)
+        print(f"  + kyi_feats(mode={KYI_MODE})")
     if grade_feats_mode:
         from grade_feats import add_grade_feats
         df = add_grade_feats(df, mode=grade_feats_mode)
@@ -86,8 +91,9 @@ def main():
     feats  = bundle["feature_cols"]
     encs   = bundle["encoders"]
     rr_mode = bundle.get("race_relative_mode")
-    global JRDB_MODE
+    global JRDB_MODE, KYI_MODE
     JRDB_MODE = bundle.get("jrdb_mode")
+    KYI_MODE = bundle.get("kyi_mode")
     ca_mode = bundle.get("course_affinity_mode")
     gf_mode = bundle.get("grade_feats_mode")
     print(f"[model] feats={len(feats)}  best_iter={model.best_iteration}  "

@@ -614,6 +614,26 @@ if (Test-Path 'models/unified_rank_c2b.pkl') {
     }
 }
 
+# -- Shadow: v8 候補 (v7 + JRDB 前日 KYI + 外厩、2026-11-15)。別フォルダへ bundle を作るだけ。
+#    公開・買い目・本線・凍結版には触れない。失敗しても本番は止めない。KYI・外厩は data/jrdb/snapshots (発走前保存) から読む。
+#    比較: python -m analysis.replay_ab_compare --a reports/cowork_input --b reports/shadow_v8 --since 20261121 (CW-21)
+#    経緯: docs/research/V8_KYI_CANDIDATE_20261115.md
+if (Test-Path 'models/unified_rank_v8.pkl') {
+    try {
+        $env:CB_HOSEI_PROXY = "1"
+        $env:CB_SERVE_RECOVER = "1"
+        python export_weekly_marks.py --csv $csvPath --model v8 --shap-topk 0 --out-dir "reports/shadow_v8/$Date" *> "logs/export_v8_$Date.log"
+        if ($LASTEXITCODE -eq 0) { OK "shadow v8 bundle -> reports/shadow_v8/${Date}_bundle.json" }
+        else { Write-Host "  [warn] shadow v8 export rc=$LASTEXITCODE (本番には影響なし: logs/export_v8_$Date.log)" -ForegroundColor Yellow }
+    } catch {
+        Write-Host "  [warn] shadow v8 export 例外 (本番には影響なし): $_" -ForegroundColor Yellow
+    } finally {
+        Remove-Item Env:CB_HOSEI_PROXY -ErrorAction SilentlyContinue
+        Remove-Item Env:CB_SERVE_RECOVER -ErrorAction SilentlyContinue
+        $global:LASTEXITCODE = 0
+    }
+}
+
 # -- Shadow: 「本番でない方」のモデルで、同じ出走表から別フォルダへ bundle を作るだけ (2026-11-13)。
 #    本番が v7 のあいだは v6 を reports/shadow_v6/ に、v6 に戻した日は v7 を reports/shadow_v7/ に作る。
 #    公開・買い目・本線には一切触れない (.gitignore、サイトにも出ない)。失敗しても本番は止めない。

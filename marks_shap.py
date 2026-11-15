@@ -144,7 +144,7 @@ def _to_2d_shap(sv) -> np.ndarray:
     raise ValueError(f"unexpected shap_values ndim={arr.ndim}")
 
 
-_PRIVATE_PREFIXES = ("j1_",)   # jrdb_features.JRDB_FEATURE_PREFIX。bundle の why[] に書かない
+_PRIVATE_PREFIXES = ("j1_", "k8_")   # JRDB 由来 (j1_ 過去走 / k8_ 前日 KYI・外厩)。bundle の why[] に書かない
 
 
 def race_contribs(explainer, X, feats, g_rows: pd.DataFrame, topk: int = 6):

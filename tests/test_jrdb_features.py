@@ -107,7 +107,7 @@ def test_site_scrub_drops_jrdb_reasons():
     import inspect
     import build_site
     src = inspect.getsource(build_site)
-    assert 'startswith("j1_")' in src
+    assert 'startswith(("j1_", "k8_"))' in src   # j1_ (過去走) と k8_ (前日 KYI・外厩) の両方を根拠表示から外す
 
 
 # ---- 配信用の 1 関数と、カバレッジの測り方 (v7 本番化、2026-11-13) ----
