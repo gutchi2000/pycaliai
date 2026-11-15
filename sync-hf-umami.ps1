@@ -197,6 +197,8 @@ $SiteAllowPatterns = @(
     '^site/data/board_stats\.json$',
     # speed_index.py export-meta (weekly_nicegui.ps1 Invoke-SpeedIndex, 2026-11-15)
     '^site/data/speed_meta\.json$',
+    # tenkai.py train (manual retrain, 2026-11-16)
+    '^site/data/tenkai_meta\.json$',
     '^site/data/career_\d{8}\.json$',
     '^site/data/forecast_history/.*\.json$',
     '^site/data/calibration\.json$',

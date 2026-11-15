@@ -274,6 +274,29 @@ def load_speed_day(date_str: str) -> dict:
     return out
 
 
+TENKAI_DIR = ROOT / "reports" / "tenkai"
+
+
+def load_tenkai_day(date_str: str) -> dict:
+    """tenkai.py score-day の出力 → {(場所, R): {"pace": [スロー, 平均, ハイ], "h": [[馬番, 序盤, 4角, 序盤順, 4角順, 脚質, 過去走数], ...]}}。
+    無ければ空（展開タブが出ないだけ）。"""
+    p = TENKAI_DIR / f"day_{date_str}.json"
+    if not p.exists():
+        return {}
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    out = {}
+    for r in d.get("races", []):
+        pc = r.get("pace") or {}
+        out[(r.get("place"), int(r.get("rno")))] = {
+            "pace": [pc.get("slow"), pc.get("mid"), pc.get("high")],
+            "h": [[h["umaban"], h["e"], h["l"], h["er"], h["lr"], h["st"], h.get("nh", 0)] for h in r.get("horses", [])],
+        }
+    return out
+
+
 POWER_DIR = ROOT / "reports" / "power_rating"
 _POWER_CACHE: dict | None = None
 
@@ -1164,6 +1187,7 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
     hanro_map = parse_training_file(pick_training_file("H", date_str), "hanro")
     wc_map = parse_training_file(pick_training_file("W", date_str), "wc")
     speed_map = load_speed_day(date_str)
+    tenkai_map = load_tenkai_day(date_str)
 
     races_out = []
     for race in bundle.get("races", []):
@@ -1298,6 +1322,7 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
             ),
             "grade_scope": grade_map.get(rid),
             "result": results.get(rid),
+            "tenkai": tenkai_map.get((meta.get("place", ""), int(rid[-2:]))) if rid[-2:].isdigit() else None,
         })
 
         # 2026-08-29 (学生大会開始) 以降は実運用が masters_vote (大会仕様) に一本化
