@@ -1559,6 +1559,7 @@ function umamiTableHtml(r) {
     uma: (h) => -(h.umaban ?? 99),
     ai: (h) => aiIdx(h) ?? -1,
     win: (h) => h.p_win ?? -1,
+    sho: (h) => h.p_sho ?? -1,
     si: (h) => h.speed?.v ?? -1,
     pw: (h) => h.pw ?? -1,
     sv: (h) => savr(h) ?? -1,
@@ -1578,17 +1579,20 @@ function umamiTableHtml(r) {
     const u = h.umami || {};
     const g = u.grade || "—";
     const er = h.speed?.er, eo = h.speed?.eo;
-    return `<div class="ix-row ${h.mark === "◎" ? "honmei" : ""}" data-uma="${h.umaban}">
+    const gated = u.side == null;
+    return `<div class="ix-row ${gated ? "gated" : ""} ${h.mark === "◎" ? "honmei" : ""}" data-uma="${h.umaban}">
       <span class="mark ${markCls(h.mark)}">${h.mark || "・"}</span>
       <span>${wk(h)}</span>
       <span class="um-name">${esc(h.name)}</span>
       ${cell(aiIdx(h), "ai", h, (v) => v)}
       <span class="num ta-r">${pct(h.p_win)}<small>%</small></span>
+      <span class="num ta-r">${pct(h.p_sho, 0)}<small>%</small></span>
       ${cell(h.speed?.v, "si", h, (v) => v.toFixed(1))}
       ${cell(h.pw, "pw", h, (v) => Math.round(v))}
       ${cell(savr(h), "sv", h, (v) => v)}
       <span class="num ta-r">${er == null ? "—" : `${er}<small>番人気</small>`}${eo ? `<i class="ix-eo">${eo.toFixed(1)}倍</i>` : ""}</span>
       <span class="ta-c"><span class="um-g" style="background:${UMAMI_COLOR[g] || "#46587e"}">${g}</span></span>
+      <span class="um-side ta-c">${gated ? "—" : esc(u.side || "")}</span>
     </div>`;
   }).join("");
 
@@ -1601,15 +1605,18 @@ function umamiTableHtml(r) {
       <span></span><span>${sb("uma", "馬番")}</span><span>馬名</span>
       <span class="ta-r">${sb("ai", "AI指数")}</span>
       <span class="ta-r">${sb("win", "勝率")}</span>
+      <span class="ta-r">${sb("sho", "複勝圏")}</span>
       <span class="ta-r">${sb("si", "速度")}</span>
       <span class="ta-r">${sb("pw", "PW")}</span>
       <span class="ta-r">${sb("sv", "推妙")}</span>
       <span class="ta-r">${sb("er", "推定人気")}</span>
       <span class="ta-c">${sb("grade", "格")}</span>
+      <span class="ta-c">推奨</span>
     </div>
     ${rows}
     </div></div>
-    <div class="ix-note">推定人気・推定オッズは、当日のオッズを使わずに過去走の成績・人気・騎手などから予測した値です（実際のオッズではありません）。
+    <div class="ix-note"><b>格（妙味グレード）</b>は AI の確率と市場の評価のずれから出す独自のグレードです。S/A＝妙味あり、「罠」は妙味があるように見えても来る見込みが薄い馬。推奨は妙味を見る券種（単勝/複勝）で、グレードの付かない馬は薄く表示しています。<br>
+      推定人気・推定オッズは、当日のオッズを使わずに過去走の成績・人気・騎手などから予測した値です（実際のオッズではありません）。
       推妙は「AI の方が推定の市場より高く見ている度合い」で、2026 年の検証ではどの帯も単勝の回収率は 100% を超えていません。</div>
   </div>`;
 }

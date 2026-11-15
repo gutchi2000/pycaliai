@@ -1780,10 +1780,10 @@ body.drawer-open { overflow: hidden; }
 .c-sv { color: var(--tx2); }
 .c-um .um-g { min-width: 20px; height: 18px; font-size: 13px; }
 .ix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.ix-tbl { min-width: 760px; }
+.ix-tbl { min-width: 880px; }
 .ix-head, .ix-row {
   display: grid;
-  grid-template-columns: 28px 50px minmax(110px, 1.2fr) 64px 62px 72px 58px 58px 96px 40px;
+  grid-template-columns: 28px 50px minmax(110px, 1.2fr) 64px 62px 58px 72px 58px 58px 96px 40px 48px;
   gap: 8px; align-items: center; padding: 8px 6px;
 }
 .ix-head { font-size: 13px; color: var(--tx3); border-bottom: 1px solid var(--line2); padding-bottom: 7px; }
@@ -1792,6 +1792,8 @@ body.drawer-open { overflow: hidden; }
 .ix-row:hover { background: rgba(255,255,255,.04); box-shadow: inset 3px 0 0 var(--line2); }
 .ix-row.honmei { background: linear-gradient(90deg, rgba(245,185,66,.08), transparent 55%); }
 .ix-row .mark { font-size: 17px; }
+.ix-row.gated { opacity: .58; }
+.ix-row .um-side { font-size: 14px; }
 .ix-row .num { font-size: 15.5px; white-space: nowrap; }
 .ix-row .num small { font-size: 10px; color: var(--tx3); margin-left: 2px; }
 .ix-row .num.ix-top { color: var(--gold2); font-weight: 600; }
