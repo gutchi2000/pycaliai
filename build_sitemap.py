@@ -21,6 +21,7 @@ STATIC = [  # (path, changefreq, priority)
     ("/", "daily", "1.0"), ("/explain.html", "weekly", "0.7"), ("/kaiko.html", "daily", "0.8"),
     ("/tsushinbo.html", "weekly", "0.7"), ("/shusse.html", "weekly", "0.6"), ("/shusse_check.html", "monthly", "0.4"),
     ("/horse.html", "weekly", "0.6"), ("/jt.html", "weekly", "0.6"), ("/legal.html", "yearly", "0.2"),
+    ("/guide.html", "monthly", "0.6"), ("/glossary.html", "monthly", "0.5"), ("/speed.html", "monthly", "0.6"),
 ]
 
 

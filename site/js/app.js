@@ -555,6 +555,7 @@ const SORTS = {
   ai:    { key: (h) => h.ai_score ?? -1, dir: -1 },
   win:   { key: (h) => h.p_win ?? -1, dir: -1 },
   sho:   { key: (h) => h.p_sho ?? -1, dir: -1 },
+  si:    { key: (h) => h.speed?.v ?? -1, dir: -1 },
 };
 
 function spark(h) {
@@ -589,6 +590,20 @@ function subLine(h) {
   if (h.jockey) parts.push(h.jockey + (h.kawari ? "(替)" : ""));
   if (!h.jockey && h.pedigree?.sire) parts.push("父" + h.pedigree.sire);
   return parts.join(" ") || "—";
+}
+
+/* ---------------- スピード指数 (speed_index.py, 100 基準) ---------------- */
+// 予測指数 = 過去の実走指数(走破タイムを基準タイム・斤量・馬場差・ペースで補正)から今回を予測した値。
+// 100 = 古馬1〜2勝クラスの基準タイム水準。今回の斤量込み。オッズは不使用。解説: speed.html
+function siCell(h) {
+  const s = h.speed;
+  if (!s || s.v == null) return `<span class="c-si num ta-r"><span class="si-na">—</span></span>`;
+  return `<span class="c-si num ta-r ${s.rk === 1 ? "top" : ""}">${s.v.toFixed(1)}<small>#${s.rk}</small></span>`;
+}
+function siChip(h) {
+  const s = h.speed;
+  if (!s || s.v == null) return "";
+  return `<span class="sichip ${s.rk === 1 ? "top" : ""}" title="スピード指数（予測・100基準）">指${Math.round(s.v)}<i>#${s.rk}</i></span>`;
 }
 
 /* ---------------- レベル (近走成績ベース, 公開データのみ, 非蓄積) ---------------- */
@@ -702,7 +717,7 @@ function renderTable(r, flip = false) {
       <span>${wk(h)}</span>
       <span class="hcell">
         <span class="hname">${esc(h.name)}${h.scratched ? `<i class="scrbadge">${esc(h.scratched)}</i>` : ""}${shusseBadge(r, h)}</span>
-        <span class="hsub">${levelChip(h)}${kyakuChip(h)}${esc(subLine(h))}</span>
+        <span class="hsub">${siChip(h)}${levelChip(h)}${kyakuChip(h)}${esc(subLine(h))}</span>
       </span>
       <span class="c-ninki num ta-c">${h.ninki ?? "—"}</span>
       <span class="pbar c-ai">
@@ -710,6 +725,7 @@ function renderTable(r, flip = false) {
         <span class="bar"><i style="width:${idx === "—" ? 0 : idx}%;--i:${i}"></i></span>
         <span class="rk">#${h.ai_rank ?? "—"}</span>
       </span>
+      ${siCell(h)}
       <span class="pwin num ta-r">${pct(h.p_win)}<small>%</small></span>
       <span class="psho num ta-r c-sho">${pct(h.p_sho, 0)}<small>%</small></span>
       <span class="c-spark ta-c">${spark(h)}</span>
@@ -734,6 +750,7 @@ function renderTable(r, flip = false) {
         <span>${sortBtn("uma", "印")}</span><span>馬番</span><span>馬名・騎手</span>
         <span class="ta-c c-ninki">${sortBtn("ninki", "人気")}</span>
         <span class="c-ai">${sortBtn("ai", "AI指数")}</span>
+        <span class="ta-r c-si" title="スピード指数（予測・100基準）">${sortBtn("si", "速度")}</span>
         <span class="ta-r">${sortBtn("win", "勝率")}</span>
         <span class="ta-r c-sho">${sortBtn("sho", "複勝圏")}</span>
         <span class="ta-c c-spark">近5走</span>
@@ -1203,6 +1220,9 @@ function openDrawer(umaban) {
     ["斤量", h.kinryo ? num(h.kinryo) + " kg" : "—"],
     ["厩舎", h.trainer ? `${esc(h.shozoku ? h.shozoku + "・" : "")}${esc(h.trainer)}` : "—"],
     ["脚質", h.style ? esc(h.style) : "—"],
+    ["スピード指数 (予測)", h.speed?.v != null
+      ? `<b class="num">${h.speed.v.toFixed(1)}</b> <small>レース内 ${h.speed.rk} 位 ・ <a href="speed.html" style="color:inherit">解説</a></small>`
+      : "—（実走指数のある過去走なし）"],
     ["馬レベル (近走成績)", h.level
       ? `<b class="lvchip lv-${h.level.tier}" style="margin-right:6px">${h.level.tier}</b>${h.level.score} <small>/100</small>`
       : "—（出走歴なし）"],
@@ -1243,6 +1263,11 @@ function openDrawer(umaban) {
       <thead><tr><th></th><th>コース</th><th>馬場</th><th>着</th><th>人気</th><th>クラス</th><th>脚質</th><th>間隔</th></tr></thead>
       <tbody>${runRows}</tbody>
     </table></div>${histSummary}` : `<div class="cw-empty">出走歴なし（初出走）</div>`}
+    ${h.speed?.runs?.length ? `<div class="dw-sec">近走のスピード指数（実走） <a href="speed.html" class="dw-silink">指数の作り方</a></div>
+    <div class="rt-wrap"><table class="rt si-rt">
+      <thead><tr><th>日付</th><th>コース</th><th>クラス</th><th>着</th><th>指数</th></tr></thead>
+      <tbody>${h.speed.runs.map(([d, c, k, f, v]) => `<tr><td class="num">${d.slice(2, 4)}.${+d.slice(4, 6)}.${+d.slice(6, 8)}</td><td>${esc(c)}</td><td>${esc(k || "")}</td><td class="num">${f ?? "—"}</td><td class="num si-v"><i style="width:${Math.max(0, Math.min(100, (v - 60) * 1.25))}%"></i><b>${v.toFixed(1)}</b></td></tr>`).join("")}</tbody>
+    </table></div>` : ""}
     ${career ? `<div class="dw-sec">指数推移（キャリア ${career.points.length} 走）</div>
     <div class="dw-hsum">直近 <b class="num">${career.cur}</b> ・ 最高 <b class="num">${career.best}</b>
       ${career.rank ? ` ・ 現役ランキング <b class="num">${career.rank}</b> 位 <small>/ ${career.n_rank.toLocaleString()}頭</small>` : ""}</div>

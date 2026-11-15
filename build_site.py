@@ -248,6 +248,30 @@ def parse_wide_kekka() -> dict[tuple, dict]:
     return out
 
 
+SPEED_DIR = ROOT / "reports" / "speed_index"
+
+
+def load_speed_day(date_str: str) -> dict:
+    """speed_index.py score-day の出力 → {(場所, R, 馬番): {"v": 予測指数, "rk": 順位, "runs": 近走}}。
+    無ければ空（指数なしでサイトは作れる）。走破タイムなどの生データは含めない（指数と着順だけ）。"""
+    p = SPEED_DIR / f"day_{date_str}.json"
+    if not p.exists():
+        return {}
+    try:
+        d = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    out = {}
+    for r in d.get("races", []):
+        for h in r.get("horses", []):
+            out[(r.get("place"), int(r.get("rno")), int(h.get("umaban")))] = {
+                "v": h.get("pred"), "rk": h.get("rank"),
+                "runs": [[x["date"], f'{x["place"]}{x["surface"]}{x["dist"]}', x.get("klass"), x.get("finish"), x["fig"]]
+                         for x in (h.get("recent") or [])[:5]],
+            }
+    return out
+
+
 def parse_kekka(date_str: str, wide_data: dict) -> dict[str, dict]:
     """data/kekka/{date}.csv → rid16 → {order, top3, pays}"""
     p = KEKKA_DIR / f"{date_str}.csv"
@@ -1092,6 +1116,7 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
     results = parse_kekka(date_str, wide_data)
     hanro_map = parse_training_file(pick_training_file("H", date_str), "hanro")
     wc_map = parse_training_file(pick_training_file("W", date_str), "wc")
+    speed_map = load_speed_day(date_str)
 
     races_out = []
     for race in bundle.get("races", []):
@@ -1109,6 +1134,7 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
             if pced else {}
         base_fuku = pced.get("baseline_fuku_rate") if pced else None
 
+        rno_i = int(rid[-2:]) if rid[-2:].isdigit() else None
         horses = []
         for h in race.get("horses", []):
             umaban = h.get("umaban")
@@ -1183,6 +1209,7 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
                 "training": training,
                 "ped_stats": ped_stats,
                 "umami": umami_obj,
+                "speed": speed_map.get((meta.get("place", ""), rno_i, int(umaban))) if umaban else None,
             })
 
         # 人気が weekly に無い場合はオッズ昇順から導出
