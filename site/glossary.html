@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyCaLiAI — 用語集</title>
+<meta name="description" content="PyCaLiAI の画面に出てくる言葉（印・勝率・複勝圏・AI指数・混戦度・妙味・見送り・回収率・信頼区間など）と、馬券・統計の基本用語をカテゴリ別に解説。検索つき。">
+<link rel="canonical" href="https://pycaliai.com/glossary.html">
+<meta property="og:title" content="PyCaLiAI — 用語集">
+<meta property="og:description" content="印・勝率・混戦度・妙味・回収率・信頼区間…画面に出てくる言葉の意味。">
+<meta property="og:url" content="https://pycaliai.com/glossary.html">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pycaliai.com/apple-touch-icon.png">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#070b14">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=20261116-rk2">
+<style>
+  .wrap{max-width:960px;margin:0 auto;padding:var(--pad);}
+  .ehead{margin:8px 0 12px;}
+  .ehead .eyebrow{font-family:var(--disp);font-size:11px;letter-spacing:.3em;color:var(--gold);}
+  .ehead h1{font-family:var(--disp);font-weight:600;font-size:1.5rem;margin:4px 0 6px;color:var(--tx);}
+  .ehead p{color:var(--tx2);font-size:.92rem;line-height:1.8;margin:0;}
+  .ehead a{color:var(--gold2);}
+  .tools{padding:10px 0 8px;margin:0 0 6px;}
+  .search{width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--line2);border-radius:var(--r-pill);color:var(--tx);font-size:.95rem;padding:10px 16px;font-family:var(--sans);}
+  .search:focus{outline:none;border-color:var(--gold);}
+  .cats{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;}
+  .cats a{font-size:.78rem;color:var(--tx2);text-decoration:none;border:1px solid var(--line);background:var(--card);border-radius:var(--r-pill);padding:3px 10px;}
+  .cats a:hover{border-color:var(--gold);color:var(--tx);}
+  .cats a small{color:var(--tx3);margin-left:4px;}
+  .cat{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 20px 6px;box-shadow:var(--shadow-card);margin:0 0 14px;scroll-margin-top:16px;}
+  .cat h2{font-size:1rem;font-weight:700;color:var(--tx);margin:0 0 2px;display:flex;align-items:center;gap:9px;}
+  .cat h2::before{content:"";width:3px;height:16px;border-radius:2px;background:linear-gradient(180deg,var(--gold2),var(--gold));}
+  .cat .lead{color:var(--tx3);font-size:.82rem;margin:0 0 6px;}
+  dl{margin:0;}
+  .term{padding:10px 0;border-top:1px solid var(--line);scroll-margin-top:16px;}
+  .term:target{background:linear-gradient(90deg,rgba(245,185,66,.08),transparent);}
+  dt{font-weight:700;color:var(--tx);font-size:.95rem;}
+  dt .alias{font-weight:400;color:var(--tx3);font-size:.78rem;margin-left:8px;font-family:var(--disp);}
+  dt a.pl{color:var(--tx3);text-decoration:none;font-size:.75rem;margin-left:6px;opacity:0;}
+  .term:hover dt a.pl{opacity:1;}
+  dd{margin:4px 0 0;color:var(--tx2);font-size:.88rem;line-height:1.8;}
+  dd a{color:var(--gold2);}
+  dd .see{display:inline-block;margin-left:4px;font-size:.78rem;}
+  mark{background:rgba(245,185,66,.3);color:inherit;border-radius:2px;}
+  .empty{color:var(--tx3);font-size:.9rem;padding:20px 0;text-align:center;}
+  .note{color:var(--tx3);font-size:.8rem;line-height:1.7;}
+</style>
+</head>
+<body>
+<div class="track-stripe"></div>
+<header class="topbar gnav">
+  <div class="tb-in">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit" aria-label="PyCaLiAI トップ">
+      <img class="brand-logo" src="icons/icon-96.png" alt="" width="30" height="30">
+      <span class="brand-mark">Py<b>CaLi</b>AI</span>
+    </a>
+    <nav class="modenav" aria-label="サイト内ナビ">
+      <a href="index.html#app" style="text-decoration:none"><button type="button">予想</button></a>
+      <a href="index.html#results" style="text-decoration:none"><button type="button">成績</button></a>
+      <a href="kaiko.html" style="text-decoration:none"><button type="button">回顧</button></a>
+      <a href="tsushinbo.html" style="text-decoration:none"><button type="button">通信簿</button></a>
+      <details class="nav-more"><summary>データ</summary>
+        <div class="nav-menu">
+        <a href="explain.html" style="text-decoration:none"><button type="button">分析カード</button></a>
+        <a href="shusse.html" style="text-decoration:none"><button type="button">出世予測</button></a>
+        <a href="horse.html" style="text-decoration:none"><button type="button">馬</button></a>
+        <a href="jt.html" style="text-decoration:none"><button type="button">騎手</button></a>
+        <a href="guide.html" style="text-decoration:none"><button type="button">AIの仕組み</button></a>
+        <a href="glossary.html" style="text-decoration:none"><button type="button" class="on">用語集</button></a>
+        <a href="speed.html" style="text-decoration:none"><button type="button">スピード指数</button></a>
+        </div>
+      </details>
+      <a id="navDiscord" href="#" hidden style="text-decoration:none"><button type="button">Discord</button></a>
+    </nav>
+  </div>
+</header>
+<div class="wrap">
+  <div class="ehead">
+    <div class="eyebrow">GLOSSARY</div>
+    <h1>用語集</h1>
+    <p>PyCaLiAI の画面に出てくる言葉と、馬券・統計の基本用語です。全体の流れは <a href="guide.html">AI の仕組み</a> にまとめています。</p>
+  </div>
+  <div class="tools">
+    <input id="q" class="search" type="search" placeholder="言葉で探す（例: 混戦度、回収率、ワイド）" aria-label="用語を検索" autocomplete="off">
+    <nav class="cats" id="cats" aria-label="カテゴリ"></nav>
+  </div>
+  <div id="list"></div>
+  <p class="note">定義はサイトの現在の計算方法に合わせています。方式を変えたときはこのページも更新します。</p>
+</div>
+<footer class="site-legal">
+  <a href="legal.html">免責事項・プライバシーポリシー</a>
+  <a href="mailto:contact@pycaliai.com">お問い合わせ</a>
+  <span>© 2026 PyCaLiAI</span>
+</footer>
+<script>
+/* 用語データ: [id, 用語, 別名/英語, 説明(HTML可)] */
+var GLOSSARY = [
+  { id: "marks", name: "印と順位", lead: "AI がレースの中で各馬をどう並べたか。", terms: [
+    ["mark", "印", "◎〇▲△△", "AI の勝率が高い順に、上位 5 頭へ付ける記号。◎ 本命、〇 対抗、▲ 単穴、△ 連下（4 位と 5 位）。印は順番だけを表し、確率の大きさは含みません。"],
+    ["honmei", "本命（◎）", "AI 1 位", "AI の勝率がいちばん高い馬。サイトの成績はおもに ◎ で採点しています。"],
+    ["ai-index", "AI 指数", "0–100", "モデルが出したスコアを、そのレースの最下位 0・最上位 100 に並べ直した値。レース内の相対値なので、別のレースどうしでは比べられません。"],
+    ["ai-rank", "AI 順", "", "AI の勝率で並べた順位。印が付かない 6 位以下の馬にも付きます。"],
+    ["speed-index", "スピード指数（速度）", "100 基準", "走破タイムを、コースごとの基準タイムと比べて、斤量・その日の馬場・ペース・競馬場の癖を差し引いた能力指数。100 が古馬 1〜2 勝クラスの標準で、1600m で 0.1 秒が 1 点。走った後の「実走指数」と、出走表に出す「予測指数」（今回の斤量込み・オッズ不使用）があります。<a class='see' href='speed.html'>作り方と成績 →</a>"],
+    ["speed-real", "実走指数", "", "実際に走ったタイムから出したスピード指数。馬の詳細の「近走のスピード指数」に出します。不利や出遅れは補正していません。"],
+    ["pw", "強さスコア（PW）", "power rating", "全レースの着順だけから、勝った・負けた相手の強さを積み上げて計算するレーティング（Elo 型）。芝とダートは別々で、それぞれ現役最上位の馬を 100 にしています。芝の数字とダートの数字は比べられません。結果のある日は「そのレース前」の値を出します。"],
+    ["est-ninki", "推定人気・推定オッズ", "", "当日のオッズを一切使わず、過去走の成績・過去走の人気・騎手の成績などから「この馬は何番人気になりそうか」を予測した値。実際のオッズではありません。2024〜25 年の検証で、人気順の一致（順位相関）0.86、1 番人気を当てた率 66%。"],
+    ["suimyo", "推妙（推定妙味）", "", "AI の勝率 × 推定オッズ ÷ 0.8 × 100。100 なら AI と推定の市場が同じ見立て、大きいほど AI の方が高く見ている。人気薄の馬ほど大きく出ます。2026 年の検証では、どの帯でも単勝の回収率は 100% を超えていないので、「この帯なら買い」という意味はありません。<a class='see' href='speed.html#suimyo'>検証 →</a>"],
+    ["speed-pred", "予測指数", "", "過去の実走指数・間隔・距離や芝ダの替わり・年齢などから、今回の実走指数を予測した値（今回の斤量込み）。出走表の「速度」列。レース内の順位を # で添えます。"]
+  ]},
+  { id: "prob", name: "確率", lead: "AI が出す数字の中心。", terms: [
+    ["p-win", "勝率", "P(1 着)", "その馬が 1 着になる確率。全馬を足すとおおよそ 100% になります。過去の実績に合うよう較正した値です。"],
+    ["p-ren", "連対率", "P(2 着以内)", "2 着以内に入る確率。馬連・馬単を考えるときの目安。"],
+    ["p-sho", "複勝圏（3 着内率）", "P(3 着以内)", "3 着以内に入る確率。複勝・ワイドを考えるときの目安。勝率が低くても複勝圏が高い「堅実型」の馬がいます。"],
+    ["pl", "Plackett–Luce モデル", "PL", "各馬の強さのスコアから、着順全体の確率を計算する方法。「残っている馬の中から 1 頭ずつ順に選ばれる」と考えて、1 着・2 着・3 着の確率を出します。"],
+    ["calib", "較正", "キャリブレーション", "AI が「20%」と言った馬が、本当に 20% くらい勝っているように数字を直すこと。過去のレースで出した確率と実際の結果を突き合わせて補正します。"],
+    ["ece", "ECE", "較正誤差", "出した確率と実際の的中率のずれの平均。小さいほど確率の数字をそのまま信じられます。"]
+  ]},
+  { id: "race", name: "レースの性格", lead: "レース名の横のメーターと判定。", terms: [
+    ["dominance", "本命優位", "", "◎ の勝率から 〇 の勝率を引いた値。大きいほど ◎ が抜けていて、小さいと上位 2 頭が横並び。"],
+    ["concentration", "上位集中", "", "◎ と 〇 の勝率の合計。高いほど上位 2 頭で決まりやすいレース。"],
+    ["chaos", "混戦度", "エントロピー", "全馬の勝率がどれだけ散らばっているか（0〜1）。1 に近いほど、どの馬にもチャンスがある混戦。生の値は 0.8〜1.0 に集まるので、判定では過去のレースの中での百分位に直して使います。"],
+    ["agreement", "市場一致", "順位相関", "AI の順位と人気順がどれだけ一致しているか。低いレースは、AI が人気とは違う馬を推しています。"],
+    ["hardness", "堅い / 標準 / 荒れ", "", "混戦度の百分位で分けたレースの見立て。下位 30% が「堅い」、上位 30% が「荒れ」、その間が「標準」。"],
+    ["member-level", "メンバーレベル", "S〜D", "出走馬の近走成績の上位 3 頭平均が、同じクラスの過去のレースの中でどのくらいかを 5 段階で表したもの。S ハイレベル、A やや強め、B 標準、C やや軽い、D 低調。"]
+  ]},
+  { id: "market", name: "市場との比較", lead: "AI の見立てと人気（オッズ）の差。", terms: [
+    ["implied", "オッズから逆算した確率", "1 ÷ オッズ", "単勝オッズの逆数。市場がその馬に付けている勝つ見込みのおおよその値です（控除率の分だけ合計は 100% を超えます）。"],
+    ["vs-market", "妙味 / 中立 / 過剰", "", "AI の勝率が、オッズから逆算した確率より 20% 以上高ければ「妙味」、20% 以上低ければ「過剰」、その間が「中立」。「AI の方が高く見ている」という意味で、儲かるという意味ではありません。"],
+    ["umami", "妙味グレード", "S / A / B / C / 罠", "過去に同じ状況（AI の期待値 × 人気帯）だった馬券が実際にどれだけ戻ったかで付けた格。S は過去の回収率 85% 以上、A は 80% 以上、B は 72% 以上。勝つ見込みが低すぎる馬や単勝 50 倍超の大穴は「罠」として除きます。"],
+    ["ev", "期待値", "EV", "確率 × オッズ。1 を超えると理屈の上では得な馬券ですが、AI と市場の意見が大きく食い違うときは、たいてい AI の方が間違っています。サイトの買い目は期待値の大きさでは選んでいません。"],
+    ["flb", "本命–大穴バイアス", "", "人気馬は実力どおりかやや控えめに、大穴は実力より高く買われやすいという、競馬に昔から知られる傾向。大穴の馬券ほど回収率が低くなります。"]
+  ]},
+  { id: "horse", name: "馬の評価", lead: "出走表と馬ページの補助指標。", terms: [
+    ["lv", "馬レベル（Lv）", "S〜D", "近走の着順と人気から出した、その馬の近況の目安（0〜100 を S〜D に区切ったもの）。AI の確率とは別の物差しです。"],
+    ["career-index", "指数推移", "", "各走の着順と人気から出した 0〜100 の指数を、キャリア全体で並べたグラフ。上り調子か下り坂かを見るためのもの。"],
+    ["style", "脚質", "逃げ・先行・差し・追込", "道中のおおまかな位置取りの傾向。想定隊列とペースの見立てに使います。"],
+    ["pace", "ペース予想", "S / M / H", "出走馬の脚質の組み合わせから見た、レースの流れの見立て。逃げ馬が複数いればハイペース（H）、逃げ馬不在で先行馬が多ければスロー（S）。"],
+    ["shusse", "出世予測", "", "若い馬が将来オープンや重賞に届くかを予測する読み物。馬券用ではありません。"]
+  ]},
+  { id: "bets", name: "買い目と見送り", lead: "サイトの買い目の決め方。", terms: [
+    ["skip", "見送り", "", "当てにくい、または当たっても戻りが少ないと判断したレースで、買い目を出さないこと。混戦度が上位 3 分の 1、7 頭以下、◎ の勝率 5% 未満、◎ の単勝オッズ 1.9 倍超、障害レース、データ不備のどれかで見送ります。<a class='see' href='guide.html#skip'>詳しく →</a>"],
+    ["miokuri-record", "見送りの成績", "買っていたら", "見送ったレースにも同じ方式の買い目を記録しておき、結果が出た後に「もし買っていたら」を集計したもの。見送り判断そのものの成績表です。<a class='see' href='tsushinbo.html#mio'>通信簿で見る →</a>"],
+    ["t20", "T-20 / T-10", "発走 20 分前 / 10 分前", "買い目を出すタイミング。発走 20 分前に速報、10 分前に直前のオッズでもう一度判定して確定します。"],
+    ["display-only", "表示専用", "", "サイトの買い目は検証と情報提供のためのもので、実際のお金では買っていません。"],
+    ["frozen", "凍結版", "", "最初のレースの発走前に保存した予想の控え。採点は必ずこの凍結版で行い、あとから書き換えた予想で成績を良く見せることはしません。"],
+    ["torigami", "トリガミ", "", "当たったのに、払戻が使った金額より少ないこと。点数を増やすほど起きやすくなります。"]
+  ]},
+  { id: "score", name: "成績の見方", lead: "通信簿などの数字を読むための統計用語。", terms: [
+    ["roi", "回収率", "ROI", "払戻の合計 ÷ 買った金額の合計。100% を超えればプラス。控除率があるため、平均的に買えば 75〜80% 前後になります。"],
+    ["hit-rate", "的中率", "", "買った馬券のうち当たった割合。的中率が高くても回収率が高いとは限りません。"],
+    ["takeout", "控除率", "", "売上のうち払戻に回らない割合。JRA では単勝・複勝 20%、馬連・ワイド・枠連 22.5%、馬単・三連複 25%、三連単 27.5%。"],
+    ["ci", "95% 信頼区間", "CI", "「本当の値はたぶんこの範囲」という幅。件数が少ないほど広くなります。区間が 100% をまたいでいる回収率は、プラスともマイナスとも言い切れません。"],
+    ["wilson", "Wilson 区間", "", "的中率のような割合に付ける信頼区間の計算方法。件数が少ないときや、割合が 0% や 100% に近いときでも幅がおかしくなりにくい方法です。"],
+    ["oos", "過去検証 / 前向きの実績", "", "過去検証は、学習に使っていない過去のレースで確かめた成績。前向きの実績は、発走前に公開した予想をそのまま採点した本番の成績。サイトが公表する成績は前向きの実績だけです。"],
+    ["split", "時系列分割", "", "学習（2022 年まで）・調整（2023 年）・検証（2024 年以降）を年で分けること。未来のデータで学習して成績が良く見える失敗を防ぎます。"],
+    ["leak", "リーク", "先読み", "予想の時点ではわからないはずの情報（結果や当日のオッズなど）が、学習や評価に紛れ込むこと。成績が実際より良く見える原因になります。"],
+    ["n", "件数（n）", "", "集計に使ったレースや馬券の数。通信簿では件数 30 未満の行を薄く表示し、結論を出さないようにしています。"]
+  ]},
+  { id: "baken", name: "馬券の種類", lead: "JRA の馬券の基本。", terms: [
+    ["tansho", "単勝", "", "1 着の馬を当てる。"],
+    ["fukusho", "複勝", "", "選んだ馬が 3 着以内に入れば的中（7 頭以下のレースは 2 着以内）。払戻は少なめですが当たりやすい馬券。"],
+    ["umaren", "馬連", "", "1 着と 2 着の 2 頭を、順番を問わずに当てる。"],
+    ["umatan", "馬単", "", "1 着と 2 着の 2 頭を、順番どおりに当てる。"],
+    ["wide", "ワイド", "", "3 着以内に入る 2 頭の組み合わせを当てる。"],
+    ["wakuren", "枠連", "", "1 着と 2 着の枠番の組み合わせを当てる。"],
+    ["sanrenpuku", "三連複", "", "1〜3 着の 3 頭を、順番を問わずに当てる。"],
+    ["sanrentan", "三連単", "", "1〜3 着の 3 頭を、順番どおりに当てる。"]
+  ]}
+];
+
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  function strip(h){ var d = document.createElement("div"); d.innerHTML = h; return d.textContent || ""; }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function hl(text, q){
+    var t = esc(text); if(!q) return t;
+    var i = t.toLowerCase().indexOf(esc(q).toLowerCase());
+    return i < 0 ? t : t.slice(0, i) + "<mark>" + t.slice(i, i + esc(q).length) + "</mark>" + t.slice(i + esc(q).length);
+  }
+  function render(q){
+    q = (q || "").trim();
+    var ql = q.toLowerCase(), html = "", chips = "", total = 0;
+    GLOSSARY.forEach(function(c){
+      var rows = c.terms.filter(function(t){
+        return !ql || (t[1] + " " + t[2] + " " + strip(t[3])).toLowerCase().indexOf(ql) >= 0;
+      });
+      if(!rows.length) return;
+      total += rows.length;
+      chips += '<a href="#cat-' + c.id + '">' + esc(c.name) + '<small>' + rows.length + '</small></a>';
+      html += '<section class="cat" id="cat-' + c.id + '"><h2>' + esc(c.name) + '</h2><p class="lead">' + esc(c.lead) + '</p><dl>' +
+        rows.map(function(t){
+          return '<div class="term" id="' + t[0] + '"><dt>' + hl(t[1], q) +
+            (t[2] ? '<span class="alias">' + esc(t[2]) + '</span>' : '') +
+            '<a class="pl" href="#' + t[0] + '" aria-label="この用語へのリンク">#</a></dt><dd>' +
+            (q ? hl(strip(t[3]), q) : t[3]) + '</dd></div>';
+        }).join("") + '</dl></section>';
+    });
+    $("cats").innerHTML = chips;
+    $("list").innerHTML = total ? html : '<p class="empty">「' + esc(q) + '」に当てはまる用語はありません。</p>';
+  }
+  render("");
+  $("q").addEventListener("input", function(e){ render(e.target.value); });
+  if(location.hash){ var el = document.getElementById(location.hash.slice(1)); if(el) el.scrollIntoView(); }
+})();
+</script>
+<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+<script defer src="js/site_config.js?v=20261105b"></script>
+</body>
+</html>

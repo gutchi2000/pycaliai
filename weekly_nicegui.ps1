@@ -124,6 +124,38 @@ function Invoke-PowerRating {
 }
 
 # =================================================================
+# スピード指数 (speed_index.py, 100 基準) の週次更新 (2026-11-15)
+#   build      : 走破タイム → 実走指数 (2026 年分は週次出走表の「前走」欄から復元するので、
+#                今日の出走表を置いた後に作り直すと各馬の直近の走まで入る)
+#   score-day  : その日の予測指数 → reports\speed_index\day_{date}.json (build_site.py が読む)
+#   export-meta: 解説ページ (site\speed.html) の数字 → site\data\speed_meta.json (集計値のみ)
+#   失敗しても印・買い目・成績には影響しない (出走表の「速度」列が出ないだけ)。Warn のみ。
+#   予測モデルの学習 (predict-train) は週次では回さない (学習は 2022 年まで、手動)。
+# =================================================================
+function Invoke-SpeedIndex {
+    param([string]$Date = "")
+    try {
+        $prevExitSI = $LASTEXITCODE
+        $env:PYTHONIOENCODING = "utf-8"
+        Step "[speed] スピード指数 更新 (speed_index.py、印・買い目には影響しません)"
+        & .\venv311\Scripts\python.exe -W ignore speed_index.py build 2>&1 | Select-Object -Last 2 | ForEach-Object { Write-Host "    $_" }
+        if ($LASTEXITCODE -ne 0) {
+            Warn "speed_index build が exit $LASTEXITCODE (実走指数は前回のまま)"
+        } else {
+            if ($Date -ne "") {
+                & .\venv311\Scripts\python.exe -W ignore speed_index.py score-day $Date --show 0 2>&1 | Out-Null
+                if ($LASTEXITCODE -ne 0) { Warn "speed_index score-day $Date が exit $LASTEXITCODE (出走表の速度列なし)" }
+                else { OK "スピード指数 出走表: reports\speed_index\day_$Date.json" }
+            }
+            & .\venv311\Scripts\python.exe -W ignore speed_index.py export-meta 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { Warn "speed_index export-meta が exit $LASTEXITCODE (解説ページの数字は前回のまま)" }
+            else { OK "スピード指数 解説ページの数字: site\data\speed_meta.json" }
+        }
+        $global:LASTEXITCODE = $prevExitSI
+    } catch { Warn "スピード指数 更新 例外 (本番には影響なし): $($_.Exception.Message)" }
+}
+
+# =================================================================
 # calibrator_shadow_eval.py の週次フック (P0-3 確認試験用シャドー処理)
 #   本番のbundle/kekka生成が終わった直後に score/settle を呼ぶだけ。
 #   本番の出力・終了コードには一切影響させない (fail-open)。
@@ -445,6 +477,9 @@ if ($Post) {
     # -- 強さスコア (ローカル専用): 今週の結果まで取り込んで作り直す。失敗は Warn のみ。
     Invoke-PowerRating
 
+    # -- スピード指数: 今週の結果で解説ページの前向き成績 (speed_meta.json) を更新。失敗は Warn のみ。
+    Invoke-SpeedIndex
+
     # -- 出世予測 AI (ファン向け読み物、馬券非転用) の週次更新: 今週の出走表/結果を取り込み
     #    → 現役馬を再推論 → サイト用 JSON (analysis/shusse/out_v2/live/site/)。続く
     #    sync-hf-umami.ps1 内の build_site.py が site/data/shusse/ に取り込む。
@@ -706,6 +741,9 @@ if ($masterCsv) {
 # -- 強さスコア (ローカル専用): $Date より前の結果だけで作り、当日の出走表を
 #    reports\power_rating\card_{date}.txt に保存する (好走気配/凡走注意つき)。失敗は Warn のみ。
 Invoke-PowerRating -CardDate $Date -Until
+# -- スピード指数: 今日の出走表まで取り込んで実走指数を作り直し、今日の予測指数を出す
+#    (続く sync-hf-umami.ps1 内の build_site.py が出走表の「速度」列に載せる)。失敗は Warn のみ。
+Invoke-SpeedIndex -Date $Date
 
 if ($SkipGit) {
     Step "[4/5] git push SKIPPED (-SkipGit)"

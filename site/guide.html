@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PyCaLiAI — AI の仕組みと数字の読み方</title>
+<meta name="description" content="PyCaLiAI の AI 予想ができるまでの流れ、勝率・複勝圏・AI指数・混戦度など画面の数字の読み方、見送りのルール、使い方、そして AI の成績と限界をまとめたガイド。">
+<link rel="canonical" href="https://pycaliai.com/guide.html">
+<meta property="og:title" content="PyCaLiAI — AI の仕組みと数字の読み方">
+<meta property="og:description" content="予想ができるまでの流れ、数字の読み方、見送りのルール、成績と限界。">
+<meta property="og:url" content="https://pycaliai.com/guide.html">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://pycaliai.com/apple-touch-icon.png">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#070b14">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=20261116-rk2">
+<style>
+  .wrap{max-width:960px;margin:0 auto;padding:var(--pad);}
+  .ehead{margin:8px 0 14px;}
+  .ehead .eyebrow{font-family:var(--disp);font-size:11px;letter-spacing:.3em;color:var(--gold);}
+  .ehead h1{font-family:var(--disp);font-weight:600;font-size:1.5rem;margin:4px 0 6px;color:var(--tx);}
+  .ehead p{color:var(--tx2);font-size:.92rem;line-height:1.8;margin:0;}
+  .panel{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r-md);padding:16px 20px;box-shadow:var(--shadow-card);margin:0 0 14px;scroll-margin-top:16px;}
+  .panel h2{font-size:1.02rem;font-weight:700;color:var(--tx);letter-spacing:.04em;margin:0 0 10px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+  .panel h2::before{content:"";width:3px;height:16px;border-radius:2px;background:linear-gradient(180deg,var(--gold2),var(--gold));}
+  .panel h2 .no{font-family:var(--disp);color:var(--gold);font-size:.8rem;letter-spacing:.1em;}
+  .panel h3{font-size:.9rem;color:var(--tx);margin:14px 0 6px;}
+  .panel p,.panel li{color:var(--tx2);font-size:.9rem;line-height:1.85;}
+  .panel p{margin:0 0 8px;}
+  .panel ul{margin:4px 0 8px;padding-left:1.3em;}
+  .panel b{color:var(--tx);}
+  .panel a{color:var(--gold2);}
+  .toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 14px;margin:0;padding:0;list-style:none;counter-reset:toc;}
+  .toc li{counter-increment:toc;}
+  .toc a{display:block;color:var(--tx2);text-decoration:none;font-size:.88rem;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-sm,8px);background:var(--card);}
+  .toc a::before{content:counter(toc,decimal-leading-zero) "  ";font-family:var(--disp);color:var(--gold);font-size:.78rem;}
+  .toc a:hover{border-color:var(--gold);color:var(--tx);}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 4px;}
+  @media(max-width:640px){.pair{grid-template-columns:1fr;}}
+  .card2{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 14px;}
+  .card2 .tag{font-family:var(--disp);font-size:.7rem;letter-spacing:.18em;color:var(--gold);}
+  .card2.no .tag{color:var(--uncertain);}
+  .card2 ul{margin:4px 0 0;}
+  /* 流れ図 */
+  .flow{display:flex;flex-direction:column;gap:0;margin:8px 0 6px;}
+  .step{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 14px;}
+  .step .n{font-family:var(--disp);font-size:1.25rem;color:var(--gold2);line-height:1.2;text-align:center;}
+  .step .t{font-weight:700;color:var(--tx);font-size:.92rem;}
+  .step .d{color:var(--tx2);font-size:.86rem;line-height:1.7;margin-top:2px;}
+  .step .out{display:inline-block;margin-top:4px;font-size:.74rem;color:var(--tx3);border:1px dashed var(--line2);border-radius:var(--r-pill);padding:1px 8px;}
+  .arrow{height:18px;margin-left:34px;border-left:2px solid var(--line2);}
+  table.gt{width:100%;border-collapse:collapse;font-size:.86rem;margin:6px 0 4px;}
+  .gt th,.gt td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;line-height:1.65;}
+  .gt th{color:var(--tx3);font-weight:500;font-size:.76rem;letter-spacing:.04em;}
+  .gt td:first-child{white-space:nowrap;color:var(--tx);font-weight:700;}
+  .gt td{color:var(--tx2);}
+  .tw{overflow-x:auto;}
+  .timeline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:6px 0;}
+  @media(max-width:760px){.timeline{grid-template-columns:1fr 1fr;}}
+  .tl{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--gold);border-radius:var(--r-md);padding:10px 12px;}
+  .tl .when{font-family:var(--disp);font-size:.76rem;letter-spacing:.12em;color:var(--gold2);}
+  .tl .what{color:var(--tx);font-weight:700;font-size:.88rem;margin:2px 0;}
+  .tl .d{color:var(--tx2);font-size:.8rem;line-height:1.65;}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:8px 0 10px;}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;}
+  .kpi .l{font-size:.74rem;color:var(--tx3);letter-spacing:.06em;}
+  .kpi .v{font-family:var(--disp);font-size:1.6rem;font-weight:600;color:var(--gold2);line-height:1.2;margin:4px 0 2px;}
+  .kpi .s{font-size:.74rem;color:var(--tx3);}
+  .note{color:var(--tx3);font-size:.8rem;line-height:1.7;}
+  .gl{font-size:.8rem;color:var(--tx3);}
+  .gl a{color:var(--tx2);}
+  .next{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .next a{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:var(--r-pill);padding:7px 14px;text-decoration:none;font-size:.86rem;}
+  .next a:hover{border-color:var(--gold);color:var(--gold2);}
+</style>
+</head>
+<body>
+<div class="track-stripe"></div>
+<header class="topbar gnav">
+  <div class="tb-in">
+    <a class="brand" href="index.html" style="text-decoration:none;color:inherit" aria-label="PyCaLiAI トップ">
+      <img class="brand-logo" src="icons/icon-96.png" alt="" width="30" height="30">
+      <span class="brand-mark">Py<b>CaLi</b>AI</span>
+    </a>
+    <nav class="modenav" aria-label="サイト内ナビ">
+      <a href="index.html#app" style="text-decoration:none"><button type="button">予想</button></a>
+      <a href="index.html#results" style="text-decoration:none"><button type="button">成績</button></a>
+      <a href="kaiko.html" style="text-decoration:none"><button type="button">回顧</button></a>
+      <a href="tsushinbo.html" style="text-decoration:none"><button type="button">通信簿</button></a>
+      <details class="nav-more"><summary>データ</summary>
+        <div class="nav-menu">
+        <a href="explain.html" style="text-decoration:none"><button type="button">分析カード</button></a>
+        <a href="shusse.html" style="text-decoration:none"><button type="button">出世予測</button></a>
+        <a href="horse.html" style="text-decoration:none"><button type="button">馬</button></a>
+        <a href="jt.html" style="text-decoration:none"><button type="button">騎手</button></a>
+        <a href="guide.html" style="text-decoration:none"><button type="button" class="on">AIの仕組み</button></a>
+        <a href="glossary.html" style="text-decoration:none"><button type="button">用語集</button></a>
+        <a href="speed.html" style="text-decoration:none"><button type="button">スピード指数</button></a>
+        </div>
+      </details>
+      <a id="navDiscord" href="#" hidden style="text-decoration:none"><button type="button">Discord</button></a>
+    </nav>
+  </div>
+</header>
+<div class="wrap">
+  <div class="ehead">
+    <div class="eyebrow">HOW IT WORKS</div>
+    <h1>AI の仕組みと数字の読み方</h1>
+    <p>PyCaLiAI の予想がどう作られ、画面のそれぞれの数字が何を意味し、どんなときに見送るのか。いいところも苦手なところも、このページにまとめました。わからない言葉は <a href="glossary.html" style="color:var(--gold2)">用語集</a> で引けます。</p>
+  </div>
+
+  <section class="panel">
+    <h2>目次</h2>
+    <ol class="toc">
+      <li><a href="#what">AI がやること・やらないこと</a></li>
+      <li><a href="#flow">予想ができるまで</a></li>
+      <li><a href="#read">画面の数字の読み方</a></li>
+      <li><a href="#gauges">レースの性格を表す 4 つのメーター</a></li>
+      <li><a href="#when">いつ何が出るか</a></li>
+      <li><a href="#skip">見送りのルール</a></li>
+      <li><a href="#use">目的別の使い方</a></li>
+      <li><a href="#record">成績と限界</a></li>
+    </ol>
+  </section>
+
+  <section class="panel" id="what">
+    <h2><span class="no">01</span>AI がやること・やらないこと</h2>
+    <p>PyCaLiAI は、各馬が <b>1 着になる確率</b> と <b>3 着以内に入る確率</b> を出し、その順に印（◎〇▲△△）を付けるシステムです。馬券の点数や配分は、その確率と見送りのルールから機械的に決めています。</p>
+    <div class="pair">
+      <div class="card2">
+        <div class="tag">DOES</div>
+        <ul>
+          <li>過去走の成績・タイム・指数、騎手・調教師の近況、調教、血統、コース条件から確率を推定</li>
+          <li>推定した確率が「実際の的中率」と合うように補正（較正）してから表示</li>
+          <li>自信の持てないレースは見送りと明示</li>
+          <li>結果が出たら、外れたレースも含めて全部集計して公開</li>
+        </ul>
+      </div>
+      <div class="card2 no">
+        <div class="tag">DOES NOT</div>
+        <ul>
+          <li>当日の馬体重やオッズを予想（確率）に使わない。前日までにわかる情報だけで作る</li>
+          <li>儲かることを約束しない。回収率は控除率（約 20〜25%）を下回るのが現状</li>
+          <li>実際のお金で買っていない。表示している買い目は検証用・表示専用</li>
+          <li>オッズや払戻金そのものは掲載しない</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="flow">
+    <h2><span class="no">02</span>予想ができるまで</h2>
+    <p>出走表が出てから画面に印が並ぶまで、毎週同じ手順を自動で回しています。</p>
+    <div class="flow">
+      <div class="step"><div class="n">1</div><div><div class="t">出走表と過去のデータを集める</div>
+        <div class="d">出走表に、各馬の過去走（着順・タイム・上がり・位置取り・指数など）、騎手と調教師の成績、調教、血統をつなげます。騎手・調教師の成績は「そのレースより前に確定していた分」だけを使い、未来の結果が混ざらないようにしています。</div>
+        <span class="out">約 180 項目の特徴</span></div></div>
+      <div class="arrow"></div>
+      <div class="step"><div class="n">2</div><div><div class="t">レース内の順位を付ける</div>
+        <div class="d">勾配ブースティング（LightGBM）の順位学習モデルが、同じレースの馬どうしを比べて「強さのスコア」を出します。学習は 2022 年まで、調整は 2023 年、検証は 2024 年以降という時系列の分け方で、過去のデータに合わせすぎていないかを確かめています。</div>
+        <span class="out">AI 指数（レース内 0〜100）</span></div></div>
+      <div class="arrow"></div>
+      <div class="step"><div class="n">3</div><div><div class="t">スコアを確率に直す</div>
+        <div class="d">スコアを Plackett–Luce という着順の確率モデルに入れて、全馬の「1 着になる確率」「2 着以内」「3 着以内」を計算します。そのうえで、過去に「勝率 20% と出した馬」が本当に 20% 勝っていたかを確かめ、ずれていた分を補正（較正）します。</div>
+        <span class="out">勝率・連対率・複勝圏</span></div></div>
+      <div class="arrow"></div>
+      <div class="step"><div class="n">4</div><div><div class="t">印とレースの性格を決める</div>
+        <div class="d">勝率の高い順に ◎〇▲△△ を付け、確率の散らばり方から混戦度などのメーターを出します。出走馬の近走成績から、メンバーのレベルも判定します。</div>
+        <span class="out">印・混戦度・メンバーレベル</span></div></div>
+      <div class="arrow"></div>
+      <div class="step"><div class="n">5</div><div><div class="t">買うか見送るかを決める</div>
+        <div class="d">発走前のオッズが出たら、<a href="#skip">見送りのルール</a> に当てはめます。参戦するレースだけ、決まった方式で買い目を出します。</div>
+        <span class="out">買い目 or 見送り</span></div></div>
+      <div class="arrow"></div>
+      <div class="step"><div class="n">6</div><div><div class="t">結果で採点する</div>
+        <div class="d">レース後に、発走前に公開していた予想（あとから書き換えない凍結版）で採点し、<a href="tsushinbo.html">通信簿</a> と <a href="kaiko.html">回顧記事</a> に反映します。</div>
+        <span class="out">通信簿・回顧</span></div></div>
+    </div>
+  </section>
+
+  <section class="panel" id="read">
+    <h2><span class="no">03</span>画面の数字の読み方</h2>
+    <p>出走表の各列の意味です。迷ったら <b>勝率</b> と <b>複勝圏</b> を見てください。ほかの数字はその補助です。</p>
+    <div class="tw"><table class="gt">
+      <thead><tr><th>表示</th><th>意味</th><th>見方のコツ</th></tr></thead>
+      <tbody>
+        <tr><td>印 ◎〇▲△△</td><td>勝率の高い順に上位 5 頭へ付ける印。</td><td>印は順位だけを表します。◎ 勝率 40% のレースと 15% のレースでは、同じ ◎ でも信頼度がまったく違います。</td></tr>
+        <tr><td>勝率</td><td>その馬が 1 着になる確率（較正済み）。</td><td>全馬を足すとおおよそ 100%。単勝オッズの逆数（1 ÷ オッズ）と比べると、市場との評価の差がわかります。</td></tr>
+        <tr><td>複勝圏</td><td>3 着以内に入る確率。</td><td>複勝・ワイドを考えるときの基準。勝率は低くても複勝圏が高い「堅実型」の馬がいます。</td></tr>
+        <tr><td>AI 指数</td><td>モデルのスコアを、そのレース内で最下位 0・最上位 100 に並べ直した値。</td><td>レース内の相対値なので、別のレースの数字とは比べられません。差の大きさを見るためのものです。</td></tr>
+        <tr><td>Lv（馬レベル）</td><td>近走の着順と人気から出した、その馬の近況の目安（S〜D）。</td><td>AI の確率とは別の物差しです。確率が高いのに Lv が低い馬は、条件替わりなどで評価が上がっている可能性があります。</td></tr>
+        <tr><td>妙味 / 中立 / 過剰</td><td>AI の勝率が単勝オッズから逆算した確率より 20% 以上高ければ「妙味」、20% 以上低ければ「過剰」。</td><td>妙味は「AI の方が高く見ている」というだけで、儲かる印ではありません。AI は人気薄の馬を読むのが苦手です。</td></tr>
+        <tr><td>妙味グレード</td><td>過去に同じ状況（AI の期待値 × 人気帯）だった馬券が実際どれだけ戻ったかで格付け。S・A・B・C、来る見込みの薄い馬は「罠」。</td><td>S の基準は「過去の回収率 85% 以上」で、100% を超えるという意味ではありません。数字だけ大きい大穴を除くためのものと考えてください。</td></tr>
+        <tr><td>速度（スピード指数）</td><td>走破タイムを基準タイム・斤量・馬場差・ペースで補正した能力指数から、今回を予測した値。100 が古馬 1〜2 勝クラスの標準。</td><td>AI の確率とは別に作った物差し。1 位と 2 位の差が大きいほど 1 位の信頼度が上がります。<a href="speed.html">作り方と成績</a></td></tr>
+        <tr><td>近 5 走</td><td>直近 5 走の着順。</td><td>馬名をクリックすると、各走の詳細と指数の推移が開きます。</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="panel" id="gauges">
+    <h2><span class="no">04</span>レースの性格を表す 4 つのメーター</h2>
+    <p>レース名の横の円グラフは、AI がそのレースをどう見ているかの要約です。</p>
+    <div class="tw"><table class="gt">
+      <thead><tr><th>メーター</th><th>計算</th><th>高いと</th></tr></thead>
+      <tbody>
+        <tr><td>本命優位</td><td>◎ の勝率 − 〇 の勝率</td><td>◎ が抜けている。低いと ◎ と 〇 がほぼ横並び。</td></tr>
+        <tr><td>上位集中</td><td>◎ と 〇 の勝率の合計</td><td>上位 2 頭で決まりやすい。馬連・ワイドを絞りやすい。</td></tr>
+        <tr><td>混戦度</td><td>全馬の勝率の散らばり（正規化エントロピー、0〜1）</td><td>どの馬にもチャンスがある＝荒れやすい。1 に近いほど混戦。</td></tr>
+        <tr><td>市場一致</td><td>AI の順位と人気順の順位相関</td><td>AI と世間の見立てが同じ。低いレースは AI が人気と違う馬を推している。</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">混戦度の生の値は 0.8〜1.0 あたりに集まりやすいため、「堅い」「荒れ」の判定や見送りでは、過去のレースの中で何番目くらいの混戦か（百分位）に直してから使います。</p>
+  </section>
+
+  <section class="panel" id="when">
+    <h2><span class="no">05</span>いつ何が出るか</h2>
+    <div class="timeline">
+      <div class="tl"><div class="when">開催日の朝</div><div class="what">印と確率</div><div class="d">全レースの印・勝率・メーターを公開。当日の見どころ記事もこの時間に出ます。</div></div>
+      <div class="tl"><div class="when">発走 20 分前</div><div class="what">買い目の速報</div><div class="d">その時点のオッズで見送り判定をして、参戦するレースは買い目を表示。</div></div>
+      <div class="tl"><div class="when">発走 10 分前</div><div class="what">買い目の確定</div><div class="d">直前のオッズでもう一度判定して確定。速報と変わることがあります。</div></div>
+      <div class="tl"><div class="when">レース後</div><div class="what">採点と回顧</div><div class="d">着順を反映し、通信簿を更新。外れた理由まで書く回顧記事を作ります。</div></div>
+    </div>
+    <p class="note">朝の印と確率は発走まで変えません。当日の取消・騎手変更・馬体重は「当日変更情報」として別に表示します。</p>
+  </section>
+
+  <section class="panel" id="skip">
+    <h2><span class="no">06</span>見送りのルール</h2>
+    <p>当てにくいレース・当たっても戻りが少ないレースは、最初から買いません。次のどれか 1 つでも当てはまれば見送りです。</p>
+    <ul>
+      <li><b>混戦度が高い</b>：過去のレースの中で混戦度が上位 3 分の 1 に入る</li>
+      <li><b>頭数が少ない</b>：出走 7 頭以下</li>
+      <li><b>◎ の勝率が低い</b>：◎ でも 5% 未満</li>
+      <li><b>◎ の単勝オッズが 1.9 倍を超える</b>：◎ が圧倒的な人気になっていないレース</li>
+      <li><b>障害レース</b>、またはデータに不備があって判定できないレース</li>
+    </ul>
+    <p>参戦するのは「◎ が 1.9 倍以下に支持されている」レースだけで、買い目は <b>◎ の複勝 1 点</b> です。過去 3 年の検証で、見送りの条件のうち単独で毎年再現したのが ◎ のオッズの上限だけだったため、この形にしています。</p>
+    <p class="note">見送ったレースにも同じ方式の買い目を記録して「買っていたら」を集計しています（<a href="tsushinbo.html#mio">通信簿の「見送りの成績」</a>）。見送りが正しかったかどうかも公開しています。</p>
+  </section>
+
+  <section class="panel" id="use">
+    <h2><span class="no">07</span>目的別の使い方</h2>
+    <h3>朝のうちに今日の狙いを決めたい</h3>
+    <p>レースを開いて、混戦度が低く本命優位が高いレースの ◎ を確認します。<a href="kaiko.html">見どころ記事</a> に、堅いレース・AI と人気が割れるレース・見送り寄りのレースがまとまっています。</p>
+    <h3>買う直前に最終確認したい</h3>
+    <p>発走 20 分前と 10 分前の買い目、当日変更情報（取消・乗り替わり・馬体重）を見ます。印と確率は朝の時点のもので、当日の変更は反映していません。</p>
+    <h3>人気薄から狙いを探したい</h3>
+    <p>妙味（AI の方が高く見ている）の馬と、市場一致の低いレースを見ます。ただし AI は人気薄の好走を読むのが構造的に苦手です。妙味グレードが「罠」の馬は外して考えてください。</p>
+    <h3>外れた理由を知りたい</h3>
+    <p>レース後の <a href="kaiko.html">回顧記事</a> が、予想・結果・ずれた理由・教訓の順に書いています。<b>💬 相談AI</b> にレース名を添えて質問することもできます。</p>
+  </section>
+
+  <section class="panel" id="record">
+    <h2><span class="no">08</span>成績と限界</h2>
+    <p>発走前に公開した予想を、そのまま採点した 2026 年の実績です（毎週更新）。</p>
+    <div class="kpis">
+      <div class="kpi"><div class="l">採点したレース</div><div class="v" id="gN">—</div><div class="s" id="gNs">公開した全レース</div></div>
+      <div class="kpi"><div class="l">◎ の 3 着以内率</div><div class="v" id="gTop3">—</div><div class="s" id="gTop3s">95% 信頼区間</div></div>
+      <div class="kpi"><div class="l">◎ の勝率</div><div class="v" id="gWin">—</div><div class="s" id="gWins">95% 信頼区間</div></div>
+      <div class="kpi"><div class="l">表示した買い目の回収率</div><div class="v" id="gRoi">—</div><div class="s" id="gRois">外れも全部込み</div></div>
+    </div>
+    <h3>知っておいてほしいこと</h3>
+    <ul>
+      <li><b>回収率は 100% を超えていません。</b>競馬は売上の約 20〜25% が控除されるため、平均的に買えば 75〜80% 前後に落ち着きます。PyCaLiAI の目標は「儲けること」ではなく「いちばん負けない線を探すこと」です。</li>
+      <li><b>◎ の 3 着以内率は 6 割前後が上限</b>と見ています。モデルの規模や特徴を増やしても、過去の検証ではこの水準から動きませんでした。</li>
+      <li><b>人気薄の激走は読めません。</b>AI の勝率が高い穴馬ほど、実際には AI の買いかぶりであることが多いです。</li>
+      <li><b>過去の検証より本番の成績は低めに出ます。</b>当日に手に入るデータが学習時と完全には一致しないためです。公表している数字は本番の前向きの実績だけです。</li>
+    </ul>
+    <p class="note">条件ごと（クラス・距離・競馬場・人気帯など）の成績は <a href="tsushinbo.html">AI の通信簿</a> にあります。</p>
+    <div class="next">
+      <a href="glossary.html">用語集を見る →</a>
+      <a href="tsushinbo.html">通信簿を見る →</a>
+      <a href="index.html#app">今日の予想へ →</a>
+    </div>
+  </section>
+  <p class="note">本ページの内容は予想の仕組みの説明であり、的中や利益を保証するものではありません。馬券の購入はご自身の判断でお願いします。<a href="legal.html" style="color:var(--tx2)">免責事項</a></p>
+</div>
+<footer class="site-legal">
+  <a href="legal.html">免責事項・プライバシーポリシー</a>
+  <a href="mailto:contact@pycaliai.com">お問い合わせ</a>
+  <span>© 2026 PyCaLiAI</span>
+</footer>
+<script>
+addEventListener('DOMContentLoaded',function(){
+  fetch('data/report_card.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():null}).then(function(d){
+    if(!d||!d.overall)return;var o=d.overall,p=d.period||{};
+    var $=function(id){return document.getElementById(id)};
+    var f=function(x){return x?x.slice(0,4)+'.'+(+x.slice(4,6))+'.'+(+x.slice(6,8)):''};
+    if(o.n!=null)$('gN').textContent=o.n.toLocaleString('ja-JP');
+    if(p.from)$('gNs').textContent=f(p.from)+'〜'+f(p.to)+'・公開した全レース';
+    if(o.top3_rate!=null)$('gTop3').textContent=o.top3_rate.toFixed(1)+'%';
+    if(o.top3_lo!=null)$('gTop3s').textContent='95% 信頼区間 '+o.top3_lo.toFixed(1)+'〜'+o.top3_hi.toFixed(1)+'%';
+    if(o.win_rate!=null)$('gWin').textContent=o.win_rate.toFixed(1)+'%';
+    if(o.win_lo!=null)$('gWins').textContent='95% 信頼区間 '+o.win_lo.toFixed(1)+'〜'+o.win_hi.toFixed(1)+'%';
+    if(o.roi!=null)$('gRoi').textContent=o.roi.toFixed(1)+'%';
+    if(o.bets_n!=null)$('gRois').textContent=o.bets_n.toLocaleString('ja-JP')+' 点・外れも全部込み';
+  }).catch(function(){});
+});
+</script>
+<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+<script defer src="js/site_config.js?v=20261105b"></script>
+</body>
+</html>
