@@ -556,7 +556,11 @@ const SORTS = {
   win:   { key: (h) => h.p_win ?? -1, dir: -1 },
   sho:   { key: (h) => h.p_sho ?? -1, dir: -1 },
   si:    { key: (h) => h.speed?.v ?? -1, dir: -1 },
+  pw:    { key: (h) => h.pw ?? -1, dir: -1 },
+  sv:    { key: (h) => savr(h) ?? -1, dir: -1 },
+  um:    { key: (h) => UM_ORD[h.umami?.grade] ?? -1, dir: -1 },
 };
+const UM_ORD = { S: 5, A: 4, B: 3, C: 2, D: 1, "罠": 0 };
 
 function spark(h) {
   const runs = (h.history?.runs || []).slice(0, 5);
@@ -599,6 +603,34 @@ function siCell(h) {
   const s = h.speed;
   if (!s || s.v == null) return `<span class="c-si num ta-r"><span class="si-na">—</span></span>`;
   return `<span class="c-si num ta-r ${s.rk === 1 ? "top" : ""}">${s.v.toFixed(1)}<small>#${s.rk}</small></span>`;
+}
+// 推定妙味 = AI の勝率 × 推定オッズ ÷ 0.8 × 100（推定の市場から見た期待値。100 = AI と推定の市場が同じ見立て）。
+// 推定オッズは当日オッズを使わない市場予測（speed_index.py market-train）。2026 の検証ではどの帯も単勝回収率
+// 100% 超えは無い＝「美味しいゾーン」の色分けはしない。
+function savr(h) {
+  const eo = h.speed?.eo;
+  if (h.p_win == null || !eo) return null;
+  return Math.round(100 * h.p_win * eo / 0.8);
+}
+function raceRanks(r, f) {
+  const xs = r.horses.map((h) => [h.umaban, f(h)]).filter((x) => x[1] != null).sort((a, b) => b[1] - a[1]);
+  const m = new Map();
+  xs.forEach(([u, v], i) => m.set(u, i + 1));
+  return m;
+}
+function pwCell(h, rk) {
+  if (h.pw == null) return `<span class="c-pw num ta-r"><span class="si-na">—</span></span>`;
+  return `<span class="c-pw num ta-r ${rk === 1 ? "top" : ""}" title="強さスコア（芝・ダート別に現役最上位=100）">${Math.round(h.pw)}<small>#${rk}</small></span>`;
+}
+function svCell(h) {
+  const v = savr(h);
+  if (v == null) return `<span class="c-sv num ta-r"><span class="si-na">—</span></span>`;
+  return `<span class="c-sv num ta-r" title="推定妙味 = AI勝率 × 推定オッズ（100 = AI と推定の市場が同じ見立て）">${v}</span>`;
+}
+function umCell(h) {
+  const g = h.umami?.grade;
+  if (!g) return `<span class="c-um ta-c"><span class="si-na">—</span></span>`;
+  return `<span class="c-um ta-c"><span class="um-g" style="background:${UMAMI_COLOR[g] || "#46587e"}">${g}</span></span>`;
 }
 function siChip(h) {
   const s = h.speed;
@@ -703,6 +735,7 @@ function renderTable(r, flip = false) {
   const hs = [...r.horses].sort((a, b) =>
     (s.key(a) - s.key(b)) * s.dir * (state.sortAsc ? 1 : -1));
 
+  const pwRk = raceRanks(r, (h) => h.pw);
   const rows = hs.map((h, i) => {
     const isHonmei = h.mark === "◎";
     const isValue = valueSet.has(h.umaban) || h.vs_market === "under";
@@ -726,6 +759,9 @@ function renderTable(r, flip = false) {
         <span class="rk">#${h.ai_rank ?? "—"}</span>
       </span>
       ${siCell(h)}
+      ${pwCell(h, pwRk.get(h.umaban))}
+      ${svCell(h)}
+      ${umCell(h)}
       <span class="pwin num ta-r">${pct(h.p_win)}<small>%</small></span>
       <span class="psho num ta-r c-sho">${pct(h.p_sho, 0)}<small>%</small></span>
       <span class="c-spark ta-c">${spark(h)}</span>
@@ -751,6 +787,9 @@ function renderTable(r, flip = false) {
         <span class="ta-c c-ninki">${sortBtn("ninki", "人気")}</span>
         <span class="c-ai">${sortBtn("ai", "AI指数")}</span>
         <span class="ta-r c-si" title="スピード指数（予測・100基準）">${sortBtn("si", "速度")}</span>
+        <span class="ta-r c-pw" title="強さスコア（芝・ダート別に現役最上位=100）">${sortBtn("pw", "PW")}</span>
+        <span class="ta-r c-sv" title="推定妙味 = AI勝率 × 推定オッズ">${sortBtn("sv", "推妙")}</span>
+        <span class="ta-c c-um" title="妙味グレード">${sortBtn("um", "格")}</span>
         <span class="ta-r">${sortBtn("win", "勝率")}</span>
         <span class="ta-r c-sho">${sortBtn("sho", "複勝圏")}</span>
         <span class="ta-c c-spark">近5走</span>
@@ -1223,6 +1262,9 @@ function openDrawer(umaban) {
     ["スピード指数 (予測)", h.speed?.v != null
       ? `<b class="num">${h.speed.v.toFixed(1)}</b> <small>レース内 ${h.speed.rk} 位 ・ <a href="speed.html" style="color:inherit">解説</a></small>`
       : "—（実走指数のある過去走なし）"],
+    ["強さスコア (PW)", h.pw != null ? `<b class="num">${Math.round(h.pw)}</b> <small>芝ダ別・現役最上位=100</small>` : "—"],
+    ["推定人気 (当日オッズ不使用)", h.speed?.er != null
+      ? `<b class="num">${h.speed.er}</b> 番人気 <small>推定 ${h.speed.eo?.toFixed(1)} 倍 ・ 推妙 ${savr(h) ?? "—"}</small>` : "—"],
     ["馬レベル (近走成績)", h.level
       ? `<b class="lvchip lv-${h.level.tier}" style="margin-right:6px">${h.level.tier}</b>${h.level.score} <small>/100</small>`
       : "—（出走歴なし）"],
@@ -1462,7 +1504,7 @@ const VIEWS = [
 const MARK_COLOR = { "◎": "#f5b942", "〇": "#d9e2f2", "○": "#d9e2f2", "▲": "#d08b4c", "△": "#8d9cba", "": "#46587e" };
 const RANK_COLOR = { SS: "#f5b942", S: "#2dd4a8", A: "#5ba0f5", B: "#8d9cba" };
 const UMAMI_COLOR = { S: "#f5b942", A: "#2dd4a8", B: "#5ba0f5", C: "#8d9cba", "罠": "#f2555a" };
-let umamiSort = "grade";
+let umamiSort = "ai";
 
 function disposeCharts() {
   charts.forEach((c) => { try { c.dispose(); } catch (e) { /* noop */ } });
@@ -1504,41 +1546,68 @@ function rankBadge(rank) {
 
 /* ---------------- 全頭 UMAMI テーブル ---------------- */
 function umamiTableHtml(r) {
-  const GRADE_ORD = { S: 5, A: 4, B: 3, C: 2, D: 1 };
+  // 全頭 指数一覧（2026-11-15）: AI指数 / 勝率 / スピード指数 / 強さスコア / 推定妙味 / 推定人気・推定オッズ / 妙味グレード
+  const scores = r.horses.map((h) => h.ai_score).filter((v) => v != null);
+  const sMin = scores.length ? Math.min(...scores) : 0;
+  const sRange = scores.length ? Math.max(Math.max(...scores) - sMin, 1e-9) : 1;
+  const aiIdx = (h) => (h.ai_score == null ? null : Math.round((h.ai_score - sMin) / sRange * 100));
   const SORTS = {
-    grade: (h) => GRADE_ORD[h.umami?.grade] ?? -1,
+    grade: (h) => UM_ORD[h.umami?.grade] ?? -1,
     uma: (h) => -(h.umaban ?? 99),
+    ai: (h) => aiIdx(h) ?? -1,
     win: (h) => h.p_win ?? -1,
+    si: (h) => h.speed?.v ?? -1,
+    pw: (h) => h.pw ?? -1,
+    sv: (h) => savr(h) ?? -1,
+    er: (h) => -(h.speed?.er ?? 99),
   };
-  const key = SORTS[umamiSort] ? umamiSort : "grade";
+  const key = SORTS[umamiSort] ? umamiSort : "ai";
   const hs = [...r.horses].sort((a, b) => SORTS[key](b) - SORTS[key](a));
-  const sb = (k, label) => `<button class="usort ${umamiSort === k ? "on" : ""}" data-uk="${k}">${label}${umamiSort === k ? " ▼" : ""}</button>`;
+  const sb = (k, label) => `<button class="usort ${key === k ? "on" : ""}" data-uk="${k}">${label}${key === k ? " ▼" : ""}</button>`;
+  const rk = {
+    ai: raceRanks(r, aiIdx), si: raceRanks(r, (h) => h.speed?.v), pw: raceRanks(r, (h) => h.pw),
+    sv: raceRanks(r, savr),
+  };
+  const cell = (v, k, h, fmt) => (v == null ? `<span class="num ta-r si-na">—</span>`
+    : `<span class="num ta-r ${rk[k].get(h.umaban) === 1 ? "ix-top" : ""}">${fmt(v)}<small>#${rk[k].get(h.umaban)}</small></span>`);
 
   const rows = hs.map((h) => {
     const u = h.umami || {};
     const g = u.grade || "—";
-    const gated = u.side == null;
-    return `<div class="um-row ${gated ? "gated" : ""} ${h.mark === "◎" ? "honmei" : ""}" data-uma="${h.umaban}">
+    const er = h.speed?.er, eo = h.speed?.eo;
+    return `<div class="ix-row ${h.mark === "◎" ? "honmei" : ""}" data-uma="${h.umaban}">
       <span class="mark ${markCls(h.mark)}">${h.mark || "・"}</span>
       <span>${wk(h)}</span>
       <span class="um-name">${esc(h.name)}</span>
-      <span class="num ta-r um-evt">${pct(h.p_win)}<small>%</small></span>
-      <span class="num ta-r um-evf">${pct(h.p_sho, 0)}<small>%</small></span>
+      ${cell(aiIdx(h), "ai", h, (v) => v)}
+      <span class="num ta-r">${pct(h.p_win)}<small>%</small></span>
+      ${cell(h.speed?.v, "si", h, (v) => v.toFixed(1))}
+      ${cell(h.pw, "pw", h, (v) => Math.round(v))}
+      ${cell(savr(h), "sv", h, (v) => v)}
+      <span class="num ta-r">${er == null ? "—" : `${er}<small>番人気</small>`}${eo ? `<i class="ix-eo">${eo.toFixed(1)}倍</i>` : ""}</span>
       <span class="ta-c"><span class="um-g" style="background:${UMAMI_COLOR[g] || "#46587e"}">${g}</span></span>
-      <span class="um-side">${gated ? "—" : esc(u.side || "")}</span>
     </div>`;
   }).join("");
 
   return `<div class="card um-card">
-    <div class="an-t">🍣 全頭 妙味グレード
-      <small>AI確率と市場評価の乖離から算出した独自グレード。S/A=妙味、「罠」は妙味に見えても来る見込み薄</small></div>
-    <div class="um-head">
+    <div class="an-t">📊 全頭 指数一覧
+      <small>AI指数＝AIのスコア（レース内0-100） / 速度＝<a href="speed.html">スピード指数</a>（100基準） / PW＝強さスコア（芝ダ別・現役最上位100）
+      / 推妙＝AI勝率×推定オッズ（100＝AIと推定の市場が同じ見立て） / 推定人気＝当日オッズを使わずに予測した人気 / 格＝妙味グレード</small></div>
+    <div class="ix-scroll"><div class="ix-tbl">
+    <div class="ix-head">
       <span></span><span>${sb("uma", "馬番")}</span><span>馬名</span>
-      <span class="ta-r um-evt">${sb("win", "勝率")}</span>
-      <span class="ta-r um-evf">複勝圏</span>
-      <span class="ta-c">${sb("grade", "格")}</span><span class="um-side">推奨</span>
+      <span class="ta-r">${sb("ai", "AI指数")}</span>
+      <span class="ta-r">${sb("win", "勝率")}</span>
+      <span class="ta-r">${sb("si", "速度")}</span>
+      <span class="ta-r">${sb("pw", "PW")}</span>
+      <span class="ta-r">${sb("sv", "推妙")}</span>
+      <span class="ta-r">${sb("er", "推定人気")}</span>
+      <span class="ta-c">${sb("grade", "格")}</span>
     </div>
     ${rows}
+    </div></div>
+    <div class="ix-note">推定人気・推定オッズは、当日のオッズを使わずに過去走の成績・人気・騎手などから予測した値です（実際のオッズではありません）。
+      推妙は「AI の方が推定の市場より高く見ている度合い」で、2026 年の検証ではどの帯も単勝の回収率は 100% を超えていません。</div>
   </div>`;
 }
 
@@ -1774,7 +1843,7 @@ function renderBunseki(r, vb) {
     $("#um-wrap").querySelectorAll(".usort").forEach((b) => {
       b.onclick = (e) => { e.stopPropagation(); umamiSort = b.dataset.uk; $("#um-wrap").innerHTML = umamiTableHtml(r); wireUmami(); };
     });
-    $("#um-wrap").querySelectorAll(".um-row").forEach((row) => {
+    $("#um-wrap").querySelectorAll(".ix-row").forEach((row) => {
       row.onclick = () => openDrawer(+row.dataset.uma);
     });
   };

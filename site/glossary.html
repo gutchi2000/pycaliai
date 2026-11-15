@@ -18,7 +18,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#070b14">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261115-si">
+<link rel="stylesheet" href="css/style.css?v=20261115-ix">
 <style>
   .wrap{max-width:960px;margin:0 auto;padding:var(--pad);}
   .ehead{margin:8px 0 12px;}
@@ -108,6 +108,9 @@ var GLOSSARY = [
     ["ai-rank", "AI 順", "", "AI の勝率で並べた順位。印が付かない 6 位以下の馬にも付きます。"],
     ["speed-index", "スピード指数（速度）", "100 基準", "走破タイムを、コースごとの基準タイムと比べて、斤量・その日の馬場・ペース・競馬場の癖を差し引いた能力指数。100 が古馬 1〜2 勝クラスの標準で、1600m で 0.1 秒が 1 点。走った後の「実走指数」と、出走表に出す「予測指数」（今回の斤量込み・オッズ不使用）があります。<a class='see' href='speed.html'>作り方と成績 →</a>"],
     ["speed-real", "実走指数", "", "実際に走ったタイムから出したスピード指数。馬の詳細の「近走のスピード指数」に出します。不利や出遅れは補正していません。"],
+    ["pw", "強さスコア（PW）", "power rating", "全レースの着順だけから、勝った・負けた相手の強さを積み上げて計算するレーティング（Elo 型）。芝とダートは別々で、それぞれ現役最上位の馬を 100 にしています。芝の数字とダートの数字は比べられません。結果のある日は「そのレース前」の値を出します。"],
+    ["est-ninki", "推定人気・推定オッズ", "", "当日のオッズを一切使わず、過去走の成績・過去走の人気・騎手の成績などから「この馬は何番人気になりそうか」を予測した値。実際のオッズではありません。2024〜25 年の検証で、人気順の一致（順位相関）0.86、1 番人気を当てた率 66%。"],
+    ["suimyo", "推妙（推定妙味）", "", "AI の勝率 × 推定オッズ ÷ 0.8 × 100。100 なら AI と推定の市場が同じ見立て、大きいほど AI の方が高く見ている。人気薄の馬ほど大きく出ます。2026 年の検証では、どの帯でも単勝の回収率は 100% を超えていないので、「この帯なら買い」という意味はありません。<a class='see' href='speed.html#suimyo'>検証 →</a>"],
     ["speed-pred", "予測指数", "", "過去の実走指数・間隔・距離や芝ダの替わり・年齢などから、今回の実走指数を予測した値（今回の斤量込み）。出走表の「速度」列。レース内の順位を # で添えます。"]
   ]},
   { id: "prob", name: "確率", lead: "AI が出す数字の中心。", terms: [

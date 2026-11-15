@@ -63,7 +63,7 @@ SRC_ENH = Path("E:/競馬過去走データ/raw_data/kekka_1986_2025_enhanced.cs
 SRC_TARGET = [Path("E:/競馬過去走データ/raw_data/kekka_20251206_20260222.csv")]
 SRC_EXTRA_DIR = BASE / "data" / "speed_src"
 FIRST_YEAR = 2011
-LOAD_VERSION = 3   # load_runs の中身を変えたら上げる（キャッシュ無効化）
+LOAD_VERSION = 4   # load_runs の中身を変えたら上げる（キャッシュ無効化）
 
 log = logging.getLogger("speed_index")
 
@@ -99,7 +99,7 @@ def _load_enhanced() -> pd.DataFrame:
     usecols = ["年", "月", "日", "場所", "レース番号", "レース名", "クラスコード", "芝・ダ", "コースコード",
                "距離", "馬場状態", "馬名", "性別", "年齢", "斤量", "頭数", "馬番", "確定着順", "異常コード",
                "着差タイム", "人気順", "走破タイム", "通過順1", "通過順2", "通過順3", "通過順4",
-               "上がり3Fタイム", "血統登録番号", "騎手コード"]
+               "上がり3Fタイム", "血統登録番号", "騎手コード", "単勝オッズ"]
     d = pd.read_csv(SRC_ENH, encoding="cp932", usecols=usecols, low_memory=False)
     d = d[d["年"] >= FIRST_YEAR - 2000].copy()
     out = pd.DataFrame({
@@ -126,7 +126,8 @@ def _load_enhanced() -> pd.DataFrame:
         "time": d["走破タイム"].astype(float),
         "agari": d["上がり3Fタイム"].astype(float),
         "c4": pd.to_numeric(d["通過順4"], errors="coerce"),
-        "jockey": d["騎手コード"].astype(str),
+        "jockey": pd.to_numeric(d["騎手コード"], errors="coerce").astype("Int64").astype(str),
+        "odds": pd.to_numeric(d["単勝オッズ"], errors="coerce"),
         "src": "enh",
     })
     return out
@@ -170,14 +171,17 @@ def _parse_target(path: Path) -> pd.DataFrame:
         "time": secs,
         "agari": pd.to_numeric(t["上り3F"], errors="coerce"),
         "c4": pd.to_numeric(t["4角"], errors="coerce"),
-        "jockey": t["騎手コード"].astype(str),
+        "jockey": pd.to_numeric(t["騎手コード"], errors="coerce").astype("Int64").astype(str),
+        "jockey_name": t["騎手"].astype(str).str.strip(),
+        "odds": pd.to_numeric(t["単勝オッズ"], errors="coerce"),
         "src": path.stem,
     })
     if "外回り" in t.columns:   # 追加エクスポートで外回り列があれば使う
         outer = t["外回り"].astype(str).str.strip().isin(["外", "1", "○", "外回り"])
         out.loc[surf == "芝", "course_code"] = np.where(outer[surf == "芝"], 8, 0)
-    # 着差（勝ち馬との秒差）は走破タイムから
+    # 着差（勝ち馬との秒差）は走破タイムから。人気は単勝オッズの順位
     key = ["date", "place", "rno"]
+    out["ninki"] = out.groupby(key)["odds"].rank(method="min")
     out["margin"] = out["time"] - out.groupby(key)["time"].transform("min")
     return out.dropna(subset=["date", "rno", "dist", "time"])
 
@@ -251,6 +255,7 @@ def load_weekly_reconstructed() -> pd.DataFrame:
             "c4": pd.to_numeric(w["前4角"], errors="coerce"), "field": pd.to_numeric(w["前走出走頭数"], errors="coerce"),
             "ave3f": pd.to_numeric(w["前走Ave-3F"], errors="coerce"), "agari": pd.to_numeric(w["前走上り3F"], errors="coerce"),
             "pdist": pd.to_numeric(w["前距離"], errors="coerce"), "ninki": pd.to_numeric(w["前走人気"], errors="coerce"),
+            "odds": pd.to_numeric(w["前走単勝オッズ"], errors="coerce"),
         })
         prev.append(pv[pv["date"].notna() & (pv["date"].dt.year >= 2026)])
     E = pd.concat(ent, ignore_index=True)
@@ -263,7 +268,7 @@ def load_weekly_reconstructed() -> pd.DataFrame:
     R["jockey"] = ""
     R["src"] = "weekly"
     cols = ["date", "place", "rno", "race_name", "klass", "surface", "course_code", "dist", "going", "horse",
-            "horse_id", "sex", "age", "weight", "field", "umaban", "finish", "abnormal", "margin", "ninki", "time",
+            "horse_id", "sex", "age", "weight", "field", "umaban", "finish", "abnormal", "margin", "ninki", "odds", "time",
             "agari", "c4", "jockey", "src"]
     R = R.dropna(subset=["rno", "time", "finish"]).drop_duplicates(["date", "horse"])
     return R[cols]
@@ -602,7 +607,7 @@ def cmd_build(args) -> None:
     (OUT_DIR / "course_offsets.json").write_text(json.dumps(off, ensure_ascii=False, indent=1), encoding="utf-8")
     keep = ["date", "year", "month", "race_key", "place", "rno", "race_name", "klass", "age_grp", "surface", "course_code",
             "dist", "going", "horse", "horse_id", "sex", "age", "weight", "field", "fsize", "umaban", "finish",
-            "margin", "ninki", "c4", "jockey", "variant", "pace", "pace_adj", "course_adj", "f_pts", "a_pts",
+            "margin", "ninki", "odds", "c4", "jockey", "variant", "pace", "pace_adj", "course_adj", "f_pts", "a_pts",
             "fig0", "fig"]
     f[keep].to_parquet(OUT_DIR / "runs.parquet")
     log.info("figures %d → %s", len(f), OUT_DIR / "runs.parquet")
@@ -713,6 +718,13 @@ def pred_features(f: pd.DataFrame) -> pd.DataFrame:
     x["l1_pace"] = lag[1]["pace"]
     x["l1_c4_rel"] = lag[1]["c4_rel"]
     x["l1_going_n"] = lag[1]["going"].map(GOING_N)
+    # 市場（推定オッズ）用: 過去走の人気・オッズ（過去の市場の評価。当日のオッズではない）
+    for k in (1, 2, 3):
+        x[f"l{k}_ninki_rel"] = (lag[k]["ninki"] - 1) / np.maximum(lag[k]["fsize"] - 1, 1)
+    x["l1_ninki"] = lag[1]["ninki"]
+    x["l1_logodds"] = np.log(lag[1]["odds"].where(lag[1]["odds"] > 0))
+    x["l2_logodds"] = np.log(lag[2]["odds"].where(lag[2]["odds"] > 0))
+    x["best_fin3"] = np.fmin(np.fmin(lag[1]["finish"], lag[2]["finish"]), lag[3]["finish"])
     L = np.column_stack([x[f"l{k}"] for k in range(1, 6)])
     S = np.column_stack([(lag[k]["surface"] == x["surface"]).to_numpy() for k in range(1, 6)])
     D = np.column_stack([(lag[k]["dist"] - x["dist"]).abs().le(200).to_numpy() for k in range(1, 6)])
@@ -821,8 +833,11 @@ def day_entries(date: str) -> pd.DataFrame:
         "horse": w["馬名"].astype(str).str.strip(), "sex": w["性別"].astype(str).str.strip(),
         "age": pd.to_numeric(w["年齢"], errors="coerce"), "weight": pd.to_numeric(w["斤量"], errors="coerce"),
         "umaban": pd.to_numeric(w["馬番"], errors="coerce"),
+        "jockey_name": w["騎手"].astype(str).str.strip(),
     })
     e = e[e["surface"].isin(["芝", "ダ"])].copy()
+    jm = jockey_name_map()
+    e["jockey"] = e["jockey_name"].map(jm).fillna("")
     e["race_key"] = date + e["place"] + e["rno"].astype(str).str.zfill(2)
     # 出走表 CSV は同じ馬が 2 行入っている日がある（4/12 など）。残すと、まとめて計算したときに
     # 片方の行の「直近の走」にその日自身の結果が入る（先読み）ので 1 頭 1 行にする。
@@ -846,7 +861,7 @@ def score_days(dates: list[str]) -> dict[str, dict]:
     first = E["date"].min()
     # 対象期間の実走は出走表の行に載せ替える（同じ日の同じ馬が二重にならないように）
     act = runs[runs["date"] >= first].drop_duplicates(["date", "horse"])
-    cols = ["fig", "finish", "c4", "margin", "pace", "fsize", "going", "weight"]
+    cols = ["fig", "finish", "c4", "margin", "pace", "fsize", "going", "weight", "odds", "ninki"]
     E = E.drop(columns=["fig", "finish", "c4", "margin", "pace", "fsize"]).merge(
         act[["date", "horse"] + cols].rename(columns={"going": "going_a", "weight": "weight_a"}),
         on=["date", "horse"], how="left")
@@ -866,6 +881,18 @@ def score_days(dates: list[str]) -> dict[str, dict]:
         t.loc[have, "pred"] = model.predict(t.loc[have, PRED_FEATS])
     t["pred_w"] = t["pred"] - _wt_pts(t, p)
     t["rank"] = t.groupby("race_key")["pred_w"].rank(ascending=False, method="min")
+    # 推定オッズ（市場の予測）: 当日のオッズは使わない。モデルが無ければ出さない。
+    t["est_odds"] = np.nan
+    t["est_rank"] = np.nan
+    mpath = OUT_DIR / "market_model.txt"
+    if mpath.exists() and len(t):
+        mm = lgb.Booster(model_file=str(mpath))
+        mk = market_features(t.drop(columns=[c for c in ("j_rides", "j_win", "j_top3", "j_ninki") if c in t]),
+                             jockey_year_stats(runs[runs["date"] < first]))
+        mk["yhat"] = mm.predict(mk[MKT_FEATS])
+        q = _race_softmax(mk, "yhat")
+        t["est_odds"] = (TAKE_WIN / q).to_numpy()
+        t["est_rank"] = q.groupby(mk["race_key"]).rank(ascending=False, method="min").to_numpy()
     H = pd.concat([base, t[t["fig"].notna()]], ignore_index=True).sort_values("date")
     out = {}
     for d in dates:
@@ -883,7 +910,9 @@ def score_days(dates: list[str]) -> dict[str, dict]:
             hs = [{"umaban": int(r.umaban), "name": r.horse,
                    "pred": None if pd.isna(r.pred_w) else round(float(r.pred_w), 1),
                    "rank": None if pd.isna(r.rank) else int(r.rank),
-                   "n_runs": int(r.n_runs), "recent": recent.get(r.horse_id, [])} for r in g.itertuples()]
+                   "n_runs": int(r.n_runs), "recent": recent.get(r.horse_id, []),
+                   "est_odds": None if pd.isna(r.est_odds) else round(float(r.est_odds), 1),
+                   "est_rank": None if pd.isna(r.est_rank) else int(r.est_rank)} for r in g.itertuples()]
             races.append({"race_key": rk, "place": r0.place, "rno": int(r0.rno), "race_name": r0.race_name,
                           "klass": r0.klass, "surface": r0.surface, "dist": int(r0.dist), "horses": hs})
         out[d] = {"date": d, "version": "si-20261115", "races": races}
@@ -915,6 +944,124 @@ def cmd_score_day(args) -> None:
             rc = " ".join(f"{x['fig']:.0f}" for x in h["recent"][:5])
             pr = "  —  " if h["pred"] is None else f"{h['pred']:5.1f}"
             print(f"  {h['rank'] or '-':>2} {h['umaban']:>2} {h['name']:<12} 予測 {pr}   近走 {rc}")
+
+
+# --------------------------------------------------------------------------- 推定オッズ（市場の予測）
+# SAV-R 相当の妙味ゾーン用。当日のオッズは使わず「市場がこの馬をどう見るか」を予測する。
+# 入力: 過去の実走指数・過去走の人気/オッズ（過去の市場の評価）・騎手の前年成績・枠・斤量など。
+# 正解: 確定単勝オッズをレース内で正規化した市場確率 q。予測は log(q×頭数) の回帰 → レース内で正規化。
+MKT_REL = ["wmean5", "best3_same", "mean3_same", "l1", "same_dist_best", "l1_ninki_rel", "l2_ninki_rel",
+           "l1_logodds", "j_win", "j_top3", "j_ninki", "best_fin3", "l1_finish_rel"]
+MKT_FEATS = PRED_FEATS + ["l1_ninki_rel", "l2_ninki_rel", "l3_ninki_rel", "l1_ninki", "l1_logodds", "l2_logodds",
+                          "best_fin3", "j_rides", "j_win", "j_top3", "j_ninki", "umaban_rel", "weight"] \
+    + [c + "_rk" for c in MKT_REL] + [c + "_d" for c in MKT_REL]
+TAKE_WIN = 0.80   # 単勝の払戻率（控除率 20%）
+
+
+def jockey_name_map() -> dict:
+    """騎手名（出走表のフルネーム）→ 騎手コード。TARGET 成績形式のファイルから作る。"""
+    m = {}
+    for path in [*SRC_TARGET] + (sorted(SRC_EXTRA_DIR.glob("*.csv")) if SRC_EXTRA_DIR.exists() else []):
+        if not path.exists():
+            continue
+        t = pd.read_csv(path, encoding="cp932", usecols=["騎手", "騎手コード"], dtype=str)
+        for nm, cd in zip(t["騎手"].astype(str).str.strip(), pd.to_numeric(t["騎手コード"], errors="coerce")):
+            if pd.notna(cd):
+                m[nm] = str(int(cd))
+    return m
+
+
+def jockey_year_stats(runs: pd.DataFrame) -> pd.DataFrame:
+    """騎手 × 年 の成績（翌年の特徴に使う＝その年の結果は混ぜない）。"""
+    jk = runs["jockey"].astype(str)
+    r = runs[jk.str.len().between(1, 6) & ~jk.isin(["<NA>", "nan", ""])].copy()
+    r["ninki_rel"] = (r["ninki"] - 1) / np.maximum(r["fsize"] - 1, 1)
+    g = r.groupby(["jockey", "year"]).agg(j_rides=("finish", "size"), j_win=("finish", lambda s: (s == 1).mean()),
+                                         j_top3=("finish", lambda s: (s <= 3).mean()), j_ninki=("ninki_rel", "mean"))
+    g = g.reset_index()
+    g["year"] = g["year"] + 1
+    return g
+
+
+def market_features(x: pd.DataFrame, jst: pd.DataFrame) -> pd.DataFrame:
+    x = x.copy()
+    x["jockey"] = x["jockey"].astype(str)
+    j = jst.copy()
+    j["jockey"] = j["jockey"].astype(str)
+    idx = x.index
+    x = x.merge(j, on=["jockey", "year"], how="left")
+    x.index = idx
+    # 前年の成績が無い騎手（2026 は 2025-12 が欠け気味）は直近の年で埋める
+    miss = x["j_win"].isna() & ~x["jockey"].isin(["", "<NA>", "nan"])
+    if miss.any():
+        last = j.sort_values("year").drop_duplicates("jockey", keep="last").set_index("jockey")
+        for c in ("j_rides", "j_win", "j_top3", "j_ninki"):
+            x.loc[miss, c] = x.loc[miss, "jockey"].map(last[c])
+    x["umaban_rel"] = (x["umaban"] - 1) / np.maximum(x["field"] - 1, 1)
+    g = x.groupby("race_key")
+    for c in MKT_REL:
+        x[c + "_rk"] = g[c].rank(pct=True)
+        x[c + "_d"] = x[c] - g[c].transform("mean")
+    return x
+
+
+def _race_softmax(df: pd.DataFrame, col: str) -> pd.Series:
+    e = np.exp(df[col] - df.groupby("race_key")[col].transform("max"))
+    return e / e.groupby(df["race_key"]).transform("sum")
+
+
+def cmd_market_train(args) -> None:
+    import lightgbm as lgb
+    f = pd.read_parquet(OUT_DIR / "runs.parquet")
+    x = market_features(pred_features(f), jockey_year_stats(f))
+    ok = x["odds"] > 0
+    full = ok.groupby(x["race_key"]).transform("all")
+    x = x[full].copy()
+    inv = 1 / x["odds"]
+    x["q"] = inv / inv.groupby(x["race_key"]).transform("sum")
+    x["y"] = np.log(x["q"] * x.groupby("race_key")["q"].transform("size"))
+    tr = x["year"].between(2013, 2022)
+    va = x["year"] == 2023
+    params = dict(objective="regression", learning_rate=0.03, num_leaves=127, min_data_in_leaf=200,
+                  feature_fraction=0.8, bagging_fraction=0.8, bagging_freq=1, lambda_l2=5.0, verbose=-1)
+    m = lgb.train(params, lgb.Dataset(x.loc[tr, MKT_FEATS], x.loc[tr, "y"]), 4000,
+                  valid_sets=[lgb.Dataset(x.loc[va, MKT_FEATS], x.loc[va, "y"])],
+                  callbacks=[lgb.early_stopping(100), lgb.log_evaluation(500)])
+    m.save_model(str(OUT_DIR / "market_model.txt"))
+    x["yhat"] = m.predict(x[MKT_FEATS])
+    x["qhat"] = _race_softmax(x, "yhat")
+    x["est_odds"] = TAKE_WIN / x["qhat"]
+    imp = pd.Series(m.feature_importance("gain"), index=MKT_FEATS).sort_values(ascending=False)
+    print("gain 上位:", (imp / imp.sum()).head(12).round(3).to_dict())
+    keep = ["race_key", "date", "year", "place", "rno", "umaban", "horse", "klass", "surface", "finish", "odds",
+            "ninki", "q", "qhat", "est_odds", "l1_ninki_rel"]
+    x[keep].to_parquet(OUT_DIR / "market_pred.parquet")
+    _market_eval(x)
+
+
+def _market_eval(x: pd.DataFrame) -> None:
+    for name, yrs in (("調整 2023", [2023]), ("検証 2024-25", [2024, 2025])):
+        y = x[x["year"].isin(yrs)].copy()
+        y["est_rank"] = y.groupby("race_key")["qhat"].rank(ascending=False, method="first")
+        y["act_rank"] = y.groupby("race_key")["q"].rank(ascending=False, method="first")
+        y["nv_rank"] = y.groupby("race_key")["l1_ninki_rel"].rank(method="first")
+        m = y.groupby("race_key").size()
+
+        def rho(col):
+            d2 = ((y[col] - y["act_rank"]) ** 2).groupby(y["race_key"]).sum()
+            return (1 - 6 * d2 / (m * (m ** 2 - 1))).mean()
+        fav = y[y["act_rank"] == 1]
+        lo = np.log(y["est_odds"]) - np.log(y["odds"])
+        print(f"\n== {name}: {y['race_key'].nunique()} レース")
+        print(f"  人気順の一致（レース内 Spearman）推定 {rho('est_rank'):.3f} / 前走の人気だけ {rho('nv_rank'):.3f}")
+        print(f"  1番人気を当てた率 {(fav['est_rank'] == 1).mean():.3f}（前走の人気だけ {(fav['nv_rank'] == 1).mean():.3f}）"
+              f" / 推定1番人気が実際3番人気以内 {(y.loc[y['est_rank'] == 1, 'act_rank'] <= 3).mean():.3f}")
+        print(f"  log(推定/確定オッズ) 中央値絶対誤差 {lo.abs().median():.3f}（×{np.exp(lo.abs().median()):.2f}）"
+              f" 相関 {np.corrcoef(np.log(y['est_odds']), np.log(y['odds']))[0, 1]:.3f}")
+        b = pd.cut(y["est_odds"], [0, 2, 3, 5, 8, 15, 30, 60, 1e9])
+        cal = y.groupby(b, observed=True).agg(n=("finish", "size"), win=("finish", lambda s: (s == 1).mean()),
+                                              implied=("qhat", "mean"))
+        print("  推定オッズ帯ごとの実際の勝率（implied = 推定の市場確率）:\n" + (cal * [1, 100, 100]).round(1).to_string())
 
 
 SITE_META = BASE / "site" / "data" / "speed_meta.json"
@@ -1007,13 +1154,14 @@ def main(argv=None) -> None:
     sd.add_argument("date")
     sd.add_argument("--show", type=int, default=3)
     sub.add_parser("export-meta")
+    sub.add_parser("market-train")
     sds = sub.add_parser("score-days")
     sds.add_argument("start")
     sds.add_argument("end", nargs="?")
     a = ap.parse_args(argv)
     {"build": cmd_build, "tune": cmd_tune, "report": cmd_report, "predict-train": cmd_predict_train,
      "score-day": cmd_score_day, "score-days": cmd_score_days,
-     "export-meta": cmd_export_meta}[a.cmd](a)
+     "export-meta": cmd_export_meta, "market-train": cmd_market_train}[a.cmd](a)
 
 
 if __name__ == "__main__":

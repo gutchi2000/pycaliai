@@ -18,7 +18,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#070b14">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261115-si">
+<link rel="stylesheet" href="css/style.css?v=20261115-ix">
 <style>
   .wrap{max-width:960px;margin:0 auto;padding:var(--pad);}
   .ehead{margin:8px 0 14px;}
@@ -126,6 +126,7 @@
       <li><a href="#record">成績</a></li>
       <li><a href="#use">使い方</a></li>
       <li><a href="#limit">やっていないこと・限界</a></li>
+      <li><a href="#suimyo">推定人気と推妙</a></li>
     </ol>
   </section>
 
@@ -230,6 +231,24 @@
       <a href="guide.html">AI の仕組み →</a>
       <a href="glossary.html#speed-index">用語集 →</a>
     </div>
+  </section>
+  <section class="panel" id="suimyo">
+    <h2><span class="no">09</span>推定人気と推妙</h2>
+    <p>出走表の「推妙」と全頭分析の「推定人気」は、このスピード指数の仕組みを使って作った別の数字です。</p>
+    <h3>推定人気・推定オッズ</h3>
+    <p>当日のオッズを一切使わずに、「この馬は何番人気になりそうか」を予測しています。使うのは、過去の実走指数、過去走の着順と人気、騎手の前年の成績、枠、斤量などです。正解には確定単勝オッズを使い、学習は 2022 年まで、確認は 2024〜25 年で行いました。</p>
+    <div class="tw"><table class="gt">
+      <thead><tr><th>2024〜25 年（6,662 レース）</th><th class="n">推定</th><th class="n">前走の人気だけで並べた場合</th></tr></thead>
+      <tbody>
+        <tr><td class="k">人気順の一致（レース内の順位相関）</td><td class="n">0.86</td><td class="n">0.71</td></tr>
+        <tr><td class="k">1 番人気を当てた率</td><td class="n">66%</td><td class="n">30%</td></tr>
+        <tr><td class="k">推定 1 番人気が実際に 3 番人気以内</td><td class="n">93%</td><td class="n">—</td></tr>
+        <tr><td class="k">推定と確定のオッズのずれ（中央値）</td><td class="n">1.47 倍</td><td class="n">—</td></tr>
+      </tbody>
+    </table></div>
+    <h3>推妙（推定妙味）</h3>
+    <p>AI の勝率 × 推定オッズ ÷ 0.8 × 100 です。100 なら AI と推定の市場が同じ見立てで、大きいほど AI の方がその馬を高く見ています。考え方は stride の SAV-R（勝つ確率 × 前日の推定オッズ）を参考にしました。</p>
+    <p><b>2026 年 4〜11 月の 1,685 レースで、推妙の帯ごとに単勝を全部買った場合の回収率は 64〜93% でした。</b>帯が高いほど良いわけでも、特定の帯が 100% を超えるわけでもありません（95% 区間がはっきり 100% を超える帯はなし）。そのため「この帯なら買い」という色分けはしていません。AI と世間の見立てがどれだけずれているかを見るための数字として使ってください。</p>
   </section>
   <p class="note">指数は JRA が公表したレース結果（走破タイム・上がり 3F・着順・斤量・馬場状態）から PyCaLiAI が独自に計算したものです。データの出典: TARGET frontier JV。的中や利益を保証するものではありません。<a href="legal.html" style="color:var(--tx2)">免責事項</a></p>
 </div>

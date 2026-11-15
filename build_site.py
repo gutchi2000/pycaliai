@@ -266,10 +266,57 @@ def load_speed_day(date_str: str) -> dict:
         for h in r.get("horses", []):
             out[(r.get("place"), int(r.get("rno")), int(h.get("umaban")))] = {
                 "v": h.get("pred"), "rk": h.get("rank"),
+                # 推定オッズ（当日オッズ不使用の市場予測）と推定人気
+                "eo": h.get("est_odds"), "er": h.get("est_rank"),
                 "runs": [[x["date"], f'{x["place"]}{x["surface"]}{x["dist"]}', x.get("klass"), x.get("finish"), x["fig"]]
                          for x in (h.get("recent") or [])[:5]],
             }
     return out
+
+
+POWER_DIR = ROOT / "reports" / "power_rating"
+_POWER_CACHE: dict | None = None
+
+
+def _power_tables() -> dict:
+    """power_rating.py の出力（history.csv のレース前レーティング / ratings.csv / meta.json）を 1 回だけ読む。"""
+    global _POWER_CACHE
+    if _POWER_CACHE is not None:
+        return _POWER_CACHE
+    out = {"hist": {}, "now": {}, "anchors": {}}
+    try:
+        meta = json.loads((POWER_DIR / "meta.json").read_text(encoding="utf-8"))
+        out["anchors"] = meta.get("anchors") or {}
+        with open(POWER_DIR / "history.csv", encoding="utf-8-sig", newline="") as fh:
+            for row in csv.DictReader(fh):
+                d = row["日付"]
+                if d < "2026-01-01":
+                    continue
+                out["hist"].setdefault(d.replace("-", ""), {})[row["馬名"]] = (row["芝ダ"], float(row["R前"]))
+        with open(POWER_DIR / "ratings.csv", encoding="utf-8-sig", newline="") as fh:
+            for row in csv.DictReader(fh):
+                out["now"][row["馬名"]] = {sf: float(row[f"score_{sf}"]) for sf in ("芝", "ダ")
+                                           if (row.get(f"走_{sf}") or "0") not in ("", "0") and row.get(f"score_{sf}")}
+    except Exception as e:  # noqa: BLE001
+        print(f"[power_rating skip] {e}")
+    _POWER_CACHE = out
+    return out
+
+
+def power_score(date_str: str, name: str, surface: str) -> float | None:
+    """強さスコア（power_rating.py、芝・ダート別に現役最上位 = 100）。
+    結果のある開催日は「そのレース前」のレーティングから、まだ走っていない日は最新の値から。
+    着順だけから作る値なので、生データは含まない。"""
+    t = _power_tables()
+    day = t["hist"].get(date_str)
+    if day is not None:
+        v = day.get(name)
+        a = t["anchors"].get(surface) or {}
+        if v and v[0] == surface and a.get("rating_hi") and a.get("rating_lo") is not None:
+            return round(100 * (v[1] - a["rating_lo"]) / (a["rating_hi"] - a["rating_lo"]), 1)
+        return None
+    sc = (t["now"].get(name) or {}).get(surface)
+    return round(sc, 1) if sc is not None else None
 
 
 def parse_kekka(date_str: str, wide_data: dict) -> dict[str, dict]:
@@ -1210,6 +1257,7 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
                 "ped_stats": ped_stats,
                 "umami": umami_obj,
                 "speed": speed_map.get((meta.get("place", ""), rno_i, int(umaban))) if umaban else None,
+                "pw": power_score(date_str, h.get("horse_name", ""), (meta.get("course", "") or " ")[0]),
             })
 
         # 人気が weekly に無い場合はオッズ昇順から導出
