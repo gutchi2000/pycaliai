@@ -27,9 +27,9 @@ from pathlib import Path
 warnings.filterwarnings("ignore")
 
 BASE = Path(__file__).parent
-V8_MODEL = BASE / "models/unified_rank_v8.pkl"
-V8_CAL   = BASE / "models/pl_calibrators_v8.pkl"
-V8_CURVE = BASE / "data/pl_payout_curve_v8.pkl"
+V8_MODEL = BASE / "models/archive/unified_rank_v8_affinity.pkl"   # 2026-11-15 改名 (v8 = KYI 候補)
+V8_CAL   = BASE / "models/archive/pl_calibrators_v8_affinity.pkl"
+V8_CURVE = BASE / "data/pl_payout_curve_v8_affinity.pkl"
 
 
 def step1_calibrators():
@@ -98,6 +98,8 @@ def step6_class_prior():
 
 
 def main():
+    # 2026-11-15: 退役。class_prior_v8 / audit_marks_by_class --model v8 が JRDB KYI 候補 (root の run_v8_pipeline.py) の成果物を上書きするので止める
+    raise SystemExit("退役 (v8 affinity)。v8 は JRDB KYI 候補: python run_v8_pipeline.py")
     print("=" * 70)
     print("run_v8_pipeline.py")
     print("=" * 70)

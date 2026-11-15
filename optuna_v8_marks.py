@@ -45,7 +45,7 @@ optuna.logging.set_verbosity(optuna.logging.WARNING)
 BASE       = Path(__file__).parent
 MASTER_CSV = BASE / "data/master_v2_20130105-20251228.csv"
 KEKKA_CSV  = BASE / "data/kekka_20130105-20251228.csv"
-OUT_MODEL  = BASE / "models/unified_rank_v8.pkl"
+OUT_MODEL  = BASE / "models/archive/unified_rank_v8_affinity.pkl"   # 2026-11-15: v8 の名前は JRDB KYI 候補 (train_v8_kyi.py) が使う
 OUT_JSON   = BASE / "reports/optuna_v8_marks.json"
 
 SEED       = 42
