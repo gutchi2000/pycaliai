@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-switch_production_model.py — 本番モデルを v6 ⇔ v7 に切り替える (方策ファイルと混戦度の基準を 1 回で揃える。2026-11-13)
+switch_production_model.py — 本番モデルを v6 / v7 / v8 で切り替える (方策ファイルと混戦度の基準を 1 回で揃える。2026-11-13)
 =============================================================================================
 本番が何のモデルかは data/production_policy.json が正本。切替で揃えないといけないもの:
   model / artifacts.rank_model / artifacts.serve_calibrator / chaos_reference (基準分布はモデルごと) / policy_id /
@@ -8,7 +8,9 @@ switch_production_model.py — 本番モデルを v6 ⇔ v7 に切り替える (
 成果物そのもの (pkl) は動かさない。data/artifact_pins.json は v6・v7 の両方を照合対象に持つ。
 
   python scripts/switch_production_model.py --to v7 --start 20261114     # v7 を本番に
-  python scripts/switch_production_model.py --to v6 --start 20261121     # v6 に戻す (次の開催日を --start に)
+  python scripts/switch_production_model.py --to v8 --start 20261121     # v8 を本番に (2026-11-16)
+  python scripts/switch_production_model.py --to v7 --start <次の開催日>  # v7 に戻す
+  python scripts/switch_production_model.py --to v6 --start <次の開催日>  # v6 に戻す
   python scripts/switch_production_model.py --status                    # 現在の状態と照合だけ
 
 戻すとき: 進行中の前向き cohort は数え直しになる (モデルが変わると ◎ が変わるため)。当日の bundle は作り直すこと
@@ -34,6 +36,10 @@ MODELS = {
                policy_id="a95-sniper-v2-odds19-20261112", label="v6 (120 特徴)"),
     "v7": dict(rank_model="models/unified_rank_v7.pkl", serve_calibrator="models/pl_calibrators_v7_serve.pkl",
                policy_id="a95-sniper-v2-odds19-v7-20261113", label="v7 (v6 + JRDB 過去走特徴 59 列)"),
+    # v8 の配信用較正器は serve fit 版ではなくフル特徴の pl_calibrators_v8.pkl (2026-11-16。serve fit は 2026 再生でも僅かに悪い)。
+    # export は models/pl_calibrators_v8_serve.pkl が無ければこれを使うので、_serve を置かないこと。
+    "v8": dict(rank_model="models/unified_rank_v8.pkl", serve_calibrator="models/pl_calibrators_v8.pkl",
+               policy_id="a95-sniper-v2-odds19-v8-20261116", label="v8 (v7 + JRDB 前日 KYI + 外厩)"),
 }
 
 

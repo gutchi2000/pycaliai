@@ -337,6 +337,8 @@ def main() -> int:
     # serve fit で 複勝 -36% / 馬連 -29%)。offline 監査 (audit_marks 等) は
     # フル特徴スコアなので従来の {tag}.pkl を使い続けること。
     # 注意: serve で作れる特徴が変わったら build_pl_calibrators_serve.py で再 fit。
+    # 2026-11-16: v8 は _serve を置かない (配信で死ぬ特徴が gain の 2.9% しかなく、serve fit は test 2024-25 でも
+    # 2026 の配信経路再生 47 日でも較正が僅かに悪かった。policy の serve_calibrator は pl_calibrators_v8.pkl)。
     serve_cal = BASE / f"models/pl_calibrators_{tag}_serve.pkl"
     if serve_cal.exists():
         be.CAL_PKL = serve_cal

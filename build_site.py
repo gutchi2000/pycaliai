@@ -433,7 +433,7 @@ def build_live_class_prior(dates: list[str]) -> dict[str, dict]:
             b = json.loads(Path(bp).read_text(encoding="utf-8"))
         except Exception:
             continue
-        if not model_era(d8, b).startswith(("v6", "v7")):
+        if not model_era(d8, b).startswith(("v6", "v7", "v8")):
             continue
         res_all = parse_kekka(d8, {})
         for race in b.get("races", []):

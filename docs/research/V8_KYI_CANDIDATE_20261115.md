@@ -4,7 +4,7 @@
 効きの大半は KYI の前日指数（特に騎手指数）で、外厩の上乗せは +0.3pt と誤差の範囲。締切市場に対しては上乗せなし
 （M ゲート none）なので、馬券の回収率は変わらない見込み。価値は「オッズが出る前の予想（朝の印・サイトの印）の精度」。**
 2026 年を配信経路で作り直した比較でも v7 より AI1位 3着内 +3.65pt [+2.23, +5.04]（47 開催日 1,507R）。
-本番の切替はしていない（`production_policy.json`・`artifact_pins.json` は触っていない）。
+**2026-11-16 に本番へ暫定採用（起算 2026-11-21、§8）。** 最終評価は前向き比較 CW-21。
 
 - 学習: `train_v8_kyi.py` → `models/unified_rank_v8.pkl`（git 管理外、このマシンだけ）、`reports/train_v8_kyi.json`
 - 特徴: `jrdb_kyi_features.py`（接頭辞 `k8_`、69 列）。学習と配信が同じ `make_features` を通る
@@ -111,3 +111,45 @@ python lab/experiments/v8_market_gate.py
 python -m analysis.replay_serve_2026 run --out <dir> --model v8 --proxy --recover 1 --ignore-gate --truncate
 ```
 外厩コメントの年単位アーカイブは `data/jrdb/raw/targetmark/`（会員ページ `www.jrdb.com/member/jrdvsp/gk/gaikyu.html` から 11/15 に取得）。
+
+## 8. 本番切替（2026-11-16 決定、起算 2026-11-21）
+
+ユーザー「良さそうなら切り替えて」。v7 を本番にしたとき（`V7_JRDB_CANDIDATE_20261113.md` §8）と同じ手順で切り替えた。
+
+| 項目 | 切替前 (v7) | 切替後 (v8) |
+|---|---|---|
+| 予測モデル | `unified_rank_v7.pkl` (179 特徴) | `unified_rank_v8.pkl` (220 特徴) |
+| 配信用較正器 | `pl_calibrators_v7_serve.pkl` | `pl_calibrators_v8.pkl`（フル特徴の fit、`_serve` は置かない。下記） |
+| 混戦度の基準分布 | `serve-v7-jrdb-20261113` | `serve-v8-kyi-20261116`（v8 で 2026 年 47 開催日 1,507R を配信経路で再生） |
+| 0.667 分位の生値 | 0.8482 | 0.7958（v7 の基準のままだと見送り率 33% → 11% にずれた） |
+| 特徴カバレッジ基準 | 179 特徴、配信で失う gain 5.04% | 220 特徴、2.90%（直近 4 開催日 11/07・08・14・15） |
+| policy id | `a95-sniper-v2-odds19-v7-20261113` | `a95-sniper-v2-odds19-v8-20261116` |
+| 買い方 | sniper（◎ T-10 オッズ ≤1.9 のみ・◎複勝 1 点） | 同じ |
+| 前向き cohort (CW-10/11) | 起算 11/14 | 起算 11/21（11/14〜15 の v7 分は記述専用） |
+
+**配信用較正器を serve fit にしなかった理由**: 配信で死ぬ特徴が gain の 2.9% しかなく、マスクして fit し直しても良くならない。
+- test 2024-25（配信マスクのスコア）: ◎単勝 ECE フル 0.0048 / serve 0.0090、◎複勝 0.0127 / 0.0183、馬連 0.0111 / 0.0111。
+- 2026 配信経路の再生 47 日（全馬）: 単勝 ECE 0.0040 / 0.0049、logloss 0.2133 / 0.2143。複勝 ECE 0.0053 / 0.0088、logloss 0.4198 / 0.4219。
+- ◎は両者で同じ（印はスコア順）。serve fit 版は `models/archive/pl_calibrators_v8_serve_20261116_unused.pkl` に退避。
+  export は `models/pl_calibrators_v8_serve.pkl` があるとそちらを優先するので、置かないこと。
+
+**混戦度の基準を再生 bundle から作った理由**: `rebuild_quantile_bundles.py` は 2026-04〜08 の開催日で止まる。障害判定の証拠（`data/bunseki/`、TARGET 出走馬分析）が 9/5 以降の分しか無いため（v7 の 11/13 には作れていた。原因は未調査）。
+作れた 25 日と再生 47 日で重なる 301R は混戦度が完全一致（相関 1.0）。なので再生 47 日（`analysis.replay_serve_2026 --proxy --recover 1 --ignore-gate --truncate`）をそのまま基準にした。
+控えは `reports/_requant_bundles_v8_replay47_20261116/`。
+
+**運用を止めないための仕組み**
+- 戻り先は v8 → v7 → v6 の順（`weekly_nicegui.ps1` の `$ModelChain`）。v8 は前日 KYI が無い・埋まり 90% 未満の日に失敗し、その日だけ v7、v7 も駄目なら v6 で作り直す。
+- KYI の保存（`PyCaLiAI_JRDB_Snapshot`）は金土 19:40・土日 07:30。Phase A は前夜 22〜23 時に走る（11/14・15 の実績）ので、その時点で当日分の KYI が揃っている。
+  金曜 19:40 に取る日曜分の KYI は不完全（11/13 は 4.6KB）なので、日曜分を金曜に作ると埋まり不足で v7 に戻る（安全側）。
+- 影: 本番でないモデル全部（v7・v6）を `reports/shadow_v7/`・`reports/shadow_v6/` に毎週作る。
+- `artifact_pins.json` は v8・v7・v6 の 3 世代を照合。`bundle_provenance.py` は v8 の sha を世代 v8 と認識し、戻り先 (v7, v6) の bundle も凍結する。
+- 戻すのは 1 コマンド: `python scripts/switch_production_model.py --to v7 --start <次の開催日>`。
+
+**暫定採用と最終評価**（`docs/hypothesis_registry.md` EVAL-RULE-20261113 規則 3）
+- 上の根拠はすべて過去検証。採用の最終評価は CW-21（本番 v8 と影 v7 の両方にあり結果の出たレース 1,000、起算 11/21）。
+- 事前登録の判定: 1,000R で v8 − v7 の ◎3着内（同じレース、開催日クラスタ bootstrap 95% CI）の上限が 0 未満なら v7 に戻す。それ以外は継続。途中判定なし。
+
+**切替後に残っていること**
+- T-10 の補正印（`data/t10_blend.json`）と朝の補正印（`data/am9_blend.json`、λ=2.5 は v7 で fit）は v8 の確率で fit し直していない。どちらも表示専用で、数週ぶん貯まったら再 fit。
+- 較正ドリフト監視は 11/21 以降の週だけで数え直す（`model_effective_from`）。
+- 2026-04〜08 の `data/bunseki/` が無い件（次に混戦度の基準を作り直すときに要る）。

@@ -60,7 +60,11 @@ if (-not $Model) {
     try { $Model = (Get-Content 'data\production_policy.json' -Raw -Encoding UTF8 | ConvertFrom-Json).model } catch { $Model = "" }
     if (-not $Model) { $Model = "v6" }
 }
-$FallbackModel = "v6"     # 本番モデルの bundle が作れなかった日に戻る先 (JRDB 成績が古い等)
+# 本番モデルの bundle が作れなかった日に戻る先を順に試す (2026-11-16: v8 → v7 → v6)。
+# v8 は JRDB 前日 KYI が要る (金土 19:40 の保存が失敗した等で無い日は v7)、v7 は JRDB 成績が要る (古い日は v6)。v6 は JRDB に依存しない。
+$ModelChain = @("v8", "v7", "v6")
+$FallbackModels = @($ModelChain | Where-Object { $_ -ne $Model -and ([array]::IndexOf($ModelChain, $_) -gt [array]::IndexOf($ModelChain, $Model)) })
+if ([array]::IndexOf($ModelChain, $Model) -lt 0) { $FallbackModels = @("v6") }
 
 function Step($msg) {
     Write-Host ""
@@ -551,9 +555,11 @@ if (-not (Test-Path $csvPath)) {
 # -- Verify model --
 $modelPath = "models\unified_rank_$Model.pkl"
 if (-not (Test-Path $modelPath)) {
-    if ($Model -ne $FallbackModel -and (Test-Path "models\unified_rank_$FallbackModel.pkl")) {
-        Warn "$modelPath not found -> fall back to $FallbackModel for today"
-        $Model = $FallbackModel
+    $fbExisting = @($FallbackModels | Where-Object { Test-Path "models\unified_rank_$_.pkl" })
+    if ($fbExisting.Count -gt 0) {
+        Warn "$modelPath not found -> fall back to $($fbExisting[0]) for today"
+        $Model = $fbExisting[0]
+        $FallbackModels = @($fbExisting | Select-Object -Skip 1)
     } else {
         Fail "$modelPath not found. trained model is required."
     }
@@ -609,15 +615,17 @@ $env:CB_SERVE_RECOVER = "1"
 if (-not (Test-Path 'logs')) { New-Item -ItemType Directory -Path 'logs' | Out-Null }
 python scripts\run_notify.py --tag "Phase A export $Date" --log "logs\export_$Date.log" -- python export_weekly_marks.py --csv $csvPath --model $Model
 $rcExport = $LASTEXITCODE
-# 2026-11-13: 本番モデル (v7 = JRDB 過去走特徴つき) で bundle が作れなかった日は、その日だけ v6 で作り直す。
-# 例: JRDB 成績ファイルが古い / 取得失敗。v6 は JRDB に依存しない。失敗理由は上の run_notify が Discord へ出している。
+# 2026-11-13: 本番モデルで bundle が作れなかった日は、その日だけ戻り先で作り直す (2026-11-16〜 v8 → v7 → v6 の順)。
+# 例: JRDB 前日 KYI が無い (v8) / JRDB 成績ファイルが古い (v7)。失敗理由は上の run_notify が Discord へ出している。
 $UsedModel = $Model
-if ($rcExport -ne 0 -and $Model -ne $FallbackModel) {
-    Warn "export (model=$Model) failed rc=$rcExport -> retry with $FallbackModel for today (see logs\export_$Date.log)"
-    Copy-Item "logs\export_$Date.log" "logs\export_${Date}_$Model.failed.log" -Force -ErrorAction SilentlyContinue
-    python scripts\run_notify.py --tag "Phase A export $Date FALLBACK $FallbackModel" --log "logs\export_$Date.log" -- python export_weekly_marks.py --csv $csvPath --model $FallbackModel
+foreach ($fb in $FallbackModels) {
+    if ($rcExport -eq 0) { break }
+    if (-not (Test-Path "models\unified_rank_$fb.pkl")) { continue }
+    Warn "export (model=$UsedModel) failed rc=$rcExport -> retry with $fb for today (see logs\export_$Date.log)"
+    Copy-Item "logs\export_$Date.log" "logs\export_${Date}_$UsedModel.failed.log" -Force -ErrorAction SilentlyContinue
+    python scripts\run_notify.py --tag "Phase A export $Date FALLBACK $fb" --log "logs\export_$Date.log" -- python export_weekly_marks.py --csv $csvPath --model $fb
     $rcExport = $LASTEXITCODE
-    $UsedModel = $FallbackModel
+    $UsedModel = $fb
 }
 Remove-Item Env:\CB_HOSEI_PROXY -ErrorAction SilentlyContinue
 Remove-Item Env:\CB_SERVE_RECOVER -ErrorAction SilentlyContinue
@@ -653,32 +661,13 @@ if (Test-Path 'models/unified_rank_c2b.pkl') {
     }
 }
 
-# -- Shadow: v8 候補 (v7 + JRDB 前日 KYI + 外厩、2026-11-15)。別フォルダへ bundle を作るだけ。
-#    公開・買い目・本線・凍結版には触れない。失敗しても本番は止めない。KYI・外厩は data/jrdb/snapshots (発走前保存) から読む。
-#    比較: python -m analysis.replay_ab_compare --a reports/cowork_input --b reports/shadow_v8 --since 20261121 (CW-21)
-#    経緯: docs/research/V8_KYI_CANDIDATE_20261115.md
-if (Test-Path 'models/unified_rank_v8.pkl') {
-    try {
-        $env:CB_HOSEI_PROXY = "1"
-        $env:CB_SERVE_RECOVER = "1"
-        python export_weekly_marks.py --csv $csvPath --model v8 --shap-topk 0 --out-dir "reports/shadow_v8/$Date" *> "logs/export_v8_$Date.log"
-        if ($LASTEXITCODE -eq 0) { OK "shadow v8 bundle -> reports/shadow_v8/${Date}_bundle.json" }
-        else { Write-Host "  [warn] shadow v8 export rc=$LASTEXITCODE (本番には影響なし: logs/export_v8_$Date.log)" -ForegroundColor Yellow }
-    } catch {
-        Write-Host "  [warn] shadow v8 export 例外 (本番には影響なし): $_" -ForegroundColor Yellow
-    } finally {
-        Remove-Item Env:CB_HOSEI_PROXY -ErrorAction SilentlyContinue
-        Remove-Item Env:CB_SERVE_RECOVER -ErrorAction SilentlyContinue
-        $global:LASTEXITCODE = 0
-    }
-}
-
-# -- Shadow: 「本番でない方」のモデルで、同じ出走表から別フォルダへ bundle を作るだけ (2026-11-13)。
-#    本番が v7 のあいだは v6 を reports/shadow_v6/ に、v6 に戻した日は v7 を reports/shadow_v7/ に作る。
-#    公開・買い目・本線には一切触れない (.gitignore、サイトにも出ない)。失敗しても本番は止めない。
-#    比較: python -m analysis.replay_ab_compare --a reports/cowork_input --b reports/shadow_v6 --since 20261114 (CW-15)
-$ShadowModel = if ($UsedModel -eq "v7") { "v6" } else { "v7" }
-if (Test-Path "models/unified_rank_$ShadowModel.pkl") {
+# -- Shadow: 本番でないモデル全部で、同じ出走表から別フォルダへ bundle を作るだけ (2026-11-13、2026-11-16 に v8 本番化で一般化)。
+#    本番が v8 のあいだは v7 を reports/shadow_v7/、v6 を reports/shadow_v6/ に作る (戻した日は本番でない方が影になる)。
+#    公開・買い目・本線・凍結版には一切触れない (.gitignore、サイトにも出ない)。失敗しても本番は止めない。
+#    比較: python -m analysis.replay_ab_compare --a reports/cowork_input --b reports/shadow_v7 --since 20261121 (CW-21)
+#          python -m analysis.replay_ab_compare --a reports/cowork_input --b reports/shadow_v6 --since 20261114 (CW-15)
+foreach ($ShadowModel in @($ModelChain | Where-Object { $_ -ne $UsedModel })) {
+    if (-not (Test-Path "models/unified_rank_$ShadowModel.pkl")) { continue }
     try {
         $env:CB_HOSEI_PROXY = "1"
         $env:CB_SERVE_RECOVER = "1"
