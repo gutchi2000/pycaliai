@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PyCaLiAI — AI の通信簿（条件別の的中率と回収率）</title>
+<title>PyCaLiAI — AI の通信簿（条件別の的中率）</title>
 <meta name="description" content="AI本命（◎）の勝率・複勝圏率と、サイトに表示した買い目の回収率を、クラス・芝ダ距離・混戦度・人気・頭数・競馬場・月ごとに信頼区間つきで公開。AIがどこで強く、どこで外すかをそのまま載せます。">
 <link rel="canonical" href="https://pycaliai.com/tsushinbo.html">
 <meta property="og:title" content="PyCaLiAI — AI の通信簿">
@@ -18,7 +18,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#070b14">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261116-dw">
+<link rel="stylesheet" href="css/style.css?v=20261116-nb">
 <style>
   .wrap{max-width:var(--maxw);margin:0 auto;padding:var(--pad);}
   .ehead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 14px;}
@@ -64,6 +64,8 @@
   /* AI の調子（週ごと） */
   .trend{margin:0 0 14px;padding:14px 16px 12px;}
   .trend-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+  .no-bets .bets-only{display:none !important;}
+  .no-bets .trend-grid{grid-template-columns:1fr;}
   @media(max-width:860px){.trend-grid{grid-template-columns:1fr;}}
   .trend-box{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 8px 4px;min-width:0;}
   .trend-box h3{font-size:.8rem;font-weight:500;color:var(--tx2);letter-spacing:.06em;margin:0 0 2px 8px;}
@@ -136,12 +138,12 @@
     <section class="panel">
       <h2>このページについて</h2>
       <p>AI 本命（◎）が <b>条件ごとに</b> どれだけ勝ち、どれだけ 3 着以内に入ったかを、2026 年の全公開レースから集計しています。信頼区間（Wilson 95%）を付けているので、件数が少ない条件の「たまたま」と、件数が多い条件の「傾向」を区別できます。</p>
-      <p>あわせて、サイトに表示した買い目（表示専用、実弾ではありません）の的中率と回収率も出します。回収率が 80% 前後なら控除率どおり、それを大きく下回る条件は「AI が苦手な場面」です。</p>
+      <p class="bets-only">あわせて、サイトに表示した買い目（表示専用、実弾ではありません）の的中率と回収率も出します。回収率が 80% 前後なら控除率どおり、それを大きく下回る条件は「AI が苦手な場面」です。</p>
     </section>
     <section class="panel">
       <h2>読み方</h2>
       <p><b>▲</b> はその次元で複勝圏率が最も高い条件、<b>▼</b> は最も低い条件（件数 40 以上のみ）。薄い行は件数 30 未満で、まだ結論を出せません。</p>
-      <p>回収率バーの縦線は 80%（控除率の目安）。オッズや払戻額そのものは掲載しません。</p>
+      <p class="bets-only">回収率バーの縦線は 80%（控除率の目安）。オッズや払戻額そのものは掲載しません。</p>
     </section>
   </div>
 
@@ -149,10 +151,10 @@
 
   <section class="panel trend" id="trend" hidden>
     <h2>AI の調子（週ごと） <small id="trend-sub"></small></h2>
-    <p>開催週（土日）ごとの ◎ の成績と、サイトに表示した買い目の回収率の推移です。<b>帯は 95% 信頼区間</b>（Wilson）、点線は運用開始からの<b>累積</b>。1 週あたり 50〜70 レースなので週単位の上下は大きく、累積線が落ち着いていく様子を見るためのグラフです。</p>
+    <p>開催週（土日）ごとの ◎ の成績の推移です。<b>帯は 95% 信頼区間</b>（Wilson）、点線は運用開始からの<b>累積</b>。1 週あたり 50〜70 レースなので週単位の上下は大きく、累積線が落ち着いていく様子を見るためのグラフです。</p>
     <div class="trend-grid">
       <div class="trend-box"><h3>◎ の勝率・複勝圏率<small>%</small></h3><div class="chart" id="chart-marks"></div></div>
-      <div class="trend-box"><h3>表示買い目の回収率<small>%・横線は 80%（控除率の目安）</small></h3><div class="chart" id="chart-roi"></div></div>
+      <div class="trend-box bets-only"><h3>表示買い目の回収率<small>%・横線は 80%（控除率の目安）</small></h3><div class="chart" id="chart-roi"></div></div>
     </div>
     <div class="legend" id="trend-legend"></div>
   </section>
@@ -174,7 +176,7 @@
   <span>© 2026 PyCaLiAI</span>
 </footer>
 <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
-<script defer src="js/tsushinbo.js?v=20261104-tsushinbo2"></script>
+<script defer src="js/tsushinbo.js?v=20261116-nb"></script>
 <script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
 <script defer src="js/site_config.js?v=20261105b"></script>
 </body>

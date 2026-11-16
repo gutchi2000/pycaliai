@@ -284,9 +284,15 @@ def build(write: bool = True) -> dict:
                  "「予測モデルの版」「予測の来歴」の表で内訳を示す。"),
     }
     # 見送り判断の成績（参戦 vs 買っていたら）。入力（cowork_output の a95_all / kekka）が無くても本体は壊さない。
+    from site_flags import SHOW_BETS
+    out["show_bets"] = SHOW_BETS
+    if not SHOW_BETS:
+        out["note"] = out["note"].replace(
+            "回収率はサイトに表示した買い目（表示専用、実弾ではない）の合計払戻 ÷ 合計購入額。", "")
     try:
         import report_card_miokuri as _rcm
-        out["miokuri"] = _rcm.build_miokuri()
+        # 買い目を公開しない間 (site_flags.py) は「買っていたら」の比較も出さない
+        out["miokuri"] = _rcm.build_miokuri() if SHOW_BETS else None
     except Exception as e:   # noqa: BLE001
         print(f"[report_card] miokuri skip: {e}")
         out["miokuri"] = None

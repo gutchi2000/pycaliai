@@ -23,6 +23,8 @@ import csv
 import io
 import json
 import re
+
+from site_flags import SHOW_BETS
 import shutil
 import sys
 import unicodedata
@@ -1610,6 +1612,14 @@ def scrub_public(day: dict) -> dict:
         res = r.get("result")
         if res:
             res.pop("pays", None)
+        if not SHOW_BETS:
+            # 2026-11-16: 買い目は公開しない (site_flags.py)。券種・金額・決済・T-10 の判定文・
+            # 見送り時の「買っていたら」を公開 JSON から外す。元データ (cowork_output) は残る。
+            for k in ("tact", "tact_settled", "bets_settled"):
+                r.pop(k, None)
+            if isinstance(r.get("cowork"), dict):
+                for k in ("bets", "a95_all", "race_reason", "race_nature", "stamp", "hosei_marks"):
+                    r["cowork"].pop(k, None)
         cw = r.get("cowork")
         if isinstance(cw, dict):
             for k in ("race_reason", "race_label", "race_nature", "advisor"):
@@ -1814,6 +1824,11 @@ def main() -> None:
 
     # 成績 (Cowork 的中一覧 + 累計収支)
     results_payload = build_results_json()
+    if not SHOW_BETS:
+        # 買い目を公開しない間は、的中一覧・累計収支も出さない (site_flags.py)
+        results_payload = {"hidden": True, "hits": [],
+                           "agg": {"n_bets": 0, "roi": None, "hit_rate": None,
+                                   "total_profit": 0, "n_unsettled": 0}}
     results_payload["built_at"] = manifest["built_at"]
     with open(SITE_DATA_DIR / "results.json", "w", encoding="utf-8") as f:
         json.dump(results_payload, f, ensure_ascii=False, separators=(",", ":"))

@@ -11,6 +11,8 @@ function bar(v, lo, hi, max = 100) {
   const cl = lo != null ? Math.min(100, lo / max * 100) : null, ch = hi != null ? Math.min(100, hi / max * 100) : null;
   return `<span class="bar"><i style="width:${w}%"></i>${cl != null ? `<u style="left:${cl}%;width:${Math.max(0, ch - cl)}%"></u>` : ""}</span>`;
 }
+let NOBETS = false;
+
 function roiBar(v) {
   if (v == null) return `<span class="bar roi" style="--mark:53"></span>`;
   const max = 150;
@@ -35,7 +37,7 @@ function kpis(d) {
     <div class="kpi"><div class="l">◎ 勝率</div><div class="v num">${o.win_rate}<small>%</small></div><div class="s">95% CI ${o.win_lo}〜${o.win_hi}%</div></div>
     <div class="kpi"><div class="l">◎ 複勝圏率</div><div class="v num">${o.top3_rate}<small>%</small></div><div class="s">95% CI ${o.top3_lo}〜${o.top3_hi}%</div></div>
     <div class="kpi"><div class="l">◎ が朝 1 番人気</div><div class="v num">${o.fav_rate}<small>%</small></div><div class="s">市場と一致した割合</div></div>
-    <div class="kpi ${o.roi != null && o.roi < 80 ? "neg" : ""}"><div class="l">表示買い目 回収率</div><div class="v num">${o.roi ?? "—"}<small>%</small></div><div class="s">${o.bets_n.toLocaleString()} 点・的中 ${o.bets_hit_rate ?? "—"}%</div></div>`;
+    <div class="kpi bets-only ${o.roi != null && o.roi < 80 ? "neg" : ""}"><div class="l">表示買い目 回収率</div><div class="v num">${o.roi ?? "—"}<small>%</small></div><div class="s">${o.bets_n.toLocaleString()} 点・的中 ${o.bets_hit_rate ?? "—"}%</div></div>`;
 }
 
 function dimTable(dim) {
@@ -48,12 +50,12 @@ function dimTable(dim) {
     <td class="num">${r.win_rate ?? "—"}%</td>
     <td>${bar(r.top3_rate, r.top3_lo, r.top3_hi)}<span class="num">${r.top3_rate ?? "—"}%</span></td>
     <td class="num">${r.fav_rate ?? "—"}%</td>
-    <td class="num">${r.bets_n ? `${r.bets_hit_rate}%` : "—"}</td>
-    <td>${roiBar(r.roi)}<span class="num">${r.roi ?? "—"}${r.roi != null ? "%" : ""}</span></td>
+    <td class="num bets-only">${r.bets_n ? `${r.bets_hit_rate}%` : "—"}</td>
+    <td class="bets-only">${roiBar(r.roi)}<span class="num">${r.roi ?? "—"}${r.roi != null ? "%" : ""}</span></td>
   </tr>`).join("");
   return `<section class="panel dim"><h2>${esc(dim.label)} <small>${dim.rows.length} 区分</small></h2>
     <div class="tw"><table class="rc"><thead><tr>
-      <th class="l">条件</th><th>件数</th><th>◎勝率</th><th>◎複勝圏率（帯は 95% CI）</th><th>◎=1番人気</th><th>買い目的中</th><th>買い目回収率</th>
+      <th class="l">条件</th><th>件数</th><th>◎勝率</th><th>◎複勝圏率（帯は 95% CI）</th><th>◎=1番人気</th><th class="bets-only">買い目的中</th><th class="bets-only">買い目回収率</th>
     </tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 
@@ -105,6 +107,14 @@ function trendCharts(d) {
     { name: "◎複勝圏率（累積）", type: "line", data: cum.map((r) => r.top3_rate), symbol: "none", lineStyle: { color: teal, width: 1.5, type: "dashed", opacity: 0.9 }, itemStyle: { color: teal }, z: 4 },
     { name: "◎勝率（累積）", type: "line", data: cum.map((r) => r.win_rate), symbol: "none", lineStyle: { color: gold2, width: 1.5, type: "dashed", opacity: 0.9 }, itemStyle: { color: gold2 }, z: 4 },
   ] });
+  if (NOBETS) {
+    charts.push(c1);
+    $("#trend-legend").innerHTML = [[teal, "", "◎複勝圏率（週）"], [gold, "", "◎勝率（週）"], [teal, "dash", "複勝圏率（累積）"], [gold2, "dash", "勝率（累積）"], [teal, "band", "95% 信頼区間"]]
+      .map(([c, cl, t]) => `<span><i class="${cl}" style="color:${c};${cl === "band" ? `background:${c}` : ""}"></i>${esc(t)}</span>`).join("");
+    $("#trend-sub").textContent = `${rows.length} 週`;
+    addEventListener("resize", () => charts.forEach((c) => c.resize()));
+    return;
+  }
   // 右: 表示買い目の回収率（週=棒、累積=点線、80% 基準線）
   const roiMax = Math.max(150, ...rows.map((r) => r.roi ?? 0)) + 10;
   const c2 = echarts.init($("#chart-roi"), null, { renderer: "canvas" });
@@ -152,6 +162,9 @@ async function boot() {
   let d;
   try { d = await (await fetch("data/report_card.json?t=" + Date.now())).json(); }
   catch (e) { $("#dims").innerHTML = `<span class="note err">data/report_card.json を読めませんでした</span>`; return; }
+  // 2026-11-16: 買い目を公開しない間は回収率まわりを隠す (build 側 site_flags.SHOW_BETS)
+  NOBETS = d.show_bets === false;
+  document.body.classList.toggle("no-bets", NOBETS);
   kpis(d);
   try { trendCharts(d); } catch (e) { console.warn("trend chart", e); }
   try { miokuri(d); } catch (e) { console.warn("miokuri", e); }
