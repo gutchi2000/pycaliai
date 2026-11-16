@@ -967,6 +967,9 @@ def apply_to_bets_json(date_str: str, computed: list[dict], stamp: dict | None =
             old = races_list[i]
             if isinstance(old, dict) and old.get("advisor") and not e.get("advisor"):
                 e = {**e, "advisor": old["advisor"]}
+            # 全頭短評 (keiba-narrative (C), 2026-11-16) も同じく引き継ぐ
+            if isinstance(old, dict) and old.get("zento") and not e.get("zento"):
+                e = {**e, "zento": old["zento"]}
             races_list[i] = e
             n_rep += 1
         else:

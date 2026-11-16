@@ -556,7 +556,16 @@ def _parse_one_cowork_file(path: Path) -> dict[str, dict]:
                 "tag": a.get("tag") or None,
                 "comment": str(a.get("comment") or a.get("コメント", "")),
             })
+        # 全頭短評 (keiba-narrative (C), 2026-11-16): {"umaban", "horse_name", "comment"} の配列
+        zento = {}
+        for z in entry.get("zento", []) or []:
+            if isinstance(z, dict) and z.get("comment"):
+                try:
+                    zento[int(z.get("umaban"))] = str(z.get("comment"))
+                except (TypeError, ValueError):
+                    pass
         out[rid] = {
+            "zento": zento,
             "race_label": str(entry.get("race_label", "")),
             "race_nature": str(entry.get("race_nature", "")),
             "race_reason": str(entry.get("race_reason", "")),
@@ -1351,6 +1360,13 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
                 cw["bets"] = mv["bets"] if mv else []
             elif mv:
                 cw = dict(mv)
+        zmap = (cowork.get(rid) or {}).get("zento") or {}
+        for h in races_out[-1]["horses"]:
+            c = zmap.get(h.get("umaban"))
+            if c:
+                h["cmt"] = c
+        if cw and "zento" in cw:
+            cw = {k: v for k, v in cw.items() if k != "zento"}
         races_out[-1]["cowork"] = cw
         res = results.get(rid)
         if cw and cw.get("bets") and res:
@@ -1704,6 +1720,14 @@ def main() -> None:
             scrub_public(day)
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(day, f, ensure_ascii=False, separators=(",", ":"))
+            # 全頭短評の素材 (結果の出ていない日だけ) → reports/cowork_input/{date}_zento.json
+            try:
+                import zento_material as _zm
+                zp = _zm.write(day)
+                if zp:
+                    print(f"    zento material: {zp.relative_to(ROOT)}")
+            except Exception as e:
+                print(f"    [zento material skip] {e}")
             # 分析カード(Explainability) を同時生成 (LLMは重いので既定OFF; EXPLAIN_LLM=1で有効)
             try:
                 import os as _os

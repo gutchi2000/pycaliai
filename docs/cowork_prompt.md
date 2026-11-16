@@ -297,3 +297,10 @@ JSON の後に、人間向けの週間サマリ (注目レース・注目馬の�
   (`git show 350d392a93:docs/cowork_prompt.md`) で参照可能
 - 旧プロンプトの EV 閾値・戦術カタログ・クラス別マトリクス等の知見は
   `compute_bets.py` / `docs/compute_bets_spec.md` に移植済み
+
+## (C) 全頭短評（2026-11-16 追加）
+
+- 素材: `reports/cowork_input/{YYYYMMDD}_zento.json`（`build_site.py` が結果の出ていない開催日ごとに毎ビルド作る。公開サイトの数字だけ＝オッズ・EV・JRDB の値は無し）
+- 出力: `{YYYYMMDD}_bets.json` の各レースエントリに `"zento": [{"umaban": int, "horse_name": str, "comment": str}]`。全レース・全出走馬（取消除く）、1〜2 文・40〜90 字
+- 書き方・検証は keiba-narrative スキル（`reports/cowork_output/keiba-narrative.skill`）の (C)。`validate_bets.py <bundle> <bets> <zento>` で全頭そろっているかを見る
+- サイト: `build_site.py` が `horses[].cmt` に載せ、全頭分析の各行の下と馬の詳細に出す。T-10 の `compute_bets.py --apply` は `advisor` と同じく `zento` も引き継ぐ

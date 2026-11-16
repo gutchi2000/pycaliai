@@ -1328,13 +1328,13 @@ function openDrawer(umaban) {
     ["斤量", h.kinryo ? num(h.kinryo) + " kg" : "—"],
     ["厩舎", h.trainer ? `${esc(h.shozoku ? h.shozoku + "・" : "")}${esc(h.trainer)}` : "—"],
     ["脚質", h.style ? esc(h.style) : "—"],
-    ["スピード指数 (予測)", h.speed?.v != null
-      ? `<b class="num">${h.speed.v.toFixed(1)}</b> <small>レース内 ${h.speed.rk} 位 ・ <a href="speed.html" style="color:inherit">解説</a></small>`
+    ["スピード指数", h.speed?.v != null
+      ? `<b class="num">${h.speed.v.toFixed(1)}</b> <small>予測・レース内 ${h.speed.rk} 位 ・ <a href="speed.html" style="color:inherit">解説</a></small>`
       : "—（実走指数のある過去走なし）"],
-    ["強さスコア (PW)", h.pw != null ? `<b class="num">${Math.round(h.pw)}</b> <small>芝ダ別・現役最上位=100</small>` : "—"],
-    ["推定人気 (当日オッズ不使用)", h.speed?.er != null
-      ? `<b class="num">${h.speed.er}</b> 番人気 <small>推定 ${h.speed.eo?.toFixed(1)} 倍 ・ 推妙 ${savr(h) ?? "—"}</small>` : "—"],
-    ["馬レベル (近走成績)", h.level
+    ["強さ (PW)", h.pw != null ? `<b class="num">${Math.round(h.pw)}</b> <small>芝ダ別・現役最上位=100</small>` : "—"],
+    ["推定人気", h.speed?.er != null
+      ? `<b class="num">${h.speed.er}</b> 番人気 <small>推定 ${h.speed.eo?.toFixed(1)} 倍（当日オッズ不使用）・ 推妙 ${savr(h) ?? "—"}</small>` : "—"],
+    ["馬レベル", h.level
       ? `<b class="lvchip lv-${h.level.tier}" style="margin-right:6px">${h.level.tier}</b>${h.level.score} <small>/100</small>`
       : "—（出走歴なし）"],
   ].map(([k, v]) => `<div class="ir"><span>${k}</span><span>${v}</span></div>`).join("");
@@ -1351,6 +1351,7 @@ function openDrawer(umaban) {
       <span class="dw-sub2">${esc(h.sex)}${h.age ?? ""} ・ ${h.ninki ?? "—"}番人気 ・ AIランク #${h.ai_rank ?? "—"}</span>
     </div>
     ${isMarkedHorse(h) ? `<div class="dw-cmpadd"><button class="dw-cmp-btn" id="dwCmpBtn"></button></div>` : ""}
+    ${h.cmt ? `<div class="dw-cmt"><span>短評</span>${esc(h.cmt)}</div>` : ""}
     <div class="dw-ped">父 <b>${esc(ped.sire || "—")}</b> ／ 母父 <b>${esc(ped.broodmare_sire || "—")}</b>
       ${ped.broodmare_sire_type ? `（${esc(ped.broodmare_sire_type)}）` : ""}</div>
     <div class="dw-top ${(whyHtml || isFirstRun) ? "" : "solo"}">
@@ -1659,7 +1660,7 @@ function umamiTableHtml(r) {
       <span class="num ta-r">${er == null ? "—" : `${er}<small>番人気</small>`}${eo ? `<i class="ix-eo">${eo.toFixed(1)}倍</i>` : ""}</span>
       <span class="ta-c"><span class="um-g" style="background:${UMAMI_COLOR[g] || "#46587e"}">${g}</span></span>
       <span class="um-side ta-c">${gated ? "—" : esc(u.side || "")}</span>
-    </div>`;
+    </div>${h.cmt ? `<div class="ix-cmt" data-uma="${h.umaban}">${esc(h.cmt)}</div>` : ""}`;
   }).join("");
 
   return `<div class="card um-card">
@@ -1681,7 +1682,7 @@ function umamiTableHtml(r) {
     </div>
     ${rows}
     </div></div>
-    <div class="ix-note"><b>格（妙味グレード）</b>は AI の確率と市場の評価のずれから出す独自のグレードです。S/A＝妙味あり、「罠」は妙味があるように見えても来る見込みが薄い馬。推奨は妙味を見る券種（単勝/複勝）で、グレードの付かない馬は薄く表示しています。<br>
+    <div class="ix-note">${r.horses.some((h) => h.cmt) ? "各馬の下の短評は、上の数字と近走をもとに Claude（Cowork）が書いたものです。<br>" : ""}<b>格（妙味グレード）</b>は AI の確率と市場の評価のずれから出す独自のグレードです。S/A＝妙味あり、「罠」は妙味があるように見えても来る見込みが薄い馬。推奨は妙味を見る券種（単勝/複勝）で、グレードの付かない馬は薄く表示しています。<br>
       推定人気・推定オッズは、当日のオッズを使わずに過去走の成績・人気・騎手などから予測した値です（実際のオッズではありません）。
       推妙は「AI の方が推定の市場より高く見ている度合い」で、2026 年の検証ではどの帯も単勝の回収率は 100% を超えていません。</div>
   </div>`;
@@ -2040,7 +2041,7 @@ function renderBunseki(r, vb) {
     $("#um-wrap").querySelectorAll(".usort").forEach((b) => {
       b.onclick = (e) => { e.stopPropagation(); umamiSort = b.dataset.uk; $("#um-wrap").innerHTML = umamiTableHtml(r); wireUmami(); };
     });
-    $("#um-wrap").querySelectorAll(".ix-row").forEach((row) => {
+    $("#um-wrap").querySelectorAll(".ix-row, .ix-cmt").forEach((row) => {
       row.onclick = () => openDrawer(+row.dataset.uma);
     });
   };

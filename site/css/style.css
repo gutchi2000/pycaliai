@@ -1081,8 +1081,10 @@ body.drawer-open { overflow: hidden; }
 .dw-stat .k { font-size: 13px; color: var(--tx3); margin-top: 1px; }
 .dw-info { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; margin: 10px 0 2px; }
 .ir { display: flex; justify-content: space-between; gap: 8px; font-size: 16px; padding: 6px 0; border-bottom: 1px solid var(--line); }
-.ir span:first-child { color: var(--tx3); flex: 0 0 auto; }
-.ir span:last-child { color: var(--tx); text-align: right; min-width: 0; }
+.ir span:first-child { color: var(--tx3); flex: 0 1 auto; min-width: 4.5em; }
+.ir span:last-child { color: var(--tx); text-align: right; min-width: 0; flex: 1 1 auto; }
+/* AI の根拠が左に並ぶとき（印のある馬）は右の欄が狭いので 1 列にする（2026-11-16: 値が 1 文字幅に潰れていた） */
+.dw-top:not(.solo) .dw-info { grid-template-columns: 1fr; }
 .ir .kw { font-style: normal; font-size: 12.5px; color: var(--amber); border: 1px solid rgba(240,161,50,.5); border-radius: 4px; padding: 0 5px; margin-left: 4px; }
 .dw-sec { font-size: 14px; font-weight: 700; letter-spacing: .16em; color: var(--tx3); margin: 18px 0 9px; display: flex; align-items: center; gap: 9px; }
 .dw-sec::before { content: ""; width: 3px; height: 13px; border-radius: 2px; background: linear-gradient(180deg, var(--gold2), var(--gold)); }
@@ -1869,3 +1871,10 @@ body.drawer-open { overflow: hidden; }
 .lvgap.na { border-left-color: #8d9cba; }
 .lvgap b { color: var(--tx); }
 .lvgap small { display: block; color: var(--tx3); font-size: 11.5px; }
+
+/* 全頭短評（Cowork / keiba-narrative (C)、2026-11-16） */
+.ix-cmt { font-size: 13.5px; color: var(--tx2); line-height: 1.65; padding: 0 10px 9px 92px; margin-top: -2px; cursor: pointer; }
+.ix-row.gated + .ix-cmt { opacity: .7; }
+.dw-cmt { font-size: 14.5px; color: var(--tx); line-height: 1.7; background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 8px; padding: 8px 12px; margin: 8px 0 10px; }
+.dw-cmt span { display: inline-block; font-size: 11.5px; color: var(--gold2); letter-spacing: .12em; margin-right: 8px; }
+@media (max-width: 640px) { .ix-cmt { padding-left: 12px; } }
