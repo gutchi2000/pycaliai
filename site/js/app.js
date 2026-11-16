@@ -2133,7 +2133,7 @@ function renderCourse(r, vb) {
       grid: { left: 8, right: 12, top: 34, bottom: 6, containLabel: true },
       tooltip: {
         backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e", textStyle: { color: "#edf1fb", fontSize: 12 },
-        formatter: (p) => { const x = rows[p[0].dataIndex]; return `${x.label}<br>複勝率 ${x.fuku}% / 勝率 ${x.win}%<br>n=${(x.n || 0).toLocaleString()}`; },
+        formatter: (p) => { const x = rows[(Array.isArray(p) ? p[0] : p).dataIndex]; if (!x) return ""; return `${x.label}<br>複勝率 ${x.fuku}% / 勝率 ${x.win}%<br>n=${(x.n || 0).toLocaleString()}`; },
       },
       xAxis: Object.assign({ type: "category", data: cats }, axisStyle()),
       yAxis: Object.assign({ type: "value", name: "複勝率 %", nameGap: 10, min: 0 }, axisStyle()),
@@ -2209,7 +2209,7 @@ function renderPedigree(r, vb) {
       grid: { left: 6, right: 14, top: 16, bottom: 6, containLabel: true },
       tooltip: {
         backgroundColor: "rgba(13,20,36,.95)", borderColor: "#32456e", textStyle: { color: "#edf1fb", fontSize: 12 },
-        formatter: (p) => { const x = sireRows[p[0].dataIndex]; return `${x.h.umaban} ${esc(x.h.name)}<br>父 ${esc(x.h.pedigree.sire)}<br>複勝率 ${x.fuku}% (${x.rank})`; },
+        formatter: (p) => { const x = sireRows[(Array.isArray(p) ? p[0] : p).dataIndex]; if (!x) return ""; return `${x.h.umaban} ${esc(x.h.name)}<br>父 ${esc(x.h.pedigree.sire)}<br>複勝率 ${x.fuku}% (${x.rank})`; },
       },
       xAxis: Object.assign({ type: "category", data: sireRows.map((x) => x.h.umaban) }, axisStyle()),
       yAxis: Object.assign({ type: "value", name: "複勝率%", min: 0 }, axisStyle()),
