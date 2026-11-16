@@ -284,16 +284,11 @@ def build(write: bool = True) -> dict:
                  "「予測モデルの版」「予測の来歴」の表で内訳を示す。"),
     }
     # 見送り判断の成績（参戦 vs 買っていたら）。入力（cowork_output の a95_all / kekka）が無くても本体は壊さない。
-    from site_flags import SHOW_BETS
-    out["show_bets"] = SHOW_BETS
-    if not SHOW_BETS:
-        out["note"] = out["note"].replace(
-            "回収率はサイトに表示した買い目（表示専用、実弾ではない）の合計払戻 ÷ 合計購入額。", "").replace(
-            "取消馬を含む買い目は返還、中止か除外か分からない馬を含む買い目は集計から外す。", "")
     try:
         import report_card_miokuri as _rcm
-        # 買い目を公開しない間 (site_flags.py) は「買っていたら」の比較も出さない
-        out["miokuri"] = _rcm.build_miokuri() if SHOW_BETS else None
+        from site_flags import BETS_HIDDEN_FROM
+        out["miokuri"] = _rcm.build_miokuri(until=BETS_HIDDEN_FROM)   # 非公開の本線 (11/14〜) は数えない
+        out["bets_hidden_from"] = BETS_HIDDEN_FROM
     except Exception as e:   # noqa: BLE001
         print(f"[report_card] miokuri skip: {e}")
         out["miokuri"] = None

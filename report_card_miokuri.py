@@ -46,7 +46,7 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     return (max(0.0, c - h), min(1.0, c + h))
 
 
-def collect(since: str = A95_SINCE) -> tuple[list[dict], list[str], list[str], int]:
+def collect(since: str = A95_SINCE, until: str | None = None) -> tuple[list[dict], list[str], list[str], int]:
     """rows(1 行 = 1 レース), used_dates, skipped_dates, n_excluded_races"""
     wide = sa.load_wide()
     rows: list[dict] = []
@@ -55,7 +55,7 @@ def collect(since: str = A95_SINCE) -> tuple[list[dict], list[str], list[str], i
     excluded = 0
     for p in sorted(COWORK_OUT.glob("2026????_bets.json")):
         date = p.name[:8]
-        if date < since:
+        if date < since or (until and date >= until):
             continue
         try:
             raw = json.loads(p.read_text(encoding="utf-8"))
@@ -151,8 +151,9 @@ def verdict(sanse: dict, miokuri: dict) -> dict:
     return {"code": code, "text": text, "roi_diff": diff, "ci_overlap": overlap}
 
 
-def build_miokuri(since: str = A95_SINCE) -> dict:
-    rows, used, skipped, excluded = collect(since)
+def build_miokuri(since: str = A95_SINCE, until: str | None = None) -> dict:
+    """until (YYYYMMDD) 以降は数えない。サイトでは非公開にした買い目 (site_flags.BETS_HIDDEN_FROM) を外すのに使う。"""
+    rows, used, skipped, excluded = collect(since, until)
     sanse = summarize([r for r in rows if r["guard"]])
     miok = summarize([r for r in rows if not r["guard"]])
     both = summarize(rows)

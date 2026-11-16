@@ -18,7 +18,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#070b14">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261116-nb">
+<link rel="stylesheet" href="css/style.css?v=20261116-nb2">
 <style>
   .wrap{max-width:960px;margin:0 auto;padding:var(--pad);}
   .ehead{margin:8px 0 14px;}
@@ -123,6 +123,7 @@
       <li><a href="#read">画面の数字の読み方</a></li>
       <li><a href="#gauges">レースの性格を表す 4 つのメーター</a></li>
       <li><a href="#when">いつ何が出るか</a></li>
+      <li><a href="#skip">見送りのルール</a></li>
       <li><a href="#use">目的別の使い方</a></li>
       <li><a href="#record">成績と限界</a></li>
     </ol>
@@ -137,7 +138,7 @@
         <ul>
           <li>過去走の成績・タイム・指数、騎手・調教師の近況、調教、血統、コース条件から確率を推定</li>
           <li>推定した確率が「実際の的中率」と合うように補正（較正）してから表示</li>
-          <li>当てにくいレースは混戦度・難しさで明示</li>
+          <li>自信の持てないレースは見送りと明示</li>
           <li>結果が出たら、外れたレースも含めて全部集計して公開</li>
         </ul>
       </div>
@@ -146,7 +147,7 @@
         <ul>
           <li>当日の馬体重やオッズを予想（確率）に使わない。前日までにわかる情報だけで作る</li>
           <li>儲かることを約束しない。回収率は控除率（約 20〜25%）を下回るのが現状</li>
-          <li>買い目（券種・金額）は掲載しない。印と確率までを公開</li>
+          <li>実際のお金で買っていない。表示している買い目は検証用・表示専用</li>
           <li>オッズや払戻金そのものは掲載しない</li>
         </ul>
       </div>
@@ -173,7 +174,11 @@
         <div class="d">勝率の高い順に ◎〇▲△△ を付け、確率の散らばり方から混戦度などのメーターを出します。出走馬の近走成績から、メンバーのレベルも判定します。</div>
         <span class="out">印・混戦度・メンバーレベル</span></div></div>
       <div class="arrow"></div>
-      <div class="step"><div class="n">5</div><div><div class="t">結果で採点する</div>
+      <div class="step"><div class="n">5</div><div><div class="t">買うか見送るかを決める</div>
+        <div class="d">発走前のオッズが出たら、<a href="#skip">見送りのルール</a> に当てはめます。参戦するレースだけ、決まった方式で買い目を出します。</div>
+        <span class="out">買い目 or 見送り</span></div></div>
+      <div class="arrow"></div>
+      <div class="step"><div class="n">6</div><div><div class="t">結果で採点する</div>
         <div class="d">レース後に、発走前に公開していた予想（あとから書き換えない凍結版）で採点し、<a href="tsushinbo.html">通信簿</a> と <a href="kaiko.html">回顧記事</a> に反映します。</div>
         <span class="out">通信簿・回顧</span></div></div>
     </div>
@@ -222,8 +227,23 @@
     <p class="note">朝の印と確率は発走まで変えません。当日の取消・騎手変更・馬体重は「当日変更情報」として別に表示します。</p>
   </section>
 
+  <section class="panel" id="skip">
+    <h2><span class="no">06</span>見送りのルール</h2>
+    <p>当てにくいレース・当たっても戻りが少ないレースは、最初から買いません。次のどれか 1 つでも当てはまれば見送りです。</p>
+    <ul>
+      <li><b>混戦度が高い</b>：過去のレースの中で混戦度が上位 3 分の 1 に入る</li>
+      <li><b>頭数が少ない</b>：出走 7 頭以下</li>
+      <li><b>◎ の勝率が低い</b>：◎ でも 5% 未満</li>
+      <li><b>◎ の単勝オッズが 1.9 倍を超える</b>：◎ が圧倒的な人気になっていないレース</li>
+      <li><b>障害レース</b>、またはデータに不備があって判定できないレース</li>
+    </ul>
+    <p>参戦するのは「◎ が 1.9 倍以下に支持されている」レースだけで、買い目は <b>◎ の複勝 1 点</b> です。過去 3 年の検証で、見送りの条件のうち単独で毎年再現したのが ◎ のオッズの上限だけだったため、この形にしています。</p>
+    <p class="note">2026 年 11 月 14 日からの買い目（◎の複勝 1 点）はサイトに出さず、記録だけ続けています。それより前に公開した買い目と成績はそのまま残しています。</p>
+    <p class="note">見送ったレースにも同じ方式の買い目を記録して「買っていたら」を集計しています（<a href="tsushinbo.html#mio">通信簿の「見送りの成績」</a>）。見送りが正しかったかどうかも公開しています。</p>
+  </section>
+
   <section class="panel" id="use">
-    <h2><span class="no">06</span>目的別の使い方</h2>
+    <h2><span class="no">07</span>目的別の使い方</h2>
     <h3>朝のうちに今日の狙いを決めたい</h3>
     <p>レースを開いて、混戦度が低く本命優位が高いレースの ◎ を確認します。<a href="kaiko.html">見どころ記事</a> に、堅いレース・AI と人気が割れるレース・見送り寄りのレースがまとまっています。</p>
     <h3>買う直前に最終確認したい</h3>
@@ -235,12 +255,13 @@
   </section>
 
   <section class="panel" id="record">
-    <h2><span class="no">07</span>成績と限界</h2>
+    <h2><span class="no">08</span>成績と限界</h2>
     <p>発走前に公開した予想を、そのまま採点した 2026 年の実績です（毎週更新）。</p>
     <div class="kpis">
       <div class="kpi"><div class="l">採点したレース</div><div class="v" id="gN">—</div><div class="s" id="gNs">公開した全レース</div></div>
       <div class="kpi"><div class="l">◎ の 3 着以内率</div><div class="v" id="gTop3">—</div><div class="s" id="gTop3s">95% 信頼区間</div></div>
       <div class="kpi"><div class="l">◎ の勝率</div><div class="v" id="gWin">—</div><div class="s" id="gWins">95% 信頼区間</div></div>
+      <div class="kpi"><div class="l">表示した買い目の回収率</div><div class="v" id="gRoi">—</div><div class="s" id="gRois">外れも全部込み</div></div>
     </div>
     <h3>知っておいてほしいこと</h3>
     <ul>
@@ -275,6 +296,8 @@ addEventListener('DOMContentLoaded',function(){
     if(o.top3_lo!=null)$('gTop3s').textContent='95% 信頼区間 '+o.top3_lo.toFixed(1)+'〜'+o.top3_hi.toFixed(1)+'%';
     if(o.win_rate!=null)$('gWin').textContent=o.win_rate.toFixed(1)+'%';
     if(o.win_lo!=null)$('gWins').textContent='95% 信頼区間 '+o.win_lo.toFixed(1)+'〜'+o.win_hi.toFixed(1)+'%';
+    if(o.roi!=null)$('gRoi').textContent=o.roi.toFixed(1)+'%';
+    if(o.bets_n!=null)$('gRois').textContent=o.bets_n.toLocaleString('ja-JP')+' 点・外れも全部込み';
   }).catch(function(){});
 });
 </script>

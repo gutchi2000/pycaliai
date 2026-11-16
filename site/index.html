@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PyCaLiAI — AI競馬予想</title>
-<meta name="description" content="機械学習でJRA中央競馬を予想するPyCaLiAI。毎週の出走表にAI印(◎〇▲△)とAI指数を無料公開。◎の的中実績もそのまま公開しています。">
+<meta name="description" content="機械学習でJRA中央競馬を予想するPyCaLiAI。毎週の出走表にAI印(◎〇▲△)とAI指数を無料公開。的中実績・回収率もそのまま公開しています。">
 <link rel="canonical" href="https://pycaliai.com/">
 <meta property="og:title" content="PyCaLiAI — AI競馬予想">
 <meta property="og:description" content="機械学習でJRA中央競馬を予想。毎週の出走表にAI印とAI指数を無料公開、成績もそのまま公開。">
@@ -31,7 +31,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=optional" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=optional" rel="stylesheet"></noscript>
-<link rel="stylesheet" href="css/style.css?v=20261116-nb">
+<link rel="stylesheet" href="css/style.css?v=20261116-nb2">
 <style>
 /* CLS対策: 初期描画は動的セクションを不可視にし、全データ描画後に1フレームで表示
    (未描画要素の移動はCLSに計上されないため、babaBias等の後入れ押し下げシフトが消える)。
@@ -197,7 +197,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
       <div class="lp-txt">
         <p class="lp-eyebrow">01 — HONEST RECORD</p>
         <h2 class="lp-h2">成績は、<br>そのまま載せています</h2>
-        <p class="lp-copy">全レースの AI 本命（◎）の成績を記録し、勝率・複勝圏率を信頼区間つきで公開しています。当たったレースだけを選んで載せることはせず、外れた分も含めて集計しています。競馬には約20〜25%の控除率があり、「必ず儲かる」予想は存在しません。その前提のうえで、AIがどこまでやれるかを検証しているサイトです。</p>
+        <p class="lp-copy">全レース・全買い目を記録し、回収率を信頼区間つきで公開しています。当たった予想だけを選んで載せることはせず、外れた分も含めて集計しています。競馬には約20〜25%の控除率があり、「必ず儲かる」予想は存在しません。その前提のうえで、AIがどこまでやれるかを検証しているサイトです。</p>
         <p class="lp-note">集計は毎開催後に自動更新。数値はモデル運用実績に基づく実測値で、投資助言ではありません。馬券の購入は自己責任でお願いします。</p>
       </div>
       <div class="lp-stats">
@@ -210,7 +210,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
           <span class="k">◎ 複勝圏率 <small id="lpStatTop3Sub">HONMEI TOP-3 HIT / LIVE・95% CI 52.1–56.7・勝率 24.2%</small></span>
           <span class="v num"><span id="lpStatTop3">54.4</span><small>%</small></span>
         </div>
-        <div class="lp-stat" id="lpStatRoiBox" hidden>
+        <div class="lp-stat">
           <span class="k">表示買い目 回収率 <small id="lpStatRoiSub">SITE BETS ROI / LIVE・3,202 点・外れも全部込み</small></span>
           <span class="v num"><span id="lpStatRoi">71.3</span><small>%</small></span>
         </div>
@@ -360,7 +360,7 @@ setTimeout(function(){document.body&&document.body.classList.remove("js-booting"
 <aside id="drawer" aria-label="馬詳細"></aside>
 
 <script defer src="js/baba.js?v=20260902a"></script>
-<script defer src="js/app.js?v=20261116-nb"></script>
+<script defer src="js/app.js?v=20261116-nb2"></script>
 <script defer id="echartsJs" src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <script>
 /* 表紙シート ⇔ アプリシートの切替 (初回=表紙のみ表示、CTA/レース行→アプリ、ロゴ→表紙) */
@@ -376,7 +376,6 @@ addEventListener('DOMContentLoaded',function(){
     if($('lpStatNSub')&&p.from)$('lpStatNSub').textContent='LIVE RECORD / '+f(p.from)+'–'+f(p.to)+'・公開した全レース';
     if($('lpStatTop3')&&o.top3_rate!=null)$('lpStatTop3').textContent=o.top3_rate.toFixed(1);
     if($('lpStatTop3Sub')&&o.top3_lo!=null)$('lpStatTop3Sub').textContent='HONMEI TOP-3 HIT / LIVE・95% CI '+o.top3_lo.toFixed(1)+'–'+o.top3_hi.toFixed(1)+'・勝率 '+o.win_rate.toFixed(1)+'%';
-    if(d.show_bets!==false&&$('lpStatRoiBox'))$('lpStatRoiBox').hidden=false;
     if($('lpStatRoi')&&o.roi!=null)$('lpStatRoi').textContent=o.roi.toFixed(1);
     if($('lpStatRoiSub')&&o.bets_n!=null)$('lpStatRoiSub').textContent='SITE BETS ROI / LIVE・'+o.bets_n.toLocaleString('ja-JP')+' 点・外れも全部込み';
   }).catch(function(){});

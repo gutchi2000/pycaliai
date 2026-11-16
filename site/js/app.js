@@ -2871,17 +2871,6 @@ async function renderResults() {
       calibrationData = await (await fetch(`data/calibration.json?v=${v}`)).json();
     } catch (e) { calibrationData = null; }
   }
-  if (resultsData.hidden) {
-    // 2026-11-16: 買い目は公開していない (build 側 site_flags.SHOW_BETS)。的中一覧・収支の代わりに案内だけ
-    rm.innerHTML = `<div class="rs-wrap">
-      <div class="card rs-sum"><div style="font-size:14.5px;line-height:1.8;color:var(--tx2)">
-        このサイトでは買い目（券種・金額）と、その的中・収支は公開していません。<br>
-        AI 本命（◎）の勝率・複勝圏率は <a href="tsushinbo.html" style="color:var(--gold2)">AI の通信簿</a> で、条件別・週ごとに公開しています。
-      </div></div>
-      ${calibrationSectionHtml()}
-    </div>`;
-    return;
-  }
   const a = resultsData.agg || {};
   const hits = resultsData.hits || [];
   const pCls = (a.total_profit ?? 0) >= 0 ? "pos" : "neg";
@@ -2968,6 +2957,7 @@ async function renderResults() {
       <div class="rs-bt-grid">${byType}</div>
       ${a.n_unsettled ? `<div class="rs-note">⚠ ワイド ${a.n_unsettled}件 (¥${(a.unsettled_cost).toLocaleString()}) は払戻データ未取込のため集計外</div>` : ""}
     </div>
+    ${resultsData.bets_hidden_from ? `<div class="rs-note" style="color:var(--tx2)">${+resultsData.bets_hidden_from.slice(4, 6)}/${+resultsData.bets_hidden_from.slice(6, 8)} からの買い目（◎の複勝 1 点）はサイトに出していません。ここの成績はそれより前に公開した買い目の分です。</div>` : ""}
     <div class="rs-h">📅 月別成績</div>
     <div class="card rsm-card">
       <table class="rsm"><thead><tr>

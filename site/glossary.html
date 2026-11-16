@@ -18,7 +18,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#070b14">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261116-nb">
+<link rel="stylesheet" href="css/style.css?v=20261116-nb2">
 <style>
   .wrap{max-width:960px;margin:0 auto;padding:var(--pad);}
   .ehead{margin:8px 0 12px;}
@@ -149,7 +149,11 @@ var GLOSSARY = [
     ["pace", "ペース予想", "S / M / H", "出走馬の脚質の組み合わせから見た、レースの流れの見立て。逃げ馬が複数いればハイペース（H）、逃げ馬不在で先行馬が多ければスロー（S）。"],
     ["shusse", "出世予測", "", "若い馬が将来オープンや重賞に届くかを予測する読み物。馬券用ではありません。"]
   ]},
-  { id: "bets", name: "予想の記録", lead: "予想の残し方と、馬券の用語。", terms: [
+  { id: "bets", name: "買い目と見送り", lead: "サイトの買い目の決め方。", terms: [
+    ["skip", "見送り", "", "当てにくい、または当たっても戻りが少ないと判断したレースで、買い目を出さないこと。混戦度が上位 3 分の 1、7 頭以下、◎ の勝率 5% 未満、◎ の単勝オッズ 1.9 倍超、障害レース、データ不備のどれかで見送ります。<a class='see' href='guide.html#skip'>詳しく →</a>"],
+    ["miokuri-record", "見送りの成績", "買っていたら", "見送ったレースにも同じ方式の買い目を記録しておき、結果が出た後に「もし買っていたら」を集計したもの。見送り判断そのものの成績表です。<a class='see' href='tsushinbo.html#mio'>通信簿で見る →</a>"],
+    ["t20", "T-20 / T-10", "発走 20 分前 / 10 分前", "買い目を出すタイミング。発走 20 分前に速報、10 分前に直前のオッズでもう一度判定して確定します。"],
+    ["display-only", "表示専用", "", "サイトの買い目は検証と情報提供のためのもので、実際のお金では買っていません。"],
     ["frozen", "凍結版", "", "最初のレースの発走前に保存した予想の控え。採点は必ずこの凍結版で行い、あとから書き換えた予想で成績を良く見せることはしません。"],
     ["torigami", "トリガミ", "", "当たったのに、払戻が使った金額より少ないこと。点数を増やすほど起きやすくなります。"]
   ]},
