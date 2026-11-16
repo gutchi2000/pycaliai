@@ -1917,13 +1917,13 @@ function tenkaiLaneSvg(items, title, sub) {
   const chips = xs.map((it) => {
     const h = it.h, w = String(h.waku ?? 1), y = yOf(it.row);
     const hon = h.mark === "◎";
-    return `<g class="tk-chip" data-uma="${h.umaban}"><title>${esc(h.name)}（${h.mark || "無印"}）</title>
+    return `<g class="tn-chip" data-uma="${h.umaban}"><title>${esc(h.name)}（${h.mark || "無印"}）</title>
       ${hon ? `<circle cx="${it.x.toFixed(1)}" cy="${y}" r="${R + 4}" fill="none" stroke="#ffd84a" stroke-width="3"/>` : ""}
       <circle cx="${it.x.toFixed(1)}" cy="${y}" r="${R}" fill="${WAKU_BAR[w] || "#46587e"}" stroke="${w === "2" ? "#59617a" : "rgba(0,0,0,.35)"}" stroke-width="1.5"/>
       <text x="${it.x.toFixed(1)}" y="${y + 6}" text-anchor="middle" font-size="17" font-weight="700" fill="${WAKU_TX[w] || "#fff"}">${h.umaban}</text></g>`;
   }).join("");
-  return `<div class="tk-lane"><div class="tk-lane-h"><b>${title}</b><small>${sub}</small></div>
-    <div class="tk-sc"><svg viewBox="0 0 ${W} ${H}" class="tk-svg" role="img" aria-label="${esc(title)}の予想隊列">
+  return `<div class="tn-lane"><div class="tn-lane-h"><b>${title}</b><small>${sub}</small></div>
+    <div class="tn-sc"><svg viewBox="0 0 ${W} ${H}" class="tn-svg" role="img" aria-label="${esc(title)}の予想隊列">
       <rect x="20" y="30" width="${W - 40}" height="${H - 44}" rx="12" fill="rgba(45,212,168,.05)" stroke="rgba(255,255,255,.07)"/>
       <line x1="${X1 + 26}" y1="34" x2="${X1 + 26}" y2="${H - 18}" stroke="rgba(255,255,255,.18)" stroke-dasharray="4 5"/>
       <text x="${X1 + 20}" y="22" text-anchor="end" font-size="14" fill="#8d9cba">先頭 →</text>
@@ -1950,41 +1950,42 @@ function renderTenkai(r, vb) {
   const tbl = order.map((x) => {
     const mv = x.er - x.lr;
     const thin = x.nh < 2;
-    return `<div class="tk-row ${x.h.mark === "◎" ? "honmei" : ""}" data-uma="${x.u}">
+    return `<div class="tn-row ${x.h.mark === "◎" ? "honmei" : ""}" data-uma="${x.u}">
       <span class="mark ${markCls(x.h.mark)}">${x.h.mark || "・"}</span>
       <span>${wk(x.h)}</span>
-      <span class="um-name">${esc(x.h.name)}${thin ? `<i class="tk-thin" title="通過順の分かる過去走が少ない">データ少</i>` : ""}</span>
-      <span class="ta-c"><span class="tk-st" style="color:${STC[x.st]};border-color:${STC[x.st]}66">${x.st}</span></span>
+      <span class="um-name">${esc(x.h.name)}${thin ? `<i class="tn-thin" title="通過順の分かる過去走が少ない">データ少</i>` : ""}</span>
+      <span class="ta-c"><span class="tn-st" style="color:${STC[x.st]};border-color:${STC[x.st]}66">${x.st}</span></span>
+      <span class="ta-c tn-usual">${esc(x.h.style || "—")}</span>
       <span class="num ta-r">${x.er}<small>番手</small></span>
       <span class="num ta-r">${x.lr}<small>番手</small></span>
-      <span class="ta-c tk-mv ${mv >= 2 ? "up" : mv <= -2 ? "dn" : ""}">${mv >= 2 ? `▲${mv}` : mv <= -2 ? `▼${-mv}` : "—"}</span>
+      <span class="ta-c tn-mv ${mv >= 2 ? "up" : mv <= -2 ? "dn" : ""}">${mv >= 2 ? `▲${mv}` : mv <= -2 ? `▼${-mv}` : "—"}</span>
     </div>`;
   }).join("");
   const m = tenkaiMeta && tenkaiMeta.test;
-  vb.innerHTML = `<div class="card anc tk-card">
+  vb.innerHTML = `<div class="card anc tn-card">
       <div class="an-t">展開予想 <small>過去走の通過順・前半の速さ・枠・頭数・距離から予測（オッズは使っていません）。黄色の輪が◎</small></div>
-      <div class="tk-pace">
-        <div class="tk-pace-l"><div class="tk-pace-h">ペース予想</div><div class="tk-pace-v">${names[top]}</div><div class="tk-pace-s">${sure}</div></div>
-        <div class="tk-pace-bars">${vals.map((v, i) => `<div class="tk-pb ${i === top ? "on" : ""}"><span>${names[i]}</span><i style="width:${Math.max(1, Math.round(v * 100))}%;background:${["#62a8f5", "#8d9cba", "#f2555a"][i]}"></i><b>${Math.round(v * 100)}%</b></div>`).join("")}</div>
-        <div class="tk-pace-r">
+      <div class="tn-pace">
+        <div class="tn-pace-l"><div class="tn-pace-h">ペース予想</div><div class="tn-pace-v">${names[top]}</div><div class="tn-pace-s">${sure}</div></div>
+        <div class="tn-pace-bars">${vals.map((v, i) => `<div class="tn-pb ${i === top ? "on" : ""}"><span>${names[i]}</span><i style="width:${Math.max(1, Math.round(v * 100))}%;background:${["#62a8f5", "#8d9cba", "#f2555a"][i]}"></i><b>${Math.round(v * 100)}%</b></div>`).join("")}</div>
+        <div class="tn-pace-r">
           <div><span>逃げ候補</span><b>${lead.slice(0, 2).map((x) => `${wk(x.h)} ${esc(x.h.name)}`).join("<br>")}</b></div>
-          <div><span>予想脚質（レース内の順位から）</span><b class="tk-mix">${["逃げ", "先行", "差し", "追込"].map((s) => `<em style="color:${STC[s]}">${s} ${cnt(s)}</em>`).join(" ")}</b></div>
+          <div><span>予想脚質（レース内の順位から）</span><b class="tn-mix">${["逃げ", "先行", "差し", "追込"].map((s) => `<em style="color:${STC[s]}">${s} ${cnt(s)}</em>`).join(" ")}</b></div>
         </div>
       </div>
       ${tenkaiLaneSvg(rows.map((x) => ({ h: x.h, pos: x.e })), "序盤", "最初のコーナーの予想位置")}
       ${tenkaiLaneSvg(rows.map((x) => ({ h: x.h, pos: x.l })), "4 コーナー", "勝負どころの予想位置")}
     </div>
     <div class="card um-card">
-      <div class="an-t">各馬の予想位置 <small>序盤の順。動き＝序盤から 4 角で何頭ぶん前へ（▲）／後ろへ（▼）</small></div>
-      <div class="ix-scroll"><div class="tk-tbl">
-        <div class="tk-head"><span></span><span>馬番</span><span>馬名</span><span class="ta-c">予想脚質</span><span class="ta-r">序盤</span><span class="ta-r">4角</span><span class="ta-c">動き</span></div>
+      <div class="an-t">各馬の予想位置 <small>序盤の順。予想脚質＝このレースのメンバーの中での予想位置、ふだん＝出走表の脚質（その馬のふだんの位置取り）。動き＝序盤から 4 角で何頭ぶん前へ（▲）／後ろへ（▼）</small></div>
+      <div class="ix-scroll"><div class="tn-tbl">
+        <div class="tn-head"><span></span><span>馬番</span><span>馬名</span><span class="ta-c">予想脚質</span><span class="ta-c">ふだん</span><span class="ta-r">序盤</span><span class="ta-r">4角</span><span class="ta-c">動き</span></div>
         ${tbl}
       </div></div>
       <div class="ix-note">${m ? `2024〜25 年の答え合わせ（全馬に過去走があった ${(m.races_allhist || 0).toLocaleString("ja-JP")} レース）: 序盤の位置の順位相関 ${m.pos_spearman}（前 5 走の平均位置で並べると ${m.pos_spearman_base}）、予想 1 番手が実際に先頭 ${Math.round(m.lead_hit * 100)}%・3 番手以内 ${Math.round(m.lead_top3 * 100)}%（前 5 走の平均位置なら ${Math.round(m.lead_hit_base * 100)}%・${Math.round(m.lead_top3_base * 100)}%）。ペース 3 区分の的中 ${Math.round(m.pace_acc * 100)}%（でたらめなら 33%）。<br>` : ""}
         展開は出遅れ・騎手の作戦・当日の馬場で大きく変わります。予想の位置は目安です。ペースは「前半と上がりの速さの差」を同じコースの標準と比べ、スロー／平均／ハイに 3 等分したものです。</div>
     </div>`;
-  vb.querySelectorAll(".tk-sc").forEach((el) => { el.scrollLeft = el.scrollWidth; });   // スマホは先頭側から見せる
-  vb.querySelectorAll(".tk-row, .tk-chip").forEach((el) => el.addEventListener("click", () => {
+  vb.querySelectorAll(".tn-sc").forEach((el) => { el.scrollLeft = el.scrollWidth; });   // スマホは先頭側から見せる
+  vb.querySelectorAll(".tn-row, .tn-chip").forEach((el) => el.addEventListener("click", () => {
     if (byU.has(+el.dataset.uma)) openDrawer(+el.dataset.uma);
   }));
   if (tenkaiMeta === undefined) {
@@ -2149,8 +2150,9 @@ function renderBunseki(r, vb) {
 
 /* ---------------- コース ---------------- */
 function renderCourse(r, vb) {
-  const taikei = taikeiFlowWrapHtml(r);
-  const wireTaikei = () => wireTaikeiFlow(r);
+  // 2026-11-16: 想定隊列（脚質の数によるペース判定）は展開タブへ移した（展開予想が無いレースだけ簡易版を出す）
+  const taikei = "";
+  const wireTaikei = () => {};
   const key = `${r.place}|${r.course}`;
   const cs = state.day.courses ? state.day.courses[key] : null;
   if (!cs) {
@@ -2670,7 +2672,7 @@ function wireCompareControls(r, vb) {
 function viewsFor(r) {
   const vs = [...VIEWS];
   if (r && r.grade_scope) vs.splice(1, 0, { key: "grade", label: "🏆 重賞" });
-  if (r && r.tenkai) vs.splice(vs.findIndex((v) => v.key === "bunseki") + 1, 0, { key: "tenkai", label: "展開" });
+  if (r && (r.horses || []).length) vs.splice(vs.findIndex((v) => v.key === "bunseki") + 1, 0, { key: "tenkai", label: "展開" });
   // 予測記録: Phase 7B-4 の情報設計判断により通常のレース分析タブから撤去。
   // renderForecast()・Forecast Ledger 本体・fetch は一切削除していない — 到達導線のみ削除。
   // 印馬 (isMarkedHorse) が2頭以上いる時だけ表示 — 無印馬を含めた頭数ではない。
@@ -2703,7 +2705,6 @@ function renderView() {
   if (state.view === "grade" && !r.grade_scope) state.view = "shutsuba";
   if (state.view === "forecast" && !state.day?.forecastIds?.has(r.race_id)) state.view = "shutsuba";
   if (state.view === "compare" && (r.horses || []).filter(isMarkedHorse).length < 2) state.view = "shutsuba";
-  if (state.view === "tenkai" && !r.tenkai) state.view = "shutsuba";
   if (state.view === "shutsuba") {
     vb.innerHTML = `<section id="shutsuba"></section><section id="extras"></section><section id="cowork"></section>`;
     renderTable(r); renderExtras(r); renderCowork(r);
@@ -2712,7 +2713,12 @@ function renderView() {
   } else if (state.view === "bunseki") {
     renderBunseki(r, vb);
   } else if (state.view === "tenkai") {
-    renderTenkai(r, vb);
+    if (r.tenkai) renderTenkai(r, vb);
+    else {
+      // 展開予想（tenkai.py）が無いレース: 過去の脚質の数だけで出す簡易版の想定隊列
+      vb.innerHTML = `<div class="card cw-empty">このレースは展開予想のデータがありません。下は、各馬のふだんの脚質を数えただけの簡易版です。</div>` + taikeiFlowWrapHtml(r);
+      wireTaikeiFlow(r);
+    }
   } else if (state.view === "course") {
     renderCourse(r, vb);
   } else if (state.view === "pedigree") {
