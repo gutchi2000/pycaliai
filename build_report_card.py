@@ -288,7 +288,8 @@ def build(write: bool = True) -> dict:
     out["show_bets"] = SHOW_BETS
     if not SHOW_BETS:
         out["note"] = out["note"].replace(
-            "回収率はサイトに表示した買い目（表示専用、実弾ではない）の合計払戻 ÷ 合計購入額。", "")
+            "回収率はサイトに表示した買い目（表示専用、実弾ではない）の合計払戻 ÷ 合計購入額。", "").replace(
+            "取消馬を含む買い目は返還、中止か除外か分からない馬を含む買い目は集計から外す。", "")
     try:
         import report_card_miokuri as _rcm
         # 買い目を公開しない間 (site_flags.py) は「買っていたら」の比較も出さない

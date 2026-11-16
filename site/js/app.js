@@ -2874,7 +2874,7 @@ async function renderResults() {
   if (resultsData.hidden) {
     // 2026-11-16: 買い目は公開していない (build 側 site_flags.SHOW_BETS)。的中一覧・収支の代わりに案内だけ
     rm.innerHTML = `<div class="rs-wrap">
-      <div class="card rs-sum"><div class="rs-note" style="font-size:14.5px;line-height:1.8">
+      <div class="card rs-sum"><div style="font-size:14.5px;line-height:1.8;color:var(--tx2)">
         このサイトでは買い目（券種・金額）と、その的中・収支は公開していません。<br>
         AI 本命（◎）の勝率・複勝圏率は <a href="tsushinbo.html" style="color:var(--gold2)">AI の通信簿</a> で、条件別・週ごとに公開しています。
       </div></div>
