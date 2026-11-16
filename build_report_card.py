@@ -128,7 +128,7 @@ class Acc:
         }
 
 
-ERA_LABEL = {"v5": "v5（〜5/16）", "v6-C0": "v6 旧版 C0", "v6-C1": "v6 C1", "v7": "v7（JRDB 特徴つき）", "v8": "v8（JRDB 前日データつき）", "unknown": "不明"}
+ERA_LABEL = {"v5": "v5（〜5/16）", "v6-C0": "v6 旧版 C0", "v6-C1": "v6 C1", "v7": "v7", "v8": "v8", "unknown": "不明"}
 
 DIMS = [
     ("era", "予測モデルの版"), ("verified", "予測の来歴"),
