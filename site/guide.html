@@ -18,7 +18,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#070b14">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261116-tk4">
+<link rel="stylesheet" href="css/style.css?v=20261116-gg">
 <style>
   .wrap{max-width:960px;margin:0 auto;padding:var(--pad);}
   .ehead{margin:8px 0 14px;}
@@ -205,7 +205,7 @@
 
   <section class="panel" id="gauges">
     <h2><span class="no">04</span>レースの性格を表す 4 つのメーター</h2>
-    <p>レース名の横の円グラフは、AI がそのレースをどう見ているかの要約です。</p>
+    <p>レース名の横の円グラフは、AI がそのレースをどう見ているかの要約です。<b>真ん中の数字は、今年のレースの中での位置（0〜100）</b>で、100 がその項目で最も高いレース、50 がふつうです。下に一言の見立てと、その位置の帯のレースで◎が 3 着以内に来た割合（今年の実績）を出しています。</p>
     <div class="tw"><table class="gt">
       <thead><tr><th>メーター</th><th>計算</th><th>高いと</th></tr></thead>
       <tbody>
@@ -215,7 +215,7 @@
         <tr><td>市場一致</td><td>AI の順位と人気順の順位相関</td><td>AI と世間の見立てが同じ。低いレースは AI が人気と違う馬を推している。</td></tr>
       </tbody>
     </table></div>
-    <p class="note">混戦度の生の値は 0.8〜1.0 あたりに集まりやすいため、「堅い」「荒れ」の判定や見送りでは、過去のレースの中で何番目くらいの混戦か（百分位）に直してから使います。</p>
+    <p class="note">元の値をそのまま % で出すと、本命優位は半分のレースで 4% 以下（勝率の補正の都合で 1・2 番手が同じ勝率になるレースが 15% ある）、混戦度は 0.8〜1.0 に集まり、数字の大きさと見た目が合いませんでした。そこで 2026-11-16 から位置で出しています。元の値はメーターにマウスを乗せると見られます。「堅い」「荒れ」の判定や見送りは、これまでどおり混戦度の百分位で決めています。</p>
   </section>
 
   <section class="panel" id="when">

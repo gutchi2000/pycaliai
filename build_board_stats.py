@@ -17,6 +17,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 SITE_DATA = ROOT / "site" / "data"
 OUT = SITE_DATA / "board_stats.json"
+GAUGE_OUT = SITE_DATA / "gauge_ref.json"
+GAUGES = ("top1_dominance", "top2_concentration", "field_chaos_score", "ai_market_agreement")
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -52,6 +54,8 @@ def _row(key, a):
 
 
 def build() -> dict:
+    gv = {k: [] for k in GAUGES}          # 全レースの値（位置＝百分位の物差し）
+    gres = {k: [] for k in GAUGES}        # 結果のあるレースの (値, ◎1着, ◎3着内)
     agree = {k: [0, 0, 0] for k in range(4)}
     hard = {k: [0, 0, 0] for k in ("固い", "標準", "荒れ")}
     dates = []
@@ -61,9 +65,18 @@ def build() -> dict:
         for r in d.get("races", []):
             res = r.get("result") or {}
             order = res.get("order")
+            conf = r.get("confidence") or {}
+            for k in GAUGES:
+                if conf.get(k) is not None:
+                    gv[k].append(float(conf[k]))
             if not order:
                 continue
             t = tops(r)
+            if t["hon"] is not None:
+                p0 = order.get(str(t["hon"]))
+                for k in GAUGES:
+                    if conf.get(k) is not None:
+                        gres[k].append((float(conf[k]), int(p0 == 1), int(p0 is not None and p0 <= 3)))
             if t["hon"] is None:
                 continue
             pos = order.get(str(t["hon"]))
@@ -88,8 +101,41 @@ def build() -> dict:
         "by_hardness": [_row(k, hard[k]) for k in ("固い", "標準", "荒れ")],
     }
     OUT.write_bytes((json.dumps(out, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
+    build_gauge_ref(gv, gres, dates)
     print(f"board_stats: {out['n_races']} races / {out['n_days']} days -> {OUT.name}")
     return out
+
+
+def build_gauge_ref(gv: dict, gres: dict, dates: list) -> None:
+    """レース上部の 4 つのゲージを「今年のレースの中での位置（百分位）」で出すための物差し。
+    q: 0〜100% 点の値（101 個）、bands: 位置 5 等分ごとの◎の 1 着率・3 着内率（結果のあるレースだけ）。"""
+    import bisect
+    out = {"built_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+           "from": dates[0] if dates else None, "to": dates[-1] if dates else None, "gauges": {}}
+    for k in GAUGES:
+        v = sorted(gv[k])
+        if len(v) < 50:
+            continue
+        q = [round(v[min(len(v) - 1, int(round(i / 100 * (len(v) - 1))))], 5) for i in range(101)]
+
+        def pct(x):
+            # 同じ値が並ぶとき（勝率が同点で 0 など）は、その値の中央の位置にする
+            lo = bisect.bisect_left(v, x)
+            hi = bisect.bisect_right(v, x)
+            return (lo + hi) / 2 / len(v)
+        bands = [[0, 0, 0] for _ in range(5)]
+        for x, w, t3 in gres[k]:
+            b = min(4, int(pct(x) * 5))
+            bands[b][0] += 1
+            bands[b][1] += w
+            bands[b][2] += t3
+        out["gauges"][k] = {
+            "n": len(v), "q": q,
+            "bands": [{"n": n, "win": round(w / n, 3) if n else None, "top3": round(t / n, 3) if n else None}
+                      for n, w, t in bands],
+        }
+    GAUGE_OUT.write_bytes((json.dumps(out, ensure_ascii=False) + "\n").encode("utf-8"))
+    print("gauge_ref: " + ", ".join(f"{k}={g['n']}" for k, g in out["gauges"].items()))
 
 
 if __name__ == "__main__":

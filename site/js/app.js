@@ -65,6 +65,10 @@ async function boot() {
     return;
   }
   state.manifest = mf;
+  // レース上部の 4 ゲージを「今年のレースの中での位置」で出すための物差し（build_board_stats.py が作る）
+  try {
+    state.gaugeRef = await fetch("data/gauge_ref.json?t=" + Date.now()).then((r) => (r.ok ? r.json() : null));
+  } catch (e) { state.gaugeRef = null; }
   // 出世予測 (shusse.html) のレース前評価。出走表の馬名横に「出世株」バッジを出すためだけに使う (無くても描画は続行)
   fetch("data/shusse/weekly.json?t=" + Date.now()).then((r) => r.ok ? r.json() : null)
     .then((w) => { state.shusse = w && w.entries ? w : null; if (state.shusse && state.mode === "races" && typeof currentRace === "function") { try { const r = currentRace(); if (r) renderTable(r, false); } catch (e) { /* noop */ } } })
@@ -408,6 +412,58 @@ function renderRaceVT() {
 }
 
 /* ---------------- race header ---------------- */
+// 生の値 → 今年のレースの中での位置（0〜1）。同じ値が並ぶとき（勝率の同点で 0 など）は、その値の中央の位置。
+function gaugePct(key, x) {
+  const g = state.gaugeRef?.gauges?.[key];
+  if (!g || x == null) return null;
+  const q = g.q;
+  let lo = q.findIndex((v) => v >= x);
+  if (lo < 0) return 1;
+  let hi = lo;
+  while (hi + 1 < q.length && q[hi + 1] <= x) hi++;
+  if (q[lo] > x) {   // q[lo-1] < x < q[lo] の間を直線で補う
+    if (lo === 0) return 0;
+    const a = q[lo - 1], b = q[lo];
+    return (lo - 1 + (x - a) / (b - a || 1)) / 100;
+  }
+  return (lo + hi) / 2 / 100;
+}
+const GAUGE_WORDS = {
+  top1_dominance: ["互角", "接戦", "ふつう", "やや抜け", "抜けている"],
+  top2_concentration: ["かなり分散", "分散", "ふつう", "やや集中", "2 頭に集中"],
+  field_chaos_score: ["かなり固い", "固め", "ふつう", "荒れ気味", "大荒れ注意"],
+  ai_market_agreement: ["人気と違う", "やや違う", "ふつう", "ほぼ同じ", "人気と同じ"],
+};
+const GAUGE_HELP = {
+  top1_dominance: "AI の 1 番手の勝率が 2 番手よりどれだけ高いか",
+  top2_concentration: "AI の上位 2 頭のどちらかが勝つ確率",
+  field_chaos_score: "AI の勝率の散らばり（大きいほど荒れやすい）",
+  ai_market_agreement: "AI の順位と人気順（出走表の時点）の近さ",
+};
+// 今年のレースの中での位置（0〜100）で描くゲージ。物差しが無いときは従来どおり生の値。
+function gaugeEl(label, key, raw, color, pctOverride) {
+  let p = pctOverride != null ? pctOverride : gaugePct(key, raw);
+  if (p == null) return donut(label, raw, color);
+  if (key === "top1_dominance" && raw != null && raw < 0.005) p = Math.min(p, 0.1);   // 1・2 番手の勝率が同点
+  const b = Math.min(4, Math.floor(p * 5));
+  const word = GAUGE_WORDS[key][b];
+  const band = state.gaugeRef.gauges[key].bands?.[b];
+  const g = state.gaugeRef;
+  const tip = `${GAUGE_HELP[key]}。数字は今年のレース（${g.from?.slice(4, 6) | 0}/${g.from?.slice(6) | 0}〜${g.to?.slice(4, 6) | 0}/${g.to?.slice(6) | 0}）の中での位置で、100 が最も高い。元の値 ${raw == null ? "—" : Math.round(raw * 100) + "%"}`
+    + (band?.top3 != null ? `。この帯のレースの◎ 3 着内率 ${Math.round(band.top3 * 100)}%（${band.n} レース）` : "");
+  const C = (2 * Math.PI * 20).toFixed(1);
+  return `<div class="gauge" title="${esc(tip)}">
+    <svg viewBox="0 0 48 48" width="66" height="66" aria-hidden="true">
+      <circle class="g-track" cx="24" cy="24" r="20"></circle>
+      <circle class="g-fill" cx="24" cy="24" r="20"
+        style="stroke:${color};stroke-dasharray:${C};stroke-dashoffset:${(C * (1 - p)).toFixed(1)};--c:${C};--off:${(C * (1 - p)).toFixed(1)}"></circle>
+    </svg>
+    <div class="g-val num"><span class="cv" data-cv="${Math.round(p * 100)}">0</span></div>
+    <div class="g-label">${label}</div>
+    <div class="g-word" style="color:${color}">${word}</div>
+    ${band?.top3 != null ? `<div class="g-sub">◎3着内 ${Math.round(band.top3 * 100)}%</div>` : ""}
+  </div>`;
+}
 function donut(label, frac, color) {
   const C = (2 * Math.PI * 20).toFixed(1);
   const v = Math.max(0, Math.min(1, frac ?? 0));
@@ -538,10 +594,10 @@ function renderHeader(r) {
       </div>` : ""}
     </div>
     <div class="gauges">
-      ${donut("本命優位", conf.top1_dominance, "#f5b942")}
-      ${donut("上位集中", conf.top2_concentration, "#5ba0f5")}
-      ${donut("混戦度", conf.field_chaos_score, "#f2555a")}
-      ${donut("市場一致", conf.ai_market_agreement, "#2dd4a8")}
+      ${gaugeEl("本命優位", "top1_dominance", conf.top1_dominance, "#f5b942")}
+      ${gaugeEl("上位集中", "top2_concentration", conf.top2_concentration, "#5ba0f5")}
+      ${gaugeEl("混戦度", "field_chaos_score", conf.field_chaos_score, "#f2555a")}
+      ${gaugeEl("市場一致", "ai_market_agreement", conf.ai_market_agreement, "#2dd4a8")}
     </div>
     ${memberLevelEl(r)}
     ${r.cowork?.race_reason ? `<div class="rh-quote"><b>COWORK</b>${esc(r.cowork.race_reason)}</div>` : ""}
