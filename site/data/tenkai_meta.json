@@ -108,5 +108,121 @@
     "actual": 0.59
    }
   ]
+ },
+ "close": {
+  "version": "close-20261116",
+  "races": 6654,
+  "base_rate": 0.114,
+  "auc": 0.695,
+  "auc_course": 0.641,
+  "logloss": 0.3299,
+  "logloss_course": 0.3447,
+  "logloss_const": 0.354,
+  "calib": [
+   {
+    "band": "0〜20%",
+    "n": 5893,
+    "pred": 0.101,
+    "actual": 0.094
+   },
+   {
+    "band": "20〜30%",
+    "n": 712,
+    "pred": 0.235,
+    "actual": 0.264
+   },
+   {
+    "band": "30〜40%",
+    "n": 49,
+    "pred": 0.317,
+    "actual": 0.286
+   }
+  ],
+  "horse": [
+   {
+    "q": 0,
+    "p_mean": 0.039,
+    "races": 1356,
+    "late_top3": 0.13,
+    "front_top3": 0.351,
+    "late_n": 9684
+   },
+   {
+    "q": 1,
+    "p_mean": 0.074,
+    "races": 1449,
+    "late_top3": 0.148,
+    "front_top3": 0.316,
+    "late_n": 10220
+   },
+   {
+    "q": 2,
+    "p_mean": 0.111,
+    "races": 1224,
+    "late_top3": 0.157,
+    "front_top3": 0.295,
+    "late_n": 8792
+   },
+   {
+    "q": 3,
+    "p_mean": 0.149,
+    "races": 1333,
+    "late_top3": 0.164,
+    "front_top3": 0.282,
+    "late_n": 9526
+   },
+   {
+    "q": 4,
+    "p_mean": 0.217,
+    "races": 1292,
+    "late_top3": 0.204,
+    "front_top3": 0.265,
+    "late_n": 8588
+   }
+  ],
+  "platt": {
+   "a": 0.92027,
+   "b": -0.33155
+  },
+  "edges": [
+   0.05391,
+   0.09364,
+   0.12887,
+   0.17277
+  ],
+  "importance": [
+   [
+    "course_rate",
+    0.43
+   ],
+   [
+    "ab_late",
+    0.109
+   ],
+   [
+    "ab_diff",
+    0.075
+   ],
+   [
+    "cls",
+    0.058
+   ],
+   [
+    "fr_std",
+    0.032
+   ],
+   [
+    "ab_top_lq",
+    0.031
+   ],
+   [
+    "pl_std",
+    0.03
+   ],
+   [
+    "fr_mean",
+    0.027
+   ]
+  ]
  }
 }

@@ -56,6 +56,7 @@ def _row(key, a):
 def build() -> dict:
     gv = {k: [] for k in GAUGES}          # 全レースの値（位置＝百分位の物差し）
     gres = {k: [] for k in GAUGES}        # 結果のあるレースの (値, ◎1着, ◎3着内)
+    lvl = {}                              # (印, 馬レベル) → [頭数, AI予測3着内の合計, 実際の3着内]
     agree = {k: [0, 0, 0] for k in range(4)}
     hard = {k: [0, 0, 0] for k in ("固い", "標準", "荒れ")}
     dates = []
@@ -71,6 +72,16 @@ def build() -> dict:
                     gv[k].append(float(conf[k]))
             if not order:
                 continue
+            for h in r.get("horses", []):
+                lv = (h.get("level") or {}).get("tier")
+                if h.get("scratched") or not lv or h.get("p_sho") is None:
+                    continue
+                mk = {"○": "〇"}.get(h.get("mark") or "", h.get("mark") or "無")
+                pos = order.get(str(h.get("umaban")))
+                a = lvl.setdefault(f"{mk}|{lv}", [0, 0.0, 0])
+                a[0] += 1
+                a[1] += float(h["p_sho"])
+                a[2] += int(pos is not None and pos <= 3)
             t = tops(r)
             if t["hon"] is not None:
                 p0 = order.get(str(t["hon"]))
@@ -101,12 +112,12 @@ def build() -> dict:
         "by_hardness": [_row(k, hard[k]) for k in ("固い", "標準", "荒れ")],
     }
     OUT.write_bytes((json.dumps(out, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
-    build_gauge_ref(gv, gres, dates)
+    build_gauge_ref(gv, gres, dates, lvl)
     print(f"board_stats: {out['n_races']} races / {out['n_days']} days -> {OUT.name}")
     return out
 
 
-def build_gauge_ref(gv: dict, gres: dict, dates: list) -> None:
+def build_gauge_ref(gv: dict, gres: dict, dates: list, lvl: dict | None = None) -> None:
     """レース上部の 4 つのゲージを「今年のレースの中での位置（百分位）」で出すための物差し。
     q: 0〜100% 点の値（101 個）、bands: 位置 5 等分ごとの◎の 1 着率・3 着内率（結果のあるレースだけ）。"""
     import bisect
@@ -134,6 +145,9 @@ def build_gauge_ref(gv: dict, gres: dict, dates: list) -> None:
             "bands": [{"n": n, "win": round(w / n, 3) if n else None, "top3": round(t / n, 3) if n else None}
                       for n, w, t in bands],
         }
+    # 印 × 馬レベル: AI の予測 3 着内率と実際（印と馬レベルが食い違うときの注意書きに使う）
+    out["level_mark"] = {k: {"n": n, "pred": round(s / n, 3), "act": round(t / n, 3)}
+                         for k, (n, s, t) in sorted((lvl or {}).items()) if n >= 50}
     GAUGE_OUT.write_bytes((json.dumps(out, ensure_ascii=False) + "\n").encode("utf-8"))
     print("gauge_ref: " + ", ".join(f"{k}={g['n']}" for k, g in out["gauges"].items()))
 

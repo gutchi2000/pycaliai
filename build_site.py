@@ -292,6 +292,7 @@ def load_tenkai_day(date_str: str) -> dict:
         pc = r.get("pace") or {}
         out[(r.get("place"), int(r.get("rno")))] = {
             "pace": [pc.get("slow"), pc.get("mid"), pc.get("high")],
+            "late": r.get("late"),   # 勝ち馬が 4 角で後ろ半分から来る確率（差し・追込は届くか）
             "h": [[h["umaban"], h["e"], h["l"], h["er"], h["lr"], h["st"], h.get("nh", 0)] for h in r.get("horses", [])],
         }
     return out

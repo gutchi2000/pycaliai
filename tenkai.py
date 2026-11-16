@@ -177,6 +177,7 @@ def pos_features(x: pd.DataFrame) -> pd.DataFrame:
     E = np.column_stack([lag[k]["e_rel"] for k in range(1, 6)])
     L = np.column_stack([lag[k]["l_rel"] for k in range(1, 4)])
     F = np.column_stack([lag[k]["f_rate"] for k in range(1, 4)])
+    A = np.column_stack([lag[k]["fig"] for k in range(1, 4)])
     S = np.column_stack([(lag[k]["surface"] == x["surface"]).to_numpy() for k in range(1, 6)])
     D = np.column_stack([(lag[k]["dist"] - x["dist"]).abs().le(200).to_numpy() for k in range(1, 6)])
     with np.errstate(all="ignore"):
@@ -191,6 +192,7 @@ def pos_features(x: pd.DataFrame) -> pd.DataFrame:
         x["f1"] = F[:, 0]
         x["f_mean3"] = np.nanmean(F, axis=1)
         x["f_max3"] = np.nanmax(F, axis=1)
+        x["ab3"] = np.nanmean(A, axis=1)
     x["n_hist"] = pos
     x["days"] = (x["date"] - lag[1]["date"]).dt.days
     x["dist_ratio"] = x["dist"] / lag[1]["dist"]
@@ -350,6 +352,130 @@ def cmd_train(args) -> None:
     print(json.dumps(meta["test"], ensure_ascii=False, indent=1))
 
 
+# ---------------------------------------------------------------- 差し・追込は届くか
+# 目的: 勝ち馬が 4 角で後ろ半分にいた（差し・追込で決着した）確率。
+# 中身: ペース予想の材料 + 予想した 4 角の位置ごとの「力」（直近 3 走のスピード指数の平均）の最大値
+#       + コース（場・芝ダ・距離）の過去の差し決着率 + 馬場状態 + 頭数・クラス。オッズは使わない。
+CLOSE_FEATS = PACE_FEATS + ["mu", "ab_front", "ab_late", "ab_diff", "ab_top_lq", "going_n", "course_rate", "pl_std",
+                            "ab_n_late_top3"]
+LATE_CUT = 0.5      # 4 角で後ろ半分（相対位置 > 0.5）
+
+
+def _course_key(df):
+    return df["place"].astype(str) + df["surface"].astype(str) + df["dist"].astype(int).astype(str)
+
+
+def close_frame(x: pd.DataFrame, mp, course_rate: dict, surf_rate: dict) -> pd.DataFrame:
+    P = pace_frame(x)
+    P["mu"] = mp.predict(P[PACE_FEATS])
+    g = x.groupby("race_key")
+    n = g["horse_id"].transform("size")
+    x = x.assign(lq=g["pl"].rank(method="first") / n,
+                 ab_rk=g["ab3"].rank(method="first", ascending=False))
+    front = x[x["lq"] <= 1 / 3]
+    late = x[x["lq"] > LATE_CUT]
+    P["ab_front"] = front.groupby("race_key")["ab3"].max()
+    P["ab_late"] = late.groupby("race_key")["ab3"].max()
+    P["ab_diff"] = P["ab_late"] - P["ab_front"]
+    top = x.dropna(subset=["ab3"]).sort_values("ab3", ascending=False).drop_duplicates("race_key")
+    P["ab_top_lq"] = top.set_index("race_key")["lq"]
+    P["ab_n_late_top3"] = x[x["ab_rk"] <= 3].assign(l=lambda d: (d["lq"] > LATE_CUT).astype(float)) \
+        .groupby("race_key")["l"].sum()
+    P["going_n"] = g["going"].first().map(si.GOING_N)
+    ck = _course_key(g[["place", "surface", "dist"]].first())
+    sf = g["surface"].first()
+    P["course_rate"] = ck.map(course_rate).fillna(sf.map(surf_rate))
+    P["pl_std"] = g["pl"].std()
+    return P
+
+
+def cmd_train_close(args) -> None:
+    import lightgbm as lgb
+    from sklearn.metrics import roc_auc_score, log_loss
+    me = lgb.Booster(model_file=str(OUT_DIR / "pos_model_e.txt"))
+    ml = lgb.Booster(model_file=str(OUT_DIR / "pos_model_l.txt"))
+    mp = lgb.Booster(model_file=str(OUT_DIR / "pace_model.txt"))
+    r = runs_with_corners()
+    x = pos_features(r)
+    full = x.groupby("race_key")["horse_id"].transform("size") >= np.maximum(5, 0.8 * x["field"])
+    x = x[full & x["l_rel"].notna()].copy()
+    x["pe"] = me.predict(x[POS_FEATS])
+    x["pl"] = ml.predict(x[POS_FEATS])
+    # 正解: 勝ち馬の 4 角の位置
+    win = x[x["finish"] == 1].drop_duplicates("race_key").set_index("race_key")
+    yr = x.groupby("race_key")["date"].first().dt.year
+    tgt = (win["l_rel"] > LATE_CUT).astype(float).reindex(yr.index)
+    # コースの過去の差し決着率（2022 年まで、少ないコースは芝ダの率へ縮める）
+    rr = pd.DataFrame({"y": tgt, "year": yr}).join(x.groupby("race_key")[["place", "surface", "dist"]].first())
+    old = rr[(rr["year"] <= 2022) & rr["y"].notna()]
+    surf_rate = old.groupby("surface")["y"].mean().to_dict()
+    ck = _course_key(old)
+    agg = old.assign(ck=ck).groupby("ck").agg(s=("y", "sum"), n=("y", "size"), surface=("surface", "first"))
+    K = 30.0
+    course_rate = ((agg["s"] + K * agg["surface"].map(surf_rate)) / (agg["n"] + K)).to_dict()
+    P = close_frame(x, mp, course_rate, surf_rate)
+    P["y"] = tgt
+    P["year"] = yr
+    P = P[P["y"].notna()]
+    tr, va, te = P["year"] <= 2022, P["year"] == 2023, P["year"].between(2024, 2025)
+    pp = dict(objective="binary", learning_rate=0.03, num_leaves=15, min_data_in_leaf=200,
+              feature_fraction=0.8, bagging_fraction=0.8, bagging_freq=1, verbose=-1, seed=7)
+    m = lgb.train(pp, lgb.Dataset(P.loc[tr, CLOSE_FEATS], P.loc[tr, "y"]), 3000,
+                  valid_sets=[lgb.Dataset(P.loc[va, CLOSE_FEATS], P.loc[va, "y"])],
+                  callbacks=[lgb.early_stopping(100, verbose=False)])
+    m.save_model(str(OUT_DIR / "close_model.txt"))
+    (OUT_DIR / "course_late_rate.json").write_text(json.dumps({"course": course_rate, "surface": surf_rate},
+                                                              ensure_ascii=False), encoding="utf-8")
+    # 較正: 2023 で logit(p) にロジスティック（なめらかな 2 パラメータ。isotonic は段になり悪化した）
+    from sklearn.linear_model import LogisticRegression
+    P["p_raw"] = m.predict(P[CLOSE_FEATS])
+    lg = lambda v: np.log(np.clip(v, 1e-6, 1 - 1e-6) / (1 - np.clip(v, 1e-6, 1 - 1e-6)))
+    lr = LogisticRegression(C=1e6).fit(lg(P.loc[va, "p_raw"].to_numpy()).reshape(-1, 1), P.loc[va, "y"])
+    a_, b_ = float(lr.coef_[0][0]), float(lr.intercept_[0])
+    P["p"] = 1 / (1 + np.exp(-(a_ * lg(P["p_raw"].to_numpy()) + b_)))
+    calib = {"a": round(a_, 5), "b": round(b_, 5)}
+    edges = [round(float(v), 5) for v in P.loc[va, "p"].quantile([.2, .4, .6, .8])]
+    T = P[te]
+    base = T["course_rate"]
+    auc, auc_b = roc_auc_score(T["y"], T["p"]), roc_auc_score(T["y"], base)
+    ll, ll_b, ll_0 = log_loss(T["y"], T["p"]), log_loss(T["y"], base), log_loss(T["y"], np.full(len(T), T["y"].mean()))
+    bands = []
+    for lo, hi in ((0, .2), (.2, .3), (.3, .4), (.4, .5), (.5, .6), (.6, 1.01)):
+        mm = (T["p"] >= lo) & (T["p"] < hi)
+        if mm.sum() >= 40:
+            bands.append({"band": f"{int(lo*100)}〜{min(int(hi*100), 100)}%", "n": int(mm.sum()),
+                          "pred": round(float(T.loc[mm, "p"].mean()), 3), "actual": round(float(T.loc[mm, "y"].mean()), 3)})
+    # 馬ごとの裏付け: 予想 4 角が後ろ半分の馬の 3 着内率を、レースの「届く確率」の高低で比べる
+    hx = x[x["date"].dt.year.between(2024, 2025)].copy()
+    n = hx.groupby("race_key")["horse_id"].transform("size")
+    hx["lq"] = hx.groupby("race_key")["pl"].rank(method="first") / n
+    hx = hx.join(T["p"], on="race_key", how="inner")
+    hx["top3"] = (hx["finish"] <= 3).astype(float)
+    q = pd.Series(np.searchsorted(edges, hx["p"].to_numpy(), side="right"), index=hx.index)
+    horse = []
+    for b in range(5):
+        sub = hx[q == b]
+        if len(sub) == 0:
+            continue
+        horse.append({"q": b, "p_mean": round(float(sub["p"].mean()), 3), "races": int(sub["race_key"].nunique()),
+                      "late_top3": round(float(sub.loc[sub["lq"] > LATE_CUT, "top3"].mean()), 3),
+                      "front_top3": round(float(sub.loc[sub["lq"] <= 1 / 3, "top3"].mean()), 3),
+                      "late_n": int((sub["lq"] > LATE_CUT).sum())})
+    imp = dict(zip(m.feature_name(), m.feature_importance("gain")))
+    top_imp = sorted(imp.items(), key=lambda kv: -kv[1])[:8]
+    tot = sum(imp.values()) or 1
+    res = {"version": "close-20261116", "races": int(len(T)), "base_rate": round(float(T["y"].mean()), 3),
+           "auc": round(auc, 3), "auc_course": round(auc_b, 3),
+           "logloss": round(ll, 4), "logloss_course": round(ll_b, 4), "logloss_const": round(ll_0, 4),
+           "calib": bands, "horse": horse, "platt": calib, "edges": edges,
+           "importance": [[k, round(v / tot, 3)] for k, v in top_imp]}
+    meta = json.loads((OUT_DIR / "meta.json").read_text(encoding="utf-8"))
+    meta["close"] = res
+    (OUT_DIR / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
+    META_SITE.write_bytes((json.dumps(meta, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
+    print(json.dumps(res, ensure_ascii=False, indent=1))
+
+
 def pace_probs(mu, surf, cuts, sigma):
     from math import erf, sqrt
     Phi = np.vectorize(lambda z: 0.5 * (1 + erf(z / sqrt(2))))
@@ -387,6 +513,17 @@ def score_days(dates: list[str]) -> dict[str, dict]:
         P["mu"] = mp.predict(P[PACE_FEATS])
         surf = t.groupby("race_key")["surface"].first().reindex(P.index).to_numpy()
         pr = pace_probs(P["mu"].to_numpy(), surf, meta["cuts"], meta["sigma"])
+        pclose = None
+        if (OUT_DIR / "close_model.txt").exists():
+            cr = json.loads((OUT_DIR / "course_late_rate.json").read_text(encoding="utf-8"))
+            mc = lgb.Booster(model_file=str(OUT_DIR / "close_model.txt"))
+            C = close_frame(t, mp, cr["course"], cr["surface"]).reindex(P.index)
+            raw = mc.predict(C[CLOSE_FEATS])
+            pl_ = meta.get("close", {}).get("platt")
+            if pl_:
+                lgt = np.log(np.clip(raw, 1e-6, 1 - 1e-6) / (1 - np.clip(raw, 1e-6, 1 - 1e-6)))
+                raw = 1 / (1 + np.exp(-(pl_["a"] * lgt + pl_["b"])))
+            pclose = pd.Series(raw, index=P.index)
         races = []
         for (rk, g) in t.sort_values(["place", "rno", "umaban"]).groupby("race_key", sort=False):
             i = P.index.get_loc(rk)
@@ -398,6 +535,7 @@ def score_days(dates: list[str]) -> dict[str, dict]:
             races.append({"race_key": rk, "place": g["place"].iloc[0], "rno": int(g["rno"].iloc[0]),
                           "pace": {"slow": round(float(pr[i, 0]), 3), "mid": round(float(pr[i, 1]), 3),
                                    "high": round(float(pr[i, 2]), 3)},
+                          "late": None if pclose is None else round(float(pclose.loc[rk]), 3),
                           "horses": hs})
         out[d] = {"date": d, "version": meta["version"], "races": races}
     return out
@@ -417,6 +555,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="展開予想（序盤・4角の位置とペース）")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("train").set_defaults(fn=cmd_train)
+    sub.add_parser("train-close").set_defaults(fn=cmd_train_close)
     s = sub.add_parser("score-day")
     s.add_argument("start")
     s.set_defaults(fn=cmd_score, end=None)

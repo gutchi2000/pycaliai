@@ -746,8 +746,50 @@ function memberLevelEl(r) {
       <div class="mls-cap"><span>低調</span><span>ハイレベル</span></div>
     </div>
     ${honmeiVerdictEl(r)}
+    ${levelGapEl(r)}
     <div class="mlvl-note">※ 近走成績ベースの目安。買い目の最終判断は 勝率・AI指数 と合わせて。</div>
   </div>`;
+}
+
+// 印と馬レベル（近走成績）が食い違う馬への注意書き（2026-11-16）。同じ AI の予測でも、
+// 馬レベルが高い馬は予測より来て、低い馬は来ない傾向がある（数字は gauge_ref.json の level_mark＝今年の実績）。
+function levelGapEl(r) {
+  const lm = state.gaugeRef?.level_mark;
+  if (!lm) return "";
+  const TIER_RANK = { S: 5, A: 4, B: 3, C: 2, D: 1 };
+  const MARK_RANK = { "◎": 5, "〇": 4, "▲": 3, "△": 2, "無": 1 };
+  const items = [];
+  (r.horses || []).forEach((h) => {
+    const t = h.level?.tier;
+    if (!t || h.scratched) return;
+    const mk = h.mark === "○" ? "〇" : (h.mark || "無");
+    const hiMark = MARK_RANK[mk] >= 4, loMark = MARK_RANK[mk] <= 2;
+    const hiLv = TIER_RANK[t] >= 5, loLv = TIER_RANK[t] <= 3;
+    if (!((hiMark && loLv) || (loMark && hiLv))) return;     // 印と馬レベルが食い違う馬だけ
+    const st = lm[`${mk}|${t}`];
+    const gap = st && st.n >= 100 ? st.act - st.pred : null;
+    // 今年の実績で、この組み合わせが AI の予測から 3pt 以上ずれた向きのときだけ書く。
+    // 実績の無い組み合わせ（◎×C など）は、食い違いが大きいので数字なしで触れる。
+    let kind = null;
+    if (gap != null) {
+      if (hiMark && gap <= -0.03) kind = "dn";
+      else if (loMark && gap >= 0.03) kind = "up";
+    } else if (hiMark && TIER_RANK[t] <= 2) kind = "na";
+    if (!kind) return;
+    const mkName = mk === "無" ? "無印" : mk;
+    const ev = gap != null
+      ? `今年の ${mkName}×馬レベル${t}: AI の予測 3着内 ${Math.round(st.pred * 100)}% → 実際 ${Math.round(st.act * 100)}%（${st.n}頭）`
+      : "今年はこの組み合わせが少なく、AI の評価より来るか来ないかはまだ分からない";
+    const say = kind === "dn"
+      ? `は${mkName}だが馬レベル <b>${t}</b>（近走成績は${t === "B" ? "中位" : "下位"}）。AI の評価ほどは来ていない組み合わせ`
+      : kind === "up"
+        ? `は${mkName}だが馬レベル <b>S</b>（近走成績は上位）。AI の評価より来ている組み合わせ`
+        : `は${mkName}だが馬レベル <b>${t}</b>（近走成績は下位）。印と近走成績が大きく食い違う`;
+    items.push(`<div class="lvgap ${kind}"><span class="mark ${markCls(h.mark)}">${h.mark || "・"}</span>
+      <b>${h.umaban} ${esc(h.name)}</b> ${say}<small>${ev}</small></div>`);
+  });
+  if (!items.length) return "";
+  return `<div class="lvgap-h">印と馬レベルの食い違い</div>${items.join("")}`;
 }
 
 // 「本命◎ はこの組で格上か」= ◎の近走レベル − 相手の中央値。格上ほど◎が来やすい(2026実測)。
@@ -964,58 +1006,23 @@ function realizedCard(r) {
     <div class="pair-note">
       <b>前残り</b>＝道中 前1/3 で勝った割合（脚質バイアス・<u>信頼できる定数</u>）。
       <b>枠</b>＝小標本で日々反転しやすい弱信号、参考程度に。
-      <b>合致/逆風</b>＝各印馬の脚質を実現バイアスと突合した<u>読みの目安</u>（買い目には未反映）。
+      前日の前残りは翌日の結果をほとんど左右しないため、脚質による印の上げ下げはしていません（表示専用・買い目には未反映）。
     </div>
   </div>`;
 }
 
-/* 実現バイアス × 各印馬の脚質を突合して「バイアス合致=評価↑ / 逆風=評価↓」を言語化。
-   前残り(脚質)の robust 軸のみで判定。枠は弱信号なので添える程度。表示専用＝買い目不干渉。 */
-const _FRONT_STY = { "逃げ": 1, "先行": 1 };
-const _CLOSE_STY = { "差し": 1, "追込": 1 };
-const _MARK_RANK = { "◎": 0, "〇": 1, "○": 1, "▲": 2, "△": 3 };
+/* 実現バイアス × 脚質 (2026-11-16 改): 以前は前残り 58% 以上で差し・追込の印馬を一律「逆風・消し寄り」と
+   書いていたが、ふだんから勝ち馬の 75% は 4 角で前 1/3（58% 以上と判定される開催日が 81%）で、
+   前日の傾向で翌日の差し・追込の 3 着内率はほとんど変わらない（2016-25: 前日 差し有利 16.5% /
+   フラット 15.5% / 前残り 14.7%）。根拠の無い格下げをやめ、ふだんとの比較と実測だけを出す。 */
+const FRONT_NORMAL = 0.75;
 function biasFitBlock(r, rb) {
   const fp = Math.round(rb.front_rate * 100);
-  // 前有利(+1) / 差し有利(-1) / フラット(0)。前脚質は元々勝ちやすいので中立帯を広めに。
-  let favor = 0;
-  if (fp >= 58) favor = 1;
-  else if (fp <= 34) favor = -1;
-  const dirWord = favor > 0 ? "前残り" : "差し・追込";
-  if (favor === 0) {
-    return `<div class="rb-fit-flat">前残り${fp}% ＝ ほぼフラット。脚質での評価上下は今回なし。</div>`;
-  }
-  // AI指数(出走表と同じ: レース内で ai_score を 0-100 正規化)
-  const scores = (r.horses || []).map((h) => h.ai_score).filter((v) => v != null);
-  const sMin = scores.length ? Math.min(...scores) : 0;
-  const sRange = scores.length ? Math.max(Math.max(...scores) - sMin, 1e-9) : 1;
-  const marked = (r.horses || [])
-    .filter((h) => h.mark && _MARK_RANK[h.mark] != null)
-    .sort((a, b) => _MARK_RANK[a.mark] - _MARK_RANK[b.mark]);
-  const rows = [];
-  for (const h of marked) {
-    const sty = h.style;
-    if (!sty) continue;
-    const isFront = _FRONT_STY[sty], isClose = _CLOSE_STY[sty];
-    if (!isFront && !isClose) continue;      // 中間脚質など判定外
-    // dir: +1=追い風(バイアス合致) / -1=逆風
-    const dir = (favor > 0) ? (isFront ? 1 : -1) : (isClose ? 1 : -1);
-    const low = _MARK_RANK[h.mark] >= 2;      // ▲△ = 軽い印
-    let msg;
-    if (dir > 0) msg = low ? "バイアス合致。実質格上げの狙い目" : "バイアスも後押し、信頼度アップ";
-    else msg = low ? "元々軽い上に逆風、消し寄り" : "本命級だが逆風、頭は危険・軽めに";
-    const idx = h.ai_score == null ? "—" : Math.round((h.ai_score - sMin) / sRange * 100);
-    rows.push(`<div class="rb-fit ${dir > 0 ? "up" : "dn"}">
-      <span class="mark ${markCls(h.mark)}">${h.mark}</span>
-      <span class="rb-fit-n">${h.umaban} ${esc(h.name)}</span>
-      <span class="rb-fit-sty">${esc(sty)}</span>
-      <span class="rb-fit-ai">AI<b>${idx}</b>${h.ai_rank ? `<span class="rb-fit-rk">#${h.ai_rank}</span>` : ""}</span>
-      <span class="rb-fit-arw">${dir > 0 ? "追い風▲" : "逆風▼"}</span>
-      <span class="rb-fit-msg">${msg}</span>
-    </div>`);
-  }
-  if (!rows.length) return "";
-  const small = rb.n < 3 ? `<span class="rb-fit-warn">※${rb.n}Rの小標本・目安</span>` : "";
-  return `<div class="rb-fit-hd">${dirWord}有利の脚質補正 ${small}</div>${rows.join("")}`;
+  const diff = fp - Math.round(FRONT_NORMAL * 100);
+  const word = diff >= 15 ? "ふだんより前が残った" : diff <= -25 ? "ふだんより差しが届いた" : "ふだん並み";
+  return `<div class="rb-fit-flat">前残り ${fp}%（ふだんは 75%）＝ <b>${word}</b>。
+    ただし前日の傾向で翌日の差し・追込の 3 着内率はほとんど変わりません（2016〜25 年: 前日が差し有利 16.5% ／ フラット 15.5% ／ 前残り 14.7%）。
+    脚質だけで印を上げ下げせず、各レースの展開タブの「差し・追込は届くか」を見てください。</div>`;
 }
 
 /* ---------------- cowork section ---------------- */
@@ -1931,6 +1938,23 @@ function tenkaiLaneSvg(items, title, sub) {
       ${chips}
     </svg></div></div>`;
 }
+// 差し・追込は届くか（tenkai.py train-close）: 勝ち馬が 4 角で後ろ半分から来る確率と、その帯の実績
+function tenkaiLateEl(tk) {
+  const p = tk.late;
+  const c = tenkaiMeta?.close;
+  if (p == null) return "";
+  const edges = c?.edges || [0.05, 0.095, 0.15, 0.19];
+  let b = 0; while (b < edges.length && p > edges[b]) b++;
+  const W = ["届きにくい", "やや届きにくい", "ふつう", "やや届きやすい", "届きやすい"][b];
+  const COL = ["#62a8f5", "#8fb5e8", "#8d9cba", "#f0a46a", "#f2555a"][b];
+  const hb = c?.horse?.find((x) => x.q === b);
+  return `<div class="tn-late" title="勝ち馬が 4 角で後ろ半分にいた（差し・追込で決着した）確率。ペース予想・予想した 4 角の位置ごとの力（直近 3 走のスピード指数）・コースの過去の傾向・馬場・頭数・クラスから。">
+    <div class="tn-pace-h">差し・追込は届くか</div>
+    <div class="tn-late-v" style="color:${COL}">${W}</div>
+    <div class="tn-pace-s">差し・追込で決まる確率 <b>${Math.round(p * 100)}%</b>（ふだん ${c ? Math.round(c.base_rate * 100) : 11}%）</div>
+    ${hb ? `<div class="tn-late-ev">この帯のレース: 4 角で後ろ半分の馬の 3着内 <b>${Math.round(hb.late_top3 * 100)}%</b> ／ 前 1/3 の馬 ${Math.round(hb.front_top3 * 100)}%</div>` : ""}
+  </div>`;
+}
 function renderTenkai(r, vb) {
   const tk = r.tenkai;
   const byU = new Map((r.horses || []).map((h) => [h.umaban, h]));
@@ -1967,6 +1991,7 @@ function renderTenkai(r, vb) {
       <div class="tn-pace">
         <div class="tn-pace-l"><div class="tn-pace-h">ペース予想</div><div class="tn-pace-v">${names[top]}</div><div class="tn-pace-s">${sure}</div></div>
         <div class="tn-pace-bars">${vals.map((v, i) => `<div class="tn-pb ${i === top ? "on" : ""}"><span>${names[i]}</span><i style="width:${Math.max(1, Math.round(v * 100))}%;background:${["#62a8f5", "#8d9cba", "#f2555a"][i]}"></i><b>${Math.round(v * 100)}%</b></div>`).join("")}</div>
+        ${tenkaiLateEl(tk)}
         <div class="tn-pace-r">
           <div><span>逃げ候補</span><b>${lead.slice(0, 2).map((x) => `${wk(x.h)} ${esc(x.h.name)}`).join("<br>")}</b></div>
           <div><span>予想脚質（レース内の順位から）</span><b class="tn-mix">${["逃げ", "先行", "差し", "追込"].map((s) => `<em style="color:${STC[s]}">${s} ${cnt(s)}</em>`).join(" ")}</b></div>

@@ -1855,3 +1855,17 @@ body.drawer-open { overflow: hidden; }
   .tn-pace { grid-template-columns: 1fr; gap: 10px; }
   .tn-pace-r { flex-direction: row; gap: 18px; }
 }
+
+/* 差し・追込は届くか / 印と馬レベルの食い違い (2026-11-16) */
+@media (min-width: 881px) { .tn-pace { grid-template-columns: 140px 1fr 230px 230px; } }
+.tn-late-v { font-family: var(--disp); font-size: 20px; font-weight: 700; line-height: 1.3; }
+.tn-late .tn-pace-s b { color: var(--tx); }
+.tn-late-ev { font-size: 11.5px; color: var(--tx3); margin-top: 3px; line-height: 1.5; }
+.tn-late-ev b { color: var(--tx2); }
+.lvgap-h { font-size: 12.5px; color: var(--tx3); letter-spacing: .06em; margin: 10px 0 4px; }
+.lvgap { font-size: 13px; color: var(--tx2); line-height: 1.6; padding: 4px 8px; border-left: 3px solid var(--line2); margin: 3px 0; }
+.lvgap.dn { border-left-color: #f2555a; }
+.lvgap.up { border-left-color: #2dd4a8; }
+.lvgap.na { border-left-color: #8d9cba; }
+.lvgap b { color: var(--tx); }
+.lvgap small { display: block; color: var(--tx3); font-size: 11.5px; }
