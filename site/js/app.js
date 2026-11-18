@@ -1318,14 +1318,19 @@ function openDrawer(umaban) {
   const runRows = runs.map((u) => {
     const p = u.pos;
     const pcls = p === 1 ? "rt1" : (p === 2 || p === 3) ? "rt23" : "";
+    // 過去走の schema: 2026-07〜 は race_name=クラス / style=決手。
+    // 〜2026-06 の旧 schema は style にクラス、weight_change に決手が入っていた（kako5_summary.py の旧ラベル）。
+    const oldSchema = u.race_name == null && u.weight_change != null;
+    const klass = oldSchema ? u.style : u.race_name;
+    const kimete = oldSchema ? u.weight_change : u.style;
     return `<tr class="${pcls}">
       <td class="rt-ago">${u.n_ago === 1 ? "前走" : `${u.n_ago}走前`}</td>
       <td class="rt-course">${esc(u.place || "")}${esc(u.td || "")}${u.dist ?? ""}</td>
       <td class="ta-c">${esc(u.track || "—")}</td>
       <td class="ta-c rt-pos">${posBadge(p) || "—"}</td>
       <td class="ta-c num">${u.ninki ?? "—"}<small>人気</small></td>
-      <td>${esc(u.style || "—")}</td>
-      <td class="ta-c">${esc(u.weight_change || "—")}</td>
+      <td>${esc(klass || "—")}</td>
+      <td class="ta-c">${esc(kimete || "—")}</td>
       <td class="ta-r num">${u.interval_weeks != null ? u.interval_weeks + "<small>週</small>" : "—"}</td>
     </tr>`;
   }).join("");
