@@ -158,7 +158,8 @@ export function paceSummary(tk) {
   if (!tk || !Array.isArray(tk.pace) || tk.pace.every((v) => v == null)) return null;
   const v = tk.pace.map((x) => x ?? 0);
   const top = v.indexOf(Math.max(...v));
-  const sure = top === 1 ? "はっきりしない（平均寄り）" : v[top] >= 0.5 ? `${PACE_NAMES[top]}ペースの公算が大きい` : `${PACE_NAMES[top]}ペース寄り`;
+  // 「公算が大きい」はスローの 50% 以上だけ。ハイは「寄り」まで（2026 年実績: ハイ公算 47% 的中＝寄りと同じ）
+  const sure = top === 1 ? "はっきりしない（平均寄り）" : top === 0 && v[top] >= 0.5 ? "スローペースの公算が大きい" : `${PACE_NAMES[top]}ペース寄り`;
   return { label: PACE_NAMES[top], sure, slow_pct: pct(v[0], 0), mid_pct: pct(v[1], 0), high_pct: pct(v[2], 0) };
 }
 
