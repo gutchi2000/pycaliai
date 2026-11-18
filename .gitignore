@@ -324,3 +324,6 @@ reports/_requant_bundles_v8*/
 models/production_backup/20261115_v8/
 # zento material (build_site.py, 750KB/day)
 reports/cowork_input/*_zento.json
+# ズレ警告の凍結: pred_contrib (JRDB 由来の特徴の寄与を含むのでローカル専用) と export の作業用ファイル
+reports/zure_freeze/*.shap.json.gz
+reports/zure_freeze/_contrib/

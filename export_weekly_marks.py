@@ -321,6 +321,12 @@ def main() -> int:
     out_dir = Path(args.out_dir) if args.out_dir else (
         BASE / "reports" / "cowork_input" / date_str
     )
+    # ズレ警告の前向き確認用 (2026-11-18): 本番の出力先のときだけ全馬の pred_contrib を集め、
+    # bundle 公開後に reports/zure_freeze/_contrib/{date}.json.gz へ書く (zure_freeze.py が凍結に使う)。
+    # CB_ZURE_CONTRIB=0 で止められる。失敗しても bundle には影響しない。
+    # テスト用: CB_ZURE_CONTRIB=force なら --out-dir 付きでも集め、CB_ZURE_CONTRIB_DIR に書く（本番の場所には書かない）。
+    _zc = os.environ.get("CB_ZURE_CONTRIB", "1")
+    contrib_sink = {} if ((args.out_dir is None and _zc != "0") or _zc == "force") else None
     # ★ここでは mkdir しない。全成果物は temp へ作り、
     #   全 Gate PASS 後に atomic replace する (transactional fail)。
 
@@ -751,7 +757,8 @@ def main() -> int:
                                    umaren_idx=umaren_idx,
                                    class_prior_map=class_prior_map,
                                    shap_explainer=shap_explainer,
-                                   shap_topk=shap_topk)
+                                   shap_topk=shap_topk,
+                                   contrib_sink=contrib_sink)
         except Exception as e:
             logger.error(f"  rid={rid}: {e}")
             n_skip += 1
@@ -1098,6 +1105,18 @@ def main() -> int:
                            f"(凍結版 {'あり' if _fz['frozen_exists'] else 'なし'})。サイトの採点は凍結版のまま")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"[freeze] 失敗: {e}")
+    # ズレ警告用の pred_contrib (本番の bundle だけ。shadow / --out-dir では contrib_sink が None)
+    if contrib_sink:
+        try:
+            from bundle_provenance import FALLBACK_MODELS, LIVE_DIR, production_model
+            _force = os.environ.get("CB_ZURE_CONTRIB") == "force" and os.environ.get("CB_ZURE_CONTRIB_DIR")
+            if _force or (Path(bundle_path).resolve().parent == LIVE_DIR.resolve()
+                          and tag in (production_model(), *FALLBACK_MODELS)):
+                from zure_freeze import write_contrib_sidecar
+                _cp = write_contrib_sidecar(date_str, bundle_path, list(feats), contrib_sink, tag)
+                logger.info(f"[zure] pred_contrib → {_cp}")
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"[zure] pred_contrib の保存に失敗 (bundle には影響なし): {e}")
     print(f"=== Cowork 入力 JSON 出力完了 (atomic publish) ===")
     print(f"  個別: {out_dir}/")
     print(f"  集約: {bundle_path}")

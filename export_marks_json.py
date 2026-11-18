@@ -207,7 +207,8 @@ def race_meta(g, class_prior_map: dict | None = None):
 
 def export_race(rid, g_orig, model, feats, encs, tansho_idx, fuku_idx,
                 calibrators=None, umaren_idx=None, class_prior_map=None,
-                shap_explainer=None, shap_topk=0, shap_marked_only=True):
+                shap_explainer=None, shap_topk=0, shap_marked_only=True,
+                contrib_sink=None):
     """1 レース分の JSON を返す.
 
     umaren_idx: optional dict {(rid_s, i, j): float} (i<j 対称) — bundle に
@@ -218,6 +219,9 @@ def export_race(rid, g_orig, model, feats, encs, tansho_idx, fuku_idx,
                  渡されて shap_topk>0 なら各馬 (印馬のみ/全馬) に "why" (top-k 寄与) を付与。
     shap_topk: 付与する SHAP 寄与の数 (0 で無効)。
     shap_marked_only: True なら印が付いた馬 (◎〇▲△△) だけに "why" を付与。
+    contrib_sink: optional dict。渡されたら全馬の LightGBM pred_contrib (特徴ごとの寄与 + 末尾に定数項)
+                 を contrib_sink[rid] に入れる (ズレ警告の前向き確認用、zure_freeze.py)。
+                 失敗しても印・確率には影響させない (contrib_sink["_errors"] に記録するだけ)。
     """
     rid_s = str(rid).split(".")[0]  # remove .0 if float
     if isinstance(rid, float) and rid.is_integer():
@@ -235,6 +239,14 @@ def export_race(rid, g_orig, model, feats, encs, tansho_idx, fuku_idx,
 
     X = g_enc[feats].apply(pd.to_numeric, errors="coerce").fillna(-9999).values
     scores = model.predict(X)
+    if contrib_sink is not None:
+        try:
+            _c = np.asarray(model.predict(X, pred_contrib=True), dtype=float)
+            contrib_sink[rid_s] = {"umaban": [int(x) for x in g[COL_BAN]],
+                                   "score": [round(float(s), 6) for s in scores],
+                                   "contrib": np.round(_c, 6).tolist()}
+        except Exception as e:  # noqa: BLE001
+            contrib_sink.setdefault("_errors", []).append(f"{rid_s}: {e}")
     n = len(scores)
     w = PL.pl_weights(scores)
     p_win_vec = PL.all_tansho(w)
