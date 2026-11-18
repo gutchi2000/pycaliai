@@ -19,6 +19,18 @@ SITE_DATA = ROOT / "site" / "data"
 OUT = SITE_DATA / "board_stats.json"
 GAUGE_OUT = SITE_DATA / "gauge_ref.json"
 GAUGES = ("top1_dominance", "top2_concentration", "field_chaos_score", "ai_market_agreement")
+CHAOS = "field_chaos_score"
+
+
+def gauge_value(r: dict, k: str) -> float | None:
+    """ゲージ k の値。混戦度だけは生値ではなく judgment.chaos_pct（参照分布での分位＝買い目判定・
+    見送りガードと同じ値）を使う（2026-11-18 表示の正本統一）。生値は較正器（v6/v7/v8）ごとに分布が動き、
+    今年のレースを 1 つにまとめると世代が混ざるため。分位の無いレース（v5 期）は None＝集計に入れない。"""
+    if k == CHAOS:
+        v = (r.get("judgment") or {}).get("chaos_pct")
+    else:
+        v = (r.get("confidence") or {}).get(k)
+    return None if v is None else float(v)
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -66,10 +78,10 @@ def build() -> dict:
         for r in d.get("races", []):
             res = r.get("result") or {}
             order = res.get("order")
-            conf = r.get("confidence") or {}
+            gval = {k: gauge_value(r, k) for k in GAUGES}
             for k in GAUGES:
-                if conf.get(k) is not None:
-                    gv[k].append(float(conf[k]))
+                if gval[k] is not None:
+                    gv[k].append(gval[k])
             if not order:
                 continue
             for h in r.get("horses", []):
@@ -86,8 +98,8 @@ def build() -> dict:
             if t["hon"] is not None:
                 p0 = order.get(str(t["hon"]))
                 for k in GAUGES:
-                    if conf.get(k) is not None:
-                        gres[k].append((float(conf[k]), int(p0 == 1), int(p0 is not None and p0 <= 3)))
+                    if gval[k] is not None:
+                        gres[k].append((gval[k], int(p0 == 1), int(p0 is not None and p0 <= 3)))
             if t["hon"] is None:
                 continue
             pos = order.get(str(t["hon"]))
@@ -136,12 +148,14 @@ def build_gauge_ref(gv: dict, gres: dict, dates: list, lvl: dict | None = None) 
             return (lo + hi) / 2 / len(v)
         bands = [[0, 0, 0] for _ in range(5)]
         for x, w, t3 in gres[k]:
-            b = min(4, int(pct(x) * 5))
+            # 混戦度は値そのものが分位（0〜1）なので、そのまま 5 等分（サイトの表示と同じ帯）
+            b = min(4, int((x if k == CHAOS else pct(x)) * 5))
             bands[b][0] += 1
             bands[b][1] += w
             bands[b][2] += t3
         out["gauges"][k] = {
             "n": len(v), "q": q,
+            "basis": "judgment.chaos_pct" if k == CHAOS else "今年のサイト内レースでの位置",
             "bands": [{"n": n, "win": round(w / n, 3) if n else None, "top3": round(t / n, 3) if n else None}
                       for n, w, t in bands],
         }

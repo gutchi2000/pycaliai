@@ -43,7 +43,7 @@
   function frontStat(b) {
     if (!b) return "";
     var pp = b.front_edge;
-    return '<div class="bstat"><span class="bk">前残り</span>'
+    return '<div class="bstat"><span class="bk">前残り度</span>'
       + '<span class="bbar"><i style="width:' + frontW(pp).toFixed(0) + '%"></i></span>'
       + '<b class="bv">' + (pp >= 0 ? "+" : "") + esc(pp) + "<small>pp</small></b>"
       + '<span class="bsub">逃' + esc(b.nige_win) + " 先" + esc(b.senko_win) + "</span></div>";
@@ -58,7 +58,9 @@
     if (fe > 4) return { txt: "ほぼフラット", cls: "flat", lv: "" };
     return { txt: "差し・追込 有利", cls: "back", lv: "" };
   }
-  // 脚質 と 枠 を横並び(同じ行)で出す（ユーザー指定 2026-07-11）。
+  // 前残り と 枠 を横並び(同じ行)で出す（ユーザー指定 2026-07-11）。
+  // 2026-11-18: 見出しを「脚質」→「前残り」。馬のふだんの脚質（出走表の「脚質」）ではなく、
+  // 過去の同条件の結果で逃げ・先行が勝った度合いなので呼び分ける。
   function chipsRow(b) {
     if (!b) return "";
     var s = favoredStyle(b);
@@ -66,7 +68,7 @@
       ? '<span class="kchip ' + s.cls + '">' + s.txt + (s.lv ? "<em>" + s.lv + "</em>" : "") + "</span>"
       : '<span class="kchip flat">—</span>';
     return '<div class="bstat bchips">'
-      + '<span class="pair"><span class="bk">脚質</span>' + kyaku + "</span>"
+      + '<span class="pair"><span class="bk">前残り</span>' + kyaku + "</span>"
       + '<span class="pair"><span class="bk">枠</span>' + wakuChip(b.waku_out_minus_in) + "</span>"
       + "</div>";
   }

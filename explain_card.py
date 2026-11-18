@@ -69,14 +69,18 @@ def card_from_viewmodel(race, with_llm=False):
     n = len(hv)
     by_rank = sorted(hv, key=lambda h: (h.get("ai_rank") or 99))
 
-    # 展開: 脚質(style)から逃げ先行頭数
+    # 展開: ペースの正本は展開予想（tenkai.py の確率、races[].tenkai.pace）。サイトの展開タブ・
+    # 全頭短評の素材（zento_material.pace_summary）と同じ決め方と言葉にする（2026-11-18 表示の正本統一）。
+    # 以前は脚質の頭数による別閾値の経験則（逃げ+先行 4 頭以上=ハイ等）で、展開タブと食い違っていた。
+    # 展開予想の無いレースはペースを断定しない。
     n_front = sum(1 for h in hv if h.get("style") in ("逃げ", "先行"))
-    if n_front >= 4:
-        pace = "ハイペース想定(逃げ先行多数)→差し・追込有利"
-    elif n_front <= 1:
-        pace = "スローペース想定(逃げ先行手薄)→前残り有利"
+    from zento_material import pace_summary
+    ps = pace_summary((race.get("tenkai") or {}).get("pace"))
+    if ps:
+        pace = (f"{ps['予想']}ペース予想（{ps['確度']}／スロー{ps['スロー']}%・平均{ps['平均']}%・"
+                f"ハイ{ps['ハイ']}%）")
     else:
-        pace = "平均ペース想定"
+        pace = "展開予想データなし"
 
     # 馬名→as-ofレーティング。vs/レースレベルは「2026出走馬のelo」からfield平均で再構成。
     R = _ratings()

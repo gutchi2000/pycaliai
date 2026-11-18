@@ -64,10 +64,15 @@ RACE_COLS = [
 ]
 # 46/48 列形式: 先頭 17 列のインデックス
 IDX_46 = {"枠番": 0, "B": 1, "馬番": 2, "人気": 6, "単勝": 7, "ZI": 9, "ZI順": 10,
-          "斤量": 11, "替": 13, "騎手": 14, "所属": 15, "調教師": 16}
+          "斤量": 11, "替": 13, "騎手": 14, "所属": 15, "調教師": 16,
+          "前4角": 41}   # 前走通過4（weekly_parse.HORSE_COLS_46/48 と同じ位置）
 # 49/99 列形式 (馬体重 3 列が挿入される)
 IDX_49 = {"枠番": 0, "B": 1, "馬番": 2, "馬体重": 6, "増減": 8, "人気": 9, "単勝": 10,
-          "ZI": 12, "ZI順": 13, "斤量": 14, "替": 16, "騎手": 17, "所属": 18, "調教師": 19}
+          "ZI": 12, "ZI順": 13, "斤量": 14, "替": 16, "騎手": 17, "所属": 18, "調教師": 19,
+          "前4角": 44}   # 前走通過4（weekly_parse.HORSE_COLS_49/99 と同じ位置）
+# 44 列形式（人気・単勝・馬体重なし。2026-11-15 の出走表がこれで、以前は読み飛ばして騎手も空だった）
+IDX_44 = {"枠番": 0, "B": 1, "馬番": 2, "ZI": 7, "ZI順": 8, "斤量": 9, "替": 11, "騎手": 12,
+          "所属": 13, "調教師": 14, "前4角": 39}   # weekly_parse.HORSE_COLS_44 と同じ位置
 
 STYLE_MAP = {"逃げ": "逃げ", "先行": "先行", "中団": "差し", "差し": "差し",
              "ﾏｸﾘ": "差し", "マクリ": "差し", "後方": "追込", "追込": "追込"}
@@ -160,8 +165,8 @@ def parse_weekly(date_str: str) -> tuple[dict, dict]:
                 "weather": cols[13].strip(),
                 "fullgate": _int(cols[14]),
             }
-        elif len(cols) in (46, 48, 49, 99) and rid:
-            idx = IDX_46 if len(cols) in (46, 48) else IDX_49
+        elif len(cols) in (44, 46, 48, 49, 99) and rid:
+            idx = IDX_44 if len(cols) == 44 else IDX_46 if len(cols) in (46, 48) else IDX_49
             uma = _int(cols[idx["馬番"]])
             if uma is None:
                 continue
@@ -178,13 +183,19 @@ def parse_weekly(date_str: str) -> tuple[dict, dict]:
                 "taiju_diff": g("増減"),
                 "trainer": g("調教師"),
                 "shozoku": g("所属"),
+                # 前走の 4 角通過順（コースタブの「前走4角位置別」で印馬を同じ物差しに当てはめる。0/空は不明）
+                "c4": _int(g("前4角")) or None,
             }
     return race_extra, horse_extra
 
 
 # ---------------------------------------------------------------- 脚質
 def classify_style(history: dict | None) -> str | None:
-    """近 5 走の脚質ラベル (直近ほど重み大) から 逃げ/先行/差し/追込 を推定。"""
+    """近 5 走の決手ラベル (直近ほど重み大) から 逃げ/先行/差し/追込 を推定。
+
+    サイトで「脚質」と呼ぶのはこれだけ（用語集の「普段の脚質」）。展開タブの区分は「予想位置区分」
+    （tenkai._style_rank）、コースタブは「前走4角位置別」（build_course_stats.classify_kyaku）、
+    過去走の各走ラベルは「決手」と呼び分ける（2026-11-18 表示の正本統一）。"""
     runs = (history or {}).get("runs") or []
     score: dict[str, float] = {}
     for u in runs:
@@ -1286,6 +1297,7 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
                 "taiju_diff": hext.get("taiju_diff"),
                 "trainer": hext.get("trainer", ""),
                 "shozoku": hext.get("shozoku", ""),
+                "c4": hext.get("c4"),   # 前走の 4 角通過順（「脚質」ではない。コースタブの前走4角位置別用）
                 "why": h.get("why", []),
                 "history": h.get("history"),
                 "pedigree": h.get("pedigree"),

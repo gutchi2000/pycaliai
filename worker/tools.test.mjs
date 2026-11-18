@@ -203,3 +203,50 @@ test("展開予想: 確度の言葉・届くかの区切り・馬の予想位置
   assert.ok(TOOLS.some((t) => t.name === "race_tenkai"));
   assert.ok(SYSTEM.includes("race_tenkai") && SYSTEM.includes("展開予想データなし"));
 });
+
+// ---- 2026-11-18: 表示の正本統一（混戦度＝分位、コースは前走4角位置別、ペースは展開予想） ----
+import { chaosScore, chaosPctLabel } from "./tools.js";
+test("混戦度: chaos は judgment.chaos_pct の 0〜100（サイトのヘッダと同じ）、生値は渡さない", { skip: !day && "site/data なし" }, () => {
+  for (const r of day.races) {
+    const p = (r.judgment || {}).chaos_pct;
+    assert.equal(chaosScore(r), p == null ? null : Math.round(p * 100));
+  }
+  const raw = (race.confidence || {}).field_chaos_score;
+  const d = dayRaces(day, race.race_id);
+  const row = d.races.find((x) => x.current);
+  assert.equal(row.chaos, chaosScore(race));
+  assert.ok(!("chaos_pct" in row));
+  const adv = raceAdvice(race);
+  assert.equal(adv.chaos, chaosScore(race));
+  if (raw != null && chaosScore(race) != null) assert.ok(!adv.summary.includes(raw.toFixed(2)) || raw.toFixed(2) === String(chaosScore(race)));
+  if (chaosPctLabel(race)) assert.ok(!chaosPctLabel(race).includes("今年の全レース"));
+  // 分位の無い日（v5 期）は null、判定は生値の閾値に戻る
+  const v5 = { ...race, judgment: {} };
+  assert.equal(chaosScore(v5), null);
+  assert.ok(["見送り寄り", "妙味次第", "勝負可"].includes(chaosVerdict(v5)));
+});
+
+test("course_bias: 集計軸は前走4角位置、印馬は h.c4 で同じ物差し、「脚質」キーを使わない", { skip: !race && "site/data なし" }, () => {
+  const cb = courseBias(day, race);
+  if (cb.error) return;
+  for (const k of cb.kyaku) { assert.ok("前走4角位置" in k); assert.ok(!("脚質" in k)); }
+  assert.ok(cb.summary.includes("前走4角位置別") || !cb.kyaku.length);
+  for (const m of cb.marked_horses) assert.ok(m.includes("前走4角位置"));
+  const r2 = { ...race, field_size: 10, horses: [{ umaban: 1, mark: "◎", waku: 1, c4: 2, style: "差し" }] };
+  assert.ok(courseBias(day, r2).marked_horses[0].includes("前走4角位置逃げ"));
+});
+
+test("kaiko/preview: ペースは展開予想だけ、混戦度は分位", { skip: !day && "site/data なし" }, () => {
+  const pf = previewFacts(day);
+  for (const x of pf.races) {
+    const r = day.races.find((y) => y.place === x.place && y.rno === x.rno);
+    assert.equal(x.chaos, chaosScore(r));
+    assert.equal(x.pace == null, !(r.tenkai && r.tenkai.pace));
+  }
+  const done = day.races.find((r) => r.result && r.result.top3);
+  if (done) {
+    const f = kaikoFacts(day, done);
+    assert.equal(f.ai_view.chaos, chaosScore(done));
+    assert.equal(f.tenkai == null, !(done.tenkai && done.tenkai.pace));
+  }
+});

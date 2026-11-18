@@ -21,6 +21,14 @@
 - **C2 候補** (v6 の学習側を直して再学習、本番には入れていない): `docs/research/C2_FEATURE_FIX_CANDIDATE_20261113.md`。Phase A が `reports/shadow_c2/` に紙上 bundle、判定は同じ作り方の v6 影との比較 `analysis/shadow_compare.py --shadow-dir reports/shadow_c2 --base-dir reports/shadow_v6`。良ければ同じ直し方を v7 に当てる。
 - **評価規則**: `docs/hypothesis_registry.md` EVAL-RULE-20261113 (公表値は本番の前向き実績だけ、test 2024-25 は「過去検証」)。
 
+## 🏷 表示の正本統一（2026-11-18）: 脚質・ペース・混戦度
+
+同じ言葉が場所ごとに別計算だったのを、正本 1 つ＋他は改名に揃えた。
+- **脚質** = `build_site.classify_style()`（`h.style`、近 5 走の決手の直近重み多数決）だけ。用語集では「普段の脚質」。展開タブの `tenkai._style_rank` は「**予想位置区分**」、コースタブの `build_course_stats.classify_kyaku`（前走 4 角 ÷ 今回頭数）は「**前走4角位置別**」（印馬も `h.c4`＝週次 CSV の前走通過 4 で同じ物差し）、過去走の各走ラベルは「**決手**」、馬場・実現バイアス欄は「**前残り**」。zento の「展開予想の脚質区分」（案B）はスキルとの互換のためそのまま。
+- **ペース** = `tenkai.py` の確率（`races[].tenkai.pace`）。`app.js taikeiHtml` の H/M/S は展開予想が無いレースだけの「簡易判定」。`explain_card.py` も tenkai から（無ければ「展開予想データなし」）。回顧・見どころの facts にも展開予想を渡す（実際のペースは facts に無いので断定させない）。
+- **混戦度** = `judgment.chaos_pct`（export 時、`data/chaos_quantiles.json`。T-10 ガードと同じ値）。ヘッダは「CHAOS（分位）」、4 メーターの混戦度も同じ値（`build_board_stats.gauge_value`、帯も chaos_pct で 5 等分）、予測の記録タブ、相談AI・回顧の `chaos` も 0〜100 の分位。生値は表示しない。分位の無い v5 期（2026-04-18〜05-31、468R）は「—」（`data/chaos_refs/` に v5 の参照表は無い）。
+- `build_site.parse_weekly` が 44 列形式の週次 CSV（2026-11-15 など）も読むようにした（以前は読み飛ばして騎手・調教師が空だった）。
+
 ## 📘 完全仕様書（2026-08-23 新設）
 
 外部 AI へのレビュー依頼・新規参画者の把握には **`docs/SPEC/`** を使う（本ファイルは要約）。

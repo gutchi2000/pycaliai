@@ -9,7 +9,7 @@
    記事は KV に永続（キー kaiko:v1:{date}:{race_id}）。生成は 1 レース 1 回だけ（コストは月数ドル）。
    ============================================================ */
 import Anthropic from "@anthropic-ai/sdk";
-import { chaosPctLabel, chaosVerdict, courseBias, horseByUma, raceLabel } from "./tools.js";
+import { chaosPctLabel, chaosScore, chaosVerdict, courseBias, horseByUma, lateWord, paceSummary, raceLabel } from "./tools.js";
 import { cors, json, jstParts, kvJson, kvNum, kvSet, loadDay, loadManifest, microUsd, num, originOk } from "./util.js";
 
 const VER = "v2";   // v1: 2026-11-04 初版（facts のキー名が本文に漏れたため v2 で文体規則を追加して再生成）
@@ -23,7 +23,11 @@ const SYSTEM_RACE = `あなたは JRA 中央競馬 AI 予想サイト「PyCaLiAI
 - 数字（勝率・複勝率・着順・人気順位・枠別複勝率など）は facts にある値だけ。無い数字を作らない。
 - facts に無いこと（オッズ、払戻金、道中の不利、馬場の詳細、騎手の判断、調教、馬体重、馬の気持ち）は書かない。推測で補わない。
 - 外れたときに言い訳をしない。facts に見える要因だけを挙げる: 人気と AI 評価の乖離（market_view）、
-  脚質と course_bias の傾向、枠、◎の近走の不安定さ（avg_pos / last_run）、混戦度（chaos）、勝ち馬の AI 順位と人気。
+  脚質（出走表のふだんの脚質）と course_bias（コースの枠別・前走4角位置別の複勝率）の傾向、枠、◎の近走の不安定さ（avg_pos / last_run）、
+  混戦度（chaos＝分位 0〜100。0 が最も堅く 100 が最も混戦、サイトの CHAOS（分位）と同じ値）、勝ち馬の AI 順位と人気。
+- ペース・展開は facts の tenkai（発走前の展開予想: 予想ペースと確度・差し追込は届くか）だけを根拠にする。
+  実際のレースのペースは facts に無いので「ハイペースだった」「スローで前が残った」のように結果のペースを断定しない。
+  tenkai が null のレースはペース・展開に触れない。
 - 当たったときも持ち上げすぎない。「AI 評価どおり」で済ませ、根拠を 1 つ添える。
 - 馬券の購入を促す言葉（買え・勝負・鉄板・おいしい）は使わない。
 - facts のキー名（market_view, chaos, top1_dominance, umami, ai_rank, p_win_pct など）やローマ字の値を本文に書かない。
@@ -53,6 +57,9 @@ const SYSTEM_PREVIEW = `あなたは JRA 中央競馬 AI 予想サイト「PyCaL
 
 【厳守】
 - 数字は facts にある値だけ（勝率・複勝率・混戦度・朝の人気順位・枠別複勝率）。オッズ・払戻・期待値は無いので書かない。
+  混戦度は chaos（分位 0〜100、0 が最も堅い。サイトの CHAOS（分位）と同じ値）。
+- ペース・展開に触れるなら facts の pace（展開予想の予想ペースと確度）だけを根拠にする。脚質の頭数などから自分で推測しない。
+  pace が null のレースはペースに触れない。
 - facts のキー名（chaos, market_view, ai_rank など）やローマ字の値を本文に書かない。「混戦度」「AI 評価が人気より高い」「AI n 位」と日本語で。
 - 「買え」「勝負」「鉄板」「おいしい」など購入を促す言葉は使わない。「AI の評価上は」「数字の上では」の言い方。
 - 見出し・箇条書き・絵文字なし。常体。全体で 500 字以内。
@@ -103,12 +110,12 @@ export function kaikoFacts(day, race) {
   const cb = courseBias(day, race);
   const c = race.confidence || {};
   const j = race.judgment || {};
-  const chaos = c.field_chaos_score ?? 0;
   const winner = top3[0] || null;
+  const ps = paceSummary(race.tenkai);
   return {
     race: raceLabel(race), date: day.date, baba: (race.baba || "").replace("(暫定)", ""), weather: (race.weather || "").replace("(暫定)", ""),
     ai_view: {
-      chaos: +chaos.toFixed(2), chaos_verdict: chaosVerdict(race), chaos_rank: chaosPctLabel(race),
+      chaos: chaosScore(race), chaos_verdict: chaosVerdict(race), chaos_rank: chaosPctLabel(race),
       top1_dominance: c.top1_dominance ?? null, ai_market_agreement: c.ai_market_agreement ?? null,
       site_headline: j.headline || null, site_detail: j.detail || null,
     },
@@ -120,7 +127,10 @@ export function kaikoFacts(day, race) {
     honmei_dnf: honmei ? posOf(order, honmei.umaban, res.top3) == null : null,
     winner_ai_rank: winner ? winner.ai_rank : null, winner_ninki_morning: winner ? winner.ninki_morning : null,
     site_bets: betRows, site_bets_hit: betRows.filter((b) => b.hit).length, site_bets_n: betRows.length,
-    course_bias: cb.error ? null : { verdict: cb.verdict, bands: cb.bands, kyaku: cb.kyaku },
+    course_bias: cb.error ? null : { verdict: cb.verdict, bands: cb.bands, kyaku: cb.kyaku, note: cb.note },
+    // 発走前の展開予想（サイトの展開タブと同じ）。実際のペースではない。無いレースは null
+    tenkai: ps ? { pace: ps.label, sure: ps.sure, slow_pct: ps.slow_pct, mid_pct: ps.mid_pct, high_pct: ps.high_pct,
+      late_reach: lateWord(race.tenkai.late, null) } : null,
   };
 }
 
@@ -156,14 +166,15 @@ export function dayFacts(day) {
 export function previewFacts(day) {
   const rows = (day.races || []).map((r) => {
     const c = r.confidence || {};
-    const chaos = c.field_chaos_score ?? 0;
+    const ps = paceSummary(r.tenkai);
     const hon = (r.horses || []).find((h) => h.mark === "◎") || null;
     const maru = (r.horses || []).find((h) => h.mark === "〇" || h.mark === "○") || null;
     const cb = courseBias(day, r);
     const graded = /G[123]/.test(`${r.klass || ""} ${r.race_name || ""}`);
     return {
       place: r.place, rno: r.rno, klass: r.klass, race_name: r.race_name || null, course: r.course, start_time: r.start_time || null, field_size: r.field_size,
-      chaos: +chaos.toFixed(2), chaos_pct: (r.judgment || {}).chaos_pct ?? null, verdict: chaosVerdict(r),
+      chaos: chaosScore(r), verdict: chaosVerdict(r),
+      pace: ps ? `${ps.label}（${ps.sure}）` : null,
       top1_dominance: c.top1_dominance ?? null, ai_market_agreement: c.ai_market_agreement ?? null,
       honmei: hon ? { umaban: hon.umaban, name: hon.name, p_win_pct: pct(hon.p_win), p_plc_pct: pct(hon.p_plc), ninki_morning: hon.ninki ?? null, market_view: hon.vs_market || null, style: hon.style || null, waku: hon.waku ?? null,
         reasons: (hon.why || []).slice(0, 3).map((w) => `${w.label}${(w.contrib ?? 0) >= 0 ? "(＋)" : "(－)"}`) } : null,
@@ -173,8 +184,8 @@ export function previewFacts(day) {
       graded,
     };
   });
-  const cv = (x) => (x.chaos_pct != null ? x.chaos_pct : x.chaos);   // 百分位があればそれで並べる
-  const byChaos = [...rows].sort((a, b) => cv(a) - cv(b) || ((b.honmei?.p_win_pct ?? 0) - (a.honmei?.p_win_pct ?? 0)));
+  // 混戦度の分位で並べる（分位の無い日は後ろ）
+  const byChaos = [...rows].sort((a, b) => (a.chaos ?? 999) - (b.chaos ?? 999) ||((b.honmei?.p_win_pct ?? 0) - (a.honmei?.p_win_pct ?? 0)));
   const label = (x) => `${x.place}${x.rno}R${x.race_name ? `(${x.race_name})` : ""}`;
   const split = rows.filter((x) => x.honmei && (x.honmei.market_view === "under" || (x.honmei.ninki_morning ?? 1) >= 3))
     .sort((a, b) => (b.honmei.p_win_pct ?? 0) - (a.honmei.p_win_pct ?? 0)).slice(0, 3);
