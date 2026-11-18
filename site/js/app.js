@@ -1987,7 +1987,9 @@ function renderTenkai(r, vb) {
   const names = ["スロー", "平均", "ハイ"];
   const top = vals.indexOf(Math.max(...vals));
   const lead = [...rows].sort((a, b) => a.e - b.e);
-  const sure = top === 1 ? "はっきりしない（平均寄り）" : vals[top] >= 0.5 ? `${names[top]}ペースの公算が大きい` : `${names[top]}ペース寄り`;
+  // 「公算が大きい」はスローの 50% 以上だけ。ハイは 50% 以上でも「寄り」まで（2026 年実績: スロー公算 64% 的中、
+  // ハイ公算 47%＝寄りと同じ。docs/research/TENKAI_ACCURACY_2026_20261118.md）。zento_material / worker と同じ決め方
+  const sure = top === 1 ? "はっきりしない（平均寄り）" : top === 0 && vals[top] >= 0.5 ? "スローペースの公算が大きい" : `${names[top]}ペース寄り`;
   const STC = { "逃げ": "#ffd84a", "先行": "#ff9a3d", "差し": "#62a8f5", "追込": "#b48cf2" };
   const cnt = (s) => rows.filter((x) => x.st === s).length;
   const order = [...rows].sort((a, b) => a.er - b.er);

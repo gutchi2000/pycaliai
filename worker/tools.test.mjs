@@ -250,3 +250,10 @@ test("kaiko/preview: ペースは展開予想だけ、混戦度は分位", { ski
     assert.equal(f.tenkai == null, !(done.tenkai && done.tenkai.pace));
   }
 });
+
+test("確度の言葉: 公算が大きいはスローだけ、ハイは 50% 以上でも寄り（TENKAI_ACCURACY_2026）", () => {
+  assert.equal(paceSummary({ pace: [0.55, 0.30, 0.15] }).sure, "スローペースの公算が大きい");
+  assert.equal(paceSummary({ pace: [0.10, 0.25, 0.65] }).sure, "ハイペース寄り");
+  assert.equal(paceSummary({ pace: [0.20, 0.33, 0.47] }).sure, "ハイペース寄り");
+  assert.equal(paceSummary({ pace: [0.32, 0.35, 0.33] }).sure, "はっきりしない（平均寄り）");
+});

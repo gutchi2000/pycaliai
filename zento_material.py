@@ -37,13 +37,17 @@ def _late_word(p, edges):
 
 
 def pace_summary(pace_probs) -> dict | None:
-    """[スロー, 平均, ハイ] の確率 → 予想ラベルと確度の言葉（site/js/app.js の展開タブと同じ決め方）。"""
+    """[スロー, 平均, ハイ] の確率 → 予想ラベルと確度の言葉（site/js/app.js の展開タブ・worker/tools.js と同じ決め方）。
+
+    「公算が大きい」はスローで 50% 以上のときだけ。ハイは 50% 以上でも「ハイペース寄り」まで
+    （2026 年実績: スローの公算 64% 的中、ハイの公算は 47% で逆の端 19%＝「寄り」の 44% と変わらない。
+    docs/research/TENKAI_ACCURACY_2026_20261118.md）。平均が最大は情報なし（実際 30/39/31%）。"""
     if not pace_probs or all(x is None for x in pace_probs):
         return None
     v = [x or 0 for x in pace_probs]
     top = v.index(max(v))
     sure = ("はっきりしない（平均寄り）" if top == 1
-            else f"{PACE_NAMES[top]}ペースの公算が大きい" if v[top] >= 0.5 else f"{PACE_NAMES[top]}ペース寄り")
+            else "スローペースの公算が大きい" if top == 0 and v[top] >= 0.5 else f"{PACE_NAMES[top]}ペース寄り")
     return {"予想": PACE_NAMES[top], "確度": sure, "スロー": round(v[0] * 100), "平均": round(v[1] * 100),
             "ハイ": round(v[2] * 100)}
 
@@ -66,6 +70,16 @@ def tenkai_positions(tk: dict, umabans: list[int]) -> dict:
     return {u: (er[u], lr[u], style_band(er[u], n)) for u in er}
 
 
+def positions_unreliable(r: dict, tk: dict, umabans: list[int]) -> bool:
+    """新馬戦、または過去走（通過順の分かる過去走＝tenkai の nh）の無い馬が出走の半数を超えるレース。
+    各馬の予想番手はほぼでたらめ（2026 年実績: 序盤の順位相関 0.10、全体は 0.50）なので素材に出さない。"""
+    if "新馬" in str(r.get("klass") or ""):
+        return True
+    live = set(umabans)
+    nh = [row[6] if len(row) > 6 else None for row in tk.get("h", []) if row[0] in live]
+    return bool(nh) and sum(1 for x in nh if not x) > len(nh) / 2
+
+
 def race_material(r: dict, close_edges: list) -> dict:
     hs = [h for h in r.get("horses", []) if not h.get("scratched")]
     ai = _pct_rank({h["umaban"]: h.get("ai_score") for h in hs})
@@ -73,6 +87,10 @@ def race_material(r: dict, close_edges: list) -> dict:
     tk = r.get("tenkai") or {}
     pos = tenkai_positions(tk, [h["umaban"] for h in hs])
     pace = pace_summary(tk.get("pace"))
+    # 新馬・過去走の無い馬が半数超: 予想番手・展開予想の脚質区分・先行勢は出さない（ペースと届くかは出す）
+    unreliable = bool(pos) and positions_unreliable(r, tk, [h["umaban"] for h in hs])
+    if unreliable:
+        pos = {}
     name_by = {h["umaban"]: h.get("name") for h in hs}
     front = [{"馬番": u, "馬名": name_by.get(u)} for u, p in sorted(pos.items(), key=lambda x: x[1][0])[:2]]
     ml = r.get("member_level") or {}
@@ -109,8 +127,12 @@ def race_material(r: dict, close_edges: list) -> dict:
         "メンバーレベル": ml.get("label"),
         "展開予想あり": pace is not None,
         "ペース予想%": pace,
+        # 平均が最大＝ペースの情報なし。ペースを根拠に有利不利を書かない
+        "ペースを根拠にしてよい": bool(pace) and pace["予想"] != "平均",
         "差し追込は届くか": _late_word(tk.get("late"), close_edges),
         "先行勢": front,
+        # "参考外" のとき各馬の予想番手・展開予想の脚質区分・先行勢は空（新馬・過去走の無い馬が半数超）
+        "予想位置": "参考外（新馬・過去走の無い馬が半数超）" if unreliable else ("あり" if pos else "なし"),
         "horses": horses,
     }
 
@@ -132,7 +154,11 @@ def write(day: dict) -> Path | None:
                 "AI順位は AI のスコア順、スピード指数は 100 が古馬 1〜2 勝クラスの基準、強さスコアは芝ダ別に現役最上位 100。"
                 "ペース・展開・脚質の有利不利は「ペース予想%」「差し追込は届くか」「先行勢」と各馬の予想番手だけを根拠にする"
                 "（advisor・Grade Scope・全頭短評すべて）。「展開予想あり」が false のレースはペースに触れない。"
-                "「展開予想の脚質区分」はこのレースで予想した序盤の位置の区分で、「ふだんの脚質」（出走表）とは別。",
+                "「展開予想の脚質区分」はこのレースで予想した序盤の位置の区分で、「ふだんの脚質」（出走表）とは別。"
+                "「ペースを根拠にしてよい」が false（平均が最大＝読めない、または展開予想なし）のレースは、"
+                "ペースを根拠に有利不利を書かない。「予想位置」が参考外のレース（新馬・過去走の無い馬が半数超）は"
+                "予想番手・展開予想の脚質区分・先行勢を出していないので、馬ごとの位置取りを根拠にしない。"
+                "「公算が大きい」はスローだけ（ハイは最大でも「寄り」）。",
         "races": [race_material(r, edges) for r in day["races"]],
     }
     OUT_DIR.mkdir(parents=True, exist_ok=True)
