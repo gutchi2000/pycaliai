@@ -280,13 +280,83 @@ def to_md(rows: list[dict]) -> str:
     return head + "\n".join(lines) + "\n"
 
 
+ROI_COLS = ("win_roi", "place_roi")
+
+
+def _phase_frame(phase: str) -> tuple[pd.DataFrame, dict]:
+    """main() と同じ手順で、その期間の集計対象の馬の表を作る（判定の定義は official = 検証期間）。"""
+    rows, races = build_rows()
+    elig = races[races["excluded"].isna()].copy()
+    per_day = elig.groupby("date").size().sort_index()
+    cum = per_day.cumsum()
+    split_date = cum[cum >= len(elig) / 2].index[0]
+    disc_dates = set(per_day.index[per_day.index <= split_date])
+    phase_dates = disc_dates if phase == "discovery" else set(per_day.index) - disc_dates
+    pe = elig[elig["date"].isin(phase_dates)]
+    lvl_days = set(pe.loc[pe["has_level"], "date"])
+    df = flag(rows[rows["date"].isin(phase_dates)].copy(), official=(phase == "validation"))
+    df = df[df["date"].isin(lvl_days)]
+    info = {"split_date_inclusive": split_date, "races": int(pe["date"].isin(lvl_days).sum()),
+            "missing_pays_races": int(df.loc[~df["has_pays"], "race_id"].nunique())}
+    return df, info
+
+
+def roi_correction(out: Path) -> None:
+    """払戻の見落とし（worktree に無い結果 CSV）だけを訂正した回収率。判定の列は変えない。"""
+    orig = json.loads((out / "validation.json").read_text(encoding="utf-8"))
+    df, info = _phase_frame("validation")
+    if info["missing_pays_races"]:
+        sys.exit(f"まだ払戻の無いレースが {info['missing_pays_races']}R ある。訂正値は出さない")
+    new = json.loads(json.dumps(table(df, official=True), default=str))
+    if len(new) != len(orig["rows"]):
+        sys.exit("行数が元の表と違う。訂正値は出さない")
+    diffs = []
+    for o, n in zip(orig["rows"], new):
+        for k in set(o) | set(n):
+            if k in ROI_COLS:
+                continue
+            if o.get(k) != n.get(k):
+                diffs.append((o["cond"], o["band"], k, o.get(k), n.get(k)))
+    if diffs:
+        for d in diffs[:20]:
+            print("差分:", d)
+        sys.exit(f"判定に使う列が {len(diffs)} か所で元の表と違う。訂正値は出さない")
+    rows = [{"cond": o["cond"], "band": o["band"], "n_horses": o["n_horses"], "n_races": o["n_races"],
+             "win_roi_corrected": n["win_roi"], "place_roi_corrected": n["place_roi"],
+             "win_roi_invalid_original": o["win_roi"], "place_roi_invalid_original": o["place_roi"],
+             "verdict": o.get("verdict")}
+            for o, n in zip(orig["rows"], new)]
+    note = ("訂正値（2026-11-18）: 初回の検証期間集計は worktree の data/kekka だけを読み、git 管理外の結果 CSV"
+            "（14 開催日）を見落として 371R の払戻を 0 としていた。本体の data/kekka で回収率だけを計算し直した。"
+            "勝率・複勝率・lift・判定は validation.json と完全一致を確認済み（変更なし）。")
+    (out / "validation_roi_corrected.json").write_text(
+        json.dumps({"note": note, "info": info, "rows": rows}, ensure_ascii=False, indent=1, default=str),
+        encoding="utf-8")
+    md = ["> " + note, "",
+          "| 条件 | 順位帯 | n_horses | n_races | 単勝回収率 % [95%CI]（訂正値） | 複勝回収率 % [95%CI]（訂正値） | 判定（変更なし） |",
+          "|---|---|---:|---:|---|---|:-:|"]
+    for r in rows:
+        md.append(f"| {r['cond']} | {r['band']} | {r['n_horses']} | {r['n_races']} | {fmt_ci(r['win_roi_corrected'])} | "
+                  f"{fmt_ci(r['place_roi_corrected'])} | {r['verdict'] or ''} |")
+    text = "\n".join(md) + "\n"
+    (out / "validation_roi_corrected.md").write_text(text, encoding="utf-8")
+    print(json.dumps(info, ensure_ascii=False, default=str))
+    print("判定の列: 元の表と完全一致")
+    print(text)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--phase", choices=["discovery", "validation"], default="discovery")
     ap.add_argument("--criteria-fixed", action="store_true",
                     help="検証期間を出すのは、仕様書に採用候補と目安を追記して固定した後だけ")
     ap.add_argument("--out", default=str(ROOT / "reports" / "zure_validation"))
+    ap.add_argument("--roi-correction", action="store_true",
+                    help="検証期間の回収率だけを訂正値として出し直す（2026-11-18 ユーザー指示）。"
+                         "判定に使う列が validation.json と 1 つでも違えば何も書かずに止まる")
     a = ap.parse_args()
+    if a.roi_correction:
+        return roi_correction(Path(a.out))
     if a.phase == "validation" and not a.criteria_fixed:
         sys.exit("検証期間は採用候補と目安を仕様書に固定してから --criteria-fixed を付けて回す")
     if a.phase == "validation" and (Path(a.out) / "validation.json").exists():
