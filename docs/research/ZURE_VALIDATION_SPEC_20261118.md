@@ -127,3 +127,10 @@
 3. **当日の作り直し**: T-20 / T-10 のサイト更新は PW・スピード指数を作り直さないので、普段は凍結と同じ値が出続ける。当日に `power_rating.py build` や Phase C を手で回すと、サイトの値だけが変わる。
 4. **Phase A が発走後になった日・-SkipGit の日**: 前者は凍結なし（数えない）。後者は凍結ファイルはできるが発走前の commit が無いので、凍結時刻と sha256 だけが証拠になる。
 5. **Phase A が export で失敗した日**: 凍結の前に止まる（その日はサイトも公開されない）ので、凍結なし。
+
+### 数え始める前の決定（2026-11-18 ぐっち決定）
+
+- **凍結した bundle の sha256 と最終の採点 bundle の sha256 が食い違う開催日は、前向き確認の主判定から除外し、別掲で報告する。**
+  比べるのは `reports/zure_freeze/{date}.json` の `bundle.sha256` と、採点に使う凍結 bundle（`reports/cowork_input_frozen/{date}_bundle.json`）の sha256。
+- **凍結ファイル（`reports/zure_freeze/{date}.json`）が無い開催日は除外する。**
+- **-SkipGit の日（発走前の commit が無い日）は、凍結ファイルがあり上の sha256 が一致すれば数える。**
