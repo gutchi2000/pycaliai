@@ -104,3 +104,33 @@
 4. 第 1 段階の件数 648R への訂正を了承。
 
 未決: D3' の v8 前向き確認の必要量と判定規則（数え始める前にここへ追記する）。弱層の「食い違いの大きさ」の定義。
+
+## 前向き確認用の凍結保存（2026-11-18 実装、本番反映は master マージ後）
+
+背景: 公開 JSON の PW は作り直すたびに値と 1 位が変わり、発走前の値が 1 日分も残っていない（`ZURE_EXPLORATORY_20261118.md` §D9）。
+
+- **いつ**: `weekly_nicegui.ps1` Phase A の、`Invoke-PowerRating -Until` と `Invoke-SpeedIndex` の直後、Step 4（git）と `sync-hf-umami.ps1`（その日の予想の公開）の前。`python zure_freeze.py --date {date}`。失敗しても Warn だけで本番は止めない。
+- **一度だけ**: 排他作成（既にあれば書かない）、書いたら読み取り専用。最初の発走を過ぎていたら書かない（その日は前向き確認に数えない）。テスト用の `--allow-late` / `--bundle` は本番の置き場所には使えない。
+- **`reports/zure_freeze/{date}.json`**（Step 4 で commit。中身は公開サイトに出ている値と、着順から作る PW の生値だけ）:
+  - 各馬: PW（サイトと同じ `build_site.power_score`）、PW の生レーティング、PW 順位、同率 1 位フラグ、レースの同率 1 位の頭数、1 位と 2 位の差
+  - モデル順位・p_win・印、馬レベルと順位、スピード指数（サイトの値と順位、付け直した順位）、出世予測 p_graded12（基準日 < 開催日 かつ窓が開いている最新の基準点）
+  - 凍結時点の D1/D3'/D4/D5 の該当（参考。採点は仕様どおり発売前取消を除いて付け直す）
+  - bundle の場所・sha256（凍結版と live の両方）・モデル・配信経路の版、power_rating の meta（作成時刻・基準日・パラメータ・スケール）と ratings.csv の sha256、「PW に当日の結果が混ざっていないか」の検査結果、スピード指数の日別ファイルの sha256、出世予測ファイルの sha256、コードの git commit と主要 .py の sha256・未 commit の有無、凍結時刻・最初の発走時刻
+- **`reports/zure_freeze/{date}.shap.json.gz`**（ローカル専用、.gitignore）: 全馬の `pred_contrib`（特徴ごとの寄与 + 定数項、和 = モデルの生スコア）。JRDB 由来の特徴（`j1_*`・`k8_*`）の寄与を含むので、公開リポジトリには入れない。`{date}.json` に sha256・モデル・特徴数を刻む。
+  - 作り方: `export_weekly_marks.py` が本番の出力先のときだけ、`export_marks_json.export_race(contrib_sink=...)` で LightGBM の `predict(pred_contrib=True)` を集め、`reports/zure_freeze/_contrib/{date}.json.gz`（作業用、毎回上書き、.gitignore）に bundle の sha256 付きで書く。`zure_freeze.py` は、その sha256 が凍結する bundle と一致したときだけ SHAP を凍結する（不一致なら `shap.status = bundle_sha_mismatch` で SHAP なし）。shadow / `--out-dir` の export では集めない。`CB_ZURE_CONTRIB=0` で止められる。
+- **日曜分**: 日曜の Phase A は土曜の夜（例 11/14 22:50）に回り、その最後の `sync-hf-umami.ps1` で日曜の予想が初めて公開される。凍結はその直前なので「その日の予想が公開される時点の値」になる（11/15 相当のテストで、PW・馬レベル・スピード指数がサイトの値と 484/484 頭一致）。
+
+### 公開運用と合わない点（2026-11-18 時点。判定規則を決めるときに扱う）
+
+1. **発走前の作り直し**: 凍結 bundle（`bundle_provenance`）は最初の発走までは作り直しで更新されるが、ズレの凍結は最初の 1 回で固定する。Phase A を発走前にやり直すと（v8 → v7 の戻りなど）、サイトのモデル順位は新しい bundle、凍結は古い bundle のままになる。`{date}.json` の `bundle.sha256` と最終の凍結 bundle の sha256 が違う日の扱い（除外する／凍結側の値で採点する）を、数え始める前に決める。
+2. **土曜の結果は日曜の PW に入らない**: 土曜の結果（`data/kekka`）が入るのは日曜夜の Phase C。土日連続で走る馬はまれで、サイトも同じ値を出しているので「公開時点の値」とは一致する。
+3. **当日の作り直し**: T-20 / T-10 のサイト更新は PW・スピード指数を作り直さないので、普段は凍結と同じ値が出続ける。当日に `power_rating.py build` や Phase C を手で回すと、サイトの値だけが変わる。
+4. **Phase A が発走後になった日・-SkipGit の日**: 前者は凍結なし（数えない）。後者は凍結ファイルはできるが発走前の commit が無いので、凍結時刻と sha256 だけが証拠になる。
+5. **Phase A が export で失敗した日**: 凍結の前に止まる（その日はサイトも公開されない）ので、凍結なし。
+
+### 数え始める前の決定（2026-11-18 ぐっち決定）
+
+- **凍結した bundle の sha256 と最終の採点 bundle の sha256 が食い違う開催日は、前向き確認の主判定から除外し、別掲で報告する。**
+  比べるのは `reports/zure_freeze/{date}.json` の `bundle.sha256` と、採点に使う凍結 bundle（`reports/cowork_input_frozen/{date}_bundle.json`）の sha256。
+- **凍結ファイル（`reports/zure_freeze/{date}.json`）が無い開催日は除外する。**
+- **-SkipGit の日（発走前の commit が無い日）は、凍結ファイルがあり上の sha256 が一致すれば数える。**
