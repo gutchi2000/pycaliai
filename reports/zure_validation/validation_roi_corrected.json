@@ -1,0 +1,874 @@
+{
+ "note": "訂正値（2026-11-18）: 初回の検証期間集計は worktree の data/kekka だけを読み、git 管理外の結果 CSV（14 開催日）を見落として 371R の払戻を 0 としていた。本体の data/kekka で回収率だけを計算し直した。勝率・複勝率・lift・判定は validation.json と完全一致を確認済み（変更なし）。",
+ "info": {
+  "split_date_inclusive": "20260726",
+  "races": 949,
+  "missing_pays_races": 0
+ },
+ "rows": [
+  {
+   "cond": "D1",
+   "band": "6-8位",
+   "n_horses": 390,
+   "n_races": 341,
+   "win_roi_corrected": [
+    0.6825192802056556,
+    0.393666776261713,
+    1.0193738343901526
+   ],
+   "place_roi_corrected": [
+    0.719280205655527,
+    0.5645248593350384,
+    0.8763720909672065
+   ],
+   "win_roi_invalid_original": [
+    0.4223650385604113,
+    0.18284590304790324,
+    0.7172560812616946
+   ],
+   "place_roi_invalid_original": [
+    0.4699228791773779,
+    0.3399948979591837,
+    0.6139829261112744
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D1",
+   "band": "9-12位",
+   "n_horses": 213,
+   "n_races": 188,
+   "win_roi_corrected": [
+    0.7816901408450704,
+    0.1213300504107543,
+    1.7678794642857139
+   ],
+   "place_roi_corrected": [
+    0.6751173708920187,
+    0.4136064014418263,
+    0.9701026570048307
+   ],
+   "win_roi_invalid_original": [
+    0.7244131455399061,
+    0.07451088873214601,
+    1.7135046948356798
+   ],
+   "place_roi_invalid_original": [
+    0.3755868544600939,
+    0.20244678350792372,
+    0.5789533222195761
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D1",
+   "band": "13位以下",
+   "n_horses": 30,
+   "n_races": 28,
+   "win_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_corrected": [
+    0.17333333333333334,
+    0.0,
+    0.5571428571428572
+   ],
+   "win_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_invalid_original": [
+    0.17333333333333334,
+    0.0,
+    0.5571428571428572
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D1",
+   "band": "6位以下計",
+   "n_horses": 633,
+   "n_races": 464,
+   "win_roi_corrected": [
+    0.6835443037974683,
+    0.37063455193002676,
+    1.080295112511999
+   ],
+   "place_roi_corrected": [
+    0.6784810126582278,
+    0.5487772243728952,
+    0.8171851649756173
+   ],
+   "win_roi_invalid_original": [
+    0.5041139240506329,
+    0.21425907695471805,
+    0.8837532039906926
+   ],
+   "place_roi_invalid_original": [
+    0.4240506329113924,
+    0.3175738956474049,
+    0.5355062586667987
+   ],
+   "verdict": "FAIL"
+  },
+  {
+   "cond": "D2",
+   "band": "6-8位",
+   "n_horses": 225,
+   "n_races": 164,
+   "win_roi_corrected": [
+    0.5696428571428571,
+    0.23333333333333334,
+    0.9515659869180442
+   ],
+   "place_roi_corrected": [
+    0.6732142857142858,
+    0.46650822585559054,
+    0.9263044520285296
+   ],
+   "win_roi_invalid_original": [
+    0.3825892857142857,
+    0.1028789592760181,
+    0.7460838928174162
+   ],
+   "place_roi_invalid_original": [
+    0.44285714285714284,
+    0.255642107361148,
+    0.6654873636799631
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D2",
+   "band": "9-12位",
+   "n_horses": 111,
+   "n_races": 83,
+   "win_roi_corrected": [
+    0.5981981981981982,
+    0.0,
+    1.682958290859665
+   ],
+   "place_roi_corrected": [
+    0.8792792792792793,
+    0.39268613974799543,
+    1.490625369354157
+   ],
+   "win_roi_invalid_original": [
+    0.14234234234234233,
+    0.0,
+    0.4601941747572815
+   ],
+   "place_roi_invalid_original": [
+    0.527927927927928,
+    0.172884290164664,
+    1.0116662408448305
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D2",
+   "band": "13位以下",
+   "n_horses": 21,
+   "n_races": 17,
+   "win_roi_corrected": [
+    4.357142857142857,
+    0.0,
+    11.4375
+   ],
+   "place_roi_corrected": [
+    0.8095238095238095,
+    0.0,
+    1.8153846153846154
+   ],
+   "win_roi_invalid_original": [
+    4.357142857142857,
+    0.0,
+    11.4375
+   ],
+   "place_roi_invalid_original": [
+    0.8095238095238095,
+    0.0,
+    1.8153846153846154
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D2",
+   "band": "6位以下計",
+   "n_horses": 357,
+   "n_races": 209,
+   "win_roi_corrected": [
+    0.8019662921348315,
+    0.28875475372375026,
+    1.425752688172042
+   ],
+   "place_roi_corrected": [
+    0.7455056179775281,
+    0.5359770497920887,
+    0.9828620681437229
+   ],
+   "win_roi_invalid_original": [
+    0.5421348314606742,
+    0.13693042016806725,
+    1.1272167874396133
+   ],
+   "place_roi_invalid_original": [
+    0.4910112359550562,
+    0.3096451112001603,
+    0.697901349497438
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D3'",
+   "band": "6-8位",
+   "n_horses": 66,
+   "n_races": 66,
+   "win_roi_corrected": [
+    0.9181818181818182,
+    0.3317424242424243,
+    1.6591287878787877
+   ],
+   "place_roi_corrected": [
+    0.7606060606060606,
+    0.38484848484848483,
+    1.271325757575757
+   ],
+   "win_roi_invalid_original": [
+    0.4015151515151515,
+    0.0,
+    0.9305303030303018
+   ],
+   "place_roi_invalid_original": [
+    0.5121212121212121,
+    0.1681439393939394,
+    1.0093560606060592
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D3'",
+   "band": "9-12位",
+   "n_horses": 17,
+   "n_races": 17,
+   "win_roi_corrected": [
+    0.40588235294117647,
+    0.0,
+    1.2176470588235293
+   ],
+   "place_roi_corrected": [
+    0.8176470588235294,
+    0.24705882352941178,
+    1.5120588235294101
+   ],
+   "win_roi_invalid_original": [
+    0.40588235294117647,
+    0.0,
+    1.2176470588235293
+   ],
+   "place_roi_invalid_original": [
+    0.7235294117647059,
+    0.1588235294117647,
+    1.4411764705882353
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D3'",
+   "band": "13位以下",
+   "n_horses": 5,
+   "n_races": 5,
+   "win_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_corrected": [
+    0.52,
+    0.0,
+    1.56
+   ],
+   "win_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_invalid_original": [
+    0.52,
+    0.0,
+    1.56
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D3'",
+   "band": "6位以下計",
+   "n_horses": 88,
+   "n_races": 88,
+   "win_roi_corrected": [
+    0.7670454545454546,
+    0.2976420454545455,
+    1.3272727272727274
+   ],
+   "place_roi_corrected": [
+    0.7579545454545454,
+    0.42838068181818184,
+    1.1773295454545452
+   ],
+   "win_roi_invalid_original": [
+    0.3795454545454545,
+    0.05909090909090909,
+    0.8079545454545455
+   ],
+   "place_roi_invalid_original": [
+    0.553409090909091,
+    0.2431818181818182,
+    0.9704829545454544
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "cond": "D4",
+   "band": "6-8位",
+   "n_horses": 69,
+   "n_races": 69,
+   "win_roi_corrected": [
+    0.4101449275362319,
+    0.11014492753623188,
+    0.8276086956521735
+   ],
+   "place_roi_corrected": [
+    0.5855072463768116,
+    0.33760869565217394,
+    0.8739492753623186
+   ],
+   "win_roi_invalid_original": [
+    0.21304347826086956,
+    0.0,
+    0.553623188405797
+   ],
+   "place_roi_invalid_original": [
+    0.3536231884057971,
+    0.14202898550724638,
+    0.5971014492753624
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D4",
+   "band": "9-12位",
+   "n_horses": 41,
+   "n_races": 41,
+   "win_roi_corrected": [
+    0.4682926829268293,
+    0.0,
+    1.2365853658536585
+   ],
+   "place_roi_corrected": [
+    0.37317073170731707,
+    0.05609756097560976,
+    0.7781097560975607
+   ],
+   "win_roi_invalid_original": [
+    0.4682926829268293,
+    0.0,
+    1.2365853658536585
+   ],
+   "place_roi_invalid_original": [
+    0.37317073170731707,
+    0.05609756097560976,
+    0.7781097560975607
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D4",
+   "band": "13位以下",
+   "n_horses": 6,
+   "n_races": 6,
+   "win_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "win_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D4",
+   "band": "6位以下計",
+   "n_horses": 116,
+   "n_races": 115,
+   "win_roi_corrected": [
+    0.40948275862068967,
+    0.12155172413793103,
+    0.7646909670164915
+   ],
+   "place_roi_corrected": [
+    0.48017241379310344,
+    0.291500219170076,
+    0.7026289483463395
+   ],
+   "win_roi_invalid_original": [
+    0.29224137931034483,
+    0.05086206896551724,
+    0.6269722638680658
+   ],
+   "place_roi_invalid_original": [
+    0.3422413793103448,
+    0.17691304347826087,
+    0.5382957271364316
+   ],
+   "verdict": "FAIL"
+  },
+  {
+   "cond": "D5",
+   "band": "6-8位",
+   "n_horses": 11,
+   "n_races": 11,
+   "win_roi_corrected": [
+    1.7,
+    0.0,
+    3.9909090909090907
+   ],
+   "place_roi_corrected": [
+    1.3272727272727274,
+    0.41818181818181815,
+    2.2363636363636363
+   ],
+   "win_roi_invalid_original": [
+    1.1454545454545455,
+    0.0,
+    3.4363636363636365
+   ],
+   "place_roi_invalid_original": [
+    0.7636363636363637,
+    0.0,
+    1.6272727272727272
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D5",
+   "band": "9-12位",
+   "n_horses": 4,
+   "n_races": 4,
+   "win_roi_corrected": [
+    3.0,
+    0.0,
+    9.0
+   ],
+   "place_roi_corrected": [
+    0.925,
+    0.0,
+    2.775
+   ],
+   "win_roi_invalid_original": [
+    3.0,
+    0.0,
+    9.0
+   ],
+   "place_roi_invalid_original": [
+    0.925,
+    0.0,
+    2.775
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D5",
+   "band": "13位以下",
+   "n_horses": 1,
+   "n_races": 1,
+   "win_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "win_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D5",
+   "band": "6位以下計",
+   "n_horses": 16,
+   "n_races": 13,
+   "win_roi_corrected": [
+    1.91875,
+    0.0,
+    4.0556249999999965
+   ],
+   "place_roi_corrected": [
+    1.14375,
+    0.4866666666666667,
+    1.92
+   ],
+   "win_roi_invalid_original": [
+    1.5375,
+    0.0,
+    3.4746428571428396
+   ],
+   "place_roi_invalid_original": [
+    0.75625,
+    0.2,
+    1.3866666666666667
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D6",
+   "band": "6-8位",
+   "n_horses": 198,
+   "n_races": 171,
+   "win_roi_corrected": [
+    0.549746192893401,
+    0.23399918472543657,
+    0.9257854316359471
+   ],
+   "place_roi_corrected": [
+    0.649746192893401,
+    0.4357015306122449,
+    0.8737706484379008
+   ],
+   "win_roi_invalid_original": [
+    0.3116751269035533,
+    0.06528163761972053,
+    0.6599196015211639
+   ],
+   "place_roi_invalid_original": [
+    0.4563451776649746,
+    0.2676357765328353,
+    0.664799057057378
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D6",
+   "band": "9-12位",
+   "n_horses": 96,
+   "n_races": 82,
+   "win_roi_corrected": [
+    0.16458333333333333,
+    0.0,
+    0.5152173913043478
+   ],
+   "place_roi_corrected": [
+    0.553125,
+    0.19176609105180534,
+    1.0720718323910874
+   ],
+   "win_roi_invalid_original": [
+    0.16458333333333333,
+    0.0,
+    0.5152173913043478
+   ],
+   "place_roi_invalid_original": [
+    0.30416666666666664,
+    0.10221617161716172,
+    0.5556666666666661
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D6",
+   "band": "13位以下",
+   "n_horses": 12,
+   "n_races": 12,
+   "win_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_corrected": [
+    0.43333333333333335,
+    0.0,
+    1.3
+   ],
+   "win_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_invalid_original": [
+    0.43333333333333335,
+    0.0,
+    1.3
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D6",
+   "band": "6位以下計",
+   "n_horses": 306,
+   "n_races": 229,
+   "win_roi_corrected": [
+    0.4068852459016393,
+    0.17355765170708168,
+    0.6698664060517998
+   ],
+   "place_roi_corrected": [
+    0.6108196721311475,
+    0.41913402108029024,
+    0.8337890812890811
+   ],
+   "win_roi_invalid_original": [
+    0.25311475409836065,
+    0.060477049180327876,
+    0.49732550586248325
+   ],
+   "place_roi_invalid_original": [
+    0.4075409836065574,
+    0.26549137931034483,
+    0.5740190476190474
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D5[重賞]",
+   "band": "6-8位",
+   "n_horses": 11,
+   "n_races": 11,
+   "win_roi_corrected": [
+    1.7,
+    0.0,
+    3.9909090909090907
+   ],
+   "place_roi_corrected": [
+    1.3272727272727274,
+    0.41818181818181815,
+    2.2363636363636363
+   ],
+   "win_roi_invalid_original": [
+    1.1454545454545455,
+    0.0,
+    3.4363636363636365
+   ],
+   "place_roi_invalid_original": [
+    0.7636363636363637,
+    0.0,
+    1.6272727272727272
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D5[重賞]",
+   "band": "9-12位",
+   "n_horses": 4,
+   "n_races": 4,
+   "win_roi_corrected": [
+    3.0,
+    0.0,
+    9.0
+   ],
+   "place_roi_corrected": [
+    0.925,
+    0.0,
+    2.775
+   ],
+   "win_roi_invalid_original": [
+    3.0,
+    0.0,
+    9.0
+   ],
+   "place_roi_invalid_original": [
+    0.925,
+    0.0,
+    2.775
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D5[重賞]",
+   "band": "13位以下",
+   "n_horses": 1,
+   "n_races": 1,
+   "win_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "win_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D5[重賞]",
+   "band": "6位以下計",
+   "n_horses": 16,
+   "n_races": 13,
+   "win_roi_corrected": [
+    1.91875,
+    0.0,
+    4.0556249999999965
+   ],
+   "place_roi_corrected": [
+    1.14375,
+    0.4866666666666667,
+    1.92
+   ],
+   "win_roi_invalid_original": [
+    1.5375,
+    0.0,
+    3.4746428571428396
+   ],
+   "place_roi_invalid_original": [
+    0.75625,
+    0.2,
+    1.3866666666666667
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D5[非重賞]",
+   "band": "6-8位",
+   "n_horses": 1,
+   "n_races": 1,
+   "win_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "win_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D5[非重賞]",
+   "band": "9-12位",
+   "n_horses": 0,
+   "n_races": 0,
+   "win_roi_corrected": [
+    null,
+    null,
+    null
+   ],
+   "place_roi_corrected": [
+    null,
+    null,
+    null
+   ],
+   "win_roi_invalid_original": [
+    null,
+    null,
+    null
+   ],
+   "place_roi_invalid_original": [
+    null,
+    null,
+    null
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D5[非重賞]",
+   "band": "13位以下",
+   "n_horses": 1,
+   "n_races": 1,
+   "win_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "win_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "verdict": null
+  },
+  {
+   "cond": "D5[非重賞]",
+   "band": "6位以下計",
+   "n_horses": 2,
+   "n_races": 2,
+   "win_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_corrected": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "win_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "place_roi_invalid_original": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "verdict": null
+  }
+ ]
+}
