@@ -4,6 +4,13 @@ build_site.py が、結果の出ていない開催日を作るたびに、公開
 reports/cowork_input/{date}_zento.json を書く。中身はサイトに出している数字だけ（オッズ・EV・
 JRDB の値は入れない）。Cowork はこれを読んで全レース全頭に 1〜2 文の短評を書き、
 {date}_bets.json の各レースに "zento": [{"umaban", "horse_name", "comment"}] として返す。
+
+2026-11-18: advisor・Grade Scope もペース・展開はここの展開予想（tenkai.py）だけを根拠に書く
+（以前は過去走の決め手から推測して、展開タブと食い違った: 11/15 エリザベス女王杯）。
+レースごとに「展開予想あり」「ペース予想%」（スロー/平均/ハイの確率と最大のラベル、確度の言葉は
+サイトの展開タブと同じ）、「差し追込は届くか」、「先行勢」（序盤予想の上位 2 頭＝展開タブの逃げ候補）。
+馬ごとの「展開予想の脚質区分」は、このレースのメンバー内で予想した序盤の位置を
+逃げ 1 割・先行 〜35%・差し 〜70%・残り追込で区切ったもの（出走表の「ふだんの脚質」とは別物）。
 """
 from __future__ import annotations
 
@@ -29,17 +36,45 @@ def _late_word(p, edges):
     return ["届きにくい", "やや届きにくい", "ふつう", "やや届きやすい", "届きやすい"][b]
 
 
+def pace_summary(pace_probs) -> dict | None:
+    """[スロー, 平均, ハイ] の確率 → 予想ラベルと確度の言葉（site/js/app.js の展開タブと同じ決め方）。"""
+    if not pace_probs or all(x is None for x in pace_probs):
+        return None
+    v = [x or 0 for x in pace_probs]
+    top = v.index(max(v))
+    sure = ("はっきりしない（平均寄り）" if top == 1
+            else f"{PACE_NAMES[top]}ペースの公算が大きい" if v[top] >= 0.5 else f"{PACE_NAMES[top]}ペース寄り")
+    return {"予想": PACE_NAMES[top], "確度": sure, "スロー": round(v[0] * 100), "平均": round(v[1] * 100),
+            "ハイ": round(v[2] * 100)}
+
+
+def style_band(rank: int, n: int) -> str:
+    """tenkai.py _style_rank と同じ区切り（序盤予想の順位 / 頭数）。"""
+    q = rank / max(n, 1)
+    return "逃げ" if q <= 0.1 else "先行" if q <= 0.35 else "差し" if q <= 0.70 else "追込"
+
+
+def tenkai_positions(tk: dict, umabans: list[int]) -> dict:
+    """取消を除いた出走馬だけで序盤・4角の予想番手を付け直す（展開タブと同じ）。
+    → {馬番: (序盤番手, 4角番手, 脚質区分)}。"""
+    rows = [row for row in tk.get("h", []) if row[0] in set(umabans)]
+    if not rows:
+        return {}
+    er = {row[0]: i + 1 for i, row in enumerate(sorted(rows, key=lambda x: (x[1], x[0])))}
+    lr = {row[0]: i + 1 for i, row in enumerate(sorted(rows, key=lambda x: (x[2], x[0])))}
+    n = len(rows)
+    return {u: (er[u], lr[u], style_band(er[u], n)) for u in er}
+
+
 def race_material(r: dict, close_edges: list) -> dict:
     hs = [h for h in r.get("horses", []) if not h.get("scratched")]
     ai = _pct_rank({h["umaban"]: h.get("ai_score") for h in hs})
     pw = _pct_rank({h["umaban"]: h.get("pw") for h in hs})
     tk = r.get("tenkai") or {}
-    pos = {row[0]: row for row in tk.get("h", [])}
-    pace = None
-    if tk.get("pace"):
-        v = [x or 0 for x in tk["pace"]]
-        pace = {"予想": PACE_NAMES[v.index(max(v))], "スロー": round(v[0] * 100), "平均": round(v[1] * 100),
-                "ハイ": round(v[2] * 100)}
+    pos = tenkai_positions(tk, [h["umaban"] for h in hs])
+    pace = pace_summary(tk.get("pace"))
+    name_by = {h["umaban"]: h.get("name") for h in hs}
+    front = [{"馬番": u, "馬名": name_by.get(u)} for u, p in sorted(pos.items(), key=lambda x: x[1][0])[:2]]
     ml = r.get("member_level") or {}
     horses = []
     for h in sorted(hs, key=lambda x: ai.get(x["umaban"], 99)):
@@ -58,7 +93,7 @@ def race_material(r: dict, close_edges: list) -> dict:
             "馬レベル": (h.get("level") or {}).get("tier"),
             "妙味グレード": (h.get("umami") or {}).get("grade"),
             "ふだんの脚質": h.get("style"),
-            "予想脚質": p[5] if p else None, "予想序盤番手": p[3] if p else None, "予想4角番手": p[4] if p else None,
+            "展開予想の脚質区分": p[2] if p else None, "予想序盤番手": p[0] if p else None, "予想4角番手": p[1] if p else None,
             "近走スピード指数": [{"日付": x[0], "コース": x[1], "クラス": x[2], "着順": x[3], "指数": x[4]}
                          for x in (sp.get("runs") or [])[:3]],
             "近走": [{"前": x.get("n_ago"), "場": x.get("place"), "芝ダ距離": f"{x.get('td', '')}{x.get('dist', '')}",
@@ -72,8 +107,10 @@ def race_material(r: dict, close_edges: list) -> dict:
         "頭数": len(hs),
         "難しさ": (r.get("judgment") or {}).get("hardness"),
         "メンバーレベル": ml.get("label"),
+        "展開予想あり": pace is not None,
         "ペース予想%": pace,
         "差し追込は届くか": _late_word(tk.get("late"), close_edges),
+        "先行勢": front,
         "horses": horses,
     }
 
@@ -92,7 +129,10 @@ def write(day: dict) -> Path | None:
     out = {
         "date": day["date"],
         "note": "全頭短評の素材。公開サイトに出している数字だけ（オッズ・JRDB の値は無し）。"
-                "AI順位は AI のスコア順、スピード指数は 100 が古馬 1〜2 勝クラスの基準、強さスコアは芝ダ別に現役最上位 100。",
+                "AI順位は AI のスコア順、スピード指数は 100 が古馬 1〜2 勝クラスの基準、強さスコアは芝ダ別に現役最上位 100。"
+                "ペース・展開・脚質の有利不利は「ペース予想%」「差し追込は届くか」「先行勢」と各馬の予想番手だけを根拠にする"
+                "（advisor・Grade Scope・全頭短評すべて）。「展開予想あり」が false のレースはペースに触れない。"
+                "「展開予想の脚質区分」はこのレースで予想した序盤の位置の区分で、「ふだんの脚質」（出走表）とは別。",
         "races": [race_material(r, edges) for r in day["races"]],
     }
     OUT_DIR.mkdir(parents=True, exist_ok=True)

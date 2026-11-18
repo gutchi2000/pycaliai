@@ -17,10 +17,10 @@
    ============================================================ */
 import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM, TOOLS } from "./prompt.js";
-import { dispatch, findHorse, findRace, raceLabel, rosterLines } from "./tools.js";
+import { dispatch, findHorse, findRace, raceLabel, rosterLines, tenkaiLine } from "./tools.js";
 import { handleFeed, handleGen, handleList, warmLatest } from "./kaiko.js";
 import { horseKaiko, horsePage } from "./horse.js";
-import { cors, json, jstParts, kvNum, kvSet, loadDay, loadReportCard, microUsd, num, originOk, sha256Hex } from "./util.js";
+import { cors, json, jstParts, kvNum, kvSet, loadDay, loadReportCard, loadTenkaiMeta, microUsd, num, originOk, sha256Hex } from "./util.js";
 
 const MAX_TURNS = 10;          // クライアントから受け取る履歴の上限（user+assistant 合計）
 const MAX_CHARS = 400;         // 1 発話の上限
@@ -118,12 +118,14 @@ async function soudan(request, env, ctx) {
   if (!race) return json({ error: "そのレースが見つかりません", code: "no_race" }, 404, C);
   const finished = !!(race.result && race.result.top3);
   const reportCard = await loadReportCard(env, request.url);   // AI の通信簿（無ければ null → ツールがその旨を返す）
+  const tenkaiMeta = await loadTenkaiMeta(env, request.url);   // 展開予想の「届くか」の区切り（無ければ既定値）
   const system = [
     { type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } },
     { type: "text", text:
       `【今見ているレース】${raceLabel(race)}（${date.slice(0, 4)}/${+date.slice(4, 6)}/${+date.slice(6, 8)}）` +
       (finished ? "。このレースは終了済み（結果あり）。" : "。発走前または結果未反映。") +
       `\n出走馬一覧（馬番 馬名 [印] AI順位 勝率 複勝率 朝の人気）:\n` + rosterLines(race).join("\n") +
+      `\n${tenkaiLine(race, tenkaiMeta)}（各馬の予想位置は race_tenkai）` +
       `\n\n同じ日の他レース（${(day.races || []).length}R: ${(day.places || []).join("・")}）の横断的な質問は day_races を呼ぶ。` },
   ];
 
@@ -147,7 +149,7 @@ async function soudan(request, env, ctx) {
           toolsUsed.push(u.name);
           const out = u.name === "horse_kaiko"
             ? await horseKaikoTool(env, request.url, race, u.input)          // KV を読む非同期ツール (回顧の教訓)
-            : dispatch(day, race, u.name, u.input, { reportCard });
+            : dispatch(day, race, u.name, u.input, { reportCard, tenkaiMeta });
           return { type: "tool_result", tool_use_id: u.id, content: JSON.stringify(out) };
         })) });
         continue;

@@ -74,6 +74,17 @@ export async function loadReportCard(env, baseUrl) {
     return rc;
   } catch { return null; }
 }
+let tmCache = null;   // {at, tm}
+/** 展開予想の検証値と「届くか」の区切り（site/data/tenkai_meta.json）。無ければ null（既定の区切りを使う）。10 分キャッシュ。 */
+export async function loadTenkaiMeta(env, baseUrl) {
+  if (tmCache && Date.now() - tmCache.at < DAY_CACHE_MS) return tmCache.tm;
+  try {
+    const res = await env.ASSETS.fetch(new Request(new URL("/data/tenkai_meta.json", baseUrl), { method: "GET" }));
+    const tm = res.ok ? await res.json() : null;
+    tmCache = { at: Date.now(), tm };
+    return tm;
+  } catch { return null; }
+}
 export async function loadManifest(env, baseUrl) {
   const res = await env.ASSETS.fetch(new Request(new URL("/data/manifest.json", baseUrl), { method: "GET" }));
   return res.ok ? res.json() : null;
