@@ -78,7 +78,7 @@ def _j1(cols):
 
 BLOCKS = {
     # --- 過去走 (成績データ。対象レースの 5 日以上前の走だけ、v7 と同じ作り方)
-    "P_ABIL": dict(src="過去走", label="過去走の能力評価（走破の数値評価・素点、近 5 走の平均と最大）",
+    "P_ABIL": dict(src="過去走", label="過去走の能力評価（走破の数値評価とその補正前の値、近 5 走の平均と最大）",
                    num=_j1(["idm", "soten"]) + ["j1_idm_mean5", "j1_idm_max5"], code=[]),
     "P_TROUBLE": dict(src="過去走", label="過去走の不利・出遅れ・位置取り・コース取りの記録",
                       num=_j1(["furi", "mae_furi", "naka_furi", "ato_furi"]),
@@ -442,6 +442,38 @@ def run_eval(force=False):
     log(f"[saved] {OUT_JSON}")
 
 
+def freeze(names=("N", "N+G_ALL")):
+    """前向き再確認用: 指定の残差モデルを同じ設定で学習し直して保存し、保存済みの残差と一致するか確かめる。
+    ゲートの重み (valid で fit) も一緒に凍結する。test の成績は計算しない。保存先は reports/ (git 管理外、JRDB 由来)。"""
+    import joblib
+    import lightgbm as lgb
+    d = pd.read_parquet(FEAT_PQ)
+    ncols = [c for c in d.columns if c.startswith("n") and c[1:].isdigit()]
+    specs = model_specs(ncols)
+    p = d["p_mkt"].clip(1e-4, 1 - 1e-4)
+    d["init"] = np.log(p / (1 - p)); d["y"] = (d["jyun"] == 1).astype(int)
+    tr = d[d.split == "train"]; va = d[d.split == "valid"]
+    r = pd.read_parquet(RESID_PQ)
+    rv = r[r.split == "valid"].reset_index(drop=True)
+    out = {"models": {}, "feature_cols": {}, "params": PARAMS}
+    for name in names:
+        cols = specs[name]
+        dtr = lgb.Dataset(tr[cols].values.astype(np.float32), tr["y"].values, init_score=tr["init"].values)
+        dva = lgb.Dataset(va[cols].values.astype(np.float32), va["y"].values, init_score=va["init"].values, reference=dtr)
+        m = lgb.train(PARAMS, dtr, num_boost_round=MAX_ROUNDS, valid_sets=[dva], callbacks=[lgb.early_stopping(EARLY, verbose=False)])
+        z = m.predict(va[cols].values.astype(np.float32), num_iteration=m.best_iteration, raw_score=True)
+        diff = float(np.abs(z - rv[f"z_{name}"].values).max())
+        log(f"[freeze] {name}: 回数 {m.best_iteration}  保存済み残差との最大差 {diff:.2e}")
+        out["models"][name] = m.model_to_string(num_iteration=m.best_iteration)
+        out["feature_cols"][name] = cols
+    pv = Part(rv)
+    out["gate_w"] = {"base[lk,z_N]": [float(x) for x in fit_w(pv.x[["lk", "z_N"]].values, pv.codes, pv.n, pv.win)],
+                     "plus[lk,z_N,z_N+G_ALL]": [float(x) for x in fit_w(pv.x[["lk", "z_N", "z_N+G_ALL"]].values, pv.codes, pv.n, pv.win)]}
+    out["fcols_v6"] = json.loads((REP / "jrdb_block_audit_meta.json").read_text(encoding="utf-8"))["fcols"]
+    joblib.dump(out, REP / "jrdb_block_audit_frozen.pkl")
+    log(f"[freeze] gate 重み {out['gate_w']}  → {REP / 'jrdb_block_audit_frozen.pkl'}")
+
+
 if __name__ == "__main__":
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -456,5 +488,7 @@ if __name__ == "__main__":
         dev()
     elif cmd == "eval":
         run_eval("--force" in sys.argv)
+    elif cmd == "freeze":
+        freeze()
     else:
         print(__doc__)
