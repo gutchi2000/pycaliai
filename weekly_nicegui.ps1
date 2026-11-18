@@ -738,6 +738,20 @@ Invoke-PowerRating -CardDate $Date -Until
 #    (続く sync-hf-umami.ps1 内の build_site.py が出走表の「速度」列に載せる)。失敗は Warn のみ。
 Invoke-SpeedIndex -Date $Date
 
+# -- ズレ警告の前向き確認用 凍結 (2026-11-18, CW-23): 上の PW・スピード指数・bundle が揃った直後、
+#    sync-hf-umami.ps1 (この日の予想の公開) より前に、公開されるのと同じ値を 1 回だけ書く。
+#    既にあれば書かない・発走後なら書かない。reports\zure_freeze\{date}.json は下の Step 4 で commit、
+#    {date}.shap.json.gz (pred_contrib、JRDB 由来の寄与を含む) はローカル専用 (.gitignore)。失敗は Warn のみ。
+$zureFreeze = "reports\zure_freeze\$Date.json"
+try {
+    $prevExitZF = $LASTEXITCODE
+    Step "[zure] zure_freeze.py --date $Date (前向き確認用の凍結、本番結果には影響しません)"
+    $env:PYTHONIOENCODING = "utf-8"
+    & .\venv311\Scripts\python.exe zure_freeze.py --date $Date 2>&1 | ForEach-Object { Write-Host "    $_" }
+    if ($LASTEXITCODE -ne 0) { Warn "zure_freeze が exit $LASTEXITCODE (凍結なし。この日は前向き確認に数えない)" }
+    $global:LASTEXITCODE = $prevExitZF
+} catch { Warn "zure_freeze 例外 (本番には影響なし): $($_.Exception.Message)" }
+
 if ($SkipGit) {
     Step "[4/5] git push SKIPPED (-SkipGit)"
 } else {
@@ -758,6 +772,9 @@ if ($SkipGit) {
 
     # shadow a95 の事前凍結買い目 (レース前 commit が事前登録の証拠になる)
     if (Test-Path $a95Decisions) { git add $a95Decisions 2>$null }
+
+    # ズレ警告の凍結 (発走前 commit が「後から作り直していない」証拠。SHAP の .gz は .gitignore)
+    if (Test-Path $zureFreeze) { git add $zureFreeze 2>$null }
 
     if (Test-Path 'data\course_stats.json') {
         git add 'data\course_stats.json' 2>$null
