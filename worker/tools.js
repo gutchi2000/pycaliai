@@ -113,6 +113,7 @@ export function describeHorse(race, umaban) {
     longshot_trap: trap,
     horse_level: lvl.tier ? `${lvl.tier}(${lvl.score})` : null,
     sex_age: `${h.sex || ""}${h.age || ""}`, style: h.style || null, jockey: h.jockey || null, trainer: h.trainer || null,
+    tenkai: tenkaiPositions(race).get(+h.umaban) || null,   // 展開予想の序盤/4角の予想番手と脚質区分（無ければ null）
     kinryo: h.kinryo ?? null, blinker: h.blinker || null,
     avg_pos_last5: (h.history || {}).avg_pos ?? null, best_pos_last5: (h.history || {}).best_pos ?? null,
     pos_trend: (h.history || {}).pos_trend ?? null,
@@ -132,6 +133,79 @@ export function describeHorse(race, umaban) {
       `。${formLine(h)}` +
       (res ? `。【結果】${res}着` : ""),
   };
+}
+
+/* ---------------- 展開予想（tenkai.py、公開 JSON の races[].tenkai） 2026-11-18 ----------------
+   サイトの「展開」タブと同じ値・同じ言葉で返す。ペース・展開・脚質の有利不利はこれだけを根拠に答える
+   （近走の脚質からペースを推測すると展開タブと食い違う: 11/15 エリザベス女王杯）。
+   tenkai = { pace: [スロー, 平均, ハイ], late: 差し・追込で決着する確率, h: [[馬番, 序盤, 4角, 序盤順, 4角順, 脚質, 過去走数], ...] } */
+export const PACE_NAMES = ["スロー", "平均", "ハイ"];
+const LATE_WORDS = ["届きにくい", "やや届きにくい", "ふつう", "やや届きやすい", "届きやすい"];
+const LATE_EDGES_DEFAULT = [0.054, 0.094, 0.129, 0.173];   // site/data/tenkai_meta.json close.edges が読めないとき
+
+/** ペース確率 → 予想ラベルと確度（app.js renderTenkai と同じ決め方）。無ければ null。 */
+export function paceSummary(tk) {
+  if (!tk || !Array.isArray(tk.pace) || tk.pace.every((v) => v == null)) return null;
+  const v = tk.pace.map((x) => x ?? 0);
+  const top = v.indexOf(Math.max(...v));
+  const sure = top === 1 ? "はっきりしない（平均寄り）" : v[top] >= 0.5 ? `${PACE_NAMES[top]}ペースの公算が大きい` : `${PACE_NAMES[top]}ペース寄り`;
+  return { label: PACE_NAMES[top], sure, slow_pct: pct(v[0], 0), mid_pct: pct(v[1], 0), high_pct: pct(v[2], 0) };
+}
+
+/** 差し・追込は届くか（展開タブと同じ 5 段の言葉）。 */
+export function lateWord(p, meta) {
+  if (p == null) return null;
+  const edges = (meta && meta.close && meta.close.edges) || LATE_EDGES_DEFAULT;
+  let b = 0;
+  while (b < edges.length && p > edges[b]) b++;
+  return LATE_WORDS[b];
+}
+
+/** 取消を除いて序盤・4角の予想番手を付け直す（展開タブと同じ）。脚質区分は tenkai.py と同じ区切り。 */
+export function tenkaiPositions(race) {
+  const tk = race.tenkai;
+  if (!tk || !Array.isArray(tk.h)) return new Map();
+  const live = new Set((race.horses || []).filter((h) => !h.scratched).map((h) => +h.umaban));
+  const rows = tk.h.filter((r) => live.has(+r[0])).map(([u, e, l]) => ({ u: +u, e, l }));
+  const n = rows.length;
+  [...rows].sort((a, b) => a.e - b.e || a.u - b.u).forEach((x, i) => { x.er = i + 1; });
+  [...rows].sort((a, b) => a.l - b.l || a.u - b.u).forEach((x, i) => { x.lr = i + 1; });
+  const band = (r) => { const q = r / Math.max(n, 1); return q <= 0.1 ? "逃げ" : q <= 0.35 ? "先行" : q <= 0.70 ? "差し" : "追込"; };
+  return new Map(rows.map((x) => [x.u, { early_rank: x.er, corner4_rank: x.lr, tenkai_style: band(x.er) }]));
+}
+
+/** レースの展開予想（race_tenkai ツール）。無いレースは available=false。 */
+export function raceTenkai(race, meta) {
+  const ps = paceSummary(race.tenkai);
+  if (!ps) {
+    return { race: raceLabel(race), available: false,
+      note: "このレースは展開予想データなし。ペース・展開を聞かれたら「展開予想データなし」と答え、推測で書かない。" };
+  }
+  const pos = tenkaiPositions(race);
+  const byU = new Map((race.horses || []).map((h) => [+h.umaban, h]));
+  const horses = [...pos.entries()].sort((a, b) => a[1].early_rank - b[1].early_rank).map(([u, p]) => {
+    const h = byU.get(u) || {};
+    return { umaban: u, name: h.name, mark: h.mark || "無印", ...p, usual_style: h.style || null };
+  });
+  const front = horses.slice(0, 2).map((x) => ({ umaban: x.umaban, name: x.name }));
+  const late = lateWord(race.tenkai.late, meta);
+  return {
+    race: raceLabel(race), available: true,
+    pace: ps, late_reach: late,
+    front_runners: front,
+    horses,
+    note: "tenkai_style は今回のメンバーの中で予想した序盤の位置の区分（逃げ 1 割・先行〜35%・差し〜70%・残り追込）。usual_style は出走表のふだんの脚質。" +
+      "予想ラベル以外のペースは「〜なら」と条件付きでだけ触れる。確率の数字は展開タブと同じ値。",
+    summary: `【展開予想】ペース=${ps.label}（${ps.sure}／スロー${ps.slow_pct}%・平均${ps.mid_pct}%・ハイ${ps.high_pct}%）` +
+      (late ? `、差し・追込は${late}` : "") +
+      `、先行勢=${front.map((x) => `${x.umaban}番${x.name}`).join("・")}`,
+  };
+}
+
+/** system に載せる展開予想の 1 行。 */
+export function tenkaiLine(race, meta) {
+  const t = raceTenkai(race, meta);
+  return t.available ? t.summary : "【展開予想】このレースは展開予想データなし（ペース・展開は推測で答えない）";
 }
 
 /** 2 頭比較。軸は『当たる信頼性』＝複勝率で推奨する（妙味を追わない）。 */
@@ -328,6 +402,7 @@ export function dispatch(day, race, name, args, extra = {}) {
       }
       case "race_advice": return raceAdvice(race);
       case "course_bias": return courseBias(day, race);
+      case "race_tenkai": return raceTenkai(race, extra.tenkaiMeta);
       default: return { error: `unknown tool: ${name}` };
     }
   } catch (e) {

@@ -137,3 +137,69 @@ test("ai_track_record: report_card.json をこのレースの条件で引く", {
   assert.ok(["見送り寄り", "妙味次第", "勝負可"].includes(chaosVerdict(race)));
   assert.ok(trackRecord(null, race).error);
 });
+
+// ---- 2026-11-18: 展開予想（race_tenkai / system の【展開予想】行） ----
+import { lateWord, paceSummary, raceTenkai, tenkaiLine, tenkaiPositions } from "./tools.js";
+
+const d1115 = fs.existsSync(path.join(DATA, "20261115.json")) ? JSON.parse(fs.readFileSync(path.join(DATA, "20261115.json"), "utf8")) : null;
+const eriza = d1115 ? d1115.races.find((r) => (r.race_name || "").includes("エリザベス")) : null;
+const tmeta = fs.existsSync(path.join(DATA, "tenkai_meta.json")) ? JSON.parse(fs.readFileSync(path.join(DATA, "tenkai_meta.json"), "utf8")) : null;
+
+test("race_tenkai: エリザベス女王杯 (11/15) は展開タブと同じハイペース寄り", { skip: !eriza && "20261115.json なし" }, () => {
+  const t = raceTenkai(eriza, tmeta);
+  assert.equal(t.available, true);
+  assert.equal(t.pace.label, "ハイ");
+  assert.equal(t.pace.sure, "ハイペース寄り");
+  assert.equal(t.pace.high_pct, 48);
+  assert.equal(t.late_reach, "やや届きやすい");
+  assert.deepEqual(t.front_runners.map((x) => x.name), ["セキトバイースト", "レーゼドラマ"]);
+  assert.ok(tenkaiLine(eriza, tmeta).startsWith("【展開予想】ペース=ハイ（ハイペース寄り"));
+  assert.ok(!FORBIDDEN.test(JSON.stringify(t)));
+});
+
+test("race_tenkai: 全レースで予想ラベル=確率最大、番手は 1..n、取消は除いて付け直す", { skip: !d1115 && "20261115.json なし" }, () => {
+  for (const r of d1115.races.filter((x) => x.tenkai)) {
+    const t = raceTenkai(r, tmeta);
+    const v = r.tenkai.pace.map((x) => x ?? 0);
+    assert.equal(t.pace.label, PACE_NAMES_T[v.indexOf(Math.max(...v))], r.race_id);
+    const live = r.horses.filter((h) => !h.scratched).length;
+    assert.deepEqual(t.horses.map((x) => x.early_rank), Array.from({ length: t.horses.length }, (_, i) => i + 1));
+    assert.ok(t.horses.length <= live);
+    assert.equal(t.front_runners.length, Math.min(2, t.horses.length));
+  }
+  const r = d1115.races.find((x) => x.tenkai && x.horses.length >= 8);
+  const first = raceTenkai(r, tmeta).horses[0].umaban;
+  const r2 = { ...r, horses: r.horses.map((h) => (h.umaban === first ? { ...h, scratched: true } : h)) };
+  const t2 = raceTenkai(r2, tmeta);
+  assert.ok(!t2.horses.some((x) => x.umaban === first), "取消馬は展開予想から外す");
+  assert.equal(t2.horses[0].early_rank, 1);
+  assert.equal(tenkaiPositions(r2).get(first), undefined);
+});
+const PACE_NAMES_T = ["スロー", "平均", "ハイ"];
+
+test("race_tenkai: 展開予想の無いレースは available=false で、system の行も「データなし」", { skip: !race && "site/data なし" }, () => {
+  const r = { ...race, tenkai: null };
+  const t = raceTenkai(r, tmeta);
+  assert.equal(t.available, false);
+  assert.ok(t.note.includes("展開予想データなし"));
+  assert.ok(tenkaiLine(r, tmeta).includes("データなし"));
+  assert.equal(describeHorse(r, r.horses[0].umaban).tenkai, null);
+  assert.equal(dispatch(day, r, "race_tenkai", {}, { tenkaiMeta: tmeta }).available, false);
+});
+
+test("展開予想: 確度の言葉・届くかの区切り・馬の予想位置・ツール定義", { skip: !race && "site/data なし" }, () => {
+  assert.equal(paceSummary({ pace: [0.2, 0.32, 0.48] }).sure, "ハイペース寄り");
+  assert.equal(paceSummary({ pace: [0.91, 0.08, 0.01] }).sure, "スローペースの公算が大きい");
+  assert.equal(paceSummary({ pace: [0.33, 0.34, 0.33] }).sure, "はっきりしない（平均寄り）");
+  assert.equal(paceSummary(null), null);
+  assert.equal(lateWord(0.02, null), "届きにくい");
+  assert.equal(lateWord(0.149, { close: { edges: [0.05391, 0.09364, 0.12887, 0.17277] } }), "やや届きやすい");
+  assert.equal(lateWord(null, null), null);
+  if (race.tenkai) {
+    const d = describeHorse(race, race.horses.find((h) => !h.scratched).umaban);
+    assert.ok(d.tenkai && d.tenkai.early_rank >= 1 && ["逃げ", "先行", "差し", "追込"].includes(d.tenkai.tenkai_style));
+    assert.equal(dispatch(day, race, "race_tenkai", {}, { tenkaiMeta: tmeta }).available, true);
+  }
+  assert.ok(TOOLS.some((t) => t.name === "race_tenkai"));
+  assert.ok(SYSTEM.includes("race_tenkai") && SYSTEM.includes("展開予想データなし"));
+});
