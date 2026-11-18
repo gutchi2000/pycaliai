@@ -151,9 +151,9 @@ function Invoke-SpeedIndex {
                 if ($LASTEXITCODE -ne 0) { Warn "speed_index score-day $Date が exit $LASTEXITCODE (出走表の速度列なし)" }
                 else { OK "スピード指数 出走表: reports\speed_index\day_$Date.json" }
                 # 展開予想 (tenkai.py, 2026-11-16): runs.parquet (上の build) から序盤・4角の位置とペースを予測
-                & .env311\Scripts\python.exe -W ignore tenkai.py score-day $Date 2>&1 | Out-Null
+                & .\venv311\Scripts\python.exe -W ignore tenkai.py score-day $Date 2>&1 | Out-Null
                 if ($LASTEXITCODE -ne 0) { Warn "tenkai score-day $Date が exit $LASTEXITCODE (展開タブなし)" }
-                else { OK "展開予想: reports	enkai\day_$Date.json" }
+                else { OK "展開予想: reports\tenkai\day_$Date.json" }
             }
             & .\venv311\Scripts\python.exe -W ignore speed_index.py export-meta 2>&1 | Out-Null
             if ($LASTEXITCODE -ne 0) { Warn "speed_index export-meta が exit $LASTEXITCODE (解説ページの数字は前回のまま)" }
