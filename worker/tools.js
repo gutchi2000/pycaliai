@@ -123,7 +123,8 @@ export function describeHorse(race, umaban) {
     longshot_trap: trap,
     horse_level: lvl.tier ? `${lvl.tier}(${lvl.score})` : null,
     sex_age: `${h.sex || ""}${h.age || ""}`, style: h.style || null, jockey: h.jockey || null, trainer: h.trainer || null,
-    tenkai: tenkaiPositions(race).get(+h.umaban) || null,   // 展開予想の序盤/4角の予想番手と脚質区分（無ければ null）
+    // 展開予想の序盤/4角の予想番手と予想位置区分（無ければ null、新馬・過去走なし半数超のレースは「参考外」）
+    tenkai: positionsUnreliable(race) ? POS_UNRELIABLE_NOTE : (tenkaiPositions(race).get(+h.umaban) || null),
     kinryo: h.kinryo ?? null, blinker: h.blinker || null,
     avg_pos_last5: (h.history || {}).avg_pos ?? null, best_pos_last5: (h.history || {}).best_pos ?? null,
     pos_trend: (h.history || {}).pos_trend ?? null,
@@ -160,7 +161,26 @@ export function paceSummary(tk) {
   const top = v.indexOf(Math.max(...v));
   // 「公算が大きい」はスローの 50% 以上だけ。ハイは「寄り」まで（2026 年実績: ハイ公算 47% 的中＝寄りと同じ）
   const sure = top === 1 ? "はっきりしない（平均寄り）" : top === 0 && v[top] >= 0.5 ? "スローペースの公算が大きい" : `${PACE_NAMES[top]}ペース寄り`;
-  return { label: PACE_NAMES[top], sure, slow_pct: pct(v[0], 0), mid_pct: pct(v[1], 0), high_pct: pct(v[2], 0) };
+  // 平均が最大＝ペースの情報なし（2026 年実績で実際は 30/39/31%）。「読みにくい」扱いで、ペースを根拠に有利不利を言わない
+  // （keiba-narrative スキル・zento の「ペースを根拠にしてよい」と同じ扱い）
+  return { label: PACE_NAMES[top], sure, usable: top !== 1, slow_pct: pct(v[0], 0), mid_pct: pct(v[1], 0), high_pct: pct(v[2], 0) };
+}
+/** 文章に渡すペースの言葉。平均が最大は「読みにくい」。 */
+export function paceWords(ps) {
+  if (!ps) return null;
+  return ps.usable ? `${ps.label}（${ps.sure}）` : "読みにくい（平均が最大＝ペースの情報なし）";
+}
+
+/** 新馬戦、または過去走（通過順の分かる過去走＝tenkai の h[6]）の無い馬が出走の半数超。
+    各馬の予想番手はほぼでたらめ（2026 年実績: 序盤の順位相関 0.10）なので返さない（zento_material.positions_unreliable と同じ）。 */
+export const POS_UNRELIABLE_NOTE = "参考外（新馬・過去走の無い馬が半数超）";
+export function positionsUnreliable(race) {
+  const tk = race.tenkai;
+  if (!tk || !Array.isArray(tk.h)) return false;
+  if (/新馬/.test(String(race.klass || ""))) return true;
+  const live = new Set((race.horses || []).filter((h) => !h.scratched).map((h) => +h.umaban));
+  const nh = tk.h.filter((r) => live.has(+r[0])).map((r) => r[6]);
+  return nh.length > 0 && nh.filter((x) => !x).length > nh.length / 2;
 }
 
 /** 差し・追込は届くか（展開タブと同じ 5 段の言葉）。 */
@@ -192,7 +212,8 @@ export function raceTenkai(race, meta) {
     return { race: raceLabel(race), available: false,
       note: "このレースは展開予想データなし。ペース・展開を聞かれたら「展開予想データなし」と答え、推測で書かない。" };
   }
-  const pos = tenkaiPositions(race);
+  const unreliable = positionsUnreliable(race);
+  const pos = unreliable ? new Map() : tenkaiPositions(race);
   const byU = new Map((race.horses || []).map((h) => [+h.umaban, h]));
   const horses = [...pos.entries()].sort((a, b) => a[1].early_rank - b[1].early_rank).map(([u, p]) => {
     const h = byU.get(u) || {};
@@ -200,16 +221,25 @@ export function raceTenkai(race, meta) {
   });
   const front = horses.slice(0, 2).map((x) => ({ umaban: x.umaban, name: x.name }));
   const late = lateWord(race.tenkai.late, meta);
+  const paceTxt = ps.usable
+    ? `ペース=${ps.label}（${ps.sure}／スロー${ps.slow_pct}%・平均${ps.mid_pct}%・ハイ${ps.high_pct}%）`
+    : "ペース=読みにくい（平均が最大＝ペースの情報なし。ペースを根拠に有利不利を言わない）";
   return {
     race: raceLabel(race), available: true,
     pace: ps, late_reach: late,
-    front_runners: front,
-    horses,
-    note: "tenkai_style は今回のメンバーの中で予想した序盤の位置の区分＝「予想位置区分」（逃げ 1 割・先行〜35%・差し〜70%・残り追込）。usual_style は出走表のふだんの脚質（「脚質」と呼ぶのはこちらだけ）。" +
-      "予想ラベル以外のペースは「〜なら」と条件付きでだけ触れる。確率の数字は展開タブと同じ値。",
-    summary: `【展開予想】ペース=${ps.label}（${ps.sure}／スロー${ps.slow_pct}%・平均${ps.mid_pct}%・ハイ${ps.high_pct}%）` +
+    positions: unreliable ? POS_UNRELIABLE_NOTE : "あり",
+    front_runners: unreliable ? POS_UNRELIABLE_NOTE : front,
+    horses: unreliable ? POS_UNRELIABLE_NOTE : horses,
+    note: (unreliable
+      ? "このレースは新馬戦、または過去走の無い馬が半数超のため、各馬の予想番手・予想位置区分・先行勢は参考外で返さない。" +
+        "馬ごとの位置取り（逃げそう・好位から等）を展開予想を根拠に答えない。"
+      : "tenkai_style は今回のメンバーの中で予想した序盤の位置の区分＝「予想位置区分」（逃げ 1 割・先行〜35%・差し〜70%・残り追込）。usual_style は出走表のふだんの脚質（「脚質」と呼ぶのはこちらだけ）。") +
+      (ps.usable
+        ? "予想ラベル以外のペースは「〜なら」と条件付きでだけ触れる。確率の数字は展開タブと同じ値。"
+        : "ペースは平均が最大＝情報なし。「ペースは読みにくい」とだけ答え、平均ペースと言い切ったり、ペースを根拠に有利不利を言ったりしない。"),
+    summary: `【展開予想】${paceTxt}` +
       (late ? `、差し・追込は${late}` : "") +
-      `、先行勢=${front.map((x) => `${x.umaban}番${x.name}`).join("・")}`,
+      (unreliable ? `、各馬の予想位置は${POS_UNRELIABLE_NOTE}` : `、先行勢=${front.map((x) => `${x.umaban}番${x.name}`).join("・")}`),
   };
 }
 
