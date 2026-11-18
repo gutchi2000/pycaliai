@@ -70,8 +70,10 @@ def post_times(root: Path, dates: list[str]) -> dict[str, datetime]:
     return out
 
 
-def t10_odds(root: Path, rids: list[str], posts: dict[str, datetime]) -> tuple[dict, dict, Counter]:
-    """rid → {馬番: T-10 単勝オッズ}, rid → {source, lead_min}, 集計。"""
+def t10_odds(root: Path, rids: list[str], posts: dict[str, datetime],
+             key: str = "tansho") -> tuple[dict, dict, Counter]:
+    """rid → {馬番: T-10 オッズ}, rid → {source, lead_min}, 集計。
+    key="tansho" は単勝、key="fukusho" は複勝の下限 ([下限, 上限] の先頭)。"""
     odds, meta, stat = {}, {}, Counter()
     fp_root = root / "data" / "forward_prices"
     for rid in rids:
@@ -79,23 +81,24 @@ def t10_odds(root: Path, rids: list[str], posts: dict[str, datetime]) -> tuple[d
         for f in (fp_root / rid[:8]).glob(f"{rid}_t10_*.json.gz") if (fp_root / rid[:8]).exists() else []:
             d = json.load(gzip.open(f, "rt", encoding="utf-8"))
             mk = d.get("market") or {}
-            if not d.get("scheduled_post") or not mk.get("ok") or not mk.get("tansho"):
+            if not d.get("scheduled_post") or not mk.get("ok") or not mk.get(key):
                 continue
             lead = (_ts(d["scheduled_post"]) - _ts(d["observed_at"])).total_seconds() / 60
             if LEAD_MIN <= lead <= LEAD_MAX and (best is None or lead < best[1]):
-                best = (mk["tansho"], lead, "forward_prices")
+                best = (mk[key], lead, "forward_prices")
         if best is None:
             f = root / "reports" / "live_odds" / f"{rid}.json"
             if f.exists() and rid in posts:
                 j = json.loads(f.read_text(encoding="utf-8"))
-                if j.get("ok") and j.get("tansho"):
+                if j.get("ok") and j.get(key):
                     lead = (posts[rid] - _ts(j["fetched"])).total_seconds() / 60
                     if LEAD_MIN <= lead <= LEAD_MAX:
-                        best = (j["tansho"], lead, "live_odds")
+                        best = (j[key], lead, "live_odds")
         if best is None:
             stat["no_t10"] += 1
             continue
-        odds[rid] = {int(k): float(v) for k, v in best[0].items() if v and float(v) > 0}
+        conv = (lambda v: v[0] if isinstance(v, (list, tuple)) else v) if key == "fukusho" else (lambda v: v)
+        odds[rid] = {int(k): float(conv(v)) for k, v in best[0].items() if v and conv(v) and float(conv(v)) > 0}
         meta[rid] = {"source": best[2], "lead_min": best[1]}
         stat[best[2]] += 1
     return odds, meta, stat
