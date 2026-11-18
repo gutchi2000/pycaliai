@@ -28,7 +28,7 @@
 - **ペース** = `tenkai.py` の確率（`races[].tenkai.pace`）。`app.js taikeiHtml` の H/M/S は展開予想が無いレースだけの「簡易判定」。`explain_card.py` も tenkai から（無ければ「展開予想データなし」）。回顧・見どころの facts にも展開予想を渡す（実際のペースは facts に無いので断定させない）。
 - **混戦度** = `judgment.chaos_pct`（export 時、`data/chaos_quantiles.json`。T-10 ガードと同じ値）。ヘッダは「CHAOS（分位）」、4 メーターの混戦度も同じ値（`build_board_stats.gauge_value`、帯も chaos_pct で 5 等分）、予測の記録タブ、相談AI・回顧の `chaos` も 0〜100 の分位。生値は表示しない。分位の無い v5 期（2026-04-18〜05-31、468R）は「—」（`data/chaos_refs/` に v5 の参照表は無い）。
 - `build_site.parse_weekly` が 44 列形式の週次 CSV（2026-11-15 など）も読むようにした（以前は読み飛ばして騎手・調教師が空だった）。
-- **展開予想の言葉の留保**（`docs/research/TENKAI_ACCURACY_2026_20261118.md` を受けて）: 「公算が大きい」はスローの 50% 以上だけ、ハイは最大でも「ハイペース寄り」（app.js / worker `paceSummary` / `zento_material.pace_summary` で同じ）。zento は平均が最大のレースに `ペースを根拠にしてよい=false`、新馬または過去走（tenkai の nh）の無い馬が半数超のレースは `予想位置=参考外` で予想番手・展開予想の脚質区分・先行勢を出さない（2026 年 203/1,947R）。keiba-narrative スキルの指示と `validate_bets.py`（ハイの強い断定・平均での断定を FAIL、「〜けば」等も条件付き扱い）も更新＝**スキルは Claude Desktop に入れ直しが必要**。展開タブの参考外表示と「届くか」の率併記は未対応。
+- **展開予想の言葉の留保**（`docs/research/TENKAI_ACCURACY_2026_20261118.md` を受けて）: 「公算が大きい」はスローの 50% 以上だけ、ハイは最大でも「ハイペース寄り」（app.js / worker `paceSummary` / `zento_material.pace_summary` で同じ）。zento は平均が最大のレースに `ペースを根拠にしてよい=false`、新馬または過去走（tenkai の nh）の無い馬が半数超のレースは `予想位置=参考外` で予想番手・展開予想の脚質区分・先行勢を出さない（2026 年 203/1,947R）。keiba-narrative スキルの指示と `validate_bets.py`（ハイの強い断定・平均での断定を FAIL、「〜けば」等も条件付き扱い）も更新＝**スキルは Claude Desktop に入れ直しが必要**。相談AI・回顧記事・見どころも同じ扱い（`worker/tools.js paceWords` / `positionsUnreliable`: 平均は「読みにくい」で確率を渡さない、参考外のレースは `race_tenkai` と `horse_info` が予想番手を返さず「参考外」）。展開タブの参考外表示と「届くか」の率併記は未対応。
 
 ## 📘 完全仕様書（2026-08-23 新設）
 

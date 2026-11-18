@@ -163,11 +163,12 @@ test("race_tenkai: 全レースで予想ラベル=確率最大、番手は 1..n�
     const v = r.tenkai.pace.map((x) => x ?? 0);
     assert.equal(t.pace.label, PACE_NAMES_T[v.indexOf(Math.max(...v))], r.race_id);
     const live = r.horses.filter((h) => !h.scratched).length;
+    if (positionsUnreliable(r)) { assert.equal(t.positions, POS_UNRELIABLE_NOTE); continue; }
     assert.deepEqual(t.horses.map((x) => x.early_rank), Array.from({ length: t.horses.length }, (_, i) => i + 1));
     assert.ok(t.horses.length <= live);
     assert.equal(t.front_runners.length, Math.min(2, t.horses.length));
   }
-  const r = d1115.races.find((x) => x.tenkai && x.horses.length >= 8);
+  const r = d1115.races.find((x) => x.tenkai && x.horses.length >= 8 && !positionsUnreliable(x));
   const first = raceTenkai(r, tmeta).horses[0].umaban;
   const r2 = { ...r, horses: r.horses.map((h) => (h.umaban === first ? { ...h, scratched: true } : h)) };
   const t2 = raceTenkai(r2, tmeta);
@@ -256,4 +257,51 @@ test("確度の言葉: 公算が大きいはスローだけ、ハイは 50% 以�
   assert.equal(paceSummary({ pace: [0.10, 0.25, 0.65] }).sure, "ハイペース寄り");
   assert.equal(paceSummary({ pace: [0.20, 0.33, 0.47] }).sure, "ハイペース寄り");
   assert.equal(paceSummary({ pace: [0.32, 0.35, 0.33] }).sure, "はっきりしない（平均寄り）");
+});
+
+// ---- 2026-11-18: 平均＝情報なし、新馬・過去走なし半数超＝予想位置は参考外（TENKAI_ACCURACY_2026） ----
+import { paceWords, positionsUnreliable, POS_UNRELIABLE_NOTE } from "./tools.js";
+test("平均が最大: race_tenkai・system 行・回顧/見どころの facts は「読みにくい」、確率も渡さない", { skip: !d1115 && "20261115.json なし" }, () => {
+  const base = d1115.races.find((x) => x.tenkai && !positionsUnreliable(x));
+  const r = { ...base, tenkai: { ...base.tenkai, pace: [0.32, 0.35, 0.33] } };
+  const t = raceTenkai(r, tmeta);
+  assert.equal(t.pace.usable, false);
+  assert.ok(t.summary.includes("ペース=読みにくい") && !t.summary.includes("ペース=平均"));
+  assert.ok(t.note.includes("読みにくい"));
+  assert.ok(tenkaiLine(r, tmeta).includes("読みにくい"));
+  assert.equal(paceWords(paceSummary(r.tenkai)).startsWith("読みにくい"), true);
+  assert.equal(paceWords(paceSummary({ pace: [0.6, 0.3, 0.1] })), "スロー（スローペースの公算が大きい）");
+  const day2 = { ...d1115, races: d1115.races.map((x) => (x.race_id === r.race_id ? { ...r, result: x.result } : x)) };
+  const pf = previewFacts(day2).races.find((x) => x.place === r.place && x.rno === r.rno);
+  assert.ok(pf.pace.startsWith("読みにくい"));
+  if (r.result && r.result.top3) {
+    const kf = kaikoFacts(day2, day2.races.find((x) => x.race_id === r.race_id));
+    assert.equal(kf.tenkai.pace, "読みにくい");
+    assert.ok(!("high_pct" in kf.tenkai));
+  }
+  assert.ok(SYSTEM.includes("読みにくい"));
+});
+
+test("新馬・過去走なし半数超: race_tenkai と horse_info は予想番手を返さず「参考外」", { skip: !d1115 && "20261115.json なし" }, () => {
+  const sk = d1115.races.filter((x) => positionsUnreliable(x));
+  assert.ok(sk.length >= 1, "11/15 には新馬戦がある");
+  for (const r of sk) {
+    const t = raceTenkai(r, tmeta);
+    assert.equal(t.available, true);
+    assert.equal(t.positions, POS_UNRELIABLE_NOTE);
+    assert.equal(t.horses, POS_UNRELIABLE_NOTE);
+    assert.equal(t.front_runners, POS_UNRELIABLE_NOTE);
+    assert.ok(!JSON.stringify(t).includes("early_rank"));
+    assert.ok(t.summary.includes("参考外") && !t.summary.includes("先行勢="));
+    assert.equal(describeHorse(r, r.horses.find((h) => !h.scratched).umaban).tenkai, POS_UNRELIABLE_NOTE);
+  }
+  // 過去走ありの馬が多いレースは従来どおり
+  const ok = d1115.races.find((x) => x.tenkai && !positionsUnreliable(x));
+  assert.ok(Array.isArray(raceTenkai(ok, tmeta).horses));
+  // 半数超の判定（新馬でなくても nh=0 が過半なら参考外、ちょうど半分は対象外）
+  const mk = (nh) => ({ klass: "未勝利", horses: nh.map((_, i) => ({ umaban: i + 1 })), tenkai: { pace: [0.4, 0.3, 0.3], h: nh.map((x, i) => [i + 1, 0.5, 0.5, 1, 1, "差し", x]) } });
+  assert.equal(positionsUnreliable(mk([0, 0, 0, 1, 2])), true);
+  assert.equal(positionsUnreliable(mk([0, 0, 1, 1])), false);
+  assert.equal(positionsUnreliable({ ...mk([3, 3, 3]), klass: "新馬" }), true);
+  assert.ok(SYSTEM.includes("参考外"));
 });
