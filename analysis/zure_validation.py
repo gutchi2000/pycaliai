@@ -157,7 +157,9 @@ def build_rows() -> tuple[pd.DataFrame, pd.DataFrame]:
     return pd.DataFrame(rows), pd.DataFrame(races)
 
 
-def flag(df: pd.DataFrame) -> pd.DataFrame:
+def flag(df: pd.DataFrame, official: bool = False) -> pd.DataFrame:
+    """official=True は第 2 段階の正式定義（D3 = D3'、対照群と D6 も D3' で数える）。
+    official=False は第 1 段階の表をそのまま再現する（旧 D3 = 同率込み、D3' は参考行）。"""
     low = df["ai_rank"] >= 6
     df["D1"] = low & (df["lv_rank"] <= 3)
     df["D2"] = low & (df["level"] >= 90)
@@ -167,6 +169,8 @@ def flag(df: pd.DataFrame) -> pd.DataFrame:
     # 同率 1 位が 2 頭以上いるレースを除いた版。対照群の定義 (D1〜D5 のどれにも当てはまらない) は変えない。
     n_top = df[df["pw_rank"] == 1].groupby("race_id").size()
     df["D3x"] = df["D3"] & df["race_id"].map(n_top).eq(1)
+    if official:
+        df["D3"] = df["D3x"]
     df["D5"] = low & df["graded"] & (df["pg12"] >= 0.5)
     df["D5_all"] = low & (df["pg12"] >= 0.5)   # 層別（重賞 / 非重賞）表示用
     df["n_hit"] = df[["D1", "D2", "D3", "D4", "D5"]].sum(axis=1)
@@ -216,15 +220,24 @@ def summarize(g: pd.DataFrame, ctrl: pd.DataFrame) -> dict:
     }
 
 
-def table(df: pd.DataFrame) -> list[dict]:
+CANDIDATES = ("D1", "D3", "D4")   # 第 2 段階の強層候補（D3 は正式定義 D3'）
+LIFT_MIN = 1.3
+
+
+def table(df: pd.DataFrame, official: bool = False) -> list[dict]:
     out = []
-    for c in CONDS + EXTRA:
+    for c in CONDS + ([] if official else EXTRA):
         for bname, lo, hi in BANDS + [("6位以下計", 6, 99)]:
             b = df[(df["ai_rank"] >= lo) & (df["ai_rank"] <= hi)]
             ctrl = b[b["control"]]
             if c == "D5":
                 ctrl = ctrl[ctrl["graded"]]   # D5 は重賞だけが対象なので対照も重賞内
-            out.append({"cond": "D3'(探索)" if c == "D3x" else c, "band": bname, **summarize(b[b[c]], ctrl)})
+            row = {"cond": "D3'(探索)" if c == "D3x" else ("D3'" if (official and c == "D3") else c),
+                   "band": bname, **summarize(b[b[c]], ctrl)}
+            if official and c in CANDIDATES and bname == "6位以下計":
+                row["verdict"] = ("PASS" if (row["lift_place"] is not None and row["lift_place"] >= LIFT_MIN
+                                             and row["wilson_lo_gt_control"]) else "FAIL")
+            out.append(row)
     # D5 のクラス層別（重賞 / 非重賞）。条件は同じ「重賞掲示板確率 >= 50%」
     for gname, gmask in (("重賞", True), ("非重賞", False)):
         for bname, lo, hi in BANDS + [("6位以下計", 6, 99)]:
@@ -253,6 +266,8 @@ def to_md(rows: list[dict]) -> str:
         lift = "—" if r["lift_place"] is None else f"{r['lift_place']:.2f}"
         cpr = "—" if r["control_place_rate"] is None else f"{fmt_pct(r['control_place_rate'])} ({r['control_n']})"
         gt = "—" if r["wilson_lo_gt_control"] is None else ("○" if r["wilson_lo_gt_control"] else "×")
+        if r.get("verdict"):
+            gt += f" **{r['verdict']}**"
         lines.append(f"| {r['cond']} | {r['band']} | {r['n_horses']} | {r['n_races']} | {fmt_ci(r['win_rate'])} | "
                      f"{fmt_ci(r['place_rate'])} | {fmt_ci(r['win_roi'])} | {fmt_ci(r['place_roi'])} | {lift} | {cpr} | {gt} |")
     return head + "\n".join(lines) + "\n"
@@ -267,6 +282,8 @@ def main():
     a = ap.parse_args()
     if a.phase == "validation" and not a.criteria_fixed:
         sys.exit("検証期間は採用候補と目安を仕様書に固定してから --criteria-fixed を付けて回す")
+    if a.phase == "validation" and (Path(a.out) / "validation.json").exists():
+        sys.exit("検証期間は集計済み（1 回だけの約束）。validation.json を消して回し直すことはしない")
 
     rows, races = build_rows()
     elig = races[races["excluded"].isna()].copy()
@@ -293,7 +310,8 @@ def main():
     meta["phase_races_without_level"] = int((~pe["has_level"]).sum())
 
     df = rows[rows["date"].isin(phase_dates)].copy()
-    df = flag(df)
+    official = a.phase == "validation"
+    df = flag(df, official=official)
     # 馬レベルが JSON に無い日 (v5 期) は D1/D2 が判定できず、対照群「どの条件にも当てはまらない」も
     # 決まらないので、全条件とも馬レベルのある日だけで集計する。
     lvl_days = set(pe.loc[pe["has_level"], "date"])
@@ -312,7 +330,7 @@ def main():
         if ((df["ai_rank"] >= 6) & df["graded"]).any() else None,
     }
     meta["graded_races"] = int(df.loc[df["graded"], "race_id"].nunique())
-    tab = table(df)
+    tab = table(df, official=official)
     (out / f"{a.phase}.json").write_text(json.dumps({"meta": meta, "rows": tab}, ensure_ascii=False,
                                                      indent=1, default=str), encoding="utf-8")
     md = to_md(tab)
