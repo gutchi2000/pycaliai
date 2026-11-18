@@ -33,7 +33,14 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+import build_site  # noqa: E402
 from build_site import parse_kekka  # noqa: E402
+
+# 結果 CSV の一部（土曜分など）は git 管理外で worktree に無い。本体のチェックアウトの data/kekka を読む。
+# 2026-11-18 第 2 段階の後に修正: worktree の data/kekka だけを読み、検証期間 371R の払戻が欠けて回収率が過小になっていた。
+_MAIN_KEKKA = Path(r"E:\PyCaLiAI\data\kekka")
+if _MAIN_KEKKA.is_dir():
+    build_site.KEKKA_DIR = _MAIN_KEKKA
 
 SHUSSE_PRED = Path(r"E:\PyCaLiAI\analysis\shusse\out_v2\live\predictions_latest.parquet")
 GRADED = {"G1", "G2", "G3"}
@@ -316,9 +323,12 @@ def main():
     # 決まらないので、全条件とも馬レベルのある日だけで集計する。
     lvl_days = set(pe.loc[pe["has_level"], "date"])
     meta["analysis_days"] = len(lvl_days)
-    meta["analysis_races"] = int(pe["has_level"].sum())
+    # 集計に入るのは「馬レベルのある開催日」の全レース（新馬戦のように馬レベルの無いレースも含む）。
+    # 2026-11-18 第 2 段階の後に修正: 以前は馬レベルのあるレースだけを数えていて、件数の表示が実際より少なかった（表は不変）。
+    pl = pe[pe["date"].isin(lvl_days)]
+    meta["analysis_races"] = len(pl)
     meta["analysis_era"] = {f"{k[0]}|{'確認済み' if k[1] else '未検証'}": int(v)
-                            for k, v in pe[pe["has_level"]].groupby(["era", "verified"]).size().items()}
+                            for k, v in pl.groupby(["era", "verified"]).size().items()}
     df = df[df["date"].isin(lvl_days)]
     meta["horses_rank6plus"] = int((df["ai_rank"] >= 6).sum())
     meta["missing_pays_races"] = int(df.loc[~df["has_pays"], "race_id"].nunique())
