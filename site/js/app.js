@@ -437,19 +437,26 @@ const GAUGE_WORDS = {
 const GAUGE_HELP = {
   top1_dominance: "AI の 1 番手の勝率が 2 番手よりどれだけ高いか",
   top2_concentration: "AI の上位 2 頭のどちらかが勝つ確率",
-  field_chaos_score: "AI の勝率の散らばり（大きいほど荒れやすい）",
+  field_chaos_score: "AI の勝率の散らばり（大きいほど荒れやすい）。上の CHAOS（分位）と同じ値",
   ai_market_agreement: "AI の順位と人気順（出走表の時点）の近さ",
 };
 // 今年のレースの中での位置（0〜100）で描くゲージ。物差しが無いときは従来どおり生の値。
+// 混戦度だけは例外（2026-11-18 表示の正本統一）: 今年のサイト内の位置ではなく judgment.chaos_pct
+// （data/chaos_quantiles.json の参照分布での分位＝買い目判定・見送りガード・ボード・通信簿と同じ値）を
+// pctOverride で渡す。分位の無い日（v5 期）は生の値に戻さず「—」。
 function gaugeEl(label, key, raw, color, pctOverride) {
-  let p = pctOverride != null ? pctOverride : gaugePct(key, raw);
-  if (p == null) return donut(label, raw, color);
+  const isChaos = key === "field_chaos_score";
+  let p = isChaos ? pctOverride : (pctOverride != null ? pctOverride : gaugePct(key, raw));
+  if (p == null) return isChaos ? gaugeNa(label) : donut(label, raw, color);
   if (key === "top1_dominance" && raw != null && raw < 0.005) p = Math.min(p, 0.1);   // 1・2 番手の勝率が同点
   const b = Math.min(4, Math.floor(p * 5));
   const word = GAUGE_WORDS[key][b];
-  const band = state.gaugeRef.gauges[key].bands?.[b];
-  const g = state.gaugeRef;
-  const tip = `${GAUGE_HELP[key]}。数字は今年のレース（${g.from?.slice(4, 6) | 0}/${g.from?.slice(6) | 0}〜${g.to?.slice(4, 6) | 0}/${g.to?.slice(6) | 0}）の中での位置で、100 が最も高い。元の値 ${raw == null ? "—" : Math.round(raw * 100) + "%"}`
+  const g = state.gaugeRef || {};
+  const band = g.gauges?.[key]?.bands?.[b];
+  const where = isChaos
+    ? "数字は混戦度の分位（過去のレースの参照分布での位置）で、0 が最も堅く 100 が最も混戦。買い目の判定・見送りに使う値と同じです。元の値（勝率の散らばり＝エントロピー比）"
+    : `数字は今年のレース（${g.from?.slice(4, 6) | 0}/${g.from?.slice(6) | 0}〜${g.to?.slice(4, 6) | 0}/${g.to?.slice(6) | 0}）の中での位置で、100 が最も高い。元の値`;
+  const tip = `${GAUGE_HELP[key]}。${where} ${raw == null ? "—" : isChaos ? Number(raw).toFixed(3) : Math.round(raw * 100) + "%"}`
     + (band?.top3 != null ? `。この帯のレースの◎ 3 着内率 ${Math.round(band.top3 * 100)}%（${band.n} レース）` : "");
   const C = (2 * Math.PI * 20).toFixed(1);
   return `<div class="gauge" title="${esc(tip)}">
@@ -462,6 +469,13 @@ function gaugeEl(label, key, raw, color, pctOverride) {
     <div class="g-label">${label}</div>
     <div class="g-word" style="color:${color}">${word}</div>
     ${band?.top3 != null ? `<div class="g-sub">◎3着内 ${Math.round(band.top3 * 100)}%</div>` : ""}
+  </div>`;
+}
+function gaugeNa(label) {
+  return `<div class="gauge" title="この開催日は混戦度の分位がありません（2026-05 以前の bundle）">
+    <svg viewBox="0 0 48 48" width="66" height="66" aria-hidden="true"><circle class="g-track" cx="24" cy="24" r="20"></circle></svg>
+    <div class="g-val num">—</div>
+    <div class="g-label">${label}</div>
   </div>`;
 }
 function donut(label, frac, color) {
@@ -555,7 +569,10 @@ function cmdPickHtml(honmei) {
 function cmdStateHtml(j, conf, fieldSize) {
   const parts = [];
   if (j.hardness) parts.push(`<span class="cmd-tag">${esc(j.hardness)}</span>`);
-  if (conf.field_chaos_score != null) parts.push(`<span class="cmd-kv">CHAOS <b class="num">${pct(conf.field_chaos_score, 0)}<small>%</small></b></span>`);
+  // 混戦度は分位（judgment.chaos_pct、買い目判定・見送りガードと同じ値）。生値（エントロピー比）は
+  // 0.8〜1.0 に集まり、較正器の差し替えで分布も動くので出さない。分位の無い日（v5 期）は「—」。
+  const cp = j.chaos_pct;
+  parts.push(`<span class="cmd-kv" title="混戦度の分位（0＝最も堅い〜100＝最も混戦）。買い目の判定・見送りに使う値と同じです">CHAOS<small>（分位）</small> <b class="num">${cp == null ? "—" : Math.round(cp * 100)}</b></span>`);
   if (fieldSize != null) parts.push(`<span class="cmd-kv">FIELD <b class="num">${fieldSize}<small>頭</small></b></span>`);
   if (!parts.length) return "";
   return `<div class="cmd-state">${parts.join('<i class="cmd-sep"></i>')}</div>`;
@@ -596,7 +613,7 @@ function renderHeader(r) {
     <div class="gauges">
       ${gaugeEl("本命優位", "top1_dominance", conf.top1_dominance, "#f5b942")}
       ${gaugeEl("上位集中", "top2_concentration", conf.top2_concentration, "#5ba0f5")}
-      ${gaugeEl("混戦度", "field_chaos_score", conf.field_chaos_score, "#f2555a")}
+      ${gaugeEl("混戦度", "field_chaos_score", conf.field_chaos_score, "#f2555a", j.chaos_pct)}
       ${gaugeEl("市場一致", "ai_market_agreement", conf.ai_market_agreement, "#2dd4a8")}
     </div>
     ${memberLevelEl(r)}
@@ -881,7 +898,7 @@ function renderTable(r, flip = false) {
   $("#shutsuba").innerHTML = `
     <div class="sh-head">
       <span class="sh-title"><b>AI印</b>出走表</span>
-      <span class="sh-note">行クリックで詳細 ／ 列見出しでソート ／ <b class="lvchip lv-S" style="margin:0">Lv</b>=馬レベル(近走成績・S〜D)
+      <span class="sh-note">行クリックで詳細 ／ 列見出しでソート ／ AI指数＝レース内の相対値（0〜100、レース間の比較不可） ／ <b class="lvchip lv-S" style="margin:0">Lv</b>=馬レベル(近走成績・S〜D)
         ／ バー色: <i class="legdot gold"></i>◎本命 <i class="legdot teal"></i>妙味(市場過小評価) <i class="legdot blue"></i>その他</span>
     </div>
     <div class="card htable ${hasRes ? "hasres" : "nores"}">
@@ -889,7 +906,7 @@ function renderTable(r, flip = false) {
         ${hasRes ? `<span class="c-res">着</span>` : ""}
         <span>${sortBtn("uma", "印")}</span><span>馬番</span><span>馬名・騎手</span>
         <span class="ta-c c-ninki">${sortBtn("ninki", "人気")}</span>
-        <span class="c-ai">${sortBtn("ai", "AI指数")}</span>
+        <span class="c-ai" title="AI のスコアをこのレースの最下位 0・最上位 100 に並べ直したレース内の相対値。別のレースどうしでは比べられません">${sortBtn("ai", "AI指数")}</span>
         <span class="ta-r c-si" title="スピード指数（予測・100基準）">${sortBtn("si", "速度")}</span>
         <span class="ta-r c-pw" title="強さスコア（芝・ダート別に現役最上位=100）">${sortBtn("pw", "PW")}</span>
         <span class="ta-r c-sv" title="推定妙味 = AI勝率 × 推定オッズ">${sortBtn("sv", "推妙")}</span>
@@ -1004,7 +1021,7 @@ function realizedCard(r) {
     </div>
     ${biasFitBlock(r, rb)}
     <div class="pair-note">
-      <b>前残り</b>＝道中 前1/3 で勝った割合（脚質バイアス・<u>信頼できる定数</u>）。
+      <b>前残り</b>＝道中 前1/3 で勝った割合（位置取りのバイアス・<u>信頼できる定数</u>）。
       <b>枠</b>＝小標本で日々反転しやすい弱信号、参考程度に。
       前日の前残りは翌日の結果をほとんど左右しないため、脚質による印の上げ下げはしていません（表示専用・買い目には未反映）。
     </div>
@@ -1372,7 +1389,7 @@ function openDrawer(umaban) {
     </div>
     <div class="dw-sec">近 5 走</div>
     ${runRows ? `<div class="rt-wrap"><table class="rt">
-      <thead><tr><th></th><th>コース</th><th>馬場</th><th>着</th><th>人気</th><th>クラス</th><th>脚質</th><th>間隔</th></tr></thead>
+      <thead><tr><th></th><th>コース</th><th>馬場</th><th>着</th><th>人気</th><th>クラス</th><th title="その 1 走の決め手（4 角の位置取り）。上の「脚質」はこれを直近ほど重くして多数決したもの">決手</th><th>間隔</th></tr></thead>
       <tbody>${runRows}</tbody>
     </table></div>${histSummary}` : `<div class="cw-empty">出走歴なし（初出走）</div>`}
     ${h.speed?.runs?.length ? `<div class="dw-sec">近走のスピード指数（実走） <a href="speed.html" class="dw-silink">指数の作り方</a></div>
@@ -1665,7 +1682,7 @@ function umamiTableHtml(r) {
 
   return `<div class="card um-card">
     <div class="an-t">📊 全頭 指数一覧
-      <small>AI指数＝AIのスコア（レース内0-100） / 速度＝<a href="speed.html">スピード指数</a>（100基準） / PW＝強さスコア（芝ダ別・現役最上位100）
+      <small>AI指数＝AIのスコア（レース内0-100・レース間の比較不可） / 速度＝<a href="speed.html">スピード指数</a>（100基準） / PW＝強さスコア（芝ダ別・現役最上位100）
       / 推妙＝AI勝率×推定オッズ（100＝AIと推定の市場が同じ見立て） / 推定人気＝当日オッズを使わずに予測した人気 / 格＝妙味グレード</small></div>
     <div class="ix-scroll"><div class="ix-tbl">
     <div class="ix-head">
@@ -1690,6 +1707,8 @@ function umamiTableHtml(r) {
 
 /* ---------------- 想定隊列 (NiceGUI 移植) ---------------- */
 // 各馬の脚質 (h.style) で 逃げ/先行/差し/追込 に分類 → ペース判定 + 有利脚質。
+// 2026-11-18: ペースの正本は展開予想（tenkai.py の確率）。これは展開予想が無いレースだけで出す代わりで、
+// 画面でも「簡易判定」と付ける（renderView の tenkai 分岐以外から呼ばない）。
 function taikeiHtml(r) {
   const horses = r.horses || [];
   if (!horses.length) return "";
@@ -1746,8 +1765,8 @@ function taikeiHtml(r) {
       <div class="tk-chips">${unk.map(chip).join("")}</div></div>` : "";
 
   return `<div class="card tk-card" style="border-color:${paceColor}">
-    <div class="tk-title">🏇 想定隊列</div>
-    <div class="tk-pace"><span class="tk-pace-chip" style="background:${paceColor}">${pace}</span>
+    <div class="tk-title">🏇 想定隊列 <small>簡易判定（展開予想が無いレースだけの代わり）</small></div>
+    <div class="tk-pace"><span class="tk-pace-chip" style="background:${paceColor}" title="脚質の頭数だけで決めた簡易判定。展開予想（ペースの確率）があるレースではこの判定は使いません">簡易 ${pace}</span>
       <span class="tk-pace-msg">${esc(paceMsg)}</span></div>
     <div class="tk-lineup">${lineup}</div>
     ${unkSection}
@@ -1995,16 +2014,16 @@ function renderTenkai(r, vb) {
         ${tenkaiLateEl(tk)}
         <div class="tn-pace-r">
           <div><span>逃げ候補</span><b>${lead.slice(0, 2).map((x) => `${wk(x.h)} ${esc(x.h.name)}`).join("<br>")}</b></div>
-          <div><span>予想脚質（レース内の順位から）</span><b class="tn-mix">${["逃げ", "先行", "差し", "追込"].map((s) => `<em style="color:${STC[s]}">${s} ${cnt(s)}</em>`).join(" ")}</b></div>
+          <div><span title="このレースのメンバーの中で予想した序盤の位置を、先頭 1 割＝逃げ・〜35%＝先行・〜70%＝差し・残り＝追込で区切った頭数。出走表の「脚質」（ふだんの位置取り）とは別物">予想位置区分（序盤の予想順位から）</span><b class="tn-mix">${["逃げ", "先行", "差し", "追込"].map((s) => `<em style="color:${STC[s]}">${s} ${cnt(s)}</em>`).join(" ")}</b></div>
         </div>
       </div>
       ${tenkaiLaneSvg(rows.map((x) => ({ h: x.h, pos: x.e })), "序盤", "最初のコーナーの予想位置")}
       ${tenkaiLaneSvg(rows.map((x) => ({ h: x.h, pos: x.l })), "4 コーナー", "勝負どころの予想位置")}
     </div>
     <div class="card um-card">
-      <div class="an-t">各馬の予想位置 <small>序盤の順。予想脚質＝このレースのメンバーの中での予想位置、ふだん＝出走表の脚質（その馬のふだんの位置取り）。動き＝序盤から 4 角で何頭ぶん前へ（▲）／後ろへ（▼）</small></div>
+      <div class="an-t">各馬の予想位置 <small>序盤の順。予想位置区分＝このレースのメンバーの中で予想した序盤の位置の区分（先頭 1 割＝逃げ・〜35%＝先行・〜70%＝差し・残り＝追込）、脚質＝出走表の脚質（その馬のふだんの位置取り）。動き＝序盤から 4 角で何頭ぶん前へ（▲）／後ろへ（▼）</small></div>
       <div class="ix-scroll"><div class="tn-tbl">
-        <div class="tn-head"><span></span><span>馬番</span><span>馬名</span><span class="ta-c">予想脚質</span><span class="ta-c">ふだん</span><span class="ta-r">序盤</span><span class="ta-r">4角</span><span class="ta-c">動き</span></div>
+        <div class="tn-head"><span></span><span>馬番</span><span>馬名</span><span class="ta-c">予想位置区分</span><span class="ta-c">脚質</span><span class="ta-r">序盤</span><span class="ta-r">4角</span><span class="ta-c">動き</span></div>
         ${tbl}
       </div></div>
       <div class="ix-note">${m ? `2024〜25 年の答え合わせ（全馬に過去走があった ${(m.races_allhist || 0).toLocaleString("ja-JP")} レース）: 序盤の位置の順位相関 ${m.pos_spearman}（前 5 走の平均位置で並べると ${m.pos_spearman_base}）、予想 1 番手が実際に先頭 ${Math.round(m.lead_hit * 100)}%・3 番手以内 ${Math.round(m.lead_top3 * 100)}%（前 5 走の平均位置なら ${Math.round(m.lead_hit_base * 100)}%・${Math.round(m.lead_top3_base * 100)}%）。ペース 3 区分の的中 ${Math.round(m.pace_acc * 100)}%（でたらめなら 33%）。<br>` : ""}
@@ -2191,6 +2210,13 @@ function renderCourse(r, vb) {
   const wakuOf = (h) => String(h.waku ?? "");
   const tags = (pred) => marked.filter(pred).map((h) =>
     `<span class="cc-tag" style="color:${MARK_COLOR[h.mark]}">${h.mark}${h.umaban}</span>`).join("");
+  // 前走 4 角位置の区分（build_course_stats.classify_kyaku と同じ: 前走 4 角 ÷ 今回の頭数で 20/45/70%）。
+  // コースの集計軸は「前走の 4 角位置」なので、印馬もふだんの脚質（h.style）ではなく同じ物差しで当てはめる。
+  const c4Band = (h) => {
+    if (!h.c4 || !r.field_size) return null;
+    const q = h.c4 / r.field_size;
+    return q <= 0.20 ? "逃げ" : q <= 0.45 ? "先行" : q <= 0.70 ? "差し" : "追込";
+  };
 
   vb.innerHTML = taikei + `<div class="cc-head card">
     <div class="cc-h-t">${esc(r.place)} ${esc(r.course)} <small>過去 ${cs.n_races?.toLocaleString()}レース / ${cs.n_starts?.toLocaleString()}頭 の傾向</small></div>
@@ -2198,7 +2224,7 @@ function renderCourse(r, vb) {
   </div>
   <div class="cc-grid">
     <div class="card anc"><div class="an-t">枠順別 複勝率 <small>印馬の枠を強調</small></div><div id="ch-waku" class="chart sm"></div></div>
-    <div class="card anc"><div class="an-t">脚質別 複勝率 <small>${["逃げ", "先行", "差し", "追込"].map((k) => `${k}${tags((h) => h.style === k) ? "•" : ""}`).join(" ")}</small></div><div id="ch-kyaku" class="chart sm"></div></div>
+    <div class="card anc"><div class="an-t">前走4角位置別 複勝率 <small title="前走の 4 コーナーの位置（今回の頭数に対する割合）で分けた集計。今回の脚質の予想ではありません">前走の4角位置で区分 ・ ${["逃げ", "先行", "差し", "追込"].map((k) => `${k}${tags((h) => c4Band(h) === k)}`).join(" ")}</small></div><div id="ch-kyaku" class="chart sm"></div></div>
     <div class="card anc"><div class="an-t">年齢別 複勝率</div><div id="ch-age" class="chart sm"></div></div>
     <div class="card anc"><div class="an-t">性別 複勝率</div><div id="ch-sex" class="chart sm"></div></div>
   </div>`;
@@ -2207,7 +2233,7 @@ function renderCourse(r, vb) {
   const baseFuku = cs.n_starts ? null : null;
   const markedWaku = new Set(marked.map((h) => String(h.waku)));
   const markedStyle = {};
-  marked.forEach((h) => { markedStyle[h.style] = (markedStyle[h.style] || 0) + 1; });
+  marked.forEach((h) => { const b = c4Band(h); if (b) markedStyle[b] = (markedStyle[b] || 0) + 1; });
 
   const barChart = (id, rows, opt = {}) => {
     const cats = rows.map((x) => x.label);
@@ -2377,7 +2403,11 @@ async function renderForecast(r, vb) {
   }
   const rs = snap.race_state || {};
   const stateParts = [];
-  if (rs.chaos != null) stateParts.push(`<span class="cmd-kv">CHAOS <b class="num">${pct(rs.chaos, 0)}<small>%</small></b></span>`);
+  // 混戦度は分位で出す（ヘッダと同じ）。2026-11-18 より前の記録は分位を持たないので、記録の生値が
+  // 今のレースの生値と同じ（＝同じ予測）ときだけ、そのレースの judgment.chaos_pct で補う。それ以外は「—」。
+  const fcp = rs.chaos_pct != null ? rs.chaos_pct
+    : (rs.chaos != null && rs.chaos === r.confidence?.field_chaos_score ? r.judgment?.chaos_pct : null);
+  if (rs.chaos != null || rs.chaos_pct != null) stateParts.push(`<span class="cmd-kv" title="混戦度の分位（0＝最も堅い〜100＝最も混戦）">CHAOS<small>（分位）</small> <b class="num">${fcp == null ? "—" : Math.round(fcp * 100)}</b></span>`);
   if (rs.member_level?.tier) stateParts.push(`<span class="cmd-kv">メンバー <b class="num">${esc(rs.member_level.tier)}</b> ${esc(rs.member_level.label || "")}</span>`);
 
   const horses = [...(snap.horses || [])].sort((a, b) => (b.p_win ?? -1) - (a.p_win ?? -1));

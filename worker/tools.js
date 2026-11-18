@@ -23,8 +23,9 @@ const UMAMI_JA = { S: "妙味S(最上位)", A: "妙味A", B: "妙味B", C: "妙�
 
 export function pct(v, d = 1) { return v == null ? null : +(v * 100).toFixed(d); }
 
-/** 混戦度の判定。judgment.chaos_pct（その日までの百分位、0=最も堅い）があればそれで、無ければ生スコアの閾値で。
-    生スコアは較正器差し替えで分布が動く（2026 年は 7 割が 0.85 超）ので、百分位を優先する。 */
+/** 混戦度の判定。judgment.chaos_pct（data/chaos_quantiles.json の参照分布＝過去のレースでの分位、0=最も堅い。
+    export 時に付き、買い目判定・見送りガードと同じ値）があればそれで、無い日（2026-05 以前）だけ生スコアの閾値で。
+    生スコアは較正器差し替えで分布が動く（2026 年は 7 割が 0.85 超）ので、分位を優先する。 */
 export function chaosVerdict(race) {
   const j = race.judgment || {};
   if (j.chaos_pct != null) return j.chaos_pct >= 0.75 ? "見送り寄り" : j.chaos_pct >= 0.5 ? "妙味次第" : "勝負可";
@@ -33,8 +34,17 @@ export function chaosVerdict(race) {
 }
 export function chaosPctLabel(race) {
   const p = (race.judgment || {}).chaos_pct;
-  return p == null ? null : `混戦度は今年の全レース中 上位${Math.round((1 - p) * 100)}%（${p >= 0.75 ? "荒れやすい側" : p < 0.25 ? "堅い側" : "中位"}）`;
+  return p == null ? null : `混戦度の分位 ${Math.round(p * 100)}（0＝最も堅い〜100＝最も混戦。過去のレースの中での位置で、サイトの CHAOS（分位）と同じ値。${p >= 0.75 ? "荒れやすい側" : p < 0.25 ? "堅い側" : "中位"}）`;
 }
+/** 混戦度の分位を 0〜100 の整数で（サイトのヘッダ「CHAOS（分位）」・メーターと同じ数字）。分位の無い日は null。
+    facts / ツールの "chaos" はこれ。生値（エントロピー比）は渡さない（2026-11-18 表示の正本統一）。 */
+export function chaosScore(race) {
+  const p = (race.judgment || {}).chaos_pct;
+  return p == null ? null : Math.round(p * 100);
+}
+/** 混戦度の分位の小さい順（堅い順）。分位の無いレースは後ろ。 */
+export const byChaosAsc = (a, b) => (a.chaos ?? 999) - (b.chaos ?? 999);
+const chaosTxt = (s) => (s == null ? "混戦度の分位なし" : `混戦度の分位${s}`);
 
 export function findRace(day, raceId) {
   return (day.races || []).find((r) => String(r.race_id) === String(raceId)) || null;
@@ -194,7 +204,7 @@ export function raceTenkai(race, meta) {
     pace: ps, late_reach: late,
     front_runners: front,
     horses,
-    note: "tenkai_style は今回のメンバーの中で予想した序盤の位置の区分（逃げ 1 割・先行〜35%・差し〜70%・残り追込）。usual_style は出走表のふだんの脚質。" +
+    note: "tenkai_style は今回のメンバーの中で予想した序盤の位置の区分＝「予想位置区分」（逃げ 1 割・先行〜35%・差し〜70%・残り追込）。usual_style は出走表のふだんの脚質（「脚質」と呼ぶのはこちらだけ）。" +
       "予想ラベル以外のペースは「〜なら」と条件付きでだけ触れる。確率の数字は展開タブと同じ値。",
     summary: `【展開予想】ペース=${ps.label}（${ps.sure}／スロー${ps.slow_pct}%・平均${ps.mid_pct}%・ハイ${ps.high_pct}%）` +
       (late ? `、差し・追込は${late}` : "") +
@@ -216,13 +226,12 @@ export function compareHorses(race, a, b) {
   const pA = A.p_plc_pct ?? 0, pB = B.p_plc_pct ?? 0;
   const pick = pA >= pB ? A : B, other = pick === A ? B : A;
   const edge = +Math.abs(pA - pB).toFixed(1);
-  const chaos = (race.confidence || {}).field_chaos_score ?? 0;
   const notes = [];
   if (other.longshot_trap) notes.push(`${other.umaban}番は人気薄の『穴の罠』側。見かけ上おいしく見えてもAIは軸に推さない（当AIは穴に構造的に弱い）`);
   if (pick.longshot_trap) notes.push(`推奨${pick.umaban}番自身も人気薄＝信頼度は割引いて見る`);
   if (edge < 2.0) notes.push(`複勝率は拮抗（${edge}pt差）。${other.umaban}番の市場比較は${(other.market_view || "").split(":")[0] || "不明"}`);
   if ((pick.market_view || "").startsWith("over")) notes.push(`推奨${pick.umaban}番は市場比較'over'＝人気先行。旨みは薄い`);
-  if (chaos >= CHAOS_PASS) notes.push(`混戦度${chaos.toFixed(2)}＝荒れる鞍。軸の信頼度も割引いて見る`);
+  if (chaosVerdict(race) === "見送り寄り") notes.push(`${chaosTxt(chaosScore(race))}＝荒れる鞍。軸の信頼度も割引いて見る`);
   const pair = pairProb(race, a, b);
   return {
     race: raceLabel(race), a: A, b: B, pick: pick.umaban, prob_edge_pct: edge, notes,
@@ -249,7 +258,7 @@ export function raceLabel(race) {
 /** 鞍全体の判断材料（見送り判断）。 */
 export function raceAdvice(race) {
   const c = race.confidence || {};
-  const chaos = c.field_chaos_score ?? 0;
+  const chaos = chaosScore(race);
   const verdict = chaosVerdict(race);
   const top = [...(race.horses || [])].sort((x, y) => (x.ai_rank ?? 99) - (y.ai_rank ?? 99)).slice(0, 3)
     .map((h) => describeHorse(race, h.umaban));
@@ -259,18 +268,18 @@ export function raceAdvice(race) {
   const res = race.result && race.result.top3 ? race.result.top3 : null;
   return {
     race: raceLabel(race), verdict, chaos_rank: chaosPctLabel(race),
-    chaos: +chaos.toFixed(2), top1_dominance: c.top1_dominance ?? null, ai_market_agreement: c.ai_market_agreement ?? null,
+    chaos, top1_dominance: c.top1_dominance ?? null, ai_market_agreement: c.ai_market_agreement ?? null,
     site_judgment: j.headline ? { headline: j.headline, detail: j.detail || null, hardness: j.hardness || null, category: j.category || null } : null,
     top3_by_ai: top.map((h) => ({ umaban: h.umaban, name: h.name, mark: h.mark, p_win_pct: h.p_win_pct, p_plc_pct: h.p_plc_pct, market_view: h.market_view })),
     site_bets_shown: bets,
     result_top3: res,
-    summary: `【${raceLabel(race)}】判定: ${verdict}（混戦度${chaos.toFixed(2)}、本命優位${c.top1_dominance ?? "?"}）` +
+    summary: `【${raceLabel(race)}】判定: ${verdict}（${chaosTxt(chaos)}、本命優位${c.top1_dominance ?? "?"}）` +
       (j.headline ? `。サイトの判定=${j.headline}` : "") +
       (res ? `。【結果】${res.join("-")}` : ""),
   };
 }
 
-/** コースの枠・脚質傾向（サイトのコースタブと同じ集計: 2013-25）。 */
+/** コースの枠・前走4角位置別の傾向（サイトのコースタブと同じ集計: 2013-25）。 */
 export function courseBias(day, race) {
   const key = `${race.place}|${race.course}`;
   const cs = (day.courses || {})[key];
@@ -288,15 +297,24 @@ export function courseBias(day, race) {
   }
   const best = Object.keys(out).sort((x, y) => out[y].fuku_pct - out[x].fuku_pct)[0];
   const spread = best ? out[best].fuku_pct - Math.min(...Object.values(out).map((v) => v.fuku_pct)) : 0;
-  const marked = (race.horses || []).filter((h) => h.mark).map((h) => `${h.mark}${h.umaban}番=${h.waku}枠/${h.style || "?"}`);
-  const kyaku = (cs.kyaku || []).map((k) => ({ 脚質: k.label, fuku_pct: k.fuku, win_pct: k.win, n: k.n }));
+  // 集計軸は「前走の 4 角位置」（build_course_stats.classify_kyaku: 前走 4 角 ÷ 今回の頭数で 20/45/70%）。
+  // ふだんの脚質（h.style）とは別物なので、印馬も同じ物差し（h.c4）で区分して渡す（2026-11-18）。
+  const c4Band = (h) => {
+    if (!h.c4 || !race.field_size) return null;
+    const q = h.c4 / race.field_size;
+    return q <= 0.20 ? "逃げ" : q <= 0.45 ? "先行" : q <= 0.70 ? "差し" : "追込";
+  };
+  const marked = (race.horses || []).filter((h) => h.mark).map((h) =>
+    `${h.mark}${h.umaban}番=${h.waku}枠/前走4角位置${c4Band(h) || "不明"}/脚質${h.style || "?"}`);
+  const kyaku = (cs.kyaku || []).map((k) => ({ 前走4角位置: k.label, fuku_pct: k.fuku, win_pct: k.win, n: k.n }));
   return {
     course: key, n_races: cs.n_races, bands: out,
     verdict: best ? (spread >= 2 ? `${best}が複勝率最高＝やや有利（差${spread.toFixed(1)}pt）` : `枠による差は小さい（最大差${spread.toFixed(1)}pt）`) : "判定不能",
     kyaku, marked_horses: marked,
+    note: "kyaku は前走の 4 角位置で分けた複勝率（今回の脚質やペースの予想ではない）。印馬の「前走4角位置」が同じ物差し、「脚質」は出走表のふだんの脚質。",
     summary: `${key}（${cs.n_races}R集計）枠: ` + Object.entries(out).map(([b, v]) => `${b} 複勝${v.fuku_pct}%`).join(" / ") +
       (best ? ` → ${spread >= 2 ? `${best}が有利` : "枠差は小さい"}` : "") +
-      (kyaku.length ? `。脚質: ${kyaku.map((k) => `${k.脚質}${k.fuku_pct}%`).join("/")}` : ""),
+      (kyaku.length ? `。前走4角位置別: ${kyaku.map((k) => `${k.前走4角位置}${k.fuku_pct}%`).join("/")}` : ""),
   };
 }
 
@@ -304,13 +322,12 @@ export function courseBias(day, race) {
 export function dayRaces(day, currentRaceId) {
   const rows = (day.races || []).map((r) => {
     const c = r.confidence || {};
-    const chaos = c.field_chaos_score ?? 0;
     const h = (r.horses || []).find((x) => x.mark === "◎") || [...(r.horses || [])].sort((x, y) => (x.ai_rank ?? 99) - (y.ai_rank ?? 99))[0] || null;
     const res = r.result && r.result.top3 ? r.result.top3 : null;
     return {
       race_id: r.race_id, place: r.place, rno: r.rno, course: r.course, klass: r.klass, race_name: r.race_name || null,
       start_time: r.start_time || null, field_size: r.field_size, current: String(r.race_id) === String(currentRaceId) || undefined,
-      chaos: +chaos.toFixed(2), chaos_pct: (r.judgment || {}).chaos_pct ?? null, verdict: chaosVerdict(r),
+      chaos: chaosScore(r), verdict: chaosVerdict(r),
       top1_dominance: c.top1_dominance ?? null,
       honmei: h ? { umaban: h.umaban, name: h.name, p_win_pct: pct(h.p_win), p_plc_pct: pct(h.p_plc), ninki_morning: h.ninki ?? null, is_morning_favorite: h.ninki === 1 } : null,
       site_headline: (r.judgment || {}).headline || null,
@@ -318,11 +335,12 @@ export function dayRaces(day, currentRaceId) {
       honmei_result_pos: res && h && r.result.order ? r.result.order[String(h.umaban)] ?? null : null,
     };
   });
-  const byChaos = [...rows].sort((a, b) => a.chaos - b.chaos);
+  const ranked = rows.filter((x) => x.chaos != null).sort(byChaosAsc);
   return {
     date: day.date, n_races: rows.length, places: day.places || [],
-    most_solid: byChaos.slice(0, 3).map((x) => `${x.place}${x.rno}R(混戦度${x.chaos}, ◎${x.honmei ? `${x.honmei.name} 勝率${x.honmei.p_win_pct}%` : "-"})`),
-    most_chaotic: byChaos.slice(-3).reverse().map((x) => `${x.place}${x.rno}R(混戦度${x.chaos})`),
+    most_solid: ranked.slice(0, 3).map((x) => `${x.place}${x.rno}R(${chaosTxt(x.chaos)}, ◎${x.honmei ? `${x.honmei.name} 勝率${x.honmei.p_win_pct}%` : "-"})`),
+    most_chaotic: ranked.slice(-3).reverse().map((x) => `${x.place}${x.rno}R(${chaosTxt(x.chaos)})`),
+    chaos_note: "chaos は混戦度の分位（0＝最も堅い〜100＝最も混戦、サイトの CHAOS（分位）と同じ）。null は分位の無い日。",
     honmei_not_favorite: rows.filter((x) => x.honmei && x.honmei.ninki_morning && x.honmei.ninki_morning !== 1).map((x) => `${x.place}${x.rno}R ◎${x.honmei.name}(朝${x.honmei.ninki_morning}人気)`),
     races: rows,
     note: "他レースの個別の馬の詳細は、そのレースを開いて相談してもらう。",

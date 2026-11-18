@@ -177,7 +177,10 @@ def race_snapshot(r: dict, model_version: str | None, captured_at: str, provenan
         "archive_observed_at_basis": archive_observed_at_basis,
         "model_version": model_version,
         "race_state": {
-            "chaos": conf.get("field_chaos_score"),
+            "chaos": conf.get("field_chaos_score"),   # 生値（エントロピー比）。表示はしない
+            # 混戦度の分位（買い目判定・見送りガードと同じ値）。サイトはこちらを出す（2026-11-18〜。
+            # それ以前の記録には無いので、サイトは生値が同じときだけ当日の judgment.chaos_pct で補う）
+            "chaos_pct": (r.get("judgment") or {}).get("chaos_pct"),
             "member_level": {"tier": ml.get("tier"), "label": ml.get("label")} if ml.get("tier") else None,
         },
         "horses": [horse_snapshot(h) for h in (r.get("horses") or [])],

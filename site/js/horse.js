@@ -114,7 +114,7 @@
       ${past ? `<section class="panel dim">
         <h2>近走 <small>最新出走時点の過去 5 走（出走表の履歴）</small></h2>
         <div class="tw"><table class="rc">
-          <thead><tr><th></th><th class="l">場・コース</th><th class="l">レース</th><th class="l">馬場</th><th>人気</th><th>着順</th><th class="l">脚質</th><th>間隔</th></tr></thead>
+          <thead><tr><th></th><th class="l">場・コース</th><th class="l">レース</th><th class="l">馬場</th><th>人気</th><th>着順</th><th class="l" title="その 1 走の決め手（4 角の位置取り）。上の「脚質」はこれを直近ほど重くして多数決したもの">決手</th><th>間隔</th></tr></thead>
           <tbody>${past}</tbody>
         </table></div>
       </section>` : ""}
