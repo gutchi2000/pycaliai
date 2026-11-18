@@ -77,6 +77,15 @@ except Exception:
     pass
 
 BASE = Path(__file__).parent
+# 公開する勝率・複勝率の下限 (2026-11-19)。配信用の isotonic 較正器 (v6/v7/v8 とも) は最低スコア帯を
+# ちょうど 0 に写すため、凍結 bundle 2026-05〜11 で 450 頭が p_win=0 (うち 2 頭が 1 着) だった。
+# 0 は「起こりえない」と読まれるので、公開値だけに下限を入れる。値は既存の公開確率を動かさないよう、
+# 全較正器の 0 でない最小出力 (単勝 0.00086 = v8、複勝 0.0024 = v7_serve) より小さく取った
+# → 変わるのは今まで 0 だった馬だけで、他の馬の値と順位は不変。較正された値ではない (0 の馬の
+# 実際の勝率は 2/450 ≈ 0.4%)。race_confidence (混戦度の元になるエントロピー) は下限前の値のまま計算する
+# (下限を入れると混戦度が動き、参戦ガードの分位が変わるため)。docs/research/PWIN_FLOOR_20261119.md
+PUBLISH_FLOOR_WIN = 0.0005
+PUBLISH_FLOOR_SHO = 0.001
 MARKS = ["◎", "〇", "▲", "△", "△"]  # 5 つ. 4位と5位は同じ△ (cowork 側で順位で識別)
 
 
@@ -300,9 +309,9 @@ def export_race(rid, g_orig, model, feats, encs, tansho_idx, fuku_idx,
             mark=mark_by_idx[i],
             ai_rank=int(ai_rank_by_idx[i]),
             ai_score=float(scores[i]),
-            p_win=p_win_vec[i],
+            p_win=max(float(p_win_vec[i]), PUBLISH_FLOOR_WIN),
             p_plc=p_plc_vec[i],
-            p_sho=p_sho_vec[i],
+            p_sho=max(float(p_sho_vec[i]), PUBLISH_FLOOR_SHO),
             tansho_odds=tansho if tansho and not pd.isna(tansho) else None,
             fuku_odds=fuku,
         )
