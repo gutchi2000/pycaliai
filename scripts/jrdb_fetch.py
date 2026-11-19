@@ -65,6 +65,59 @@ def year_of(link):
     return None, False
 
 
+# 取り直し (2026-11-20): JRDB は日別の SED を開催当日の夕方に速報版 (指数・補正値が空)、翌週木曜に確定版で
+# 同じ名前のまま差し替える。既にあるファイルは取らない規則のままだと手元が速報版で残るので、日別の SED に限り
+# 「サーバーの Last-Modified が手元のファイルの更新時刻より新しい」ときだけ取り直す (docs/research/SED_PRELIM_IMPACT_20261119.md)。
+# 差し替える前の版は data/jrdb/snapshots/Sed/ の控え (scripts/jrdb_sed_snapshot.py) に残してから置き換える。
+REFETCH_TYPES = {"Sed"}
+DAILY_NAME = re.compile(r"[A-Za-z]+(\d{6})\.(?:zip|lzh)$", re.I)
+
+
+def recheck_daily(link, days):
+    """日別ファイルで、開催日が今日から days 日以内なら True (days < 0 は全部、0 は取り直ししない)。"""
+    m = DAILY_NAME.search(link.rsplit("/", 1)[-1])
+    if not m or days == 0:
+        return False
+    if days < 0:
+        return True
+    yy = int(m.group(1)[:2])
+    d = dt.datetime.strptime(("19" if yy >= 90 else "20") + m.group(1), "%Y%m%d").date()
+    return (dt.date.today() - d).days <= days
+
+
+def server_is_newer(s, link, dst):
+    from email.utils import parsedate_to_datetime
+    try:
+        r = s.head(link, timeout=60)
+        time.sleep(0.3)
+        lm = r.headers.get("Last-Modified") if r.status_code == 200 else None
+        if not lm:
+            return False
+        local = dt.datetime.fromtimestamp(dst.stat().st_mtime, dt.timezone.utc)
+        return parsedate_to_datetime(lm) > local
+    except Exception as e:  # noqa: BLE001  確かめられないときは取り直さない (従来どおり)
+        print(f"  {dst.name}: 更新時刻を確かめられない ({type(e).__name__}) → 取り直さない")
+        return False
+
+
+def replace_if_changed(dst, data, typ):
+    """中身が違うときだけ、元の版を控えに残してから置き換える。同じなら更新時刻だけ今にする (次回の照合用)。"""
+    import hashlib
+    if hashlib.sha256(dst.read_bytes()).hexdigest() == hashlib.sha256(data).hexdigest():
+        os.utime(dst, None)
+        return False
+    if typ == "Sed":
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import jrdb_sed_snapshot as ss       # 元の版を控えに残す (既に控えにあれば何もしない)。失敗したら置き換えない
+        files = ss.stored_files(ss.read_manifest())
+        ss.keep_file(files, dst.name, dst.read_bytes(), dt.datetime.now(), "local_raw_before_refetch",
+                     file_mtime=dt.datetime.fromtimestamp(dst.stat().st_mtime).isoformat(timespec="seconds"))
+    tmp = dst.with_name(dst.name + ".part")
+    tmp.write_bytes(data)
+    os.replace(tmp, dst)
+    return True
+
+
 def cmd_probe(args):
     s = session()
     for typ in args.types:
@@ -107,10 +160,23 @@ def cmd_download(args):
         want = zips + [l for l in want if l.lower().endswith(".lzh") and l.rsplit(".", 1)[0] not in stems]
         out = RAW / typ
         out.mkdir(parents=True, exist_ok=True)
-        n = b = 0
+        n = b = nre = 0
         for l in want:
             dst = out / l.rsplit("/", 1)[-1]
             if dst.exists() and dst.stat().st_size > 0:
+                if not (typ in REFETCH_TYPES and recheck_daily(l, args.recheck_days)):
+                    continue
+                if not server_is_newer(s, l, dst):          # 既にあるファイルは、サーバーの方が新しいときだけ取り直す
+                    continue
+                r = s.get(l, timeout=300)
+                time.sleep(args.sleep)
+                if r.status_code != 200:
+                    print(f"  {dst.name}: 取り直し HTTP {r.status_code}")
+                    continue
+                if replace_if_changed(dst, r.content, typ):
+                    nre += 1
+                    b += len(r.content)
+                    print(f"  {dst.name}: サーバー側の差し替え (Last-Modified {r.headers.get('Last-Modified')}) → 取り直した")
                 continue
             r = s.get(l, timeout=300)
             if r.status_code != 200:
@@ -121,7 +187,7 @@ def cmd_download(args):
             b += len(r.content)
             time.sleep(args.sleep)
         total += b
-        print(f"{typ}: 対象 {len(want)} 本, 新規 {n} 本, {b / 1e6:.1f} MB -> {out}")
+        print(f"{typ}: 対象 {len(want)} 本, 新規 {n} 本, 取り直し {nre} 本, {b / 1e6:.1f} MB -> {out}")
     print(f"合計 {total / 1e6:.1f} MB")
 
 
@@ -136,6 +202,9 @@ def main():
     d.add_argument("--from", dest="frm", type=int, default=2013)
     d.add_argument("--to", type=int, default=dt.date.today().year)
     d.add_argument("--sleep", type=float, default=1.0)
+    d.add_argument("--recheck-days", type=int, default=60,
+                   help="既にある日別 SED のうち、開催日が何日前までのものをサーバーの更新時刻と照合して取り直すか "
+                        "(既定 60。0 で取り直さない、-1 で範囲内すべて)")
     d.set_defaults(fn=cmd_download)
     a = ap.parse_args()
     a.fn(a)
