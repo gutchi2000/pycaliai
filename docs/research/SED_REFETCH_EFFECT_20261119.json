@@ -1,0 +1,45 @@
+{
+ "model": "v8",
+ "old": "sed_20261119T091031.parquet",
+ "new": "sed_20261119T133932.parquet",
+ "dates": [
+  "20261114",
+  "20261115"
+ ],
+ "horses": 987,
+ "share_changed": 0.0121580547112462,
+ "share_abs_ge": {
+  "0.1": 0.010131712259371834,
+  "0.5": 0.005065856129685917,
+  "1.0": 0.002026342451874367,
+  "2.0": 0.0010131712259371835
+ },
+ "abs_dp_max_pt": 2.17,
+ "abs_dp_mean_changed_pt": 0.6441666666666667,
+ "dp_quantiles_pt": {
+  "0.01": 0.0,
+  "0.05": 0.0,
+  "0.5": 0.0,
+  "0.95": 0.0,
+  "0.99": 0.0
+ },
+ "rank_changed_share": 0.002026342451874367,
+ "per_date": {
+  "20261114": {
+   "races": 35,
+   "ai1_changed": 0,
+   "hon_changed": 0,
+   "any_mark_changed": 0,
+   "marked_set_changed": 0,
+   "changed_races": []
+  },
+  "20261115": {
+   "races": 34,
+   "ai1_changed": 0,
+   "hon_changed": 0,
+   "any_mark_changed": 0,
+   "marked_set_changed": 0,
+   "changed_races": []
+  }
+ }
+}
