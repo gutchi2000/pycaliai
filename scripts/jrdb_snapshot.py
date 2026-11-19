@@ -185,6 +185,18 @@ def cmd_capture(args):
             notify("⚠️ JRDB 成績 (SED) の更新に失敗。v7 の過去走特徴が 1 週古くなります: python scripts/jrdb_refresh.py")
     except Exception as e:  # noqa: BLE001
         print(f"jrdb_refresh 失敗: {type(e).__name__}: {e}")
+    # 成績 (SED) を日付付きで控える (追記専用、2026-11-19)。refresh の直後 = 配信が読む sed.parquet と、
+    # JRDB サーバー上の速報版→確定版の差し替えを残す。失敗しても capture の結果は変えない。
+    try:
+        import subprocess
+        cmd = [sys.executable, str(jf.ROOT / "scripts" / "jrdb_sed_snapshot.py"), "capture"] + (["--notify"] if args.notify else [])
+        rr = subprocess.run(cmd, cwd=str(jf.ROOT), capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300,
+                            env=dict(__import__("os").environ, PYTHONUTF8="1"))
+        print((rr.stdout or "").strip().splitlines()[-1] if (rr.stdout or "").strip() else f"jrdb_sed_snapshot rc={rr.returncode}")
+        if rr.returncode != 0 and args.notify:
+            notify("⚠️ JRDB 成績 (SED) の控えに失敗: python scripts/jrdb_sed_snapshot.py capture")
+    except Exception as e:  # noqa: BLE001
+        print(f"jrdb_sed_snapshot 失敗: {type(e).__name__}: {e}")
     today = now.strftime("%Y%m%d")
     if args.notify and (jf.ROOT / f"data/weekly/{today}.csv").exists() and today not in last:
         notify(f"⚠️ JRDB 前日ファイル KYI{today[2:]} が発走前に保存できていません")
