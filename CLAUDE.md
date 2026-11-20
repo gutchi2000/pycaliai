@@ -127,7 +127,7 @@ P0-1（騎手/調教師stats）・P0-2（着度数CSV列数）・P0-4（Ｒ全�
 > 成果物 `models/unified_rank_v8.pkl` / `pl_calibrators_v8.pkl` / `data/pl_payout_curve_v8.pkl` / `data/class_prior_v8.json` は git 管理外（JRDB 規約）、控え `models/production_backup/20261115_v8/`。照合は `data/artifact_pins.json`（v8・v7・v6）。
 > **v8 は配信用較正器 `_serve` を置かない**（フル特徴の `pl_calibrators_v8.pkl` が配信でも較正が良い。export は `_serve` があるとそちらを使うので作らない）。混戦度の基準は `serve-v8-kyi-20261116`（0.667 分位の生値 0.796、v7 は 0.848。v7 の基準のままだと見送りが 33%→11% にずれる）。
 > v8 で bundle が作れない日（KYI が無い・埋まり 90% 未満）は Phase A が v7、それも駄目なら v6 で作り直す。
-> **2026-11-19**: KYI の上昇度 `k8_joushou` は値の 89% が 3 で、配信レースが全頭 3 になる日（2026 年 63 日中 4 日）に品質ゲートが「無言死」と誤判定して v8 を止めていた → `CONST_OK_COLS` に追加（予測は不変）。Phase A 前の確認は `python scripts/kyi_precheck.py YYYYMMDD`（`docs/research/KYI_JOUSHOU_GATE_20261119.md`）。本番でないモデル（v7・v6）は毎週 `reports/shadow_{tag}/` に影 bundle。
+> **2026-11-19**: KYI の上昇度 `k8_joushou` は値の 89% が 3 で、配信レースが全頭 3 になる日（2026 年 63 日中 4 日）に品質ゲートが「無言死」と誤判定して v8 を止めていた → `CONST_OK_COLS` に追加（予測は不変）。Phase A 前の確認は `python scripts/kyi_precheck.py YYYYMMDD`（`docs/research/KYI_JOUSHOU_GATE_20261119.md`）。**2026-11-20**: 外厩コメント（`gaikyucomment_{date}`）は金曜 19:40 の時点で JRDB にまだ無く、`k8_gk_has` が全頭 0 の定数になり同じゲートが v8 を止めて v7 に落としていた（11/21 初日）→ 外厩ファイルの無い日だけ `k8_gk_*` を無言死の判定から外す（設計どおり外厩なしで予測、外厩の gain 0.5%）。同日 `speed_index.py build` が約 30 分かかっていた原因（週次 CSV 98 本ごとに坂路・WC 630 万行を読み直し）も `parse_csv(with_training=False)` で解消。本番でないモデル（v7・v6）は毎週 `reports/shadow_{tag}/` に影 bundle。
 > **暫定採用**: 最終評価は前向き CW-21（本番 v8 対 影 v7、1,000R で ◎3着内の CI 上限 < 0 なら v7 に戻す）。戻すのは `python scripts/switch_production_model.py --to v7 --start <次の開催日>`。経緯・検証: `docs/research/V8_KYI_CANDIDATE_20261115.md` §8。以下の v7 の記述は「戻り先」として有効。
 
 ### v7（2026-11-14〜20 の本番、現在は戻り先 1 番手）
