@@ -335,8 +335,9 @@ def _load_hosei(date_str: str) -> pd.DataFrame | None:
 # =========================================================
 # CSV パース
 # =========================================================
-def parse_csv(path: Path) -> pd.DataFrame:
-    """ターゲット形式CSV（33列 or 46列）をDataFrameに変換する。"""
+def parse_csv(path: Path, with_training: bool = True) -> pd.DataFrame:
+    """ターゲット形式CSV（33列 or 46列）をDataFrameに変換する。
+    with_training=False なら坂路・WC の調教 JOIN を飛ばす (trn_* 列は付かない)。"""
     for enc in ["cp932", "shift_jis", "utf-8"]:
         try:
             text = path.read_bytes().decode(enc)
@@ -590,24 +591,28 @@ def parse_csv(path: Path) -> pd.DataFrame:
                 df[col] = float("nan")
 
     # ── 調教データ（坂路・WCマスターCSVからJOIN）──
-    try:
-        from training_join import load_chukyo, merge_chukyo
-        hanro, wc = load_chukyo()
-        # merge_chukyo は "日付"(YYYYMMDD) を参照するが週次CSVは "日付S"(YYYY.M.D) なので変換
-        if "日付" not in df.columns and "日付S" in df.columns:
-            df["日付"] = df["日付S"].apply(
-                lambda s: "{:04d}{:02d}{:02d}".format(*[int(x) for x in str(s).split(".")])
-            )
-        df = merge_chukyo(df, hanro, wc, max_age_days=None, include_race_day=False)
-    except Exception as e:
-        logger.warning(f"調教JOIN失敗（スキップ）: {e}")
-        for col in ["trn_hanro_4f","trn_hanro_3f","trn_hanro_2f","trn_hanro_1f",
-                    "trn_hanro_lap1","trn_hanro_lap2","trn_hanro_lap3","trn_hanro_lap4",
-                    "trn_hanro_days",
-                    "trn_wc_5f","trn_wc_4f","trn_wc_3f",
-                    "trn_wc_lap1","trn_wc_lap2","trn_wc_lap3",
-                    "trn_wc_days"]:
-            df[col] = float("nan")
+    # with_training=False は調教列を使わない呼び出し元 (speed_index の週次復元など) 用。
+    # load_chukyo は坂路 540 万行 + WC 80 万行を毎回読む (1 回 15〜20 秒) ので、
+    # 週次 CSV を 100 本読むと調教だけで 30 分かかっていた (2026-11-20)。
+    if with_training:
+        try:
+            from training_join import load_chukyo, merge_chukyo
+            hanro, wc = load_chukyo()
+            # merge_chukyo は "日付"(YYYYMMDD) を参照するが週次CSVは "日付S"(YYYY.M.D) なので変換
+            if "日付" not in df.columns and "日付S" in df.columns:
+                df["日付"] = df["日付S"].apply(
+                    lambda s: "{:04d}{:02d}{:02d}".format(*[int(x) for x in str(s).split(".")])
+                )
+            df = merge_chukyo(df, hanro, wc, max_age_days=None, include_race_day=False)
+        except Exception as e:
+            logger.warning(f"調教JOIN失敗（スキップ）: {e}")
+            for col in ["trn_hanro_4f","trn_hanro_3f","trn_hanro_2f","trn_hanro_1f",
+                        "trn_hanro_lap1","trn_hanro_lap2","trn_hanro_lap3","trn_hanro_lap4",
+                        "trn_hanro_days",
+                        "trn_wc_5f","trn_wc_4f","trn_wc_3f",
+                        "trn_wc_lap1","trn_wc_lap2","trn_wc_lap3",
+                        "trn_wc_days"]:
+                df[col] = float("nan")
 
     # 障害レース除外: 距離列に"障"接頭辞が付く旧形式に加え、2026-09-22発覚の
     # 新形式(距離は素の数値、"障害"は芝・ダ列側="障害(直線ダ)"等)にも対応。

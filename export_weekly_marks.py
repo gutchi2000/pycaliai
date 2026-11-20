@@ -646,12 +646,17 @@ def main() -> int:
     # ------ JRDB 前日 KYI + 外厩 (v8 候補、2026-11-15。bundle に kyi_mode があるモデルだけ) ------
     # 学習と同じ jrdb_kyi_features.make_features を通す。発走前保存 (data/jrdb/snapshots) を優先、無ければアーカイブ。
     # KYI が無い / 埋まりが悪い日は bundle を不合格にする。外厩コメントが無い日は外厩なしとして続ける (警告のみ)。
+    # その日は k8_gk_* が全頭「外厩なし」の定数になるので、下の無言死 canary の対象から外す
+    # (外したつもりが canary で v8 ごと止まっていた: 11/21 初日、JRDB の外厩ファイルが金曜夜に未公開。
+    #  外厩の gain は 0.5%・◎3着内への寄与 −0.22pt で誤差の範囲 = V8_KYI_CANDIDATE_20261115.md)。
+    kyi_no_gaikyu = False
     if bundle.get("kyi_mode"):
         try:
             import jrdb_kyi_features as kf
             _ks = kf.add_serve_feats(df, date_str)
             logger.info(f"[kyi] 前日 KYI {_ks['kyi_file']}  埋まり {_ks['coverage']*100:.0f}%  外厩あり {_ks['gaikyu']*100:.0f}% ({_ks['gaikyu_file']})")
             if not _ks["gaikyu_file"]:
+                kyi_no_gaikyu = True
                 logger.warning("[kyi] 外厩コメントが無い → 外厩なしとして予測 (python scripts/jrdb_snapshot.py capture)")
             if _ks["error"]:
                 jrdb_gate_error = (jrdb_gate_error + " / " if jrdb_gate_error else "") + _ks["error"]
@@ -981,6 +986,8 @@ def main() -> int:
                 # 学習で死んでいた特徴 (例: kako5 の人気系は学習 master に過去走の人気が無い)。
                 # 配信で値が消えても学習と同じ状態に戻っただけなので止めない (2026-11-13 監査)。
                 continue
+            if kyi_no_gaikyu and col.startswith("k8_gk_"):
+                continue   # 外厩コメントの無い日 (上の [kyi] で警告済み) は外厩なしの定数が正常
             monitored += 1
             cur = (feature_coverage(coverage_series(df, col), allow_constant=(col in CONST_OK_COLS))
                    if col in df.columns else 0.0)

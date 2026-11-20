@@ -227,7 +227,7 @@ def load_weekly_reconstructed() -> pd.DataFrame:
     ent, prev = [], []
     for p in _weekly_files():
         try:
-            w = parse_csv(p)
+            w = parse_csv(p, with_training=False)   # 調教列は使わない (毎回 540 万行読むと 100 本で 30 分)
         except Exception as e:      # noqa: BLE001
             log.warning("weekly %s 読めない: %s", p.name, e)
             continue
@@ -822,7 +822,7 @@ def day_entries(date: str) -> pd.DataFrame:
     path = next((d / f"{date}.csv" for d in WEEKLY_DIRS if (d / f"{date}.csv").exists()), None)
     if path is None:
         raise SystemExit(f"出走表が無い: {date}.csv")
-    w = parse_csv(path)
+    w = parse_csv(path, with_training=False)
     dt = pd.to_datetime(date, format="%Y%m%d")
     surf = w["芝・ダ"].astype(str).str[0]
     e = pd.DataFrame({
