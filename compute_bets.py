@@ -1070,6 +1070,31 @@ def main():
                 shadow_out.append(compute_race_bets(
                     r, live_dir=live_dir, max_age_min=args.max_age_min,
                     budget=args.budget, engine="shape"))
+    # サイト公開用の買い目「GO × ボード一致 × ◎オッズ帯」(board_combo.py, 2026-11-21〜)。
+    # bets (本線 sniper) とは別のフィールド board_combo に入れる (validate・決済・台帳は bets だけを見る)。
+    # T-10 ライブオッズがあるときだけ。失敗しても本線には影響させない (そのレースは combo なし)。
+    if live_dir is not None and not args.fuku_hit:
+        _mdate = _re2.search(r"(\d{8})", Path(args.bundle).name)
+        try:
+            import board_combo
+            _by = {str(e.get("race_id")): e for e in out}
+            for r in races:
+                e = _by.get(str(r.get("race_id") or (r.get("race_meta") or {}).get("race_id") or ""))
+                if e is None or not _mdate:
+                    continue
+                rid16 = _re2.sub(r"\D", "", str(r.get("race_id", "")))[:16]
+                live, _why = load_live_odds(live_dir, rid16, args.max_age_min)
+                if live is None:
+                    e["board_combo"] = {"policy_id": board_combo.load_policy()["policy_id"],
+                                        "stage": "T-10", "bets": [], "skip": True,
+                                        "skip_reason": "T-10 オッズが取れないため見送り"}
+                else:
+                    e["board_combo"] = board_combo.build_live(r, live.get("tansho"), _mdate.group(1), "T-10")
+                _c = e["board_combo"]
+                print(f"[combo] {rid16} {len(_c['bets'])}点 "
+                      + (", ".join(_c.get("cells") or []) or _c.get("skip_reason", "")))
+        except Exception as exc:
+            print(f"[combo] 計算失敗 (非致命、本線には影響なし): {exc}", file=sys.stderr)
     # 事前登録wide residual v3は実買い目から独立したshadow。T-10入力がある場合だけ
     # 計算し、欠落・policy不整合はapplyごとfail-closedにする。
     _wr_open = False

@@ -2994,7 +2994,7 @@ async function renderResults() {
       <div class="rs-bt-grid">${byType}</div>
       ${a.n_unsettled ? `<div class="rs-note">⚠ ワイド ${a.n_unsettled}件 (¥${(a.unsettled_cost).toLocaleString()}) は払戻データ未取込のため集計外</div>` : ""}
     </div>
-    ${resultsData.bets_hidden_from ? `<div class="rs-note" style="color:var(--tx2)">${+resultsData.bets_hidden_from.slice(4, 6)}/${+resultsData.bets_hidden_from.slice(6, 8)} からの買い目（◎の複勝 1 点）はサイトに出していません。ここの成績はそれより前に公開した買い目の分です。</div>` : ""}
+    ${resultsData.bets_hidden_from ? `<div class="rs-note" style="color:var(--tx2)">${+resultsData.bets_hidden_from.slice(4, 6)}/${+resultsData.bets_hidden_from.slice(6, 8)} からの買い目（◎の複勝 1 点）はサイトに出していません。ここの成績はそれより前に公開した買い目の分です。11/21 からはレースごとの TACT 欄に「ボード×GO」の買い目を出しています（その成績はまだここに入れていません）。</div>` : ""}
     <div class="rs-h">📅 月別成績</div>
     <div class="card rsm-card">
       <table class="rsm"><thead><tr>

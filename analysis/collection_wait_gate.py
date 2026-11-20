@@ -232,7 +232,21 @@ def cw21_v8_vs_v7() -> dict:
         return {"id": "CW-21", "name": "v8 (JRDB 前日 KYI・外厩) 対 v7 の前向き比較", "missing": f"{type(e).__name__}: {e}"[:200]}
 
 
-COUNTERS = [cw01_exp19, cw02_jump, cw03_exp05f, cw09_trio, cw10_shadow_a95, cw11_live_a95, cw13_pool_ratio, cw14_morning_drift, cw15_shadow_v7, cw21_v8_vs_v7]
+def cw27_board_agree3_tan() -> dict:
+    """ボード一致 3 の ◎単勝 1 点（帯なし）の前向き確認。100R で中間、150R で判定（2026-11-21 ユーザー指示）。"""
+    name = "ボード一致3 の ◎単勝（帯なし）前向き確認"
+    try:
+        from analysis.board_agree3_tan_forward import CHECKPOINTS, summary
+        x = summary()
+        return {"id": "CW-27", "name": name, "current": int(x.get("n", 0)), "target": CHECKPOINTS[-1],
+                "checkpoints": list(CHECKPOINTS), "unit": "race", "latest": x.get("latest"), "since": x.get("since"),
+                "source": "reports/cowork_output/*_bets.json (board_combo, T-10) × data/kekka",
+                "note": "集計: python -m analysis.board_agree3_tan_forward"}
+    except Exception as e:  # noqa: BLE001
+        return {"id": "CW-27", "name": name, "missing": f"{type(e).__name__}: {e}"[:200]}
+
+
+COUNTERS = [cw01_exp19, cw02_jump, cw03_exp05f, cw09_trio, cw10_shadow_a95, cw11_live_a95, cw13_pool_ratio, cw14_morning_drift, cw15_shadow_v7, cw21_v8_vs_v7, cw27_board_agree3_tan]
 
 
 # ---------------------------------------------------------------- 判定
@@ -250,6 +264,9 @@ def judge(rows: list[dict], prev: dict | None, latest_weekly: str | None) -> lis
             alerts.append(f"{pid} 現在量が減少 {p['current']} → {cur} ({r['name']})")
         if tgt and cur is not None and cur >= tgt and not (p and (p.get("current") or 0) >= tgt):
             alerts.append(f"🎯 {pid} Gate 到達 {cur}/{tgt} {r.get('unit','')} — 台帳の「次の判断」を実行する ({r['name']})")
+        for cp in r.get("checkpoints") or []:   # 中間の確認点 (最後の 1 つは target と同じなので上で通知済み)
+            if cp != tgt and cur is not None and cur >= cp and not (p and (p.get("current") or 0) >= cp):
+                alerts.append(f"📍 {pid} 中間点 {cur}/{cp} {r.get('unit','')} — 台帳の「次の判断」を確認 ({r['name']})")
         if tgt and cur is not None and 0 < cur < tgt and r.get("latest") and latest_weekly:
             try:
                 dl = dt.datetime.strptime(r["latest"], "%Y%m%d").date()

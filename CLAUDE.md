@@ -497,6 +497,8 @@ v6 + cowork_prompt 改修（節 11）でこの弱点改善を狙う。
 
 **2026-11-12 見送りガチ強化（sniper）**（policy `a95-sniper-v2-odds19-20261112`、方策 `data/shadow_policies/a95_sniper_v2.json`、起算 2026-11-14）: 参戦ガードに **◎の T-10 単勝オッズ > 1.9 なら見送り**（`hard_skip.hon_tansho_odds_max`、T-20 は市場オッズ・紙上台帳は朝オッズで同判定）を追加し、`<2倍` 帯の券種を 馬連 → **◎複勝 1 点 1 万円**に変更。根拠: 参戦ガード監査（混戦度ゲートは的中率だけで回収率は不変、`docs/research/GUARD_AUDIT_20261107.md`）と見送り判定の総当たり（3 期で再現するのは◎オッズ上限だけ、◎≤1.9 の複勝均等 90.9→91.9→95.1%、`docs/research/SKIP_RULE_SEARCH_20261108.md`）。a95_equal_v1 の「OOS 95% セル」は先読み漏れ（`project_bet_substrate_tie_leak_20261107`）で崩れ、馬連 1 点は 82%。期待は複勝 90% 前後＝黒字ではない。`shadow_a95.py` の方策/台帳は `production_policy.json` の `artifacts.bet_policy` から引き、台帳は方策ごと（`data/shadow_ledger/a95_sniper_v2/`）。見送り理由の文面にオッズの生値は出さない（閾値のみ）。
 
+**2026-11-21 サイトの買い目を board_combo へ**（`board_combo.py`、方策 `data/shadow_policies/board_combo_v1.json`、policy `board-combo-v1-20261121`）: サイトの TACT 欄は「GO × ボード一致（◎が速度・PW・推定人気の 1 位か）× ◎の単勝オッズ帯（T-10/T-20 のライブ値）」の 27 セル（探索・再構成 `docs/research/BOARD_GO_RECON_EXPLORATION_20261120.md` §11 で回収率 90% 以上、15倍〜除く）。ユーザー指示で配線。§12 の前後半の確認では選んだ期間の外で 65〜83%＝期待は控除率なみ。T-20 は `t20_site_bets.py` が entry["combo"]、T-10 は `compute_bets.py` が bets.json の各レースに `board_combo`（bets とは別、validate・決済・台帳は bets だけ）。`build_site.py` は 11/21〜 TACT を combo（T-10 確定 > T-20 速報）にし、本線 sniper（◎複勝）は今までどおり非公開で裏集計。ゲージは `site/data/{date}.json`（Phase A で作られている必要あり）。前向き確認 CW-27（一致 3 の ◎単勝、帯なし、100R 中間・150R 判定、`analysis/board_agree3_tan_forward.py`）。
+
 ---
 
 ## 既知の問題

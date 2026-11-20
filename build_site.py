@@ -45,6 +45,9 @@ SITE_PREVIEW_DIR = ROOT / "reports" / "masters_vote_site"
 # a95_equal 本線の開始日 (production_policy.json engine="a95")。この日付以降は cowork_output の
 # bets (compute_bets T-10 確定) を実ラインとして表示・決済し、馬単も通常集計に含める。
 A95_LIVE_FROM = "20261003"
+# 2026-11-21〜 サイトの TACT 欄は board_combo（GO × ボード一致 × ◎オッズ帯、T-10 確定 > T-20 速報）。
+# 本線 (a95 sniper の ◎複勝) は裏で計算・記録を続け、サイトには出さない (site_flags.BETS_HIDDEN_FROM)。
+COMBO_FROM = "20261121"
 WEEKLY_DIR = ROOT / "data" / "weekly"
 KEKKA_DIR = ROOT / "data" / "kekka"
 TRAINING_DIR = ROOT / "data" / "training"
@@ -586,6 +589,8 @@ def _parse_one_cowork_file(path: Path) -> dict[str, dict]:
             "advisor": advisor,
             "source": path.name,
         }
+        if isinstance(entry.get("board_combo"), dict):
+            out[rid]["board_combo"] = entry["board_combo"]   # T-10 の board_combo (TACT 欄用、公開 cowork からは外す)
     return out
 
 
@@ -752,7 +757,8 @@ def load_all_site_preview() -> dict[str, dict]:
         rid = str(r.get("race_id") or p.stem)[:16]
         bets = r.get("bets") or []
         skip = bool(r.get("skip"))
-        if not rid or (not bets and not skip):
+        combo = r.get("combo") if isinstance(r.get("combo"), dict) else None
+        if not rid or (not bets and not skip and not combo):
             continue  # 技術的失敗 (公開判定に至っていない) -> 除外
         sp = r.get("scheduled_post")
         if not sp:
@@ -773,6 +779,8 @@ def load_all_site_preview() -> dict[str, dict]:
         if skip:
             entry["skip"] = True
             entry["skip_reason"] = str(r.get("why") or "見送り")
+        if combo:
+            entry["combo"] = combo   # board_combo の T-20 速報 (2026-11-21〜、combo_tact が使う)
         out[rid] = entry
     return out
 
@@ -989,6 +997,23 @@ def build_tact(mv_entry: dict | None) -> dict | None:
         if mv_entry.get("expires_at"):
             out["expires_at"] = mv_entry["expires_at"]
     return out
+
+
+def combo_tact(combo: dict | None, preview: dict | None = None) -> dict | None:
+    """board_combo の結果 → TACT 欄 (2026-11-21〜)。preview は T-20 速報の期限情報。"""
+    if not isinstance(combo, dict):
+        return None
+    src = {"is_preview": True, "expires_at": preview.get("expires_at")} if preview else {}
+    if combo.get("bets"):
+        t = build_tact({**src, "bets": combo["bets"]})
+    elif combo.get("skip"):
+        t = build_tact({**src, "skip": True, "skip_reason": combo.get("skip_reason") or "見送り"})
+    else:
+        return None
+    if t is not None:
+        t["version"] = "combo1"
+        t["engine"] = "board_combo"
+    return t
 
 
 def settle_bet(btype: str, selection: str, cost: float, res: dict) -> dict:
@@ -1355,7 +1380,13 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
         # で上書きする。大会開始より前の日付は当時の実運用そのものなので変更しない。
         mv = masters_vote.get(rid)
         cw = cowork.get(rid)
-        if date_str >= A95_LIVE_FROM:
+        if date_str >= COMBO_FROM:
+            # 2026-11-21〜: TACT 欄は board_combo。T-10 確定 (bets.json の board_combo) > T-20 速報。
+            # 本線 sniper の bets は cowork 側に残る (bets_hidden で公開 JSON から外れる)。
+            _pv = site_preview.get(rid) or {}
+            races_out[-1]["tact"] = (combo_tact((cw or {}).get("board_combo"))
+                                     or (combo_tact(_pv.get("combo"), _pv) if _pv.get("combo") else None))
+        elif date_str >= A95_LIVE_FROM:
             # 2026-10-03〜: 本線は compute_bets の a95 エンジン (T-10 確定)。cowork_output の
             # bets をそのまま実ラインとして扱い、TACT も T-10 確定 > T-20 速報 の順で出す。
             # (大会は終了。masters_vote 台帳はこの日付以降には無い)
@@ -1379,8 +1410,8 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
             c = zmap.get(h.get("umaban"))
             if c:
                 h["cmt"] = c
-        if cw and "zento" in cw:
-            cw = {k: v for k, v in cw.items() if k != "zento"}
+        if cw and ("zento" in cw or "board_combo" in cw):
+            cw = {k: v for k, v in cw.items() if k not in ("zento", "board_combo")}
         races_out[-1]["cowork"] = cw
         res = results.get(rid)
         if cw and cw.get("bets") and res:
@@ -1627,7 +1658,10 @@ def scrub_public(day: dict) -> dict:
         if bets_hidden(day.get("date", "")):
             # 2026-11-16: 本線 (◎複勝 1 点、11/14〜) の買い目は公開しない (site_flags.py)。
             # 券種・金額・決済・T-10 の判定文・見送り時の「買っていたら」を外す。元データは残る。
+            _keep = (r.get("tact") or {}).get("engine") == "board_combo"   # 2026-11-21〜 はこちらを出す
             for k in ("tact", "tact_settled", "bets_settled"):
+                if _keep and k in ("tact", "tact_settled"):
+                    continue
                 r.pop(k, None)
             if isinstance(r.get("cowork"), dict):
                 for k in ("bets", "a95_all", "race_reason", "race_nature", "stamp", "hosei_marks"):

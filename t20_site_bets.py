@@ -350,6 +350,16 @@ def process_race(date_str: str, rid: str, label: str, dry: bool,
             _save_entry(date_str, rid, entry)
         return
 
+    # サイト公開用の買い目「GO × ボード一致 × ◎オッズ帯」(board_combo.py, 2026-11-21〜)。
+    # 本線 (a95 sniper) の判定とは独立。失敗しても本線の速報処理には影響させない。
+    try:
+        import board_combo
+        entry["combo"] = board_combo.build_live(race, market.get("tansho"), date_str, "T-20")
+        _c = entry["combo"]
+        print(f"  [combo] {len(_c['bets'])}点 " + (", ".join(_c.get("cells") or []) or _c.get("skip_reason", "")))
+    except Exception as exc:
+        print(f"  [combo] 計算失敗 (非致命): {exc}")
+
     a95_live = _bet_engine() == "a95"
     a95_bets: list[dict] = []
     try:
@@ -396,7 +406,7 @@ def process_race(date_str: str, rid: str, label: str, dry: bool,
     _save_entry(date_str, rid, entry)
     # 買い目 or 見送り = 公開すべき判定結果が出たときだけサイトを更新する。
     # 技術的失敗 (bets=[] かつ skip=False) は前回同様、公開しない (無風のまま次に委ねる)。
-    if not (entry["bets"] or entry.get("skip")):
+    if not (entry["bets"] or entry.get("skip") or entry.get("combo")):
         return
     # publish_to_site already swallows subprocess-level failures internally, but this
     # extra guard makes it structurally impossible for a publish problem (of any kind)
