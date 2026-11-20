@@ -1,0 +1,3843 @@
+{
+ "label": "探索・再構成（前向き記録とは別）",
+ "n_races": 1259,
+ "dates": [
+  "20260613",
+  "20260614",
+  "20260620",
+  "20260621",
+  "20260627",
+  "20260628",
+  "20260704",
+  "20260705",
+  "20260711",
+  "20260712",
+  "20260719",
+  "20260725",
+  "20260726",
+  "20260801",
+  "20260802",
+  "20260808",
+  "20260809",
+  "20260815",
+  "20260816",
+  "20260829",
+  "20260830",
+  "20260905",
+  "20260906",
+  "20260912",
+  "20260913",
+  "20260919",
+  "20260920",
+  "20260921",
+  "20260922",
+  "20260926",
+  "20260927",
+  "20261003",
+  "20261004",
+  "20261010",
+  "20261011",
+  "20261012",
+  "20261017",
+  "20261018",
+  "20261024",
+  "20261025",
+  "20261031",
+  "20261101",
+  "20261107",
+  "20261108",
+  "20261114",
+  "20261115"
+ ],
+ "models": {
+  "v6": 1196,
+  "v7": 63
+ },
+ "excluded": {
+  "結果はあるが bundle に無い（障害・新馬などの対象外レース）": 44,
+  "ボードのゲージが欠ける（速度・PW・推定人気のどれか）": 137,
+  "決済不能（refund_unknown: 着順0で最終オッズのある馬を含む／払戻欠損）": 12,
+  "凍結 bundle なし（20260718）": 36,
+  "凍結 bundle なし（20260822）": 36,
+  "凍結 bundle なし（20260823）": 36
+ },
+ "go_repro": {
+  "n": 1271,
+  "has_value_mismatch": 0,
+  "hardness_mismatch": 1,
+  "category_mismatch": 0,
+  "site_hon_mismatch": 0
+ },
+ "cross": {
+  "GO|0|固い": 102,
+  "GO|0|標準": 157,
+  "GO|0|荒れ": 0,
+  "GO|1|固い": 84,
+  "GO|1|標準": 169,
+  "GO|1|荒れ": 0,
+  "GO|2|固い": 105,
+  "GO|2|標準": 115,
+  "GO|2|荒れ": 0,
+  "GO|3|固い": 98,
+  "GO|3|標準": 69,
+  "GO|3|荒れ": 0,
+  "非GO|0|固い": 2,
+  "非GO|0|標準": 0,
+  "非GO|0|荒れ": 159,
+  "非GO|1|固い": 1,
+  "非GO|1|標準": 0,
+  "非GO|1|荒れ": 108,
+  "非GO|2|固い": 1,
+  "非GO|2|標準": 2,
+  "非GO|2|荒れ": 53,
+  "非GO|3|固い": 2,
+  "非GO|3|標準": 0,
+  "非GO|3|荒れ": 32
+ },
+ "main": [
+  {
+   "name": "GO∧一致3∧固い",
+   "n": 98,
+   "by_type": {
+    "ワイド": {
+     "n": 98,
+     "stake": 39200,
+     "ret": 29980.0,
+     "roi": 76.5,
+     "ci": [
+      62.3,
+      91.4
+     ],
+     "race_hit": 70.4,
+     "hit_pts": 96,
+     "hon_top3": 77.6,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.103,
+     "roi_drop_max": 73.9,
+     "max_race": "2026101005040303",
+     "max_ret": 1300.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 98,
+     "stake": 39200,
+     "ret": 32660.0,
+     "roi": 83.3,
+     "ci": [
+      58.3,
+      112.0
+     ],
+     "race_hit": 48.0,
+     "hit_pts": 47,
+     "hon_top3": 77.6,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.103,
+     "roi_drop_max": 74.1,
+     "max_race": "2026101005040303",
+     "max_ret": 3890.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 98,
+     "stake": 58800,
+     "ret": 32350.0,
+     "roi": 55.0,
+     "ci": [
+      32.4,
+      79.7
+     ],
+     "race_hit": 27.6,
+     "hit_pts": 27,
+     "hon_top3": 77.6,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.103,
+     "roi_drop_max": 49.7,
+     "max_race": "2026111403030301",
+     "max_ret": 3440.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 98,
+     "stake": 9800,
+     "ret": 9640.0,
+     "roi": 98.4,
+     "ci": [
+      77.2,
+      119.8
+     ],
+     "race_hit": 52.0,
+     "hit_pts": 51,
+     "hon_top3": 77.6,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.103,
+     "roi_drop_max": 94.9,
+     "max_race": "2026070503020403",
+     "max_ret": 430.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 98,
+     "stake": 9800,
+     "ret": 8640.0,
+     "roi": 88.2,
+     "ci": [
+      78.4,
+      97.3
+     ],
+     "race_hit": 77.6,
+     "hit_pts": 76,
+     "hon_top3": 77.6,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.103,
+     "roi_drop_max": 87.5,
+     "max_race": "2026070503020403",
+     "max_ret": 150.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧一致3∧標準",
+   "n": 69,
+   "by_type": {
+    "ワイド": {
+     "n": 69,
+     "stake": 27600,
+     "ret": 23040.0,
+     "roi": 83.5,
+     "ci": [
+      60.2,
+      110.2
+     ],
+     "race_hit": 60.9,
+     "hit_pts": 60,
+     "hon_top3": 73.9,
+     "hon_odds_med": 3.2,
+     "chaos_med": 0.482,
+     "roi_drop_max": 76.7,
+     "max_race": "2026071910020807",
+     "max_ret": 2180.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 69,
+     "stake": 27600,
+     "ret": 26470.0,
+     "roi": 95.9,
+     "ci": [
+      53.4,
+      149.8
+     ],
+     "race_hit": 39.1,
+     "hit_pts": 27,
+     "hon_top3": 73.9,
+     "hon_odds_med": 3.2,
+     "chaos_med": 0.482,
+     "roi_drop_max": 77.8,
+     "max_race": "2026092006040608",
+     "max_ret": 5300.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 69,
+     "stake": 41400,
+     "ret": 34470.0,
+     "roi": 83.3,
+     "ci": [
+      37.9,
+      142.7
+     ],
+     "race_hit": 26.1,
+     "hit_pts": 18,
+     "hon_top3": 73.9,
+     "hon_odds_med": 3.2,
+     "chaos_med": 0.482,
+     "roi_drop_max": 63.9,
+     "max_race": "2026071910020807",
+     "max_ret": 8410.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 69,
+     "stake": 6900,
+     "ret": 7070.0,
+     "roi": 102.5,
+     "ci": [
+      72.7,
+      133.5
+     ],
+     "race_hit": 43.5,
+     "hit_pts": 30,
+     "hon_top3": 73.9,
+     "hon_odds_med": 3.2,
+     "chaos_med": 0.482,
+     "roi_drop_max": 97.4,
+     "max_race": "2026071910020807",
+     "max_ret": 450.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 69,
+     "stake": 6900,
+     "ret": 6310.0,
+     "roi": 91.4,
+     "ci": [
+      78.3,
+      104.3
+     ],
+     "race_hit": 73.9,
+     "hit_pts": 51,
+     "hon_top3": 73.9,
+     "hon_odds_med": 3.2,
+     "chaos_med": 0.482,
+     "roi_drop_max": 90.0,
+     "max_race": "2026080907020607",
+     "max_ret": 190.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧一致2∧固い",
+   "n": 105,
+   "by_type": {
+    "ワイド": {
+     "n": 105,
+     "stake": 42000,
+     "ret": 37890.0,
+     "roi": 90.2,
+     "ci": [
+      72.9,
+      108.4
+     ],
+     "race_hit": 66.7,
+     "hit_pts": 116,
+     "hon_top3": 74.3,
+     "hon_odds_med": 2.9,
+     "chaos_med": 0.138,
+     "roi_drop_max": 85.6,
+     "max_race": "2026062009030511",
+     "max_ret": 2270.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 105,
+     "stake": 42000,
+     "ret": 41930.0,
+     "roi": 99.8,
+     "ci": [
+      67.0,
+      139.4
+     ],
+     "race_hit": 46.7,
+     "hit_pts": 49,
+     "hon_top3": 74.3,
+     "hon_odds_med": 2.9,
+     "chaos_med": 0.138,
+     "roi_drop_max": 87.7,
+     "max_race": "2026062009030511",
+     "max_ret": 5450.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 105,
+     "stake": 63000,
+     "ret": 61660.0,
+     "roi": 97.9,
+     "ci": [
+      65.3,
+      136.6
+     ],
+     "race_hit": 43.8,
+     "hit_pts": 46,
+     "hon_top3": 74.3,
+     "hon_odds_med": 2.9,
+     "chaos_med": 0.138,
+     "roi_drop_max": 85.3,
+     "max_race": "2026062009030511",
+     "max_ret": 8430.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 105,
+     "stake": 10500,
+     "ret": 7310.0,
+     "roi": 69.6,
+     "ci": [
+      50.9,
+      88.8
+     ],
+     "race_hit": 36.2,
+     "hit_pts": 38,
+     "hon_top3": 74.3,
+     "hon_odds_med": 2.9,
+     "chaos_med": 0.138,
+     "roi_drop_max": 66.2,
+     "max_race": "2026062102010404",
+     "max_ret": 430.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 105,
+     "stake": 10500,
+     "ret": 9400.0,
+     "roi": 89.5,
+     "ci": [
+      78.3,
+      100.0
+     ],
+     "race_hit": 73.3,
+     "hit_pts": 77,
+     "hon_top3": 74.3,
+     "hon_odds_med": 2.9,
+     "chaos_med": 0.138,
+     "roi_drop_max": 87.9,
+     "max_race": "2026062810020211",
+     "max_ret": 260.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧一致2∧標準",
+   "n": 115,
+   "by_type": {
+    "ワイド": {
+     "n": 115,
+     "stake": 46000,
+     "ret": 32250.0,
+     "roi": 70.1,
+     "ci": [
+      55.7,
+      85.6
+     ],
+     "race_hit": 52.2,
+     "hit_pts": 87,
+     "hon_top3": 61.7,
+     "hon_odds_med": 3.9,
+     "chaos_med": 0.506,
+     "roi_drop_max": 67.6,
+     "max_race": "2026111403030304",
+     "max_ret": 1410.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 115,
+     "stake": 46000,
+     "ret": 36980.0,
+     "roi": 80.4,
+     "ci": [
+      56.5,
+      105.1
+     ],
+     "race_hit": 32.2,
+     "hit_pts": 37,
+     "hon_top3": 61.7,
+     "hon_odds_med": 3.9,
+     "chaos_med": 0.506,
+     "roi_drop_max": 76.1,
+     "max_race": "2026091209040309",
+     "max_ret": 2290.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 115,
+     "stake": 69000,
+     "ret": 42900.0,
+     "roi": 62.2,
+     "ci": [
+      38.3,
+      89.8
+     ],
+     "race_hit": 23.5,
+     "hit_pts": 27,
+     "hon_top3": 61.7,
+     "hon_odds_med": 3.9,
+     "chaos_med": 0.506,
+     "roi_drop_max": 55.9,
+     "max_race": "2026111403030304",
+     "max_ret": 4690.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 115,
+     "stake": 11500,
+     "ret": 7260.0,
+     "roi": 63.1,
+     "ci": [
+      43.3,
+      84.3
+     ],
+     "race_hit": 26.1,
+     "hit_pts": 30,
+     "hon_top3": 61.7,
+     "hon_odds_med": 3.9,
+     "chaos_med": 0.506,
+     "roi_drop_max": 60.0,
+     "max_race": "2026091209040309",
+     "max_ret": 420.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 115,
+     "stake": 11500,
+     "ret": 9420.0,
+     "roi": 81.9,
+     "ci": [
+      69.8,
+      94.2
+     ],
+     "race_hit": 61.7,
+     "hit_pts": 71,
+     "hon_top3": 61.7,
+     "hon_odds_med": 3.9,
+     "chaos_med": 0.506,
+     "roi_drop_max": 81.0,
+     "max_race": "2026083001020404",
+     "max_ret": 190.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧一致1∧固い",
+   "n": 84,
+   "by_type": {
+    "ワイド": {
+     "n": 84,
+     "stake": 33600,
+     "ret": 27580.0,
+     "roi": 82.1,
+     "ci": [
+      61.1,
+      104.6
+     ],
+     "race_hit": 52.4,
+     "hit_pts": 65,
+     "hon_top3": 56.0,
+     "hon_odds_med": 4.8,
+     "chaos_med": 0.16,
+     "roi_drop_max": 78.0,
+     "max_race": "2026070503020402",
+     "max_ret": 1680.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 84,
+     "stake": 33600,
+     "ret": 22670.0,
+     "roi": 67.5,
+     "ci": [
+      37.6,
+      101.2
+     ],
+     "race_hit": 26.2,
+     "hit_pts": 22,
+     "hon_top3": 56.0,
+     "hon_odds_med": 4.8,
+     "chaos_med": 0.16,
+     "roi_drop_max": 56.9,
+     "max_race": "2026070503020402",
+     "max_ret": 3780.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 84,
+     "stake": 50400,
+     "ret": 39360.0,
+     "roi": 78.1,
+     "ci": [
+      44.2,
+      115.7
+     ],
+     "race_hit": 25.0,
+     "hit_pts": 21,
+     "hon_top3": 56.0,
+     "hon_odds_med": 4.8,
+     "chaos_med": 0.16,
+     "roi_drop_max": 67.2,
+     "max_race": "2026070503020402",
+     "max_ret": 5870.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 84,
+     "stake": 8400,
+     "ret": 8360.0,
+     "roi": 99.5,
+     "ci": [
+      63.2,
+      140.8
+     ],
+     "race_hit": 28.6,
+     "hit_pts": 24,
+     "hon_top3": 56.0,
+     "hon_odds_med": 4.8,
+     "chaos_med": 0.16,
+     "roi_drop_max": 88.7,
+     "max_race": "2026062802010604",
+     "max_ret": 1000.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 84,
+     "stake": 8400,
+     "ret": 6820.0,
+     "roi": 81.2,
+     "ci": [
+      65.4,
+      98.0
+     ],
+     "race_hit": 54.8,
+     "hit_pts": 46,
+     "hon_top3": 56.0,
+     "hon_odds_med": 4.8,
+     "chaos_med": 0.16,
+     "roi_drop_max": 78.3,
+     "max_race": "2026062802010604",
+     "max_ret": 320.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧一致1∧標準",
+   "n": 169,
+   "by_type": {
+    "ワイド": {
+     "n": 169,
+     "stake": 67600,
+     "ret": 60800.0,
+     "roi": 89.9,
+     "ci": [
+      71.4,
+      111.1
+     ],
+     "race_hit": 49.7,
+     "hit_pts": 120,
+     "hon_top3": 57.4,
+     "hon_odds_med": 4.9,
+     "chaos_med": 0.485,
+     "roi_drop_max": 86.5,
+     "max_race": "2026102404040309",
+     "max_ret": 2640.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 169,
+     "stake": 67600,
+     "ret": 52560.0,
+     "roi": 77.8,
+     "ci": [
+      50.0,
+      110.8
+     ],
+     "race_hit": 25.4,
+     "hit_pts": 43,
+     "hon_top3": 57.4,
+     "hon_odds_med": 4.9,
+     "chaos_med": 0.485,
+     "roi_drop_max": 69.4,
+     "max_race": "2026071110020512",
+     "max_ret": 5920.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 169,
+     "stake": 101400,
+     "ret": 85760.0,
+     "roi": 84.6,
+     "ci": [
+      46.9,
+      133.5
+     ],
+     "race_hit": 21.3,
+     "hit_pts": 36,
+     "hon_top3": 57.4,
+     "hon_odds_med": 4.9,
+     "chaos_med": 0.485,
+     "roi_drop_max": 70.2,
+     "max_race": "2026102404040309",
+     "max_ret": 14970.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 169,
+     "stake": 16900,
+     "ret": 12370.0,
+     "roi": 73.2,
+     "ci": [
+      50.6,
+      98.9
+     ],
+     "race_hit": 23.7,
+     "hit_pts": 40,
+     "hon_top3": 57.4,
+     "hon_odds_med": 4.9,
+     "chaos_med": 0.485,
+     "roi_drop_max": 68.0,
+     "max_race": "2026071110020512",
+     "max_ret": 940.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 169,
+     "stake": 16900,
+     "ret": 14360.0,
+     "roi": 85.0,
+     "ci": [
+      72.3,
+      98.0
+     ],
+     "race_hit": 55.0,
+     "hit_pts": 93,
+     "hon_top3": 57.4,
+     "hon_odds_med": 4.9,
+     "chaos_med": 0.485,
+     "roi_drop_max": 83.4,
+     "max_race": "2026071110020512",
+     "max_ret": 350.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧一致3（難しさ不問）",
+   "n": 167,
+   "by_type": {
+    "ワイド": {
+     "n": 167,
+     "stake": 66800,
+     "ret": 53020.0,
+     "roi": 79.4,
+     "ci": [
+      66.6,
+      93.7
+     ],
+     "race_hit": 66.5,
+     "hit_pts": 156,
+     "hon_top3": 76.0,
+     "hon_odds_med": 2.8,
+     "chaos_med": 0.217,
+     "roi_drop_max": 76.6,
+     "max_race": "2026071910020807",
+     "max_ret": 2180.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 167,
+     "stake": 66800,
+     "ret": 59130.0,
+     "roi": 88.5,
+     "ci": [
+      65.5,
+      115.7
+     ],
+     "race_hit": 44.3,
+     "hit_pts": 74,
+     "hon_top3": 76.0,
+     "hon_odds_med": 2.8,
+     "chaos_med": 0.217,
+     "roi_drop_max": 81.1,
+     "max_race": "2026092006040608",
+     "max_ret": 5300.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 167,
+     "stake": 100200,
+     "ret": 66820.0,
+     "roi": 66.7,
+     "ci": [
+      43.3,
+      93.5
+     ],
+     "race_hit": 26.9,
+     "hit_pts": 45,
+     "hon_top3": 76.0,
+     "hon_odds_med": 2.8,
+     "chaos_med": 0.217,
+     "roi_drop_max": 58.6,
+     "max_race": "2026071910020807",
+     "max_ret": 8410.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 167,
+     "stake": 16700,
+     "ret": 16710.0,
+     "roi": 100.1,
+     "ci": [
+      83.0,
+      117.5
+     ],
+     "race_hit": 48.5,
+     "hit_pts": 81,
+     "hon_top3": 76.0,
+     "hon_odds_med": 2.8,
+     "chaos_med": 0.217,
+     "roi_drop_max": 98.0,
+     "max_race": "2026071910020807",
+     "max_ret": 450.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 167,
+     "stake": 16700,
+     "ret": 14950.0,
+     "roi": 89.5,
+     "ci": [
+      81.4,
+      97.3
+     ],
+     "race_hit": 76.0,
+     "hit_pts": 127,
+     "hon_top3": 76.0,
+     "hon_odds_med": 2.8,
+     "chaos_med": 0.217,
+     "roi_drop_max": 88.9,
+     "max_race": "2026080907020607",
+     "max_ret": 190.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧一致2（難しさ不問）",
+   "n": 220,
+   "by_type": {
+    "ワイド": {
+     "n": 220,
+     "stake": 88000,
+     "ret": 70140.0,
+     "roi": 79.7,
+     "ci": [
+      68.3,
+      91.2
+     ],
+     "race_hit": 59.1,
+     "hit_pts": 203,
+     "hon_top3": 67.7,
+     "hon_odds_med": 3.3,
+     "chaos_med": 0.322,
+     "roi_drop_max": 77.5,
+     "max_race": "2026062009030511",
+     "max_ret": 2270.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 220,
+     "stake": 88000,
+     "ret": 78910.0,
+     "roi": 89.7,
+     "ci": [
+      70.3,
+      112.2
+     ],
+     "race_hit": 39.1,
+     "hit_pts": 86,
+     "hon_top3": 67.7,
+     "hon_odds_med": 3.3,
+     "chaos_med": 0.322,
+     "roi_drop_max": 83.9,
+     "max_race": "2026062009030511",
+     "max_ret": 5450.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 220,
+     "stake": 132000,
+     "ret": 104560.0,
+     "roi": 79.2,
+     "ci": [
+      58.7,
+      102.1
+     ],
+     "race_hit": 33.2,
+     "hit_pts": 73,
+     "hon_top3": 67.7,
+     "hon_odds_med": 3.3,
+     "chaos_med": 0.322,
+     "roi_drop_max": 73.2,
+     "max_race": "2026062009030511",
+     "max_ret": 8430.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 220,
+     "stake": 22000,
+     "ret": 14570.0,
+     "roi": 66.2,
+     "ci": [
+      52.3,
+      80.5
+     ],
+     "race_hit": 30.9,
+     "hit_pts": 68,
+     "hon_top3": 67.7,
+     "hon_odds_med": 3.3,
+     "chaos_med": 0.322,
+     "roi_drop_max": 64.6,
+     "max_race": "2026062102010404",
+     "max_ret": 430.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 220,
+     "stake": 22000,
+     "ret": 18820.0,
+     "roi": 85.5,
+     "ci": [
+      77.4,
+      93.6
+     ],
+     "race_hit": 67.3,
+     "hit_pts": 148,
+     "hon_top3": 67.7,
+     "hon_odds_med": 3.3,
+     "chaos_med": 0.322,
+     "roi_drop_max": 84.7,
+     "max_race": "2026062810020211",
+     "max_ret": 260.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧一致1（難しさ不問）",
+   "n": 253,
+   "by_type": {
+    "ワイド": {
+     "n": 253,
+     "stake": 101200,
+     "ret": 88380.0,
+     "roi": 87.3,
+     "ci": [
+      73.1,
+      102.4
+     ],
+     "race_hit": 50.6,
+     "hit_pts": 185,
+     "hon_top3": 56.9,
+     "hon_odds_med": 4.8,
+     "chaos_med": 0.418,
+     "roi_drop_max": 85.1,
+     "max_race": "2026102404040309",
+     "max_ret": 2640.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 253,
+     "stake": 101200,
+     "ret": 75230.0,
+     "roi": 74.3,
+     "ci": [
+      52.6,
+      98.3
+     ],
+     "race_hit": 25.7,
+     "hit_pts": 65,
+     "hon_top3": 56.9,
+     "hon_odds_med": 4.8,
+     "chaos_med": 0.418,
+     "roi_drop_max": 68.8,
+     "max_race": "2026071110020512",
+     "max_ret": 5920.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 253,
+     "stake": 151800,
+     "ret": 125120.0,
+     "roi": 82.4,
+     "ci": [
+      53.9,
+      115.8
+     ],
+     "race_hit": 22.5,
+     "hit_pts": 57,
+     "hon_top3": 56.9,
+     "hon_odds_med": 4.8,
+     "chaos_med": 0.418,
+     "roi_drop_max": 72.9,
+     "max_race": "2026102404040309",
+     "max_ret": 14970.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 253,
+     "stake": 25300,
+     "ret": 20730.0,
+     "roi": 81.9,
+     "ci": [
+      61.5,
+      102.8
+     ],
+     "race_hit": 25.3,
+     "hit_pts": 64,
+     "hon_top3": 56.9,
+     "hon_odds_med": 4.8,
+     "chaos_med": 0.418,
+     "roi_drop_max": 78.3,
+     "max_race": "2026062802010604",
+     "max_ret": 1000.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 253,
+     "stake": 25300,
+     "ret": 21180.0,
+     "roi": 83.7,
+     "ci": [
+      73.2,
+      93.6
+     ],
+     "race_hit": 54.9,
+     "hit_pts": 139,
+     "hon_top3": 56.9,
+     "hon_odds_med": 4.8,
+     "chaos_med": 0.418,
+     "roi_drop_max": 82.7,
+     "max_race": "2026071110020512",
+     "max_ret": 350.0,
+     "candidate": false
+    }
+   }
+  }
+ ],
+ "decomp": [
+  {
+   "name": "GOのみ",
+   "n": 899,
+   "by_type": {
+    "ワイド": {
+     "n": 899,
+     "stake": 359600,
+     "ret": 275910.0,
+     "roi": 76.7,
+     "ci": [
+      69.9,
+      84.4
+     ],
+     "race_hit": 50.7,
+     "hit_pts": 670,
+     "hon_top3": 57.5,
+     "hon_odds_med": 4.4,
+     "chaos_med": 0.354,
+     "roi_drop_max": 75.4,
+     "max_race": "2026092006040607",
+     "max_ret": 5150.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 899,
+     "stake": 359600,
+     "ret": 264460.0,
+     "roi": 73.5,
+     "ci": [
+      62.9,
+      84.8
+     ],
+     "race_hit": 29.7,
+     "hit_pts": 267,
+     "hon_top3": 57.5,
+     "hon_odds_med": 4.4,
+     "chaos_med": 0.354,
+     "roi_drop_max": 72.0,
+     "max_race": "2026071102010909",
+     "max_ret": 5980.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 899,
+     "stake": 539400,
+     "ret": 361360.0,
+     "roi": 67.0,
+     "ci": [
+      55.5,
+      80.1
+     ],
+     "race_hit": 23.8,
+     "hit_pts": 214,
+     "hon_top3": 57.5,
+     "hon_odds_med": 4.4,
+     "chaos_med": 0.354,
+     "roi_drop_max": 64.3,
+     "max_race": "2026102404040309",
+     "max_ret": 14970.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 899,
+     "stake": 89900,
+     "ret": 66650.0,
+     "roi": 74.1,
+     "ci": [
+      64.3,
+      84.1
+     ],
+     "race_hit": 27.1,
+     "hit_pts": 244,
+     "hon_top3": 57.5,
+     "hon_odds_med": 4.4,
+     "chaos_med": 0.354,
+     "roi_drop_max": 72.1,
+     "max_race": "2026071102010909",
+     "max_ret": 1870.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 899,
+     "stake": 89900,
+     "ret": 74000.0,
+     "roi": 82.3,
+     "ci": [
+      76.9,
+      88.1
+     ],
+     "race_hit": 56.7,
+     "hit_pts": 510,
+     "hon_top3": 57.5,
+     "hon_odds_med": 4.4,
+     "chaos_med": 0.354,
+     "roi_drop_max": 81.6,
+     "max_race": "2026092006040607",
+     "max_ret": 750.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧一致0∧固い",
+   "n": 102,
+   "by_type": {
+    "ワイド": {
+     "n": 102,
+     "stake": 40800,
+     "ret": 25550.0,
+     "roi": 62.6,
+     "ci": [
+      44.3,
+      83.7
+     ],
+     "race_hit": 36.3,
+     "hit_pts": 60,
+     "hon_top3": 37.3,
+     "hon_odds_med": 5.5,
+     "chaos_med": 0.163,
+     "roi_drop_max": 58.5,
+     "max_race": "2026092206040711",
+     "max_ret": 1900.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 102,
+     "stake": 40800,
+     "ret": 19510.0,
+     "roi": 47.8,
+     "ci": [
+      25.4,
+      74.9
+     ],
+     "race_hit": 19.6,
+     "hit_pts": 20,
+     "hon_top3": 37.3,
+     "hon_odds_med": 5.5,
+     "chaos_med": 0.163,
+     "roi_drop_max": 42.4,
+     "max_race": "2026071203020612",
+     "max_ret": 2400.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 102,
+     "stake": 61200,
+     "ret": 38180.0,
+     "roi": 62.4,
+     "ci": [
+      36.4,
+      95.1
+     ],
+     "race_hit": 22.5,
+     "hit_pts": 23,
+     "hon_top3": 37.3,
+     "hon_odds_med": 5.5,
+     "chaos_med": 0.163,
+     "roi_drop_max": 52.8,
+     "max_race": "2026092206040711",
+     "max_ret": 6190.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 102,
+     "stake": 10200,
+     "ret": 3270.0,
+     "roi": 32.1,
+     "ci": [
+      14.8,
+      51.2
+     ],
+     "race_hit": 10.8,
+     "hit_pts": 11,
+     "hon_top3": 37.3,
+     "hon_odds_med": 5.5,
+     "chaos_med": 0.163,
+     "roi_drop_max": 27.4,
+     "max_race": "2026090506040112",
+     "max_ret": 500.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 102,
+     "stake": 10200,
+     "ret": 6430.0,
+     "roi": 63.0,
+     "ci": [
+      45.4,
+      82.5
+     ],
+     "race_hit": 37.3,
+     "hit_pts": 38,
+     "hon_top3": 37.3,
+     "hon_odds_med": 5.5,
+     "chaos_med": 0.163,
+     "roi_drop_max": 57.7,
+     "max_race": "2026092609040808",
+     "max_ret": 600.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧一致0∧標準",
+   "n": 157,
+   "by_type": {
+    "ワイド": {
+     "n": 157,
+     "stake": 62800,
+     "ret": 38820.0,
+     "roi": 61.8,
+     "ci": [
+      42.2,
+      86.0
+     ],
+     "race_hit": 31.8,
+     "hit_pts": 66,
+     "hon_top3": 37.6,
+     "hon_odds_med": 7.5,
+     "chaos_med": 0.505,
+     "roi_drop_max": 54.0,
+     "max_race": "2026092006040607",
+     "max_ret": 5150.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 157,
+     "stake": 62800,
+     "ret": 31680.0,
+     "roi": 50.4,
+     "ci": [
+      26.2,
+      81.0
+     ],
+     "race_hit": 14.0,
+     "hit_pts": 22,
+     "hon_top3": 37.6,
+     "hon_odds_med": 7.5,
+     "chaos_med": 0.505,
+     "roi_drop_max": 41.2,
+     "max_race": "2026071102010909",
+     "max_ret": 5980.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 157,
+     "stake": 94200,
+     "ret": 26680.0,
+     "roi": 28.3,
+     "ci": [
+      12.8,
+      47.2
+     ],
+     "race_hit": 10.2,
+     "hit_pts": 16,
+     "hon_top3": 37.6,
+     "hon_odds_med": 7.5,
+     "chaos_med": 0.505,
+     "roi_drop_max": 23.2,
+     "max_race": "2026083001020407",
+     "max_ret": 4990.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 157,
+     "stake": 15700,
+     "ret": 11370.0,
+     "roi": 72.4,
+     "ci": [
+      39.9,
+      109.9
+     ],
+     "race_hit": 12.7,
+     "hit_pts": 20,
+     "hon_top3": 37.6,
+     "hon_odds_med": 7.5,
+     "chaos_med": 0.505,
+     "roi_drop_max": 60.9,
+     "max_race": "2026071102010909",
+     "max_ret": 1870.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 157,
+     "stake": 15700,
+     "ret": 12620.0,
+     "roi": 80.4,
+     "ci": [
+      61.3,
+      101.4
+     ],
+     "race_hit": 36.9,
+     "hit_pts": 58,
+     "hon_top3": 37.6,
+     "hon_odds_med": 7.5,
+     "chaos_med": 0.505,
+     "roi_drop_max": 76.1,
+     "max_race": "2026092006040607",
+     "max_ret": 750.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧一致0（難しさ不問）",
+   "n": 259,
+   "by_type": {
+    "ワイド": {
+     "n": 259,
+     "stake": 103600,
+     "ret": 64370.0,
+     "roi": 62.1,
+     "ci": [
+      48.3,
+      78.4
+     ],
+     "race_hit": 33.6,
+     "hit_pts": 126,
+     "hon_top3": 37.5,
+     "hon_odds_med": 6.6,
+     "chaos_med": 0.382,
+     "roi_drop_max": 57.4,
+     "max_race": "2026092006040607",
+     "max_ret": 5150.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 259,
+     "stake": 103600,
+     "ret": 51190.0,
+     "roi": 49.4,
+     "ci": [
+      31.3,
+      69.8
+     ],
+     "race_hit": 16.2,
+     "hit_pts": 42,
+     "hon_top3": 37.5,
+     "hon_odds_med": 6.6,
+     "chaos_med": 0.382,
+     "roi_drop_max": 43.8,
+     "max_race": "2026071102010909",
+     "max_ret": 5980.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 259,
+     "stake": 155400,
+     "ret": 64860.0,
+     "roi": 41.7,
+     "ci": [
+      26.7,
+      58.2
+     ],
+     "race_hit": 15.1,
+     "hit_pts": 39,
+     "hon_top3": 37.5,
+     "hon_odds_med": 6.6,
+     "chaos_med": 0.382,
+     "roi_drop_max": 37.9,
+     "max_race": "2026092206040711",
+     "max_ret": 6190.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 259,
+     "stake": 25900,
+     "ret": 14640.0,
+     "roi": 56.5,
+     "ci": [
+      35.7,
+      81.1
+     ],
+     "race_hit": 12.0,
+     "hit_pts": 31,
+     "hon_top3": 37.5,
+     "hon_odds_med": 6.6,
+     "chaos_med": 0.382,
+     "roi_drop_max": 49.5,
+     "max_race": "2026071102010909",
+     "max_ret": 1870.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 259,
+     "stake": 25900,
+     "ret": 19050.0,
+     "roi": 73.6,
+     "ci": [
+      60.3,
+      88.3
+     ],
+     "race_hit": 37.1,
+     "hit_pts": 96,
+     "hon_top3": 37.5,
+     "hon_odds_med": 6.6,
+     "chaos_med": 0.382,
+     "roi_drop_max": 70.9,
+     "max_race": "2026092006040607",
+     "max_ret": 750.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "一致3（GO不問）",
+   "n": 201,
+   "by_type": {
+    "ワイド": {
+     "n": 201,
+     "stake": 80400,
+     "ret": 62650.0,
+     "roi": 77.9,
+     "ci": [
+      66.3,
+      90.8
+     ],
+     "race_hit": 65.2,
+     "hit_pts": 186,
+     "hon_top3": 76.1,
+     "hon_odds_med": 2.9,
+     "chaos_med": 0.314,
+     "roi_drop_max": 75.6,
+     "max_race": "2026071910020807",
+     "max_ret": 2180.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 201,
+     "stake": 80400,
+     "ret": 71320.0,
+     "roi": 88.7,
+     "ci": [
+      68.0,
+      113.6
+     ],
+     "race_hit": 43.3,
+     "hit_pts": 87,
+     "hon_top3": 76.1,
+     "hon_odds_med": 2.9,
+     "chaos_med": 0.314,
+     "roi_drop_max": 82.5,
+     "max_race": "2026092006040608",
+     "max_ret": 5300.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 201,
+     "stake": 120600,
+     "ret": 79440.0,
+     "roi": 65.9,
+     "ci": [
+      44.8,
+      90.9
+     ],
+     "race_hit": 27.4,
+     "hit_pts": 55,
+     "hon_top3": 76.1,
+     "hon_odds_med": 2.9,
+     "chaos_med": 0.314,
+     "roi_drop_max": 59.2,
+     "max_race": "2026071910020807",
+     "max_ret": 8410.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 201,
+     "stake": 20100,
+     "ret": 20730.0,
+     "roi": 103.1,
+     "ci": [
+      86.8,
+      121.6
+     ],
+     "race_hit": 47.8,
+     "hit_pts": 96,
+     "hon_top3": 76.1,
+     "hon_odds_med": 2.9,
+     "chaos_med": 0.314,
+     "roi_drop_max": 101.4,
+     "max_race": "2026071910020807",
+     "max_ret": 450.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 201,
+     "stake": 20100,
+     "ret": 18060.0,
+     "roi": 89.9,
+     "ci": [
+      82.7,
+      97.0
+     ],
+     "race_hit": 75.6,
+     "hit_pts": 152,
+     "hon_top3": 76.1,
+     "hon_odds_med": 2.9,
+     "chaos_med": 0.314,
+     "roi_drop_max": 89.4,
+     "max_race": "2026080907020607",
+     "max_ret": 190.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "一致2（GO不問）",
+   "n": 276,
+   "by_type": {
+    "ワイド": {
+     "n": 276,
+     "stake": 110400,
+     "ret": 85720.0,
+     "roi": 77.6,
+     "ci": [
+      66.8,
+      89.4
+     ],
+     "race_hit": 56.5,
+     "hit_pts": 236,
+     "hon_top3": 65.2,
+     "hon_odds_med": 3.4,
+     "chaos_med": 0.395,
+     "roi_drop_max": 75.0,
+     "max_race": "2026061302010112",
+     "max_ret": 3240.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 276,
+     "stake": 110400,
+     "ret": 90140.0,
+     "roi": 81.6,
+     "ci": [
+      64.6,
+      100.8
+     ],
+     "race_hit": 35.5,
+     "hit_pts": 98,
+     "hon_top3": 65.2,
+     "hon_odds_med": 3.4,
+     "chaos_med": 0.395,
+     "roi_drop_max": 77.0,
+     "max_race": "2026062009030511",
+     "max_ret": 5450.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 276,
+     "stake": 165600,
+     "ret": 127420.0,
+     "roi": 76.9,
+     "ci": [
+      55.2,
+      102.9
+     ],
+     "race_hit": 29.0,
+     "hit_pts": 80,
+     "hon_top3": 65.2,
+     "hon_odds_med": 3.4,
+     "chaos_med": 0.395,
+     "roi_drop_max": 69.0,
+     "max_race": "2026061302010112",
+     "max_ret": 13500.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 276,
+     "stake": 27600,
+     "ret": 18610.0,
+     "roi": 67.4,
+     "ci": [
+      53.9,
+      81.6
+     ],
+     "race_hit": 29.7,
+     "hit_pts": 82,
+     "hon_top3": 65.2,
+     "hon_odds_med": 3.4,
+     "chaos_med": 0.395,
+     "roi_drop_max": 65.7,
+     "max_race": "2026062009030510",
+     "max_ret": 530.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 276,
+     "stake": 27600,
+     "ret": 23630.0,
+     "roi": 85.6,
+     "ci": [
+      77.6,
+      93.9
+     ],
+     "race_hit": 64.9,
+     "hit_pts": 179,
+     "hon_top3": 65.2,
+     "hon_odds_med": 3.4,
+     "chaos_med": 0.395,
+     "roi_drop_max": 84.6,
+     "max_race": "2026062803020211",
+     "max_ret": 360.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "一致1（GO不問）",
+   "n": 362,
+   "by_type": {
+    "ワイド": {
+     "n": 362,
+     "stake": 144800,
+     "ret": 117830.0,
+     "roi": 81.4,
+     "ci": [
+      68.9,
+      94.9
+     ],
+     "race_hit": 47.0,
+     "hit_pts": 245,
+     "hon_top3": 53.9,
+     "hon_odds_med": 5.1,
+     "chaos_med": 0.502,
+     "roi_drop_max": 78.8,
+     "max_race": "2026081607020802",
+     "max_ret": 4030.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 362,
+     "stake": 144800,
+     "ret": 100900.0,
+     "roi": 69.7,
+     "ci": [
+      52.5,
+      89.5
+     ],
+     "race_hit": 24.6,
+     "hit_pts": 89,
+     "hon_top3": 53.9,
+     "hon_odds_med": 5.1,
+     "chaos_med": 0.502,
+     "roi_drop_max": 65.8,
+     "max_race": "2026071110020512",
+     "max_ret": 5920.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 362,
+     "stake": 217200,
+     "ret": 171850.0,
+     "roi": 79.1,
+     "ci": [
+      53.0,
+      109.6
+     ],
+     "race_hit": 20.7,
+     "hit_pts": 75,
+     "hon_top3": 53.9,
+     "hon_odds_med": 5.1,
+     "chaos_med": 0.502,
+     "roi_drop_max": 70.6,
+     "max_race": "2026081607020802",
+     "max_ret": 18950.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 362,
+     "stake": 36200,
+     "ret": 33130.0,
+     "roi": 91.5,
+     "ci": [
+      65.6,
+      124.4
+     ],
+     "race_hit": 23.8,
+     "hit_pts": 86,
+     "hon_top3": 53.9,
+     "hon_odds_med": 5.1,
+     "chaos_med": 0.502,
+     "roi_drop_max": 79.6,
+     "max_race": "2026101705040609",
+     "max_ret": 4380.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 362,
+     "stake": 36200,
+     "ret": 28940.0,
+     "roi": 79.9,
+     "ci": [
+      71.2,
+      89.1
+     ],
+     "race_hit": 51.7,
+     "hit_pts": 187,
+     "hon_top3": 53.9,
+     "hon_odds_med": 5.1,
+     "chaos_med": 0.502,
+     "roi_drop_max": 78.6,
+     "max_race": "2026101705040609",
+     "max_ret": 570.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "一致0（GO不問）",
+   "n": 420,
+   "by_type": {
+    "ワイド": {
+     "n": 420,
+     "stake": 168000,
+     "ret": 117670.0,
+     "roi": 70.0,
+     "ci": [
+      55.8,
+      85.7
+     ],
+     "race_hit": 31.7,
+     "hit_pts": 192,
+     "hon_top3": 36.9,
+     "hon_odds_med": 7.2,
+     "chaos_med": 0.593,
+     "roi_drop_max": 66.7,
+     "max_race": "2026080201010412",
+     "max_ret": 5810.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 420,
+     "stake": 168000,
+     "ret": 118690.0,
+     "roi": 70.6,
+     "ci": [
+      46.9,
+      99.9
+     ],
+     "race_hit": 16.4,
+     "hit_pts": 69,
+     "hon_top3": 36.9,
+     "hon_odds_med": 7.2,
+     "chaos_med": 0.593,
+     "roi_drop_max": 61.1,
+     "max_race": "2026092706040912",
+     "max_ret": 16360.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 420,
+     "stake": 252000,
+     "ret": 151570.0,
+     "roi": 60.1,
+     "ci": [
+      38.3,
+      86.6
+     ],
+     "race_hit": 14.0,
+     "hit_pts": 59,
+     "hon_top3": 36.9,
+     "hon_odds_med": 7.2,
+     "chaos_med": 0.593,
+     "roi_drop_max": 51.4,
+     "max_race": "2026080201010412",
+     "max_ret": 22440.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 420,
+     "stake": 42000,
+     "ret": 27570.0,
+     "roi": 65.6,
+     "ci": [
+      46.5,
+      87.2
+     ],
+     "race_hit": 13.1,
+     "hit_pts": 55,
+     "hon_top3": 36.9,
+     "hon_odds_med": 7.2,
+     "chaos_med": 0.593,
+     "roi_drop_max": 60.5,
+     "max_race": "2026090501020505",
+     "max_ret": 2220.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 420,
+     "stake": 42000,
+     "ret": 30740.0,
+     "roi": 73.2,
+     "ci": [
+      62.4,
+      84.0
+     ],
+     "race_hit": 36.7,
+     "hit_pts": 154,
+     "hon_top3": 36.9,
+     "hon_odds_med": 7.2,
+     "chaos_med": 0.593,
+     "roi_drop_max": 71.6,
+     "max_race": "2026092006040607",
+     "max_ret": 750.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧固い",
+   "n": 389,
+   "by_type": {
+    "ワイド": {
+     "n": 389,
+     "stake": 155600,
+     "ret": 121000.0,
+     "roi": 77.8,
+     "ci": [
+      68.8,
+      87.2
+     ],
+     "race_hit": 56.6,
+     "hit_pts": 337,
+     "hon_top3": 61.4,
+     "hon_odds_med": 3.7,
+     "chaos_med": 0.139,
+     "roi_drop_max": 76.5,
+     "max_race": "2026062009030511",
+     "max_ret": 2270.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 389,
+     "stake": 155600,
+     "ret": 116770.0,
+     "roi": 75.0,
+     "ci": [
+      60.7,
+      91.0
+     ],
+     "race_hit": 35.5,
+     "hit_pts": 138,
+     "hon_top3": 61.4,
+     "hon_odds_med": 3.7,
+     "chaos_med": 0.139,
+     "roi_drop_max": 71.7,
+     "max_race": "2026062009030511",
+     "max_ret": 5450.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 389,
+     "stake": 233400,
+     "ret": 171550.0,
+     "roi": 73.5,
+     "ci": [
+      58.7,
+      89.8
+     ],
+     "race_hit": 30.1,
+     "hit_pts": 117,
+     "hon_top3": 61.4,
+     "hon_odds_med": 3.7,
+     "chaos_med": 0.139,
+     "roi_drop_max": 70.1,
+     "max_race": "2026062009030511",
+     "max_ret": 8430.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 389,
+     "stake": 38900,
+     "ret": 28580.0,
+     "roi": 73.5,
+     "ci": [
+      61.4,
+      86.6
+     ],
+     "race_hit": 31.9,
+     "hit_pts": 124,
+     "hon_top3": 61.4,
+     "hon_odds_med": 3.7,
+     "chaos_med": 0.139,
+     "roi_drop_max": 71.1,
+     "max_race": "2026062802010604",
+     "max_ret": 1000.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 389,
+     "stake": 38900,
+     "ret": 31290.0,
+     "roi": 80.4,
+     "ci": [
+      73.2,
+      87.8
+     ],
+     "race_hit": 60.9,
+     "hit_pts": 237,
+     "hon_top3": 61.4,
+     "hon_odds_med": 3.7,
+     "chaos_med": 0.139,
+     "roi_drop_max": 79.1,
+     "max_race": "2026092609040808",
+     "max_ret": 600.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧標準",
+   "n": 510,
+   "by_type": {
+    "ワイド": {
+     "n": 510,
+     "stake": 204000,
+     "ret": 154910.0,
+     "roi": 75.9,
+     "ci": [
+      65.8,
+      87.0
+     ],
+     "race_hit": 46.3,
+     "hit_pts": 333,
+     "hon_top3": 54.5,
+     "hon_odds_med": 5.0,
+     "chaos_med": 0.491,
+     "roi_drop_max": 73.6,
+     "max_race": "2026092006040607",
+     "max_ret": 5150.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 510,
+     "stake": 204000,
+     "ret": 147690.0,
+     "roi": 72.4,
+     "ci": [
+      57.5,
+      88.8
+     ],
+     "race_hit": 25.3,
+     "hit_pts": 129,
+     "hon_top3": 54.5,
+     "hon_odds_med": 5.0,
+     "chaos_med": 0.491,
+     "roi_drop_max": 69.6,
+     "max_race": "2026071102010909",
+     "max_ret": 5980.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 510,
+     "stake": 306000,
+     "ret": 189810.0,
+     "roi": 62.0,
+     "ci": [
+      45.6,
+      81.2
+     ],
+     "race_hit": 19.0,
+     "hit_pts": 97,
+     "hon_top3": 54.5,
+     "hon_odds_med": 5.0,
+     "chaos_med": 0.491,
+     "roi_drop_max": 57.2,
+     "max_race": "2026102404040309",
+     "max_ret": 14970.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 510,
+     "stake": 51000,
+     "ret": 38070.0,
+     "roi": 74.6,
+     "ci": [
+      60.4,
+      90.1
+     ],
+     "race_hit": 23.5,
+     "hit_pts": 120,
+     "hon_top3": 54.5,
+     "hon_odds_med": 5.0,
+     "chaos_med": 0.491,
+     "roi_drop_max": 71.1,
+     "max_race": "2026071102010909",
+     "max_ret": 1870.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 510,
+     "stake": 51000,
+     "ret": 42710.0,
+     "roi": 83.7,
+     "ci": [
+      76.0,
+      92.3
+     ],
+     "race_hit": 53.5,
+     "hit_pts": 273,
+     "hon_top3": 54.5,
+     "hon_odds_med": 5.0,
+     "chaos_med": 0.491,
+     "roi_drop_max": 82.4,
+     "max_race": "2026092006040607",
+     "max_ret": 750.0,
+     "candidate": false
+    }
+   }
+  }
+ ],
+ "agree2p": [
+  {
+   "name": "GO∧一致2以上∧固い",
+   "n": 203,
+   "by_type": {
+    "ワイド": {
+     "n": 203,
+     "stake": 81200,
+     "ret": 67870.0,
+     "roi": 83.6,
+     "ci": [
+      72.6,
+      95.5
+     ],
+     "race_hit": 68.5,
+     "hit_pts": 212,
+     "hon_top3": 75.9,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.125,
+     "roi_drop_max": 81.2,
+     "max_race": "2026062009030511",
+     "max_ret": 2270.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 203,
+     "stake": 81200,
+     "ret": 74590.0,
+     "roi": 91.9,
+     "ci": [
+      71.4,
+      115.8
+     ],
+     "race_hit": 47.3,
+     "hit_pts": 96,
+     "hon_top3": 75.9,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.125,
+     "roi_drop_max": 85.6,
+     "max_race": "2026062009030511",
+     "max_ret": 5450.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 203,
+     "stake": 121800,
+     "ret": 94010.0,
+     "roi": 77.2,
+     "ci": [
+      57.1,
+      99.4
+     ],
+     "race_hit": 36.0,
+     "hit_pts": 73,
+     "hon_top3": 75.9,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.125,
+     "roi_drop_max": 70.6,
+     "max_race": "2026062009030511",
+     "max_ret": 8430.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 203,
+     "stake": 20300,
+     "ret": 16950.0,
+     "roi": 83.5,
+     "ci": [
+      69.5,
+      97.9
+     ],
+     "race_hit": 43.8,
+     "hit_pts": 89,
+     "hon_top3": 75.9,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.125,
+     "roi_drop_max": 81.8,
+     "max_race": "2026062102010404",
+     "max_ret": 430.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 203,
+     "stake": 20300,
+     "ret": 18040.0,
+     "roi": 88.9,
+     "ci": [
+      81.6,
+      96.1
+     ],
+     "race_hit": 75.4,
+     "hit_pts": 153,
+     "hon_top3": 75.9,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.125,
+     "roi_drop_max": 88.0,
+     "max_race": "2026062810020211",
+     "max_ret": 260.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧一致2以上∧標準",
+   "n": 184,
+   "by_type": {
+    "ワイド": {
+     "n": 184,
+     "stake": 73600,
+     "ret": 55290.0,
+     "roi": 75.1,
+     "ci": [
+      62.3,
+      88.7
+     ],
+     "race_hit": 55.4,
+     "hit_pts": 147,
+     "hon_top3": 66.3,
+     "hon_odds_med": 3.7,
+     "chaos_med": 0.491,
+     "roi_drop_max": 72.6,
+     "max_race": "2026071910020807",
+     "max_ret": 2180.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 184,
+     "stake": 73600,
+     "ret": 63450.0,
+     "roi": 86.2,
+     "ci": [
+      63.9,
+      110.7
+     ],
+     "race_hit": 34.8,
+     "hit_pts": 64,
+     "hon_top3": 66.3,
+     "hon_odds_med": 3.7,
+     "chaos_med": 0.491,
+     "roi_drop_max": 79.4,
+     "max_race": "2026092006040608",
+     "max_ret": 5300.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 184,
+     "stake": 110400,
+     "ret": 77370.0,
+     "roi": 70.1,
+     "ci": [
+      46.9,
+      96.8
+     ],
+     "race_hit": 24.5,
+     "hit_pts": 45,
+     "hon_top3": 66.3,
+     "hon_odds_med": 3.7,
+     "chaos_med": 0.491,
+     "roi_drop_max": 62.8,
+     "max_race": "2026071910020807",
+     "max_ret": 8410.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 184,
+     "stake": 18400,
+     "ret": 14330.0,
+     "roi": 77.9,
+     "ci": [
+      60.7,
+      96.1
+     ],
+     "race_hit": 32.6,
+     "hit_pts": 60,
+     "hon_top3": 66.3,
+     "hon_odds_med": 3.7,
+     "chaos_med": 0.491,
+     "roi_drop_max": 75.8,
+     "max_race": "2026071910020807",
+     "max_ret": 450.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 184,
+     "stake": 18400,
+     "ret": 15730.0,
+     "roi": 85.5,
+     "ci": [
+      76.4,
+      94.3
+     ],
+     "race_hit": 66.3,
+     "hit_pts": 122,
+     "hon_top3": 66.3,
+     "hon_odds_med": 3.7,
+     "chaos_med": 0.491,
+     "roi_drop_max": 84.9,
+     "max_race": "2026080907020607",
+     "max_ret": 190.0,
+     "candidate": false
+    }
+   }
+  }
+ ],
+ "gauge7": [
+  {
+   "name": "GO∧人気",
+   "n": 106,
+   "by_type": {
+    "ワイド": {
+     "n": 106,
+     "stake": 42400,
+     "ret": 31560.0,
+     "roi": 74.4,
+     "ci": [
+      55.4,
+      96.1
+     ],
+     "race_hit": 50.9,
+     "hit_pts": 75,
+     "hon_top3": 59.4,
+     "hon_odds_med": 3.6,
+     "chaos_med": 0.434,
+     "roi_drop_max": 68.9,
+     "max_race": "2026102404040309",
+     "max_ret": 2640.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 106,
+     "stake": 42400,
+     "ret": 26870.0,
+     "roi": 63.4,
+     "ci": [
+      36.5,
+      99.2
+     ],
+     "race_hit": 26.4,
+     "hit_pts": 28,
+     "hon_top3": 59.4,
+     "hon_odds_med": 3.6,
+     "chaos_med": 0.434,
+     "roi_drop_max": 50.9,
+     "max_race": "2026102404040309",
+     "max_ret": 5500.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 106,
+     "stake": 63600,
+     "ret": 51500.0,
+     "roi": 81.0,
+     "ci": [
+      36.8,
+      144.3
+     ],
+     "race_hit": 19.8,
+     "hit_pts": 21,
+     "hon_top3": 59.4,
+     "hon_odds_med": 3.6,
+     "chaos_med": 0.434,
+     "roi_drop_max": 58.0,
+     "max_race": "2026102404040309",
+     "max_ret": 14970.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 106,
+     "stake": 10600,
+     "ret": 7520.0,
+     "roi": 70.9,
+     "ci": [
+      49.7,
+      93.8
+     ],
+     "race_hit": 30.2,
+     "hit_pts": 32,
+     "hon_top3": 59.4,
+     "hon_odds_med": 3.6,
+     "chaos_med": 0.434,
+     "roi_drop_max": 65.9,
+     "max_race": "2026100408040207",
+     "max_ret": 600.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 106,
+     "stake": 10600,
+     "ret": 8360.0,
+     "roi": 78.9,
+     "ci": [
+      65.8,
+      92.3
+     ],
+     "race_hit": 58.5,
+     "hit_pts": 62,
+     "hon_top3": 59.4,
+     "hon_odds_med": 3.6,
+     "chaos_med": 0.434,
+     "roi_drop_max": 77.1,
+     "max_race": "2026100408040207",
+     "max_ret": 260.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧PW",
+   "n": 94,
+   "by_type": {
+    "ワイド": {
+     "n": 94,
+     "stake": 37600,
+     "ret": 38820.0,
+     "roi": 103.2,
+     "ci": [
+      77.5,
+      130.9
+     ],
+     "race_hit": 52.1,
+     "hit_pts": 74,
+     "hon_top3": 57.4,
+     "hon_odds_med": 5.7,
+     "chaos_med": 0.372,
+     "roi_drop_max": 98.4,
+     "max_race": "2026081504020712",
+     "max_ret": 2220.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 94,
+     "stake": 37600,
+     "ret": 28360.0,
+     "roi": 75.4,
+     "ci": [
+      36.3,
+      120.0
+     ],
+     "race_hit": 21.3,
+     "hit_pts": 20,
+     "hon_top3": 57.4,
+     "hon_odds_med": 5.7,
+     "chaos_med": 0.372,
+     "roi_drop_max": 60.3,
+     "max_race": "2026071110020512",
+     "max_ret": 5920.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 94,
+     "stake": 56400,
+     "ret": 50150.0,
+     "roi": 88.9,
+     "ci": [
+      47.7,
+      143.1
+     ],
+     "race_hit": 26.6,
+     "hit_pts": 25,
+     "hon_top3": 57.4,
+     "hon_odds_med": 5.7,
+     "chaos_med": 0.372,
+     "roi_drop_max": 68.0,
+     "max_race": "2026081504020712",
+     "max_ret": 12200.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 94,
+     "stake": 9400,
+     "ret": 8580.0,
+     "roi": 91.3,
+     "ci": [
+      52.0,
+      136.6
+     ],
+     "race_hit": 19.1,
+     "hit_pts": 18,
+     "hon_top3": 57.4,
+     "hon_odds_med": 5.7,
+     "chaos_med": 0.372,
+     "roi_drop_max": 81.5,
+     "max_race": "2026062802010604",
+     "max_ret": 1000.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 94,
+     "stake": 9400,
+     "ret": 8710.0,
+     "roi": 92.7,
+     "ci": [
+      74.4,
+      111.3
+     ],
+     "race_hit": 55.3,
+     "hit_pts": 52,
+     "hon_top3": 57.4,
+     "hon_odds_med": 5.7,
+     "chaos_med": 0.372,
+     "roi_drop_max": 89.9,
+     "max_race": "2026071110020512",
+     "max_ret": 350.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧速度",
+   "n": 53,
+   "by_type": {
+    "ワイド": {
+     "n": 53,
+     "stake": 21200,
+     "ret": 18000.0,
+     "roi": 84.9,
+     "ci": [
+      56.7,
+      118.0
+     ],
+     "race_hit": 47.2,
+     "hit_pts": 36,
+     "hon_top3": 50.9,
+     "hon_odds_med": 5.4,
+     "chaos_med": 0.413,
+     "roi_drop_max": 77.2,
+     "max_race": "2026110808050201",
+     "max_ret": 1950.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 53,
+     "stake": 21200,
+     "ret": 20000.0,
+     "roi": 94.3,
+     "ci": [
+      49.3,
+      149.7
+     ],
+     "race_hit": 32.1,
+     "hit_pts": 17,
+     "hon_top3": 50.9,
+     "hon_odds_med": 5.4,
+     "chaos_med": 0.413,
+     "roi_drop_max": 78.0,
+     "max_race": "2026070503020402",
+     "max_ret": 3780.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 53,
+     "stake": 31800,
+     "ret": 23470.0,
+     "roi": 73.8,
+     "ci": [
+      28.0,
+      130.5
+     ],
+     "race_hit": 20.8,
+     "hit_pts": 11,
+     "hon_top3": 50.9,
+     "hon_odds_med": 5.4,
+     "chaos_med": 0.413,
+     "roi_drop_max": 56.4,
+     "max_race": "2026070503020402",
+     "max_ret": 5870.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 53,
+     "stake": 5300,
+     "ret": 4630.0,
+     "roi": 87.4,
+     "ci": [
+      46.8,
+      136.0
+     ],
+     "race_hit": 26.4,
+     "hit_pts": 14,
+     "hon_top3": 50.9,
+     "hon_odds_med": 5.4,
+     "chaos_med": 0.413,
+     "roi_drop_max": 75.8,
+     "max_race": "2026100308040106",
+     "max_ret": 690.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 53,
+     "stake": 5300,
+     "ret": 4110.0,
+     "roi": 77.5,
+     "ci": [
+      55.3,
+      100.9
+     ],
+     "race_hit": 47.2,
+     "hit_pts": 25,
+     "hon_top3": 50.9,
+     "hon_odds_med": 5.4,
+     "chaos_med": 0.413,
+     "roi_drop_max": 73.8,
+     "max_race": "2026100308040106",
+     "max_ret": 270.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧人気PW",
+   "n": 65,
+   "by_type": {
+    "ワイド": {
+     "n": 65,
+     "stake": 26000,
+     "ret": 18220.0,
+     "roi": 70.1,
+     "ci": [
+      49.8,
+      92.6
+     ],
+     "race_hit": 50.8,
+     "hit_pts": 51,
+     "hon_top3": 61.5,
+     "hon_odds_med": 3.5,
+     "chaos_med": 0.319,
+     "roi_drop_max": 65.7,
+     "max_race": "2026111403030304",
+     "max_ret": 1410.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 65,
+     "stake": 26000,
+     "ret": 21370.0,
+     "roi": 82.2,
+     "ci": [
+      49.4,
+      116.5
+     ],
+     "race_hit": 33.8,
+     "hit_pts": 22,
+     "hon_top3": 61.5,
+     "hon_odds_med": 3.5,
+     "chaos_med": 0.319,
+     "roi_drop_max": 74.5,
+     "max_race": "2026091209040309",
+     "max_ret": 2290.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 65,
+     "stake": 39000,
+     "ret": 29250.0,
+     "roi": 75.0,
+     "ci": [
+      39.3,
+      116.2
+     ],
+     "race_hit": 27.7,
+     "hit_pts": 18,
+     "hon_top3": 61.5,
+     "hon_odds_med": 3.5,
+     "chaos_med": 0.319,
+     "roi_drop_max": 64.0,
+     "max_race": "2026111403030304",
+     "max_ret": 4690.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 65,
+     "stake": 6500,
+     "ret": 4130.0,
+     "roi": 63.5,
+     "ci": [
+      36.6,
+      93.1
+     ],
+     "race_hit": 26.2,
+     "hit_pts": 17,
+     "hon_top3": 61.5,
+     "hon_odds_med": 3.5,
+     "chaos_med": 0.319,
+     "roi_drop_max": 58.0,
+     "max_race": "2026091209040309",
+     "max_ret": 420.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 65,
+     "stake": 6500,
+     "ret": 5060.0,
+     "roi": 77.8,
+     "ci": [
+      62.3,
+      92.8
+     ],
+     "race_hit": 61.5,
+     "hit_pts": 40,
+     "hon_top3": 61.5,
+     "hon_odds_med": 3.5,
+     "chaos_med": 0.319,
+     "roi_drop_max": 76.1,
+     "max_race": "2026100408040201",
+     "max_ret": 190.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧人気速度",
+   "n": 120,
+   "by_type": {
+    "ワイド": {
+     "n": 120,
+     "stake": 48000,
+     "ret": 36990.0,
+     "roi": 77.1,
+     "ci": [
+      62.0,
+      94.4
+     ],
+     "race_hit": 58.3,
+     "hit_pts": 111,
+     "hon_top3": 68.3,
+     "hon_odds_med": 3.0,
+     "chaos_med": 0.314,
+     "roi_drop_max": 72.9,
+     "max_race": "2026062009030511",
+     "max_ret": 2270.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 120,
+     "stake": 48000,
+     "ret": 42520.0,
+     "roi": 88.6,
+     "ci": [
+      61.0,
+      121.2
+     ],
+     "race_hit": 40.8,
+     "hit_pts": 49,
+     "hon_top3": 68.3,
+     "hon_odds_med": 3.0,
+     "chaos_med": 0.314,
+     "roi_drop_max": 77.9,
+     "max_race": "2026062009030511",
+     "max_ret": 5450.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 120,
+     "stake": 72000,
+     "ret": 59950.0,
+     "roi": 83.3,
+     "ci": [
+      54.5,
+      118.6
+     ],
+     "race_hit": 34.2,
+     "hit_pts": 41,
+     "hon_top3": 68.3,
+     "hon_odds_med": 3.0,
+     "chaos_med": 0.314,
+     "roi_drop_max": 72.2,
+     "max_race": "2026062009030511",
+     "max_ret": 8430.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 120,
+     "stake": 12000,
+     "ret": 8220.0,
+     "roi": 68.5,
+     "ci": [
+      51.5,
+      86.1
+     ],
+     "race_hit": 35.8,
+     "hit_pts": 43,
+     "hon_top3": 68.3,
+     "hon_odds_med": 3.0,
+     "chaos_med": 0.314,
+     "roi_drop_max": 65.9,
+     "max_race": "2026083001020404",
+     "max_ret": 380.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 120,
+     "stake": 12000,
+     "ret": 9960.0,
+     "roi": 83.0,
+     "ci": [
+      72.4,
+      93.8
+     ],
+     "race_hit": 67.5,
+     "hit_pts": 81,
+     "hon_top3": 68.3,
+     "hon_odds_med": 3.0,
+     "chaos_med": 0.314,
+     "roi_drop_max": 82.1,
+     "max_race": "2026083001020404",
+     "max_ret": 190.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧PW速度",
+   "n": 35,
+   "by_type": {
+    "ワイド": {
+     "n": 35,
+     "stake": 14000,
+     "ret": 14930.0,
+     "roi": 106.6,
+     "ci": [
+      80.9,
+      134.1
+     ],
+     "race_hit": 77.1,
+     "hit_pts": 41,
+     "hon_top3": 77.1,
+     "hon_odds_med": 4.2,
+     "chaos_med": 0.376,
+     "roi_drop_max": 99.7,
+     "max_race": "2026062102010404",
+     "max_ret": 1370.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 35,
+     "stake": 14000,
+     "ret": 15020.0,
+     "roi": 107.3,
+     "ci": [
+      50.8,
+      176.3
+     ],
+     "race_hit": 42.9,
+     "hit_pts": 15,
+     "hon_top3": 77.1,
+     "hon_odds_med": 4.2,
+     "chaos_med": 0.376,
+     "roi_drop_max": 81.8,
+     "max_race": "2026062102010404",
+     "max_ret": 3890.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 35,
+     "stake": 21000,
+     "ret": 15360.0,
+     "roi": 73.1,
+     "ci": [
+      39.0,
+      113.6
+     ],
+     "race_hit": 40.0,
+     "hit_pts": 14,
+     "hon_top3": 77.1,
+     "hon_odds_med": 4.2,
+     "chaos_med": 0.376,
+     "roi_drop_max": 62.5,
+     "max_race": "2026102408040807",
+     "max_ret": 2600.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 35,
+     "stake": 3500,
+     "ret": 2220.0,
+     "roi": 63.4,
+     "ci": [
+      24.9,
+      105.1
+     ],
+     "race_hit": 22.9,
+     "hit_pts": 8,
+     "hon_top3": 77.1,
+     "hon_odds_med": 4.2,
+     "chaos_med": 0.376,
+     "roi_drop_max": 52.6,
+     "max_race": "2026062102010404",
+     "max_ret": 430.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 35,
+     "stake": 3500,
+     "ret": 3800.0,
+     "roi": 108.6,
+     "ci": [
+      86.9,
+      129.7
+     ],
+     "race_hit": 77.1,
+     "hit_pts": 27,
+     "hon_top3": 77.1,
+     "hon_odds_med": 4.2,
+     "chaos_med": 0.376,
+     "roi_drop_max": 104.1,
+     "max_race": "2026062810020211",
+     "max_ret": 260.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧人気PW速度",
+   "n": 167,
+   "by_type": {
+    "ワイド": {
+     "n": 167,
+     "stake": 66800,
+     "ret": 53020.0,
+     "roi": 79.4,
+     "ci": [
+      66.6,
+      93.7
+     ],
+     "race_hit": 66.5,
+     "hit_pts": 156,
+     "hon_top3": 76.0,
+     "hon_odds_med": 2.8,
+     "chaos_med": 0.217,
+     "roi_drop_max": 76.6,
+     "max_race": "2026071910020807",
+     "max_ret": 2180.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 167,
+     "stake": 66800,
+     "ret": 59130.0,
+     "roi": 88.5,
+     "ci": [
+      65.5,
+      115.7
+     ],
+     "race_hit": 44.3,
+     "hit_pts": 74,
+     "hon_top3": 76.0,
+     "hon_odds_med": 2.8,
+     "chaos_med": 0.217,
+     "roi_drop_max": 81.1,
+     "max_race": "2026092006040608",
+     "max_ret": 5300.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 167,
+     "stake": 100200,
+     "ret": 66820.0,
+     "roi": 66.7,
+     "ci": [
+      43.3,
+      93.5
+     ],
+     "race_hit": 26.9,
+     "hit_pts": 45,
+     "hon_top3": 76.0,
+     "hon_odds_med": 2.8,
+     "chaos_med": 0.217,
+     "roi_drop_max": 58.6,
+     "max_race": "2026071910020807",
+     "max_ret": 8410.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 167,
+     "stake": 16700,
+     "ret": 16710.0,
+     "roi": 100.1,
+     "ci": [
+      83.0,
+      117.5
+     ],
+     "race_hit": 48.5,
+     "hit_pts": 81,
+     "hon_top3": 76.0,
+     "hon_odds_med": 2.8,
+     "chaos_med": 0.217,
+     "roi_drop_max": 98.0,
+     "max_race": "2026071910020807",
+     "max_ret": 450.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 167,
+     "stake": 16700,
+     "ret": 14950.0,
+     "roi": 89.5,
+     "ci": [
+      81.4,
+      97.3
+     ],
+     "race_hit": 76.0,
+     "hit_pts": 127,
+     "hon_top3": 76.0,
+     "hon_odds_med": 2.8,
+     "chaos_med": 0.217,
+     "roi_drop_max": 88.9,
+     "max_race": "2026080907020607",
+     "max_ret": 190.0,
+     "candidate": false
+    }
+   }
+  }
+ ],
+ "partner_contrib": [
+  {
+   "name": "GO∧一致3∧固い",
+   "ワイド": {
+    "△1": {
+     "hits": 19,
+     "ret": 8920.0
+    },
+    "○": {
+     "hits": 38,
+     "ret": 8360.0
+    },
+    "▲": {
+     "hits": 27,
+     "ret": 7790.0
+    },
+    "△2": {
+     "hits": 12,
+     "ret": 4910.0
+    }
+   },
+   "馬連": {
+    "△1": {
+     "hits": 4,
+     "ret": 6900.0
+    },
+    "○": {
+     "hits": 25,
+     "ret": 11690.0
+    },
+    "△2": {
+     "hits": 4,
+     "ret": 3930.0
+    },
+    "▲": {
+     "hits": 14,
+     "ret": 10140.0
+    }
+   },
+   "三連複": {
+    "○▲": {
+     "hits": 11,
+     "ret": 9430.0
+    },
+    "○△2": {
+     "hits": 3,
+     "ret": 5460.0
+    },
+    "○△1": {
+     "hits": 6,
+     "ret": 4210.0
+    },
+    "▲△2": {
+     "hits": 3,
+     "ret": 6860.0
+    },
+    "△1△2": {
+     "hits": 2,
+     "ret": 2700.0
+    },
+    "▲△1": {
+     "hits": 2,
+     "ret": 3690.0
+    }
+   }
+  },
+  {
+   "name": "GO∧一致3∧標準",
+   "ワイド": {
+    "▲": {
+     "hits": 20,
+     "ret": 9070.0
+    },
+    "△2": {
+     "hits": 13,
+     "ret": 4060.0
+    },
+    "△1": {
+     "hits": 15,
+     "ret": 6890.0
+    },
+    "○": {
+     "hits": 12,
+     "ret": 2920.0
+    }
+   },
+   "馬連": {
+    "▲": {
+     "hits": 11,
+     "ret": 10850.0
+    },
+    "△2": {
+     "hits": 5,
+     "ret": 3320.0
+    },
+    "○": {
+     "hits": 5,
+     "ret": 2200.0
+    },
+    "△1": {
+     "hits": 6,
+     "ret": 10000.0
+    }
+   },
+   "三連複": {
+    "△1△2": {
+     "hits": 2,
+     "ret": 2900.0
+    },
+    "○▲": {
+     "hits": 2,
+     "ret": 5260.0
+    },
+    "▲△1": {
+     "hits": 5,
+     "ret": 8240.0
+    },
+    "▲△2": {
+     "hits": 5,
+     "ret": 10440.0
+    },
+    "○△2": {
+     "hits": 2,
+     "ret": 1750.0
+    },
+    "○△1": {
+     "hits": 2,
+     "ret": 5580.0
+    }
+   }
+  },
+  {
+   "name": "GO∧一致2∧固い",
+   "ワイド": {
+    "○": {
+     "hits": 41,
+     "ret": 9410.0
+    },
+    "△1": {
+     "hits": 28,
+     "ret": 11700.0
+    },
+    "▲": {
+     "hits": 27,
+     "ret": 7570.0
+    },
+    "△2": {
+     "hits": 20,
+     "ret": 9010.0
+    }
+   },
+   "馬連": {
+    "△1": {
+     "hits": 10,
+     "ret": 14030.0
+    },
+    "△2": {
+     "hits": 12,
+     "ret": 13380.0
+    },
+    "▲": {
+     "hits": 13,
+     "ret": 8020.0
+    },
+    "○": {
+     "hits": 14,
+     "ret": 6300.0
+    }
+   },
+   "三連複": {
+    "○△1": {
+     "hits": 12,
+     "ret": 13870.0
+    },
+    "○▲": {
+     "hits": 12,
+     "ret": 9610.0
+    },
+    "▲△1": {
+     "hits": 9,
+     "ret": 22340.0
+    },
+    "△1△2": {
+     "hits": 1,
+     "ret": 780.0
+    },
+    "○△2": {
+     "hits": 9,
+     "ret": 8060.0
+    },
+    "▲△2": {
+     "hits": 3,
+     "ret": 6400.0
+    }
+   }
+  },
+  {
+   "name": "GO∧一致2∧標準",
+   "ワイド": {
+    "△1": {
+     "hits": 23,
+     "ret": 9140.0
+    },
+    "○": {
+     "hits": 27,
+     "ret": 8300.0
+    },
+    "▲": {
+     "hits": 20,
+     "ret": 7150.0
+    },
+    "△2": {
+     "hits": 17,
+     "ret": 7560.0
+    }
+   },
+   "馬連": {
+    "△1": {
+     "hits": 8,
+     "ret": 9800.0
+    },
+    "○": {
+     "hits": 13,
+     "ret": 9010.0
+    },
+    "▲": {
+     "hits": 7,
+     "ret": 7430.0
+    },
+    "△2": {
+     "hits": 9,
+     "ret": 10640.0
+    }
+   },
+   "三連複": {
+    "○△1": {
+     "hits": 4,
+     "ret": 3310.0
+    },
+    "▲△2": {
+     "hits": 4,
+     "ret": 7880.0
+    },
+    "○▲": {
+     "hits": 5,
+     "ret": 6220.0
+    },
+    "○△2": {
+     "hits": 6,
+     "ret": 11700.0
+    },
+    "▲△1": {
+     "hits": 6,
+     "ret": 7720.0
+    },
+    "△1△2": {
+     "hits": 2,
+     "ret": 5770.0
+    }
+   }
+  },
+  {
+   "name": "GO∧一致1∧固い",
+   "ワイド": {
+    "▲": {
+     "hits": 24,
+     "ret": 10390.0
+    },
+    "△1": {
+     "hits": 10,
+     "ret": 5850.0
+    },
+    "○": {
+     "hits": 21,
+     "ret": 5570.0
+    },
+    "△2": {
+     "hits": 10,
+     "ret": 5170.0
+    }
+   },
+   "馬連": {
+    "○": {
+     "hits": 8,
+     "ret": 4270.0
+    },
+    "▲": {
+     "hits": 10,
+     "ret": 11400.0
+    },
+    "△1": {
+     "hits": 3,
+     "ret": 5980.0
+    },
+    "△2": {
+     "hits": 1,
+     "ret": 420.0
+    }
+   },
+   "三連複": {
+    "▲△1": {
+     "hits": 5,
+     "ret": 17250.0
+    },
+    "○△1": {
+     "hits": 3,
+     "ret": 4300.0
+    },
+    "▲△2": {
+     "hits": 4,
+     "ret": 6610.0
+    },
+    "○△2": {
+     "hits": 3,
+     "ret": 5320.0
+    },
+    "○▲": {
+     "hits": 6,
+     "ret": 4680.0
+    }
+   }
+  },
+  {
+   "name": "GO∧一致1∧標準",
+   "ワイド": {
+    "○": {
+     "hits": 34,
+     "ret": 10930.0
+    },
+    "▲": {
+     "hits": 31,
+     "ret": 14220.0
+    },
+    "△2": {
+     "hits": 22,
+     "ret": 17420.0
+    },
+    "△1": {
+     "hits": 33,
+     "ret": 18030.0
+    }
+   },
+   "馬連": {
+    "▲": {
+     "hits": 14,
+     "ret": 13220.0
+    },
+    "△2": {
+     "hits": 6,
+     "ret": 9870.0
+    },
+    "△1": {
+     "hits": 11,
+     "ret": 22050.0
+    },
+    "○": {
+     "hits": 12,
+     "ret": 7220.0
+    }
+   },
+   "三連複": {
+    "○▲": {
+     "hits": 5,
+     "ret": 3670.0
+    },
+    "○△2": {
+     "hits": 7,
+     "ret": 15300.0
+    },
+    "▲△1": {
+     "hits": 6,
+     "ret": 25670.0
+    },
+    "○△1": {
+     "hits": 12,
+     "ret": 14950.0
+    },
+    "▲△2": {
+     "hits": 4,
+     "ret": 11840.0
+    },
+    "△1△2": {
+     "hits": 2,
+     "ret": 13730.0
+    }
+   }
+  },
+  {
+   "name": "GO∧一致3（難しさ不問）",
+   "ワイド": {
+    "▲": {
+     "hits": 47,
+     "ret": 16860.0
+    },
+    "△1": {
+     "hits": 34,
+     "ret": 15810.0
+    },
+    "△2": {
+     "hits": 25,
+     "ret": 8970.0
+    },
+    "○": {
+     "hits": 50,
+     "ret": 11280.0
+    }
+   },
+   "馬連": {
+    "▲": {
+     "hits": 25,
+     "ret": 20990.0
+    },
+    "△1": {
+     "hits": 10,
+     "ret": 16900.0
+    },
+    "△2": {
+     "hits": 9,
+     "ret": 7250.0
+    },
+    "○": {
+     "hits": 30,
+     "ret": 13890.0
+    }
+   },
+   "三連複": {
+    "△1△2": {
+     "hits": 4,
+     "ret": 5600.0
+    },
+    "○▲": {
+     "hits": 13,
+     "ret": 14690.0
+    },
+    "○△2": {
+     "hits": 5,
+     "ret": 7210.0
+    },
+    "▲△1": {
+     "hits": 7,
+     "ret": 11930.0
+    },
+    "○△1": {
+     "hits": 8,
+     "ret": 9790.0
+    },
+    "▲△2": {
+     "hits": 8,
+     "ret": 17300.0
+    }
+   }
+  },
+  {
+   "name": "GO∧一致2（難しさ不問）",
+   "ワイド": {
+    "△1": {
+     "hits": 51,
+     "ret": 20840.0
+    },
+    "○": {
+     "hits": 68,
+     "ret": 17710.0
+    },
+    "▲": {
+     "hits": 47,
+     "ret": 14720.0
+    },
+    "△2": {
+     "hits": 37,
+     "ret": 16570.0
+    }
+   },
+   "馬連": {
+    "△1": {
+     "hits": 18,
+     "ret": 23830.0
+    },
+    "○": {
+     "hits": 27,
+     "ret": 15310.0
+    },
+    "▲": {
+     "hits": 20,
+     "ret": 15450.0
+    },
+    "△2": {
+     "hits": 21,
+     "ret": 24020.0
+    }
+   },
+   "三連複": {
+    "○△1": {
+     "hits": 16,
+     "ret": 17180.0
+    },
+    "▲△2": {
+     "hits": 7,
+     "ret": 14280.0
+    },
+    "○▲": {
+     "hits": 17,
+     "ret": 15830.0
+    },
+    "▲△1": {
+     "hits": 15,
+     "ret": 30060.0
+    },
+    "△1△2": {
+     "hits": 3,
+     "ret": 6550.0
+    },
+    "○△2": {
+     "hits": 15,
+     "ret": 19760.0
+    }
+   }
+  },
+  {
+   "name": "GO∧一致1（難しさ不問）",
+   "ワイド": {
+    "▲": {
+     "hits": 55,
+     "ret": 24610.0
+    },
+    "△1": {
+     "hits": 43,
+     "ret": 23880.0
+    },
+    "○": {
+     "hits": 55,
+     "ret": 16500.0
+    },
+    "△2": {
+     "hits": 32,
+     "ret": 22590.0
+    }
+   },
+   "馬連": {
+    "▲": {
+     "hits": 24,
+     "ret": 24620.0
+    },
+    "△2": {
+     "hits": 7,
+     "ret": 10290.0
+    },
+    "○": {
+     "hits": 20,
+     "ret": 11490.0
+    },
+    "△1": {
+     "hits": 14,
+     "ret": 28030.0
+    }
+   },
+   "三連複": {
+    "▲△1": {
+     "hits": 11,
+     "ret": 42920.0
+    },
+    "○▲": {
+     "hits": 11,
+     "ret": 8350.0
+    },
+    "○△2": {
+     "hits": 10,
+     "ret": 20620.0
+    },
+    "○△1": {
+     "hits": 15,
+     "ret": 19250.0
+    },
+    "▲△2": {
+     "hits": 8,
+     "ret": 18450.0
+    },
+    "△1△2": {
+     "hits": 2,
+     "ret": 13730.0
+    }
+   }
+  }
+ ],
+ "value_loc": [
+  {
+   "name": "GO∧妙味馬:◎本人を含む",
+   "n": 533,
+   "by_type": {
+    "ワイド": {
+     "n": 533,
+     "stake": 213200,
+     "ret": 164120.0,
+     "roi": 77.0,
+     "ci": [
+      66.9,
+      87.3
+     ],
+     "race_hit": 44.5,
+     "hit_pts": 347,
+     "hon_top3": 50.7,
+     "hon_odds_med": 6.0,
+     "chaos_med": 0.355,
+     "roi_drop_max": 74.7,
+     "max_race": "2026092006040607",
+     "max_ret": 5150.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 533,
+     "stake": 213200,
+     "ret": 138720.0,
+     "roi": 65.1,
+     "ci": [
+      51.1,
+      80.5
+     ],
+     "race_hit": 23.5,
+     "hit_pts": 125,
+     "hon_top3": 50.7,
+     "hon_odds_med": 6.0,
+     "chaos_med": 0.355,
+     "roi_drop_max": 62.4,
+     "max_race": "2026071102010909",
+     "max_ret": 5980.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 533,
+     "stake": 319800,
+     "ret": 193780.0,
+     "roi": 60.6,
+     "ci": [
+      47.3,
+      75.6
+     ],
+     "race_hit": 20.6,
+     "hit_pts": 110,
+     "hon_top3": 50.7,
+     "hon_odds_med": 6.0,
+     "chaos_med": 0.355,
+     "roi_drop_max": 58.1,
+     "max_race": "2026062009030511",
+     "max_ret": 8430.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 533,
+     "stake": 53300,
+     "ret": 38190.0,
+     "roi": 71.7,
+     "ci": [
+      57.1,
+      87.7
+     ],
+     "race_hit": 19.7,
+     "hit_pts": 105,
+     "hon_top3": 50.7,
+     "hon_odds_med": 6.0,
+     "chaos_med": 0.355,
+     "roi_drop_max": 68.3,
+     "max_race": "2026071102010909",
+     "max_ret": 1870.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 533,
+     "stake": 53300,
+     "ret": 44250.0,
+     "roi": 83.0,
+     "ci": [
+      74.6,
+      91.7
+     ],
+     "race_hit": 49.7,
+     "hit_pts": 265,
+     "hon_top3": 50.7,
+     "hon_odds_med": 6.0,
+     "chaos_med": 0.355,
+     "roi_drop_max": 81.8,
+     "max_race": "2026092006040607",
+     "max_ret": 750.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧妙味馬:相手印を含む",
+   "n": 358,
+   "by_type": {
+    "ワイド": {
+     "n": 358,
+     "stake": 143200,
+     "ret": 109940.0,
+     "roi": 76.8,
+     "ci": [
+      67.5,
+      86.6
+     ],
+     "race_hit": 60.3,
+     "hit_pts": 317,
+     "hon_top3": 67.9,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.346,
+     "roi_drop_max": 75.1,
+     "max_race": "2026102404040309",
+     "max_ret": 2640.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 358,
+     "stake": 143200,
+     "ret": 125280.0,
+     "roi": 87.5,
+     "ci": [
+      71.6,
+      106.0
+     ],
+     "race_hit": 39.4,
+     "hit_pts": 141,
+     "hon_top3": 67.9,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.346,
+     "roi_drop_max": 83.9,
+     "max_race": "2026102404040309",
+     "max_ret": 5500.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 358,
+     "stake": 214800,
+     "ret": 163930.0,
+     "roi": 76.3,
+     "ci": [
+      55.9,
+      100.9
+     ],
+     "race_hit": 28.2,
+     "hit_pts": 101,
+     "hon_top3": 67.9,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.346,
+     "roi_drop_max": 69.5,
+     "max_race": "2026102404040309",
+     "max_ret": 14970.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 358,
+     "stake": 35800,
+     "ret": 28330.0,
+     "roi": 79.1,
+     "ci": [
+      68.1,
+      91.2
+     ],
+     "race_hit": 38.5,
+     "hit_pts": 138,
+     "hon_top3": 67.9,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.346,
+     "roi_drop_max": 77.7,
+     "max_race": "2026071103020509",
+     "max_ret": 600.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 358,
+     "stake": 35800,
+     "ret": 29300.0,
+     "roi": 81.8,
+     "ci": [
+      75.6,
+      87.9
+     ],
+     "race_hit": 67.3,
+     "hit_pts": 241,
+     "hon_top3": 67.9,
+     "hon_odds_med": 2.7,
+     "chaos_med": 0.346,
+     "roi_drop_max": 81.5,
+     "max_race": "2026081607020806",
+     "max_ret": 200.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧妙味馬:印外のみ",
+   "n": 8,
+   "by_type": {
+    "ワイド": {
+     "n": 8,
+     "stake": 3200,
+     "ret": 1850.0,
+     "roi": 57.8,
+     "ci": [
+      0.0,
+      112.8
+     ],
+     "race_hit": 37.5,
+     "hit_pts": 6,
+     "hon_top3": 50.0,
+     "hon_odds_med": 4.6,
+     "chaos_med": 0.497,
+     "roi_drop_max": 37.5,
+     "max_race": "2026111405050309",
+     "max_ret": 800.0,
+     "candidate": false
+    },
+    "馬連": {
+     "n": 8,
+     "stake": 3200,
+     "ret": 460.0,
+     "roi": 14.4,
+     "ci": [
+      0.0,
+      43.1
+     ],
+     "race_hit": 12.5,
+     "hit_pts": 1,
+     "hon_top3": 50.0,
+     "hon_odds_med": 4.6,
+     "chaos_med": 0.497,
+     "roi_drop_max": 0.0,
+     "max_race": "2026062002010309",
+     "max_ret": 460.0,
+     "candidate": false
+    },
+    "三連複": {
+     "n": 8,
+     "stake": 4800,
+     "ret": 3650.0,
+     "roi": 76.0,
+     "ci": [
+      0.0,
+      152.1
+     ],
+     "race_hit": 37.5,
+     "hit_pts": 3,
+     "hon_top3": 50.0,
+     "hon_odds_med": 4.6,
+     "chaos_med": 0.497,
+     "roi_drop_max": 47.1,
+     "max_race": "2026111405050309",
+     "max_ret": 1670.0,
+     "candidate": false
+    },
+    "単勝": {
+     "n": 8,
+     "stake": 800,
+     "ret": 130.0,
+     "roi": 16.2,
+     "ci": [
+      0.0,
+      48.8
+     ],
+     "race_hit": 12.5,
+     "hit_pts": 1,
+     "hon_top3": 50.0,
+     "hon_odds_med": 4.6,
+     "chaos_med": 0.497,
+     "roi_drop_max": 0.0,
+     "max_race": "2026070503020410",
+     "max_ret": 130.0,
+     "candidate": false
+    },
+    "複勝": {
+     "n": 8,
+     "stake": 800,
+     "ret": 450.0,
+     "roi": 56.2,
+     "ci": [
+      13.8,
+      97.5
+     ],
+     "race_hit": 50.0,
+     "hit_pts": 4,
+     "hon_top3": 50.0,
+     "hon_odds_med": 4.6,
+     "chaos_med": 0.497,
+     "roi_drop_max": 47.1,
+     "max_race": "2026070502010806",
+     "max_ret": 120.0,
+     "candidate": false
+    }
+   }
+  },
+  {
+   "name": "GO∧妙味馬:妙味馬なし",
+   "n": 0,
+   "by_type": {
+    "ワイド": {
+     "n": 0
+    },
+    "馬連": {
+     "n": 0
+    },
+    "三連複": {
+     "n": 0
+    },
+    "単勝": {
+     "n": 0
+    },
+    "複勝": {
+     "n": 0
+    }
+   }
+  }
+ ],
+ "candidates": []
+}
