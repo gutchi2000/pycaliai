@@ -97,6 +97,21 @@ while (-not $Script:HfLockStream) {
     }
 }
 
+# -1. refuse to build/publish from a half-finished rebase/merge (2026-11-20).
+#     A conflicted `git pull --rebase` left $ROOT on a detached HEAD missing the
+#     week's commit, so build_site.py ran without reports/cowork_input/{date}_bundle.json
+#     and the site went out without the next race day; the site commit was then
+#     pushed from that detached HEAD. Building from such a tree is always wrong.
+$gitDir = Join-Path $ROOT ".git"
+if ((Test-Path (Join-Path $gitDir "rebase-merge")) -or (Test-Path (Join-Path $gitDir "rebase-apply")) -or
+    (Test-Path (Join-Path $gitDir "MERGE_HEAD"))) {
+    Fail "git rebase/merge in progress in $ROOT -- finish or abort it (git status), then rerun"
+}
+$headRef = git -C $ROOT symbolic-ref -q HEAD
+if (-not $headRef) {
+    Fail "detached HEAD in $ROOT -- check out master (git status), then rerun"
+}
+
 # 0. best-effort: refresh today's track bias so a deploy NEVER ships last week's
 #    baba (baba.js hides any baba whose date != viewer's today, so a stale file
 #    = blank panel). JRA posts race-day cushion ~08:20; a pre-08:20 run yields

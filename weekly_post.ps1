@@ -193,7 +193,8 @@ if ($staged.Count -gt 0) {
         exit 1
     }
 }
-git pull --rebase --autostash origin master
+# --rebase=merges: master の merge コミットを並べ直さない (素の --rebase は 11/20 に 41 本を並べ直して衝突した)
+git pull --rebase=merges --autostash origin master
 # 2026-11-16: pull の reset --hard がロック中のファイル (Excel/TARGET で開いた wide_kekka.csv) で失敗すると、
 # 退避した未コミットの変更が戻らず「リベース中」のまま残る (障害レース収集台帳の 1 行が消えた)。止めて知らせる。
 if ($LASTEXITCODE -ne 0 -or (Test-Path '.git\rebase-merge') -or (Test-Path '.git\rebase-apply')) {

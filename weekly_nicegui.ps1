@@ -82,6 +82,29 @@ function Fail($msg) {
 }
 
 # =================================================================
+# origin/master を取り込んでから push する (Phase A / BetsOnly 共通、2026-11-20)。
+#   --rebase=merges: ローカルの master には worktree ブランチの merge コミットがあり、素の --rebase は
+#   それを一直線に並べ直して衝突する (11/20: origin が単に後ろにいただけなのに 41 本の並べ直しが
+#   収集待ち台帳で衝突 → 途中の detached HEAD のまま push され、11/21 の bundle がディスクから消えた
+#   状態でサイトを作って公開していた)。
+#   それでも rebase が途中で止まったら abort して pull 前の状態 (bundle 込み) に戻し、push は飛ばす。
+#   後続のサイト生成は正しい作業ツリーから走る。
+# =================================================================
+function Invoke-PullPush {
+    # git の標準出力は Out-Host へ (関数の戻り値に混ざると if 判定が常に真になる)
+    git pull --rebase=merges --autostash origin master | Out-Host
+    if ($LASTEXITCODE -ne 0 -or (Test-Path '.git\rebase-merge') -or (Test-Path '.git\rebase-apply')) {
+        if ((Test-Path '.git\rebase-merge') -or (Test-Path '.git\rebase-apply')) { git rebase --abort 2>&1 | Out-Null }
+        Warn ("git pull --rebase が完了しないので取り消して push を飛ばしました (ローカルの master はそのまま)。" +
+              " 'git status' / 'git stash list' を確認し、手で 'git pull --rebase=merges origin master' → 'git push origin master'")
+        return $false
+    }
+    git push origin HEAD:master | Out-Host
+    if ($LASTEXITCODE -ne 0) { Warn "git push failed; retry: git push origin HEAD:master"; return $false }
+    return $true
+}
+
+# =================================================================
 # 強さスコア (power_rating.py、2026-11-12) の週次フック。非公開・ローカル専用。
 #   出力は reports\power_rating\ (.gitignore) だけで、bundle / 買い目 / サイトには一切触れない。
 #   失敗しても本番の出力・終了コードには影響させない (Warn のみ)。
@@ -349,9 +372,7 @@ if ($BetsOnly) {
         } else {
             $y = $Date.Substring(0,4); $m = $Date.Substring(4,2); $d = $Date.Substring(6,2)
             git commit -m "cowork bets $y-$m-$d"
-            git pull --rebase --autostash origin master
-            git push origin HEAD:master
-            if ($LASTEXITCODE -ne 0) { Warn "push failed; retry manually" } else { OK "pushed" }
+            if (Invoke-PullPush) { OK "pushed" }
         }
     }
     if (-not $SkipHF) {
@@ -802,13 +823,7 @@ if ($SkipGit) {
         if ($LASTEXITCODE -ne 0) {
             Warn "git commit failed"
         } else {
-            git pull --rebase --autostash origin master
-            git push origin HEAD:master
-            if ($LASTEXITCODE -ne 0) {
-                Warn "git push failed; retry: git push origin HEAD:master"
-            } else {
-                OK "pushed to origin/master"
-            }
+            if (Invoke-PullPush) { OK "pushed to origin/master" }
         }
     }
 }
