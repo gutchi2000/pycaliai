@@ -63,7 +63,7 @@ SRC_ENH = Path("E:/競馬過去走データ/raw_data/kekka_1986_2025_enhanced.cs
 SRC_TARGET = [Path("E:/競馬過去走データ/raw_data/kekka_20251206_20260222.csv")]
 SRC_EXTRA_DIR = BASE / "data" / "speed_src"
 FIRST_YEAR = 2011
-LOAD_VERSION = 4   # load_runs の中身を変えたら上げる（キャッシュ無効化）
+LOAD_VERSION = 5  # load_runs の中身を変えたら上げる（キャッシュ無効化）
 
 log = logging.getLogger("speed_index")
 
@@ -317,6 +317,11 @@ def load_runs() -> pd.DataFrame:
     _resolve_course_code(d)
     d["valid"] = (d["abnormal"] == 0) & (d["finish"] > 0) & (d["time"] > 0) & d["agari"].between(30, 45)
     d["fsize"] = d.groupby("race_key")["valid"].transform("sum")
+    # 2026-11-22: 週次復元のレースは「その後また走った馬」しか行が無い（16 頭立てが 3 行など）。
+    # 行数で数えると頭数が過少になり、着順・4 角・人気の相対値が 1 を超えていた。出走表の
+    # 前走出走頭数を使う（復元行の 85% が過少だった）。
+    wk = (d["src"] == "weekly") & d["field"].notna()
+    d.loc[wk, "fsize"] = np.maximum(d.loc[wk, "fsize"], d.loc[wk, "field"])
     return d.sort_values(["date", "place", "rno", "finish"]).reset_index(drop=True)
 
 
