@@ -448,6 +448,20 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
                 n_tan += 1
             if b in live_fuku:
                 h["fuku_odds_low"], h["fuku_odds_high"] = live_fuku[b]
+        # T-10 の単勝オッズが無い馬 = 出走取消・競走除外。以前は bundle の前日オッズが
+        # そのまま残り、取消馬が ◎複勝 や補正印・全レース版に入り得た (2026-11-28 京都11R の
+        # ◎ネーロノワール取消で発覚)。発売中のオッズが取れている (live_tan が空でない) ときだけ外す。
+        n_drop = 0
+        if live_tan:
+            keep = [h for h in horses
+                    if _num(h.get("umaban")) is None or int(_num(h.get("umaban"))) in live_tan]
+            n_drop = len(horses) - len(keep)
+            dropped_hon = any(h.get("mark") == "◎" for h in horses if h not in keep)
+            horses = keep
+            if dropped_hon:
+                return {"race_id": rid, "race_label": label, "race_nature": "見送り",
+                        "race_reason": "◎が出走取消・競走除外 (T-10 の単勝オッズなし) のため見送り。",
+                        "bets": []}
         # ワイド/馬単のライブ実値 (0B33/0B34, raw 突合で確定 2026-06-12)。
         # 無ければ従来どおり umaren_matrix 推定にフォールバック。
         for k, v in (live.get("wide") or {}).items():
@@ -464,7 +478,8 @@ def compute_race_bets(race: dict, live_dir: Path | None = None,
                 continue
         live_note = (f" [T-10オッズ 単複{n_tan}頭"
                      + (f"/ワイド{len(lwide)}組" if lwide else "")
-                     + (f"/馬単{len(lumatan)}組" if lumatan else "") + "]")
+                     + (f"/馬単{len(lumatan)}組" if lumatan else "")
+                     + (f"/取消・除外{n_drop}頭" if n_drop else "") + "]")
 
     by_ban = {int(h["umaban"]): h for h in horses if _num(h.get("umaban")) is not None}
 

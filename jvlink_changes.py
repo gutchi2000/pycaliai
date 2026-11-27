@@ -9,9 +9,10 @@ JV-Link 速報系から取り、サイト掲載用 JSON に吐く。目的は予
 ★必ず 32-bit Python: py -3.12-32 jvlink_changes.py 20260801
   (jvlink_odds.py と同型。JV-Link は 32-bit COM)
 
-dataspec は 0B11〜0B16 を総当たりし、返ったレコードの先頭 2 文字
-(AV/JC/TC/WH/WE/CC) でバケツ分けする。spec→種別の対応表記憶違いに
-依存しない設計（未対応 spec は JVRTOpen が非 0 を返し空リストになるだけ）。
+取消・騎手変更・時刻変更は 0B14 を開催日キー (YYYYMMDD) で、馬体重などは
+0B11/0B12/0B13/0B15 をレースキーで引き、返ったレコードの先頭 2 文字
+(AV/JC/TC/WH) でバケツ分けする（2026-11-28 修正: 0B14 をレースキーで引いて
+rc=-114 になり、取消を一度も拾えていなかった）。
 
 ⚠ フィールドオフセットは TENTATIVE（JV-Data 仕様書の記憶ベース）。
    ヘッダ部 (種別2+区分1+作成日8+レースキー16+発表8=35) は O1 実証と同型で、
@@ -35,7 +36,8 @@ OUT_DIR = BASE / "reports" / "live_changes"
 SITE_DIR = BASE / "site" / "data"
 
 # spec 総当たり対象（変更系リアルタイム。オッズ 0B31/33/34 は jvlink_odds 担当）
-SPECS = ["0B11", "0B12", "0B13", "0B14", "0B15", "0B16"]
+RACE_SPECS = ["0B11", "0B12", "0B13", "0B15"]   # レースキーで引く
+DAY_SPEC = "0B14"                               # 開催日キーで引く (AV/JC/TC/WE/CC)
 WANT_PREFIX = ("AV", "JC", "TC", "WH")   # WE(天候)/CC(コース変更) は現状パース対象外
 
 try:
@@ -53,29 +55,38 @@ def _text(s: str) -> str:
 # ---------------- parsers (offsets TENTATIVE) ----------------
 # 共通ヘッダ: [0:2]種別 [2:3]データ区分 [3:11]作成年月日 [11:27]レースキー [27:35]発表月日時分
 
+def _field(raw: bytes, a: int, b: int) -> str:
+    return raw[a:b].decode("cp932", errors="replace")
+
+
 def parse_av(rec: str) -> dict | None:
     """AV(出走取消・競走除外) → {umaban, name, kind}。
-    データ区分: '1'=出走取消 '2'=競走除外 (TENTATIVE)。"""
-    ban = _digits(rec[35:37])
+    [35:37]馬番 [37:73]馬名(36 バイト) [73:76]事由。位置はバイト単位
+    (2026-11-28 に京都11R ネーロノワールの出走取消の生録で確認。文字単位で切ると
+    全角の馬名のあとがずれる)。データ区分: '1'=出走取消 '2'=競走除外。"""
+    raw = _wh_bytes(rec)
+    ban = _digits(_field(raw, 35, 37))
     if not ban or not (1 <= ban <= 28):
         return None
-    name = _text(rec[37:73])
-    kind = {"1": "出走取消", "2": "競走除外"}.get(rec[2:3], "取消/除外")
+    name = _text(_field(raw, 37, 73))
+    kind = {"1": "出走取消", "2": "競走除外"}.get(_field(raw, 2, 3), "取消/除外")
     return {"umaban": ban, "name": name, "kind": kind}
 
 
 def parse_jc(rec: str) -> dict | None:
     """JC(騎手変更) → {umaban, futan, jockey_to, jockey_from}。
-    馬番2 + 馬名36 + 変更後(負担重量3+騎手コード5+騎手名34+見習1) + 変更前(同) TENTATIVE。"""
-    ban = _digits(rec[35:37])
+    馬番2 + 馬名36 + 変更後(負担重量3+騎手コード5+騎手名34+見習1) + 変更前(同)。
+    位置はバイト単位 (馬名・騎手名が全角のため)。騎手部分は実録で未確認。"""
+    raw = _wh_bytes(rec)
+    ban = _digits(_field(raw, 35, 37))
     if not ban or not (1 <= ban <= 28):
         return None
-    futan = _digits(rec[73:76])          # 570 = 57.0kg
-    to_name = _text(rec[81:115])
-    from_name = _text(rec[124:158])
+    futan = _digits(_field(raw, 73, 76))          # 570 = 57.0kg
+    to_name = _text(_field(raw, 81, 115))
+    from_name = _text(_field(raw, 124, 158))
     if not to_name:
         return None
-    return {"umaban": ban, "name": _text(rec[37:73]),
+    return {"umaban": ban, "name": _text(_field(raw, 37, 73)),
             "futan": round(futan / 10.0, 1) if futan and 400 <= futan <= 700 else None,
             "jockey_to": to_name, "jockey_from": from_name or None}
 
@@ -189,19 +200,39 @@ def race_ids_from_bundle(date: str) -> list[str]:
     return out
 
 
-def fetch_all(race_ids: list[str], dump_dir: Path | None = None) -> dict:
-    """spec × race 総当たり → {rid16: {prefix: [recs]}}。レースキー echo 不一致は捨てる。"""
+def fetch_all(race_ids: list[str], dump_dir: Path | None = None,
+              date: str | None = None) -> dict:
+    """→ {rid16: {prefix: [recs]}}。レースキー echo 不一致・対象外レースは捨てる。
+
+    取消・騎手変更・時刻変更 (AV/JC/TC) は 0B14「速報開催情報（一括）」に開催日キー
+    (YYYYMMDD) で入っている。以前は全 spec をレースキー (16 桁) で引いていて、0B14/0B16 は
+    毎回 rc=-114 (キー不正) で空＝取消を一度も拾えていなかった (2026-11-28 発覚)。
+    馬体重 (WH) などはレースキーの 0B11/0B13/0B15 のまま。0B16 はどのキーでも -114 なので引かない。"""
     buckets: dict[str, dict[str, list[str]]] = {}
+    want = set(race_ids)
+
+    def put(rid_req: str | None, recs: list[str]):
+        for rec in recs:
+            pre = rec[:2]
+            if pre not in WANT_PREFIX:
+                continue
+            key = rec[11:27]
+            if rid_req is not None and key != rid_req:   # ヘッダずれ/別レース混入は不採用
+                continue
+            if key not in want:
+                continue
+            buckets.setdefault(key, {}).setdefault(pre, []).append(rec)
+
+    for d in sorted({date} if date else {r[:8] for r in race_ids}):
+        recs = fetch_records(d, DAY_SPEC)
+        put(None, recs)
+        if dump_dir and recs:
+            (dump_dir / f"{d}_{DAY_SPEC}.txt").write_text("\n".join(recs), encoding="utf-8",
+                                                          errors="replace")
     for rid in race_ids:
-        for spec in SPECS:
+        for spec in RACE_SPECS:
             recs = fetch_records(rid, spec)
-            for rec in recs:
-                pre = rec[:2]
-                if pre not in WANT_PREFIX:
-                    continue
-                if rec[11:27] != rid:      # ヘッダずれ/別レース混入は不採用
-                    continue
-                buckets.setdefault(rid, {}).setdefault(pre, []).append(rec)
+            put(rid, recs)
             if dump_dir and recs:
                 pf = dump_dir / f"{rid}_{spec}.txt"
                 pf.write_text("\n".join(recs), encoding="utf-8", errors="replace")
@@ -265,7 +296,7 @@ def main():
         dump_dir = OUT_DIR / "raw"
         dump_dir.mkdir(parents=True, exist_ok=True)
 
-    buckets = fetch_all(rids, dump_dir)
+    buckets = fetch_all(rids, dump_dir, date=args.date)
     full, site = assemble(args.date, buckets)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
