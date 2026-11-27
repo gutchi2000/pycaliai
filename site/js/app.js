@@ -2983,7 +2983,52 @@ async function renderResults() {
     return parts.join("");
   };
 
+  // ---- ボード×GO (TACT 欄, 2026-11-21〜) の成績: 本線の累計とは別枠、1 点 100 円 ----
+  const cb = resultsData.combo;
+  const comboHtml = (() => {
+    if (!cb || !cb.n_points) return "";
+    const cCls = cb.total_profit >= 0 ? "pos" : "neg";
+    const signed = (v) => `${v >= 0 ? "+" : ""}${Math.round(v).toLocaleString()}`;
+    const roiCls = (v) => v >= 100 ? "pos" : v >= 80 ? "mid" : "neg";
+    const bt = Object.entries(cb.by_type || {})
+      .sort((x, y) => y[1].n - x[1].n)
+      .map(([t, v]) => `<div class="rs-bt">
+        <span class="rs-bt-h"><span class="rs-dot" style="background:${BTYPE_COLOR[t] || "#888"}"></span>${esc(t)}</span>
+        <span class="rs-bt-roi ${roiCls(v.roi)}">${v.roi}%</span>
+        <span class="rs-bt-sub">的中 ${v.wins}/${v.n}・収支 ${signed(v.profit)}</span>
+      </div>`).join("");
+    const rows = (cb.by_date || []).slice().reverse().map((d) => `<tr>
+        <td class="rsm-m">${rsDate(d.date)}</td>
+        <td class="num">${d.races}R・${d.n}点</td>
+        <td class="num">${yen(d.cost)}</td>
+        <td class="num ${d.profit >= 0 ? "pos" : "neg"}">${signed(d.profit)}</td>
+        <td class="num rsm-roi ${roiCls(d.roi)}">${d.roi.toFixed(1)}%</td>
+        <td class="num">${d.wins}/${d.n}</td>
+      </tr>`).join("");
+    const f = cb.from || "";
+    return `<div class="rs-h">🧩 ボード×GO の成績 <small>${+f.slice(4, 6)}/${+f.slice(6, 8)}〜・レースごとの TACT 欄の買い目・1 点 100 円で計算</small></div>
+    <div class="card rs-sum">
+      <div class="rs-sum-grid">
+        <div class="rs-stat"><div class="k">投資</div><div class="v">${yen(cb.total_cost)}<small> ${cb.n_races}R・${cb.n_points}点</small></div></div>
+        <div class="rs-stat"><div class="k">収支</div><div class="v ${cCls}">${signed(cb.total_profit)}</div></div>
+        <div class="rs-stat"><div class="k">回収率 ROI</div><div class="v ${cCls}">${cb.roi}%</div></div>
+        <div class="rs-stat"><div class="k">的中率</div><div class="v">${cb.hit_rate}%<small> ${cb.n_wins}/${cb.n_points}</small></div></div>
+      </div>
+      <div class="rs-bt-grid">${bt}</div>
+      <div class="rs-note" style="color:var(--tx2)">過去の検証で回収率 90% 以上だった条件を選んで買っていますが、選んだ期間の外で確かめると 65〜83% でした。期待は控除率なみで、${cb.n_races}R ではまだ偶然の幅のほうが大きい数字です。${cb.n_unsettled ? ` 払戻データ未取込などで決済できない ${cb.n_unsettled} 点は集計外。` : ""}</div>
+    </div>
+    <div class="card rsm-card">
+      <table class="rsm"><thead><tr>
+        <th>開催日</th><th class="num">買い目</th><th class="num">投資</th><th class="num">収支</th><th class="num">回収率</th><th class="num">的中</th>
+      </tr></thead><tbody>${rows}</tbody></table>
+    </div>
+    ${(cb.hits || []).length ? `<div class="hit-grid" id="comboHitGrid">${cb.hits.map(hitCardHtml).join("")}</div>` : ""}`;
+  })();
+  const firstDate = (a.by_date || [])[0]?.date, lastDate = (a.by_date || []).slice(-1)[0]?.date;
+
   rm.innerHTML = `<div class="rs-wrap">
+    ${comboHtml}
+    ${comboHtml && firstDate ? `<div class="rs-h">📊 本線の累計 <small>${rsDate(firstDate)}〜${rsDate(lastDate)}・公開していた買い目の実額</small></div>` : ""}
     <div class="card rs-sum">
       <div class="rs-sum-grid">
         <div class="rs-stat"><div class="k">累計投資</div><div class="v">${yen(a.total_cost)}</div></div>
@@ -2994,7 +3039,7 @@ async function renderResults() {
       <div class="rs-bt-grid">${byType}</div>
       ${a.n_unsettled ? `<div class="rs-note">⚠ ワイド ${a.n_unsettled}件 (¥${(a.unsettled_cost).toLocaleString()}) は払戻データ未取込のため集計外</div>` : ""}
     </div>
-    ${resultsData.bets_hidden_from ? `<div class="rs-note" style="color:var(--tx2)">${+resultsData.bets_hidden_from.slice(4, 6)}/${+resultsData.bets_hidden_from.slice(6, 8)} からの買い目（◎の複勝 1 点）はサイトに出していません。ここの成績はそれより前に公開した買い目の分です。11/21 からはレースごとの TACT 欄に「ボード×GO」の買い目を出しています（その成績はまだここに入れていません）。</div>` : ""}
+    ${resultsData.bets_hidden_from ? `<div class="rs-note" style="color:var(--tx2)">${+resultsData.bets_hidden_from.slice(4, 6)}/${+resultsData.bets_hidden_from.slice(6, 8)} からの買い目（◎の複勝 1 点）はサイトに出していません。この累計と月別成績・的中一覧はそれより前に公開した買い目の分です。${cb && cb.n_points ? "11/21 からの「ボード×GO」の成績は上の欄です。" : "11/21 からはレースごとの TACT 欄に「ボード×GO」の買い目を出しています。"}</div>` : ""}
     <div class="rs-h">📅 月別成績</div>
     <div class="card rsm-card">
       <table class="rsm"><thead><tr>
@@ -3031,6 +3076,9 @@ async function renderResults() {
   });
   rm.querySelector("#hitMonthSel").onchange = (e) => { hitFilter.month = e.target.value; refresh(); };
   bindCards();
+  rm.querySelectorAll("#comboHitGrid .hit-card").forEach((c) => {
+    c.onclick = () => openResultDetail(c.dataset.date, c.dataset.rid);
+  });
 }
 
 function horseByUma(r, uma) {

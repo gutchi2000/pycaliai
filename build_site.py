@@ -1473,6 +1473,76 @@ def transform_bundle(path: Path, cowork: dict, wide_data: dict,
 
 
 # ---------------------------------------------------------------- 成績集計
+def build_combo_results() -> dict:
+    """TACT 欄の「ボード×GO」(board_combo, 2026-11-21〜) の成績。1 点 100 円の均等買いで数える。
+
+    TACT は金額を出さないので、各日の JSON の tact_settled (名目 ¥100 で決済済み) をそのまま足す。
+    本線 (a95, 〜11/08 公開分) とは方策も 1 点の金額も違うので、build_results_json の累計には混ぜない。
+    決済できない点 (払戻データ未取込・着順 0 を含む買い目) は集計外にして件数だけ残す。
+    """
+    STAKE = 100.0
+    by_type: dict = {}
+    by_date: dict = {}
+    hits = []
+    tot_cost = tot_ret = 0.0
+    n_pts = n_wins = n_unset = 0
+    for p in sorted(SITE_DATA_DIR.glob("[0-9]" * 8 + ".json")):
+        if p.stem < COMBO_FROM:
+            continue
+        with open(p, encoding="utf-8") as f:
+            day = json.load(f)
+        date = day.get("date", p.stem)
+        for r in day.get("races", []):
+            t = r.get("tact") or {}
+            ts = r.get("tact_settled")
+            if t.get("engine") != "board_combo" or not ts:
+                continue
+            d = by_date.setdefault(date, {"races": 0, "n": 0, "wins": 0, "cost": 0.0, "ret": 0.0})
+            counted = False
+            for bet, st in zip(t.get("bets") or [], ts):
+                if not st.get("settled", True):
+                    n_unset += 1
+                    continue
+                counted = True
+                bt_name = bet.get("type") or "?"
+                ret = float(st.get("received") or 0.0)
+                bt = by_type.setdefault(bt_name, {"n": 0, "wins": 0, "cost": 0.0, "ret": 0.0})
+                for o in (bt, d):
+                    o["n"] += 1; o["cost"] += STAKE; o["ret"] += ret
+                n_pts += 1; tot_cost += STAKE; tot_ret += ret
+                if st.get("is_win"):
+                    n_wins += 1; bt["wins"] += 1; d["wins"] += 1
+                    hits.append({
+                        "date": date, "race_id": r.get("race_id"),
+                        "place": r.get("place"), "rno": r.get("rno"),
+                        "name": r.get("race_name") or r.get("klass") or "",
+                        "btype": bt_name, "selection": bet.get("selection"),
+                        "payout": st.get("payout"), "stake": STAKE,
+                        "profit": round(ret - STAKE),
+                    })
+            if counted:
+                d["races"] += 1
+    roi = lambda c, r_: round(r_ / c * 100, 1) if c else 0.0
+    hits.sort(key=lambda h: (h["date"], h.get("payout") or 0), reverse=True)
+    return {
+        "from": COMBO_FROM, "stake_per_point": int(STAKE),
+        "n_races": sum(d["races"] for d in by_date.values()),
+        "n_points": n_pts, "n_wins": n_wins,
+        "hit_rate": round(n_wins / n_pts * 100, 1) if n_pts else 0.0,
+        "total_cost": round(tot_cost), "total_return": round(tot_ret),
+        "total_profit": round(tot_ret - tot_cost), "roi": roi(tot_cost, tot_ret),
+        "n_unsettled": n_unset,
+        "by_type": {k: {"n": v["n"], "wins": v["wins"], "cost": round(v["cost"]),
+                        "profit": round(v["ret"] - v["cost"]), "roi": roi(v["cost"], v["ret"])}
+                    for k, v in by_type.items()},
+        "by_date": [{"date": k, "races": v["races"], "n": v["n"], "wins": v["wins"],
+                     "cost": round(v["cost"]), "profit": round(v["ret"] - v["cost"]),
+                     "roi": roi(v["cost"], v["ret"])}
+                    for k, v in sorted(by_date.items()) if v["n"]],
+        "hits": hits,
+    }
+
+
 def build_results_json() -> dict:
     """site/data/*.json を全走査し、Cowork 的中一覧 + 累計集計を results.json に。"""
     # 撤廃券種 (2026-06-18): 馬単は構造的回収不能(2/122)で本番から撤廃済 → 累計/ROI/by_type/
@@ -1871,6 +1941,7 @@ def main() -> None:
     # 成績 (Cowork 的中一覧 + 累計収支)
     results_payload = build_results_json()
     results_payload["bets_hidden_from"] = BETS_HIDDEN_FROM
+    results_payload["combo"] = build_combo_results()   # 2026-11-27: TACT 欄「ボード×GO」の成績 (別枠)
     results_payload["built_at"] = manifest["built_at"]
     with open(SITE_DATA_DIR / "results.json", "w", encoding="utf-8") as f:
         json.dump(results_payload, f, ensure_ascii=False, separators=(",", ":"))
