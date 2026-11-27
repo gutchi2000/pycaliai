@@ -95,7 +95,10 @@ function horseFacts(race, h, order, top3) {
     avg_pos_last5: (h.history || {}).avg_pos ?? null,
     last_run: run ? `${run.race_name || ""} ${run.pos}着(${run.ninki ? `${run.ninki}人気・` : ""}${run.place || ""}${run.td || ""}${run.dist || ""})` : null,
     result_pos: pos,
-    result_note: pos ? (order[String(h.umaban)] ? null : "同着") : "出走取消・除外・競走中止のいずれか（着順なし）",
+    // h.scratched は当日変更情報 (build_site.apply_day_changes) の発走前の取消・除外。走っていないので負けとは書かせない
+    scratched: h.scratched || null,
+    result_note: h.scratched ? `${h.scratched}（発走前に取り消し、レースには出ていない）`
+      : pos ? (order[String(h.umaban)] ? null : "同着") : "出走取消・除外・競走中止のいずれか（着順なし）",
   };
 }
 
@@ -128,6 +131,7 @@ export function kaikoFacts(day, race) {
     honmei_result_pos: honmei ? posOf(order, honmei.umaban, res.top3) : null,
     honmei_in_top3: honmei ? (posOf(order, honmei.umaban, res.top3) ?? 99) <= 3 : null,
     honmei_dnf: honmei ? posOf(order, honmei.umaban, res.top3) == null : null,
+    honmei_scratched: honmei ? (honmei.scratched || null) : null,
     winner_ai_rank: winner ? winner.ai_rank : null, winner_ninki_morning: winner ? winner.ninki_morning : null,
     site_bets: betRows, site_bets_hit: betRows.filter((b) => b.hit).length, site_bets_n: betRows.length,
     course_bias: cb.error ? null : { verdict: cb.verdict, bands: cb.bands, kyaku: cb.kyaku, note: cb.note },
@@ -149,20 +153,24 @@ export function dayFacts(day) {
     const h = f.marks[0] || null, w = f.result_top3[0] || null;
     rows.push({
       race_id: r.race_id, place: r.place, rno: r.rno, klass: r.klass, race_name: r.race_name || null,
-      honmei: h ? { name: h.name, p_win_pct: h.p_win_pct, ninki_morning: h.ninki_morning, result_pos: h.result_pos } : null,
+      honmei: h ? { name: h.name, p_win_pct: h.p_win_pct, ninki_morning: h.ninki_morning, result_pos: h.result_pos, scratched: h.scratched } : null,
       winner: w ? { name: w.name, ai_rank: w.ai_rank, ninki_morning: w.ninki_morning, p_win_pct: w.p_win_pct } : null,
       chaos: f.ai_view.chaos, site_bets_hit: f.site_bets_hit, site_bets_n: f.site_bets_n,
     });
   }
   const n = rows.length;
-  const hw = rows.filter((x) => x.honmei && x.honmei.result_pos === 1).length;
-  const ht = rows.filter((x) => x.honmei && x.honmei.result_pos != null && x.honmei.result_pos <= 3).length;
+  // ◎の成績は ◎が走ったレースだけで数える (発走前の取消は通信簿と同じく分母から外す)
+  const ran = rows.filter((x) => x.honmei && !x.honmei.scratched);
+  const nh = ran.length;
+  const hw = ran.filter((x) => x.honmei.result_pos === 1).length;
+  const ht = ran.filter((x) => x.honmei.result_pos != null && x.honmei.result_pos <= 3).length;
   const upsets = rows.filter((x) => x.winner && (x.winner.ai_rank >= 6 || (x.winner.ninki_morning ?? 0) >= 6))
     .sort((a, b) => (b.winner.ai_rank + (b.winner.ninki_morning || 0)) - (a.winner.ai_rank + (a.winner.ninki_morning || 0))).slice(0, 3);
   const solid = rows.filter((x) => x.honmei && x.honmei.result_pos === 1).sort((a, b) => b.honmei.p_win_pct - a.honmei.p_win_pct).slice(0, 3);
   return {
     date: day.date, places: day.places || [], n_races: n,
-    honmei_win: hw, honmei_top3: ht, honmei_win_rate_pct: n ? +(hw / n * 100).toFixed(1) : null, honmei_top3_rate_pct: n ? +(ht / n * 100).toFixed(1) : null,
+    honmei_win: hw, honmei_top3: ht, honmei_win_rate_pct: nh ? +(hw / nh * 100).toFixed(1) : null, honmei_top3_rate_pct: nh ? +(ht / nh * 100).toFixed(1) : null,
+    honmei_scratched_races: n - nh,
     site_bets_hit: rows.reduce((s, x) => s + x.site_bets_hit, 0), site_bets_n: rows.reduce((s, x) => s + x.site_bets_n, 0),
     biggest_upsets: upsets, solid_hits: solid, races: rows,
   };

@@ -293,6 +293,31 @@ def load_speed_day(date_str: str) -> dict:
 TENKAI_DIR = ROOT / "reports" / "tenkai"
 
 
+def apply_day_changes(day: dict, date_str: str) -> int:
+    """当日変更情報 (site/data/changes_{date}.json、jvlink_changes.py が作る) の取消・除外を
+    horses[].scratched に入れる。app.js は画面で同じことをしているが、相談AI・ボード・
+    馬ページ・全頭短評の素材は day JSON の scratched を見るので、ここでも入れる
+    (2026-11-28 京都11R ◎ネーロノワールの取消で、相談AI が取消馬を勧め得ると判明)。返値は件数。"""
+    p = SITE_DATA_DIR / f"changes_{date_str}.json"
+    if not p.exists():
+        return 0
+    try:
+        ch = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return 0
+    n = 0
+    for r in day.get("races", []):
+        e = (ch.get("races") or {}).get(str(r.get("race_id", ""))[:16]) or {}
+        kinds = {int(c["umaban"]): c.get("kind") or "取消" for c in e.get("cancels") or []
+                 if str(c.get("umaban", "")).isdigit()}
+        for h in r.get("horses", []):
+            k = kinds.get(int(h.get("umaban") or 0))
+            if k:
+                h["scratched"] = k
+                n += 1
+    return n
+
+
 def load_tenkai_day(date_str: str) -> dict:
     """tenkai.py score-day の出力 → {(場所, R): {"pace": [スロー, 平均, ハイ], "h": [[馬番, 序盤, 4角, 序盤順, 4角順, 脚質, 過去走数], ...]}}。
     無ければ空（展開タブが出ないだけ）。"""
@@ -1843,6 +1868,9 @@ def main() -> None:
             day = transform_bundle(path, cowork, wide_data, course_stats,
                                    ped_index, grade_map, masters_vote, site_preview,
                                    masters_vote_skips)
+            n_scr = apply_day_changes(day, date_str)
+            if n_scr:
+                print(f"  {date_str}: 当日変更情報の取消・除外 {n_scr} 頭を反映")
             scrub_public(day)
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(day, f, ensure_ascii=False, separators=(",", ":"))
