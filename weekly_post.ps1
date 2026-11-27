@@ -44,6 +44,23 @@ Write-Host ""
 Write-Host "=== weekly_post: $Date ===" -ForegroundColor Green
 Write-Host ""
 
+# -- Step 0: TARGET のエクスポートが書き終わっているか (2026-11-27) --
+# 書きかけの wide_kekka.csv を集計・commit し、pull の reset --hard が開かれたままの
+# ファイルで止まった (11/21〜23)。kekka と wide_kekka が落ち着くまで待ち、
+# wide_kekka が HEAD より短ければ止める。Step 3 の直前にももう一度見る。
+. "$PSScriptRoot\scripts\file_settle.ps1"
+$wideCsv = "data\kekka\wide_kekka.csv"
+$settleTargets = @($kekkaPath, $wideCsv)
+Write-Host "[0/4] TARGET export settled? ..." -ForegroundColor Cyan
+# 前回の pull 失敗で「リベース中」が残っていると、集計を全部やり直した後に pull で止まる (11/22・11/23)。先に止める。
+if ((Test-Path '.git\rebase-merge') -or (Test-Path '.git\rebase-apply')) {
+    Write-Error ("前回の git pull が途中で止まり「リベース中」のまま。退避された変更は .git\rebase-merge\autostash。" +
+        " 'git rebase --quit' で解除し、'git stash list' の autostash から消えた変更を戻してから再実行すること。")
+    exit 1
+}
+if (-not (Assert-KekkaInputsSettled -Paths $settleTargets -Stage 'start')) { exit 1 }
+Write-Host "      OK" -ForegroundColor Green
+
 # -- Step 1: rebuild results.json --
 Write-Host "[1/4] Running generate_results.py ..." -ForegroundColor Cyan
 python generate_results.py
@@ -78,7 +95,6 @@ if ($LASTEXITCODE -ne 0) {
 # 置き忘れると build_site.py のワイド決済と cowork_results のワイド集計が「未決済」のまま
 # 公開される (2026-10-24〜11-01 の 4 開催日で発生)。最大日付が今週より古ければ警告する (non-fatal)。
 Write-Host "[2.8/4] wide_kekka.csv freshness ..." -ForegroundColor Cyan
-$wideCsv = "data\kekka\wide_kekka.csv"
 if (Test-Path $wideCsv) {
     $wideMax = python -c "import csv,sys; r=[x for x in csv.reader(open(sys.argv[1],encoding='cp932',errors='replace')) if len(x)>3 and x[0].isdigit()]; print(max(f'{x[0]}{x[1]}{x[2]}' for x in r) if r else '')" $wideCsv
     if ($LASTEXITCODE -ne 0 -or -not $wideMax) {
@@ -122,6 +138,8 @@ if ($LASTEXITCODE -ne 0) {
 
 # -- Step 3: git add (verified) --
 Write-Host "[3/4] git add ..." -ForegroundColor Cyan
+# 実行中にエクスポートを始めた場合に備えてもう一度 (Step 0 と同じ確認)
+if (-not (Assert-KekkaInputsSettled -Paths $settleTargets -Stage 'before git add')) { exit 1 }
 # data/cowork_results.json は generate_results.py が更新する Cowork 集計。
 # これを add し忘れると HF/master に反映されず、ダッシュボードの累計 P/L が凍結する
 # (2026-05-26 凍結事故の原因)。必ず含める。
@@ -198,8 +216,10 @@ git pull --rebase=merges --autostash origin master
 # 2026-11-16: pull の reset --hard がロック中のファイル (Excel/TARGET で開いた wide_kekka.csv) で失敗すると、
 # 退避した未コミットの変更が戻らず「リベース中」のまま残る (障害レース収集台帳の 1 行が消えた)。止めて知らせる。
 if ($LASTEXITCODE -ne 0 -or (Test-Path '.git\rebase-merge') -or (Test-Path '.git\rebase-apply')) {
+    # 2026-11-27: 「Excel 等」と書いていたが、11/21 は TARGET のエクスポート書き込み中だった。
     Write-Error ("git pull --rebase --autostash が完了しませんでした。退避した変更は .git\rebase-merge\autostash にあります。" +
-        " ロック中のファイル (Excel 等) を閉じてから 'git rebase --quit' → 'git stash list' の autostash を確認して戻してください。push は中止します。")
+        " ファイルを開いているもの (TARGET のエクスポート中・Excel・エディタ等) が終わってから 'git rebase --quit' → 'git stash list' の autostash を確認して戻してください。" +
+        " この状態のままだと次の実行も pull で止まります。push は中止します。")
     exit 1
 }
 git push origin HEAD:master
